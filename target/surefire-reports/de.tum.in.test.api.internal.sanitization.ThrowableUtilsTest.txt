@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: de.tum.in.test.api.internal.sanitization.ThrowableUtilsTest
+-------------------------------------------------------------------------------
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.81 s - in de.tum.in.test.api.internal.sanitization.ThrowableUtilsTest

@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: de.tum.in.test.integration.ValidationTest
+-------------------------------------------------------------------------------
+Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.597 s - in de.tum.in.test.integration.ValidationTest

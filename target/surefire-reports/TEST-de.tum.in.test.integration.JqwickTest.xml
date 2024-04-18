@@ -1,0 +1,355 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="de.tum.in.test.integration.JqwickTest" time="5.071" tests="19" errors="0" skipped="0" failures="0">
+  <properties>
+    <property name="java.specification.version" value="17"/>
+    <property name="sun.jnu.encoding" value="UTF-8"/>
+    <property name="java.class.path" value="/Users/markuspaulsen/Documents/UniPHD/ChristianFemers/GIT/target/test-classes:/Users/markuspaulsen/Documents/UniPHD/ChristianFemers/GIT/target/classes:/Users/markuspaulsen/.m2/repository/ch/qos/logback/logback-classic/1.4.5/logback-classic-1.4.5.jar:/Users/markuspaulsen/.m2/repository/ch/qos/logback/logback-core/1.4.5/logback-core-1.4.5.jar:/Users/markuspaulsen/.m2/repository/org/slf4j/slf4j-api/2.0.4/slf4j-api-2.0.4.jar:/Users/markuspaulsen/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.9.2/junit-jupiter-api-5.9.2.jar:/Users/markuspaulsen/.m2/repository/org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.jar:/Users/markuspaulsen/.m2/repository/org/junit/platform/junit-platform-commons/1.9.2/junit-platform-commons-1.9.2.jar:/Users/markuspaulsen/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/Users/markuspaulsen/.m2/repository/org/junit/platform/junit-platform-launcher/1.9.2/junit-platform-launcher-1.9.2.jar:/Users/markuspaulsen/.m2/repository/org/junit/platform/junit-platform-engine/1.9.2/junit-platform-engine-1.9.2.jar:/Users/markuspaulsen/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.9.2/junit-jupiter-engine-5.9.2.jar:/Users/markuspaulsen/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.9.2/junit-jupiter-params-5.9.2.jar:/Users/markuspaulsen/.m2/repository/org/junit/vintage/junit-vintage-engine/5.9.2/junit-vintage-engine-5.9.2.jar:/Users/markuspaulsen/.m2/repository/junit/junit/4.13.2/junit-4.13.2.jar:/Users/markuspaulsen/.m2/repository/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar:/Users/markuspaulsen/.m2/repository/org/hamcrest/hamcrest/2.2/hamcrest-2.2.jar:/Users/markuspaulsen/.m2/repository/org/assertj/assertj-core/3.24.1/assertj-core-3.24.1.jar:/Users/markuspaulsen/.m2/repository/net/bytebuddy/byte-buddy/1.12.21/byte-buddy-1.12.21.jar:/Users/markuspaulsen/.m2/repository/org/json/json/20220924/json-20220924.jar:/Users/markuspaulsen/.m2/repository/info/debatty/java-string-similarity/2.0.0/java-string-similarity-2.0.0.jar:/Users/markuspaulsen/.m2/repository/net/jcip/jcip-annotations/1.0/jcip-annotations-1.0.jar:/Users/markuspaulsen/.m2/repository/com/github/javaparser/javaparser-core/3.24.10/javaparser-core-3.24.10.jar:/Users/markuspaulsen/.m2/repository/org/junit/platform/junit-platform-testkit/1.9.2/junit-platform-testkit-1.9.2.jar:/Users/markuspaulsen/.m2/repository/net/jqwik/jqwik/1.7.1/jqwik-1.7.1.jar:/Users/markuspaulsen/.m2/repository/net/jqwik/jqwik-api/1.7.1/jqwik-api-1.7.1.jar:/Users/markuspaulsen/.m2/repository/net/jqwik/jqwik-web/1.7.1/jqwik-web-1.7.1.jar:/Users/markuspaulsen/.m2/repository/net/jqwik/jqwik-time/1.7.1/jqwik-time-1.7.1.jar:/Users/markuspaulsen/.m2/repository/net/jqwik/jqwik-engine/1.7.1/jqwik-engine-1.7.1.jar:"/>
+    <property name="java.vm.vendor" value="Amazon.com Inc."/>
+    <property name="sun.arch.data.model" value="64"/>
+    <property name="java.vendor.url" value="https://aws.amazon.com/corretto/"/>
+    <property name="user.timezone" value="Europe/Berlin"/>
+    <property name="os.name" value="Mac OS X"/>
+    <property name="java.vm.specification.version" value="17"/>
+    <property name="sun.java.launcher" value="SUN_STANDARD"/>
+    <property name="user.country" value="DE"/>
+    <property name="sun.boot.library.path" value="/Users/markuspaulsen/Library/Java/JavaVirtualMachines/corretto-17.0.3/Contents/Home/lib"/>
+    <property name="sun.java.command" value="/Users/markuspaulsen/Documents/UniPHD/ChristianFemers/GIT/target/surefire/surefirebooter-20230215165707290_3.jar /Users/markuspaulsen/Documents/UniPHD/ChristianFemers/GIT/target/surefire 2023-02-15T16-57-06_749-jvmRun1 surefire-20230215165707290_1tmp surefire_0-20230215165707290_2tmp"/>
+    <property name="jdk.debug" value="release"/>
+    <property name="surefire.test.class.path" value="/Users/markuspaulsen/Documents/UniPHD/ChristianFemers/GIT/target/test-classes:/Users/markuspaulsen/Documents/UniPHD/ChristianFemers/GIT/target/classes:/Users/markuspaulsen/.m2/repository/ch/qos/logback/logback-classic/1.4.5/logback-classic-1.4.5.jar:/Users/markuspaulsen/.m2/repository/ch/qos/logback/logback-core/1.4.5/logback-core-1.4.5.jar:/Users/markuspaulsen/.m2/repository/org/slf4j/slf4j-api/2.0.4/slf4j-api-2.0.4.jar:/Users/markuspaulsen/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.9.2/junit-jupiter-api-5.9.2.jar:/Users/markuspaulsen/.m2/repository/org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.jar:/Users/markuspaulsen/.m2/repository/org/junit/platform/junit-platform-commons/1.9.2/junit-platform-commons-1.9.2.jar:/Users/markuspaulsen/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/Users/markuspaulsen/.m2/repository/org/junit/platform/junit-platform-launcher/1.9.2/junit-platform-launcher-1.9.2.jar:/Users/markuspaulsen/.m2/repository/org/junit/platform/junit-platform-engine/1.9.2/junit-platform-engine-1.9.2.jar:/Users/markuspaulsen/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.9.2/junit-jupiter-engine-5.9.2.jar:/Users/markuspaulsen/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.9.2/junit-jupiter-params-5.9.2.jar:/Users/markuspaulsen/.m2/repository/org/junit/vintage/junit-vintage-engine/5.9.2/junit-vintage-engine-5.9.2.jar:/Users/markuspaulsen/.m2/repository/junit/junit/4.13.2/junit-4.13.2.jar:/Users/markuspaulsen/.m2/repository/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar:/Users/markuspaulsen/.m2/repository/org/hamcrest/hamcrest/2.2/hamcrest-2.2.jar:/Users/markuspaulsen/.m2/repository/org/assertj/assertj-core/3.24.1/assertj-core-3.24.1.jar:/Users/markuspaulsen/.m2/repository/net/bytebuddy/byte-buddy/1.12.21/byte-buddy-1.12.21.jar:/Users/markuspaulsen/.m2/repository/org/json/json/20220924/json-20220924.jar:/Users/markuspaulsen/.m2/repository/info/debatty/java-string-similarity/2.0.0/java-string-similarity-2.0.0.jar:/Users/markuspaulsen/.m2/repository/net/jcip/jcip-annotations/1.0/jcip-annotations-1.0.jar:/Users/markuspaulsen/.m2/repository/com/github/javaparser/javaparser-core/3.24.10/javaparser-core-3.24.10.jar:/Users/markuspaulsen/.m2/repository/org/junit/platform/junit-platform-testkit/1.9.2/junit-platform-testkit-1.9.2.jar:/Users/markuspaulsen/.m2/repository/net/jqwik/jqwik/1.7.1/jqwik-1.7.1.jar:/Users/markuspaulsen/.m2/repository/net/jqwik/jqwik-api/1.7.1/jqwik-api-1.7.1.jar:/Users/markuspaulsen/.m2/repository/net/jqwik/jqwik-web/1.7.1/jqwik-web-1.7.1.jar:/Users/markuspaulsen/.m2/repository/net/jqwik/jqwik-time/1.7.1/jqwik-time-1.7.1.jar:/Users/markuspaulsen/.m2/repository/net/jqwik/jqwik-engine/1.7.1/jqwik-engine-1.7.1.jar:"/>
+    <property name="sun.cpu.endian" value="little"/>
+    <property name="user.home" value="/Users/markuspaulsen"/>
+    <property name="user.language" value="de"/>
+    <property name="java.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.version.date" value="2022-04-19"/>
+    <property name="java.home" value="/Users/markuspaulsen/Library/Java/JavaVirtualMachines/corretto-17.0.3/Contents/Home"/>
+    <property name="file.separator" value="/"/>
+    <property name="basedir" value="/Users/markuspaulsen/Documents/UniPHD/ChristianFemers/GIT"/>
+    <property name="java.vm.compressedOopsMode" value="Zero based"/>
+    <property name="line.separator" value="&#10;"/>
+    <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.specification.name" value="Java Platform API Specification"/>
+    <property name="surefire.real.class.path" value="/Users/markuspaulsen/Documents/UniPHD/ChristianFemers/GIT/target/surefire/surefirebooter-20230215165707290_3.jar"/>
+    <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
+    <property name="java.runtime.version" value="17.0.3+6-LTS"/>
+    <property name="user.name" value="markuspaulsen"/>
+    <property name="path.separator" value=":"/>
+    <property name="os.version" value="12.6.3"/>
+    <property name="java.runtime.name" value="OpenJDK Runtime Environment"/>
+    <property name="file.encoding" value="UTF-8"/>
+    <property name="java.vm.name" value="OpenJDK 64-Bit Server VM"/>
+    <property name="java.vendor.version" value="Corretto-17.0.3.6.1"/>
+    <property name="localRepository" value="/Users/markuspaulsen/.m2/repository"/>
+    <property name="java.vendor.url.bug" value="https://github.com/corretto/corretto-17/issues/"/>
+    <property name="java.io.tmpdir" value="/var/folders/06/zkny378x76z6fr1t669ntwm80000gn/T/"/>
+    <property name="idea.version" value="2022.2.4"/>
+    <property name="java.version" value="17.0.3"/>
+    <property name="user.dir" value="/Users/markuspaulsen/Documents/UniPHD/ChristianFemers/GIT"/>
+    <property name="os.arch" value="x86_64"/>
+    <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
+    <property name="native.encoding" value="UTF-8"/>
+    <property name="java.library.path" value="/Users/markuspaulsen/Library/Java/Extensions:/Library/Java/Extensions:/Network/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java:."/>
+    <property name="java.vm.info" value="mixed mode, sharing"/>
+    <property name="java.vendor" value="Amazon.com Inc."/>
+    <property name="java.vm.version" value="17.0.3+6-LTS"/>
+    <property name="sun.io.unicode.encoding" value="UnicodeBig"/>
+    <property name="java.class.version" value="61.0"/>
+  </properties>
+  <testcase name="test_exampleHiddenCustomDeadlineFuture" classname="de.tum.in.test.integration.JqwickTest" time="0.002">
+    <system-out><![CDATA[timestamp = 2023-02-15T16:57:27.311111, JqwickUser:provokeTimeoutSleepTries = 
+  org.opentest4j.AssertionFailedError:
+    Zeitüberschreitung der Ausführung nach 200 ms
+
+                              |-----------------------jqwik-----------------------
+tries = 0                     | # of calls to property
+checks = 0                    | # of not rejected calls
+generation = <none>           | 
+after-failure = SAMPLE_FIRST  | try previously failed sample, then previous seed
+when-fixed-seed = ALLOW       | fixing the random seed is allowed
+edge-cases#mode = <none>      | 
+seed = <none>                 | random seed to reproduce generated values
+
+
+timestamp = 2023-02-15T16:57:27.568874, JqwickUser:provokeTimeoutSleepExample = 
+  org.opentest4j.AssertionFailedError:
+    Zeitüberschreitung der Ausführung nach 200 ms
+
+                              |-----------------------jqwik-----------------------
+tries = 0                     | # of calls to property
+checks = 0                    | # of not rejected calls
+generation = <none>           | 
+after-failure = SAMPLE_FIRST  | try previously failed sample, then previous seed
+when-fixed-seed = ALLOW       | fixing the random seed is allowed
+edge-cases#mode = <none>      | 
+seed = <none>                 | random seed to reproduce generated values
+
+
+timestamp = 2023-02-15T16:57:27.936407, JqwickUser:propertyUseIOTesterWrong = 
+  org.opentest4j.AssertionFailedError:
+    Expecting actual:
+      [Nummer 1: "aaaaa", Nummer 2: ""]
+    to contain exactly (and in same order):
+      [Zeile: "aaaaaa", Zeile: ""]
+    but some elements were not found:
+      [Zeile: "aaaaaa"]
+    and others were not expected:
+      [Nummer 1: "aaaaa"]
+
+                              |-----------------------jqwik-----------------------
+tries = 2                     | # of calls to property
+checks = 2                    | # of not rejected calls
+generation = RANDOMIZED       | parameters are randomly generated
+after-failure = SAMPLE_FIRST  | try previously failed sample, then previous seed
+when-fixed-seed = ALLOW       | fixing the random seed is allowed
+edge-cases#mode = MIXIN       | edge cases are mixed in
+edge-cases#total = 3          | # of all combined edge cases
+edge-cases#tried = 0          | # of edge cases tried in current run
+seed = -3065743206714088643   | random seed to reproduce generated values
+
+Shrunk Sample (11 steps)
+------------------------
+  arg0: de.tum.in.test.api.io.IOTester@36361ddb
+  arg1: "aaaaaa"
+
+Original Sample
+---------------
+  arg0: de.tum.in.test.api.io.IOTester@36361ddb
+  arg1: "dwjjkogchcahwpzbutnkowyobbnjx"
+
+  Original Error
+  --------------
+  org.opentest4j.AssertionFailedError:
+    Expecting actual:
+      [Nummer 1: "dwjjk", Nummer 2: ""]
+    to contain exactly (and in same order):
+      [Zeile: "dwjjkogchcahwpzbutnkowyobbnjx", Zeile: ""]
+    but some elements were not found:
+      [Zeile: "dwjjkogchcahwpzbutnkowyobbnjx"]
+    and others were not expected:
+      [Nummer 1: "dwjjk"]
+
+
+timestamp = 2023-02-15T16:57:28.998101, JqwickUser:provokeTimeoutEndlessLoop = 
+  org.opentest4j.AssertionFailedError:
+    Zeitüberschreitung der Ausführung nach 500 ms
+
+                              |-----------------------jqwik-----------------------
+tries = 0                     | # of calls to property
+checks = 0                    | # of not rejected calls
+generation = <none>           | 
+after-failure = SAMPLE_FIRST  | try previously failed sample, then previous seed
+when-fixed-seed = ALLOW       | fixing the random seed is allowed
+edge-cases#mode = <none>      | 
+seed = <none>                 | random seed to reproduce generated values
+
+
+timestamp = 2023-02-15T16:57:29.530155, JqwickUser:propertyPublicNormal = 
+                              |-----------------------jqwik-----------------------
+tries = 1000                  | # of calls to property
+checks = 1000                 | # of not rejected calls
+generation = RANDOMIZED       | parameters are randomly generated
+after-failure = SAMPLE_FIRST  | try previously failed sample, then previous seed
+when-fixed-seed = ALLOW       | fixing the random seed is allowed
+edge-cases#mode = MIXIN       | edge cases are mixed in
+edge-cases#total = 4          | # of all combined edge cases
+edge-cases#tried = 4          | # of edge cases tried in current run
+seed = 5844828091385584553    | random seed to reproduce generated values
+
+
+timestamp = 2023-02-15T16:57:30.163774, JqwickUser:propertyHiddenCustomDeadlinePast = 
+                              |-----------------------jqwik-----------------------
+tries = 1000                  | # of calls to property
+checks = 1000                 | # of not rejected calls
+generation = RANDOMIZED       | parameters are randomly generated
+after-failure = SAMPLE_FIRST  | try previously failed sample, then previous seed
+when-fixed-seed = ALLOW       | fixing the random seed is allowed
+edge-cases#mode = MIXIN       | edge cases are mixed in
+edge-cases#total = 4          | # of all combined edge cases
+edge-cases#tried = 4          | # of edge cases tried in current run
+seed = 747337471589925827     | random seed to reproduce generated values
+
+
+timestamp = 2023-02-15T16:57:30.165847, JqwickUser:propertyPublicCustomDeadline = 
+  java.lang.annotation.AnnotationFormatError:
+    Öffentlicher Test Optional[propertyPublicCustomDeadline] kann keine Deadline haben
+
+                              |-----------------------jqwik-----------------------
+tries = 0                     | # of calls to property
+checks = 0                    | # of not rejected calls
+generation = <none>           | 
+after-failure = SAMPLE_FIRST  | try previously failed sample, then previous seed
+when-fixed-seed = ALLOW       | fixing the random seed is allowed
+edge-cases#mode = <none>      | 
+seed = <none>                 | random seed to reproduce generated values
+
+
+timestamp = 2023-02-15T16:57:30.170551, JqwickUser:propertyHiddenCustomDeadlineFuture = 
+  org.opentest4j.AssertionFailedError:
+    Versteckte Tests werden nach der Deadline ausgeführt.
+
+                              |-----------------------jqwik-----------------------
+tries = 0                     | # of calls to property
+checks = 0                    | # of not rejected calls
+generation = <none>           | 
+after-failure = SAMPLE_FIRST  | try previously failed sample, then previous seed
+when-fixed-seed = ALLOW       | fixing the random seed is allowed
+edge-cases#mode = <none>      | 
+seed = <none>                 | random seed to reproduce generated values
+
+
+timestamp = 2023-02-15T16:57:30.923611, JqwickUser:provokeTimeoutSleepProperty = 
+  org.opentest4j.AssertionFailedError:
+    Zeitüberschreitung der Ausführung nach 200 ms
+
+                              |-----------------------jqwik-----------------------
+tries = 0                     | # of calls to property
+checks = 0                    | # of not rejected calls
+generation = <none>           | 
+after-failure = SAMPLE_FIRST  | try previously failed sample, then previous seed
+when-fixed-seed = ALLOW       | fixing the random seed is allowed
+edge-cases#mode = <none>      | 
+seed = <none>                 | random seed to reproduce generated values
+
+
+timestamp = 2023-02-15T16:57:30.925122, JqwickUser:examplePublicCustomDeadline = 
+  java.lang.annotation.AnnotationFormatError:
+    Öffentlicher Test Optional[examplePublicCustomDeadline] kann keine Deadline haben
+
+                              |-----------------------jqwik-----------------------
+tries = 0                     | # of calls to property
+checks = 0                    | # of not rejected calls
+generation = <none>           | 
+after-failure = SAMPLE_FIRST  | try previously failed sample, then previous seed
+when-fixed-seed = ALLOW       | fixing the random seed is allowed
+edge-cases#mode = <none>      | 
+seed = <none>                 | random seed to reproduce generated values
+
+
+timestamp = 2023-02-15T16:57:30.927497, JqwickUser:exampleHiddenCustomDeadlineFuture = 
+  org.opentest4j.AssertionFailedError:
+    Versteckte Tests werden nach der Deadline ausgeführt.
+
+                              |-----------------------jqwik-----------------------
+tries = 0                     | # of calls to property
+checks = 0                    | # of not rejected calls
+generation = <none>           | 
+after-failure = SAMPLE_FIRST  | try previously failed sample, then previous seed
+when-fixed-seed = ALLOW       | fixing the random seed is allowed
+edge-cases#mode = <none>      | 
+seed = <none>                 | random seed to reproduce generated values
+
+
+timestamp = 2023-02-15T16:57:31.598237, JqwickUser:propertyUseIOTesterCorrect = 
+                              |-----------------------jqwik-----------------------
+tries = 1000                  | # of calls to property
+checks = 1000                 | # of not rejected calls
+generation = RANDOMIZED       | parameters are randomly generated
+after-failure = SAMPLE_FIRST  | try previously failed sample, then previous seed
+when-fixed-seed = ALLOW       | fixing the random seed is allowed
+edge-cases#mode = MIXIN       | edge cases are mixed in
+edge-cases#total = 3          | # of all combined edge cases
+edge-cases#tried = 3          | # of edge cases tried in current run
+seed = -408303105088570407    | random seed to reproduce generated values
+
+
+timestamp = 2023-02-15T16:57:31.601125, JqwickUser:propertyHiddenNormal = 
+  org.opentest4j.AssertionFailedError:
+    Versteckte Tests werden nach der Deadline ausgeführt.
+
+                              |-----------------------jqwik-----------------------
+tries = 0                     | # of calls to property
+checks = 0                    | # of not rejected calls
+generation = <none>           | 
+after-failure = SAMPLE_FIRST  | try previously failed sample, then previous seed
+when-fixed-seed = ALLOW       | fixing the random seed is allowed
+edge-cases#mode = <none>      | 
+seed = <none>                 | random seed to reproduce generated values
+
+
+timestamp = 2023-02-15T16:57:31.605683, JqwickUser:exampleHiddenNormal = 
+  org.opentest4j.AssertionFailedError:
+    Versteckte Tests werden nach der Deadline ausgeführt.
+
+                              |-----------------------jqwik-----------------------
+tries = 0                     | # of calls to property
+checks = 0                    | # of not rejected calls
+generation = <none>           | 
+after-failure = SAMPLE_FIRST  | try previously failed sample, then previous seed
+when-fixed-seed = ALLOW       | fixing the random seed is allowed
+edge-cases#mode = <none>      | 
+seed = <none>                 | random seed to reproduce generated values
+
+
+]]></system-out>
+    <system-err><![CDATA[[DEBUG] [main] Validated build configuration regarding trusted package rules, 0 are missing.
+[INFO] [main] Request install with ASC-Impl [testMethod=Optional[void de.tum.in.test.integration.testuser.JqwickUser.provokeTimeoutSleepTries(int)], executionPath=/Users/markuspaulsen/Documents/UniPHD/ChristianFemers/GIT, whitelistedPaths=Optional[[PathRule["target/{classes,test-classes}/de/tum**" (GLOB) in WHITELIST; level READ], PathRule["**/*jdk*/**/bin/**" (GLOB_ABSOLUTE) in WHITELIST; level READ]]], blacklistedPaths=[], allowedLocalPorts=[], trustedPackages=[]]
+[INFO] [main] Request whitelisting: Thread[ajts-to-203,5,Test-Threadgroup] []
+[INFO] [main] Thread whitelisted: Thread[ajts-to-203,5,Test-Threadgroup]
+[INFO] [main] Request uninstall
+[DEBUG] [main] State TERMINATED after interrupt and join of Thread[ajts-to-203,5,]
+[DEBUG] [main] Validated build configuration regarding trusted package rules, 0 are missing.
+[INFO] [main] Request install with ASC-Impl [testMethod=Optional[void de.tum.in.test.integration.testuser.JqwickUser.provokeTimeoutSleepExample(int)], executionPath=/Users/markuspaulsen/Documents/UniPHD/ChristianFemers/GIT, whitelistedPaths=Optional[[PathRule["target/{classes,test-classes}/de/tum**" (GLOB) in WHITELIST; level READ], PathRule["**/*jdk*/**/bin/**" (GLOB_ABSOLUTE) in WHITELIST; level READ]]], blacklistedPaths=[], allowedLocalPorts=[], trustedPackages=[]]
+[INFO] [main] Request whitelisting: Thread[ajts-to-204,5,Test-Threadgroup] []
+[INFO] [main] Thread whitelisted: Thread[ajts-to-204,5,Test-Threadgroup]
+[INFO] [main] Request uninstall
+[DEBUG] [main] Validated build configuration regarding trusted package rules, 0 are missing.
+[INFO] [main] Request install with ASC-Impl [testMethod=Optional[void de.tum.in.test.integration.testuser.JqwickUser.testLocaleDe()], executionPath=/Users/markuspaulsen/Documents/UniPHD/ChristianFemers/GIT, whitelistedPaths=Optional[[PathRule["target/{classes,test-classes}/de/tum**" (GLOB) in WHITELIST; level READ], PathRule["**/*jdk*/**/bin/**" (GLOB_ABSOLUTE) in WHITELIST; level READ]]], blacklistedPaths=[], allowedLocalPorts=[], trustedPackages=[]]
+[INFO] [main] Request uninstall
+[DEBUG] [main] Validated build configuration regarding trusted package rules, 0 are missing.
+[INFO] [main] Request install with ASC-Impl [testMethod=Optional[void de.tum.in.test.integration.testuser.JqwickUser.propertyUseIOTesterWrong(de.tum.in.test.api.io.IOTester,java.lang.String)], executionPath=/Users/markuspaulsen/Documents/UniPHD/ChristianFemers/GIT, whitelistedPaths=Optional[[PathRule["target/{classes,test-classes}/de/tum**" (GLOB) in WHITELIST; level READ], PathRule["**/*jdk*/**/bin/**" (GLOB_ABSOLUTE) in WHITELIST; level READ]]], blacklistedPaths=[], allowedLocalPorts=[], trustedPackages=[]]
+[INFO] [main] Request uninstall
+[DEBUG] [main] Validated build configuration regarding trusted package rules, 0 are missing.
+[INFO] [main] Request install with ASC-Impl [testMethod=Optional[void de.tum.in.test.integration.testuser.JqwickUser.provokeTimeoutEndlessLoop(int)], executionPath=/Users/markuspaulsen/Documents/UniPHD/ChristianFemers/GIT, whitelistedPaths=Optional[[PathRule["target/{classes,test-classes}/de/tum**" (GLOB) in WHITELIST; level READ], PathRule["**/*jdk*/**/bin/**" (GLOB_ABSOLUTE) in WHITELIST; level READ]]], blacklistedPaths=[], allowedLocalPorts=[], trustedPackages=[]]
+[INFO] [main] Request whitelisting: Thread[ajts-to-205,5,Test-Threadgroup] []
+[INFO] [main] Thread whitelisted: Thread[ajts-to-205,5,Test-Threadgroup]
+[INFO] [main] Request uninstall
+[DEBUG] [main] State RUNNABLE after interrupt and join of Thread[ajts-to-205,5,Test-Threadgroup]
+[DEBUG] [main] Try 1 to stop Thread[ajts-to-205,5,Test-Threadgroup], state: RUNNABLE
+[DEBUG] [main] Validated build configuration regarding trusted package rules, 0 are missing.
+[INFO] [main] Request install with ASC-Impl [testMethod=Optional[boolean de.tum.in.test.integration.testuser.JqwickUser.propertyPublicNormal(int)], executionPath=/Users/markuspaulsen/Documents/UniPHD/ChristianFemers/GIT, whitelistedPaths=Optional[[PathRule["target/{classes,test-classes}/de/tum**" (GLOB) in WHITELIST; level READ], PathRule["**/*jdk*/**/bin/**" (GLOB_ABSOLUTE) in WHITELIST; level READ]]], blacklistedPaths=[], allowedLocalPorts=[], trustedPackages=[]]
+[INFO] [main] Request uninstall
+[WARN] [main] No time zone found for deadline "2000-01-01 16:00", using system default "Europe/Berlin" now. Please consider setting a time zone in case the build agents have a different time zone set.
+[DEBUG] [main] Validated build configuration regarding trusted package rules, 0 are missing.
+[INFO] [main] Request install with ASC-Impl [testMethod=Optional[void de.tum.in.test.integration.testuser.JqwickUser.exampleHiddenCustomDeadlinePast()], executionPath=/Users/markuspaulsen/Documents/UniPHD/ChristianFemers/GIT, whitelistedPaths=Optional[[PathRule["target/{classes,test-classes}/de/tum**" (GLOB) in WHITELIST; level READ], PathRule["**/*jdk*/**/bin/**" (GLOB_ABSOLUTE) in WHITELIST; level READ]]], blacklistedPaths=[], allowedLocalPorts=[], trustedPackages=[]]
+[INFO] [main] Request uninstall
+[DEBUG] [main] Validated build configuration regarding trusted package rules, 0 are missing.
+[INFO] [main] Request install with ASC-Impl [testMethod=Optional[void de.tum.in.test.integration.testuser.JqwickUser.examplePublicNormal()], executionPath=/Users/markuspaulsen/Documents/UniPHD/ChristianFemers/GIT, whitelistedPaths=Optional[[PathRule["target/{classes,test-classes}/de/tum**" (GLOB) in WHITELIST; level READ], PathRule["**/*jdk*/**/bin/**" (GLOB_ABSOLUTE) in WHITELIST; level READ]]], blacklistedPaths=[], allowedLocalPorts=[], trustedPackages=[]]
+[INFO] [main] Request uninstall
+[WARN] [main] No time zone found for deadline "2000-01-01 16:00", using system default "Europe/Berlin" now. Please consider setting a time zone in case the build agents have a different time zone set.
+[DEBUG] [main] Validated build configuration regarding trusted package rules, 0 are missing.
+[INFO] [main] Request install with ASC-Impl [testMethod=Optional[boolean de.tum.in.test.integration.testuser.JqwickUser.propertyHiddenCustomDeadlinePast(int)], executionPath=/Users/markuspaulsen/Documents/UniPHD/ChristianFemers/GIT, whitelistedPaths=Optional[[PathRule["target/{classes,test-classes}/de/tum**" (GLOB) in WHITELIST; level READ], PathRule["**/*jdk*/**/bin/**" (GLOB_ABSOLUTE) in WHITELIST; level READ]]], blacklistedPaths=[], allowedLocalPorts=[], trustedPackages=[]]
+[INFO] [main] Request uninstall
+[WARN] [main] No time zone found for deadline "2200-01-01 16:00", using system default "Europe/Berlin" now. Please consider setting a time zone in case the build agents have a different time zone set.
+[DEBUG] [main] Validated build configuration regarding trusted package rules, 0 are missing.
+[INFO] [main] Request install with ASC-Impl [testMethod=Optional[void de.tum.in.test.integration.testuser.JqwickUser.provokeTimeoutSleepProperty(int)], executionPath=/Users/markuspaulsen/Documents/UniPHD/ChristianFemers/GIT, whitelistedPaths=Optional[[PathRule["target/{classes,test-classes}/de/tum**" (GLOB) in WHITELIST; level READ], PathRule["**/*jdk*/**/bin/**" (GLOB_ABSOLUTE) in WHITELIST; level READ]]], blacklistedPaths=[], allowedLocalPorts=[], trustedPackages=[]]
+[INFO] [main] Request whitelisting: Thread[ajts-to-206,5,Test-Threadgroup] []
+[INFO] [main] Thread whitelisted: Thread[ajts-to-206,5,Test-Threadgroup]
+[INFO] [main] Request uninstall
+[DEBUG] [main] State TIMED_WAITING after interrupt and join of Thread[ajts-to-206,5,Test-Threadgroup]
+[DEBUG] [main] Try 1 to stop Thread[ajts-to-206,5,Test-Threadgroup], state: TIMED_WAITING
+[WARN] [main] No time zone found for deadline "2200-01-01 16:00", using system default "Europe/Berlin" now. Please consider setting a time zone in case the build agents have a different time zone set.
+[DEBUG] [main] Validated build configuration regarding trusted package rules, 0 are missing.
+[INFO] [main] Request install with ASC-Impl [testMethod=Optional[void de.tum.in.test.integration.testuser.JqwickUser.propertyUseIOTesterCorrect(de.tum.in.test.api.io.IOTester,java.lang.String)], executionPath=/Users/markuspaulsen/Documents/UniPHD/ChristianFemers/GIT, whitelistedPaths=Optional[[PathRule["target/{classes,test-classes}/de/tum**" (GLOB) in WHITELIST; level READ], PathRule["**/*jdk*/**/bin/**" (GLOB_ABSOLUTE) in WHITELIST; level READ]]], blacklistedPaths=[], allowedLocalPorts=[], trustedPackages=[]]
+[INFO] [main] Request uninstall
+[WARN] [main] No time zone found for deadline "2200-01-01 16:00", using system default "Europe/Berlin" now. Please consider setting a time zone in case the build agents have a different time zone set.
+[WARN] [main] No time zone found for deadline "2200-01-01 16:00", using system default "Europe/Berlin" now. Please consider setting a time zone in case the build agents have a different time zone set.
+]]></system-err>
+  </testcase>
+  <testcase name="test_exampleHiddenCustomDeadlinePast" classname="de.tum.in.test.integration.JqwickTest" time="0.002"/>
+  <testcase name="test_exampleHiddenNormal" classname="de.tum.in.test.integration.JqwickTest" time="0.001"/>
+  <testcase name="test_examplePublicCustomDeadline" classname="de.tum.in.test.integration.JqwickTest" time="0.003"/>
+  <testcase name="test_examplePublicNormal" classname="de.tum.in.test.integration.JqwickTest" time="0.001"/>
+  <testcase name="test_propertyHiddenCustomDeadlineFuture" classname="de.tum.in.test.integration.JqwickTest" time="0"/>
+  <testcase name="test_propertyHiddenCustomDeadlinePast" classname="de.tum.in.test.integration.JqwickTest" time="0"/>
+  <testcase name="test_propertyHiddenNormal" classname="de.tum.in.test.integration.JqwickTest" time="0.001"/>
+  <testcase name="test_propertyPublicCustomDeadline" classname="de.tum.in.test.integration.JqwickTest" time="0.001"/>
+  <testcase name="test_propertyPublicNormal" classname="de.tum.in.test.integration.JqwickTest" time="0.001"/>
+  <testcase name="test_propertyUseIOTesterCorrect" classname="de.tum.in.test.integration.JqwickTest" time="0"/>
+  <testcase name="test_propertyUseIOTesterWrong" classname="de.tum.in.test.integration.JqwickTest" time="0.003"/>
+  <testcase name="test_provokeTimeoutEndlessLoop" classname="de.tum.in.test.integration.JqwickTest" time="0.002"/>
+  <testcase name="test_provokeTimeoutSleepExample" classname="de.tum.in.test.integration.JqwickTest" time="0.001"/>
+  <testcase name="test_provokeTimeoutSleepProperty" classname="de.tum.in.test.integration.JqwickTest" time="0"/>
+  <testcase name="test_provokeTimeoutSleepTries" classname="de.tum.in.test.integration.JqwickTest" time="0"/>
+  <testcase name="test_testHiddenIncomplete" classname="de.tum.in.test.integration.JqwickTest" time="0.001"/>
+  <testcase name="test_testLocaleDe" classname="de.tum.in.test.integration.JqwickTest" time="0.001"/>
+  <testcase name="test_testPublicIncomplete" classname="de.tum.in.test.integration.JqwickTest" time="0.001"/>
+</testsuite>

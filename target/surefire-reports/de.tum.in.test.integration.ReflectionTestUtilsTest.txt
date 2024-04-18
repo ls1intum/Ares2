@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: de.tum.in.test.integration.ReflectionTestUtilsTest
+-------------------------------------------------------------------------------
+Tests run: 37, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.344 s - in de.tum.in.test.integration.ReflectionTestUtilsTest

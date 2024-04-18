@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: de.tum.in.test.integration.ThreadTest
+-------------------------------------------------------------------------------
+Tests run: 8, Failures: 0, Errors: 0, Skipped: 1, Time elapsed: 1.63 s - in de.tum.in.test.integration.ThreadTest
