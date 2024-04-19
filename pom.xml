@@ -8,6 +8,7 @@
 	<properties>
 		<maven.compiler.source>21</maven.compiler.source>
 		<maven.compiler.target>21</maven.compiler.target>
+		<junit-pioneer-version>2.2.0</junit-pioneer-version>
 		<junit-jupiter-version>5.10.2</junit-jupiter-version>
 		<junit-platform-version>1.10.2</junit-platform-version>
 		<jqwik-version>1.8.4</jqwik-version>
@@ -20,11 +21,38 @@
 		<gpg.key.id>D1A045E1DD48B876</gpg.key.id>
 	</properties>
 	<dependencies>
-		<!-- 1. Has dependencies on junit-jupiter-api, junit-jupiter-params and junit-platform-launcher -->
+		<!-- Junit frameworks -->
 		<dependency>
 			<groupId>org.junit-pioneer</groupId>
 			<artifactId>junit-pioneer</artifactId>
-			<version>2.2.0</version>
+			<version>${junit-pioneer-version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-engine</artifactId>
+			<version>${junit-jupiter-version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-api</artifactId>
+			<version>${junit-jupiter-version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-params</artifactId>
+			<version>${junit-jupiter-version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.vintage</groupId>
+			<artifactId>junit-vintage-engine</artifactId>
+			<version>${junit-jupiter-version}</version>
+			<scope>provided</scope>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.platform</groupId>
+			<artifactId>junit-platform-launcher</artifactId>
+			<version>${junit-platform-version}</version>
 		</dependency>
 		<!-- Logging framework -->
 		<dependency>
@@ -77,6 +105,11 @@
 			<version>${jqwik-version}</version>
 			<scope>provided</scope>
 			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.apiguardian</groupId>
+			<artifactId>apiguardian-api</artifactId>
+			<version>1.1.2</version>
 		</dependency>
 	</dependencies>
 	<build>
