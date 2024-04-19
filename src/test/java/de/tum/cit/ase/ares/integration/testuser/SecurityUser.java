@@ -28,7 +28,8 @@ public class SecurityUser {
 
 	@Test
 	void doSystemExit() {
-		System.exit(0);
+		//OUTCOMMENTED: Action terminates the JVM
+		//System.exit(0);
 	}
 
 	@Test

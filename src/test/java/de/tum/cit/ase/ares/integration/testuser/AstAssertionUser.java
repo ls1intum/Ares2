@@ -19,8 +19,8 @@ import de.tum.cit.ase.ares.api.localization.UseLocale;
 public class AstAssertionUser {
 
 	private static final String BASE_PACKAGE = "de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles";
-	private static final Path UNSUPPORTED_LEVEL_BASE_PATH = Path.of("src", "test", "resources", "de", "tum", "in",
-			"test", "integration", "testuser", "javaClassesWithUnsupportedFeatures");
+	private static final Path UNSUPPORTED_LEVEL_BASE_PATH = Path.of("src", "test", "resources", "de", "tum", "cit",
+			"ase", "ares", "integration", "testuser", "javaClassesWithUnsupportedFeatures");
 
 	private String mavenOld;
 	private String gradleOld;
