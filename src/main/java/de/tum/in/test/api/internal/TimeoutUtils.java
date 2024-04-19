@@ -15,7 +15,7 @@ import org.opentest4j.AssertionFailedError;
 
 import de.tum.in.test.api.*;
 import de.tum.in.test.api.context.*;
-import de.tum.in.test.api.security.ArtemisSecurityManager;
+//REMOVED: Import of ArtemisSecurityManager
 
 @API(status = Status.INTERNAL)
 public final class TimeoutUtils {
@@ -24,7 +24,7 @@ public final class TimeoutUtils {
 		/*
 		 * Initialize SecurityManager when we are still in the main thread
 		 */
-		ArtemisSecurityManager.isInstalled();
+		//REMOVED: Installation of ArtemisSecurityManager;
 	}
 
 	private TimeoutUtils() {
@@ -58,7 +58,7 @@ public final class TimeoutUtils {
 
 	private static <T> T executeWithTimeout(Duration timeout, Callable<T> action, TestContext context)
 			throws Throwable { // NOSONAR
-		ArtemisSecurityManager.revokeThreadWhitelisting();
+		//REMOVED: Revoke thread-whitelisting from ArtemisSecurityManager
 		var executorService = Executors.newSingleThreadExecutor(new WhitelistedThreadFactory());
 		try {
 			Future<T> future = executorService.submit(action);
@@ -107,7 +107,7 @@ public final class TimeoutUtils {
 			var thread = new Thread(r, "ajts-to-" + TIMEOUT_THREAD_ID.getAndIncrement()); //$NON-NLS-1$
 			if (thread.getPriority() != Thread.NORM_PRIORITY)
 				thread.setPriority(Thread.NORM_PRIORITY);
-			ArtemisSecurityManager.requestThreadWhitelisting(thread);
+			//REMOVED: Thread-whitelisting-request to ArtemisSecurityManager
 			return thread;
 		}
 	}

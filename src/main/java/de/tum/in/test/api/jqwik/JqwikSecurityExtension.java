@@ -8,7 +8,7 @@ import org.apiguardian.api.API.Status;
 import net.jqwik.api.lifecycle.*;
 
 import de.tum.in.test.api.internal.ConfigurationUtils;
-import de.tum.in.test.api.security.ArtemisSecurityManager;
+//REMOVED: Import of ArtemisSecurityManager
 
 /**
  * <p>
@@ -29,7 +29,7 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
 			throws Throwable {
 		var testContext = JqwikContext.of(context);
 		var configuration = ConfigurationUtils.generateConfiguration(testContext);
-		var accessToken = ArtemisSecurityManager.install(configuration);
+//REMOVED: Installing of ArtemisSecurityManager
 		PropertyExecutionResult result;
 		Throwable error = null;
 		try {
@@ -39,7 +39,7 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
 			result = property.execute();
 		} finally {
 			try {
-				ArtemisSecurityManager.uninstall(accessToken);
+				//REMOVED: InInstallation of ArtemisSecurityManager
 			} catch (Exception e) {
 				error = e;
 			}

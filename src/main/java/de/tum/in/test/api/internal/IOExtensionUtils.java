@@ -13,7 +13,7 @@ import org.apiguardian.api.API.Status;
 import de.tum.in.test.api.WithIOManager;
 import de.tum.in.test.api.context.*;
 import de.tum.in.test.api.io.*;
-import de.tum.in.test.api.security.ArtemisSecurityManager;
+//REMOVED: Import of ArtemisSecurityManager
 
 @API(status = Status.INTERNAL)
 public final class IOExtensionUtils {
@@ -24,7 +24,7 @@ public final class IOExtensionUtils {
 		/*
 		 * Initialize SecurityManager when we are still in the main thread
 		 */
-		ArtemisSecurityManager.isInstalled();
+		//REMOVED: Installation of ArtemisSecurityManager;
 	}
 
 	private static final HashMap<Class<? extends IOManager<?>>, Supplier<? extends IOManager<?>>> ioManagerCache = new HashMap<>();

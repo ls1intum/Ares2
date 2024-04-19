@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicReference;
 
-import de.tum.in.test.api.security.ArtemisSecurityManager;
+//REMOVED: Import of ArtemisSecurityManager
 
 public final class ThreadPenguin extends Thread {
 
@@ -64,7 +64,7 @@ public final class ThreadPenguin extends Thread {
 	public static void tryThreadWhitelisting() throws Throwable {
 		AtomicReference<Throwable> failure = new AtomicReference<>();
 		Thread t = new Thread(() -> Path.of("pom.xml").toFile().canWrite());
-		ArtemisSecurityManager.requestThreadWhitelisting(t);
+		//REMOVED: Thread-whitelisting-request to ArtemisSecurityManager
 		t.setUncaughtExceptionHandler((t1, e) -> failure.set(e));
 		t.start();
 		t.join();

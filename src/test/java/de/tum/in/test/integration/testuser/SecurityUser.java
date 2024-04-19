@@ -80,10 +80,7 @@ public class SecurityUser {
 		SecurityPenguin.newClassLoader();
 	}
 
-	@Test
-	void testNewSecurityManager() {
-		SecurityPenguin.newSecurityManager();
-	}
+	//REMOVED: Test for a new SecurityManager
 
 	@Test
 	@AddTrustedPackage("xyz.**")
@@ -101,10 +98,7 @@ public class SecurityUser {
 		SecurityPenguin.tryManageProcess();
 	}
 
-	@Test
-	void trySetSecurityManager() {
-		SecurityPenguin.trySetSecurityManagerNull();
-	}
+	//REMOVED: Test for setting the SecurityManager to null
 
 	@Test
 	void trySetSystemOut() {
@@ -141,10 +135,7 @@ public class SecurityUser {
 		SecurityPenguin.useReflection();
 	}
 
-	@Test
-	void useReflectionPrivileged() {
-		SecurityPenguin.useReflectionPrivileged();
-	}
+	//REMOVED: Test for privileged reflection
 
 	@Test
 	void useReflectionTrick() throws Throwable {

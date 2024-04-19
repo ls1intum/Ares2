@@ -60,9 +60,7 @@ public final class IOTester {
 
 	public synchronized void install() {
 		// check permission already here, we need to be allowed to set system IO
-		SecurityManager sm = System.getSecurityManager();
-		if (sm != null)
-			sm.checkPermission(new RuntimePermission("setIO")); //$NON-NLS-1$
+		//REMOVED: Getting the system's SecurityManager
 		// if this is a problem, make sure to install the security manager after
 		// IOTester
 

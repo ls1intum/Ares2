@@ -11,7 +11,7 @@ import org.slf4j.*;
 
 import de.tum.in.test.api.context.TestContext;
 import de.tum.in.test.api.internal.sanitization.*;
-import de.tum.in.test.api.security.ArtemisSecurityManager;
+//REMOVED: Import of ArtemisSecurityManager
 
 /**
  * For handling and post processing Exceptions and Errors.
@@ -80,11 +80,6 @@ public final class ReportingUtils {
 
 	private static void addStackframeInfoToMessage(ThrowableInfo info) {
 		StackTraceElement[] stackTrace = info.getStackTrace();
-		var first = ArtemisSecurityManager.firstNonWhitelisted(stackTrace);
-		if (first.isPresent()) {
-			var call = first.get().toString();
-			info.setMessage(Objects.toString(info.getMessage(), "") + "\n" //$NON-NLS-1$ //$NON-NLS-2$
-					+ localized("reporting.problem_location_hint", call)); //$NON-NLS-1$
-		}
+		//REMOVED: Asking ArtemisSecurityManager for the first forbidden thread
 	}
 }

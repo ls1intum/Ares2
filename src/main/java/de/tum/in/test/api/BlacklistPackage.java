@@ -8,11 +8,11 @@ import java.lang.annotation.*;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 
-import de.tum.in.test.api.security.ArtemisSecurityManager;
+//REMOVED: Import of ArtemisSecurityManager
 
 /**
  * Allows to blacklist a package, possibly including all subpackages. The
- * {@link ArtemisSecurityManager} will disallow any access for
+ * REMOVED: Link to ArtemisSecurityManager will disallow any access for
  * <b>non-whitelisted callers</b> outside the set of whitelisted packages. This
  * annotation is {@linkplain Repeatable}, and can be placed additively on the
  * test class and test method.

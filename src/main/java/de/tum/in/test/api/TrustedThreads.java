@@ -8,7 +8,7 @@ import java.lang.annotation.*;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 
-import de.tum.in.test.api.security.ArtemisSecurityManager;
+//REMOVED: Import of ArtemisSecurityManager
 
 /**
  * Allows to specify which threads are trusted and whitelisted.
@@ -48,7 +48,7 @@ import de.tum.in.test.api.security.ArtemisSecurityManager;
  * <p>
  * If test code requires a single thread to be whitelisted and the test code has
  * access to this thread, consider using
- * {@link ArtemisSecurityManager#requestThreadWhitelisting(Thread)}.
+ * REMOVED: Link to ArtemisSecurityManager.requestThreadWhitelisting(Thread).
  *
  * @since 1.7.3
  * @version 1.1.0

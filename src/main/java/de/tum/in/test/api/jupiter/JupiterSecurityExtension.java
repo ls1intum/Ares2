@@ -7,7 +7,7 @@ import org.apiguardian.api.API.Status;
 import org.junit.jupiter.api.extension.*;
 
 import de.tum.in.test.api.internal.ConfigurationUtils;
-import de.tum.in.test.api.security.ArtemisSecurityManager;
+//REMOVED: Import of ArtemisSecurityManager
 
 @API(status = Status.INTERNAL)
 public final class JupiterSecurityExtension implements UnifiedInvocationInterceptor {
@@ -17,7 +17,7 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
 			Optional<ReflectiveInvocationContext<?>> invocationContext) throws Throwable {
 		var testContext = JupiterContext.of(extensionContext);
 		var configuration = ConfigurationUtils.generateConfiguration(testContext);
-		var accessToken = ArtemisSecurityManager.install(configuration);
+//REMOVED: Installing of ArtemisSecurityManager
 		Throwable failure = null;
 		try {
 			return invocation.proceed();
@@ -25,7 +25,7 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
 			failure = t;
 		} finally {
 			try {
-				ArtemisSecurityManager.uninstall(accessToken);
+				//REMOVED: Uninstallation of ArtemisSecurityManager
 			} catch (Exception e) {
 				if (failure == null)
 					failure = e;

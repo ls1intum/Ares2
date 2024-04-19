@@ -18,7 +18,7 @@ import de.tum.in.test.api.jupiter.*;
  * {@link Assertions#assertTimeoutPreemptively(java.time.Duration, org.junit.jupiter.api.function.Executable)
  * Assertions.assertTimeoutPreemptively} and {@link Assertions}, section
  * preemptive timeout. Very different in behavior to {@link Timeout}. This
- * annotation does no cause problems with the ArtemisSecurityManager and can
+ * annotation does no cause problems with the //REMOVED: Mention of the ArtemisSecurityManager and can
  * terminate tests stuck in endless loops (which {@link Timeout} can not).
  * <p>
  * To use {@link StrictTimeout} <b>without</b> any {@link Public} or

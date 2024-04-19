@@ -9,11 +9,11 @@ import java.nio.file.Path;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 
-import de.tum.in.test.api.security.ArtemisSecurityManager;
+//REMOVED: Import of ArtemisSecurityManager
 
 /**
  * Allows to blacklist a {@link Path}, including all subpaths. The
- * {@link ArtemisSecurityManager} will disallow any fileaccess for
+ * REMOVED: Link to ArtemisSecurityManager will disallow any fileaccess for
  * <b>non-whitelisted callers</b> outside the set of whitelisted paths. This
  * annotation is {@linkplain Repeatable}, and can be placed additively on the
  * test class and test method.Different types can be set to gain more control

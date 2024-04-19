@@ -5,7 +5,7 @@ import static de.tum.in.test.api.localization.Messages.localized;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 
-import de.tum.in.test.api.security.ArtemisSecurityManager;
+//REMOVED: Import of ArtemisSecurityManager
 
 @API(status = Status.INTERNAL)
 public final class PrivilegedException extends RuntimeException {
@@ -16,7 +16,7 @@ public final class PrivilegedException extends RuntimeException {
 
 	public PrivilegedException(Throwable priviledgedThrowable) {
 		super("priviledged " + priviledgedThrowable.getClass(), null, false, false); //$NON-NLS-1$
-		ArtemisSecurityManager.checkCurrentStack(() -> localized("security.privileged_throw_not_allowed")); //$NON-NLS-1$
+		//REMOVED: Asking ArtemisSecurityManager for checking the current stack
 		this.priviledgedThrowable = priviledgedThrowable;
 	}
 

@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: de.tum.in.test.integration.StrictTimeoutTest
--------------------------------------------------------------------------------
-Tests run: 13, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.89 s - in de.tum.in.test.integration.StrictTimeoutTest

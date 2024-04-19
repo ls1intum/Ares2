@@ -13,6 +13,6 @@ public final class PathAccessPenguin {
 	}
 
 	public static void askForFilePermission(String path) {
-		System.getSecurityManager().checkPermission(new FilePermission(path, "read"));
+		//REMOVED: Checking Permission of the system's SecurityManager for "read"
 	}
 }

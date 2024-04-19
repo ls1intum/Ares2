@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: de.tum.in.test.integration.AstAssertionTest
--------------------------------------------------------------------------------
-Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 9.632 s - in de.tum.in.test.integration.AstAssertionTest

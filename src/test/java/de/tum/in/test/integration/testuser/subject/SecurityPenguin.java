@@ -22,7 +22,7 @@ public final class SecurityPenguin {
 	}
 
 	public static void definePackage() {
-		System.getSecurityManager().checkPackageDefinition("java.util");
+		//REMOVED: Checking Package Definition of the system's SecurityManager for "java.util"
 	}
 
 	public static void maliciousExceptionA() {
@@ -48,49 +48,12 @@ public final class SecurityPenguin {
 		new URLClassLoader(new URL[0]).close();
 	}
 
-	@SuppressWarnings("unused")
-	public static void newSecurityManager() {
-		new SecurityManager();
-	}
+	//REMOVED: Creating a new Security Manager
 
 	public static boolean tryEvilPermission() {
 		AtomicBoolean ab = new AtomicBoolean();
 		try {
-			System.getSecurityManager().checkPermission(new Permission("setIO") {
-
-				private static final long serialVersionUID = 1L;
-
-				@Override
-				public boolean equals(Object obj) {
-					return false;
-				}
-
-				@Override
-				public String getActions() {
-					return null;
-				}
-
-				@Override
-				public int hashCode() {
-					return 0;
-				}
-
-				@Override
-				public boolean implies(Permission permission) {
-					return false;
-				}
-
-				@Override
-				public String toString() {
-					try {
-						PathAccessPenguin.accessPath(Path.of("pom.xml"));
-						ab.set(true);
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-					return super.toString();
-				}
-			});
+			//REMOVED: Checking Permission of the system's SecurityManager for "setIO"
 		} catch (@SuppressWarnings("unused") SecurityException e) {
 			// do nothing
 		}
@@ -115,9 +78,7 @@ public final class SecurityPenguin {
 		ProcessHandle.current().destroy();
 	}
 
-	public static void trySetSecurityManagerNull() {
-		System.setSecurityManager(null);
-	}
+	//REMOVED: Setting the SecurityManager to null
 
 	@SuppressWarnings("resource")
 	public static void trySetSystemOut() {
@@ -180,14 +141,5 @@ public final class SecurityPenguin {
 		SomeClass.class.getDeclaredConstructor(String.class).trySetAccessible();
 	}
 
-	public static void useReflectionPrivileged() {
-		AccessController.doPrivileged((PrivilegedAction<String>) () -> {
-			try {
-				Class.forName("de.tum.in.test.api.io.IOTester").getDeclaredFields()[0].setAccessible(true);
-			} catch (ClassNotFoundException e) {
-				e.printStackTrace();
-			}
-			return "42";
-		});
-	}
+	// REMOVED: Doing privileged actions on the AccessController
 }

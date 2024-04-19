@@ -14,7 +14,7 @@ import de.tum.in.test.api.*;
 import de.tum.in.test.api.MirrorOutput.MirrorOutputPolicy;
 import de.tum.in.test.api.jupiter.PublicTest;
 import de.tum.in.test.api.localization.UseLocale;
-import de.tum.in.test.api.security.ArtemisSecurityManager;
+//REMOVED: Import of ArtemisSecurityManager
 import de.tum.in.test.integration.testuser.subject.ThreadPenguin;
 
 @UseLocale("en")
@@ -71,7 +71,7 @@ public class ThreadUser {
 	void threadWhitelistingWithPathCorrect() throws Throwable {
 		AtomicReference<Throwable> failure = new AtomicReference<>();
 		Thread t = new Thread(() -> Path.of("pom.xml").toFile().canWrite());
-		ArtemisSecurityManager.requestThreadWhitelisting(t);
+		//REMOVED: Thread-whitelisting-request to ArtemisSecurityManager
 		t.setUncaughtExceptionHandler((t1, e) -> failure.set(e));
 		t.start();
 		t.join();
