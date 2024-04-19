@@ -19,3 +19,17 @@ gradle-app.setting
 .project
 # JDT-specific (Eclipse Java Development Tools)
 .classpath
+
+#Ares 1
+/target/
+/.settings/*
+/reports
+!/.settings/org.eclipse.*
+!/.settings/eclipse*rules*
+/artemis-java-test-sandbox.iml
+/Ares.iml
+/.idea
+/.jqwik-database
+/build
+/.gradle
+
