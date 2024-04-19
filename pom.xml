@@ -4,36 +4,10 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>de.tum.cit.ase</groupId>
 	<artifactId>ares</artifactId>
-	<version>1.13.1-SNAPSHOT</version>
-	<name>Ares</name>
-	<description>The Artemis Java Test Sandbox. A JUnit 5 Extension for secure Artemis Java Testing.</description>
-	<url>https://github.com/ls1intum/Ares</url>
-	<inceptionYear>2019</inceptionYear>
-	<licenses>
-		<license>
-			<name>MIT</name>
-			<url>https://opensource.org/licenses/MIT</url>
-			<comments>See https://github.com/ls1intum/Ares/blob/master/LICENSE</comments>
-		</license>
-	</licenses>
-	<developers>
-		<developer>
-			<name>Christian Femers</name>
-			<email>christian.femers@tum.de</email>
-			<organization>Technical University of Munich</organization>
-			<organizationUrl>https://www.tum.de</organizationUrl>
-		</developer>
-	</developers>
-
-	<scm>
-		<url>https://github.com/ls1intum/Ares</url>
-		<connection>scm:git:https://github.com/ls1intum/Ares.git</connection>
-		<developerConnection>scm:git:https://github.com/ls1intum/Ares.git</developerConnection>
-	</scm>
-
+	<version>2.0.0-SNAPSHOT</version>
 	<properties>
-		<maven.compiler.source>11</maven.compiler.source>
-		<maven.compiler.target>11</maven.compiler.target>
+		<maven.compiler.source>21</maven.compiler.source>
+		<maven.compiler.target>21</maven.compiler.target>
 		<junit-jupiter-version>5.10.2</junit-jupiter-version>
 		<junit-platform-version>1.10.2</junit-platform-version>
 		<jqwik-version>1.8.4</jqwik-version>
@@ -45,60 +19,44 @@
 		<!-- full certificate fingerprint: B58E410970742EF7AD0FDD48D1A045E1DD48B876 -->
 		<gpg.key.id>D1A045E1DD48B876</gpg.key.id>
 	</properties>
-
 	<dependencies>
+		<!-- 1. Has dependencies on junit-jupiter-api, junit-jupiter-params and junit-platform-launcher -->
+		<dependency>
+			<groupId>org.junit-pioneer</groupId>
+			<artifactId>junit-pioneer</artifactId>
+			<version>2.2.0</version>
+		</dependency>
+		<!-- Logging framework -->
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-classic</artifactId>
 			<version>1.5.3</version>
 		</dependency>
-		<dependency>
-			<groupId>org.junit.jupiter</groupId>
-			<artifactId>junit-jupiter-api</artifactId>
-			<version>${junit-jupiter-version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.junit.platform</groupId>
-			<artifactId>junit-platform-launcher</artifactId>
-			<version>${junit-platform-version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.junit.jupiter</groupId>
-			<artifactId>junit-jupiter-engine</artifactId>
-			<version>${junit-jupiter-version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.junit.jupiter</groupId>
-			<artifactId>junit-jupiter-params</artifactId>
-			<version>${junit-jupiter-version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.junit.vintage</groupId>
-			<artifactId>junit-vintage-engine</artifactId>
-			<version>${junit-jupiter-version}</version>
-			<scope>provided</scope>
-			<optional>true</optional>
-		</dependency>
+		<!-- Declarative 'match' rule framework -->
 		<dependency>
 			<groupId>org.hamcrest</groupId>
 			<artifactId>hamcrest</artifactId>
 			<version>2.2</version>
 		</dependency>
+		<!-- Framework for improving assertions -->
 		<dependency>
 			<groupId>org.assertj</groupId>
 			<artifactId>assertj-core</artifactId>
 			<version>3.25.3</version>
 		</dependency>
+		<!-- Framework for working with JSON -->
 		<dependency>
 			<groupId>org.json</groupId>
 			<artifactId>json</artifactId>
 			<version>20240303</version>
 		</dependency>
+		<!-- Framework for analysing the distance of strings -->
 		<dependency>
 			<groupId>info.debatty</groupId>
 			<artifactId>java-string-similarity</artifactId>
 			<version>2.0.0</version>
 		</dependency>
+		<!-- Basis for AST checks -->
 		<dependency>
 			<groupId>com.github.javaparser</groupId>
 			<artifactId>javaparser-core</artifactId>
@@ -120,13 +78,7 @@
 			<scope>provided</scope>
 			<optional>true</optional>
 		</dependency>
-		<dependency>
-			<groupId>org.apiguardian</groupId>
-			<artifactId>apiguardian-api</artifactId>
-			<version>1.1.2</version>
-		</dependency>
 	</dependencies>
-
 	<build>
 		<plugins>
 			<plugin>
@@ -260,10 +212,10 @@
 						<configuration>
 							<rules>
 								<requireMavenVersion>
-									<version>[3.6,)</version>
+									<version>[3.9,)</version>
 								</requireMavenVersion>
 								<requireJavaVersion>
-									<version>[11,)</version>
+									<version>[21,)</version>
 								</requireJavaVersion>
 							</rules>
 						</configuration>
@@ -342,7 +294,52 @@
 			</plugin>
 		</plugins>
 	</build>
-
+	<name>Ares</name>
+	<description>A JUnit 5 Extension for secure Artemis Java Testing.</description>
+	<url>https://github.com/ls1intum/Ares2</url>
+	<inceptionYear>2024</inceptionYear>
+	<licenses>
+		<license>
+			<name>MIT</name>
+			<url>https://opensource.org/licenses/MIT</url>
+			<comments>See https://github.com/ls1intum/Ares2/blob/master/LICENSE</comments>
+		</license>
+	</licenses>
+	<organization>
+		<name>Technical University of Munich, School of Computation, Information and Technology , Research Group Applied Software Engineering</name>
+		<url>https://ase.cit.tum.de/</url>
+	</organization>
+	<developers>
+		<developer>
+			<id>MarkusPaulsen</id>
+			<name>Markus Paulsen</name>
+			<email>markus.paulsen@tum.de</email>
+			<url>https://ase.cit.tum.de/people/paulsen/</url>
+			<organization>Technical University of Munich, School of Computation, Information and Technology , Research Group Applied Software Engineering</organization>
+			<organizationUrl>https://ase.cit.tum.de/</organizationUrl>
+			<roles>
+				<role>scientific researcher</role>
+			</roles>
+			<timezone>Europe/Berlin</timezone>
+		</developer>
+	</developers>
+	<contributors>
+		<contributor>
+			<name>Christian Femers</name>
+			<email>christian.femers@tum.de</email>
+			<organization>Technical University of Munich</organization>
+			<organizationUrl>https://www.tum.de</organizationUrl>
+			<roles>
+				<role>Creator of Ares 1.0</role>
+			</roles>
+			<timezone>Europe/Berlin</timezone>
+		</contributor>
+	</contributors>
+	<scm>
+		<url>https://github.com/ls1intum/Ares2</url>
+		<connection>scm:git:https://github.com/ls1intum/Ares2.git</connection>
+		<developerConnection>scm:git:https://github.com/ls1intum/Ares2.git</developerConnection>
+	</scm>
 	<profiles>
 		<!-- For code coverage using JaCoCo -->
 		<profile>
