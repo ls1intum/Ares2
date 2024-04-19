@@ -2,8 +2,8 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>de.tum.in.ase</groupId>
-	<artifactId>artemis-java-test-sandbox</artifactId>
+	<groupId>de.tum.cit.ase</groupId>
+	<artifactId>ares</artifactId>
 	<version>1.13.1-SNAPSHOT</version>
 	<name>Ares</name>
 	<description>The Artemis Java Test Sandbox. A JUnit 5 Extension for secure Artemis Java Testing.</description>
@@ -119,6 +119,11 @@
 			<version>${jqwik-version}</version>
 			<scope>provided</scope>
 			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.apiguardian</groupId>
+			<artifactId>apiguardian-api</artifactId>
+			<version>1.1.2</version>
 		</dependency>
 	</dependencies>
 
@@ -277,7 +282,7 @@
 										<file>${project.build.outputDirectory}/com/intellij/</file>
 										<file>${project.build.outputDirectory}/com/sun/</file>
 										<!-- We cannot fulfill this one because we are building those classes here
-										<file>${project.build.outputDirectory}/de/tum/in/test/api/</file> -->
+										<file>${project.build.outputDirectory}/de/tum/cit/ase/ares/api/</file> -->
 										<file>${project.build.outputDirectory}/java/</file>
 										<file>${project.build.outputDirectory}/javax/</file>
 										<file>${project.build.outputDirectory}/jdk/</file>
@@ -291,7 +296,7 @@
 										<file>${project.build.outputDirectory}/org/opentest4j/</file>
 										<file>${project.build.outputDirectory}/sun/</file>
 										<file>${project.build.outputDirectory}/com/github/javaparser/</file>
-										<!-- Required for de.tum.in.test.api.security.ArtemisSecurityConfigurationTest -->
+										<!-- Required for de.tum.cit.ase.ares.api.security.ArtemisSecurityConfigurationTest -->
 										<!-- <file>${project.build.outputDirectory}/abc/def/</file> -->
 										<file>${project.build.outputDirectory}/org/gradle/</file>
 										<file>${project.build.outputDirectory}/worker/org/gradle/</file>

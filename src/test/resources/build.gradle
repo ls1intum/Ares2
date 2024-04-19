@@ -26,8 +26,8 @@ test {
     systemProperty "file.encoding", "utf-8"
     useJUnitPlatform()
     filter {
-        includeTestsMatching "de.tum.in.test.integration.**"
-        excludeTestsMatching "de.tum.in.test.integration.testuser.**"
+        includeTestsMatching "de.tum.cit.ase.ares.integration.**"
+        excludeTestsMatching "de.tum.cit.ase.ares.integration.testuser.**"
     }
 }
 

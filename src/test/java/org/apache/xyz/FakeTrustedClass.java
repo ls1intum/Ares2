@@ -2,7 +2,7 @@ package org.apache.xyz;
 
 import java.util.concurrent.*;
 
-import de.tum.in.test.api.io.IOTester;
+import de.tum.cit.ase.ares.api.io.IOTester;
 
 public class FakeTrustedClass {
 

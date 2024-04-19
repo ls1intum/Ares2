@@ -202,8 +202,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
 // IMPORTANT: make sure to use the "jupiter" ones (if you are not using jqwik)
-import de.tum.in.test.api.jupiter.Hidden;
-import de.tum.in.test.api.jupiter.Public;
+import de.tum.cit.ase.ares.api.jupiter.Hidden;
+import de.tum.cit.ase.ares.api.jupiter.Public;
 
 // This example won't work just like that, see below why
 public class PenguinTest {
@@ -365,7 +365,7 @@ Maven:
                     <file>${project.build.outputDirectory}/com/github/javaparser/</file>
                     <file>${project.build.outputDirectory}/com/intellij/</file>
                     <file>${project.build.outputDirectory}/com/sun/</file>
-                    <file>${project.build.outputDirectory}/de/tum/in/test/api/</file>
+                    <file>${project.build.outputDirectory}/de/tum/cit/ase/ares/api/</file>
                     <file>${project.build.outputDirectory}/java/</file>
                     <file>${project.build.outputDirectory}/javax/</file>
                     <file>${project.build.outputDirectory}/jdk/</file>
@@ -396,7 +396,7 @@ def forbiddenPackageFolders = [ //<2>
     "$studentOutputDir/com/github/javaparser/",
     "$studentOutputDir/com/intellij/",
     "$studentOutputDir/com/sun/",
-    "$studentOutputDir/de/tum/in/test/api/",
+    "$studentOutputDir/de/tum/cit/ase/ares/api/",
     "$studentOutputDir/java/",
     "$studentOutputDir/javax/",
     "$studentOutputDir/jdk/",
@@ -533,7 +533,7 @@ There are three different ways how the timeouts can work:
   tests. It will only try to stop the test via an interrupt, but if
   that fails it will simply carry on. The test thread might still run,
   though.
-* like `de.tum.in.test.api.StrictTimeout` +
+* like `de.tum.cit.ase.ares.api.StrictTimeout` +
   This uses a mechanism similar to `assertTimeoutPreemptively`, but
   will resort to harder means if necessary.
   It will in the following order:
@@ -647,7 +647,7 @@ void testSquareCorrect(IOTester tester) { //<1>
     blocks, be aware of their newline handling).
 
 Note that Ares normalizes the line breaks to `\n`, and
-https://github.com/ls1intum/Ares/blob/master/src/main/java/de/tum/in/test/api/io/OutputTester.java[`OutputTester`]
+https://github.com/ls1intum/Ares/blob/master/src/main/java/de/tum/cit/ase/ares/api/io/OutputTester.java[`OutputTester`]
 offers many different approaches to checking output (e.g. single string, list of strings, ...).
 
 If students read more lines than provided, they get the following feedback:
@@ -656,7 +656,7 @@ java.lang.IllegalStateException: no further console input request after the last
 ...
 
 See also `IOTester` and for more examples, the
-https://github.com/ls1intum/Ares/blob/master/src/test/java/de/tum/in/test/integration/testuser/InputOutputUser.java[`InputOutputUser`]
+https://github.com/ls1intum/Ares/blob/master/src/test/java/de/tum/cit/ase/ares/integration/testuser/InputOutputUser.java[`InputOutputUser`]
 test.
 
 <<showing-standard-output>> covers how the student output is
@@ -669,7 +669,7 @@ you can provide a custom implementation by applying `@WithIOManager(MyCustomOne.
 to e.g. the test class or individual methods. This also allows you to register
 a custom parameter to control IO testing with ease inside the test method.
 Have a look into the test class linked above to learn more or read the documentation of
-https://github.com/ls1intum/Ares/blob/master/src/main/java/de/tum/in/test/api/io/IOManager.java[`IOManager`].
+https://github.com/ls1intum/Ares/blob/master/src/main/java/de/tum/cit/ase/ares/api/io/IOManager.java[`IOManager`].
 ====
 
 ==== Networking
@@ -684,7 +684,7 @@ a way that they cannot be stopped (waiting in native code), so we
 recommend using timeouts for connections at least on one end consistently.
 
 For examples, have a look at the test
-https://github.com/ls1intum/Ares/blob/master/src/test/java/de/tum/in/test/integration/testuser/NetworkUser.java[`NetworkUser`].
+https://github.com/ls1intum/Ares/blob/master/src/test/java/de/tum/cit/ase/ares/integration/testuser/NetworkUser.java[`NetworkUser`].
 
 ==== Locale
 
@@ -697,7 +697,7 @@ where the annotation is applied.
 Ares is currently localized in German (`de_DE`) and English (`en_US`),
 where `en_US` is the fallback for any other locale.
 
-See also the https://github.com/ls1intum/Ares/blob/master/src/test/java/de/tum/in/test/integration/testuser/LocaleUser.java[`LocaleUser`]
+See also the https://github.com/ls1intum/Ares/blob/master/src/test/java/de/tum/cit/ase/ares/integration/testuser/LocaleUser.java[`LocaleUser`]
 test for more examples.
 
 == Additional Notes
