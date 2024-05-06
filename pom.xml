@@ -10,6 +10,7 @@
 		<maven.compiler.target>21</maven.compiler.target>
 		<junit-pioneer-version>2.2.0</junit-pioneer-version>
 		<junit-jupiter-version>5.10.2</junit-jupiter-version>
+		<java-parser-version>3.25.9</java-parser-version>
 		<junit-platform-version>1.10.2</junit-platform-version>
 		<jqwik-version>1.8.4</jqwik-version>
 		<spotless.version>2.43.0</spotless.version>
@@ -88,7 +89,17 @@
 		<dependency>
 			<groupId>com.github.javaparser</groupId>
 			<artifactId>javaparser-core</artifactId>
-			<version>3.25.9</version>
+			<version>${java-parser-version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.github.javaparser</groupId>
+			<artifactId>javaparser-symbol-solver-core</artifactId>
+			<version>${java-parser-version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.jgrapht</groupId>
+			<artifactId>jgrapht-core</artifactId>
+			<version>1.5.2</version>
 		</dependency>
 		<!-- For testing we use a test framework testing framework -->
 		<dependency>
