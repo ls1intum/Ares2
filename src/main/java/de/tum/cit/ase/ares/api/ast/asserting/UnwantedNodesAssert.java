@@ -35,18 +35,14 @@ public class UnwantedNodesAssert extends AbstractAssert<UnwantedNodesAssert, Pat
 	private final LanguageLevel level;
 
 	/**
-	 * Whether to exclude the main method for the Java parser Default is set to true
+	 * Whether to exclude the main method for the Java parser Default is set to false
 	 */
 	private final boolean excludeMainMethod;
 
-	private UnwantedNodesAssert(Path path, LanguageLevel level) {
-		this(path, level, false);
-	}
-
 	private UnwantedNodesAssert(Path path, LanguageLevel level, boolean excludeMainMethod) {
 		super(requireNonNull(path), UnwantedNodesAssert.class);
-		this.excludeMainMethod = excludeMainMethod;
 		this.level = level;
+		this.excludeMainMethod = excludeMainMethod;
 		if (!Files.isDirectory(path)) {
 			fail("The source directory %s does not exist", path); //$NON-NLS-1$
 		}
@@ -68,7 +64,7 @@ public class UnwantedNodesAssert extends AbstractAssert<UnwantedNodesAssert, Pat
 				+ " Make sure the build file is configured correctly." //$NON-NLS-1$
 				+ " If it is not located in the execution folder directly," //$NON-NLS-1$
 				+ " set the location using AresConfiguration methods.")); //$NON-NLS-1$
-		return new UnwantedNodesAssert(path, null);
+		return new UnwantedNodesAssert(path, null, false);
 	}
 
 	/**
@@ -80,7 +76,7 @@ public class UnwantedNodesAssert extends AbstractAssert<UnwantedNodesAssert, Pat
 	 */
 	public static UnwantedNodesAssert assertThatSourcesIn(Path directory) {
 		Objects.requireNonNull(directory, "The given source path must not be null."); //$NON-NLS-1$
-		return new UnwantedNodesAssert(directory, null);
+		return new UnwantedNodesAssert(directory, null, false);
 	}
 
 	/**
@@ -88,7 +84,7 @@ public class UnwantedNodesAssert extends AbstractAssert<UnwantedNodesAssert, Pat
 	 * package, including all of its sub-packages.
 	 *
 	 * @param packageName Java package name in the form of, e.g.,
-	 *                    <code>de.tum.in.test.api</code>, which is resolved
+	 *                    <code>de.tum.cit.ase.ares.api</code>, which is resolved
 	 *                    relative to the path of this UnwantedNodesAssert.
 	 * @return An unwanted node assertion object (for chaining)
 	 * @implNote The package is split at "." with the resulting segments being
@@ -138,8 +134,7 @@ public class UnwantedNodesAssert extends AbstractAssert<UnwantedNodesAssert, Pat
 			failWithMessage("The 'level' is not set. Please use UnwantedNodesAssert.withLanguageLevel(LanguageLevel)."); //$NON-NLS-1$
 		}
 		StaticJavaParser.getParserConfiguration().setLanguageLevel(level);
-		Optional<String> errorMessage = UnwantedNode.getMessageForUnwantedNodesForAllFilesBelow(actual,
-				type.getNodeNameNodeMap(), excludeMainMethod);
+		Optional<String> errorMessage = UnwantedNode.getMessageForUnwantedNodesForAllFilesBelow(actual, type.getNodeNameNodeMap(), excludeMainMethod);
 		errorMessage.ifPresent(unwantedNodeMessageForAllJavaFiles -> failWithMessage(
 				localized("ast.method.has_no") + System.lineSeparator() + unwantedNodeMessageForAllJavaFiles)); //$NON-NLS-1$
 		return this;
