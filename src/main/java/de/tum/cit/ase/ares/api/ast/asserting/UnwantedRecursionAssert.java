@@ -52,10 +52,6 @@ public class UnwantedRecursionAssert extends AbstractAssert<UnwantedRecursionAss
         }
     }
 
-    private UnwantedRecursionAssert(Path path, LanguageLevel level) {
-        this(path, level, null);
-    }
-
     /**
      * Creates an unwanted simple recursion assertion object for all project source files.
      * <p>
@@ -72,7 +68,7 @@ public class UnwantedRecursionAssert extends AbstractAssert<UnwantedRecursionAss
                         + " Make sure the build file is configured correctly." //$NON-NLS-1$
                         + " If it is not located in the execution folder directly," //$NON-NLS-1$
                         + " set the location using AresConfiguration methods.")); //$NON-NLS-1$
-        return new UnwantedRecursionAssert(path, null);
+        return new UnwantedRecursionAssert(path, null, null);
     }
 
     /**
@@ -84,7 +80,7 @@ public class UnwantedRecursionAssert extends AbstractAssert<UnwantedRecursionAss
      */
     public static UnwantedRecursionAssert assertThatSourcesIn(Path directory) {
         Objects.requireNonNull(directory, "The given source path must not be null."); //$NON-NLS-1$
-        return new UnwantedRecursionAssert(directory, null);
+        return new UnwantedRecursionAssert(directory, null, null);
     }
 
     /**
