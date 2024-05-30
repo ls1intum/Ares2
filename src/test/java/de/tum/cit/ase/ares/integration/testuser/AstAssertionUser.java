@@ -1,13 +1,22 @@
 package de.tum.cit.ase.ares.integration.testuser;
 
+import java.awt.*;
 import java.io.IOException;
 import java.nio.file.Path;
 
 import de.tum.cit.ase.ares.api.ast.asserting.UnwantedRecursionAssert;
+import de.tum.cit.ase.ares.api.ast.model.JavaFxCheck;
+import de.tum.cit.ase.ares.api.ast.model.MethodCallGraph;
+import de.tum.cit.ase.ares.api.ast.model.MethodCallGraphGenerator;
 import de.tum.cit.ase.ares.api.util.ReflectionTestUtils;
+import de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.javafx.TodoApp;
 import de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.ClassWithNoExcludeMethods;
 import de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.RandomParameterThatShouldBeResolved;
 import de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.startingNode.ClassWithMethodsCallingEachOther;
+import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.scene.control.Button;
 import org.junit.jupiter.api.*;
 
 import com.github.javaparser.ParserConfiguration;
@@ -17,6 +26,8 @@ import de.tum.cit.ase.ares.api.ast.asserting.UnwantedNodesAssert;
 import de.tum.cit.ase.ares.api.ast.type.*;
 import de.tum.cit.ase.ares.api.jupiter.Public;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Public
 @UseLocale("en")
@@ -544,6 +555,20 @@ public class AstAssertionUser {
 					.withinPackage(BASE_PACKAGE + ".recursions.lambda")
 					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
 					.hasRecursion();
+		}
+	}
+
+	@Nested
+	@DisplayName("JavaFX-Tests")
+	class JavaFXTests {
+
+		@Test
+		void implementation() {
+			MethodCallGraph graph =
+			MethodCallGraphGenerator.createMethodCallGraph(Path.of("/home/sarps/IdeaProjects/Ares2/src/test/java/de/tum/cit/ase/ares/integration/testuser/subject/structural/astTestFiles/javafx"), ParserConfiguration.LanguageLevel.JAVA_17);
+
+			assertTrue(JavaFxCheck.methodCallsMethod(Path.of("/home/sarps/IdeaProjects/Ares2/src/test/java/de/tum/cit/ase/ares/integration/testuser/subject/structural/astTestFiles/javafx"), ParserConfiguration.LanguageLevel.JAVA_17, "javafx.scene.control.ButtonBase.setOnAction(javafx.event.EventHandler<javafx.event.ActionEvent>)", "de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.javafx.TodoApp.TodoItem.setCompleted(boolean)").isEmpty());
+
 		}
 	}
 }

@@ -5,14 +5,19 @@ import org.apiguardian.api.API;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.nio.dot.DOTExporter;
+import org.jgrapht.traverse.BreadthFirstIterator;
 import org.jgrapht.traverse.DepthFirstIterator;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Writer;
 import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-import static de.tum.cit.ase.ares.api.ast.model.RecursionCheck.getParametersOfMethod;
+import static de.tum.cit.ase.ares.api.ast.model.MethodCallGraphGenerator.getParametersOfMethod;
 
 /**
  * Create a graph of method calls from a CompilationUnit
@@ -23,8 +28,11 @@ public class MethodCallGraph {
 
     private final Set<String> excludedMethodIdentifiers;
 
-    public MethodCallGraph(Method... excludedMethods) {
+    private final int depthLimit;
+
+    public MethodCallGraph(int depthLimit, Method... excludedMethods) {
         this.graph = new DefaultDirectedGraph<>(DefaultEdge.class);
+        this.depthLimit = depthLimit;
         this.excludedMethodIdentifiers = new HashSet<>();
         for (Method m : excludedMethods) {
             if (m != null) {
@@ -39,7 +47,7 @@ public class MethodCallGraph {
      * @param cu CompilationUnit to be parsed
      */
     public void createGraph(CompilationUnit cu) {
-        cu.accept(new VisitorAdapter(graph, excludedMethodIdentifiers), null);
+        cu.accept(new VisitorAdapter(graph, excludedMethodIdentifiers, depthLimit), null);
     }
 
     /**
@@ -80,6 +88,32 @@ public class MethodCallGraph {
         }
 
         return subgraph;
+    }
+
+    public boolean methodCallsMethod(String startVertex, String endVertex) {
+        // Initialize DepthFirstIterator
+        Iterator<String> iterator = new BreadthFirstIterator<>(graph, startVertex);
+
+        Set<DefaultEdge> test = graph.edgeSet();
+
+        // Iterate through the graph
+        while (iterator.hasNext()) {
+            String vertex = iterator.next();
+            if (vertex.equals(endVertex)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public void exportToDotFile(String filePath) {
+        DOTExporter<String, DefaultEdge> exporter = new DOTExporter<>(s -> s);
+        try (Writer writer = new FileWriter(filePath)) {
+            exporter.exportGraph(graph, writer);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public Graph<String, DefaultEdge> getGraph() {

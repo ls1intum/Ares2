@@ -13,9 +13,12 @@ public class VisitorAdapter extends VoidVisitorAdapter<Void> {
 
     private final Set<String> excludedMethodIdentifiers;
 
-    public VisitorAdapter(Graph<String, DefaultEdge> graph, Set<String> excludedMethodIdentifiers) {
+    private final int depthLimit;
+
+    public VisitorAdapter(Graph<String, DefaultEdge> graph, Set<String> excludedMethodIdentifiers, int depthLimit) {
         this.graph = graph;
         this.excludedMethodIdentifiers = excludedMethodIdentifiers;
+        this.depthLimit = depthLimit;
     }
 
     @Override
@@ -27,9 +30,21 @@ public class VisitorAdapter extends VoidVisitorAdapter<Void> {
         }
         graph.addVertex(vertexName);
         md.findAll(MethodCallExpr.class).forEach(mce -> {
-            String calleeVertexName = mce.resolve().getQualifiedSignature();
-            graph.addVertex(calleeVertexName);
-            graph.addEdge(vertexName, calleeVertexName);
+            visitMethodCall(mce, vertexName, 0, depthLimit); // Start with depth 1
         });
+    }
+
+    private void visitMethodCall(MethodCallExpr mce, String callerVertexName, int currentDepth, int depthLimit) {
+        String calleeVertexName = mce.resolve().getQualifiedSignature();
+        graph.addVertex(calleeVertexName);
+        graph.addEdge(callerVertexName, calleeVertexName);
+
+        // Check if we have reached the depth limit
+        if (currentDepth < depthLimit) {
+            // Recursively visit method calls within the callee method with increased depth
+            mce.findAll(MethodCallExpr.class).forEach(innerMce -> {
+                visitMethodCall(innerMce, calleeVertexName, currentDepth + 1, depthLimit);
+            });
+        }
     }
 }

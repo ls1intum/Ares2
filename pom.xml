@@ -11,6 +11,7 @@
 		<junit-pioneer-version>2.2.0</junit-pioneer-version>
 		<junit-jupiter-version>5.10.2</junit-jupiter-version>
 		<java-parser-version>3.25.9</java-parser-version>
+        <javafx.version>19</javafx.version>
 		<junit-platform-version>1.10.2</junit-platform-version>
 		<jqwik-version>1.8.4</jqwik-version>
 		<spotless.version>2.43.0</spotless.version>
@@ -96,9 +97,24 @@
 			<artifactId>javaparser-symbol-solver-core</artifactId>
 			<version>${java-parser-version}</version>
 		</dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-controls</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-fxml</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
 		<dependency>
 			<groupId>org.jgrapht</groupId>
 			<artifactId>jgrapht-core</artifactId>
+			<version>1.5.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.jgrapht</groupId>
+			<artifactId>jgrapht-io</artifactId>
 			<version>1.5.2</version>
 		</dependency>
 		<!-- For testing we use a test framework testing framework -->
