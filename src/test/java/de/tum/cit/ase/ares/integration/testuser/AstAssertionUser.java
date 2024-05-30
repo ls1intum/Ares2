@@ -453,5 +453,12 @@ public class AstAssertionUser {
 					.excludeMainMethod().withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
 					.hasNo(LoopType.ANY);
 		}
+
+		@Test
+		void testHasNoLoopsOutsideMainMethod_Fail() {
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".excludeMain.no")
+					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.hasNo(LoopType.ANY);
+		}
 	}
 }

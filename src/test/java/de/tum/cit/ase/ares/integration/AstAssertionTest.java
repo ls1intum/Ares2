@@ -661,5 +661,18 @@ public class AstAssertionTest {
 									+ ":" + System.lineSeparator() + "  - For-Statement was found:"
 									+ System.lineSeparator() + "   - Between line 6 (column 3) and line 8 (column 3)"));
 		}
+
+		@TestTest
+		void test_testWithoutExcludeMain_Fail() {
+			String testWithoutExcludeMain_Fail = "testHasNoLoopsOutsideMainMethod_Fail";
+			tests.assertThatEvents().haveExactly(1,
+					testFailedWith(testWithoutExcludeMain_Fail, AssertionError.class,
+							"Unwanted statement found:" + System.lineSeparator() + " - In "
+									+ Path.of("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration",
+									"testuser", "subject", "structural", "astTestFiles", "excludeMain", "no",
+									"ClassWithNoLoopsOutsideMainMethod.java")
+									+ ":" + System.lineSeparator() + "  - For-Statement was found:"
+									+ System.lineSeparator() + "   - Between line 53 (column 3) and line 55 (column 3)"));
+		}
 	}
 }
