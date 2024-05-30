@@ -30,7 +30,7 @@ public class VisitorAdapter extends VoidVisitorAdapter<Void> {
         }
         graph.addVertex(vertexName);
         md.findAll(MethodCallExpr.class).forEach(mce -> {
-            visitMethodCall(mce, vertexName, 0, depthLimit); // Start with depth 1
+            visitMethodCall(mce, vertexName, 1, depthLimit); // Start with depth 1
         });
     }
 

@@ -38,8 +38,8 @@ public class MethodCallGraphGenerator {
      * @param level         JavaParser Language Level
      * @return Method call graph
      */
-    public static MethodCallGraph createMethodCallGraph(Path pathToSrcRoot, ParserConfiguration.LanguageLevel level, Method... excludedMethods) {
-        MethodCallGraph methodCallGraph = new MethodCallGraph(3, excludedMethods);
+    public static MethodCallGraph createMethodCallGraph(Path pathToSrcRoot, ParserConfiguration.LanguageLevel level, int depthLimit, Method... excludedMethods) {
+        MethodCallGraph methodCallGraph = new MethodCallGraph(depthLimit, excludedMethods);
         List<Optional<CompilationUnit>> asts = parseFromSourceRoot(pathToSrcRoot, level);
         for (Optional<CompilationUnit> ast : asts) {
             ast.ifPresent(methodCallGraph::createGraph);

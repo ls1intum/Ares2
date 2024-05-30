@@ -31,7 +31,7 @@ public class RecursionCheck {
      * @return Optional.empty() if recursive call is detected, otherwise an error message
      */
     public static Optional<String> hasCycle(Path pathToSrcRoot, ParserConfiguration.LanguageLevel level, Method startingNode, Method... excludedMethods) {
-        MethodCallGraph graph = createMethodCallGraph(pathToSrcRoot, level, excludedMethods);
+        MethodCallGraph graph = createMethodCallGraph(pathToSrcRoot, level, 1, excludedMethods);
         return !checkCycle(graph, startingNode).isEmpty() ? Optional.empty() : Optional.of("No recursive call detected");
     }
 
@@ -44,7 +44,7 @@ public class RecursionCheck {
      * @return Optional.empty() if no recursive call is detected, otherwise an error message with methods in the detected cycle
      */
     public static Optional<String> hasNoCycle(Path pathToSrcRoot, ParserConfiguration.LanguageLevel level, Method startingNode, Method... excludedMethods) {
-        MethodCallGraph graph = createMethodCallGraph(pathToSrcRoot, level, excludedMethods);
+        MethodCallGraph graph = createMethodCallGraph(pathToSrcRoot, level, 1, excludedMethods);
         return checkCycle(graph, startingNode).stream().reduce((s1, s2) -> String.join(", ", s1, s2));
     }
 

@@ -9,7 +9,7 @@ import java.util.Optional;
 public class JavaFxCheck {
 
     public static Optional<String> methodCallsMethod(Path pathToSrcRoot, ParserConfiguration.LanguageLevel level, String startingNode, String methodToCall) {
-        MethodCallGraph graph = MethodCallGraphGenerator.createMethodCallGraph(pathToSrcRoot, level);
+        MethodCallGraph graph = MethodCallGraphGenerator.createMethodCallGraph(pathToSrcRoot, level, 3);
 
         return graph.methodCallsMethod(startingNode, methodToCall) ? Optional.empty() : Optional.of("DOES NOT CALL THE METHOD");
     }
