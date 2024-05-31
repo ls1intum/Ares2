@@ -567,6 +567,8 @@ public class AstAssertionUser {
 
 			assertTrue(JavaFxCheck.methodCallsMethod(Path.of("/home/sarps/IdeaProjects/Ares2/src/test/java/de/tum/cit/ase/ares/integration/testuser/subject/structural/astTestFiles/javafx"), ParserConfiguration.LanguageLevel.JAVA_17, "javafx.scene.control.ButtonBase.setOnAction(javafx.event.EventHandler<javafx.event.ActionEvent>)", "de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.javafx.TodoApp.TodoItem.setCompleted(boolean)").isEmpty());
 
+			JavaFxCheck.javaFxCheck(Path.of("/home/sarps/IdeaProjects/Ares2/src/test/java/de/tum/cit/ase/ares/integration/testuser/subject/structural/astTestFiles/javafx"), ParserConfiguration.LanguageLevel.JAVA_17);
+
 		}
 	}
 }
