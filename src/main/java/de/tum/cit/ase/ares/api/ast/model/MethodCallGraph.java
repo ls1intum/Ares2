@@ -15,9 +15,10 @@ import java.io.Writer;
 import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
-import static de.tum.cit.ase.ares.api.ast.model.MethodCallGraphGenerator.getParametersOfMethod;
+import static de.tum.cit.ase.ares.api.ast.model.MethodCallGraphGenerator.renderVertexName;
 
 /**
  * Create a graph of method calls from a CompilationUnit
@@ -30,15 +31,10 @@ public class MethodCallGraph {
 
     private final int depthLimit;
 
-    public MethodCallGraph(int depthLimit, Method... excludedMethods) {
+    public MethodCallGraph(int depthLimit, String... excludedMethods) {
         this.graph = new DefaultDirectedGraph<>(DefaultEdge.class);
         this.depthLimit = depthLimit;
-        this.excludedMethodIdentifiers = new HashSet<>();
-        for (Method m : excludedMethods) {
-            if (m != null) {
-                excludedMethodIdentifiers.add(m.getDeclaringClass().getName() + "." + m.getName() + getParametersOfMethod(m));
-            }
-        }
+        this.excludedMethodIdentifiers = new HashSet<>(List.of(excludedMethods));
     }
 
     /**

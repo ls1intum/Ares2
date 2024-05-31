@@ -17,6 +17,7 @@ import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBase;
 import org.junit.jupiter.api.*;
 
 import com.github.javaparser.ParserConfiguration;
@@ -456,12 +457,13 @@ public class AstAssertionUser {
 	@Nested
 	@DisplayName("Recursion-Tests")
 	class RecursionTests {
+
 		@Test
 		void testExcludesPassedMethods_Success() {
 			UnwantedRecursionAssert.assertThatProjectSources()
 					.withinPackage(BASE_PACKAGE + ".recursions.excludeMethods")
 					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.excludeMethods(ReflectionTestUtils.getMethod(ClassWithNoExcludeMethods.class, "something", RandomParameterThatShouldBeResolved.class))
+					.excludeMethods(BASE_PACKAGE + ".recursions.excludeMethods.ClassWithNoExcludeMethods.something(de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.RandomParameterThatShouldBeResolved)")
 					.hasNoRecursion();
 		}
 
@@ -470,7 +472,7 @@ public class AstAssertionUser {
 			UnwantedRecursionAssert.assertThatProjectSources()
 					.withinPackage(BASE_PACKAGE + ".recursions.excludeMethods")
 					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.excludeMethods(ReflectionTestUtils.getMethod(ClassWithNoExcludeMethods.class, "main", String[].class))
+					.excludeMethods("main")
 					.hasNoRecursion();
 		}
 
@@ -479,7 +481,8 @@ public class AstAssertionUser {
 			UnwantedRecursionAssert.assertThatProjectSources()
 					.withinPackage(BASE_PACKAGE + ".recursions.startingNode")
 					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.startingWithMethod(ReflectionTestUtils.getMethod(ClassWithMethodsCallingEachOther.class, "main", String[].class))
+					.startingWithMethod(BASE_PACKAGE + ".recursions.startingNode.ClassWithMethodsCallingEachOther.main()")
+//					.startingWithMethod(ReflectionTestUtils.getMethod(ClassWithMethodsCallingEachOther.class, "main", String[].class))
 					.hasRecursion();
 		}
 
@@ -488,7 +491,7 @@ public class AstAssertionUser {
 			UnwantedRecursionAssert.assertThatProjectSources()
 					.withinPackage(BASE_PACKAGE + ".recursions.startingNode")
 					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.startingWithMethod(ReflectionTestUtils.getMethod(ClassWithMethodsCallingEachOther.class, "method3"))
+//					.startingWithMethod(ReflectionTestUtils.getMethod(ClassWithMethodsCallingEachOther.class, "method3"))
 					.hasNoRecursion();
 		}
 
@@ -529,7 +532,7 @@ public class AstAssertionUser {
 			UnwantedRecursionAssert.assertThatProjectSources()
 					.withinPackage(BASE_PACKAGE + ".recursions.overloaded.no")
 					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.excludeMethods(ReflectionTestUtils.getMethod(ClassWithNoExcludeMethods.class, "something", RandomParameterThatShouldBeResolved.class))
+//					.excludeMethods(ReflectionTestUtils.getMethod(ClassWithNoExcludeMethods.class, "something", RandomParameterThatShouldBeResolved.class))
 					.hasNoRecursion();
 		}
 

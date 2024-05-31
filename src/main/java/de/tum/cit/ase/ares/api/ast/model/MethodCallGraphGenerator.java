@@ -11,7 +11,6 @@ import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeS
 import com.github.javaparser.utils.SourceRoot;
 
 import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -38,7 +37,7 @@ public class MethodCallGraphGenerator {
      * @param level         JavaParser Language Level
      * @return Method call graph
      */
-    public static MethodCallGraph createMethodCallGraph(Path pathToSrcRoot, ParserConfiguration.LanguageLevel level, int depthLimit, Method... excludedMethods) {
+    public static MethodCallGraph createMethodCallGraph(Path pathToSrcRoot, ParserConfiguration.LanguageLevel level, int depthLimit, String... excludedMethods) {
         MethodCallGraph methodCallGraph = new MethodCallGraph(depthLimit, excludedMethods);
         List<Optional<CompilationUnit>> asts = parseFromSourceRoot(pathToSrcRoot, level);
         for (Optional<CompilationUnit> ast : asts) {
@@ -67,11 +66,7 @@ public class MethodCallGraphGenerator {
         SourceRoot sourceRoot = new SourceRoot(pathToSourceRoot, new ParserConfiguration().setSymbolResolver(symbolSolver).setLanguageLevel(level));
 
         List<ParseResult<CompilationUnit>> parseResults;
-        try {
-            parseResults = sourceRoot.tryToParse();
-        } catch (IOException e) {
-            throw new AssertionError(String.format("The file %s could not be read:", e));
-        }
+        parseResults = sourceRoot.tryToParseParallelized();
 
         return parseResults.stream().map(ParseResult::getResult).collect(Collectors.toList());
     }
