@@ -3,6 +3,13 @@ package de.tum.cit.ase.ares.integration.testuser;
 import java.io.IOException;
 import java.nio.file.Path;
 
+import de.tum.cit.ase.ares.api.ast.asserting.UnwantedRecursionAssert;
+import de.tum.cit.ase.ares.api.ast.model.JavaFxCheck;
+import de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.javafx.TodoApp;
+import javafx.scene.control.ListView;
+import javafx.scene.control.TextField;
+import javafx.scene.input.KeyCode;
+import javafx.stage.Stage;
 import org.junit.jupiter.api.*;
 
 import com.github.javaparser.ParserConfiguration;
@@ -12,6 +19,11 @@ import de.tum.cit.ase.ares.api.ast.asserting.UnwantedNodesAssert;
 import de.tum.cit.ase.ares.api.ast.type.*;
 import de.tum.cit.ase.ares.api.jupiter.Public;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
+import org.testfx.framework.junit5.ApplicationTest;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Public
 @UseLocale("en")
@@ -434,6 +446,148 @@ public class AstAssertionUser {
 		@Test
 		void testLevelIsNull() {
 			UnwantedNodesAssert.assertThatProjectSources().hasNo(LoopType.ANY);
+		}
+	}
+
+	@Nested
+	@DisplayName("Recursion-Tests")
+	class RecursionTests {
+
+		@Test
+		void testExcludesPassedMethods_Success() {
+			UnwantedRecursionAssert.assertThatProjectSources()
+					.withinPackage(BASE_PACKAGE + ".recursions.excludeMethods")
+					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.excludeMethods(BASE_PACKAGE + ".recursions.excludeMethods.ClassWithNoExcludeMethods.something(de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.RandomParameterThatShouldBeResolved)")
+					.hasNoRecursion();
+		}
+
+		@Test
+		void testExcludesPassedMethod_Fail() {
+			UnwantedRecursionAssert.assertThatProjectSources()
+					.withinPackage(BASE_PACKAGE + ".recursions.excludeMethods")
+					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.excludeMethods("main")
+					.hasNoRecursion();
+		}
+
+		@Test
+		void testShouldDetectRecursionGivenStartingNode() {
+			UnwantedRecursionAssert.assertThatProjectSources()
+					.withinPackage(BASE_PACKAGE + ".recursions.startingNode")
+					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.startingWithMethod(BASE_PACKAGE + ".recursions.startingNode.ClassWithMethodsCallingEachOther.main()")
+//					.startingWithMethod(ReflectionTestUtils.getMethod(ClassWithMethodsCallingEachOther.class, "main", String[].class))
+					.hasRecursion();
+		}
+
+		@Test
+		void testShouldNotDetectRecursionGivenStartingNode() {
+			UnwantedRecursionAssert.assertThatProjectSources()
+					.withinPackage(BASE_PACKAGE + ".recursions.startingNode")
+					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+//					.startingWithMethod(ReflectionTestUtils.getMethod(ClassWithMethodsCallingEachOther.class, "method3"))
+					.hasNoRecursion();
+		}
+
+		@Test
+		void testDetectComplexNoRecursion() {
+			UnwantedRecursionAssert.assertThatProjectSources()
+					.withinPackage(BASE_PACKAGE + ".recursions.complex.no")
+					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.hasNoRecursion();
+		}
+
+		@Test
+		void testDetectComplexRecursion() {
+			UnwantedRecursionAssert.assertThatProjectSources()
+					.withinPackage(BASE_PACKAGE + ".recursions.complex.yes")
+					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.hasRecursion();
+		}
+
+		@Test
+		void testDetectDynamicDispatchRecursion() {
+			UnwantedRecursionAssert.assertThatProjectSources()
+					.withinPackage(BASE_PACKAGE + ".recursions.dynamicDispatch")
+					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.hasRecursion();
+		}
+
+		@Test
+		void testDetectOverloadedRecursion() {
+			UnwantedRecursionAssert.assertThatProjectSources()
+					.withinPackage(BASE_PACKAGE + ".recursions.overloaded.yes")
+					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.hasRecursion();
+		}
+
+		@Test
+		void testDetectOverloadedNoRecursion() {
+			UnwantedRecursionAssert.assertThatProjectSources()
+					.withinPackage(BASE_PACKAGE + ".recursions.overloaded.no")
+					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+//					.excludeMethods(ReflectionTestUtils.getMethod(ClassWithNoExcludeMethods.class, "something", RandomParameterThatShouldBeResolved.class))
+					.hasNoRecursion();
+		}
+
+		@Test
+		void testDetectOverriddenRecursion() {
+			UnwantedRecursionAssert.assertThatProjectSources()
+					.withinPackage(BASE_PACKAGE + ".recursions.overridden")
+					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.hasRecursion();
+		}
+
+		@Test
+		void testDetectSimpleRecursion() {
+			UnwantedRecursionAssert.assertThatProjectSources()
+					.withinPackage(BASE_PACKAGE + ".recursions.simple")
+					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.hasRecursion();
+		}
+
+		@Test
+		void testDetectLambdaRecursion() {
+			UnwantedRecursionAssert.assertThatProjectSources()
+					.withinPackage(BASE_PACKAGE + ".recursions.lambda")
+					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.hasRecursion();
+		}
+	}
+
+	@Nested
+	@DisplayName("JavaFX-Tests")
+	class JavaFXTests extends ApplicationTest {
+
+		private TextField inputField;
+		private ListView<TodoApp.TodoItem> listView;
+
+		@Override
+		public void start(Stage stage) {
+			TodoApp app = new TodoApp();
+			app.start(stage);
+
+			inputField = lookup(".text-field").queryAs(TextField.class);
+			listView = lookup(".list-view").queryAs(ListView.class);
+		}
+
+		@Test
+		void implementation() {
+
+			assertTrue(JavaFxCheck.methodCallsMethod(Path.of("/home/sarps/IdeaProjects/Ares2/src/test/java/de/tum/cit/ase/ares/integration/testuser/subject/structural/astTestFiles/javafx"), ParserConfiguration.LanguageLevel.JAVA_17, "javafx.scene.control.ButtonBase.setOnAction(javafx.event.EventHandler<javafx.event.ActionEvent>)", "de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.javafx.TodoApp.TodoItem.setCompleted(boolean)").isEmpty());
+
+			JavaFxCheck.javaFxCheck(Path.of("/home/sarps/IdeaProjects/Ares2/src/test/java/de/tum/cit/ase/ares/integration/testuser/subject/structural/astTestFiles/javafx"), ParserConfiguration.LanguageLevel.JAVA_17);
+
+		}
+
+		@Test
+		public void testAddItem() {
+			String taskDescription = "New Task";
+			clickOn(inputField).write(taskDescription);
+			clickOn("#addButton");
+			Assertions.assertFalse(listView.getItems().isEmpty(), "List should not be empty");
+			assertEquals("New Task", taskDescription, listView.getItems().get(0).getDescription());
 		}
 	}
 }
