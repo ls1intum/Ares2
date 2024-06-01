@@ -4,10 +4,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 import de.tum.cit.ase.ares.api.ast.asserting.UnwantedRecursionAssert;
-import de.tum.cit.ase.ares.api.util.ReflectionTestUtils;
-import de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.ClassWithNoExcludeMethods;
-import de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.RandomParameterThatShouldBeResolved;
-import de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.startingNode.ClassWithMethodsCallingEachOther;
 import org.junit.jupiter.api.*;
 
 import com.github.javaparser.ParserConfiguration;
@@ -210,7 +206,7 @@ public class AstAssertionUser {
 	@DisplayName("Switch-Expression-Tests")
 	class SwitchExpressionTests {
 		@Test
-		void testHasBelowNoSwitchExpression_Success() throws IOException {
+		void testHasBelowNoSwitchExpression_Success() {
 			UnwantedNodesAssert.assertThatSourcesIn(UNSUPPORTED_LEVEL_BASE_PATH.resolve(Path.of("conditionals", "no")))
 					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ConditionalType.SWITCHEXPR);
 		}
@@ -475,7 +471,7 @@ public class AstAssertionUser {
 			UnwantedRecursionAssert.assertThatProjectSources()
 					.withinPackage(BASE_PACKAGE + ".recursions.excludeMethods")
 					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.excludeMethods(ReflectionTestUtils.getMethod(ClassWithNoExcludeMethods.class, "something", RandomParameterThatShouldBeResolved.class))
+					.excludeMethods(BASE_PACKAGE + ".recursions.excludeMethods.ClassWithNoExcludeMethods.something(de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.RandomParameterThatShouldBeResolved)")
 					.hasNoRecursion();
 		}
 
@@ -484,7 +480,7 @@ public class AstAssertionUser {
 			UnwantedRecursionAssert.assertThatProjectSources()
 					.withinPackage(BASE_PACKAGE + ".recursions.excludeMethods")
 					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.excludeMethods(ReflectionTestUtils.getMethod(ClassWithNoExcludeMethods.class, "main", String[].class))
+					.excludeMethods("de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.startingNode.ClassWithMethodsCallingEachOther.main(java.lang.String[])")
 					.hasNoRecursion();
 		}
 
@@ -493,7 +489,7 @@ public class AstAssertionUser {
 			UnwantedRecursionAssert.assertThatProjectSources()
 					.withinPackage(BASE_PACKAGE + ".recursions.startingNode")
 					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.startingWithMethod(ReflectionTestUtils.getMethod(ClassWithMethodsCallingEachOther.class, "main", String[].class))
+					.excludeMethods("de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.startingNode.ClassWithMethodsCallingEachOther.main(java.lang.String[])")
 					.hasRecursion();
 		}
 
@@ -502,7 +498,7 @@ public class AstAssertionUser {
 			UnwantedRecursionAssert.assertThatProjectSources()
 					.withinPackage(BASE_PACKAGE + ".recursions.startingNode")
 					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.startingWithMethod(ReflectionTestUtils.getMethod(ClassWithMethodsCallingEachOther.class, "method3"))
+					.startingWithMethod("de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.startingNode.ClassWithMethodsCallingEachOther.method3()")
 					.hasNoRecursion();
 		}
 
@@ -543,7 +539,7 @@ public class AstAssertionUser {
 			UnwantedRecursionAssert.assertThatProjectSources()
 					.withinPackage(BASE_PACKAGE + ".recursions.overloaded.no")
 					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.excludeMethods(ReflectionTestUtils.getMethod(ClassWithNoExcludeMethods.class, "something", RandomParameterThatShouldBeResolved.class))
+					.excludeMethods(BASE_PACKAGE + ".recursions.excludeMethods.ClassWithNoExcludeMethods.something(de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.RandomParameterThatShouldBeResolved)")
 					.hasNoRecursion();
 		}
 

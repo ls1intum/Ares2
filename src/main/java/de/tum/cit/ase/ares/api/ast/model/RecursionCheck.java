@@ -16,13 +16,10 @@ import org.jgrapht.graph.DefaultEdge;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @API(status = API.Status.INTERNAL)
 public class RecursionCheck {
@@ -37,10 +34,10 @@ public class RecursionCheck {
      *
      * @param pathToSrcRoot Path to the source root
      * @param level         JavaParser Language Level
-     * @param startingNode  Method to start the recursion check from, which may be {@code null}
+     * @param startingNode  String to start the recursion check from, which may be {@code null}
      * @return Optional.empty() if recursive call is detected, otherwise an error message
      */
-    public static Optional<String> hasCycle(Path pathToSrcRoot, ParserConfiguration.LanguageLevel level, Method startingNode, Method... excludedMethods) {
+    public static Optional<String> hasCycle(Path pathToSrcRoot, ParserConfiguration.LanguageLevel level, String startingNode, String... excludedMethods) {
         MethodCallGraph graph = createMethodCallGraph(pathToSrcRoot, level, excludedMethods);
         return !checkCycle(graph, startingNode).isEmpty() ? Optional.empty() : Optional.of("No recursive call detected");
     }
@@ -50,10 +47,10 @@ public class RecursionCheck {
      *
      * @param pathToSrcRoot Path to the source root
      * @param level         JavaParser Language Level
-     * @param startingNode  Method to start the recursion check from, which may be {@code null}
+     * @param startingNode  String to start the recursion check from, which may be {@code null}
      * @return Optional.empty() if no recursive call is detected, otherwise an error message with methods in the detected cycle
      */
-    public static Optional<String> hasNoCycle(Path pathToSrcRoot, ParserConfiguration.LanguageLevel level, Method startingNode, Method... excludedMethods) {
+    public static Optional<String> hasNoCycle(Path pathToSrcRoot, ParserConfiguration.LanguageLevel level, String startingNode, String... excludedMethods) {
         MethodCallGraph graph = createMethodCallGraph(pathToSrcRoot, level, excludedMethods);
         return checkCycle(graph, startingNode).stream().reduce((s1, s2) -> String.join(", ", s1, s2));
     }
@@ -61,16 +58,13 @@ public class RecursionCheck {
     /**
      * Check if the graph has a cycle
      *
-     * @param graph        Method call graph
-     * @param startingNode Method to start the recursion check from, which may be {@code null}
+     * @param graph        String call graph
+     * @param startingNode String to start the recursion check from, which may be {@code null}
      * @return Set of methods in the detected cycle
      */
-    private static Set<String> checkCycle(MethodCallGraph graph, Method startingNode) {
-        // Convert Method to Node name
-        String nodeName = startingNode != null ? startingNode.getDeclaringClass().getName() + "." + startingNode.getName() + getParametersOfMethod(startingNode) : null;
-
-        if (nodeName != null) {
-            Graph<String, DefaultEdge> subgraph = graph.extractSubgraph(nodeName);
+    private static Set<String> checkCycle(MethodCallGraph graph, String startingNode) {
+        if (startingNode != null) {
+            Graph<String, DefaultEdge> subgraph = graph.extractSubgraph(startingNode);
             return new CycleDetector<>(subgraph).findCycles();
         } else {
             return new CycleDetector<>(graph.getGraph()).findCycles();
@@ -78,23 +72,13 @@ public class RecursionCheck {
     }
 
     /**
-     * Get the parameters of the method
-     *
-     * @param method Method
-     * @return String representation of the parameters
-     */
-    public static String getParametersOfMethod(Method method) {
-        return "(" + Arrays.stream(method.getParameterTypes()).map(Class::getCanonicalName).collect(Collectors.joining(", ")) + ")";
-    }
-
-    /**
      * Create a method call graph from the source root
      *
      * @param pathToSrcRoot Path to the source root
      * @param level         JavaParser Language Level
-     * @return Method call graph
+     * @return String call graph
      */
-    public static MethodCallGraph createMethodCallGraph(Path pathToSrcRoot, ParserConfiguration.LanguageLevel level, Method... excludedMethods) {
+    public static MethodCallGraph createMethodCallGraph(Path pathToSrcRoot, ParserConfiguration.LanguageLevel level, String... excludedMethods) {
         MethodCallGraph methodCallGraph = new MethodCallGraph(excludedMethods);
         List<Optional<CompilationUnit>> asts = parseFromSourceRoot(pathToSrcRoot, level);
         for (Optional<CompilationUnit> ast : asts) {
@@ -129,6 +113,6 @@ public class RecursionCheck {
             throw new AssertionError(String.format("The file %s could not be read:", e));
         }
 
-        return parseResults.stream().map(ParseResult::getResult).collect(Collectors.toList());
+        return parseResults.stream().map(ParseResult::getResult).toList();
     }
 }

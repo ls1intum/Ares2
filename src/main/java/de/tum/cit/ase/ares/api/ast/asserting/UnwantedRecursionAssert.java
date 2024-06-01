@@ -8,7 +8,6 @@ import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 import org.assertj.core.api.AbstractAssert;
 
-import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
@@ -35,14 +34,14 @@ public class UnwantedRecursionAssert extends AbstractAssert<UnwantedRecursionAss
     /**
      * The method to start the recursion check from
      */
-    private final Method startingMethod;
+    private final String startingMethod;
 
     /**
      * The methods to exclude from the recursion check
      */
-    private final Method[] excludedMethods;
+    private final String[] excludedMethods;
 
-    private UnwantedRecursionAssert(Path path, LanguageLevel level, Method startingMethod, Method... excludedMethods) {
+    private UnwantedRecursionAssert(Path path, LanguageLevel level, String startingMethod, String... excludedMethods) {
         super(requireNonNull(path), UnwantedRecursionAssert.class);
         this.level = level;
         this.startingMethod = startingMethod;
@@ -118,11 +117,11 @@ public class UnwantedRecursionAssert extends AbstractAssert<UnwantedRecursionAss
      * @param node The method to start the recursion check from
      * @return An unwanted simple recursion assertion object (for chaining)
      */
-    public UnwantedRecursionAssert startingWithMethod(Method node) {
+    public UnwantedRecursionAssert startingWithMethod(String node) {
         return new UnwantedRecursionAssert(actual, level, node, excludedMethods);
     }
 
-    public UnwantedRecursionAssert excludeMethods(Method... methods) {
+    public UnwantedRecursionAssert excludeMethods(String... methods) {
         return new UnwantedRecursionAssert(actual, level, startingMethod, methods);
     }
 
