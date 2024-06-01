@@ -38,6 +38,7 @@ public class TodoApp extends Application {
         inputField.setPromptText("Enter new task");
 
         Button addButton = new Button("Add");
+        addButton.setId("addButton");
         addButton.setOnAction(e -> {
             String taskDescription = inputField.getText();
             if (!taskDescription.isEmpty()) {

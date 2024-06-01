@@ -1,23 +1,15 @@
 package de.tum.cit.ase.ares.integration.testuser;
 
-import java.awt.*;
 import java.io.IOException;
 import java.nio.file.Path;
 
 import de.tum.cit.ase.ares.api.ast.asserting.UnwantedRecursionAssert;
 import de.tum.cit.ase.ares.api.ast.model.JavaFxCheck;
-import de.tum.cit.ase.ares.api.ast.model.MethodCallGraph;
-import de.tum.cit.ase.ares.api.ast.model.MethodCallGraphGenerator;
-import de.tum.cit.ase.ares.api.util.ReflectionTestUtils;
 import de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.javafx.TodoApp;
-import de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.ClassWithNoExcludeMethods;
-import de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.RandomParameterThatShouldBeResolved;
-import de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.startingNode.ClassWithMethodsCallingEachOther;
-import javafx.collections.ObservableList;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
-import javafx.scene.control.Button;
-import javafx.scene.control.ButtonBase;
+import javafx.scene.control.ListView;
+import javafx.scene.control.TextField;
+import javafx.scene.input.KeyCode;
+import javafx.stage.Stage;
 import org.junit.jupiter.api.*;
 
 import com.github.javaparser.ParserConfiguration;
@@ -27,7 +19,10 @@ import de.tum.cit.ase.ares.api.ast.asserting.UnwantedNodesAssert;
 import de.tum.cit.ase.ares.api.ast.type.*;
 import de.tum.cit.ase.ares.api.jupiter.Public;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
+import org.testfx.framework.junit5.ApplicationTest;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Public
@@ -563,7 +558,19 @@ public class AstAssertionUser {
 
 	@Nested
 	@DisplayName("JavaFX-Tests")
-	class JavaFXTests {
+	class JavaFXTests extends ApplicationTest {
+
+		private TextField inputField;
+		private ListView<TodoApp.TodoItem> listView;
+
+		@Override
+		public void start(Stage stage) {
+			TodoApp app = new TodoApp();
+			app.start(stage);
+
+			inputField = lookup(".text-field").queryAs(TextField.class);
+			listView = lookup(".list-view").queryAs(ListView.class);
+		}
 
 		@Test
 		void implementation() {
@@ -572,6 +579,15 @@ public class AstAssertionUser {
 
 			JavaFxCheck.javaFxCheck(Path.of("/home/sarps/IdeaProjects/Ares2/src/test/java/de/tum/cit/ase/ares/integration/testuser/subject/structural/astTestFiles/javafx"), ParserConfiguration.LanguageLevel.JAVA_17);
 
+		}
+
+		@Test
+		public void testAddItem() {
+			String taskDescription = "New Task";
+			clickOn(inputField).write(taskDescription);
+			clickOn("#addButton");
+			Assertions.assertFalse(listView.getItems().isEmpty(), "List should not be empty");
+			assertEquals("New Task", taskDescription, listView.getItems().get(0).getDescription());
 		}
 	}
 }

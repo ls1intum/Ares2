@@ -5,14 +5,9 @@ import org.apiguardian.api.API;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
-import org.jgrapht.nio.dot.DOTExporter;
 import org.jgrapht.traverse.BreadthFirstIterator;
 import org.jgrapht.traverse.DepthFirstIterator;
 
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Writer;
-import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -101,15 +96,6 @@ public class MethodCallGraph {
         }
 
         return false;
-    }
-
-    public void exportToDotFile(String filePath) {
-        DOTExporter<String, DefaultEdge> exporter = new DOTExporter<>(s -> s);
-        try (Writer writer = new FileWriter(filePath)) {
-            exporter.exportGraph(graph, writer);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     public Graph<String, DefaultEdge> getGraph() {
