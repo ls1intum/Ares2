@@ -13,6 +13,7 @@ import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Optional;
 
+import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.fail;
 
@@ -136,7 +137,7 @@ public class UnwantedRecursionAssert extends AbstractAssert<UnwantedRecursionAss
         }
         Optional<String> errorMessage = RecursionCheck.hasNoCycle(actual, level, startingMethod, excludedMethods);
         errorMessage.ifPresent(unwantedSimpleRecursionMessageForAllJavaFiles -> failWithMessage(
-                "Unwanted recursion found in methods:" + System.lineSeparator() + unwantedSimpleRecursionMessageForAllJavaFiles)); //$NON-NLS-1$
+                localized("ast.recursion.has.no_recursion") + System.lineSeparator() + unwantedSimpleRecursionMessageForAllJavaFiles)); //$NON-NLS-1$
         return this;
     }
 
@@ -151,7 +152,7 @@ public class UnwantedRecursionAssert extends AbstractAssert<UnwantedRecursionAss
         }
         Optional<String> errorMessage = RecursionCheck.hasCycle(actual, level, startingMethod, excludedMethods);
         errorMessage.ifPresent(unwantedSimpleRecursionMessageForAllJavaFiles -> failWithMessage(
-                "Wanted recursion not found:" + System.lineSeparator() + unwantedSimpleRecursionMessageForAllJavaFiles)); //$NON-NLS-1$
+                localized("ast.recursion.has.recursion") + System.lineSeparator() + unwantedSimpleRecursionMessageForAllJavaFiles)); //$NON-NLS-1$
         return this;
     }
 }

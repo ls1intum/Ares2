@@ -689,7 +689,7 @@ public class AstAssertionTest {
 		@TestTest
 		void test_testExcludesPassedMethod_Fail() {
 			String testExcludesPassedMethod_Fail = "testExcludesPassedMethod_Fail";
-			tests.assertThatEvents().haveExactly(1, testFailedWith(testExcludesPassedMethod_Fail, AssertionError.class, "Unwanted recursion found in methods:\n" +
+			tests.assertThatEvents().haveExactly(1, testFailedWith(testExcludesPassedMethod_Fail, AssertionError.class, "Unwanted recursion found:\n" +
 					"de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.ClassWithNoExcludeMethods.something(de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.RandomParameterThatShouldBeResolved)"));
 		}
 

@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import static de.tum.cit.ase.ares.api.localization.Messages.localized;
+
 @API(status = API.Status.INTERNAL)
 public class RecursionCheck {
 
@@ -39,7 +41,7 @@ public class RecursionCheck {
      */
     public static Optional<String> hasCycle(Path pathToSrcRoot, ParserConfiguration.LanguageLevel level, String startingNode, String... excludedMethods) {
         MethodCallGraph graph = createMethodCallGraph(pathToSrcRoot, level, excludedMethods);
-        return !checkCycle(graph, startingNode).isEmpty() ? Optional.empty() : Optional.of("No recursive call detected");
+        return !checkCycle(graph, startingNode).isEmpty() ? Optional.empty() : Optional.of(localized("ast.recursion.no.recursion.found"));
     }
 
     /**
