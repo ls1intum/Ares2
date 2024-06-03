@@ -15,6 +15,8 @@ class Animal {
 }
 
 class Dog extends Animal {
+
+    @Override
     void speak() {
         // Some logic
         super.speak(); // Recursive call
@@ -27,6 +29,7 @@ class Dog extends Animal {
 }
 
 class Cat extends Animal {
+    @Override
     void speak() {
         // Some logic
         super.speak(); // Recursive call

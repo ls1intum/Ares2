@@ -9,7 +9,6 @@ import org.jgrapht.traverse.DepthFirstIterator;
 
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 
 
@@ -22,9 +21,9 @@ public class MethodCallGraph {
 
     private final Set<String> excludedMethodIdentifiers;
 
-    public MethodCallGraph(String... excludedMethods) {
+    public MethodCallGraph(Set<String> excludedMethods) {
         this.graph = new DefaultDirectedGraph<>(DefaultEdge.class);
-        this.excludedMethodIdentifiers = new HashSet<>(List.of(excludedMethods));
+        this.excludedMethodIdentifiers = excludedMethods;
     }
 
     /**
@@ -37,10 +36,12 @@ public class MethodCallGraph {
     }
 
     /**
-     * Extract a subgraph from the given graph starting from the given vertex
+     * Extracts a subgraph from the given graph starting from the specified vertex.
+     * This subgraph includes all vertices and edges reachable from the start vertex
+     * using a depth-first search traversal.
      *
-     * @param startVertex Vertex to start the extraction from
-     * @return Subgraph of the given graph
+     * @param startVertex the vertex from which to start the subgraph extraction
+     * @return a subgraph containing all vertices and edges reachable from the start vertex
      */
     public Graph<String, DefaultEdge> extractSubgraph(String startVertex) {
         DefaultDirectedGraph<String, DefaultEdge> subgraph = new DefaultDirectedGraph<>(null, graph.getEdgeSupplier(), false);
