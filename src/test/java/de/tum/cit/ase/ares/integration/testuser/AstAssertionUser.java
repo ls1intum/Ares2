@@ -1,6 +1,5 @@
 package de.tum.cit.ase.ares.integration.testuser;
 
-import java.io.IOException;
 import java.nio.file.Path;
 
 import de.tum.cit.ase.ares.api.ast.asserting.UnwantedRecursionAssert;
@@ -489,7 +488,7 @@ public class AstAssertionUser {
 			UnwantedRecursionAssert.assertThatProjectSources()
 					.withinPackage(BASE_PACKAGE + ".recursions.startingNode")
 					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.excludeMethods("de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.startingNode.ClassWithMethodsCallingEachOther.main(java.lang.String[])")
+					.startingWithMethod("de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.startingNode.ClassWithMethodsCallingEachOther.main(java.lang.String[])")
 					.hasRecursion();
 		}
 
