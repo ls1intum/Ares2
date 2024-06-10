@@ -638,4 +638,41 @@ public class AstAssertionTest {
 					"The 'level' is not set. Please use UnwantedNodesAssert.withLanguageLevel(LanguageLevel)."));
 		}
 	}
+
+	@Nested
+	@DisplayName("Exclude-Main-Test-Tests")
+	class ExcludeMainTestTests {
+
+		@TestTest
+		void test_testExcludeMain_Success() {
+			String testExcludeMain_Success = "testHasBelowNoLoopsOutsideMainMethod_Success";
+			tests.assertThatEvents().haveExactly(1, finishedSuccessfully(testExcludeMain_Success));
+		}
+
+		@TestTest
+		void test_testExcludeMain_Fail() {
+			String testExcludeMain_Fail = "testHasBelowNoLoopsOutsideMainMethod_Fail";
+			tests.assertThatEvents().haveExactly(1,
+					testFailedWith(testExcludeMain_Fail, AssertionError.class,
+							"Unwanted statement found:" + System.lineSeparator() + " - In "
+									+ Path.of("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration",
+									"testuser", "subject", "structural", "astTestFiles", "excludeMain", "yes",
+									"ClassWithLoopOutsideMainMethod.java")
+									+ ":" + System.lineSeparator() + "  - For-Statement was found:"
+									+ System.lineSeparator() + "   - Between line 6 (column 3) and line 8 (column 3)"));
+		}
+
+		@TestTest
+		void test_testWithoutExcludeMain_Fail() {
+			String testWithoutExcludeMain_Fail = "testHasNoLoopsOutsideMainMethod_Fail";
+			tests.assertThatEvents().haveExactly(1,
+					testFailedWith(testWithoutExcludeMain_Fail, AssertionError.class,
+							"Unwanted statement found:" + System.lineSeparator() + " - In "
+									+ Path.of("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration",
+									"testuser", "subject", "structural", "astTestFiles", "excludeMain", "no",
+									"ClassWithNoLoopsOutsideMainMethod.java")
+									+ ":" + System.lineSeparator() + "  - For-Statement was found:"
+									+ System.lineSeparator() + "   - Between line 53 (column 3) and line 55 (column 3)"));
+		}
+	}
 }
