@@ -7,9 +7,7 @@ import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.traverse.DepthFirstIterator;
 
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.*;
 
 
 /**
@@ -21,9 +19,12 @@ public class MethodCallGraph {
 
     private final Set<String> excludedMethodIdentifiers;
 
+    private final Map<String, NodePosition> positionMap;
+
     public MethodCallGraph(Set<String> excludedMethods) {
         this.graph = new DefaultDirectedGraph<>(DefaultEdge.class);
         this.excludedMethodIdentifiers = excludedMethods;
+        this.positionMap = new Hashtable<>();
     }
 
     /**
@@ -32,7 +33,7 @@ public class MethodCallGraph {
      * @param cu CompilationUnit to be parsed
      */
     public void createGraph(CompilationUnit cu) {
-        cu.accept(new VisitorAdapter(graph, excludedMethodIdentifiers), null);
+        cu.accept(new VisitorAdapter(graph, excludedMethodIdentifiers, positionMap), null);
     }
 
     /**
@@ -79,5 +80,9 @@ public class MethodCallGraph {
 
     public Graph<String, DefaultEdge> getGraph() {
         return graph;
+    }
+
+    public Map<String, NodePosition> getPositionMap() {
+        return positionMap;
     }
 }

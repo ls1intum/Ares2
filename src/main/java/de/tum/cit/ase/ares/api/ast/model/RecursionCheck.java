@@ -13,16 +13,29 @@ import org.apiguardian.api.API;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.cycle.CycleDetector;
 import org.jgrapht.graph.DefaultEdge;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 
 @API(status = API.Status.INTERNAL)
 public class RecursionCheck {
+
+    private static final String JAVA_FILE_EXTENSION = ".java";
+
+    private static final String CLASS_PATTERN = "\\.(\\w+)\\.[a-z]\\w*\\(";
+
+    private static final Logger log = LoggerFactory.getLogger(RecursionCheck.class);
 
     private RecursionCheck() {
         throw new IllegalStateException("Hide the implicit public constructor");
@@ -38,7 +51,7 @@ public class RecursionCheck {
      */
     public static Optional<String> hasNoCycle(Path pathToSrcRoot, ParserConfiguration.LanguageLevel level, String startingNode, Set<String> excludedMethods) {
         MethodCallGraph graph = createMethodCallGraph(pathToSrcRoot, level, excludedMethods);
-        return checkCycle(graph, startingNode).stream().reduce((s1, s2) -> String.join(", ", s1, s2));
+        return checkCycle(graph, startingNode).stream().map(vertex -> formatVertexInfoWithinCycle(vertex, graph, pathToSrcRoot)).reduce(String::concat);
     }
 
     /**
@@ -75,6 +88,36 @@ public class RecursionCheck {
     }
 
     /**
+     * Format the vertex information within a cycle
+     *
+     * @param vertexName Vertex name
+     * @param graph      Method call graph
+     * @return Formatted vertex information
+     */
+    public static String formatVertexInfoWithinCycle(String vertexName, MethodCallGraph graph, Path pathOfSourceRoot) {
+        // Retrieve the position of the vertex from the graph's position map
+        NodePosition nodePosition = graph.getPositionMap().get(vertexName);
+
+        // Check if the position is null
+        if (nodePosition == null) {
+            // Log an error message
+            log.error("Error in MethodCallGraph: Vertex position not found for vertex: {}", vertexName);
+
+            // Throw an IllegalStateException with a descriptive message
+            throw new IllegalStateException("Node position cannot be determined as the vertex was not detected in the cycle.");
+        }
+
+        return localized("ast.method.get_formatted_file_string_prefix", pathOfSourceRoot.toString()
+                + "/" + Objects.requireNonNull(extractClassName(vertexName)))
+                + System.lineSeparator()
+                + localized("ast.method.get_formatted_unwanted_node_string_prefix",
+                "Unwanted Recursion")
+                + System.lineSeparator()
+                + localized("ast.check.begin_end_prefix", nodePosition.toString(), vertexName)
+                + System.lineSeparator();
+    }
+
+    /**
      * Parse all Java files in the source root
      *
      * @param pathToSourceRoot Path to the source root
@@ -107,5 +150,15 @@ public class RecursionCheck {
         }
 
         return parseResults.stream().map(ParseResult::getResult).toList();
+    }
+
+    public static String extractClassName(String fullyQualifiedMethod) {
+        Pattern pattern = Pattern.compile(CLASS_PATTERN);
+        Matcher matcher = pattern.matcher(fullyQualifiedMethod);
+        String className = null;
+        while (matcher.find()) {
+            className = matcher.group(1) + JAVA_FILE_EXTENSION;
+        }
+        return className;
     }
 }

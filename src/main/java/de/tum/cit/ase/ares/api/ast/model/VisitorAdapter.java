@@ -6,6 +6,7 @@ import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultEdge;
 
+import java.util.Map;
 import java.util.Set;
 
 public class VisitorAdapter extends VoidVisitorAdapter<Void> {
@@ -13,22 +14,31 @@ public class VisitorAdapter extends VoidVisitorAdapter<Void> {
 
     private final Set<String> excludedMethodIdentifiers;
 
-    public VisitorAdapter(Graph<String, DefaultEdge> graph, Set<String> excludedMethodIdentifiers) {
+    private final Map<String, NodePosition> methodInfoMap;
+
+    public VisitorAdapter(Graph<String, DefaultEdge> graph, Set<String> excludedMethodIdentifiers, Map<String, NodePosition> positonInfoMap) {
         this.graph = graph;
         this.excludedMethodIdentifiers = excludedMethodIdentifiers;
+        this.methodInfoMap = positonInfoMap;
+
     }
 
     @Override
     public void visit(MethodDeclaration md, Void arg) {
         super.visit(md, arg);
         String vertexName = md.resolve().getQualifiedSignature();
+
         if (excludedMethodIdentifiers.contains(vertexName)) {
             return;
         }
-        graph.addVertex(vertexName);
+        if (graph.addVertex(vertexName)) {
+            methodInfoMap.put(vertexName, NodePosition.getPositionOf(md));
+        }
         md.findAll(MethodCallExpr.class).forEach(mce -> {
             String calleeVertexName = mce.resolve().getQualifiedSignature();
-            graph.addVertex(calleeVertexName);
+            if (graph.addVertex(calleeVertexName)) {
+                methodInfoMap.put(calleeVertexName, NodePosition.getPositionOf(mce));
+            }
             graph.addEdge(vertexName, calleeVertexName);
         });
     }

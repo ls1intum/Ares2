@@ -179,7 +179,7 @@ public class UnwantedRecursionAssert extends AbstractAssert<UnwantedRecursionAss
             errorMessage = RecursionCheck.hasNoCycle(actual, level, startingMethod, excludedMethods);
         }
 
-        String messageKey = shouldHaveRecursion ? "ast.recursion.has.recursion" : "ast.recursion.has.no_recursion";
+        String messageKey = shouldHaveRecursion ? "ast.recursion.has.recursion" : "ast.method.has_no";
         errorMessage.ifPresent(unwantedSimpleRecursionMessageForAllJavaFiles -> failWithMessage(
                 localized(messageKey) + System.lineSeparator() + unwantedSimpleRecursionMessageForAllJavaFiles)); //$NON-NLS-1$
 
