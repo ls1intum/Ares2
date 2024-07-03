@@ -15,7 +15,7 @@ import de.tum.cit.ase.ares.api.io.IOTester;
 /**
  * Marks a <b>PUBLIC</b> test case, uses the PdgpSecurityManager, can declare
  * {@link IOTester} as parameter.
- *
+ *q
  * @author Christian Femers
  * @since 0.1.0
  * @version 1.1.0
