@@ -8,11 +8,16 @@ import org.apiguardian.api.API;
 @API(status = API.Status.INTERNAL)
 public class ConfigurationParser {
 
+    private ConfigurationParser() {
+        throw new IllegalStateException("Utility class");
+    }
+
     /**
      * Parses the configuration file and returns the configuration object
      * @return The configuration object
      */
-    public ArchSecurityConfiguration parseConfiguration() {
-        return new ArchSecurityConfiguration();
+    public static ArchSecurityConfiguration parseConfiguration() {
+        // TODO: Implement configuration parsing after the configuration file is defined
+        return new ArchSecurityConfiguration("Java", false, null);
     }
 }
