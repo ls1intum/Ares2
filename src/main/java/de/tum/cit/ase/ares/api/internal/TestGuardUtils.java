@@ -7,9 +7,11 @@ import java.lang.annotation.*;
 import java.lang.reflect.*;
 import java.time.*;
 import java.time.format.DateTimeParseException;
+import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
+import de.tum.cit.ase.ares.api.policy.FileSystemInteraction;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 import org.slf4j.*;
@@ -185,5 +187,13 @@ public final class TestGuardUtils {
 		if (duration.isZero() || duration.isNegative())
 			throw new AnnotationFormatError(localized("test_guard.extended_deadline_zero_or_negative", durationString)); //$NON-NLS-1$
 		return duration;
+	}
+
+	public static void checkFileAccess(List<FileSystemInteraction> iAllowTheFollowingFileSystemInteractionsForTheStudents) {
+		if(iAllowTheFollowingFileSystemInteractionsForTheStudents.isEmpty()) {
+			// TODO: Add ArchUnit check for file system access
+		} else {
+			// TODO: Add AspectJ check for file system access
+		}
 	}
 }

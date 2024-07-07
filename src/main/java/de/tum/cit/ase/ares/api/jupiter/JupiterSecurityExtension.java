@@ -6,16 +6,16 @@ import java.nio.file.Path;
 import java.util.Optional;
 
 import de.tum.cit.ase.ares.api.Policy;
-import de.tum.cit.ase.ares.api.context.TestType;
-import de.tum.cit.ase.ares.api.internal.TestGuardUtils;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReader;
+import de.tum.cit.ase.ares.api.policy.SupportedProgrammingLanguage;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 import org.junit.jupiter.api.extension.*;
 
 import de.tum.cit.ase.ares.api.internal.ConfigurationUtils;
 
+import static de.tum.cit.ase.ares.api.internal.TestGuardUtils.checkFileAccess;
 import static de.tum.cit.ase.ares.api.internal.TestGuardUtils.hasAnnotation;
 import static org.junit.platform.commons.support.AnnotationSupport.findAnnotation;
 //REMOVED: Import of ArtemisSecurityManager
@@ -37,15 +37,22 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
                         }
                     })
                     .orElseThrow(() -> new AnnotationFormatError("Policy annotation is missing"));
+            if (securityPolicy.theProgrammingLanguageIUseInThisProgrammingExerciseIs() == SupportedProgrammingLanguage.JAVA) {
+                checkFileAccess(securityPolicy.iAllowTheFollowingFileSystemInteractionsForTheStudents());
+                //TODO: Add further checks
+            } else {
+                throw new UnsupportedOperationException("Only Java is supported by Ares.");
+            }
 
-            //TODO: Provide a Security Context
         }
+
         var configuration = ConfigurationUtils.generateConfiguration(testContext);
-//REMOVED: Installing of ArtemisSecurityManager
+        //REMOVED: Installing of ArtemisSecurityManager
         Throwable failure = null;
         try {
             return invocation.proceed();
-        } catch (Throwable t) {
+        } catch (
+                Throwable t) {
             failure = t;
         } finally {
             try {

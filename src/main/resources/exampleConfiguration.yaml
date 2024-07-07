@@ -1,18 +1,18 @@
-programmingLanguage: JAVA
-allowedFileSystemInteractions:
-  - path: "/Path1"
-    read: true
-    write: false
-    execute: false
-  - path: "/Path2"
-    read: false
-    write: true
-    execute: false
-  - path: "/Path3"
-    read: false
-    write: false
-    execute: true
-  - path: "/Path4"
-    read: true
-    write: true
-    execute: true
+theProgrammingLanguageIUseInThisProgrammingExerciseIs: JAVA
+iAllowTheFollowingFileSystemInteractionsForTheStudents:
+  - onThisPathAndAllPathsBelow: "/Path1"
+    studentsAreAllowedToReadAllFiles: true
+    studentsAreAllowedToOverwriteAllFiles: false
+    studentsAreAllowedToExecuteAllFiles: false
+  - onThisPathAndAllPathsBelow: "/Path2"
+    studentsAreAllowedToReadAllFiles: false
+    studentsAreAllowedToOverwriteAllFiles: true
+    studentsAreAllowedToExecuteAllFiles: false
+  - onThisPathAndAllPathsBelow: "/Path3"
+    studentsAreAllowedToReadAllFiles: false
+    studentsAreAllowedToOverwriteAllFiles: false
+    studentsAreAllowedToExecuteAllFiles: true
+  - onThisPathAndAllPathsBelow: "/Path4"
+    studentsAreAllowedToReadAllFiles: true
+    studentsAreAllowedToOverwriteAllFiles: true
+    studentsAreAllowedToExecuteAllFiles: true
