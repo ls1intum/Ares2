@@ -62,8 +62,8 @@ public class SecurityRules {
 
         return ArchRuleDefinition.noClasses()
                 .that()
-                .resideInAPackage(studentPackage)
-                .should(new TransitivelyAccessesMethodsCondition(new DescribedPredicate<>("never matches") {
+                .resideInAPackage(studentPackage + "..")
+                .should(new TransitivelyAccessesMethodsCondition(new DescribedPredicate<>("accesses file system") {
                     @Override
                     public boolean test(JavaAccess<?> javaAccess) {
                         // These classes are called transitively when accessing the filesystem
