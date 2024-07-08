@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Executes the rules specified in the security configuration.
@@ -68,7 +69,10 @@ public class SecurityRuleExecutor {
         return classes.stream()
                 .map(JavaClass::getTransitiveDependenciesFromSelf)
                 .flatMap(Set::stream)
-                .map(d -> d.getTargetClass().getPackageName())
+                .flatMap(dependency -> Stream.of(
+                        dependency.getTargetClass().getPackageName(),
+                        dependency.getOriginClass().getPackageName()
+                ))
                 .collect(Collectors.toSet());
     }
 
@@ -77,18 +81,16 @@ public class SecurityRuleExecutor {
      * Executes the security rules
      */
     public void executeSecurityRules() {
-        Set<String> packages = getDependencies(classFileImporter.importPackages(studentSubmissionPackage));
+        Set<String> packages = getDependencies(classFileImporter.importPath("target/classes"));
         if (packages.isEmpty()) {
             log.warn("No dependencies found");
             throw new SecurityException("Given package does not have any dependencies");
         }
 
-        packages.add(String.format("%s..", studentSubmissionPackage));
-
-        JavaClasses classes = new ClassFileImporter()
+        JavaClasses classes = classFileImporter
                 .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
                 .withImportOption(location -> classNamesToExclude.stream().noneMatch(location::contains))
-                .importPackages(packages);
+                .importPath("target/classes");
 
         securityRuleFactory.getSecurityRules(studentSubmissionPackage)
                 .forEach(rule ->
