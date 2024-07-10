@@ -44,7 +44,7 @@ public class Main {
         String filePath = "fileUsingFilesClass.txt";
 
         try {
-            Files.write(Paths.get("not"), Arrays.asList("Hello World"), StandardOpenOption.CREATE);
+            Files.write(Paths.get(filePath), Arrays.asList("Hello World"), StandardOpenOption.CREATE);
             System.out.println("Successfully wrote to the file.");
         } catch (IOException e) {
             e.printStackTrace();

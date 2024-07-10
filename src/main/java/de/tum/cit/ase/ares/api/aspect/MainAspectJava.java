@@ -1,5 +1,7 @@
 package de.tum.cit.ase.ares.api.aspect;
 
+import de.tum.cit.ase.ares.api.policy.FileSystemInteraction;
+import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -8,15 +10,13 @@ import org.aspectj.lang.annotation.Pointcut;
 
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 @Aspect
 public class MainAspectJava {
 
-    // Das überprüfen der Read Write Execution Rechte kann auch wo anders sein, ich habs mal hier drin jetzt
-    private static Map<Path, List<Boolean>> allowedFileSystemInteractions = new HashMap<>();
+    private static List<FileSystemInteraction> allowedFileSystemInteractions = Collections.emptyList();
 
     @Pointcut("execution(* de.tum.cit.ase.ares.api.aspectJ.main..*.*(..))")
     public void method() {}
@@ -48,8 +48,11 @@ public class MainAspectJava {
         Path path = (Path) args[0];  // Assuming the first argument is the Path
 
         // Check if the path is allowed and has write permission
-        List<Boolean> permissions = allowedFileSystemInteractions.get(path);
-        if (permissions == null || !permissions.get(1)) {
+        boolean isAllowed = allowedFileSystemInteractions.stream()
+                .anyMatch(interaction -> path.startsWith(interaction.onThisPathAndAllPathsBelow())
+                        && interaction.studentsAreAllowedToOverwriteAllFiles());
+
+        if (!isAllowed) {
             System.out.println("Files.write called with path: " + path + " - Access Denied");
             throw new SecurityException("Write operation blocked by AspectJ for path: " + path);
         } else {
@@ -67,5 +70,14 @@ public class MainAspectJava {
         }
 
         return joinPoint.proceed();
+    }
+
+    // Method to set the security policy
+    public static synchronized void setSecurityPolicy(List<FileSystemInteraction> iAllowTheFollowingFileSystemInteractionsForTheStudents, Class<?> caller) {
+        // Check the caller class to ensure only the allowed class can set the policy
+        if (!caller.getName().equals("de.tum.cit.ase.ares.api.internal.TestGuardUtils")) {
+            throw new SecurityException("Unauthorized access to set security policy");
+        }
+        allowedFileSystemInteractions = iAllowTheFollowingFileSystemInteractionsForTheStudents;
     }
 }
