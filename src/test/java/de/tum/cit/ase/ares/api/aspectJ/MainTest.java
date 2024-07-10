@@ -1,13 +1,9 @@
 package de.tum.cit.ase.ares.api.aspectJ;
 
 import de.tum.cit.ase.ares.api.aspectJ.main.Main;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -28,8 +24,7 @@ public class MainTest {
 
     @Test
     public void testFilesWrite() {
-        Main mainInstance = new Main();
-        mainInstance.writeMethod("deniedFile.txt");
+        Main.main(null);
     }
 
     @Test(expected = SecurityException.class)

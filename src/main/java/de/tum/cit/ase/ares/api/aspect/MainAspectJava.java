@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.api.aspectJ.main.aspect;
+package de.tum.cit.ase.ares.api.aspect;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -16,11 +16,7 @@ import java.util.Map;
 public class MainAspectJava {
 
     // Das überprüfen der Read Write Execution Rechte kann auch wo anders sein, ich habs mal hier drin jetzt
-    private static final Map<Path, List<Boolean>> allowedFileSystemInteractions = new HashMap<>();
-
-    static {
-        allowedFileSystemInteractions.put(Path.of("fileUsingFilesClass.txt"), Arrays.asList(true, true, false));
-    }
+    private static Map<Path, List<Boolean>> allowedFileSystemInteractions = new HashMap<>();
 
     @Pointcut("execution(* de.tum.cit.ase.ares.api.aspectJ.main..*.*(..))")
     public void method() {}
