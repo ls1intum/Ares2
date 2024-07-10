@@ -47,7 +47,7 @@ public class SecurityRuleExecutor {
     private final JavaClasses javaClasses;
 
     /**
-     * @param studentSubmissionPackage The path to the student submission
+     * Initializes the SecurityRuleExecutor
      */
     public SecurityRuleExecutor() {
         packages = getDependencies(classFileImporter.importPath("target/classes"));
