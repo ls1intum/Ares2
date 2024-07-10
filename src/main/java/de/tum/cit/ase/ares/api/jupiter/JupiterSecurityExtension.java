@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.util.Optional;
 
 import de.tum.cit.ase.ares.api.Policy;
+import de.tum.cit.ase.ares.api.archunit.SecurityRuleExecutor;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReader;
 import de.tum.cit.ase.ares.api.policy.SupportedProgrammingLanguage;
@@ -33,12 +34,16 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
                         try {
                             return SecurityPolicyReader.readSecurityPolicy(Path.of(policy.value()));
                         } catch (IOException e) {
+							// TODO: define and throw dedicated exception instead of a generic RuntimeException
                             throw new RuntimeException(e);
                         }
                     })
                     .orElseThrow(() -> new AnnotationFormatError("Policy annotation is missing"));
+
+            // This checks for packages beforehand and loads the JavaClasses to check for latter rules
+            SecurityRuleExecutor securityRuleExecutor = new SecurityRuleExecutor();
             if (securityPolicy.theProgrammingLanguageIUseInThisProgrammingExerciseIs() == SupportedProgrammingLanguage.JAVA) {
-                checkFileAccess(securityPolicy.iAllowTheFollowingFileSystemInteractionsForTheStudents());
+                checkFileAccess(securityPolicy.iAllowTheFollowingFileSystemInteractionsForTheStudents(), securityRuleExecutor);
                 //TODO: Add further checks
             } else {
                 throw new UnsupportedOperationException("Only Java is supported by Ares.");
@@ -46,6 +51,7 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
 
         }
 
+		// TODO : Remove unused configuration ?
         var configuration = ConfigurationUtils.generateConfiguration(testContext);
         //REMOVED: Installing of ArtemisSecurityManager
         Throwable failure = null;

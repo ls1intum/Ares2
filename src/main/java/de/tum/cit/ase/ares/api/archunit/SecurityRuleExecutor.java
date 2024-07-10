@@ -30,15 +30,6 @@ public class SecurityRuleExecutor {
             "java.util.TimeZone",
             "java.util.SimpleTimeZone"
     );
-    /**
-     * Returns the security rules to be executed according to the configuration file
-     */
-    private final SecurityRuleFactory securityRuleFactory = new SecurityRuleFactory();
-
-    /**
-     * The path to the student submission
-     */
-    private final String studentSubmissionPackage;
 
     /**
      * The class file importer
@@ -46,26 +37,35 @@ public class SecurityRuleExecutor {
     private final ClassFileImporter classFileImporter = new ClassFileImporter();
 
     /**
-     * @param studentSubmissionPackage The path to the student submission
+     * The packages that the student submission depends on
      */
-    private SecurityRuleExecutor(String studentSubmissionPackage) {
-        this.studentSubmissionPackage = studentSubmissionPackage;
-    }
+    private final Set<String> packages;
 
     /**
-     * Creates a new instance of the SecurityRuleExecutor
-     *
-     * @param studentSubmissionPackage The path to the student submission
-     * @return A new instance of the SecurityRuleExecutor
+     * The Java classes of the student submission
      */
-    public static SecurityRuleExecutor withinPackage(String studentSubmissionPackage) {
-        return new SecurityRuleExecutor(studentSubmissionPackage);
+    private final JavaClasses javaClasses;
+
+    /**
+     * @param studentSubmissionPackage The path to the student submission
+     */
+    public SecurityRuleExecutor() {
+        packages = getDependencies(classFileImporter.importPath("target/classes"));
+        if (packages.isEmpty()) {
+            log.warn("No dependencies found");
+            throw new SecurityException("Given package does not have any dependencies");
+        }
+
+         javaClasses = classFileImporter
+                .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
+                .withImportOption(location -> classNamesToExclude.stream().noneMatch(location::contains))
+                .importPath("target/classes");
     }
 
     /**
      * Returns the dependencies of the student submission
      */
-    public Set<String> getDependencies(JavaClasses classes) {
+    private Set<String> getDependencies(JavaClasses classes) {
         return classes.stream()
                 .map(JavaClass::getTransitiveDependenciesFromSelf)
                 .flatMap(Set::stream)
@@ -76,24 +76,11 @@ public class SecurityRuleExecutor {
                 .collect(Collectors.toSet());
     }
 
+    public Set<String> getPackages() {
+        return packages;
+    }
 
-    /**
-     * Executes the security rules
-     */
-    public void executeSecurityRules() {
-        Set<String> packages = getDependencies(classFileImporter.importPath("target/classes"));
-        if (packages.isEmpty()) {
-            log.warn("No dependencies found");
-            throw new SecurityException("Given package does not have any dependencies");
-        }
-
-        JavaClasses classes = classFileImporter
-                .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
-                .withImportOption(location -> classNamesToExclude.stream().noneMatch(location::contains))
-                .importPath("target/classes");
-
-        securityRuleFactory.getSecurityRules(studentSubmissionPackage)
-                .forEach(rule ->
-                        rule.check(classes));
+    public JavaClasses getJavaClasses() {
+        return javaClasses;
     }
 }

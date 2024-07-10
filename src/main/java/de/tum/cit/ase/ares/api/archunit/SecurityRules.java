@@ -24,7 +24,7 @@ public class SecurityRules {
      *
      * @return The ArchRule to check for file system access.
      */
-    public static ArchRule noClassesShouldAccessFileSystem(String studentPackage) {
+    public static ArchRule noClassesShouldAccessFileSystem() {
         // Packages that should not be accessed
         List<String> bannedPackages = List.of(
                 "java.nio.file",
@@ -39,8 +39,6 @@ public class SecurityRules {
                 "java.awt.desktop");
 
         return ArchRuleDefinition.noClasses()
-                .that()
-                .resideInAPackage(studentPackage + "..")
                 .should(new TransitivelyAccessesMethodsCondition(new DescribedPredicate<>("accesses file system") {
                     @Override
                     public boolean test(JavaAccess<?> javaAccess) {
