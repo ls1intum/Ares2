@@ -689,8 +689,11 @@ public class AstAssertionTest {
 		@TestTest
 		void test_testExcludesPassedMethod_Fail() {
 			String testExcludesPassedMethod_Fail = "testExcludesPassedMethod_Fail";
-			tests.assertThatEvents().haveExactly(1, testFailedWith(testExcludesPassedMethod_Fail, AssertionError.class, "Unwanted recursion found:\n" +
-					"de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.ClassWithNoExcludeMethods.something(de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.RandomParameterThatShouldBeResolved)"));
+			tests.assertThatEvents().haveExactly(1, testFailedWith(testExcludesPassedMethod_Fail, AssertionError.class, "Unwanted statement found:" + System.lineSeparator() + " - In "
+					+ Path.of("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration", "testuser", "subject", "structural", "astTestFiles", "recursions" , "excludeMethods",
+					"ClassWithNoExcludeMethods.java")
+					+ ":" + System.lineSeparator() + "  - Unwanted Recursion was found:"
+					+ System.lineSeparator() + "   - Between line 5 (column 5) and line 7 (column 5) in Method de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.ClassWithNoExcludeMethods.something(de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.RandomParameterThatShouldBeResolved)" + System.lineSeparator()));
 		}
 
 		@TestTest
