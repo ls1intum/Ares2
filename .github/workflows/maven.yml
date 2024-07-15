@@ -26,6 +26,7 @@ jobs:
 
     - name: Install Maven
       run: |
+        sudo rm -rf /usr/share/maven
         sudo wget -q -O - "https://apache.osuosl.org/maven/maven-3/3.9.8/binaries/apache-maven-3.9.8-bin.tar.gz" | sudo tar xzf - -C /usr/share
         sudo ln -s /usr/share/apache-maven-3.9.8/bin/mvn /usr/bin/mvn
 
