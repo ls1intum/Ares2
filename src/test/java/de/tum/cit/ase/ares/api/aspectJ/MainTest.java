@@ -1,6 +1,5 @@
 package de.tum.cit.ase.ares.api.aspectJ;
 
-import de.tum.cit.ase.ares.api.archunit.SecurityRuleExecutor;
 import de.tum.cit.ase.ares.api.aspectJ.main.Main;
 import de.tum.cit.ase.ares.api.internal.TestGuardUtils;
 import de.tum.cit.ase.ares.api.policy.FileSystemInteraction;
@@ -26,7 +25,7 @@ public class MainTest {
         List<FileSystemInteraction> interactions = List.of(
                 new FileSystemInteraction(Path.of("notValid.txt"), true, true, true)
         );
-        TestGuardUtils.checkFileAccess(interactions, new SecurityRuleExecutor());
+        TestGuardUtils.checkFileAccess(interactions);
     }
 
     @Test
@@ -34,7 +33,7 @@ public class MainTest {
         List<FileSystemInteraction> interactions = List.of(
                 new FileSystemInteraction(Path.of("fileUsingFilesClass.txt"), true, true, true)
         );
-        TestGuardUtils.checkFileAccess(interactions, new SecurityRuleExecutor());
+        TestGuardUtils.checkFileAccess(interactions);
         Main mainInstance = new Main();
         mainInstance.getPath("dir", "file.txt");
     }
@@ -44,7 +43,7 @@ public class MainTest {
         List<FileSystemInteraction> interactions = List.of(
                 new FileSystemInteraction(Path.of("fileUsingFilesClass.txt"), true, true, true)
         );
-        TestGuardUtils.checkFileAccess(interactions, new SecurityRuleExecutor());
+        TestGuardUtils.checkFileAccess(interactions);
         Main.main(null);
     }
 
@@ -53,7 +52,7 @@ public class MainTest {
         List<FileSystemInteraction> interactions = List.of(
                 new FileSystemInteraction(Path.of("fileUsingFilesClass.txt"), true, true, true)
         );
-        TestGuardUtils.checkFileAccess(interactions, new SecurityRuleExecutor());
+        TestGuardUtils.checkFileAccess(interactions);
         Path deniedPath = Paths.get("deniedFile.txt");
         Files.write(deniedPath, Arrays.asList("This should be blocked"));
     }
@@ -63,7 +62,7 @@ public class MainTest {
         List<FileSystemInteraction> interactions = List.of(
                 new FileSystemInteraction(Path.of("fileUsingFilesClass.txt"), true, true, true)
         );
-        TestGuardUtils.checkFileAccess(interactions, new SecurityRuleExecutor());
+        TestGuardUtils.checkFileAccess(interactions);
         Path allowedPath = Paths.get("fileUsingFilesClass.txt");
         Files.write(allowedPath, Arrays.asList("This should be allowed"));
         String expectedOutput = "Files.write called with path: fileUsingFilesClass.txt and lines: [This should be allowed]";

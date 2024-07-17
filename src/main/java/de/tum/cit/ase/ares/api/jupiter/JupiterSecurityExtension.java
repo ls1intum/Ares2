@@ -6,7 +6,6 @@ import java.nio.file.Path;
 import java.util.Optional;
 
 import de.tum.cit.ase.ares.api.Policy;
-import de.tum.cit.ase.ares.api.archunit.SecurityRuleExecutor;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReader;
 import de.tum.cit.ase.ares.api.policy.SupportedProgrammingLanguage;
@@ -40,10 +39,8 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
                     })
                     .orElseThrow(() -> new AnnotationFormatError("Policy annotation is missing"));
 
-            // This checks for packages beforehand and loads the JavaClasses to check for latter rules
-            SecurityRuleExecutor securityRuleExecutor = new SecurityRuleExecutor();
             if (securityPolicy.theProgrammingLanguageIUseInThisProgrammingExerciseIs() == SupportedProgrammingLanguage.JAVA) {
-                checkFileAccess(securityPolicy.iAllowTheFollowingFileSystemInteractionsForTheStudents(), securityRuleExecutor);
+                checkFileAccess(securityPolicy.iAllowTheFollowingFileSystemInteractionsForTheStudents());
                 //TODO: Add further checks
             } else {
                 throw new UnsupportedOperationException("Only Java is supported by Ares.");

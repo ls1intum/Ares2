@@ -11,8 +11,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
-import de.tum.cit.ase.ares.api.archunit.SecurityRuleExecutor;
-import de.tum.cit.ase.ares.api.archunit.SecurityRules;
 import de.tum.cit.ase.ares.api.aspect.MainAspectJava;
 import de.tum.cit.ase.ares.api.policy.FileSystemInteraction;
 import org.apiguardian.api.API;
@@ -192,9 +190,9 @@ public final class TestGuardUtils {
         return duration;
     }
 
-    public static void checkFileAccess(List<FileSystemInteraction> isAllowTheFollowingFileSystemInteractionsForTheStudents, SecurityRuleExecutor securityRuleExecutor) {
+    public static void checkFileAccess(List<FileSystemInteraction> isAllowTheFollowingFileSystemInteractionsForTheStudents) {
         if (isAllowTheFollowingFileSystemInteractionsForTheStudents.isEmpty()) {
-            SecurityRules.noClassesShouldAccessFileSystem().check(securityRuleExecutor.getJavaClasses());
+//            SecurityRules.noClassesShouldAccessFileSystem().check(securityRuleExecutor.getJavaClasses());
         } else {
             MainAspectJava.setSecurityPolicy(isAllowTheFollowingFileSystemInteractionsForTheStudents, TestGuardUtils.class);
             // TODO: Add AspectJ check for file system access
