@@ -4,6 +4,7 @@ import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
+import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 import org.apiguardian.api.API;
 import org.slf4j.LoggerFactory;
 
@@ -32,11 +33,6 @@ public class SecurityRuleExecutor {
     );
 
     /**
-     * The class file importer
-     */
-    private final ClassFileImporter classFileImporter = new ClassFileImporter();
-
-    /**
      * The packages that the student submission depends on
      */
     private final Set<String> packages;
@@ -50,7 +46,10 @@ public class SecurityRuleExecutor {
      * Initializes the SecurityRuleExecutor
      */
     public SecurityRuleExecutor() {
-        packages = getDependencies(classFileImporter.importPath("target/classes"));
+        String compiledClasses = ProjectSourcesFinder.isGradleProject() ? "build/classes" : "target/classes";
+
+        ClassFileImporter classFileImporter = new ClassFileImporter();
+        packages = getDependencies(classFileImporter.importPath(compiledClasses));
         if (packages.isEmpty()) {
             log.warn("No dependencies found");
             throw new SecurityException("Given package does not have any dependencies");
@@ -59,7 +58,7 @@ public class SecurityRuleExecutor {
          javaClasses = classFileImporter
                 .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
                 .withImportOption(location -> classNamesToExclude.stream().noneMatch(location::contains))
-                .importPath("target/classes");
+                .importPackages(packages);
     }
 
     /**
