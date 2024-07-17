@@ -81,8 +81,8 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
      */
     private Set<JavaAccess<?>> getDirectAccessTargetsOutsideOfAnalyzedClasses(JavaAccess<?> item) {
         return item.getTargetOwner().getAccessesFromSelf()
-                        .stream()
-                        .filter(a -> a.getOrigin().getFullName().equals(item.getTarget().getFullName())).collect(toSet());
+                .stream()
+                .filter(a -> a.getOrigin().getFullName().equals(item.getTarget().getFullName())).collect(toSet());
     }
 
     private class TransitiveAccessPath {
