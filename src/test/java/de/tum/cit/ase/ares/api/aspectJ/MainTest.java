@@ -18,9 +18,6 @@ import static org.junit.Assert.assertTrue;
 
 public class MainTest {
 
-    //Folgende Tests demonstrieren wie man einen gültigen Pfad weiterleiten könnte und dieser file access hätte und wie ein nicht erlaubter Pfad das nicht könnte.
-    //Anpassungen aber noch nötig aber das sollte möglich sein. Z.b statt text datei konkreten filepfad angeben etc. das kann man auch mit joinpoints ausgeben
-
     @Before
     public void setup() {
         List<FileSystemInteraction> interactions = List.of(
@@ -69,5 +66,48 @@ public class MainTest {
         String expectedOutput = "Files.write called with path: fileUsingFilesClass.txt and lines: [This should be allowed]";
     }
 
+    @Test(expected = SecurityException.class)
+    public void testFilesReadAccessDenied() throws IOException {
+        List<FileSystemInteraction> interactions = List.of(
+                new FileSystemInteraction(Path.of("fileUsingFilesClass.txt"), true, true, true)
+        );
+        TestGuardUtils.checkFileAccess(interactions, new SecurityRuleExecutor());
+        Path deniedPath = Paths.get("deniedFile.txt");
+        Files.readAllBytes(deniedPath);
+    }
 
+    @Test
+    public void testFilesReadAccessGranted() throws IOException {
+        List<FileSystemInteraction> interactions = List.of(
+                new FileSystemInteraction(Path.of("fileUsingFilesClass.txt"), true, true, true)
+        );
+        TestGuardUtils.checkFileAccess(interactions, new SecurityRuleExecutor());
+        Path allowedPath = Paths.get("fileUsingFilesClass.txt");
+        byte[] bytes = Files.readAllBytes(allowedPath);
+        System.out.println("Files.read called with path: " + allowedPath + " and bytes: " + Arrays.toString(bytes));
+    }
+
+    /*
+    @Test(expected = SecurityException.class)
+    public void testFilesDeleteAccessDenied() throws IOException {
+        List<FileSystemInteraction> interactions = List.of(
+                new FileSystemInteraction(Path.of("fileUsingFilesClass.txt"), true, true, true)
+        );
+        TestGuardUtils.checkFileAccess(interactions, new SecurityRuleExecutor());
+        Path deniedPath = Paths.get("deniedFile.txt");
+        Files.delete(deniedPath);
+    }
+
+    @Test
+    public void testFilesDeleteAccessGranted() throws IOException {
+        List<FileSystemInteraction> interactions = List.of(
+                new FileSystemInteraction(Path.of("fileUsingFilesClass.txt"), true, true, true)
+        );
+        TestGuardUtils.checkFileAccess(interactions, new SecurityRuleExecutor());
+        Path allowedPath = Paths.get("fileUsingFilesClass.txt");
+        Files.delete(allowedPath);
+        System.out.println("Files.delete called with path: " + allowedPath);
+    }
+
+     */
 }
