@@ -6,6 +6,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -13,6 +14,7 @@ public class SecurityPolicyReaderAndDirector {
 
     SecurityPolicy securityPolicy;
     Optional<SecurityTestCaseAbstractFactoryAndBuilder> testCaseManager = Optional.empty();
+    List<String> createdFiles = new ArrayList<>();
 
     public SecurityPolicyReaderAndDirector(Path path) throws IOException {
         securityPolicy = (new ObjectMapper(new YAMLFactory())).readValue(Files.readString(path), SecurityPolicy.class);
@@ -32,7 +34,7 @@ public class SecurityPolicyReaderAndDirector {
     }
 
     public SecurityPolicyReaderAndDirector writeTestCasesToFiles(Path path) {
-        testCaseManager
+        createdFiles = testCaseManager
                 .orElseThrow(() -> new SecurityException("TestCaseManager is not initialised."))
                 .writeTestCasesToFiles(path);
         return this;
