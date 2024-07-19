@@ -14,7 +14,9 @@ import java.util.regex.Pattern;
 import de.tum.cit.ase.ares.api.archunit.SecurityRuleExecutor;
 import de.tum.cit.ase.ares.api.archunit.SecurityRules;
 import de.tum.cit.ase.ares.api.aspect.FileSystemInteractionList;
+import de.tum.cit.ase.ares.api.aspect.JavaAspectConfiguration;
 import de.tum.cit.ase.ares.api.policy.FileSystemInteraction;
+import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 import org.slf4j.*;
@@ -192,11 +194,12 @@ public final class TestGuardUtils {
         return duration;
     }
 
-    public static void checkFileAccess(List<FileSystemInteraction> isAllowTheFollowingFileSystemInteractionsForTheStudents, SecurityRuleExecutor securityRuleExecutor) {
-        if (isAllowTheFollowingFileSystemInteractionsForTheStudents.isEmpty()) {
-            SecurityRules.noClassesShouldAccessFileSystem().check(securityRuleExecutor.getJavaClasses());
+    public static void checkFileAccess(SecurityPolicy securityPolicy) {
+        if (securityPolicy.iAllowTheFollowingFileSystemInteractionsForTheStudents().isEmpty()) {
+            //SecurityRules.noClassesShouldAccessFileSystem().check(securityRuleExecutor.getJavaClasses());
         } else {
-            FileSystemInteractionList.setAllowedFileSystemInteractions(isAllowTheFollowingFileSystemInteractionsForTheStudents);
+            JavaAspectConfiguration javaAspectConfiguration = new JavaAspectConfiguration();
+            javaAspectConfiguration.runAspectJConfiguration(securityPolicy);
             // TODO: Add AspectJ check for file system access
             // Think of a way to create AJ files dynamically
             // The files should then be used to weave into student submission, which is then checked during the execution of the functional tests

@@ -1,43 +1,28 @@
 package de.tum.cit.ase.ares.api.aspect;
 
-import de.tum.cit.ase.ares.api.policy.FileSystemInteraction;
-import org.aspectj.lang.ProceedingJoinPoint;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 
-public aspect MainAspectJava {
-
-    // Around advice to capture the parameters passed to Main.getPath
-    Object around() : PointcutDefinitions.getPathMethodCall() {
-        Object[] args = thisJoinPoint.getArgs();
-        String first = (String) args[0];
-        Object[] more = Arrays.copyOfRange(args, 1, args.length, Object[].class);
-
-        System.out.println("Before execution of: " + thisJoinPoint.getSignature() + " with first: " + first + " and more: " + Arrays.toString(more));
-        System.out.println("All arguments: ");
-        for (Object arg : args) {
-            System.out.println(arg);
-        }
-        return proceed();
-    }
+public aspect aspectJava {
 
     // Around advice to capture the path used in Files.write and check permissions
     Object around() : PointcutDefinitions.filesWriteMethod() {
         Object[] args = thisJoinPoint.getArgs();
         Path path = (Path) args[0];  // Assuming the first argument is the Path
 
-        // Check if the path is allowed and has write permission
+        String fileName = thisJoinPoint.getSourceLocation().getFileName();
+
+        // Check if the file name is allowed and has write permission
         boolean isAllowed = FileSystemInteractionList.getAllowedFileSystemInteractions().stream()
-                .anyMatch(interaction -> path.startsWith(interaction.onThisPathAndAllPathsBelow())
+                .anyMatch(interaction -> interaction.onThisPathAndAllPathsBelow().getFileName().toString().equals(fileName)
                         && interaction.studentsAreAllowedToOverwriteAllFiles());
 
         if (!isAllowed) {
-            System.out.println("Files.write called with path: " + path + " - Access Denied");
+            System.out.println("Files.write called with path: " + path + " in " + thisJoinPoint.getSourceLocation() + " - Access Denied");
             throw new SecurityException("Write operation blocked by AspectJ for path: " + path);
         } else {
-            System.out.println("Files.write called with path: " + path + " - Access Granted");
+            System.out.println("Files.write called with path: " + path + " in " + thisJoinPoint.getSourceLocation() + " - Access Granted");
         }
 
         if (args.length > 1 && args[1] instanceof List) {
@@ -58,40 +43,53 @@ public aspect MainAspectJava {
         Object[] args = thisJoinPoint.getArgs();
         Path path = (Path) args[0];  // Assuming the first argument is the Path
 
-        // Check if the path is allowed and has read permission
+        String fileName = thisJoinPoint.getSourceLocation().getFileName();
+
+        // Check if the file name is allowed and has read permission
         boolean isAllowed = FileSystemInteractionList.getAllowedFileSystemInteractions().stream()
-                .anyMatch(interaction -> path.startsWith(interaction.onThisPathAndAllPathsBelow())
+                .anyMatch(interaction -> interaction.onThisPathAndAllPathsBelow().getFileName().toString().equals(fileName)
                         && interaction.studentsAreAllowedToReadAllFiles());
 
         if (!isAllowed) {
-            System.out.println("Files.read called with path: " + path + " - Access Denied");
+            System.out.println("Files.read called with path: " + path + " in " + thisJoinPoint.getSourceLocation() + " - Access Denied");
             throw new SecurityException("Read operation blocked by AspectJ for path: " + path);
         } else {
-            System.out.println("Files.read called with path: " + path + " - Access Granted");
+            System.out.println("Files.read called with path: " + path + " in " + thisJoinPoint.getSourceLocation() + " - Access Granted");
         }
 
         return proceed();
     }
 
     /*
+
     // Around advice to capture file deletion and check permissions
     Object around() : PointcutDefinitions.filesDeleteMethod() {
         Object[] args = thisJoinPoint.getArgs();
         Path path = (Path) args[0];  // Assuming the first argument is the Path
 
-        // Check if the path is allowed and has delete permission
+        String fileName = thisJoinPoint.getSourceLocation().getFileName();
+
+        // Check if the file name is allowed and has delete permission
         boolean isAllowed = FileSystemInteractionList.getAllowedFileSystemInteractions().stream()
-                .anyMatch(interaction -> path.startsWith(interaction.onThisPathAndAllPathsBelow())
+                .anyMatch(interaction -> interaction.onThisPathAndAllPathsBelow().getFileName().toString().equals(fileName)
                         && interaction.studentsAreAllowedToDeleteAllFiles());
 
         if (!isAllowed) {
-            System.out.println("Files.delete called with path: " + path + " - Access Denied");
+            System.out.println("Files.delete called with path: " + path + " in " + thisJoinPoint.getSourceLocation() + " - Access Denied");
             throw new SecurityException("Delete operation blocked by AspectJ for path: " + path);
         } else {
-            System.out.println("Files.delete called with path: " + path + " - Access Granted");
+            System.out.println("Files.delete called with path: " + path + " in " + thisJoinPoint.getSourceLocation() + " - Access Granted");
         }
 
-        return proceed(args);
+        return proceed();
+    }
+
+    // Around advice to capture method executions and check permissions
+    Object around() : PointcutDefinitions.executionMethod() {
+        // You can add additional checks or log statements here
+        System.out.println("Execution of: " + thisJoinPoint.getSignature() + " in " + thisJoinPoint.getSourceLocation());
+
+        return proceed();
     }
 
      */

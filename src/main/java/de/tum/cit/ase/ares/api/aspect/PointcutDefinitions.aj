@@ -2,9 +2,6 @@ package de.tum.cit.ase.ares.api.aspect;
 
 public aspect PointcutDefinitions {
 
-        // Pointcut for Main.getPath method
-        pointcut getPathMethodCall() : call(java.nio.file.Path de.tum.cit.ase.ares.api.aspectJ.main.Main.getPath(..));
-
         // Pointcut for Files.write method
         pointcut filesWriteMethod() : call(* java.nio.file.Files.write(..));
 

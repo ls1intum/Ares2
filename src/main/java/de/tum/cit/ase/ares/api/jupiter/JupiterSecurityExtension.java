@@ -43,7 +43,7 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
             // This checks for packages beforehand and loads the JavaClasses to check for latter rules
             SecurityRuleExecutor securityRuleExecutor = new SecurityRuleExecutor();
             if (securityPolicy.theProgrammingLanguageIUseInThisProgrammingExerciseIs() == SupportedProgrammingLanguage.JAVA) {
-                checkFileAccess(securityPolicy.iAllowTheFollowingFileSystemInteractionsForTheStudents(), securityRuleExecutor);
+                checkFileAccess(securityPolicy);
                 //TODO: Add further checks
             } else {
                 throw new UnsupportedOperationException("Only Java is supported by Ares.");
