@@ -6,6 +6,7 @@ public record FileSystemInteraction(
         Path onThisPathAndAllPathsBelow,
         boolean studentsAreAllowedToReadAllFiles,
         boolean studentsAreAllowedToOverwriteAllFiles,
-        boolean studentsAreAllowedToExecuteAllFiles
+        boolean studentsAreAllowedToExecuteAllFiles,
+        boolean studentsAreAllowedToDeleteAllFiles
 ) {
 }

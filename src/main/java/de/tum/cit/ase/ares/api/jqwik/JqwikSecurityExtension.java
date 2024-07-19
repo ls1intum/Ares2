@@ -1,13 +1,20 @@
 package de.tum.cit.ase.ares.api.jqwik;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Optional;
 
+import de.tum.cit.ase.ares.api.Policy;
+import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 
 import net.jqwik.api.lifecycle.*;
 
 import de.tum.cit.ase.ares.api.internal.ConfigurationUtils;
+
+import static de.tum.cit.ase.ares.api.internal.TestGuardUtils.hasAnnotation;
+import static org.junit.platform.commons.support.AnnotationSupport.findAnnotation;
 //REMOVED: Import of ArtemisSecurityManager
 
 /**
@@ -28,6 +35,18 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
 	public PropertyExecutionResult aroundProperty(PropertyLifecycleContext context, PropertyExecutor property)
 			throws Throwable {
 		var testContext = JqwikContext.of(context);
+		if (hasAnnotation(testContext, Policy.class)) {
+			Optional<Policy> policyAnnotation = findAnnotation(testContext.testMethod(), Policy.class);
+			if (policyAnnotation.isPresent()) {
+				Policy policy = policyAnnotation.get();
+				Path policyPath = Path.of(policy.value());
+				if (!policyPath.toFile().exists()) {
+					throw new SecurityException("Policy file does not exist at: " + policyPath);
+				}
+				new SecurityPolicyReaderAndDirector(policyPath).createTestCaseManager().runSecurityTestCases();
+			}
+
+		}
 		var configuration = ConfigurationUtils.generateConfiguration(testContext);
 //REMOVED: Installing of ArtemisSecurityManager
 		PropertyExecutionResult result;

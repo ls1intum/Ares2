@@ -7,7 +7,7 @@ import java.util.Optional;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
-import de.tum.cit.ase.ares.api.policy.SecurityPolicyReader;
+import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 import de.tum.cit.ase.ares.api.policy.SupportedProgrammingLanguage;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
@@ -28,24 +28,17 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
                                             Optional<ReflectiveInvocationContext<?>> invocationContext) throws Throwable {
         JupiterContext testContext = JupiterContext.of(extensionContext);
         if (hasAnnotation(testContext, Policy.class)) {
-            SecurityPolicy securityPolicy = findAnnotation(testContext.testMethod(), Policy.class)
-                    .map(policy -> {
-                        try {
-                            return SecurityPolicyReader.readSecurityPolicy(Path.of(policy.value()));
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    })
-                    .orElseThrow(() -> new AnnotationFormatError("Policy annotation is missing"));
-            if (securityPolicy.theProgrammingLanguageIUseInThisProgrammingExerciseIs() == SupportedProgrammingLanguage.JAVA) {
-                checkFileAccess(securityPolicy.iAllowTheFollowingFileSystemInteractionsForTheStudents());
-                //TODO: Add further checks
-            } else {
-                throw new UnsupportedOperationException("Only Java is supported by Ares.");
+            Optional<Policy> policyAnnotation = findAnnotation(testContext.testMethod(), Policy.class);
+            if (policyAnnotation.isPresent()) {
+                Policy policy = policyAnnotation.get();
+                Path policyPath = Path.of(policy.value());
+                if (!policyPath.toFile().exists()) {
+                    throw new SecurityException("Policy file does not exist at: " + policyPath);
+                }
+                new SecurityPolicyReaderAndDirector(policyPath).createTestCaseManager().runSecurityTestCases();
             }
 
         }
-
         var configuration = ConfigurationUtils.generateConfiguration(testContext);
         //REMOVED: Installing of ArtemisSecurityManager
         Throwable failure = null;
