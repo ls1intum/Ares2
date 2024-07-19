@@ -7,7 +7,7 @@ import java.util.Optional;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
-import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
+import de.tum.cit.ase.ares.api.policy.SecurityPolicyReader;
 import de.tum.cit.ase.ares.api.policy.SupportedProgrammingLanguage;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;

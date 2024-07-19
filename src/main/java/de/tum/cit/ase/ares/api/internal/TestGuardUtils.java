@@ -189,11 +189,14 @@ public final class TestGuardUtils {
         return duration;
     }
 
-    public static void checkFileAccess(List<FileSystemInteraction> iAllowTheFollowingFileSystemInteractionsForTheStudents) {
-        if (iAllowTheFollowingFileSystemInteractionsForTheStudents.isEmpty()) {
-            // TODO: Add ArchUnit check for file system access
+    public static void checkFileAccess(List<FileSystemInteraction> isAllowTheFollowingFileSystemInteractionsForTheStudents) {
+        if (isAllowTheFollowingFileSystemInteractionsForTheStudents.isEmpty()) {
+//            SecurityRules.noClassesShouldAccessFileSystem().check(securityRuleExecutor.getJavaClasses());
         } else {
+            //MainAspectJava.setSecurityPolicy(isAllowTheFollowingFileSystemInteractionsForTheStudents, TestGuardUtils.class);
             // TODO: Add AspectJ check for file system access
+            // Think of a way to create AJ files dynamically
+            // The files should then be used to weave into student submission, which is then checked during the execution of the functional tests
         }
     }
 }
