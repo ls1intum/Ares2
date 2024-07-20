@@ -15,7 +15,7 @@ public enum JavaSupportedArchitectureTestCase {
     /**
      * Architecture test case for the network connection.
      */
-    NETWORKCONNECTION,
+    NETWORK_CONNECTION,
     /**
      * Architecture test case for the command execution.
      */
