@@ -51,7 +51,6 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
 			}
 
 		}
-		var configuration = ConfigurationUtils.generateConfiguration(testContext);
 //REMOVED: Installing of ArtemisSecurityManager
 		PropertyExecutionResult result;
 		Throwable error = null;
