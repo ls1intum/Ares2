@@ -23,7 +23,7 @@ public enum JavaSupportedArchitectureTestCase {
     /**
      * Architecture test case for the thread creation.
      */
-    THREADCREATION,
+    THREAD_CREATION,
     /**
      * Architecture test case for the package import.
      */
