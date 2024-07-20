@@ -7,11 +7,9 @@ import java.lang.annotation.*;
 import java.lang.reflect.*;
 import java.time.*;
 import java.time.format.DateTimeParseException;
-import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
-import de.tum.cit.ase.ares.api.policy.FileSystemInteraction;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 import org.slf4j.*;
@@ -151,21 +149,21 @@ public final class TestGuardUtils {
      * @param deadlineString the deadline string of format ISO-LOCAL-DATE(T|
      *                       )ISO-LOCAL-TIME( ZONE-ID)?
      * @return always a string array of length two, the first part is always the
-     * local date time part and not null, the second is the zone part and
-     * can be null
+     *         local date time part and not null, the second is the zone part and
+     *         can be null
      * @author Christian Femers
      */
     private static String[] splitIntoDateTimeAndZone(String deadlineString) {
         int firstSpace = deadlineString.indexOf(' ');
         if (firstSpace == -1)
-            return new String[]{deadlineString, null};
+            return new String[] { deadlineString, null };
         int lastSpace = deadlineString.lastIndexOf(' ');
         var potentialZoneIdString = deadlineString.substring(lastSpace + 1);
         // either it has two spaces and thereby three parts (YYYY-MM-DD hh:mm ZONE) or
         // the last part matches a ZoneId start
         if (firstSpace != lastSpace || potentialZoneIdString.matches(ZONE_ID_START_PATTERN))
-            return new String[]{deadlineString.substring(0, lastSpace), potentialZoneIdString};
-        return new String[]{deadlineString, null};
+            return new String[] { deadlineString.substring(0, lastSpace), potentialZoneIdString };
+        return new String[] { deadlineString, null };
     }
 
     /**
@@ -187,16 +185,5 @@ public final class TestGuardUtils {
         if (duration.isZero() || duration.isNegative())
             throw new AnnotationFormatError(localized("test_guard.extended_deadline_zero_or_negative", durationString)); //$NON-NLS-1$
         return duration;
-    }
-
-    public static void checkFileAccess(List<FileSystemInteraction> isAllowTheFollowingFileSystemInteractionsForTheStudents) {
-        if (isAllowTheFollowingFileSystemInteractionsForTheStudents.isEmpty()) {
-//            SecurityRules.noClassesShouldAccessFileSystem().check(securityRuleExecutor.getJavaClasses());
-        } else {
-            //MainAspectJava.setSecurityPolicy(isAllowTheFollowingFileSystemInteractionsForTheStudents, TestGuardUtils.class);
-            // TODO: Add AspectJ check for file system access
-            // Think of a way to create AJ files dynamically
-            // The files should then be used to weave into student submission, which is then checked during the execution of the functional tests
-        }
     }
 }
