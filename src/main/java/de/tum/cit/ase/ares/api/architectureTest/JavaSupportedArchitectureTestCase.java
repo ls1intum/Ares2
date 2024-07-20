@@ -11,7 +11,7 @@ public enum JavaSupportedArchitectureTestCase {
     /**
      * Architecture test case for the file system interaction.
      */
-    FILESYSTEMINTERACTION,
+    FILESYSTEM_INTERACTION,
     /**
      * Architecture test case for the network connection.
      */
