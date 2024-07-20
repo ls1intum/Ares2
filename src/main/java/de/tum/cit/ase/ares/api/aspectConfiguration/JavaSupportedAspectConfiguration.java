@@ -23,7 +23,7 @@ public enum JavaSupportedAspectConfiguration {
     /**
      * Aspect configuration for the thread creation.
      */
-    THREADCREATION,
+    THREAD_CREATION,
     /**
      * Aspect configuration for the package import.
      */
