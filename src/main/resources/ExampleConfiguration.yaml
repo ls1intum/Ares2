@@ -1,0 +1,27 @@
+# This is an example configuration file for the programming exercise "ExampleProgrammingExercise".
+theProgrammingLanguageIUseInThisProgrammingExerciseIs: JAVA
+iAllowTheFollowingFileSystemInteractionsForTheStudents:
+  - onThisPathAndAllPathsBelow: "/Path1"
+    studentsAreAllowedToReadAllFiles: true
+    studentsAreAllowedToOverwriteAllFiles: false
+    studentsAreAllowedToExecuteAllFiles: false
+  - onThisPathAndAllPathsBelow: "/Path2"
+    studentsAreAllowedToReadAllFiles: false
+    studentsAreAllowedToOverwriteAllFiles: true
+    studentsAreAllowedToExecuteAllFiles: false
+  - onThisPathAndAllPathsBelow: "/Path3"
+    studentsAreAllowedToReadAllFiles: false
+    studentsAreAllowedToOverwriteAllFiles: false
+    studentsAreAllowedToExecuteAllFiles: true
+  - onThisPathAndAllPathsBelow: "/Path4"
+    studentsAreAllowedToReadAllFiles: true
+    studentsAreAllowedToOverwriteAllFiles: true
+    studentsAreAllowedToExecuteAllFiles: true
+iAllowTheFollowingNetworkConnectionsForTheStudents:
+  -
+iAllowTheFollowingCommandExecutionsForTheStudents:
+  -
+iAllowTheFollowingThreadCreationsForTheStudents:
+  -
+iAllowTheFollowingPackageImportsForTheStudents:
+  -
