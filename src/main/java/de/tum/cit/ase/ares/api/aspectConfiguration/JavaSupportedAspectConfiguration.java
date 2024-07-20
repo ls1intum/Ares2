@@ -27,5 +27,5 @@ public enum JavaSupportedAspectConfiguration {
     /**
      * Aspect configuration for the package import.
      */
-    PACKAGEIMPORT
+    PACKAGE_IMPORT
 }
