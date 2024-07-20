@@ -38,7 +38,6 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
             }
 
         }
-        var configuration = ConfigurationUtils.generateConfiguration(testContext);
         //REMOVED: Installing of ArtemisSecurityManager
         Throwable failure = null;
         try {

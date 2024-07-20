@@ -19,13 +19,13 @@ public enum JavaSupportedAspectConfiguration {
     /**
      * Aspect configuration for the command execution.
      */
-    COMMANDEXECUTION,
+    COMMAND_EXECUTION,
     /**
      * Aspect configuration for the thread creation.
      */
-    THREADCREATION,
+    THREAD_CREATION,
     /**
      * Aspect configuration for the package import.
      */
-    PACKAGEIMPORT
+    PACKAGE_IMPORT
 }

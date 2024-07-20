@@ -11,19 +11,19 @@ public enum JavaSupportedArchitectureTestCase {
     /**
      * Architecture test case for the file system interaction.
      */
-    FILESYSTEMINTERACTION,
+    FILESYSTEM_INTERACTION,
     /**
      * Architecture test case for the network connection.
      */
-    NETWORKCONNECTION,
+    NETWORK_CONNECTION,
     /**
      * Architecture test case for the command execution.
      */
-    COMMANDEXECUTION,
+    COMMAND_EXECUTION,
     /**
      * Architecture test case for the thread creation.
      */
-    THREADCREATION,
+    THREAD_CREATION,
     /**
      * Architecture test case for the package import.
      */
