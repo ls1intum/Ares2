@@ -2,6 +2,10 @@ package de.tum.cit.ase.ares.api.architectureTest;
 
 /**
  * Supported architecture test cases in Java programming language.
+ *
+ * @author Markus Paulsen
+ * @version 2.0.0
+ * @since 2.0.0
  */
 public enum JavaSupportedArchitectureTestCase {
     /**

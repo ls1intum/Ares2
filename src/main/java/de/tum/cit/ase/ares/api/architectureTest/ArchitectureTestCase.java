@@ -2,7 +2,11 @@ package de.tum.cit.ase.ares.api.architectureTest;
 
 /**
  * Interface for the architecture test cases in any programming language and abstract product of the abstract factory design pattern.
+ *
+ * @author Markus Paulsen
+ * @version 2.0.0
  * @see <a href="https://refactoring.guru/design-patterns/abstract-factory">Abstract Factory Design Pattern</a>
+ * @since 2.0.0
  */
 public interface ArchitectureTestCase {
     /**

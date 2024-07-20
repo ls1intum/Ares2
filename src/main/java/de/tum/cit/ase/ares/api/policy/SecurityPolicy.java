@@ -7,6 +7,10 @@ import java.util.List;
  * The security policy is defined in a YAML file and is read by the {@link SecurityPolicyReaderAndDirector} class.
  * The security policy is then used to generate the security test cases that are used to block dangerous executions and
  * provide respective feedback for the students' submissions.
+ *
+ * @author Markus Paulsen
+ * @version 2.0.0
+ * @since 2.0.0
  */
 public record SecurityPolicy(
         /**

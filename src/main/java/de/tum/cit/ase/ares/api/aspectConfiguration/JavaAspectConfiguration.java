@@ -4,7 +4,11 @@ import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 
 /**
  * Aspect configuration for the Java programming language and concrete product of the abstract factory design pattern.
+ *
+ * @author Markus Paulsen
+ * @version 2.0.0
  * @see <a href="https://refactoring.guru/design-patterns/abstract-factory">Abstract Factory Design Pattern</a>
+ * @since 2.0.0
  */
 public class JavaAspectConfiguration implements AspectConfiguration {
 
@@ -15,7 +19,7 @@ public class JavaAspectConfiguration implements AspectConfiguration {
      * Constructor for JavaAspectConfiguration.
      *
      * @param javaSupportedAspectConfiguration Selects the supported aspect configuration in the Java programming language
-     * @param securityPolicy Security policy for the aspect configuration
+     * @param securityPolicy                   Security policy for the aspect configuration
      */
     public JavaAspectConfiguration(JavaSupportedAspectConfiguration javaSupportedAspectConfiguration, SecurityPolicy securityPolicy) {
         this.javaSupportedAspectConfiguration = javaSupportedAspectConfiguration;

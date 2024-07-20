@@ -15,8 +15,11 @@ import java.util.List;
  * and client of the abstract factory design pattern.
  * as well as the director of the builder design pattern.
  *
+ * @author Markus Paulsen
+ * @version 2.0.0
  * @see <a href="https://refactoring.guru/design-patterns/abstract-factory">Abstract Factory Design Pattern</a>
  * @see <a href="https://refactoring.guru/design-patterns/builder">Builder Design Pattern</a>
+ * @since 2.0.0
  */
 public class SecurityPolicyReaderAndDirector {
 
