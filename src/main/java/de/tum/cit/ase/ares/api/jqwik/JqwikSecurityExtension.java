@@ -35,6 +35,10 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
 	public PropertyExecutionResult aroundProperty(PropertyLifecycleContext context, PropertyExecutor property)
 			throws Throwable {
 		var testContext = JqwikContext.of(context);
+		/**
+		 * Check if the test method has the {@link Policy} annotation. If it does, read
+		 * the policy file and run the security test cases.
+		 */
 		if (hasAnnotation(testContext, Policy.class)) {
 			Optional<Policy> policyAnnotation = findAnnotation(testContext.testMethod(), Policy.class);
 			if (policyAnnotation.isPresent()) {
@@ -43,7 +47,7 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
 				if (!policyPath.toFile().exists()) {
 					throw new SecurityException("Policy file does not exist at: " + policyPath);
 				}
-				new SecurityPolicyReaderAndDirector(policyPath).createTestCaseManager().runSecurityTestCases();
+				new SecurityPolicyReaderAndDirector(policyPath).runSecurityTestCases();
 			}
 
 		}

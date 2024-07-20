@@ -22,6 +22,10 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
     public <T> T interceptGenericInvocation(Invocation<T> invocation, ExtensionContext extensionContext,
                                             Optional<ReflectiveInvocationContext<?>> invocationContext) throws Throwable {
         JupiterContext testContext = JupiterContext.of(extensionContext);
+        /**
+         * Check if the test method has the {@link Policy} annotation. If it does, read
+         * the policy file and run the security test cases.
+         */
         if (hasAnnotation(testContext, Policy.class)) {
             Optional<Policy> policyAnnotation = findAnnotation(testContext.testMethod(), Policy.class);
             if (policyAnnotation.isPresent()) {
@@ -30,7 +34,7 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
                 if (!policyPath.toFile().exists()) {
                     throw new SecurityException("Policy file does not exist at: " + policyPath);
                 }
-                new SecurityPolicyReaderAndDirector(policyPath).createTestCaseManager().runSecurityTestCases();
+                new SecurityPolicyReaderAndDirector(policyPath).runSecurityTestCases();
             }
 
         }
