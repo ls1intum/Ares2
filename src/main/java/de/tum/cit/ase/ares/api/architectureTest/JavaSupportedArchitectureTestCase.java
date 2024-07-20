@@ -19,7 +19,7 @@ public enum JavaSupportedArchitectureTestCase {
     /**
      * Architecture test case for the command execution.
      */
-    COMMANDEXECUTION,
+    COMMAND_EXECUTION,
     /**
      * Architecture test case for the thread creation.
      */
