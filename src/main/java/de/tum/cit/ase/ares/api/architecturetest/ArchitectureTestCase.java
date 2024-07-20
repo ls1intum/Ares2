@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.api.architectureTest;
+package de.tum.cit.ase.ares.api.architecturetest;
 
 /**
  * Interface for the architecture test cases in any programming language and abstract product of the abstract factory design pattern.

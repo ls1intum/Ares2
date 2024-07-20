@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.api.securityTests;
+package de.tum.cit.ase.ares.api.securitytest;
 
 import java.nio.file.Path;
 import java.util.List;

@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.api.architectureTest;
+package de.tum.cit.ase.ares.api.architecturetest;
 
 /**
  * Supported architecture test cases in Java programming language.

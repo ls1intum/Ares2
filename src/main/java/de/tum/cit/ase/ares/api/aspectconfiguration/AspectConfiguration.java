@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.api.aspectConfiguration;
+package de.tum.cit.ase.ares.api.aspectconfiguration;
 
 /**
  * Interface for the aspect configurations in any programming language and abstract product of the abstract factory design pattern.

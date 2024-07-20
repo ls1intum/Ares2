@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.api.architectureTest;
+package de.tum.cit.ase.ares.api.architecturetest;
 
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 

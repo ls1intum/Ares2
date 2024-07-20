@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.api.aspectConfiguration;
+package de.tum.cit.ase.ares.api.aspectconfiguration;
 
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 
