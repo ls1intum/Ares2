@@ -10,11 +10,31 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
+/**
+ * Security policy file reader, security test case creator
+ * and client of the abstract factory design pattern.
+ * as well as the director of the builder design pattern.
+ *
+ * @see <a href="https://refactoring.guru/design-patterns/abstract-factory">Abstract Factory Design Pattern</a>
+ * @see <a href="https://refactoring.guru/design-patterns/builder">Builder Design Pattern</a>
+ */
 public class SecurityPolicyReaderAndDirector {
 
+    /**
+     * Security policy for the security test cases
+     */
     SecurityPolicy securityPolicy;
+    /**
+     * Factory and builder for the security test cases
+     */
     SecurityTestCaseAbstractFactoryAndBuilder testCaseManager;
 
+    /**
+     * Constructor for the security policy reader and director.
+     *
+     * @param path Path to the security policy file
+     * @throws IOException If the security policy file cannot be read
+     */
     public SecurityPolicyReaderAndDirector(Path path) throws IOException {
         securityPolicy = (new ObjectMapper(new YAMLFactory())).readValue(Files.readString(path), SecurityPolicy.class);
         testCaseManager = switch (securityPolicy.theProgrammingLanguageIUseInThisProgrammingExerciseIs()) {
@@ -25,10 +45,19 @@ public class SecurityPolicyReaderAndDirector {
         };
     }
 
+    /**
+     * Writes the security test cases to files.
+     *
+     * @param path Path to the directory where the files should be written to
+     * @return List of paths of the written files
+     */
     public List<Path> writeTestCasesToFiles(Path path) {
         return testCaseManager.writeTestCasesToFiles(path);
     }
 
+    /**
+     * Runs the security test cases.
+     */
     public void runSecurityTestCases() {
         testCaseManager.runSecurityTestCases();
     }
