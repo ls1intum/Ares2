@@ -2,49 +2,35 @@ package de.tum.cit.ase.ares.api.policy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import de.tum.cit.ase.ares.api.securityTests.JavaSecurityTestCaseFactoryAndBuilder;
+import de.tum.cit.ase.ares.api.securityTests.SecurityTestCaseAbstractFactoryAndBuilder;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public class SecurityPolicyReaderAndDirector {
 
     SecurityPolicy securityPolicy;
-    Optional<SecurityTestCaseAbstractFactoryAndBuilder> testCaseManager = Optional.empty();
-    List<String> createdFiles = new ArrayList<>();
+    SecurityTestCaseAbstractFactoryAndBuilder testCaseManager;
 
     public SecurityPolicyReaderAndDirector(Path path) throws IOException {
         securityPolicy = (new ObjectMapper(new YAMLFactory())).readValue(Files.readString(path), SecurityPolicy.class);
-    }
-
-    public SecurityPolicyReaderAndDirector createTestCaseManager() {
         testCaseManager = switch (securityPolicy.theProgrammingLanguageIUseInThisProgrammingExerciseIs()) {
-            case JAVA -> Optional.empty();
-            case PYTHON -> Optional.empty();
-            case C -> Optional.empty();
-            case SWIFT -> Optional.empty();
+            case JAVA -> new JavaSecurityTestCaseFactoryAndBuilder((securityPolicy));
+            case PYTHON -> throw new UnsupportedOperationException("Python is not supported yet.");
+            case C -> throw new UnsupportedOperationException("C is not supported yet.");
+            case SWIFT -> throw new UnsupportedOperationException("Swift is not supported yet.");
         };
-        testCaseManager
-                .orElseThrow(() -> new SecurityException("Creating test cases failed."))
-                .createTestCases(securityPolicy);
-        return this;
     }
 
-    public SecurityPolicyReaderAndDirector writeTestCasesToFiles(Path path) {
-        createdFiles = testCaseManager
-                .orElseThrow(() -> new SecurityException("TestCaseManager is not initialised."))
-                .writeTestCasesToFiles(path);
-        return this;
+    public List<Path> writeTestCasesToFiles(Path path) {
+        return testCaseManager.writeTestCasesToFiles(path);
     }
 
-    public SecurityPolicyReaderAndDirector runSecurityTestCases() {
-        testCaseManager
-                .orElseThrow(() -> new SecurityException("TestCaseManager is not initialised."))
-                .runSecurityTestCases();
-        return this;
+    public void runSecurityTestCases() {
+        testCaseManager.runSecurityTestCases();
     }
 
 

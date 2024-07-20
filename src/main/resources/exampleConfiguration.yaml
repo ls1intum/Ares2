@@ -16,3 +16,11 @@ iAllowTheFollowingFileSystemInteractionsForTheStudents:
     studentsAreAllowedToReadAllFiles: true
     studentsAreAllowedToOverwriteAllFiles: true
     studentsAreAllowedToExecuteAllFiles: true
+iAllowTheFollowingNetworkConnectionsForTheStudents:
+  -
+iAllowTheFollowingCommandExecutionsForTheStudents:
+  -
+iAllowTheFollowingThreadCreationsForTheStudents:
+  -
+iAllowTheFollowingPackageImportsForTheStudents:
+  -
