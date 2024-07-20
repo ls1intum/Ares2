@@ -19,7 +19,7 @@ public enum JavaSupportedAspectConfiguration {
     /**
      * Aspect configuration for the command execution.
      */
-    COMMANDEXECUTION,
+    COMMAND_EXECUTION,
     /**
      * Aspect configuration for the thread creation.
      */
