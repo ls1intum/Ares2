@@ -1,0 +1,28 @@
+/**
+     * The packages that should not be accessed by the student submission.
+     */
+    private static final List<String> bannedPackages = List.of(
+            "java.nio.file",
+            "java.util.prefs",
+            "sun.print",
+            "sun.security",
+            "java.util.jar",
+            "sun.awt.X11",
+            "javax.imageio.stream",
+            "javax.sound.midi",
+            "javax.swing.filechooser",
+            "java.awt.desktop");
+    /**
+     * This method checks if any class in the given package accesses the file system.
+     */
+    @ArchTest
+    public static final ArchRule noClassesShouldAccessFileSystem = ArchRuleDefinition.noClasses()
+            .should(new TransitivelyAccessesMethodsCondition(new DescribedPredicate<>("accesses file system") {
+                @Override
+                public boolean test(JavaAccess<?> javaAccess) {
+                    if (bannedPackages.contains(javaAccess.getTargetOwner().getPackageName())) {
+                        return true;
+                    }
+                    return Objects.requireNonNull(ArchitectureTestCaseStorage.FORBIDDEN_METHODS_FOR_SUPPORTED_ARCHITECTURAL_TEST_CASE.build().get(JavaSupportedArchitectureTestCase.FILESYSTEM_INTERACTION.name())).contains(javaAccess.getTarget().getFullName());
+                }
+            }));
