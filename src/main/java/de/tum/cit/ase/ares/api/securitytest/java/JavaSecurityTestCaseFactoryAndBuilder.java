@@ -1,14 +1,22 @@
-package de.tum.cit.ase.ares.api.securitytest;
+package de.tum.cit.ase.ares.api.securitytest.java;
 
-import de.tum.cit.ase.ares.api.architecturetest.JavaArchitectureTestCase;
+import de.tum.cit.ase.ares.api.architecturetest.java.JavaArchitectureTestCase;
+import de.tum.cit.ase.ares.api.architecturetest.java.JavaSupportedArchitectureTestCase;
 import de.tum.cit.ase.ares.api.aspectconfiguration.JavaAspectConfiguration;
+import de.tum.cit.ase.ares.api.aspectconfiguration.JavaSupportedAspectConfiguration;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
+import de.tum.cit.ase.ares.api.policy.SupportedProgrammingLanguage;
+import de.tum.cit.ase.ares.api.securitytest.SecurityTestCaseAbstractFactoryAndBuilder;
+import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
+
+import static com.google.common.collect.Iterables.isEmpty;
 
 /**
  * Produces and executes or writes security test cases in the Java programming language
@@ -45,6 +53,31 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         this.securityPolicy = securityPolicy;
         javaArchitectureTestCases = new ArrayList<>();
         javaAspectConfigurations = new ArrayList<>();
+        parseTestCasesToBeCreated();
+    }
+
+    private void parseTestCasesToBeCreated() {
+        Supplier<List<?>>[] methods = new Supplier[] {
+                securityPolicy::iAllowTheFollowingFileSystemInteractionsForTheStudents,
+                securityPolicy::iAllowTheFollowingNetworkConnectionsForTheStudents,
+                securityPolicy::iAllowTheFollowingCommandExecutionsForTheStudents,
+                securityPolicy::iAllowTheFollowingThreadCreationsForTheStudents,
+                securityPolicy::iAllowTheFollowingPackageImportForTheStudents
+        };
+
+        for (int i = 0; i < methods.length; i++) {
+            if (isEmpty(methods[i].get())) {
+                javaArchitectureTestCases.add(new JavaArchitectureTestCase(JavaSupportedArchitectureTestCase.values()[i]));
+            } else {
+                javaAspectConfigurations.add(new JavaAspectConfiguration(JavaSupportedAspectConfiguration.values()[i], securityPolicy));
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        new JavaSecurityTestCaseFactoryAndBuilder(
+                new SecurityPolicy(SupportedProgrammingLanguage.JAVA, List.of(), List.of(), List.of(), List.of(), List.of())
+        );
     }
 
     /**
@@ -58,10 +91,31 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         try {
             Path architectureTestCaseFile = Files.createFile(path.resolve("ArchitectureTestCase.java"));
             Files.writeString(architectureTestCaseFile,
-                    """
+                    String.format("""
+                            package %s;
+
+                            import com.tngtech.archunit.base.DescribedPredicate;
+                            import com.tngtech.archunit.core.domain.*;
+                            import com.tngtech.archunit.core.importer.ImportOption;
+                            import com.tngtech.archunit.junit.AnalyzeClasses;
+                            import com.tngtech.archunit.junit.ArchTest;
+                            import com.tngtech.archunit.lang.ArchRule;
+                            import com.tngtech.archunit.lang.syntax.ArchRuleDefinition;
+                            import de.tum.cit.ase.ares.api.securitytest.java.PathLocationProvider;
+                            import de.tum.cit.ase.ares.api.securitytest.java.StudentCompiledClassesPath;
+                            import de.tum.cit.ase.ares.api.archunit.conditions.TransitivelyAccessesMethodsCondition;
+                            import de.tum.cit.ase.ares.api.architecturetest.java.JavaArchitectureTestCase;
+                                           \s
+                            import java.util.*;
+                                           \s
+                            /**
+                             * This class executes the security rules on the architecture.
+                             */
+                            @StudentCompiledClassesPath("%s")
+                            @AnalyzeClasses(locations = PathLocationProvider.class, importOptions = ImportOption.DoNotIncludeTests.class)
                             public class ArchitectureTestCase {
                             
-                            """ + String.join(
+                            """, "de.tum.cit.ase", ProjectSourcesFinder.isGradleProject() ? "build/classes" : "target/classes") + String.join(
                             "\n",
                             javaArchitectureTestCases
                                     .stream()
