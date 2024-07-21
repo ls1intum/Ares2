@@ -1,7 +1,7 @@
 package de.tum.cit.ase.ares.api.securitytest;
 
 import de.tum.cit.ase.ares.api.architecturetest.JavaArchitectureTestCase;
-import de.tum.cit.ase.ares.api.aspectconfiguration.JavaAspectConfiguration;
+import de.tum.cit.ase.ares.api.aspectconfiguration.java.JavaAspectConfiguration;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 
 import java.nio.file.Files;

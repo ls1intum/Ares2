@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.api.aspectconfiguration;
+package de.tum.cit.ase.ares.api.aspectconfiguration.java;
 
 /**
  * Supported aspect configurations in Java programming language.
