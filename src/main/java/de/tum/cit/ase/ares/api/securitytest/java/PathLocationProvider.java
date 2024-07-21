@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.api.archunit;
+package de.tum.cit.ase.ares.api.securitytest.java;
 
 import com.tngtech.archunit.core.importer.Location;
 import com.tngtech.archunit.junit.LocationProvider;
@@ -10,13 +10,13 @@ import java.util.Set;
 public class PathLocationProvider implements LocationProvider {
     @Override
     public Set<Location> get(Class<?> testClass) {
-        if (!testClass.isAnnotationPresent(StudentPath.class)) {
+        if (!testClass.isAnnotationPresent(StudentCompiledClassesPath.class)) {
             throw new IllegalArgumentException(
                     String.format("%s can only be used on classes annotated with @%s",
-                            getClass().getSimpleName(), StudentPath.class.getSimpleName()));
+                            getClass().getSimpleName(), StudentCompiledClassesPath.class.getSimpleName()));
         }
 
-        String path = testClass.getAnnotation(StudentPath.class).value();
+        String path = testClass.getAnnotation(StudentCompiledClassesPath.class).value();
         return Collections.singleton(Location.of(Paths.get(path)));
     }
 }

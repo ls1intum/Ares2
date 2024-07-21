@@ -2,7 +2,7 @@ package de.tum.cit.ase.ares.api.policy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import de.tum.cit.ase.ares.api.securitytest.JavaSecurityTestCaseFactoryAndBuilder;
+import de.tum.cit.ase.ares.api.securitytest.java.JavaSecurityTestCaseFactoryAndBuilder;
 import de.tum.cit.ase.ares.api.securitytest.SecurityTestCaseAbstractFactoryAndBuilder;
 
 import java.io.IOException;
