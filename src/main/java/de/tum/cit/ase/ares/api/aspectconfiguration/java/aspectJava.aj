@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.api.aspect;
+package de.tum.cit.ase.ares.api.aspectconfiguration.java;
 
 import java.nio.file.Path;
 import java.util.Arrays;

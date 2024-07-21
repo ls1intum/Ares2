@@ -1,7 +1,7 @@
 package de.tum.cit.ase.ares.api.securitytest;
 
 import de.tum.cit.ase.ares.api.architecturetest.JavaArchitectureTestCase;
-import de.tum.cit.ase.ares.api.aspectconfiguration.JavaAspectConfiguration;
+import de.tum.cit.ase.ares.api.aspectconfiguration.java.JavaAspectConfiguration;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 
 import java.nio.file.Files;
@@ -72,10 +72,8 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                             }
                             """, StandardOpenOption.WRITE);
             Path aspectConfigurationFile = Files.createFile(path.resolve("AspectConfiguration.java"));
-            Files.writeString(architectureTestCaseFile,
+            Files.writeString(aspectConfigurationFile,
                     """
-                            public class AspectConfiguration {
-                            
                             """ + String.join(
                             "\n",
                             javaAspectConfigurations
@@ -83,14 +81,11 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                                     .map(JavaAspectConfiguration::createAspectConfigurationFileContent)
                                     .toList()
                     ) + """
-                            
-                            }
                             """, StandardOpenOption.WRITE);
             return List.of(architectureTestCaseFile, aspectConfigurationFile);
         } catch (Exception e) {
             throw new SecurityException("Creating test case file failed.");
         }
-
     }
 
     /**
