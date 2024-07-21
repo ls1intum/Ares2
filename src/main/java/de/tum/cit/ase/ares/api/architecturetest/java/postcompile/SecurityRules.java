@@ -11,7 +11,7 @@ import java.util.Objects;
 import static de.tum.cit.ase.ares.api.architecturetest.java.JavaSupportedArchitectureTestCase.FILESYSTEM_INTERACTION;
 
 /**
- * Security rules for the Java programming language.
+ * Security rules for the Java programming language for post-compile mode.
  */
 public class SecurityRules {
 
