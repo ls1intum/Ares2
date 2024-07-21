@@ -1,18 +1,20 @@
 package de.tum.cit.ase.ares.api.aspectconfiguration.java;
 
+import de.tum.cit.ase.ares.api.policy.*;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class JavaAspectConfigurationLists {
 
-    private List<String> allowedFileSystemInteractions = new ArrayList<>();
+    static List<FileSystemInteraction> allowedFileSystemInteractions = new ArrayList<>();
 
-    private List<String> allowedNetworkConnections = new ArrayList<>();
+    static List<NetworkConnection> allowedNetworkConnections = new ArrayList<>();
 
-    private List<String> allowedCommandExecutions = new ArrayList<>();
+    static List<CommandExecution> allowedCommandExecutions = new ArrayList<>();
 
-    private List<String> allowedThreadCreations = new ArrayList<>();
+    static List<ThreadCreation> allowedThreadCreations = new ArrayList<>();
 
-    private List<String> allowedPackageImports = new ArrayList<>();
+    static List<PackageImport> allowedPackageImports = new ArrayList<>();
 
 }

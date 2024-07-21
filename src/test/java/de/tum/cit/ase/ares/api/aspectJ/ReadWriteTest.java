@@ -1,16 +1,13 @@
 package de.tum.cit.ase.ares.api.aspectJ;
 
-import de.tum.cit.ase.ares.api.aspectconfiguration.java.FileSystemInteractionList;
-import de.tum.cit.ase.ares.api.aspectconfiguration.java.JavaAspectConfiguration;
 import de.tum.cit.ase.ares.api.aspectJ.readWrite.ReadWrite;
-import de.tum.cit.ase.ares.api.aspectconfiguration.java.JavaSupportedAspectConfiguration;
+import de.tum.cit.ase.ares.api.aspectconfiguration.java.JavaAspectConfigurationLists;
 import de.tum.cit.ase.ares.api.policy.FileSystemInteraction;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.SupportedProgrammingLanguage;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -46,7 +43,7 @@ public class ReadWriteTest {
 
     @Test(expected = SecurityException.class)
     public void testFilesWriteAccessDenied() throws IOException {
-        FileSystemInteractionList.setAllowedFileSystemInteractions(SECURITY_POLICY2.iAllowTheFollowingFileSystemInteractionsForTheStudents());
+        //JavaAspectConfigurationLists.setAllowedFileSystemInteractions(SECURITY_POLICY2.iAllowTheFollowingFileSystemInteractionsForTheStudents());
         Path deniedPath = Paths.get("deniedFile.txt");
         ReadWrite readWrite = new ReadWrite();
         readWrite.writeMethod(deniedPath.toString());
@@ -54,7 +51,7 @@ public class ReadWriteTest {
 
     @Test
     public void testFilesWriteAccessGranted() throws IOException {
-        FileSystemInteractionList.setAllowedFileSystemInteractions(SECURITY_POLICY.iAllowTheFollowingFileSystemInteractionsForTheStudents());
+        //JavaAspectConfigurationLists.setAllowedFileSystemInteractions(SECURITY_POLICY.iAllowTheFollowingFileSystemInteractionsForTheStudents());
         Path allowedPath = Paths.get("ReadWrite.java");
         ReadWrite readWrite = new ReadWrite();
         readWrite.writeMethod(allowedPath.toString());
@@ -62,7 +59,7 @@ public class ReadWriteTest {
 
     @Test(expected = SecurityException.class)
     public void testFilesReadAccessDenied() throws IOException {
-        FileSystemInteractionList.setAllowedFileSystemInteractions(SECURITY_POLICY2.iAllowTheFollowingFileSystemInteractionsForTheStudents());
+        //JavaAspectConfigurationLists.setAllowedFileSystemInteractions(SECURITY_POLICY2.iAllowTheFollowingFileSystemInteractionsForTheStudents());
         Path deniedPath = Paths.get("deniedFile.txt");
         ReadWrite readWrite = new ReadWrite();
         readWrite.readMethod(deniedPath.toString());
@@ -70,7 +67,7 @@ public class ReadWriteTest {
 
     @Test
     public void testFilesReadAccessGranted() throws IOException {
-        FileSystemInteractionList.setAllowedFileSystemInteractions(SECURITY_POLICY.iAllowTheFollowingFileSystemInteractionsForTheStudents());
+        //JavaAspectConfigurationLists.setAllowedFileSystemInteractions(SECURITY_POLICY.iAllowTheFollowingFileSystemInteractionsForTheStudents());
         Path allowedPath = Paths.get("ReadWrite.java");
         ReadWrite readWrite = new ReadWrite();
         readWrite.readMethod(allowedPath.toString());

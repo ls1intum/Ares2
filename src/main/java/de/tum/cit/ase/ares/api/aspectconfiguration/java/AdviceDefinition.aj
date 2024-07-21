@@ -4,7 +4,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 
-public aspect aspectJava {
+public aspect AdviceDefinition {
 
     // Around advice to capture the path used in Files.write and check permissions
     Object around() : PointcutDefinitions.filesWriteMethod() {
@@ -14,7 +14,7 @@ public aspect aspectJava {
         String fileName = thisJoinPoint.getSourceLocation().getFileName();
 
         // Check if the file name is allowed and has write permission
-        boolean isAllowed = FileSystemInteractionList.getAllowedFileSystemInteractions().stream()
+        boolean isAllowed = JavaAspectConfigurationLists.allowedFileSystemInteractions.stream()
                 .anyMatch(interaction -> interaction.onThisPathAndAllPathsBelow().getFileName().toString().equals(fileName)
                         && interaction.studentsAreAllowedToOverwriteAllFiles());
 
@@ -46,7 +46,7 @@ public aspect aspectJava {
         String fileName = thisJoinPoint.getSourceLocation().getFileName();
 
         // Check if the file name is allowed and has read permission
-        boolean isAllowed = FileSystemInteractionList.getAllowedFileSystemInteractions().stream()
+        boolean isAllowed = JavaAspectConfigurationLists.allowedFileSystemInteractions.stream()
                 .anyMatch(interaction -> interaction.onThisPathAndAllPathsBelow().getFileName().toString().equals(fileName)
                         && interaction.studentsAreAllowedToReadAllFiles());
 

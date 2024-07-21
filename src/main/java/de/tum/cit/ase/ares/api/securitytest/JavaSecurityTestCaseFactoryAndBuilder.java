@@ -71,10 +71,18 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                             
                             }
                             """, StandardOpenOption.WRITE);
-            Path aspectConfigurationFile = Files.createFile(path.resolve("AspectConfiguration.java"));
-            Files.writeString(architectureTestCaseFile,
+            Path adviceDefinitionPath = Files.copy(
+                    Path.of("src/main/resources/aspectOrientedProgrammingFiles/AdviceDefinition.aj"),
+                    path.resolve("AdviceDefinition.aj")
+            );
+            Path pointcutDefinitionPath = Files.copy(
+                    Path.of("src/main/resources/aspectOrientedProgrammingFiles/PointcutDefinitions.aj"),
+                    path.resolve("PointcutDefinitions.aj")
+            );
+            Path aspectConfigurationListsFile = Files.createFile(path.resolve("JavaAspectConfigurationLists.java"));
+            Files.writeString(aspectConfigurationListsFile,
                     """
-                            public class AspectConfiguration {
+                            public class JavaAspectConfigurationLists {
                             
                             """ + String.join(
                             "\n",
@@ -86,7 +94,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                             
                             }
                             """, StandardOpenOption.WRITE);
-            return List.of(architectureTestCaseFile, aspectConfigurationFile);
+            return List.of(architectureTestCaseFile, aspectConfigurationListsFile, adviceDefinitionPath, pointcutDefinitionPath);
         } catch (Exception e) {
             throw new SecurityException("Creating test case file failed.");
         }
