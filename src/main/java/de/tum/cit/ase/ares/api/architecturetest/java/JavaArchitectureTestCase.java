@@ -3,7 +3,6 @@ package de.tum.cit.ase.ares.api.architecturetest.java;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import de.tum.cit.ase.ares.api.architecturetest.ArchitectureTestCase;
-import de.tum.cit.ase.ares.api.architecturetest.ArchitectureTestCaseStorage;
 import de.tum.cit.ase.ares.api.architecturetest.java.postcompile.SecurityRules;
 import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 
@@ -20,7 +19,7 @@ public class JavaArchitectureTestCase implements ArchitectureTestCase {
     /**
      * Selects the supported architecture test case in the Java programming language.
      */
-    private JavaSupportedArchitectureTestCase javaSupportedArchitectureTestCase;
+    private final JavaSupportedArchitectureTestCase javaSupportedArchitectureTestCase;
 
     /**
      * Constructor for JavaArchitectureTestCase.
@@ -37,7 +36,7 @@ public class JavaArchitectureTestCase implements ArchitectureTestCase {
      */
     @Override
     public String createArchitectureTestCaseFileContent() {
-        return ArchitectureTestCaseStorage.ARCHITECTURAL_RULES_CONTENT_MAP.build().get(this.javaSupportedArchitectureTestCase.name());
+        return ArchitectureTestCaseStorage.getArchitectureRuleFileContent(this.javaSupportedArchitectureTestCase.name());
     }
 
     /**

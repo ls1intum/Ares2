@@ -1,7 +1,6 @@
-package de.tum.cit.ase.ares.api.architecturetest;
+package de.tum.cit.ase.ares.api.architecturetest.java;
 
 import com.google.common.collect.ImmutableMap;
-import de.tum.cit.ase.ares.api.architecturetest.java.JavaSupportedArchitectureTestCase;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -15,7 +14,7 @@ import java.util.Set;
 public class ArchitectureTestCaseStorage {
 
     private ArchitectureTestCaseStorage() {
-        throw new IllegalArgumentException("Util class");
+        throw new IllegalArgumentException("Do not instantiate this class");
     }
 
     /**
@@ -52,7 +51,7 @@ public class ArchitectureTestCaseStorage {
     /**
      * Get the content of a file from the architectural rules storage
      */
-    private static Set<String> getForbiddenMethods(String key) {
+    public static Set<String> getForbiddenMethods(String key) {
         return FORBIDDEN_METHODS_FOR_SUPPORTED_ARCHITECTURAL_TEST_CASE.build().get(key);
     }
 
@@ -67,7 +66,7 @@ public class ArchitectureTestCaseStorage {
     /**
      * Get the content of a file from the architectural rules storage
      */
-    private static String getArchitectureRuleFileContent(String key) {
+    public static String getArchitectureRuleFileContent(String key) {
         return ARCHITECTURAL_RULES_CONTENT_MAP.build().get(key);
     }
 }

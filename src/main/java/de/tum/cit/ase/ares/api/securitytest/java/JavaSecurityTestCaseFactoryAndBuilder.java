@@ -88,32 +88,8 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         try {
             Path architectureTestCaseFile = Files.createFile(path.resolve("ArchitectureTestCase.java"));
             Files.writeString(architectureTestCaseFile,
-                    String.format("""
-                            package %s;
-
-                            import com.tngtech.archunit.base.DescribedPredicate;
-                            import com.tngtech.archunit.core.domain.*;
-                            import com.tngtech.archunit.core.importer.ImportOption;
-                            import com.tngtech.archunit.junit.AnalyzeClasses;
-                            import com.tngtech.archunit.junit.ArchTest;
-                            import com.tngtech.archunit.lang.ArchRule;
-                            import com.tngtech.archunit.lang.syntax.ArchRuleDefinition;
-                            import de.tum.cit.ase.ares.api.architecturetest.ArchitectureTestCaseStorage;
-                            import de.tum.cit.ase.ares.api.architecturetest.java.JavaSupportedArchitectureTestCase;
-                            import de.tum.cit.ase.ares.api.securitytest.java.PathLocationProvider;
-                            import de.tum.cit.ase.ares.api.securitytest.java.StudentCompiledClassesPath;
-                            import de.tum.cit.ase.ares.api.architecturetest.java.postcompile.TransitivelyAccessesMethodsCondition;
-                                           \s
-                            import java.util.*;
-                                           \s
-                            /**
-                             * This class executes the security rules on the architecture.
-                             */
-                            @StudentCompiledClassesPath("%s")
-                            @AnalyzeClasses(locations = PathLocationProvider.class, importOptions = ImportOption.DoNotIncludeTests.class)
-                            public class ArchitectureTestCase {
-                            
-                            """, "de.tum.cit.ase", ProjectSourcesFinder.isGradleProject() ? "build/classes" : "target/classes") + String.join(
+                    String.format(Files.readString(Path.of("src/main/resources/archunit/files/java/pre-compile-layout.txt")),
+                            "de.tum.cit.ase", ProjectSourcesFinder.isGradleProject() ? "build/classes" : "target/classes") + String.join(
                             "\n",
                             javaArchitectureTestCases
                                     .stream()

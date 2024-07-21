@@ -23,6 +23,7 @@
                     if (bannedPackages.contains(javaAccess.getTargetOwner().getPackageName())) {
                         return true;
                     }
-                    return Objects.requireNonNull(ArchitectureTestCaseStorage.FORBIDDEN_METHODS_FOR_SUPPORTED_ARCHITECTURAL_TEST_CASE.build().get(JavaSupportedArchitectureTestCase.FILESYSTEM_INTERACTION.name())).contains(javaAccess.getTarget().getFullName());
+                    return ArchitectureTestCaseStorage.getForbiddenMethods(FILESYSTEM_INTERACTION.name())
+                                                .contains(javaAccess.getTarget().getFullName());
                 }
             }));

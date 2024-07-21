@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.api.architecturetest;
+package de.tum.cit.ase.ares.api.architecturetest.java;
 
 /**
  * Constants for the path of the files used in the ArchitectureTestCaseStorage
@@ -6,7 +6,7 @@ package de.tum.cit.ase.ares.api.architecturetest;
 public class FileHandlerConstants {
 
     private FileHandlerConstants() {
-        throw new IllegalArgumentException("Utility class");
+        throw new IllegalArgumentException("Do not instantiate this class");
     }
 
     public static final String JAVA_FILESYSTEM_INTERACTION_METHODS = "src/main/resources/archunit/files/java/file-system-access-methods.txt";
