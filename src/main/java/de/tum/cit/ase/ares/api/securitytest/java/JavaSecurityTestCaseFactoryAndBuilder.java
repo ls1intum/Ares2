@@ -57,6 +57,8 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
 
     /**
      * Parses the test cases to be created.
+     * If there is no allowed element in a list then an architecture test is added
+     * Otherwise an Aspect configuration is added to control the allowed methods
      */
     @SuppressWarnings("unchecked")
     private void parseTestCasesToBeCreated() {

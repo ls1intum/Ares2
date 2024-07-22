@@ -9,6 +9,7 @@ import java.util.Set;
 
 /**
  * Provides the location of the compiled student classes.
+ * Is used by the post-compile mode tests to analyze compiled classes within the test repository
  */
 public class PathLocationProvider implements LocationProvider {
     @Override

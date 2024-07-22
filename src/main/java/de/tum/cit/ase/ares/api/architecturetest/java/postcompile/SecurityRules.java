@@ -9,12 +9,12 @@ import de.tum.cit.ase.ares.api.architecturetest.java.ArchitectureTestCaseStorage
 import static de.tum.cit.ase.ares.api.architecturetest.java.JavaSupportedArchitectureTestCase.FILESYSTEM_INTERACTION;
 
 /**
- * Security rules for the Java programming language for post-compile mode.
+ * Defines security rules for the Java programming language in post-compile mode.
  */
 public class SecurityRules {
 
     private SecurityRules() {
-        throw new IllegalArgumentException("Do not instantiate this class");
+        throw new IllegalArgumentException("This class should not be instantiated");
     }
 
     /**

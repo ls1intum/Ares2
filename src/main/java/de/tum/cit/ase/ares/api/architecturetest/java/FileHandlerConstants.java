@@ -6,7 +6,7 @@ package de.tum.cit.ase.ares.api.architecturetest.java;
 public class FileHandlerConstants {
 
     private FileHandlerConstants() {
-        throw new IllegalArgumentException("Do not instantiate this class");
+        throw new IllegalArgumentException("FileHandlerConstants is a utility class and should not be instantiated");
     }
 
     public static final String JAVA_FILESYSTEM_INTERACTION_METHODS = "src/main/resources/archunit/files/java/file-system-access-methods.txt";

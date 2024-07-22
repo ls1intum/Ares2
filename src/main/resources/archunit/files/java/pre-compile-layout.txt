@@ -16,8 +16,8 @@ import de.tum.cit.ase.ares.api.architecturetest.java.postcompile.TransitivelyAcc
 import java.util.*;
 \s
 /**
-* This class executes the security rules on the architecture.
+* This class runs the security rules on the architecture for the pre-compile mode.
 */
-@StudentCompiledClassesPath("%s")
+@StudentCompiledClassesPath("%s")Defines security rules for the Java programming language in post-compile mode.
 @AnalyzeClasses(locations = PathLocationProvider.class, importOptions = ImportOption.DoNotIncludeTests.class)
 public class ArchitectureTestCase {
