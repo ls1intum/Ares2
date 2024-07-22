@@ -13,7 +13,7 @@ import de.tum.cit.ase.ares.api.*;
 import de.tum.cit.ase.ares.api.MirrorOutput.MirrorOutputPolicy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
-import de.tum.cit.ase.ares.integration.testuser.subject.PathAccessPenguin;
+import de.tum.cit.ase.ares.integration.testuser.subject.pathaccess.PathAccessPenguin;
 
 @UseLocale("en")
 @MirrorOutput(MirrorOutputPolicy.DISABLED)
@@ -31,6 +31,7 @@ public class PathAccessUser {
 
 	@PublicTest
 	@WhitelistPath("")
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/OnePathAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
 	void accessPathAllowed() throws IOException {
 		PathAccessPenguin.accessPath(Path.of("pom.xml"));
 	}

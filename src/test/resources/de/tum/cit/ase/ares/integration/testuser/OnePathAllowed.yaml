@@ -1,0 +1,12 @@
+# This is an example configuration file for the programming exercise "ExampleProgrammingExercise".
+theProgrammingLanguageIUseInThisProgrammingExerciseIs: JAVA
+iAllowTheFollowingFileSystemInteractionsForTheStudents:
+  - onThisPathAndAllPathsBelow: "PathAccessPengui.java"
+    studentsAreAllowedToReadAllFiles: true
+    studentsAreAllowedToOverwriteAllFiles: false
+    studentsAreAllowedToExecuteAllFiles: false
+    studentsAreAllowedToDeleteAllFiles: false
+iAllowTheFollowingNetworkConnectionsForTheStudents: []
+iAllowTheFollowingCommandExecutionsForTheStudents: []
+iAllowTheFollowingThreadCreationsForTheStudents: []
+iAllowTheFollowingPackageImportForTheStudents: []
