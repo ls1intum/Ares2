@@ -19,8 +19,7 @@ public aspect AdviceDefinition {
                         && interaction.studentsAreAllowedToOverwriteAllFiles());
 
         if (!isAllowed) {
-            System.out.println("Files.write called with path: " + path + " in " + thisJoinPoint.getSourceLocation() + " - Access Denied");
-            throw new SecurityException("Write operation blocked by AspectJ for path: " + path);
+            throw new SecurityException("Write operation blocked by AspectJ for path: " + path + "." + "Files.write called with path: " + path + " in " + thisJoinPoint.getSourceLocation() + " - Access Denied");
         } else {
             System.out.println("Files.write called with path: " + path + " in " + thisJoinPoint.getSourceLocation() + " - Access Granted");
         }
@@ -51,8 +50,7 @@ public aspect AdviceDefinition {
                         && interaction.studentsAreAllowedToReadAllFiles());
 
         if (!isAllowed) {
-            System.out.println("Files.read called with path: " + path + " in " + thisJoinPoint.getSourceLocation() + " - Access Denied");
-            throw new SecurityException("Read operation blocked by AspectJ for path: " + path);
+            throw new SecurityException("Read operation blocked by AspectJ for path: " + path + "." + "Files.read called with path: " + path + " in " + thisJoinPoint.getSourceLocation() + " - Access Denied");
         } else {
             System.out.println("Files.read called with path: " + path + " in " + thisJoinPoint.getSourceLocation() + " - Access Granted");
         }
