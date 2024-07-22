@@ -10,8 +10,6 @@ import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 import org.junit.jupiter.api.extension.*;
 
-import de.tum.cit.ase.ares.api.internal.ConfigurationUtils;
-
 import static de.tum.cit.ase.ares.api.internal.TestGuardUtils.hasAnnotation;
 import static org.junit.platform.commons.support.AnnotationSupport.findAnnotation;
 //REMOVED: Import of ArtemisSecurityManager
@@ -35,7 +33,7 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
                     Path withinPath = JupiterSecurityExtension.testAndGetPolicyWithinPath(policyAnnotation.get());
                     new SecurityPolicyReaderAndDirector(policyPath, withinPath).runSecurityTestCases();
                 } else {
-                    new SecurityPolicyReaderAndDirector(policyPath, null).runSecurityTestCases();
+                    new SecurityPolicyReaderAndDirector(policyPath, Path.of("classes")).runSecurityTestCases();
                 }
             }
 
@@ -80,10 +78,7 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
         String policyValue = policyAnnotation.withinPath();
         try {
             Path policyWithinPath = Path.of(policyValue);
-            if (!policyWithinPath.toFile().exists()) {
-                throw new SecurityException("The following path does not exist: " + policyWithinPath);
-            }
-            if (!policyWithinPath.startsWith("classes") || !policyWithinPath.startsWith("test-classes")) {
+            if (!policyWithinPath.startsWith("classes") && !policyWithinPath.startsWith("test-classes")) {
                 throw new SecurityException("The following path is invalid for withinPath it should start with classes or test-classes: " + policyValue);
             }
             return policyWithinPath;

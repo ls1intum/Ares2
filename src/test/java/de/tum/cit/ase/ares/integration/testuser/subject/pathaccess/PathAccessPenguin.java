@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.integration.testuser.subject;
+package de.tum.cit.ase.ares.integration.testuser.subject.pathaccess;
 
 import java.io.*;
 import java.nio.file.*;

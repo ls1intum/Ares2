@@ -1,6 +1,5 @@
 package de.tum.cit.ase.ares.api.jqwik;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Optional;
 
@@ -11,8 +10,6 @@ import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 
 import net.jqwik.api.lifecycle.*;
-
-import de.tum.cit.ase.ares.api.internal.ConfigurationUtils;
 
 import static de.tum.cit.ase.ares.api.internal.TestGuardUtils.hasAnnotation;
 import static org.junit.platform.commons.support.AnnotationSupport.findAnnotation;
@@ -48,7 +45,7 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
 					Path withinPath = JupiterSecurityExtension.testAndGetPolicyWithinPath(policyAnnotation.get());
 					new SecurityPolicyReaderAndDirector(policyPath, withinPath).runSecurityTestCases();
 				} else {
-					new SecurityPolicyReaderAndDirector(policyPath, null).runSecurityTestCases();
+					new SecurityPolicyReaderAndDirector(policyPath, Path.of("classes")).runSecurityTestCases();
 				}
 			}
 

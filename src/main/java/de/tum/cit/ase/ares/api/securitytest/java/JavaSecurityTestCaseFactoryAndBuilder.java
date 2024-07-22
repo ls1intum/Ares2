@@ -67,10 +67,10 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
     private void parseTestCasesToBeCreated() {
         Supplier<List<?>>[] methods = new Supplier[] {
                 securityPolicy::iAllowTheFollowingFileSystemInteractionsForTheStudents,
-                securityPolicy::iAllowTheFollowingNetworkConnectionsForTheStudents,
-                securityPolicy::iAllowTheFollowingCommandExecutionsForTheStudents,
-                securityPolicy::iAllowTheFollowingThreadCreationsForTheStudents,
-                securityPolicy::iAllowTheFollowingPackageImportForTheStudents
+//                securityPolicy::iAllowTheFollowingNetworkConnectionsForTheStudents,
+//                securityPolicy::iAllowTheFollowingCommandExecutionsForTheStudents,
+//                securityPolicy::iAllowTheFollowingThreadCreationsForTheStudents,
+//                securityPolicy::iAllowTheFollowingPackageImportForTheStudents
         };
 
         for (int i = 0; i < methods.length; i++) {
@@ -93,8 +93,8 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         try {
             Path architectureTestCaseFile = Files.createFile(path.resolve("ArchitectureTestCase.java"));
             Files.writeString(architectureTestCaseFile,
-                    String.format(Files.readString(Path.of("src/main/resources/archunit/files/java/pre-compile-layout.txt")),
-                            "de.tum.cit.ase", (ProjectSourcesFinder.isGradleProject() ? "build" : "target") + withinPath.toString()) + String.join(
+                    String.format(Files.readString(Path.of("src/main/resources/archunit/files/java/layouts/pre-compile-layout.txt")),
+                            "de.tum.cit.ase", (ProjectSourcesFinder.isGradleProject() ? "build/" : "target/") + withinPath.toString()) + String.join(
                             "\n",
                             javaArchitectureTestCases
                                     .stream()

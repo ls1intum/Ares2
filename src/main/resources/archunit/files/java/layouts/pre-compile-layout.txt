@@ -19,5 +19,5 @@ import java.util.*;
 * This class runs the security rules on the architecture for the pre-compile mode.
 */
 @StudentCompiledClassesPath("%s")Defines security rules for the Java programming language in post-compile mode.
-@AnalyzeClasses(locations = PathLocationProvider.class, importOptions = ImportOption.DoNotIncludeTests.class)
+@AnalyzeClasses(locations = PathLocationProvider.class)
 public class ArchitectureTestCase {

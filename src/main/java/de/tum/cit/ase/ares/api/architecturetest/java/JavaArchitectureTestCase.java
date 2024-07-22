@@ -48,7 +48,7 @@ public class JavaArchitectureTestCase implements ArchitectureTestCase {
      */
     @Override
     public void runArchitectureTestCase() {
-        JavaClasses classes = new ClassFileImporter().importPath((ProjectSourcesFinder.isGradleProject() ? "build" : "target") + withinPath.toString());
+        JavaClasses classes = new ClassFileImporter().importPath((ProjectSourcesFinder.isGradleProject() ? "build/" : "target/") + withinPath.toString());
         switch (this.javaSupportedArchitectureTestCase) {
             case FILESYSTEM_INTERACTION -> SecurityRules.FILE_SYSTEM_INTERACTION_RULE.check(classes);
             case PACKAGE_IMPORT -> throw new UnsupportedOperationException("Package import not implemented yet");

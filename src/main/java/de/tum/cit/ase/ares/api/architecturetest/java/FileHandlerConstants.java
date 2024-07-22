@@ -9,6 +9,6 @@ public class FileHandlerConstants {
         throw new IllegalArgumentException("FileHandlerConstants is a utility class and should not be instantiated");
     }
 
-    public static final String JAVA_FILESYSTEM_INTERACTION_METHODS = "src/main/resources/archunit/files/java/file-system-access-methods.txt";
-    public static final String JAVA_FILESYSTEM_INTERACTION_CONTENT = "src/main/resources/archunit/files/java/file-system-arch-rule.txt";
+    public static final String JAVA_FILESYSTEM_INTERACTION_METHODS = "src/main/resources/archunit/files/java/methods/file-system-access-methods.txt";
+    public static final String JAVA_FILESYSTEM_INTERACTION_CONTENT = "src/main/resources/archunit/files/java/rules/file-system-arch-rule.txt";
 }
