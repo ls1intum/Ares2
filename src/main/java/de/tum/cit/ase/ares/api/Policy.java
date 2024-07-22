@@ -36,4 +36,11 @@ public @interface Policy {
      * @return the path of the policy-file as a String.
      */
     String value();
+
+    /**
+     * The path of the test-file as a String.
+     *
+     * @return the path of the test-file as a String.
+     */
+    String withinPackage();
 }
