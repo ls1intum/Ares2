@@ -25,6 +25,7 @@ public class PathAccessUser {
 
 	@PublicTest
 	@WhitelistPath("")
+	@Policy("src/test/resources/de/tum/cit/ase/ares/integration/testuser/NoAllowedPathConfiguration.yaml")
 	void accessPathAllFiles() {
 		PathAccessPenguin.askForFilePermission("<<ALL FILES>>");
 	}

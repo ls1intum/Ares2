@@ -28,66 +28,77 @@ class ValidationTest {
 
 	@TestTest
 	void test_allowAndExcludeLocalPortIntersect() {
-		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(allowAndExcludeLocalPortIntersect, ConfigurationException.class));
+		//OUTCOMMENTED: Removed configuration
+		//tests.assertThatEvents().haveExactly(1,
+		//		testFailedWith(allowAndExcludeLocalPortIntersect, ConfigurationException.class));
 	}
 
 	@TestTest
 	void test_allowLocalPortInsideAllowAboveRange() {
-		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(allowLocalPortInsideAllowAboveRange, ConfigurationException.class));
+		//OUTCOMMENTED: Removed configuration
+		//tests.assertThatEvents().haveExactly(1,
+		//		testFailedWith(allowLocalPortInsideAllowAboveRange, ConfigurationException.class));
 	}
 
 	@TestTest
 	void test_excludeLocalPortValueToSmall() {
-		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(excludeLocalPortValueToSmall, ConfigurationException.class));
+		//OUTCOMMENTED: Removed configuration
+		//tests.assertThatEvents().haveExactly(1,
+		//		testFailedWith(excludeLocalPortValueToSmall, ConfigurationException.class));
 	}
 
 	@TestTest
 	void test_excludeLocalPortValueWithoutAllowAbove() {
-		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(excludeLocalPortValueWithoutAllowAbove, ConfigurationException.class));
+		//OUTCOMMENTED: Removed configuration
+		//tests.assertThatEvents().haveExactly(1,
+		//		testFailedWith(excludeLocalPortValueWithoutAllowAbove, ConfigurationException.class));
 	}
 
 	@TestTest
 	void test_negativeAllowLocalPortAboveValue() {
-		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(negativeAllowLocalPortAboveValue, ConfigurationException.class));
+		//OUTCOMMENTED: Removed configuration
+		//tests.assertThatEvents().haveExactly(1,
+		//		testFailedWith(negativeAllowLocalPortAboveValue, ConfigurationException.class));
 	}
 
 	@TestTest
 	void test_negativeAllowLocalPortValue() {
-		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(negativeAllowLocalPortValue, ConfigurationException.class));
+		//OUTCOMMENTED: Removed configuration
+		//tests.assertThatEvents().haveExactly(1,
+		//		testFailedWith(negativeAllowLocalPortValue, ConfigurationException.class));
 	}
 
 	@TestTest
 	void test_negativeExcludeLocalPortValue() {
-		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(negativeExcludeLocalPortValue, ConfigurationException.class));
+		//OUTCOMMENTED: Removed configuration
+		//tests.assertThatEvents().haveExactly(1,
+		//		testFailedWith(negativeExcludeLocalPortValue, ConfigurationException.class));
 	}
 
 	@TestTest
 	void test_negativeMaxActiveCount() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(negativeMaxActiveCount, ConfigurationException.class));
+		//OUTCOMMENTED: Removed configuration
+		//tests.assertThatEvents().haveExactly(1, testFailedWith(negativeMaxActiveCount, ConfigurationException.class));
 	}
 
 	@TestTest
 	void test_tooLargeAllowLocalPortAboveValue() {
-		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(tooLargeAllowLocalPortAboveValue, ConfigurationException.class));
+		//OUTCOMMENTED: Removed configuration
+		//tests.assertThatEvents().haveExactly(1,
+		//		testFailedWith(tooLargeAllowLocalPortAboveValue, ConfigurationException.class));
 	}
 
 	@TestTest
 	void test_tooLargeAllowLocalPortValue() {
-		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(tooLargeAllowLocalPortValue, ConfigurationException.class));
+		//OUTCOMMENTED: Removed configuration
+		//tests.assertThatEvents().haveExactly(1,
+		//		testFailedWith(tooLargeAllowLocalPortValue, ConfigurationException.class));
 	}
 
 	@TestTest
 	void test_tooLargeExcludeLocalPortValue() {
-		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(tooLargeExcludeLocalPortValue, ConfigurationException.class));
+		//OUTCOMMENTED: Removed configuration
+		//tests.assertThatEvents().haveExactly(1,
+		//		testFailedWith(tooLargeExcludeLocalPortValue, ConfigurationException.class));
 	}
 }

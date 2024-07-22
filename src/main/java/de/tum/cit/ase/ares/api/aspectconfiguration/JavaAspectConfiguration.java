@@ -2,6 +2,8 @@ package de.tum.cit.ase.ares.api.aspectconfiguration;
 
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 
+import java.nio.file.Path;
+
 /**
  * Aspect configuration for the Java programming language and concrete product of the abstract factory design pattern.
  *
@@ -14,6 +16,7 @@ public class JavaAspectConfiguration implements AspectConfiguration {
 
     private JavaSupportedAspectConfiguration javaSupportedAspectConfiguration;
     private SecurityPolicy securityPolicy;
+    private Path withinPath;
 
     /**
      * Constructor for JavaAspectConfiguration.
@@ -21,9 +24,10 @@ public class JavaAspectConfiguration implements AspectConfiguration {
      * @param javaSupportedAspectConfiguration Selects the supported aspect configuration in the Java programming language
      * @param securityPolicy                   Security policy for the aspect configuration
      */
-    public JavaAspectConfiguration(JavaSupportedAspectConfiguration javaSupportedAspectConfiguration, SecurityPolicy securityPolicy) {
+    public JavaAspectConfiguration(JavaSupportedAspectConfiguration javaSupportedAspectConfiguration, SecurityPolicy securityPolicy, Path withinPath) {
         this.javaSupportedAspectConfiguration = javaSupportedAspectConfiguration;
         this.securityPolicy = securityPolicy;
+        this.withinPath = withinPath;
     }
 
     /**

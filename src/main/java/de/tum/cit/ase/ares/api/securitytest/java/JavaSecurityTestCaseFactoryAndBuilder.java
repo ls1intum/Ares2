@@ -43,13 +43,16 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      */
     List<JavaAspectConfiguration> javaAspectConfigurations;
 
+    Path withinPath;
+
     /**
      * Constructor for the Java security test case factory and builder.
      *
      * @param securityPolicy Security policy for the security test cases
      */
-    public JavaSecurityTestCaseFactoryAndBuilder(SecurityPolicy securityPolicy) {
+    public JavaSecurityTestCaseFactoryAndBuilder(SecurityPolicy securityPolicy, Path withinPath) {
         this.securityPolicy = securityPolicy;
+        this.withinPath = withinPath;
         javaArchitectureTestCases = new ArrayList<>();
         javaAspectConfigurations = new ArrayList<>();
         parseTestCasesToBeCreated();
@@ -72,9 +75,9 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
 
         for (int i = 0; i < methods.length; i++) {
             if (isEmpty(methods[i].get())) {
-                javaArchitectureTestCases.add(new JavaArchitectureTestCase(JavaSupportedArchitectureTestCase.values()[i]));
+                javaArchitectureTestCases.add(new JavaArchitectureTestCase(JavaSupportedArchitectureTestCase.values()[i], withinPath));
             } else {
-                javaAspectConfigurations.add(new JavaAspectConfiguration(JavaSupportedAspectConfiguration.values()[i], securityPolicy));
+                javaAspectConfigurations.add(new JavaAspectConfiguration(JavaSupportedAspectConfiguration.values()[i], securityPolicy, withinPath));
             }
         }
     }
@@ -91,7 +94,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
             Path architectureTestCaseFile = Files.createFile(path.resolve("ArchitectureTestCase.java"));
             Files.writeString(architectureTestCaseFile,
                     String.format(Files.readString(Path.of("src/main/resources/archunit/files/java/pre-compile-layout.txt")),
-                            "de.tum.cit.ase", ProjectSourcesFinder.isGradleProject() ? "build/classes" : "target/classes") + String.join(
+                            "de.tum.cit.ase", (ProjectSourcesFinder.isGradleProject() ? "build" : "target") + withinPath.toString()) + String.join(
                             "\n",
                             javaArchitectureTestCases
                                     .stream()

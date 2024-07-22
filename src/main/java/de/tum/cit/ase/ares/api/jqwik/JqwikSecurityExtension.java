@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.util.Optional;
 
 import de.tum.cit.ase.ares.api.Policy;
+import de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
@@ -42,12 +43,13 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
 		if (hasAnnotation(testContext, Policy.class)) {
 			Optional<Policy> policyAnnotation = findAnnotation(testContext.testMethod(), Policy.class);
 			if (policyAnnotation.isPresent()) {
-				Policy policy = policyAnnotation.get();
-				Path policyPath = Path.of(policy.value());
-				if (!policyPath.toFile().exists()) {
-					throw new SecurityException("Policy file does not exist at: " + policyPath);
+				Path policyPath = JupiterSecurityExtension.testAndGetPolicyValue(policyAnnotation.get());
+				if (!policyAnnotation.get().withinPath().isBlank()) {
+					Path withinPath = JupiterSecurityExtension.testAndGetPolicyWithinPath(policyAnnotation.get());
+					new SecurityPolicyReaderAndDirector(policyPath, withinPath).runSecurityTestCases();
+				} else {
+					new SecurityPolicyReaderAndDirector(policyPath, null).runSecurityTestCases();
 				}
-				new SecurityPolicyReaderAndDirector(policyPath).runSecurityTestCases();
 			}
 
 		}

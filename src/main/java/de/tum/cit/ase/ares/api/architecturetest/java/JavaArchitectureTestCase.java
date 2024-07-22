@@ -6,6 +6,8 @@ import de.tum.cit.ase.ares.api.architecturetest.ArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecturetest.java.postcompile.SecurityRules;
 import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 
+import java.nio.file.Path;
+
 /**
  * Architecture test case for the Java programming language and concrete product of the abstract factory design pattern.
  *
@@ -20,15 +22,17 @@ public class JavaArchitectureTestCase implements ArchitectureTestCase {
      * Selects the supported architecture test case in the Java programming language.
      */
     private final JavaSupportedArchitectureTestCase javaSupportedArchitectureTestCase;
+    private final Path withinPath;
 
     /**
      * Constructor for JavaArchitectureTestCase.
      *
      * @param javaSupportedArchitectureTestCase Selects the supported architecture test case in the Java programming language
      */
-    public JavaArchitectureTestCase(JavaSupportedArchitectureTestCase javaSupportedArchitectureTestCase) {
+    public JavaArchitectureTestCase(JavaSupportedArchitectureTestCase javaSupportedArchitectureTestCase, Path withinPath) {
         super();
         this.javaSupportedArchitectureTestCase = javaSupportedArchitectureTestCase;
+        this.withinPath = withinPath;
     }
 
     /**
@@ -44,7 +48,7 @@ public class JavaArchitectureTestCase implements ArchitectureTestCase {
      */
     @Override
     public void runArchitectureTestCase() {
-        JavaClasses classes = new ClassFileImporter().importPath(ProjectSourcesFinder.isGradleProject() ? "build/classes" : "target/classes");
+        JavaClasses classes = new ClassFileImporter().importPath((ProjectSourcesFinder.isGradleProject() ? "build" : "target") + withinPath.toString());
         switch (this.javaSupportedArchitectureTestCase) {
             case FILESYSTEM_INTERACTION -> SecurityRules.FILE_SYSTEM_INTERACTION_RULE.check(classes);
             case PACKAGE_IMPORT -> throw new UnsupportedOperationException("Package import not implemented yet");

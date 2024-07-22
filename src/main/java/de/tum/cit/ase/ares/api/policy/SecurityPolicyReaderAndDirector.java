@@ -38,10 +38,10 @@ public class SecurityPolicyReaderAndDirector {
      * @param path Path to the security policy file
      * @throws IOException If the security policy file cannot be read
      */
-    public SecurityPolicyReaderAndDirector(Path path) throws IOException {
+    public SecurityPolicyReaderAndDirector(Path path, Path policyWithinPath) throws IOException {
         securityPolicy = (new ObjectMapper(new YAMLFactory())).readValue(Files.readString(path), SecurityPolicy.class);
         testCaseManager = switch (securityPolicy.theProgrammingLanguageIUseInThisProgrammingExerciseIs()) {
-            case JAVA -> new JavaSecurityTestCaseFactoryAndBuilder((securityPolicy));
+            case JAVA -> new JavaSecurityTestCaseFactoryAndBuilder((securityPolicy), policyWithinPath);
             case PYTHON -> throw new UnsupportedOperationException("Python is not supported yet.");
             case C -> throw new UnsupportedOperationException("C is not supported yet.");
             case SWIFT -> throw new UnsupportedOperationException("Swift is not supported yet.");

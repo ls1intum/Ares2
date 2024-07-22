@@ -42,5 +42,5 @@ public @interface Policy {
      *
      * @return the path of the test-file as a String.
      */
-    String withinPackage();
+    String withinPath() default "classes";
 }
