@@ -1,12 +1,10 @@
 package de.tum.cit.ase.ares.api.aspectconfiguration.java;
 
 import de.tum.cit.ase.ares.api.aspectconfiguration.AspectConfiguration;
+import de.tum.cit.ase.ares.api.aspectconfiguration.JavaSupportedAspectConfiguration;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.stream.Collectors;
 
 /**
@@ -19,18 +17,21 @@ import java.util.stream.Collectors;
  */
 public class JavaAspectConfiguration implements AspectConfiguration {
 
-    private JavaSupportedAspectConfiguration javaSupportedAspectConfiguration;
-    private SecurityPolicy securityPolicy;
+    private final JavaSupportedAspectConfiguration javaSupportedAspectConfiguration;
+    private final SecurityPolicy securityPolicy;
+    private final Path withinPath;
 
     /**
      * Constructor for JavaAspectConfiguration.
      *
      * @param javaSupportedAspectConfiguration Selects the supported aspect configuration in the Java programming language
      * @param securityPolicy                   Security policy for the aspect configuration
+     * @param withinPath
      */
-    public JavaAspectConfiguration(JavaSupportedAspectConfiguration javaSupportedAspectConfiguration, SecurityPolicy securityPolicy) {
+    public JavaAspectConfiguration(JavaSupportedAspectConfiguration javaSupportedAspectConfiguration, SecurityPolicy securityPolicy, Path withinPath) {
         this.javaSupportedAspectConfiguration = javaSupportedAspectConfiguration;
         this.securityPolicy = securityPolicy;
+        this.withinPath = withinPath;
     }
 
     /**
@@ -42,7 +43,7 @@ public class JavaAspectConfiguration implements AspectConfiguration {
     public String createAspectConfigurationFileContent() {
         StringBuilder content = new StringBuilder();
         switch (javaSupportedAspectConfiguration) {
-            case FILESYSTEMINTERACTION -> {
+            case FILESYSTEM_INTERACTION -> {
                 content.append("private static final List<FileSystemInteraction> allowedFileSystemInteractions = List.of(\n");
                 content.append(securityPolicy.iAllowTheFollowingFileSystemInteractionsForTheStudents().stream()
                         .map(securityContent -> String.format("new FileSystemInteraction(Path.of(\"%s\"), %s, %s, %s)",
@@ -53,7 +54,7 @@ public class JavaAspectConfiguration implements AspectConfiguration {
                         .collect(Collectors.joining(",\n")));
                 content.append("\n);\n");
             }
-            case NETWORKCONNECTION -> {
+            case NETWORK_CONNECTION -> {
                 content.append("private static final List<NetworkConnection> allowedNetworkConnections = List.of(\n");
                 content.append(securityPolicy.iAllowTheFollowingNetworkConnectionsForTheStudents().stream()
                         .map(securityContent -> String.format("new NetworkConnection(\"%s\", \"%s\", %d)",
@@ -100,10 +101,10 @@ public class JavaAspectConfiguration implements AspectConfiguration {
     @Override
     public void runAspectConfiguration() {
         switch (javaSupportedAspectConfiguration) {
-            case FILESYSTEMINTERACTION -> {
+            case FILESYSTEM_INTERACTION -> {
                 JavaAspectConfigurationLists.allowedFileSystemInteractions = securityPolicy.iAllowTheFollowingFileSystemInteractionsForTheStudents();
             }
-            case NETWORKCONNECTION -> {
+            case NETWORK_CONNECTION -> {
                 JavaAspectConfigurationLists.allowedNetworkConnections = securityPolicy.iAllowTheFollowingNetworkConnectionsForTheStudents();
             }
             case COMMAND_EXECUTION -> {

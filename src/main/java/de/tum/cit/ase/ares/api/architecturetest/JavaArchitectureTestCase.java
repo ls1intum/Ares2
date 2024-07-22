@@ -2,6 +2,8 @@ package de.tum.cit.ase.ares.api.architecturetest;
 
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 
+import java.nio.file.Path;
+
 /**
  * Architecture test case for the Java programming language and concrete product of the abstract factory design pattern.
  *
@@ -15,21 +17,25 @@ public class JavaArchitectureTestCase implements ArchitectureTestCase {
     /**
      * Selects the supported architecture test case in the Java programming language.
      */
-    private JavaSupportedArchitectureTestCase javaSupportedArchitectureTestCase;
+    private final JavaSupportedArchitectureTestCase javaSupportedArchitectureTestCase;
     /**
      * Security policy for the architecture test case.
      */
-    private SecurityPolicy securityPolicy;
+    private final SecurityPolicy securityPolicy;
+
+    private final Path withinPath;
 
     /**
      * Constructor for JavaArchitectureTestCase.
      *
      * @param javaSupportedArchitectureTestCase Selects the supported architecture test case in the Java programming language
      * @param securityPolicy                    Security policy for the architecture test case
+     * @param withinPath
      */
-    public JavaArchitectureTestCase(JavaSupportedArchitectureTestCase javaSupportedArchitectureTestCase, SecurityPolicy securityPolicy) {
+    public JavaArchitectureTestCase(JavaSupportedArchitectureTestCase javaSupportedArchitectureTestCase, SecurityPolicy securityPolicy, Path withinPath) {
         this.javaSupportedArchitectureTestCase = javaSupportedArchitectureTestCase;
         this.securityPolicy = securityPolicy;
+        this.withinPath = withinPath;
     }
 
     /**

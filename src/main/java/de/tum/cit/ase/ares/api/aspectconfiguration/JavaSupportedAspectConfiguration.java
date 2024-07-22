@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.api.aspectconfiguration.java;
+package de.tum.cit.ase.ares.api.aspectconfiguration;
 
 /**
  * Supported aspect configurations in Java programming language.
@@ -11,11 +11,11 @@ public enum JavaSupportedAspectConfiguration {
     /**
      * Aspect configuration for the file system interaction.
      */
-    FILESYSTEMINTERACTION,
+    FILESYSTEM_INTERACTION,
     /**
      * Aspect configuration for the network connection.
      */
-    NETWORKCONNECTION,
+    NETWORK_CONNECTION,
     /**
      * Aspect configuration for the command execution.
      */
