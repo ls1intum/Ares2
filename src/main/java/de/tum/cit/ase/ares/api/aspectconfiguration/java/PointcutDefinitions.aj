@@ -2,16 +2,21 @@ package de.tum.cit.ase.ares.api.aspectconfiguration.java;
 
 public aspect PointcutDefinitions {
 
-        // Pointcut for Files.write method
-        pointcut filesWriteMethod() : call(* java.nio.file.Files.write(..));
-
-        // Pointcut for Files.readAllBytes, Files.readAllLines, and Files.readString methods
-        pointcut filesReadMethod() :
-                (call(* java.nio.file.Files.readAllBytes(..)) ||
-                        call(* java.nio.file.Files.readAllLines(..)) ||
-                        call(* java.nio.file.Files.readString(..))) &&
+        // Pointcut for ColorEditor methods
+        pointcut colorEditorMethods() :
+                (execution(com.sun.beans.editors.ColorEditor.new(..)) ||
+                        execution(* com.sun.beans.editors.ColorEditor.action(..)) ||
+                        execution(* com.sun.beans.editors.ColorEditor.keyUp(..)) ||
+                        execution(* com.sun.beans.editors.ColorEditor.setAsText(..)) ||
+                        execution(* com.sun.beans.editors.ColorEditor.setValue(..))) &&
                         !within(de.tum.cit.ase.ares.api..*);
 
-        // Pointcut for Files.delete method
-        pointcut filesDeleteMethod() : call(* java.nio.file.Files.delete(..));
+        // Pointcut for FontEditor methods
+        pointcut fontEditorMethods() :
+                (execution(com.sun.beans.editors.FontEditor.new(..)) ||
+                        execution(* com.sun.beans.editors.FontEditor.action(..)) ||
+                        execution(* com.sun.beans.editors.FontEditor.setAsText(..)) ||
+                        execution(* com.sun.beans.editors.FontEditor.setValue(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
 }
