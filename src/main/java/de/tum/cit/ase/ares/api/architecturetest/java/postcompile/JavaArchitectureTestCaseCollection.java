@@ -11,18 +11,18 @@ import java.util.List;
 import static de.tum.cit.ase.ares.api.architecturetest.java.JavaSupportedArchitectureTestCase.FILESYSTEM_INTERACTION;
 
 /**
- * Defines security rules for the Java programming language in post-compile mode.
+ * This class runs the security rules on the architecture for the post-compile mode.
  */
-public class SecurityRules {
+public class JavaArchitectureTestCaseCollection {
 
-    private SecurityRules() {
+    private JavaArchitectureTestCaseCollection() {
         throw new IllegalArgumentException("This class should not be instantiated");
     }
 
     /**
      * The packages that should not be accessed by the student submission.
      */
-    private static final List<String> bannedPackages = List.of(
+    private static final List<String> bannedFileSystemAccessPackages = List.of(
             "java.nio.file",
             "java.util.prefs",
             "sun.print",
@@ -35,13 +35,13 @@ public class SecurityRules {
             "java.awt.desktop");
 
     /**
-     * Rule for file system interaction.
+     * This method checks if any class in the given package accesses the file system.
      */
-    public static final ArchRule FILE_SYSTEM_INTERACTION_RULE = ArchRuleDefinition.noClasses()
+    public static final ArchRule NO_CLASS_SHOULD_ACCREE_FILE_SYSTEM = ArchRuleDefinition.noClasses()
             .should(new TransitivelyAccessesMethodsCondition(new DescribedPredicate<>("accesses file system") {
                 @Override
                 public boolean test(JavaAccess<?> javaAccess) {
-                    if (bannedPackages.contains(javaAccess.getTargetOwner().getPackageName())) {
+                    if (bannedFileSystemAccessPackages.contains(javaAccess.getTargetOwner().getPackageName())) {
                         return true;
                     }
                     return ArchitectureTestCaseStorage.getForbiddenMethods(FILESYSTEM_INTERACTION.name())

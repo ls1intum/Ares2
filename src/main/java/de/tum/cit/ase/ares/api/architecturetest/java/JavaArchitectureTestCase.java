@@ -3,7 +3,7 @@ package de.tum.cit.ase.ares.api.architecturetest.java;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import de.tum.cit.ase.ares.api.architecturetest.ArchitectureTestCase;
-import de.tum.cit.ase.ares.api.architecturetest.java.postcompile.SecurityRules;
+import de.tum.cit.ase.ares.api.architecturetest.java.postcompile.JavaArchitectureTestCaseCollection;
 import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 
 import java.nio.file.Path;
@@ -48,9 +48,9 @@ public class JavaArchitectureTestCase implements ArchitectureTestCase {
      */
     @Override
     public void runArchitectureTestCase() {
-        JavaClasses classes = new ClassFileImporter().importPath((ProjectSourcesFinder.isGradleProject() ? "build/" : "target/") + withinPath.toString());
+        JavaClasses classes = new ClassFileImporter().importPath((ProjectSourcesFinder.isGradleProject() ? "build/" : "target/") + withinPath.toString()); // TODO: Remove slash (will not work on Windows)
         switch (this.javaSupportedArchitectureTestCase) {
-            case FILESYSTEM_INTERACTION -> SecurityRules.FILE_SYSTEM_INTERACTION_RULE.check(classes);
+            case FILESYSTEM_INTERACTION -> JavaArchitectureTestCaseCollection.NO_CLASS_SHOULD_ACCREE_FILE_SYSTEM.check(classes);
             case PACKAGE_IMPORT -> throw new UnsupportedOperationException("Package import not implemented yet");
             case THREAD_CREATION -> throw new UnsupportedOperationException("Thread creation not implemented yet");
             case COMMAND_EXECUTION -> throw new UnsupportedOperationException("Command execution not implemented yet");

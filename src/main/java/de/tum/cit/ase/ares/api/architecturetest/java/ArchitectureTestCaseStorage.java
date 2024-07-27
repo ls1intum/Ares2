@@ -11,7 +11,7 @@ import java.util.Set;
 /**
  * Storage for the architecture test cases
  */
-public class ArchitectureTestCaseStorage {
+public class ArchitectureTestCaseStorage { // TODO: What is the reason to separate JavaArchitectureTestCase and ArchitectureTestCaseStorage into two different classes?
 
     private ArchitectureTestCaseStorage() {
         throw new IllegalArgumentException("Do not instantiate this class");
@@ -30,7 +30,7 @@ public class ArchitectureTestCaseStorage {
     /**
      * Load the content of the architecture test case files
      */
-    static {
+    static { // TODO: Can we postpone doing this until we are sure it is needed (as it is a quite costly operation)?
         try {
             // Add further for other supported architecture test cases
             loadArchitectureRuleFileContent(FileHandlerConstants.JAVA_FILESYSTEM_INTERACTION_CONTENT, JavaSupportedArchitectureTestCase.FILESYSTEM_INTERACTION.name());
@@ -49,18 +49,20 @@ public class ArchitectureTestCaseStorage {
     }
 
     /**
-     * Get the content of a file from the architectural rules storage
-     */
-    public static Set<String> getForbiddenMethods(String key) {
-        return FORBIDDEN_METHODS_FOR_SUPPORTED_ARCHITECTURAL_TEST_CASE.build().get(key);
-    }
-
-    /**
      * Load the content of the architecture test case files
      */
     private static void loadArchitectureRuleFileContent(String filePath, String key) throws IOException {
         String content = Files.readString(Path.of(filePath));
         ARCHITECTURAL_RULES_CONTENT_MAP.put(key, content);
+    }
+
+    //TODO: What is the difference between ForbiddenMethods and ArchitectureRuleFileContent?
+
+    /**
+     * Get the content of a file from the architectural rules storage
+     */
+    public static Set<String> getForbiddenMethods(String key) {
+        return FORBIDDEN_METHODS_FOR_SUPPORTED_ARCHITECTURAL_TEST_CASE.build().get(key);
     }
 
     /**
