@@ -49,13 +49,20 @@ public class JavaArchitectureTestCase implements ArchitectureTestCase {
     @Override
     public void runArchitectureTestCase() {
         JavaClasses classes = new ClassFileImporter().importPath((ProjectSourcesFinder.isGradleProject() ? "build/" : "target/") + withinPath.toString()); // TODO: Remove slash (will not work on Windows)
-        switch (this.javaSupportedArchitectureTestCase) {
-            case FILESYSTEM_INTERACTION -> JavaArchitectureTestCaseCollection.NO_CLASS_SHOULD_ACCREE_FILE_SYSTEM.check(classes);
-            case PACKAGE_IMPORT -> throw new UnsupportedOperationException("Package import not implemented yet");
-            case THREAD_CREATION -> throw new UnsupportedOperationException("Thread creation not implemented yet");
-            case COMMAND_EXECUTION -> throw new UnsupportedOperationException("Command execution not implemented yet");
-            case NETWORK_CONNECTION -> throw new UnsupportedOperationException("Network connection not implemented yet");
-            default -> throw new UnsupportedOperationException("Not implemented yet");
+        try {
+            switch (this.javaSupportedArchitectureTestCase) {
+                case FILESYSTEM_INTERACTION ->
+                        JavaArchitectureTestCaseCollection.NO_CLASS_SHOULD_ACCREE_FILE_SYSTEM.check(classes);
+                case PACKAGE_IMPORT -> throw new UnsupportedOperationException("Package import not implemented yet");
+                case THREAD_CREATION -> throw new UnsupportedOperationException("Thread creation not implemented yet");
+                case COMMAND_EXECUTION ->
+                        throw new UnsupportedOperationException("Command execution not implemented yet");
+                case NETWORK_CONNECTION ->
+                        throw new UnsupportedOperationException("Network connection not implemented yet");
+                default -> throw new UnsupportedOperationException("Not implemented yet");
+            }
+        } catch (AssertionError e) {
+            throw new SecurityException("Ares Security Error (Stage: Execution): Illegal Statement found: " + e.getMessage());
         }
     }
 }

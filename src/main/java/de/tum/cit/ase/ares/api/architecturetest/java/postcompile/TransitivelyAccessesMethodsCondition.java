@@ -63,7 +63,12 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
                 getLast(transitiveDependencyPath).getTarget().getFullName());
 
         if (transitiveDependencyPath.size() > 1) {
-            message += " by [" + transitiveDependencyPath.stream().map(access -> access.getOrigin().getFullName()).collect(joining("->")) + "]";
+            message += " by [" +
+                    transitiveDependencyPath
+                            .stream()
+                            .map(access -> access.getOrigin().getFullName())
+                            .collect(joining("->")) +
+                    "]";
         }
 
         return SimpleConditionEvent.satisfied(javaClass, createMessage(javaClass, message));
@@ -102,7 +107,9 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
             analyzedMethods.add(method.getTarget().getFullName());
 
             for (JavaAccess<?> access : getDirectAccessTargetsOutsideOfAnalyzedClasses(method)) {
-                if (!analyzedMethods.contains(access.getTarget().getFullName()) && addAccessesToPathFrom(access, transitivePath, analyzedMethods)) {
+                if (!analyzedMethods.contains(access.getTarget().getFullName()) &&
+                        addAccessesToPathFrom(access, transitivePath, analyzedMethods)
+                ) {
                     transitivePath.add(method);
                     return true;
                 }
@@ -117,7 +124,15 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
         private Set<JavaAccess<?>> getDirectAccessTargetsOutsideOfAnalyzedClasses(JavaAccess<?> item) {
             return item.getTargetOwner().getAccessesFromSelf()
                     .stream()
-                    .filter(a -> a.getOrigin().getFullName().equals(item.getTarget().getFullName())).collect(toSet());
+                    .filter(a -> a
+                            .getOrigin()
+                            .getFullName()
+                            .equals(item
+                                    .getTarget()
+                                    .getFullName()
+                            )
+                    )
+                    .collect(toSet());
         }
     }
 }
