@@ -28,8 +28,9 @@ public class JavaArchitectureTestCaseCollection {
             "sun.print",
             "sun.security",
             "java.util.jar",
+            "java.util.zip",
             "sun.awt.X11",
-            "javax.imageio.stream",
+            "javax.imageio",
             "javax.sound.midi",
             "javax.swing.filechooser",
             "java.awt.desktop");
@@ -41,7 +42,7 @@ public class JavaArchitectureTestCaseCollection {
             .should(new TransitivelyAccessesMethodsCondition(new DescribedPredicate<>("accesses file system") {
                 @Override
                 public boolean test(JavaAccess<?> javaAccess) {
-                    if (bannedFileSystemAccessPackages.contains(javaAccess.getTargetOwner().getPackageName())) {
+                    if (bannedFileSystemAccessPackages.stream().anyMatch(p -> javaAccess.getTarget().getFullName().startsWith(p))) {
                         return true;
                     }
                     return ArchitectureTestCaseStorage.getForbiddenMethods(FILESYSTEM_INTERACTION.name())
