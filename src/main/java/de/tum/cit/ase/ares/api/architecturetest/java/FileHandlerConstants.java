@@ -1,12 +1,14 @@
 package de.tum.cit.ase.ares.api.architecturetest.java;
 
+import java.io.File;
+
 /**
  * Constants for the path of the files used in the ArchitectureTestCaseStorage
  */
 public class FileHandlerConstants {
 
-    public static final String JAVA_FILESYSTEM_INTERACTION_METHODS = "src/main/resources/archunit/files/java/methods/file-system-access-methods.txt"; // TODO: Remove slash (will not work on Windows)
-    public static final String JAVA_FILESYSTEM_INTERACTION_CONTENT = "src/main/resources/archunit/files/java/rules/file-system-arch-rule.txt"; // TODO: Remove slash (will not work on Windows)
+    public static final String JAVA_FILESYSTEM_INTERACTION_METHODS = "src" + File.separator + "main" + File.separator + "resources" + File.separator + "archunit" + File.separator + "files" + File.separator + "java" + File.separator + "methods" + File.separator + "file-system-access-methods.txt";
+    public static final String JAVA_FILESYSTEM_INTERACTION_CONTENT = "src" + File.separator + "main" + File.separator + "resources" + File.separator + "archunit" + File.separator + "files" + File.separator + "java" + File.separator + "rules" + File.separator + "file-system-arch-rule.txt";
 
     private FileHandlerConstants() {
         throw new IllegalArgumentException("FileHandlerConstants is a utility class and should not be instantiated");

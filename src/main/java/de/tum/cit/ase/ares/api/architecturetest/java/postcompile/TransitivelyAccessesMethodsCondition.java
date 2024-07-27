@@ -8,7 +8,10 @@ import com.tngtech.archunit.lang.ConditionEvent;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 import com.tngtech.archunit.thirdparty.com.google.common.collect.ImmutableList;
+import de.tum.cit.ase.ares.api.architecturetest.java.FileHandlerConstants;
+import de.tum.cit.ase.ares.api.architecturetest.java.JavaSupportedArchitectureTestCase;
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -16,6 +19,8 @@ import java.util.Set;
 import static com.tngtech.archunit.lang.ConditionEvent.createMessage;
 import static com.tngtech.archunit.thirdparty.com.google.common.base.Preconditions.checkNotNull;
 import static com.tngtech.archunit.thirdparty.com.google.common.collect.Iterables.getLast;
+import static de.tum.cit.ase.ares.api.architecturetest.java.postcompile.JavaArchitectureTestCaseCollection.loadArchitectureRuleFileContent;
+import static de.tum.cit.ase.ares.api.architecturetest.java.postcompile.JavaArchitectureTestCaseCollection.loadForbiddenMethodsFromFile;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toSet;
 
@@ -30,9 +35,24 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
     /**
      * @param conditionPredicate Predicate to match the accessed methods
      */
-    public TransitivelyAccessesMethodsCondition(DescribedPredicate<? super JavaAccess<?>> conditionPredicate) {
+    public TransitivelyAccessesMethodsCondition(DescribedPredicate<? super JavaAccess<?>> conditionPredicate, JavaSupportedArchitectureTestCase javaSupportedArchitectureTestCase) {
         super("transitively depend on classes that " + conditionPredicate.getDescription());
 
+        switch (javaSupportedArchitectureTestCase) {
+            case FILESYSTEM_INTERACTION -> {
+                try {
+                    loadArchitectureRuleFileContent(FileHandlerConstants.JAVA_FILESYSTEM_INTERACTION_CONTENT, JavaSupportedArchitectureTestCase.FILESYSTEM_INTERACTION.name());
+                    loadForbiddenMethodsFromFile(FileHandlerConstants.JAVA_FILESYSTEM_INTERACTION_METHODS, JavaSupportedArchitectureTestCase.FILESYSTEM_INTERACTION.name());
+                } catch (IOException e) {
+                    throw new IllegalStateException("Could not load the architecture rule file content", e);
+                }
+            }
+//            case PACKAGE_IMPORT -> throw new UnsupportedOperationException("Package import not implemented yet");
+//            case THREAD_CREATION -> throw new UnsupportedOperationException("Thread creation not implemented yet");
+//            case COMMAND_EXECUTION -> throw new UnsupportedOperationException("Command execution not implemented yet");
+//            case NETWORK_CONNECTION -> throw new UnsupportedOperationException("Network connection not implemented yet");
+            case null, default -> throw new IllegalStateException("JavaSupportedArchitecture cannot be null");
+        }
         this.conditionPredicate = checkNotNull(conditionPredicate);
     }
 

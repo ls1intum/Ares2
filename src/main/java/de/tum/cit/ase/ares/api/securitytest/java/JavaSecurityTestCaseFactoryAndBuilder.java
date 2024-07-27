@@ -8,6 +8,7 @@ import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.securitytest.SecurityTestCaseAbstractFactoryAndBuilder;
 import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
@@ -121,7 +122,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
             javaArchitectureTestCaseCollectionFileHeader = String.format(
                     Files.readString(javaArchitectureTestCaseCollectionFileHeaderPath),
                     "de.tum.cit.ase", // TODO: Replace with flexible package name handling
-                    (ProjectSourcesFinder.isGradleProject() ? "build/" : "target/") + withinPath.toString() // TODO: Remove slash (will not work on Windows)
+                    (ProjectSourcesFinder.isGradleProject() ? "build" : "target") + File.separator + withinPath.toString()
             );
         }
         //<editor-fold desc="Catches">
@@ -220,7 +221,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                             )
                     ),
                     "de.tum.cit.ase", // TODO: Replace with flexible package name handling
-                    (ProjectSourcesFinder.isGradleProject() ? "build/" : "target/") + withinPath.toString() // TODO: Remove slash (will not work on Windows)
+                    (ProjectSourcesFinder.isGradleProject() ? "build" : "target") + File.separator + withinPath.toString()
             );
         }
         //<editor-fold desc="Catches">

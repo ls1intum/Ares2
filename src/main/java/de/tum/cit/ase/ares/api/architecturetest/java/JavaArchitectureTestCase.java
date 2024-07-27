@@ -6,7 +6,10 @@ import de.tum.cit.ase.ares.api.architecturetest.ArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecturetest.java.postcompile.JavaArchitectureTestCaseCollection;
 import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 
+import java.io.File;
 import java.nio.file.Path;
+
+import static de.tum.cit.ase.ares.api.architecturetest.java.postcompile.JavaArchitectureTestCaseCollection.getArchitectureRuleFileContent;
 
 /**
  * Architecture test case for the Java programming language and concrete product of the abstract factory design pattern.
@@ -40,7 +43,7 @@ public class JavaArchitectureTestCase implements ArchitectureTestCase {
      */
     @Override
     public String createArchitectureTestCaseFileContent() {
-        return ArchitectureTestCaseStorage.getArchitectureRuleFileContent(this.javaSupportedArchitectureTestCase.name());
+        return getArchitectureRuleFileContent(this.javaSupportedArchitectureTestCase.name());
     }
 
     /**
@@ -48,11 +51,11 @@ public class JavaArchitectureTestCase implements ArchitectureTestCase {
      */
     @Override
     public void runArchitectureTestCase() {
-        JavaClasses classes = new ClassFileImporter().importPath((ProjectSourcesFinder.isGradleProject() ? "build/" : "target/") + withinPath.toString()); // TODO: Remove slash (will not work on Windows)
+        JavaClasses classes = new ClassFileImporter().importPath((ProjectSourcesFinder.isGradleProject() ? "build" : "target") + File.separator + withinPath.toString());
         try {
             switch (this.javaSupportedArchitectureTestCase) {
                 case FILESYSTEM_INTERACTION ->
-                        JavaArchitectureTestCaseCollection.NO_CLASS_SHOULD_ACCREE_FILE_SYSTEM.check(classes);
+                        JavaArchitectureTestCaseCollection.NO_CLASS_SHOULD_ACCESS_FILE_SYSTEM.check(classes);
                 case PACKAGE_IMPORT -> throw new UnsupportedOperationException("Package import not implemented yet");
                 case THREAD_CREATION -> throw new UnsupportedOperationException("Thread creation not implemented yet");
                 case COMMAND_EXECUTION ->
