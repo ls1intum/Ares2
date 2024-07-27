@@ -1,7 +1,6 @@
 package de.tum.cit.ase.ares.api.aspectconfiguration.java;
 
 import de.tum.cit.ase.ares.api.aspectconfiguration.AspectConfiguration;
-import de.tum.cit.ase.ares.api.aspectconfiguration.JavaSupportedAspectConfiguration;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 
 import java.nio.file.Path;

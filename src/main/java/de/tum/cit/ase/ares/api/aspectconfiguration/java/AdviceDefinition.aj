@@ -1,6 +1,6 @@
 package de.tum.cit.ase.ares.api.aspectconfiguration.java;
 
-public aspect AdviceDefinition {
+public aspect AdviceDefinition { // TODO: Can we outsource the common functionality in a separate function?
 
     Object around() : PointcutDefinitions.fileInputStreamConstructorMethods() {
         Object[] args = thisJoinPoint.getArgs();
