@@ -1,9 +1,10 @@
 package de.tum.cit.ase.ares.api.aspectconfiguration.java;
 
+import org.aspectj.lang.JoinPoint;
+
 public aspect AdviceDefinition { // TODO: Can we outsource the common functionality in a separate function?
 
-    Object around() : PointcutDefinitions.fileInputStreamConstructorMethods() {
-        Object[] args = thisJoinPoint.getArgs();
+    private boolean handleAroundAdvice(JoinPoint thisJoinPoint) {
         String fileName = thisJoinPoint.getSourceLocation().getFileName();
 
         boolean isAllowed = JavaAspectConfigurationLists.allowedFileSystemInteractions.stream()
@@ -14,67 +15,48 @@ public aspect AdviceDefinition { // TODO: Can we outsource the common functional
             throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " operation blocked by AspectJ." + "Called in " + thisJoinPoint.getSourceLocation() + " - Access Denied");
         }
 
-        return proceed();
+        return true;
+    }
+
+
+    Object around() : PointcutDefinitions.fileInputStreamConstructorMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
     }
 
     Object around() : PointcutDefinitions.fileReaderConstructorMethods() {
-        Object[] args = thisJoinPoint.getArgs();
-        String fileName = thisJoinPoint.getSourceLocation().getFileName();
-
-        boolean isAllowed = JavaAspectConfigurationLists.allowedFileSystemInteractions.stream()
-                .anyMatch(interaction -> interaction.onThisPathAndAllPathsBelow().getFileName().toString().equals(fileName)
-                        && interaction.studentsAreAllowedToOverwriteAllFiles());
-
-        if (!isAllowed) {
-            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " operation blocked by AspectJ." + "Called in " + thisJoinPoint.getSourceLocation() + " - Access Denied");
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
         }
-
-        return proceed();
     }
 
     Object around() : PointcutDefinitions.fileWriterConstructorMethods() {
-        Object[] args = thisJoinPoint.getArgs();
-        String fileName = thisJoinPoint.getSourceLocation().getFileName();
-
-        boolean isAllowed = JavaAspectConfigurationLists.allowedFileSystemInteractions.stream()
-                .anyMatch(interaction -> interaction.onThisPathAndAllPathsBelow().getFileName().toString().equals(fileName)
-                        && interaction.studentsAreAllowedToOverwriteAllFiles());
-
-        if (!isAllowed) {
-            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " operation blocked by AspectJ." + "Called in " + thisJoinPoint.getSourceLocation() + " - Access Denied");
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
         }
-
-        return proceed();
     }
 
     Object around() : PointcutDefinitions.filterOutputStreamConstructorMethods() {
-        Object[] args = thisJoinPoint.getArgs();
-        String fileName = thisJoinPoint.getSourceLocation().getFileName();
-
-        boolean isAllowed = JavaAspectConfigurationLists.allowedFileSystemInteractions.stream()
-                .anyMatch(interaction -> interaction.onThisPathAndAllPathsBelow().getFileName().toString().equals(fileName)
-                        && interaction.studentsAreAllowedToOverwriteAllFiles());
-
-        if (!isAllowed) {
-            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " operation blocked by AspectJ." + "Called in " + thisJoinPoint.getSourceLocation() + " - Access Denied");
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
         }
-
-        return proceed();
     }
 
     Object around() : PointcutDefinitions.inputStreamConstructorMethods() {
-        Object[] args = thisJoinPoint.getArgs();
-        String fileName = thisJoinPoint.getSourceLocation().getFileName();
-
-        boolean isAllowed = JavaAspectConfigurationLists.allowedFileSystemInteractions.stream()
-                .anyMatch(interaction -> interaction.onThisPathAndAllPathsBelow().getFileName().toString().equals(fileName)
-                        && interaction.studentsAreAllowedToOverwriteAllFiles());
-
-        if (!isAllowed) {
-            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " operation blocked by AspectJ." + "Called in " + thisJoinPoint.getSourceLocation() + " - Access Denied");
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
         }
-
-        return proceed();
     }
 
     Object around() : PointcutDefinitions.objectInputFilterConfigConstructorMethods() {

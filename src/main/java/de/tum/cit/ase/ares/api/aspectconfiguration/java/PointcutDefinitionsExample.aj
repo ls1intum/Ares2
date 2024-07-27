@@ -1,7 +1,7 @@
 package de.tum.cit.ase.ares.api.aspectconfiguration.java;
 
 public aspect PointcutDefinitionsExample {
-
+    /*
     // Pointcut for Files.write method
     pointcut filesWriteMethod() : call(* java.nio.file.Files.write(..));
 
@@ -14,5 +14,7 @@ public aspect PointcutDefinitionsExample {
 
     // Pointcut for Files.delete method
     pointcut filesDeleteMethod() : call(* java.nio.file.Files.delete(..));
+
+     */
 
 }

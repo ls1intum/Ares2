@@ -498,17 +498,17 @@ public aspect PointcutDefinitions {
                         !within(de.tum.cit.ase.ares.api..*);
 
         // Pointcut for ObjectInputFilter$Config.<clinit>
-        pointcut objectInputFilterConfigMethods() :
+        pointcut objectInputFilterConfigClinit() :
                 (execution(* java.io.ObjectInputFilter$Config.*(..))) &&
                         !within(de.tum.cit.ase.ares.api..*);
 
         // Pointcut for ObjectInputStream.<clinit>
-        pointcut objectInputStreamMethods() :
+        pointcut objectInputStreamClinit() :
                 (execution(* java.io.ObjectInputStream.*(..))) &&
                         !within(de.tum.cit.ase.ares.api..*);
 
         // Pointcut for FileSystemProvider.<clinit>
-        pointcut fileSystemProviderMethods() :
+        pointcut fileSystemProviderClinit() :
                 (execution(* java.nio.file.spi.FileSystemProvider.*(..))) &&
                         !within(de.tum.cit.ase.ares.api..*);
 }

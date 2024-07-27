@@ -1,48 +1,42 @@
 package de.tum.cit.ase.ares.api.aspectconfiguration.java;
 
+import org.aspectj.lang.JoinPoint;
+
 import java.nio.file.Path;
 
 public aspect AdviceDefinitionExample {
-
-    // Around advice to capture the path used in Files.write and check permissions
-    Object around() : PointcutDefinitions.filesWriteMethod() {
-        Object[] args = thisJoinPoint.getArgs();
-        Path path = (Path) args[0];  // Assuming the first argument is the Path
-
+    /*
+    private boolean handleAroundAdvice(JoinPoint thisJoinPoint) {
         String fileName = thisJoinPoint.getSourceLocation().getFileName();
 
-        // Check if the file name is allowed and has write permission
         boolean isAllowed = JavaAspectConfigurationLists.allowedFileSystemInteractions.stream()
                 .anyMatch(interaction -> interaction.onThisPathAndAllPathsBelow().getFileName().toString().equals(fileName)
                         && interaction.studentsAreAllowedToOverwriteAllFiles());
 
         if (!isAllowed) {
-            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " operation blocked by AspectJ." + "Called" + " in " + thisJoinPoint.getSourceLocation() + " - Access Denied");
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " operation blocked by AspectJ." + "Called in " + thisJoinPoint.getSourceLocation() + " - Access Denied");
         }
 
-        return proceed();
+        return true;
+    }
+
+    // Around advice to capture the path used in Files.write and check permissions
+    Object around() : PointcutDefinitions.filesWriteMethod() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
     }
 
     // Around advice to capture the path used in Files.readAllBytes and check permissions
     Object around() : PointcutDefinitions.filesReadMethod() {
-        Object[] args = thisJoinPoint.getArgs();
-        Path path = (Path) args[0];  // Assuming the first argument is the Path
-
-        String fileName = thisJoinPoint.getSourceLocation().getFileName();
-
-        // Check if the file name is allowed and has read permission
-        boolean isAllowed = JavaAspectConfigurationLists.allowedFileSystemInteractions.stream()
-                .anyMatch(interaction -> interaction.onThisPathAndAllPathsBelow().getFileName().toString().equals(fileName)
-                        && interaction.studentsAreAllowedToReadAllFiles());
-
-        if (!isAllowed) {
-            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " operation blocked by AspectJ." + "Called" + " in " + thisJoinPoint.getSourceLocation() + " - Access Denied");
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
         }
-
-        return proceed();
     }
-
-    /*
 
     // Around advice to capture file deletion and check permissions
     Object around() : PointcutDefinitions.filesDeleteMethod() {
@@ -75,5 +69,6 @@ public aspect AdviceDefinitionExample {
     }
 
      */
+
 
 }
