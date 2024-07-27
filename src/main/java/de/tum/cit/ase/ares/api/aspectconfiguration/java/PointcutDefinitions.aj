@@ -511,4 +511,406 @@ public aspect PointcutDefinitions {
         pointcut fileSystemProviderClinit() :
                 (execution(* java.nio.file.spi.FileSystemProvider.*(..))) &&
                         !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for DocumentHandler methods
+        pointcut documentHandlerMethods() :
+                (execution(* com.sun.beans.decoder.DocumentHandler.parse(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for TemplatesImpl methods
+        pointcut templatesImplMethods() :
+                (execution(* com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl.readObject(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for XPathFactoryImpl constructors
+        pointcut xPathFactoryImplConstructorMethods() :
+                (execution(com.sun.org.apache.xpath.internal.jaxp.XPathFactoryImpl.new(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for Desktop methods
+        pointcut desktopMethods() :
+                (execution(* java.awt.Desktop.moveToTrash(..)) ||
+                        execution(* java.awt.Desktop.print(..)) ||
+                        execution(* java.awt.Desktop.setPrintFileHandler(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for Font methods
+        pointcut fontMethods() :
+                (execution(* java.awt.Font.checkFontFile(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for InputEvent methods
+        pointcut inputEventMethods() :
+                (execution(* java.awt.event.InputEvent.canAccessSystemClipboard(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for Introspector methods
+        pointcut introspectorMethods() :
+                (execution(* java.beans.Introspector.setBeanInfoSearchPath(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for PropertyEditorManager methods
+        pointcut propertyEditorManagerMethods() :
+                (execution(* java.beans.PropertyEditorManager.setEditorSearchPath(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for File$TempDirectory methods
+        pointcut fileTempDirectoryMethods() :
+                (execution(* java.io.File$TempDirectory.generateFile(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for File methods
+        pointcut fileMethods() :
+                (execution(* java.io.File.canExecute(..)) ||
+                        execution(* java.io.File.canRead(..)) ||
+                        execution(* java.io.File.canWrite(..)) ||
+                        execution(* java.io.File.createNewFile(..)) ||
+                        execution(* java.io.File.createTempFile(..)) ||
+                        execution(* java.io.File.delete(..)) ||
+                        execution(* java.io.File.deleteOnExit(..)) ||
+                        execution(* java.io.File.exists(..)) ||
+                        execution(* java.io.File.getFreeSpace(..)) ||
+                        execution(* java.io.File.getTotalSpace(..)) ||
+                        execution(* java.io.File.getUsableSpace(..)) ||
+                        execution(* java.io.File.isDirectory(..)) ||
+                        execution(* java.io.File.isFile(..)) ||
+                        execution(* java.io.File.isHidden(..)) ||
+                        execution(* java.io.File.lastModified(..)) ||
+                        execution(* java.io.File.length(..)) ||
+                        execution(* java.io.File.mkdir(..)) ||
+                        execution(* java.io.File.normalizedList(..)) ||
+                        execution(* java.io.File.renameTo(..)) ||
+                        execution(* java.io.File.setExecutable(..)) ||
+                        execution(* java.io.File.setLastModified(..)) ||
+                        execution(* java.io.File.setReadOnly(..)) ||
+                        execution(* java.io.File.setReadable(..)) ||
+                        execution(* java.io.File.setWritable(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for ObjectInputFilter$Config methods
+        pointcut objectInputFilterConfigMethods() :
+                (execution(* java.io.ObjectInputFilter$Config.setSerialFilter(..)) ||
+                        execution(* java.io.ObjectInputFilter$Config.setSerialFilterFactory(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for ObjectInputStream methods
+        pointcut objectInputStreamMethods() :
+                (execution(* java.io.ObjectInputStream.enableResolveObject(..)) ||
+                        execution(* java.io.ObjectInputStream.setObjectInputFilter(..)) ||
+                        execution(* java.io.ObjectInputStream.verifySubclass(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for ObjectOutputStream methods
+        pointcut objectOutputStreamMethods() :
+                (execution(* java.io.ObjectOutputStream.enableReplaceObject(..)) ||
+                        execution(* java.io.ObjectOutputStream.verifySubclass(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for ObjectInputStream constructors
+        pointcut objectInputStreamConstructorMethods() :
+                (execution(java.io.ObjectInputStream.new(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for ObjectOutputStream constructors
+        pointcut objectOutputStreamConstructorMethods() :
+                (execution(java.io.ObjectOutputStream.new(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+
+
+        // Pointcut for ObjectStreamClass methods
+        pointcut objectStreamClassMethods() :
+                (execution(* java.io.ObjectStreamClass.forClass(..)) ||
+                        execution(* java.io.ObjectStreamClass.getProtectionDomains(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for ObjectStreamField methods
+        pointcut objectStreamFieldMethods() :
+                (execution(* java.io.ObjectStreamField.getType(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for UnixFileSystem methods
+        pointcut unixFileSystemMethods() :
+                (execution(* java.io.UnixFileSystem.listRoots(..)) ||
+                        execution(* java.io.UnixFileSystem.resolve(..)) || execution(* sun.nio.fs.UnixFileSystem.copy(..)) ||
+                        execution(* sun.nio.fs.UnixFileSystem.getFileStores(..)) ||
+                        execution(* sun.nio.fs.UnixFileSystem.move(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for URL constructors
+        pointcut urlConstructorMethods() :
+                (execution(java.net.URL.new(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for URL methods
+        pointcut urlMethodExecutions() :
+                (execution(* java.net.URL.setURLStreamHandlerFactory(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for URLConnection methods
+        pointcut urlConnectionMethods() :
+                (execution(* java.net.URLConnection.setFileNameMap(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for URLStreamHandlerProvider methods
+        pointcut urlStreamHandlerProviderMethods() :
+                (execution(* java.net.spi.URLStreamHandlerProvider.checkPermission(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for FileTreeWalker methods
+        pointcut fileTreeWalkerMethods() :
+                (execution(* java.nio.file.FileTreeWalker.getAttributes(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for TempFileHelper methods
+        pointcut tempFileHelperMethods() :
+                (execution(* java.nio.file.TempFileHelper.create(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for FileSystemProvider methods
+        pointcut fileSystemProviderMethods() :
+                (execution(* java.nio.file.spi.FileSystemProvider.checkPermission(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for FileTypeDetector methods
+        pointcut fileTypeDetectorMethods() :
+                (execution(* java.nio.file.spi.FileTypeDetector.checkPermission(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for LogStream methods
+        pointcut logStreamMethods() :
+                (execution(* java.rmi.server.LogStream.setDefaultStream(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for DriverManager methods
+        pointcut driverManagerMethods() :
+                (execution(* java.sql.DriverManager.setLogStream(..)) ||
+                        execution(* java.sql.DriverManager.setLogWriter(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for ZipFile constructors
+        pointcut zipFileConstructorMethods() :
+                (execution(java.util.zip.ZipFile.new(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+
+        // Pointcut for StreamPrintServiceFactory methods
+        pointcut streamPrintServiceFactoryMethods() :
+                (execution(* javax.print.StreamPrintServiceFactory$1.run(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for XPathFactoryFinder methods
+        pointcut xPathFactoryFinderMethods() :
+                (execution(* javax.xml.xpath.XPathFactoryFinder.createClass(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for JrtFileSystemProvider methods
+        pointcut jrtFileSystemProviderMethods() :
+                (execution(* jdk.internal.jrtfs.JrtFileSystemProvider.checkPermission(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for BuiltinClassLoader methods
+        pointcut builtinClassLoaderMethods() :
+                (execution(* jdk.internal.loader.BuiltinClassLoader.findClassOnClassPathOrNull(..)) ||
+                        execution(* jdk.internal.loader.BuiltinClassLoader.findResourceAsStream(..)) ||
+                        execution(* jdk.internal.loader.BuiltinClassLoader.findResourceOnClassPath(..)) ||
+                        execution(* jdk.internal.loader.BuiltinClassLoader.findResourcesOnClassPath(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for URLClassPath methods
+        pointcut urlClassPathMethods() :
+                (execution(* jdk.internal.loader.URLClassPath$JarLoader.checkJar(..)) ||
+                        execution(* jdk.internal.loader.URLClassPath.check(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for ModuleReferences$ExplodedModuleReader constructor
+        pointcut moduleReferencesExplodedModuleReaderConstructorMethods() :
+                (execution(jdk.internal.module.ModuleReferences$ExplodedModuleReader.new(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for SystemModuleFinders$SystemModuleReader methods
+        pointcut systemModuleFindersSystemModuleReaderMethods() :
+                (execution(* jdk.internal.module.SystemModuleFinders$SystemModuleReader.checkPermissionToConnect(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for RequestPublishers$FilePublisher methods
+        pointcut requestPublishersFilePublisherMethods() :
+                (execution(* jdk.internal.net.http.RequestPublishers$FilePublisher.create(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for ResponseBodyHandlers methods
+        pointcut responseBodyHandlersMethods() :
+                (execution(* jdk.internal.net.http.ResponseBodyHandlers$FileDownloadBodyHandler.create(..)) ||
+                        execution(* jdk.internal.net.http.ResponseBodyHandlers$PathBodyHandler.create(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for ResponseSubscribers methods
+        pointcut responseSubscribersMethods() :
+                (execution(* jdk.internal.net.http.ResponseSubscribers$PathSubscriber.create(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for WriteableUserPath methods
+        pointcut writeableUserPathMethods() :
+                (execution(* jdk.jfr.internal.WriteableUserPath.doPrivilegedIO(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for Channels methods
+        pointcut channelsMethods() :
+                (execution(* jdk.nio.Channels.readWriteSelectableChannel(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for Main methods
+        pointcut mainMethods() :
+                (execution(* jdk.tools.jlink.internal.Main.run(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for DataTransferer methods
+        pointcut dataTransfererMethods() :
+                (execution(* sun.awt.datatransfer.DataTransferer.castToFiles(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for FileImageSource constructor
+        pointcut fileImageSourceConstructorMethods() :
+                (execution(sun.awt.image.FileImageSource.new(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for ImageConsumerQueue constructor
+        pointcut imageConsumerQueueConstructorMethods() :
+                (execution(sun.awt.image.ImageConsumerQueue.new(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for InputStreamImageSource methods
+        pointcut inputStreamImageSourceMethods() :
+                (execution(* sun.awt.image.InputStreamImageSource.addConsumer(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for ShellFolderManager methods
+        pointcut shellFolderManagerMethods() :
+                (execution(* sun.awt.shell.ShellFolderManager.checkFile(..)) ||
+                        execution(* sun.awt.shell.ShellFolderManager.checkFiles(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for FileFont methods
+        pointcut fileFontMethods() :
+                (execution(* sun.font.FileFont.getPublicFileName(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for FileServerHandler constructor
+        pointcut fileServerHandlerConstructorMethods() :
+                (execution(sun.net.httpserver.simpleserver.FileServerHandler.new(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for MimeTable methods
+        pointcut mimeTableMethods() :
+                (execution(* sun.net.www.MimeTable.saveAsProperties(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for HttpURLConnection methods
+        pointcut httpURLConnectionMethods() :
+                (execution(* sun.net.www.protocol.http.HttpURLConnection.checkURLFile(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for JarFileFactory methods
+        pointcut jarFileFactoryMethods() :
+                (execution(* sun.net.www.protocol.jar.JarFileFactory.getCachedJarFile(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for ServerSocketChannelImpl methods
+        pointcut serverSocketChannelImplMethods() :
+                (execution(* sun.nio.ch.ServerSocketChannelImpl.finishAccept(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for UnixAsynchronousServerSocketChannelImpl methods
+        pointcut unixAsynchronousServerSocketChannelImplMethods() :
+                (execution(* sun.nio.ch.UnixAsynchronousServerSocketChannelImpl.finishAccept(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for AbstractUserDefinedFileAttributeView methods
+        pointcut abstractUserDefinedFileAttributeViewMethods() :
+                (execution(* sun.nio.fs.AbstractUserDefinedFileAttributeView.checkAccess(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for UnixChannelFactory methods
+        pointcut unixChannelFactoryMethods() :
+                (execution(* sun.nio.fs.UnixChannelFactory.open(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for UnixFileAttributeViews$Posix methods
+        pointcut unixFileAttributeViewsPosixMethods() :
+                (execution(* sun.nio.fs.UnixFileAttributeViews$Posix.checkReadExtended(..)) ||
+                        execution(* sun.nio.fs.UnixFileAttributeViews$Posix.checkWriteExtended(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for UnixFileSystem$1 methods
+        pointcut unixFileSystem1Methods() :
+                (execution(* sun.nio.fs.UnixFileSystem$1.iterator(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for UnixFileSystem$FileStoreIterator methods
+        pointcut unixFileSystemFileStoreIteratorMethods() :
+                (execution(* sun.nio.fs.UnixFileSystem$FileStoreIterator.readNext(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for UnixPath methods
+        pointcut unixPathMethods() :
+                (execution(* sun.nio.fs.UnixPath.checkDelete(..)) ||
+                        execution(* sun.nio.fs.UnixPath.checkRead(..)) ||
+                        execution(* sun.nio.fs.UnixPath.checkWrite(..)) ||
+                        execution(* sun.nio.fs.UnixPath.toAbsolutePath(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for UnixSecureDirectoryStream$BasicFileAttributeViewImpl methods
+        pointcut unixSecureDirectoryStreamBasicFileAttributeViewImplMethods() :
+                (execution(* sun.nio.fs.UnixSecureDirectoryStream$BasicFileAttributeViewImpl.checkWriteAccess(..)) ||
+                        execution(* sun.nio.fs.UnixSecureDirectoryStream$BasicFileAttributeViewImpl.readAttributes(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for UnixSecureDirectoryStream$PosixFileAttributeViewImpl methods
+        pointcut unixSecureDirectoryStreamPosixFileAttributeViewImplMethods() :
+                (execution(* sun.nio.fs.UnixSecureDirectoryStream$PosixFileAttributeViewImpl.checkWriteAndUserAccess(..)) ||
+                        execution(* sun.nio.fs.UnixSecureDirectoryStream$PosixFileAttributeViewImpl.readAttributes(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for UnixSecureDirectoryStream methods
+        pointcut unixSecureDirectoryStreamMethods() :
+                (execution(* sun.nio.fs.UnixSecureDirectoryStream.implDelete(..)) ||
+                        execution(* sun.nio.fs.UnixSecureDirectoryStream.move(..)) ||
+                        execution(* sun.nio.fs.UnixSecureDirectoryStream.newDirectoryStream(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for UnixUserDefinedFileAttributeView methods
+        pointcut unixUserDefinedFileAttributeViewMethods() :
+                (execution(* sun.nio.fs.UnixUserDefinedFileAttributeView.delete(..)) ||
+                        execution(* sun.nio.fs.UnixUserDefinedFileAttributeView.list(..)) ||
+                        execution(* sun.nio.fs.UnixUserDefinedFileAttributeView.read(..)) ||
+                        execution(* sun.nio.fs.UnixUserDefinedFileAttributeView.size(..)) ||
+                        execution(* sun.nio.fs.UnixUserDefinedFileAttributeView.write(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for PrintJob2D methods
+        pointcut printJob2DMethods() :
+                (execution(* sun.print.PrintJob2D.throwPrintToFile(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for RasterPrinterJob methods
+        pointcut rasterPrinterJobMethods() :
+                (execution(* sun.print.RasterPrinterJob.throwPrintToFile(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for ServiceDialog$PrintServicePanel methods
+        pointcut serviceDialogPrintServicePanelMethods() :
+                (execution(* sun.print.ServiceDialog$PrintServicePanel.throwPrintToFile(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for RegistryImpl constructors
+        pointcut registryImplConstructorMethods() :
+                (execution(sun.rmi.registry.RegistryImpl.new(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // Pointcut for ConfigFile$Spi methods
+        pointcut configFileSpiMethods() :
+                (execution(* sun.security.provider.ConfigFile$Spi.engineRefresh(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+
 }

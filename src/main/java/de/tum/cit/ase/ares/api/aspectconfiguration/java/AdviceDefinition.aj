@@ -762,4 +762,596 @@ public aspect AdviceDefinition {
         }
     }
 
+    Object around() : PointcutDefinitions.documentHandlerMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.templatesImplMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.xPathFactoryImplConstructorMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.desktopMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.fontMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.inputEventMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.introspectorMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.propertyEditorManagerMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.fileTempDirectoryMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.fileMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.fileInputStreamConstructorMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.fileOutputStreamConstructorMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.objectInputFilterConfigMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.objectInputStreamMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.objectOutputStreamMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.objectInputStreamConstructorMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.objectOutputStreamConstructorMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.objectStreamClassMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.objectStreamFieldMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.randomAccessFileConstructorMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.unixFileSystemMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.urlConstructorMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.urlMethodExecutions() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.urlConnectionMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.urlStreamHandlerProviderMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.fileTreeWalkerMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.tempFileHelperMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.fileSystemProviderMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.fileTypeDetectorMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.logStreamMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.driverManagerMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.zipFileConstructorMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.streamPrintServiceFactoryMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.xPathFactoryFinderMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.jrtFileSystemProviderMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.builtinClassLoaderMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.urlClassPathMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.moduleReferencesExplodedModuleReaderConstructorMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.systemModuleFindersSystemModuleReaderMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.requestPublishersFilePublisherMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.responseBodyHandlersMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.responseSubscribersMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.writeableUserPathMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.channelsMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.mainMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.dataTransfererMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.fileImageSourceConstructorMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.imageConsumerQueueConstructorMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.inputStreamImageSourceMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.shellFolderManagerMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.fileFontMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.fileServerHandlerConstructorMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.mimeTableMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.httpURLConnectionMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.jarFileFactoryMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.serverSocketChannelImplMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.unixAsynchronousServerSocketChannelImplMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.abstractUserDefinedFileAttributeViewMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.unixChannelFactoryMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.unixFileAttributeViewsPosixMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.unixFileSystem1Methods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.unixFileSystemFileStoreIteratorMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.unixFileSystemMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.unixFileSystemProviderMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.unixPathMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.unixSecureDirectoryStreamBasicFileAttributeViewImplMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.unixSecureDirectoryStreamPosixFileAttributeViewImplMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.unixSecureDirectoryStreamMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.unixUserDefinedFileAttributeViewMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.printJob2DMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.rasterPrinterJobMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.serviceDialogPrintServicePanelMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.registryImplConstructorMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
+    Object around() : PointcutDefinitions.configFileSpiMethods() {
+        if (handleAroundAdvice(thisJoinPoint)) {
+            return proceed();
+        } else {
+            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+        }
+    }
+
 }
