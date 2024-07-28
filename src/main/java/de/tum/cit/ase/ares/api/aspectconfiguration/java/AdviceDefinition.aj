@@ -40,13 +40,15 @@ public aspect AdviceDefinition {
 
     // Advice for System.getSecurityManager()
     before(): execution(public static java.lang.SecurityManager System.getSecurityManager()) {
-        System.out.println("Intercepted call to System.getSecurityManager()");
+        //System.out.println("Intercepted call to System.getSecurityManager()");
+        throw new SecurityException("Security Manager operation blocked by AspectJ");
         // You can add additional logic here, such as logging or throwing an exception
     }
 
     // Advice for file read operations
     around(): call(* java.nio.file.Files.read*(..)) || call(* java.io.FileInputStream.read*(..)) || call(* java.nio.file.Files.readString(..)) {
-        System.out.println("Intercepted file read operation");
+        //System.out.println("Intercepted file read operation");
+        //throw new SecurityException("File read operation blocked by AspectJ");
         // Add logic to handle the read operation, such as blocking or logging
     }
 
