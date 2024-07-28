@@ -45,9 +45,8 @@ public aspect AdviceDefinition {
     }
 
     // Advice for file read operations
-    before(): call(* java.nio.file.Files.read*(..)) || call(* java.io.FileInputStream.read*(..) || call(* java.io.Files.readString(..)) {
+    around(): call(* java.nio.file.Files.read*(..)) || call(* java.io.FileInputStream.read*(..)) || call(* java.nio.file.Files.readString(..)) {
         System.out.println("Intercepted file read operation");
-        throw new SecurityException("File read operation blocked by AspectJ");
         // Add logic to handle the read operation, such as blocking or logging
     }
 

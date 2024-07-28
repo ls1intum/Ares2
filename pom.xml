@@ -151,6 +151,14 @@
 		</dependency>
 	</dependencies>
 	<build>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<includes>
+					<include>META-INF/aop.xml</include>
+				</includes>
+			</resource>
+		</resources>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -373,14 +381,6 @@
 				</configuration>
 			</plugin>
 		</plugins>
-		<resources>
-			<resource>
-				<directory>src/main/java/de/tum/cit/ase/ares/api/aspectconfiguration/resources</directory>
-				<includes>
-					<include>META-INF/aop.xml</include>
-				</includes>
-			</resource>
-		</resources>
 	</build>
 	<name>Ares</name>
 	<description>A JUnit 5 Extension for secure Artemis Java Testing.</description>
