@@ -54,16 +54,16 @@ public class JavaArchitectureTestCaseCollection {
     /**
      * Load pre file contents
      */
-    public static void loadForbiddenMethodsFromFile(String filePath, String key) throws IOException {
-        Set<String> content = new HashSet<>(Files.readAllLines(Path.of(filePath)));
+    public static void loadForbiddenMethodsFromFile(Path filePath, String key) throws IOException {
+        Set<String> content = new HashSet<>(Files.readAllLines(filePath));
         FORBIDDEN_METHODS_FOR_SUPPORTED_ARCHITECTURAL_TEST_CASE.put(key, content);
     }
 
     /**
      * Load the content of the architecture test case files
      */
-    public static void loadArchitectureRuleFileContent(String filePath, String key) throws IOException {
-        String content = Files.readString(Path.of(filePath));
+    public static void loadArchitectureRuleFileContent(Path filePath, String key) throws IOException {
+        String content = Files.readString(filePath);
         ARCHITECTURAL_RULES_CONTENT_MAP.put(key, content);
     }
 

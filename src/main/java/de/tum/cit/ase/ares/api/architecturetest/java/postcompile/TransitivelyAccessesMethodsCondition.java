@@ -14,6 +14,7 @@ import de.tum.cit.ase.ares.api.architecturetest.java.JavaSupportedArchitectureTe
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static com.tngtech.archunit.lang.ConditionEvent.createMessage;
@@ -142,7 +143,8 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
          * @return all accesses to the same target as the supplied item that are not in the analyzed classes
          */
         private Set<JavaAccess<?>> getDirectAccessTargetsOutsideOfAnalyzedClasses(JavaAccess<?> item) {
-            return item.getTargetOwner().getAccessesFromSelf()
+            Optional<JavaClass> resolvedTarget = CustomClassResolver.tryResolve(item.getTargetOwner().getFullName());
+            return resolvedTarget.map(javaClass -> javaClass.getAccessesFromSelf()
                     .stream()
                     .filter(a -> a
                             .getOrigin()
@@ -152,7 +154,7 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
                                     .getFullName()
                             )
                     )
-                    .collect(toSet());
+                    .collect(toSet())).orElseGet(Set::of);
         }
     }
 }
