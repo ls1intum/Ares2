@@ -25,7 +25,7 @@ public aspect AdviceDefinitionExample {
         if (handleAroundAdvice(thisJoinPoint)) {
             return proceed();
         } else {
-            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+            throwSecuityException(thisJoinPoint);
         }
     }
 
@@ -34,7 +34,7 @@ public aspect AdviceDefinitionExample {
         if (handleAroundAdvice(thisJoinPoint)) {
             return proceed();
         } else {
-            throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
+            throwSecurityException(thisJoinPoint);
         }
     }
 
