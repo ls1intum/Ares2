@@ -1,0 +1,10 @@
+<aspectj>
+    <weaver>
+        <!-- This ensures that all classes are woven by AspectJ -->
+        <include within="*"/>
+    </weaver>
+    <aspects>
+        <!-- Specify the fully qualified name of your aspect -->
+        <aspect name="de.tum.cit.ase.ares.api.aspectconfiguration.java.AdviceDefinition"/>
+    </aspects>
+</aspectj>
