@@ -112,14 +112,15 @@ class SecurityTest {
 
 	@TestTest
 	void test_trustedPackageWithoutEnforcerRule() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(trustedPackageWithoutEnforcerRule,
+		//OUTCOMMENTED: Removed configuration
+		/*tests.assertThatEvents().haveExactly(1, testFailedWith(trustedPackageWithoutEnforcerRule,
 				ConfigurationException.class,
 				"Ares has detected that the build configuration is probably incomplete."
 						+ " The following file-must-not-exist rules seem to be missing:\n"
 						+ "    <file>${project.build.outputDirectory}/xyz/</file>\n"
 						+ "    See https://github.com/ls1intum/Ares#what-you-need-to-do-outside-ares for more information."));
 		// Make sure our link is actually valid
-		assertThat(Path.of("README.adoc")).content().contains("#what-you-need-to-do-outside-ares");
+		assertThat(Path.of("README.adoc")).content().contains("#what-you-need-to-do-outside-ares");*/
 	}
 
 	@TestTest

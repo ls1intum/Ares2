@@ -40,8 +40,7 @@ class PathAccessTest {
 
 	@TestTest
 	void test_accessPathNormal() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1, testFailedWith(accessPathNormal, SecurityException.class));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(accessPathNormal, SecurityException.class));
 	}
 
 	@TestTest
@@ -68,9 +67,8 @@ class PathAccessTest {
 
 	@TestTest
 	void test_accessPathRelativeGlobDirectChildrenForbidden() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1,
-		//		testFailedWith(accessPathRelativeGlobDirectChildrenForbidden, SecurityException.class));
+		tests.assertThatEvents().haveExactly(1,
+				testFailedWith(accessPathRelativeGlobDirectChildrenForbidden, SecurityException.class));
 	}
 
 	@TestTest
@@ -87,9 +85,8 @@ class PathAccessTest {
 
 	@TestTest
 	void test_accessPathRelativeGlobRecursiveForbidden() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1,
-		//		testFailedWith(accessPathRelativeGlobRecursiveForbidden, SecurityException.class));
+		tests.assertThatEvents().haveExactly(1,
+				testFailedWith(accessPathRelativeGlobRecursiveForbidden, SecurityException.class));
 	}
 
 	@TestTest

@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.api.architecturetest;
+package de.tum.cit.ase.ares.api.architecturetest.java;
 
 /**
  * Supported architecture test cases in Java programming language.
@@ -27,5 +27,5 @@ public enum JavaSupportedArchitectureTestCase {
     /**
      * Architecture test case for the package import.
      */
-    PACKAGEIMPORT
+    PACKAGE_IMPORT
 }
