@@ -1,0 +1,7 @@
+# This is an example configuration file for the programming exercise "ExampleProgrammingExercise".
+theProgrammingLanguageIUseInThisProgrammingExerciseIs: JAVA
+iAllowTheFollowingFileSystemInteractionsForTheStudents: []
+iAllowTheFollowingNetworkConnectionsForTheStudents: []
+iAllowTheFollowingCommandExecutionsForTheStudents: []
+iAllowTheFollowingThreadCreationsForTheStudents: []
+iAllowTheFollowingPackageImportForTheStudents: []

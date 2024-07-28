@@ -11,11 +11,11 @@ public enum JavaSupportedAspectConfiguration {
     /**
      * Aspect configuration for the file system interaction.
      */
-    FILESYSTEMINTERACTION,
+    FILESYSTEM_INTERACTION,
     /**
      * Aspect configuration for the network connection.
      */
-    NETWORKCONNECTION,
+    NETWORK_CONNECTION,
     /**
      * Aspect configuration for the command execution.
      */
