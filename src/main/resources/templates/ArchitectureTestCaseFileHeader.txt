@@ -14,11 +14,12 @@ import de.tum.cit.ase.ares.api.securitytest.java.StudentCompiledClassesPath;
 import de.tum.cit.ase.ares.api.architecturetest.java.postcompile.TransitivelyAccessesMethodsCondition;
 import java.util.List;
 import static de.tum.cit.ase.ares.api.architecturetest.java.JavaSupportedArchitectureTestCase.FILESYSTEM_INTERACTION;
+import static de.tum.cit.ase.ares.api.architecturetest.java.postcompile.JavaArchitectureTestCaseCollection.getForbiddenMethods;
 
 
 /**
-* This class runs the security rules on the architecture for the pre-compile mode.
-*/
-@StudentCompiledClassesPath("%s")Defines security rules for the Java programming language in post-compile mode.
+ * This class runs the security rules on the architecture for the pre-compile mode.
+ */
+@StudentCompiledClassesPath("%s") // Defines security rules for the Java programming language in post-compile mode.
 @AnalyzeClasses(locations = PathLocationProvider.class)
 public class JavaArchitectureTestCaseCollection {

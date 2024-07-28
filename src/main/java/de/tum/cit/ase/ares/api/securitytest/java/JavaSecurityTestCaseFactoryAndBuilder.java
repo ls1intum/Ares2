@@ -1,9 +1,5 @@
 package de.tum.cit.ase.ares.api.securitytest.java;
 
-import de.tum.cit.ase.ares.api.architecturetest.JavaArchitectureTestCase;
-import de.tum.cit.ase.ares.api.architecturetest.JavaSupportedArchitectureTestCase;
-import de.tum.cit.ase.ares.api.aspectconfiguration.java.JavaAspectConfiguration;
-import de.tum.cit.ase.ares.api.aspectconfiguration.java.JavaSupportedAspectConfiguration;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.securitytest.SecurityTestCaseAbstractFactoryAndBuilder;
 import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
@@ -78,7 +74,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
 
         for (int i = 0; i < methods.length; i++) {
             if (isEmpty(methods[i].get())) {
-                javaArchitectureTestCases.add(new JavaArchitectureTestCase(JavaSupportedArchitectureTestCase.values()[i], securityPolicy, withinPath));
+                javaArchitectureTestCases.add(new JavaArchitectureTestCase(JavaSupportedArchitectureTestCase.values()[i], withinPath));
             } else {
                 javaAspectConfigurations.add(new JavaAspectConfiguration(JavaSupportedAspectConfiguration.values()[i], securityPolicy, withinPath));
             }
@@ -121,7 +117,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
             javaArchitectureTestCaseCollectionFileHeader = String.format(
                     Files.readString(javaArchitectureTestCaseCollectionFileHeaderPath),
                     "de.tum.cit.ase", // TODO: Replace with flexible package name handling
-                    (ProjectSourcesFinder.isGradleProject() ? "build/" : "target/") + withinPath.toString() // TODO: Remove slash (will not work on Windows)
+                    (ProjectSourcesFinder.isGradleProject() ? "build" : "target") + File.separator + withinPath.toString()
             );
         }
         //<editor-fold desc="Catches">
@@ -254,7 +250,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                             )
                     ),
                     "de.tum.cit.ase", // TODO: Replace with flexible package name handling
-                    (ProjectSourcesFinder.isGradleProject() ? "build/" : "target/") + withinPath.toString() // TODO: Remove slash (will not work on Windows)
+                    (ProjectSourcesFinder.isGradleProject() ? "build" : "target") + File.separator + withinPath.toString()
             );
         }
         //<editor-fold desc="Catches">

@@ -37,6 +37,7 @@ public class PathAccessUser {
 	}
 
 	@PublicTest
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/NoAllowedPathPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
 	void accessPathNormal() throws IOException {
 		PathAccessPenguin.accessPath(Path.of("pom.xml"));
 	}
@@ -67,6 +68,7 @@ public class PathAccessUser {
 	}
 
 	@PublicTest
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/NoAllowedPathPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
 	void accessPathRelativeGlobDirectChildrenForbidden() {
 		PathAccessPenguin.askForFilePermission("*");
 	}
@@ -85,6 +87,7 @@ public class PathAccessUser {
 	}
 
 	@PublicTest
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/NoAllowedPathPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
 	void accessPathRelativeGlobRecursiveForbidden() {
 		PathAccessPenguin.askForFilePermission("-");
 	}
@@ -100,6 +103,7 @@ public class PathAccessUser {
 	}
 
 	@PublicTest
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/NoAllowedPathPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
 	void weAccessPath() throws IOException {
 		Files.readString(Path.of("pom.xml"));
 	}
