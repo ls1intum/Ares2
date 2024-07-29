@@ -1,9 +1,7 @@
 package de.tum.cit.ase.ares.api.architecturetest.java.postcompile;
 
-import com.tngtech.archunit.ArchConfiguration;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
-import com.tngtech.archunit.core.importer.resolvers.ClassResolverFromClasspath;
 
 import java.net.URL;
 import java.util.Optional;
@@ -30,7 +28,6 @@ public class CustomClassResolver {
      * @return The resolved class if it exists.
      */
     public static Optional<JavaClass> tryResolve(String typeName) {
-        ArchConfiguration.get().setClassResolver(ClassResolverFromClasspath.class);
         URL url = CustomClassResolver.class.getResource("/" + typeName.replace(".", "/") + ".class");
         return url != null ? Optional.of(classFileImporter.importUrl(url).get(typeName)) : Optional.empty();
     }

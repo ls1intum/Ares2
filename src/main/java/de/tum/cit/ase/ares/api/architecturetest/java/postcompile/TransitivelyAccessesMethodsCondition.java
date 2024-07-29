@@ -12,10 +12,7 @@ import de.tum.cit.ase.ares.api.architecturetest.java.FileHandlerConstants;
 import de.tum.cit.ase.ares.api.architecturetest.java.JavaSupportedArchitectureTestCase;
 
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 import static com.tngtech.archunit.lang.ConditionEvent.createMessage;
 import static com.tngtech.archunit.thirdparty.com.google.common.base.Preconditions.checkNotNull;
@@ -30,15 +27,38 @@ import static java.util.stream.Collectors.toSet;
  */
 public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClass> {
 
+    /**
+     * Set of classes that does not lead to a violation if they are accessed
+     */
+    private final static Set<String> bannedClasses = Set.of(
+            "java.lang.Object",
+            "java.lang.String",
+            "java.util",
+            "sun.util"
+    );
+
+    /**
+     * Predicate to match the accessed methods
+     */
     private final DescribedPredicate<? super JavaAccess<?>> conditionPredicate;
+
+    /**
+     * Transitive access path to find the path to the accessed method
+     */
     private final TransitiveAccessPath transitiveAccessPath = new TransitiveAccessPath();
+
+    /**
+     * Map to store the resolved classes
+     * This maximizes the performance of the condition by resolving the classes only once
+     */
+    private final Map<String, JavaClass> resolvedClasses;
 
     /**
      * @param conditionPredicate Predicate to match the accessed methods
      */
     public TransitivelyAccessesMethodsCondition(DescribedPredicate<? super JavaAccess<?>> conditionPredicate, JavaSupportedArchitectureTestCase javaSupportedArchitectureTestCase) {
         super("transitively depend on classes that " + conditionPredicate.getDescription());
-
+        this.resolvedClasses = new HashMap<>();
         switch (javaSupportedArchitectureTestCase) {
             case FILESYSTEM_INTERACTION -> {
                 try {
@@ -143,7 +163,20 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
          * @return all accesses to the same target as the supplied item that are not in the analyzed classes
          */
         private Set<JavaAccess<?>> getDirectAccessTargetsOutsideOfAnalyzedClasses(JavaAccess<?> item) {
-            Optional<JavaClass> resolvedTarget = CustomClassResolver.tryResolve(item.getTargetOwner().getFullName());
+            if (bannedClasses.contains(item.getTargetOwner().getFullName())) {
+                return Collections.emptySet();
+            }
+
+
+            // TODO somehow check the subclasses as well since they are not detected by accessesFromSelf
+            Optional<JavaClass> resolvedTarget;
+            if (resolvedClasses.get(item.getTargetOwner().getFullName()) != null) {
+                resolvedTarget = Optional.of(item.getTargetOwner());
+            } else {
+                resolvedTarget = CustomClassResolver.tryResolve(item.getTargetOwner().getFullName());
+                resolvedTarget.ifPresent(javaClass -> resolvedClasses.put(javaClass.getFullName(), javaClass));
+            }
+
             return resolvedTarget.map(javaClass -> javaClass.getAccessesFromSelf()
                     .stream()
                     .filter(a -> a
