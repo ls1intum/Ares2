@@ -167,27 +167,34 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
                 return Collections.emptySet();
             }
 
+            Set<JavaClass> subclasses = new HashSet<>(item.getTargetOwner().getSubclasses());
+            subclasses.add(item.getTargetOwner());
 
-            // TODO somehow check the subclasses as well since they are not detected by accessesFromSelf
-            Optional<JavaClass> resolvedTarget;
-            if (resolvedClasses.get(item.getTargetOwner().getFullName()) != null) {
-                resolvedTarget = Optional.of(item.getTargetOwner());
-            } else {
-                resolvedTarget = CustomClassResolver.tryResolve(item.getTargetOwner().getFullName());
-                resolvedTarget.ifPresent(javaClass -> resolvedClasses.put(javaClass.getFullName(), javaClass));
+            Set<JavaAccess<?>> accesses = new HashSet<>();
+
+            for (JavaClass subclass : subclasses) {
+                Optional<JavaClass> resolvedTarget;
+                if (resolvedClasses.get(subclass.getFullName()) != null) {
+                    resolvedTarget = Optional.of(item.getTargetOwner());
+                } else {
+                    resolvedTarget = CustomClassResolver.tryResolve(item.getTargetOwner().getFullName());
+                    resolvedTarget.ifPresent(javaClass -> resolvedClasses.put(javaClass.getFullName(), javaClass));
+                }
+
+                accesses.addAll(resolvedTarget.map(javaClass -> javaClass.getAccessesFromSelf()
+                        .stream()
+                        .filter(a -> a
+                                .getOrigin()
+                                .getFullName()
+                                .equals(item
+                                        .getTarget()
+                                        .getFullName()
+                                )
+                        )
+                        .collect(toSet())).orElseGet(Set::of));
             }
 
-            return resolvedTarget.map(javaClass -> javaClass.getAccessesFromSelf()
-                    .stream()
-                    .filter(a -> a
-                            .getOrigin()
-                            .getFullName()
-                            .equals(item
-                                    .getTarget()
-                                    .getFullName()
-                            )
-                    )
-                    .collect(toSet())).orElseGet(Set::of);
+            return accesses;
         }
     }
 }
