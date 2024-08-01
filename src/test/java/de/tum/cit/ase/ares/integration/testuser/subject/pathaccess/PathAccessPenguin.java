@@ -10,7 +10,6 @@ public final class PathAccessPenguin {
 
 	public static void accessPath(Path p) throws IOException {
 		Files.readString(p);
-		new FileInputStream(p.toFile());
 	}
 
 	public static void askForFilePermission(String path) {

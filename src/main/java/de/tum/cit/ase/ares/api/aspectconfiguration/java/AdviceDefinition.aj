@@ -1438,6 +1438,39 @@ public aspect AdviceDefinition {
         return null;
     }
 
+    Object around() : PointcutDefinitions.filesReadMethods() {
+        if (handleAroundAdvice(thisJoinPoint, "read")) {
+            return proceed();
+        }
+        throwSecurityException(thisJoinPoint);
+        return null;
+    }
+
+    Object around() : PointcutDefinitions.filesWriteMethods() {
+        if (handleAroundAdvice(thisJoinPoint, "write")) {
+            return proceed();
+        }
+        throwSecurityException(thisJoinPoint);
+        return null;
+    }
+
+    Object around() : PointcutDefinitions.filesExecuteMethods() {
+        if (handleAroundAdvice(thisJoinPoint, "execute")) {
+            return proceed();
+        }
+        throwSecurityException(thisJoinPoint);
+        return null;
+    }
+
+    Object around() : PointcutDefinitions.filesDeleteMethods() {
+        if (handleAroundAdvice(thisJoinPoint, "delete")) {
+            return proceed();
+        }
+        throwSecurityException(thisJoinPoint);
+        return null;
+    }
+
+
     Object around() : PointcutDefinitions.pathReadMethods() {
         if (handleAroundAdvice(thisJoinPoint, "read")) {
             return proceed();

@@ -6,11 +6,6 @@ iAllowTheFollowingFileSystemInteractionsForTheStudents:
     studentsAreAllowedToOverwriteAllFiles: false
     studentsAreAllowedToExecuteAllFiles: false
     studentsAreAllowedToDeleteAllFiles: false
-  - onThisPathAndAllPathsBelow: "de/tum/cit/ase/ares/api/PathType.java"
-    studentsAreAllowedToReadAllFiles: true
-    studentsAreAllowedToOverwriteAllFiles: true
-    studentsAreAllowedToExecuteAllFiles: true
-    studentsAreAllowedToDeleteAllFiles: true
 iAllowTheFollowingNetworkConnectionsForTheStudents: []
 iAllowTheFollowingCommandExecutionsForTheStudents: []
 iAllowTheFollowingThreadCreationsForTheStudents: []

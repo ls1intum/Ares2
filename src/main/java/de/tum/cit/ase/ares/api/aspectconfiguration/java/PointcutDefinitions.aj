@@ -3,9 +3,9 @@ package de.tum.cit.ase.ares.api.aspectconfiguration.java;
 public aspect PointcutDefinitions {
 
     pointcut unixToolkitLoadGtkMethods() :
-            call(* sun.awt.UNIXToolkit.load_gtk(..)) ||
+            (call(* sun.awt.UNIXToolkit.load_gtk(..)) ||
                     call(* sun.awt.UNIXToolkit.load_gtk_icon(..)) ||
-                    call(* sun.awt.UNIXToolkit.unload_gtk(..)) &&
+                    call(* sun.awt.UNIXToolkit.unload_gtk(..))) &&
                             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut xDesktopPeerInitMethods() :
@@ -38,10 +38,10 @@ public aspect PointcutDefinitions {
                             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut fileInputStreamReadMethods() :
-            call(* java.io.FileInputStream.read(..)) ||
+            (call(* java.io.FileInputStream.read(..)) ||
                     call(* java.io.FileInputStream.available(..)) ||
                     call(* java.io.FileInputStream.getFD(..)) ||
-                    call(* java.io.FileInputStream.getChannel(..)) &&
+                    call(* java.io.FileInputStream.getChannel(..))) &&
                             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut fileInputStreamSkipMethods() :
@@ -77,20 +77,20 @@ public aspect PointcutDefinitions {
                     !within(de.tum.cit.ase.ares.api..*);
 
     pointcut randomAccessFileReadMethods() :
-            call(* java.io.RandomAccessFile.read(..)) ||
-                    call(* java.io.RandomAccessFile.readBytes(..)) &&
+            (call(* java.io.RandomAccessFile.read(..)) ||
+                    call(* java.io.RandomAccessFile.readBytes(..))) &&
                             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut randomAccessFileWriteMethods() :
-            call(* java.io.RandomAccessFile.write(..)) ||
+            (call(* java.io.RandomAccessFile.write(..)) ||
                     call(* java.io.RandomAccessFile.writeBytes(..)) ||
-                    call(* java.io.RandomAccessFile.setLength(..)) &&
+                    call(* java.io.RandomAccessFile.setLength(..))) &&
                             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut randomAccessFileSeekLengthMethods() :
-            call(* java.io.RandomAccessFile.seek(..)) ||
+            (call(* java.io.RandomAccessFile.seek(..)) ||
                     call(* java.io.RandomAccessFile.getFilePointer(..)) ||
-                    call(* java.io.RandomAccessFile.length(..)) &&
+                    call(* java.io.RandomAccessFile.length(..))) &&
                             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut randomAccessFileOpenMethods() :
@@ -98,27 +98,27 @@ public aspect PointcutDefinitions {
                     !within(de.tum.cit.ase.ares.api..*);
 
     pointcut unixFileSystemReadMethods() :
-            call(* java.io.UnixFileSystem.canonicalize(..)) ||
+            (call(* java.io.UnixFileSystem.canonicalize(..)) ||
                     call(* java.io.UnixFileSystem.checkAccess(..)) ||
                     call(* java.io.UnixFileSystem.getBooleanAttributes(..)) ||
                     call(* java.io.UnixFileSystem.getLastModifiedTime(..)) ||
                     call(* java.io.UnixFileSystem.getLength(..)) ||
                     call(* java.io.UnixFileSystem.getNameMax(..)) ||
                     call(* java.io.UnixFileSystem.getSpace(..)) ||
-                    call(* java.io.UnixFileSystem.list(..)) &&
+                    call(* java.io.UnixFileSystem.list(..))) &&
                             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut unixFileSystemWriteMethods() :
-            call(* java.io.UnixFileSystem.createDirectory(..)) ||
+            (call(* java.io.UnixFileSystem.createDirectory(..)) ||
                     call(* java.io.UnixFileSystem.createFileExclusively(..)) ||
                     call(* java.io.UnixFileSystem.setLastModifiedTime(..)) ||
                     call(* java.io.UnixFileSystem.setPermission(..)) ||
-                    call(* java.io.UnixFileSystem.setReadOnly(..)) &&
+                    call(* java.io.UnixFileSystem.setReadOnly(..))) &&
                             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut unixFileSystemDeleteMethods() :
-            call(* java.io.UnixFileSystem.delete(..)) ||
-                    call(* java.io.UnixFileSystem.rename(..)) &&
+            (call(* java.io.UnixFileSystem.delete(..)) ||
+                    call(* java.io.UnixFileSystem.rename(..))) &&
                             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut nativeImageBufferMethods() :
@@ -126,22 +126,22 @@ public aspect PointcutDefinitions {
                     !within(de.tum.cit.ase.ares.api..*);
 
     pointcut nativeLibrariesMethods() :
-            call(* jdk.internal.loader.NativeLibraries.findBuiltinLib(..)) ||
+            (call(* jdk.internal.loader.NativeLibraries.findBuiltinLib(..)) ||
                     call(* jdk.internal.loader.NativeLibraries.load(..)) ||
-                    call(* jdk.internal.loader.NativeLibraries.unload(..)) &&
+                    call(* jdk.internal.loader.NativeLibraries.unload(..))) &&
                             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut cdsMethods() :
-            call(* jdk.internal.misc.CDS.dumpClassList(..)) ||
+            (call(* jdk.internal.misc.CDS.dumpClassList(..)) ||
                     call(* jdk.internal.misc.CDS.dumpDynamicArchive(..)) ||
                     call(* jdk.internal.misc.CDS.isDumpingClassList(..)) ||
-                    call(* jdk.internal.misc.CDS.logLambdaFormInvoker(..)) &&
+                    call(* jdk.internal.misc.CDS.logLambdaFormInvoker(..))) &&
                             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut epollMethods() :
-            call(* sun.nio.ch.EPoll.create(..)) ||
+            (call(* sun.nio.ch.EPoll.create(..)) ||
                     call(* sun.nio.ch.EPoll.ctl(..)) ||
-                    call(* sun.nio.ch.EPoll.wait(..)) &&
+                    call(* sun.nio.ch.EPoll.wait(..))) &&
                             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut fileChannelImplReadMethods() :
@@ -153,29 +153,29 @@ public aspect PointcutDefinitions {
                     !within(de.tum.cit.ase.ares.api..*);
 
     pointcut fileDispatcherImplReadMethods() :
-            call(* sun.nio.ch.FileDispatcherImpl.pread(..)) ||
+            (call(* sun.nio.ch.FileDispatcherImpl.pread(..)) ||
                     call(* sun.nio.ch.FileDispatcherImpl.read(..)) ||
                     call(* sun.nio.ch.FileDispatcherImpl.readv(..)) ||
-                    call(* sun.nio.ch.FileDispatcherImpl.size(..)) &&
+                    call(* sun.nio.ch.FileDispatcherImpl.size(..))) &&
                             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut fileDispatcherImplWriteMethods() :
-            call(* sun.nio.ch.FileDispatcherImpl.force(..)) ||
+            (call(* sun.nio.ch.FileDispatcherImpl.force(..)) ||
                     call(* sun.nio.ch.FileDispatcherImpl.pwrite(..)) ||
                     call(* sun.nio.ch.FileDispatcherImpl.truncate(..)) ||
                     call(* sun.nio.ch.FileDispatcherImpl.write(..)) ||
-                    call(* sun.nio.ch.FileDispatcherImpl.writev(..)) &&
+                    call(* sun.nio.ch.FileDispatcherImpl.writev(..))) &&
                             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut fileDispatcherImplExecuteMethods() :
-            call(* sun.nio.ch.FileDispatcherImpl.close(..)) ||
+            (call(* sun.nio.ch.FileDispatcherImpl.close(..)) ||
                     call(* sun.nio.ch.FileDispatcherImpl.closeIntFD(..)) ||
                     call(* sun.nio.ch.FileDispatcherImpl.dup0(..)) ||
                     call(* sun.nio.ch.FileDispatcherImpl.lock(..)) ||
                     call(* sun.nio.ch.FileDispatcherImpl.preClose(..)) ||
                     call(* sun.nio.ch.FileDispatcherImpl.release(..)) ||
                     call(* sun.nio.ch.FileDispatcherImpl.seek(..)) ||
-                    call(* sun.nio.ch.FileDispatcherImpl.setDirect0(..)) &&
+                    call(* sun.nio.ch.FileDispatcherImpl.setDirect0(..))) &&
                             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut fileKeyMethods() :
@@ -187,9 +187,9 @@ public aspect PointcutDefinitions {
                     !within(de.tum.cit.ase.ares.api..*);
 
     pointcut linuxNativeDispatcherMethods() :
-            call(* sun.nio.fs.LinuxNativeDispatcher.endmntent(..)) ||
+            (call(* sun.nio.fs.LinuxNativeDispatcher.endmntent(..)) ||
                     call(* sun.nio.fs.LinuxNativeDispatcher.getmntent(..)) ||
-                    call(* sun.nio.fs.LinuxNativeDispatcher.setmntent(..)) &&
+                    call(* sun.nio.fs.LinuxNativeDispatcher.setmntent(..))) &&
                             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut unixCopyFileMethods() :
@@ -442,22 +442,22 @@ public aspect PointcutDefinitions {
     pointcut fileOutputStreamInitMethods() : call(java.io.FileOutputStream.new(..)) &&
             !within(de.tum.cit.ase.ares.api..*);
 
-    pointcut objectInputFilterConfigMethods() : call(* java.io.ObjectInputFilter$Config.setSerialFilter(..)) || call(* java.io.ObjectInputFilter$Config.setSerialFilterFactory(..)) &&
+    pointcut objectInputFilterConfigMethods() : (call(* java.io.ObjectInputFilter$Config.setSerialFilter(..)) || call(* java.io.ObjectInputFilter$Config.setSerialFilterFactory(..))) &&
             !within(de.tum.cit.ase.ares.api..*);
 
-    pointcut objectInputStreamMethods() : call(java.io.ObjectInputStream.new(..)) || call(* java.io.ObjectInputStream.enableResolveObject(..)) || call(* java.io.ObjectInputStream.setObjectInputFilter(..)) || call(* java.io.ObjectInputStream.verifySubclass(..)) &&
+    pointcut objectInputStreamMethods() : (call(java.io.ObjectInputStream.new(..)) || call(* java.io.ObjectInputStream.enableResolveObject(..)) || call(* java.io.ObjectInputStream.setObjectInputFilter(..)) || call(* java.io.ObjectInputStream.verifySubclass(..))) &&
             !within(de.tum.cit.ase.ares.api..*);
 
-    pointcut objectOutputStreamMethods() : call(java.io.ObjectOutputStream.new(..)) || call(* java.io.ObjectOutputStream.enableReplaceObject(..)) || call(* java.io.ObjectOutputStream.verifySubclass(..)) &&
+    pointcut objectOutputStreamMethods() : (call(java.io.ObjectOutputStream.new(..)) || call(* java.io.ObjectOutputStream.enableReplaceObject(..)) || call(* java.io.ObjectOutputStream.verifySubclass(..))) &&
             !within(de.tum.cit.ase.ares.api..*);
 
-    pointcut objectStreamClassMethods() : call(* java.io.ObjectStreamClass.forClass(..)) || call(* java.io.ObjectStreamClass.getProtectionDomains(..)) || call(* java.io.ObjectStreamField.getType(..)) &&
+    pointcut objectStreamClassMethods() : (call(* java.io.ObjectStreamClass.forClass(..)) || call(* java.io.ObjectStreamClass.getProtectionDomains(..)) || call(* java.io.ObjectStreamField.getType(..))) &&
             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut randomAccessFileInitMethods() : call(java.io.RandomAccessFile.new(..)) &&
             !within(de.tum.cit.ase.ares.api..*);
 
-    pointcut unixFileSystemMethods() : call(* java.io.UnixFileSystem.listRoots(..)) || call(* java.io.UnixFileSystem.resolve(..)) &&
+    pointcut unixFileSystemMethods() : (call(* java.io.UnixFileSystem.listRoots(..)) || call(* java.io.UnixFileSystem.resolve(..))) &&
             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut urlInitMethods() : call(java.net.URL.new(..)) &&
@@ -508,7 +508,7 @@ public aspect PointcutDefinitions {
     pointcut builtinClassLoaderFindClassMethods() : call(* jdk.internal.loader.BuiltinClassLoader.findClassOnClassPathOrNull(..)) &&
             !within(de.tum.cit.ase.ares.api..*);
 
-    pointcut builtinClassLoaderFindResourceMethods() : call(* jdk.internal.loader.BuiltinClassLoader.findResourceAsStream(..)) || call(* jdk.internal.loader.BuiltinClassLoader.findResourceOnClassPath(..)) || call(* jdk.internal.loader.BuiltinClassLoader.findResourcesOnClassPath(..)) &&
+    pointcut builtinClassLoaderFindResourceMethods() : (call(* jdk.internal.loader.BuiltinClassLoader.findResourceAsStream(..)) || call(* jdk.internal.loader.BuiltinClassLoader.findResourceOnClassPath(..)) || call(* jdk.internal.loader.BuiltinClassLoader.findResourcesOnClassPath(..))) &&
             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut urlClassPathJarLoaderCheckJarMethods() : call(* jdk.internal.loader.URLClassPath$JarLoader.checkJar(..)) &&
@@ -689,17 +689,19 @@ public aspect PointcutDefinitions {
             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut filesReadMethods() :
-            call(* java.nio.file.Files.readAllBytes(..)) ||
+            (call(* java.nio.file.Files.readAllBytes(..)) ||
                     call(* java.nio.file.Files.readAllLines(..)) ||
+                    call(* java.nio.file.Files.readString(..)) ||
+                    call(* java.nio.file.Files.readAttributes(..)) ||
                     call(* java.nio.file.Files.lines(..)) ||
                     call(* java.nio.file.Files.newBufferedReader(..)) ||
                     call(* java.nio.file.Files.newInputStream(..)) ||
                     call(* java.nio.file.Files.probeContentType(..)) ||
-                    call(* java.nio.file.Files.isReadable(..)) &&
+                    call(* java.nio.file.Files.isReadable(..))) &&
                             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut filesWriteMethods() :
-            call(* java.nio.file.Files.write(..)) ||
+            (call(* java.nio.file.Files.write(..)) ||
                     call(* java.nio.file.Files.writeString(..)) ||
                     call(* java.nio.file.Files.newBufferedWriter(..)) ||
                     call(* java.nio.file.Files.newOutputStream(..)) ||
@@ -707,11 +709,11 @@ public aspect PointcutDefinitions {
                     call(* java.nio.file.Files.setLastModifiedTime(..)) ||
                     call(* java.nio.file.Files.setOwner(..)) ||
                     call(* java.nio.file.Files.setPosixFilePermissions(..)) ||
-                    call(* java.nio.file.Files.isWritable(..)) &&
+                    call(* java.nio.file.Files.isWritable(..))) &&
                             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut filesExecuteMethods() :
-            call(* java.nio.file.Files.walk(..)) ||
+            (call(* java.nio.file.Files.walk(..)) ||
                     call(* java.nio.file.Files.walkFileTree(..)) ||
                     call(* java.nio.file.Files.find(..)) ||
                     call(* java.nio.file.Files.list(..)) ||
@@ -722,22 +724,22 @@ public aspect PointcutDefinitions {
                     call(* java.nio.file.Files.createFile(..)) ||
                     call(* java.nio.file.Files.createLink(..)) ||
                     call(* java.nio.file.Files.createSymbolicLink(..)) ||
-                    call(* java.nio.file.Files.isExecutable(..)) &&
+                    call(* java.nio.file.Files.isExecutable(..))) &&
                             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut filesDeleteMethods() :
-            call(* java.nio.file.Files.delete(..)) ||
+            (call(* java.nio.file.Files.delete(..)) ||
                     call(* java.nio.file.Files.deleteIfExists(..)) ||
                     call(* java.nio.file.Files.isDirectory(..)) ||
                     call(* java.nio.file.Files.isRegularFile(..)) ||
                     call(* java.nio.file.Files.isSameFile(..)) ||
                     call(* java.nio.file.Files.isSymbolicLink(..)) ||
                     call(* java.nio.file.Files.notExists(..)) ||
-                    call(* java.nio.file.Files.size(..)) &&
+                    call(* java.nio.file.Files.size(..))) &&
                             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut pathReadMethods() :
-            call(* java.nio.file.Path.toFile(..)) ||
+            (call(* java.nio.file.Path.toFile(..)) ||
                     call(* java.nio.file.Path.getFileName(..)) ||
                     call(* java.nio.file.Path.getName(..)) ||
                     call(* java.nio.file.Path.getNameCount(..)) ||
@@ -752,46 +754,46 @@ public aspect PointcutDefinitions {
                     call(* java.nio.file.Path.resolve(..)) ||
                     call(* java.nio.file.Path.resolveSibling(..)) ||
                     call(* java.nio.file.Path.relativize(..)) ||
-                    call(* java.nio.file.Path.normalize(..)) &&
+                    call(* java.nio.file.Path.normalize(..))) &&
                             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut pathWriteMethods() :
-            call(* java.nio.file.Path.register(..)) ||
-                    call(* java.nio.file.Path.toFile(..)) &&
+            (call(* java.nio.file.Path.register(..)) ||
+                    call(* java.nio.file.Path.toFile(..))) &&
                             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut pathExecuteMethods() :
-            call(* java.nio.file.Path.compareTo(..)) ||
+            (call(* java.nio.file.Path.compareTo(..)) ||
                     call(* java.nio.file.Path.endsWith(..)) ||
                     call(* java.nio.file.Path.startsWith(..)) ||
-                    call(* java.nio.file.Path.equals(..)) &&
+                    call(* java.nio.file.Path.equals(..))) &&
                             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut pathDeleteMethods() :
-            call(* java.nio.file.Path.deleteIfExists(..)) ||
-                    call(* java.nio.file.Path.delete(..)) &&
+            (call(* java.nio.file.Path.deleteIfExists(..)) ||
+                    call(* java.nio.file.Path.delete(..))) &&
                             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut fileSystemReadMethods() :
-            call(* java.nio.file.FileSystem.getFileStores(..)) ||
+            (call(* java.nio.file.FileSystem.getFileStores(..)) ||
                     call(* java.nio.file.FileSystem.getPath(..)) ||
                     call(* java.nio.file.FileSystem.getPathMatcher(..)) ||
                     call(* java.nio.file.FileSystem.getRootDirectories(..)) ||
                     call(* java.nio.file.FileSystem.provider(..)) ||
                     call(* java.nio.file.FileSystem.supportedFileAttributeViews(..)) ||
                     call(* java.nio.file.FileSystem.isOpen(..)) ||
-                    call(* java.nio.file.FileSystem.isReadOnly(..)) &&
+                    call(* java.nio.file.FileSystem.isReadOnly(..))) &&
                             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut fileSystemWriteMethods() :
-            call(* java.nio.file.FileSystem.newWatchService(..)) ||
-                    call(* java.nio.file.FileSystem.close(..)) &&
+            (call(* java.nio.file.FileSystem.newWatchService(..)) ||
+                    call(* java.nio.file.FileSystem.close(..))) &&
                             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut fileSystemExecuteMethods() :
-            call(* java.nio.file.FileSystem.equals(..)) ||
+            (call(* java.nio.file.FileSystem.equals(..)) ||
                     call(* java.nio.file.FileSystem.hashCode(..)) ||
-                    call(* java.nio.file.FileSystem.toString(..)) &&
+                    call(* java.nio.file.FileSystem.toString(..))) &&
                             !within(de.tum.cit.ase.ares.api..*);
 
     pointcut fileSystemDeleteMethods() :
