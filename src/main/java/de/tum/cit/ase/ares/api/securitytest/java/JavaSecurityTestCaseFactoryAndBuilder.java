@@ -1,9 +1,14 @@
 package de.tum.cit.ase.ares.api.securitytest.java;
 
+import de.tum.cit.ase.ares.api.architecturetest.java.JavaArchitectureTestCase;
+import de.tum.cit.ase.ares.api.architecturetest.java.JavaSupportedArchitectureTestCase;
+import de.tum.cit.ase.ares.api.aspectconfiguration.java.JavaAspectConfiguration;
+import de.tum.cit.ase.ares.api.aspectconfiguration.java.JavaSupportedAspectConfiguration;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.securitytest.SecurityTestCaseAbstractFactoryAndBuilder;
 import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
