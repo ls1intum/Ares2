@@ -1,9 +1,10 @@
 package de.tum.cit.ase.ares.api.architecturetest.java.postcompile;
 
 import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
+import com.tngtech.archunit.core.importer.ImportOption;
 
-import java.net.URL;
 import java.util.Optional;
 
 /**
@@ -11,15 +12,18 @@ import java.util.Optional;
  */
 public class CustomClassResolver {
 
-    private CustomClassResolver() {
-        throw new IllegalStateException("Utility class");
-    }
-
     /**
      * Class file importer to import the class files.
      * This is used to import the class files from the URL.
      */
-    private static final ClassFileImporter classFileImporter = new ClassFileImporter();
+    private final JavaClasses allClasses;
+
+    public CustomClassResolver() {
+        allClasses = new ClassFileImporter()
+                .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
+                .withImportOption(location -> location.toString().contains("jrt:/"))
+                .importClasspath();
+    }
 
     /**
      * Try to resolve the class by the given type name.
@@ -27,8 +31,11 @@ public class CustomClassResolver {
      * @param typeName The type name of the class to resolve.
      * @return The resolved class if it exists.
      */
-    public static Optional<JavaClass> tryResolve(String typeName) {
-        URL url = CustomClassResolver.class.getResource("/" + typeName.replace(".", "/") + ".class");
-        return url != null ? Optional.of(classFileImporter.importUrl(url).get(typeName)) : Optional.empty();
+    public Optional<JavaClass> tryResolve(String typeName) {
+        try {
+            return Optional.ofNullable(allClasses.get(typeName));
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
     }
 }

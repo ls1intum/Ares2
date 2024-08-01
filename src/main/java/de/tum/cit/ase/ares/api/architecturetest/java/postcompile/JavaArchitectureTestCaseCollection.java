@@ -42,14 +42,12 @@ public class JavaArchitectureTestCaseCollection {
             "java.nio.file",
             "java.util.prefs",
             "sun.print",
-            "sun.security",
             "java.util.jar",
             "java.util.zip",
             "sun.awt.X11",
             "javax.imageio",
             "javax.sound.midi",
-            "javax.swing.filechooser",
-            "java.awt.desktop");
+            "javax.swing.filechooser");
 
     /**
      * Load pre file contents

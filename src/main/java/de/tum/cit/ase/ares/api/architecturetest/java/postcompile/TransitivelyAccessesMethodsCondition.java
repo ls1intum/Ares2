@@ -30,9 +30,10 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
     /**
      * Set of classes that does not lead to a violation if they are accessed
      */
-    private final static Set<String> bannedClasses = Set.of(
+    private static final Set<String> bannedClasses = Set.of(
             "java.lang.Object",
             "java.lang.String",
+            "java.security.AccessControl",
             "java.util",
             "sun.util"
     );
@@ -48,17 +49,15 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
     private final TransitiveAccessPath transitiveAccessPath = new TransitiveAccessPath();
 
     /**
-     * Map to store the resolved classes
-     * This maximizes the performance of the condition by resolving the classes only once
+     * Custom class resolver to resolve classes that are outside classpath to be able to analyze them transitively
      */
-    private final Map<String, JavaClass> resolvedClasses;
+    private final CustomClassResolver customClassResolver;
 
     /**
      * @param conditionPredicate Predicate to match the accessed methods
      */
     public TransitivelyAccessesMethodsCondition(DescribedPredicate<? super JavaAccess<?>> conditionPredicate, JavaSupportedArchitectureTestCase javaSupportedArchitectureTestCase) {
         super("transitively depend on classes that " + conditionPredicate.getDescription());
-        this.resolvedClasses = new HashMap<>();
         switch (javaSupportedArchitectureTestCase) {
             case FILESYSTEM_INTERACTION -> {
                 try {
@@ -75,6 +74,7 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
             case null, default -> throw new IllegalStateException("JavaSupportedArchitecture cannot be null");
         }
         this.conditionPredicate = checkNotNull(conditionPredicate);
+        this.customClassResolver = new CustomClassResolver();
     }
 
     /**
@@ -163,38 +163,42 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
          * @return all accesses to the same target as the supplied item that are not in the analyzed classes
          */
         private Set<JavaAccess<?>> getDirectAccessTargetsOutsideOfAnalyzedClasses(JavaAccess<?> item) {
-            if (bannedClasses.contains(item.getTargetOwner().getFullName())) {
+            // If the target owner is in the banned classes, return an empty set
+            if (bannedClasses.stream().anyMatch(p -> item.getTargetOwner().getFullName().startsWith(p)) || item.getTargetOwner().isAssignableTo(Exception.class) || item.getTargetOwner().isAssignableTo(Error.class)) {
                 return Collections.emptySet();
             }
 
-            Set<JavaClass> subclasses = new HashSet<>(item.getTargetOwner().getSubclasses());
-            subclasses.add(item.getTargetOwner());
+            // Get all subclasses of the target owner including the target owner
+            JavaClass resolvedTarget = resolveTargetOwner(item.getTargetOwner());
 
-            Set<JavaAccess<?>> accesses = new HashSet<>();
+            // Match the accesses to the target
+            Set<JavaClass> subclasses = resolvedTarget.getSubclasses().stream().map(this::resolveTargetOwner).collect(toSet());
+            subclasses.add(resolvedTarget);
 
-            for (JavaClass subclass : subclasses) {
-                Optional<JavaClass> resolvedTarget;
-                if (resolvedClasses.get(subclass.getFullName()) != null) {
-                    resolvedTarget = Optional.of(item.getTargetOwner());
-                } else {
-                    resolvedTarget = CustomClassResolver.tryResolve(item.getTargetOwner().getFullName());
-                    resolvedTarget.ifPresent(javaClass -> resolvedClasses.put(javaClass.getFullName(), javaClass));
-                }
-
-                accesses.addAll(resolvedTarget.map(javaClass -> javaClass.getAccessesFromSelf()
-                        .stream()
-                        .filter(a -> a
-                                .getOrigin()
-                                .getFullName()
-                                .equals(item
-                                        .getTarget()
-                                        .getFullName()
-                                )
-                        )
-                        .collect(toSet())).orElseGet(Set::of));
+            if (subclasses.size() > 20) {
+                return Collections.emptySet();
             }
 
-            return accesses;
+            return subclasses.stream()
+                    .map(javaClass -> getAccessesFromClass(javaClass, item.getTarget().getName()))
+                    .flatMap(Set::stream)
+                    .collect(toSet());
+        }
+
+        private Set<JavaAccess<?>> getAccessesFromClass(JavaClass javaClass, String methodName) {
+            return javaClass.getAccessesFromSelf()
+                    .stream()
+                    .filter(a -> a
+                            .getOrigin()
+                            .getName()
+                            .equals(methodName))
+                    .filter(a -> bannedClasses.stream().noneMatch(p -> a.getTargetOwner().getFullName().startsWith(p)))
+                    .collect(toSet());
+        }
+
+        private JavaClass resolveTargetOwner(JavaClass targetOwner) {
+            Optional<JavaClass> resolvedTarget = customClassResolver.tryResolve(targetOwner.getFullName());
+            return resolvedTarget.orElse(targetOwner);
         }
     }
 }
