@@ -47,7 +47,7 @@ public class JDIStackTraceMonitor {
                             .filter(location -> location.contains("StudentExample"))
                             .toList();
                     if (!locations.isEmpty()) {
-                        throw new SecurityException("Access to sun.nio.fs.UnixFileSystemProvider is not allowed" + locations);
+                        throw new SecurityException(String.format("Access to sun.nio.fs.UnixFileSystemProvider is not allowed. Locations: %s", String.join(", ", locations)));
                     }
                 } else if (event instanceof VMDeathEvent || event instanceof VMDisconnectEvent) {
                     return;
