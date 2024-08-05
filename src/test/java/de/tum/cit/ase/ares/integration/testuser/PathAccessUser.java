@@ -102,8 +102,11 @@ public class PathAccessUser {
 	}
 
 	@PublicTest
-	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/NoAllowedPathPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
 	void weAccessPath() throws IOException {
 		Files.readString(Path.of("pom.xml"));
 	}
+
+	@PublicTest
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/NoAllowedPathPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+	void accessFileSystem() throws IOException {}
 }

@@ -108,7 +108,7 @@ public class RecursionCheck {
         }
 
         return localized("ast.method.get_formatted_file_string_prefix", pathOfSourceRoot.toString()
-                + "/" + Objects.requireNonNull(extractClassName(vertexName)))
+                + File.separator + Objects.requireNonNull(extractClassName(vertexName)))
                 + System.lineSeparator()
                 + localized("ast.method.get_formatted_unwanted_node_string_prefix",
                 "Unwanted Recursion")
