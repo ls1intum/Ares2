@@ -32,6 +32,7 @@ public class CustomClassResolver {
      */
     public Optional<JavaClass> tryResolve(String typeName) {
         try {
+            // Try to resolve the class by the given type name.
             return Optional.ofNullable(allClasses.get(typeName));
         } catch (IllegalArgumentException e) {
             return Optional.empty();

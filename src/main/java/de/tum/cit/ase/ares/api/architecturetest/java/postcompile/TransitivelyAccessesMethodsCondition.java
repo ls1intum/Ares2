@@ -175,6 +175,11 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
             Set<JavaClass> subclasses = resolvedTarget.getSubclasses().stream().map(this::resolveTargetOwner).collect(toSet());
             subclasses.add(resolvedTarget);
 
+            /**
+             * If the number of subclasses is more than 20, return an empty set.
+             * These classes are always generic interfaces or abstract classes
+             * TODO: Check if this is also the case for foreign packages
+             */
             if (subclasses.size() > 20) {
                 return Collections.emptySet();
             }
