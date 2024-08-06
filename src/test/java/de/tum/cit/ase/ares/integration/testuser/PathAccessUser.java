@@ -31,7 +31,6 @@ public class PathAccessUser {
 
 	@PublicTest
 	@WhitelistPath("")
-	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/OnePathAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
 	void accessPathAllowed() throws IOException {
 		PathAccessPenguin.accessPath(Path.of("pom.xml"));
 	}
