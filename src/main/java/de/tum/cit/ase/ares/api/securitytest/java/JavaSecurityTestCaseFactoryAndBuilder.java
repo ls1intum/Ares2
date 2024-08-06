@@ -195,36 +195,36 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         //<editor-fold desc="Create aspect configuration files">
         try {
             Path javaAdviceDefinitionPath = Files.copy(
-                    Path.of("src/main/resources/aspectOrientedProgrammingFiles/AdviceDefinition.aj"),
-                    path.resolve("AdviceDefinition.aj")
+                    Path.of("src/main/resources/aspectOrientedProgrammingFiles/FileSystemAdviceDefinition.aj"),
+                    path.resolve("FileSystemAdviceDefinition.aj")
             );
         }
         //<editor-fold desc="Catches">
         catch (InvalidPathException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/AdviceDefinition.aj due to an incorrect address resolving: " + e);
+            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/FileSystemAdviceDefinition.aj due to an incorrect address resolving: " + e);
         } catch (UnsupportedOperationException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/AdviceDefinition.aj due to missing supported by this JVM: " + e);
+            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/FileSystemAdviceDefinition.aj due to missing supported by this JVM: " + e);
         } catch (FileAlreadyExistsException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/AdviceDefinition.aj, as it already exists: " + e);
+            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/FileSystemAdviceDefinition.aj, as it already exists: " + e);
         } catch (IOException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/AdviceDefinition.aj due to an I/O exception: " + e);
+            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/FileSystemAdviceDefinition.aj due to an I/O exception: " + e);
         }
         //</editor-fold>
         try {
             Path javaPointcutDefinitionPath = Files.copy(
-                    Path.of("src/main/resources/aspectOrientedProgrammingFiles/PointcutDefinitions.aj"),
-                    path.resolve("PointcutDefinitions.aj")
+                    Path.of("src/main/resources/aspectOrientedProgrammingFiles/FileSystemPointcutDefinitions.aj"),
+                    path.resolve("FileSystemPointcutDefinitions.aj")
             );
         }
         //<editor-fold desc="Catches">
         catch (InvalidPathException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/PointcutDefinitions.aj due to an incorrect address resolving: " + e);
+            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/FileSystemPointcutDefinitions.aj due to an incorrect address resolving: " + e);
         } catch (UnsupportedOperationException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/PointcutDefinitions.aj due to missing supported by this JVM: " + e);
+            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/FileSystemPointcutDefinitions.aj due to missing supported by this JVM: " + e);
         } catch (FileAlreadyExistsException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/PointcutDefinitions.aj, as it already exists: " + e);
+            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/FileSystemPointcutDefinitions.aj, as it already exists: " + e);
         } catch (IOException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/PointcutDefinitions.aj due to an I/O exception: " + e);
+            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/FileSystemPointcutDefinitions.aj due to an I/O exception: " + e);
         }
         //</editor-fold>
         Path javaAspectConfigurationCollectionFile;
