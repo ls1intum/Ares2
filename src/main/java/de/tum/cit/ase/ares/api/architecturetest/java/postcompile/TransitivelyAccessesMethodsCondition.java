@@ -12,10 +12,7 @@ import de.tum.cit.ase.ares.api.architecturetest.java.FileHandlerConstants;
 import de.tum.cit.ase.ares.api.architecturetest.java.JavaSupportedArchitectureTestCase;
 
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 import static com.tngtech.archunit.lang.ConditionEvent.createMessage;
 import static com.tngtech.archunit.thirdparty.com.google.common.base.Preconditions.checkNotNull;
@@ -30,15 +27,37 @@ import static java.util.stream.Collectors.toSet;
  */
 public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClass> {
 
+    /**
+     * Set of classes that does not lead to a violation if they are accessed
+     */
+    private static final Set<String> bannedClasses = Set.of(
+            "java.lang.Object",
+            "java.lang.String",
+            "java.security.AccessControl",
+            "java.util",
+            "sun.util"
+    );
+
+    /**
+     * Predicate to match the accessed methods
+     */
     private final DescribedPredicate<? super JavaAccess<?>> conditionPredicate;
+
+    /**
+     * Transitive access path to find the path to the accessed method
+     */
     private final TransitiveAccessPath transitiveAccessPath = new TransitiveAccessPath();
+
+    /**
+     * Custom class resolver to resolve classes that are outside classpath to be able to analyze them transitively
+     */
+    private final CustomClassResolver customClassResolver;
 
     /**
      * @param conditionPredicate Predicate to match the accessed methods
      */
     public TransitivelyAccessesMethodsCondition(DescribedPredicate<? super JavaAccess<?>> conditionPredicate, JavaSupportedArchitectureTestCase javaSupportedArchitectureTestCase) {
         super("transitively depend on classes that " + conditionPredicate.getDescription());
-
         switch (javaSupportedArchitectureTestCase) {
             case FILESYSTEM_INTERACTION -> {
                 try {
@@ -55,6 +74,7 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
             case null, default -> throw new IllegalStateException("JavaSupportedArchitecture cannot be null");
         }
         this.conditionPredicate = checkNotNull(conditionPredicate);
+        this.customClassResolver = new CustomClassResolver();
     }
 
     /**
@@ -143,18 +163,47 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
          * @return all accesses to the same target as the supplied item that are not in the analyzed classes
          */
         private Set<JavaAccess<?>> getDirectAccessTargetsOutsideOfAnalyzedClasses(JavaAccess<?> item) {
-            Optional<JavaClass> resolvedTarget = CustomClassResolver.tryResolve(item.getTargetOwner().getFullName());
-            return resolvedTarget.map(javaClass -> javaClass.getAccessesFromSelf()
+            // If the target owner is in the banned classes, return an empty set
+            if (bannedClasses.stream().anyMatch(p -> item.getTargetOwner().getFullName().startsWith(p)) || item.getTargetOwner().isAssignableTo(Exception.class) || item.getTargetOwner().isAssignableTo(Error.class)) {
+                return Collections.emptySet();
+            }
+
+            // Get all subclasses of the target owner including the target owner
+            JavaClass resolvedTarget = resolveTargetOwner(item.getTargetOwner());
+
+            // Match the accesses to the target
+            Set<JavaClass> subclasses = resolvedTarget.getSubclasses().stream().map(this::resolveTargetOwner).collect(toSet());
+            subclasses.add(resolvedTarget);
+
+            /**
+             * If the number of subclasses is more than 20, return an empty set.
+             * These classes are always generic interfaces or abstract classes
+             * TODO: Check if this is also the case for foreign packages
+             */
+            if (subclasses.size() > 20) {
+                return Collections.emptySet();
+            }
+
+            return subclasses.stream()
+                    .map(javaClass -> getAccessesFromClass(javaClass, item.getTarget().getName()))
+                    .flatMap(Set::stream)
+                    .collect(toSet());
+        }
+
+        private Set<JavaAccess<?>> getAccessesFromClass(JavaClass javaClass, String methodName) {
+            return javaClass.getAccessesFromSelf()
                     .stream()
                     .filter(a -> a
                             .getOrigin()
-                            .getFullName()
-                            .equals(item
-                                    .getTarget()
-                                    .getFullName()
-                            )
-                    )
-                    .collect(toSet())).orElseGet(Set::of);
+                            .getName()
+                            .equals(methodName))
+                    .filter(a -> bannedClasses.stream().noneMatch(p -> a.getTargetOwner().getFullName().startsWith(p)))
+                    .collect(toSet());
+        }
+
+        private JavaClass resolveTargetOwner(JavaClass targetOwner) {
+            Optional<JavaClass> resolvedTarget = customClassResolver.tryResolve(targetOwner.getFullName());
+            return resolvedTarget.orElse(targetOwner);
         }
     }
 }

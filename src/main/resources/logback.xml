@@ -12,6 +12,7 @@
 		</encoder>
 	</appender>
 
+	<logger name="com.tngtech.archunit" level="INFO" />
 	<root level="debug">
 		<appender-ref ref="STDOUT" />
 	</root>
