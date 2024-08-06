@@ -2,6 +2,7 @@ package de.tum.cit.ase.ares.api.aspectconfiguration.java;
 
 public aspect FileSystemPointcutDefinitions {
 
+    // These are the FileSystem related methods which we want to ban
     pointcut unixToolkitLoadGtkMethods() :
             (call(* sun.awt.UNIXToolkit.load_gtk(..)) ||
                     call(* sun.awt.UNIXToolkit.load_gtk_icon(..)) ||
@@ -701,5 +702,58 @@ public aspect FileSystemPointcutDefinitions {
                     call(* javax.sound.midi.MidiSystem.getSynthesizer(..)) ||
                     call(* javax.sound.midi.MidiSystem.getTransmitter(..))) &&
                     !within(de.tum.cit.ase.ares.api..*);
+
+        pointcut fileSystemsReadMethods() :
+                (call(* java.nio.file.FileSystems.getDefault(..)) ||
+                        call(* java.nio.file.FileSystems.getFileSystem(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        pointcut fileSystemsExecuteMethods() :
+                call(* java.nio.file.FileSystems.newFileSystem(..)) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        pointcut defaultFileSystemExecuteMethods() :
+                call(* java.io.DefaultFileSystem.getFileSystem(..)) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        // FileSystemProvider Methods
+        pointcut fileSystemProviderReadMethods() :
+                (call(* java.nio.file.spi.FileSystemProvider.checkAccess(..)) ||
+                        call(* java.nio.file.spi.FileSystemProvider.getFileAttributeView(..)) ||
+                        call(* java.nio.file.spi.FileSystemProvider.getFileStore(..)) ||
+                        call(* java.nio.file.spi.FileSystemProvider.getPath(..)) ||
+                        call(* java.nio.file.spi.FileSystemProvider.getScheme(..)) ||
+                        call(* java.nio.file.spi.FileSystemProvider.isHidden(..)) ||
+                        call(* java.nio.file.spi.FileSystemProvider.isSameFile(..)) ||
+                        call(* java.nio.file.spi.FileSystemProvider.isSymbolicLink(..)) ||
+                        call(* java.nio.file.spi.FileSystemProvider.newAsynchronousFileChannel(..)) ||
+                        call(* java.nio.file.spi.FileSystemProvider.newByteChannel(..)) ||
+                        call(* java.nio.file.spi.FileSystemProvider.newDirectoryStream(..)) ||
+                        call(* java.nio.file.spi.FileSystemProvider.newFileChannel(..)) ||
+                        call(* java.nio.file.spi.FileSystemProvider.newInputStream(..)) ||
+                        call(* java.nio.file.spi.FileSystemProvider.newOutputStream(..)) ||
+                        call(* java.nio.file.spi.FileSystemProvider.newWatchService(..)) ||
+                        call(* java.nio.file.spi.FileSystemProvider.readAttributes(..)) ||
+                        call(* java.nio.file.spi.FileSystemProvider.readSymbolicLink(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        pointcut fileSystemProviderWriteMethods() :
+                (call(* java.nio.file.spi.FileSystemProvider.copy(..)) ||
+                        call(* java.nio.file.spi.FileSystemProvider.createDirectory(..)) ||
+                        call(* java.nio.file.spi.FileSystemProvider.createLink(..)) ||
+                        call(* java.nio.file.spi.FileSystemProvider.createSymbolicLink(..)) ||
+                        call(* java.nio.file.spi.FileSystemProvider.move(..)) ||
+                        call(* java.nio.file.spi.FileSystemProvider.setAttribute(..))||
+                        call(* java.nio.file.spi.FileSystemProvider.newFileSystem(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        pointcut fileSystemProviderExecuteMethods() :
+                call(* java.nio.file.spi.FileSystemProvider.checkAccess(..)) &&
+                        !within(de.tum.cit.ase.ares.api..*);
+
+        pointcut fileSystemProviderDeleteMethods() :
+                (call(* java.nio.file.spi.FileSystemProvider.delete(..)) ||
+                        call(* java.nio.file.spi.FileSystemProvider.deleteIfExists(..))) &&
+                        !within(de.tum.cit.ase.ares.api..*);
 
 }

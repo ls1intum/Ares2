@@ -5,6 +5,7 @@ import org.aspectj.lang.JoinPoint;
 
 public aspect FileSystemAdviceDefinition {
 
+    // This method handles the security check for file system interactions by validating if the requested operation type is allowed for the file in context.
     private boolean handleAroundAdvice(JoinPoint thisJoinPoint, String operationType) {
         String fileName = thisJoinPoint.getSourceLocation().getFileName();
 
@@ -1194,5 +1195,61 @@ public aspect FileSystemAdviceDefinition {
         throwSecurityException(thisJoinPoint);
         return null;
     }
-    
+
+    Object around() : FileSystemPointcutDefinitions.fileSystemsReadMethods() {
+        if (handleAroundAdvice(thisJoinPoint, "read")) {
+            return proceed();
+        }
+        throwSecurityException(thisJoinPoint);
+        return null;
+    }
+
+    Object around() : FileSystemPointcutDefinitions.fileSystemsExecuteMethods() {
+        if (handleAroundAdvice(thisJoinPoint, "execute")) {
+            return proceed();
+        }
+        throwSecurityException(thisJoinPoint);
+        return null;
+    }
+
+    Object around() : FileSystemPointcutDefinitions.defaultFileSystemExecuteMethods() {
+        if (handleAroundAdvice(thisJoinPoint, "execute")) {
+            return proceed();
+        }
+        throwSecurityException(thisJoinPoint);
+        return null;
+    }
+
+    Object around() : FileSystemPointcutDefinitions.fileSystemProviderReadMethods() {
+        if (handleAroundAdvice(thisJoinPoint, "read")) {
+            return proceed();
+        }
+        throwSecurityException(thisJoinPoint);
+        return null;
+    }
+
+    Object around() : FileSystemPointcutDefinitions.fileSystemProviderWriteMethods() {
+        if (handleAroundAdvice(thisJoinPoint, "write")) {
+            return proceed();
+        }
+        throwSecurityException(thisJoinPoint);
+        return null;
+    }
+
+    Object around() : FileSystemPointcutDefinitions.fileSystemProviderExecuteMethods() {
+        if (handleAroundAdvice(thisJoinPoint, "execute")) {
+            return proceed();
+        }
+        throwSecurityException(thisJoinPoint);
+        return null;
+    }
+
+    Object around() : FileSystemPointcutDefinitions.fileSystemProviderDeleteMethods() {
+        if (handleAroundAdvice(thisJoinPoint, "delete")) {
+            return proceed();
+        }
+        throwSecurityException(thisJoinPoint);
+        return null;
+    }
+
 }
