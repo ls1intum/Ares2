@@ -16,6 +16,10 @@ public aspect FileSystemAdviceDefinition {
 
     // This method handles the security check for file system interactions by validating if the requested operation type is allowed for the file in context.
     private boolean handleAroundAdvice(JoinPoint thisJoinPoint, String operationType) {
+        if (JavaAspectConfigurationLists.allowedFileSystemInteractions == null) {
+            return true;
+        }
+
         boolean isAllowed = JavaAspectConfigurationLists.allowedFileSystemInteractions.stream()
                 .anyMatch(interaction -> isOperationAllowed(interaction, operationType, thisJoinPoint) && checkAllowedPaths(interaction, thisJoinPoint));
 

@@ -7,14 +7,14 @@ import java.util.List;
 
 public class JavaAspectConfigurationLists {
 
-    static List<FileSystemInteraction> allowedFileSystemInteractions = new ArrayList<>();
+    static List<FileSystemInteraction> allowedFileSystemInteractions = null;
 
-    static List<NetworkConnection> allowedNetworkConnections = new ArrayList<>();
+    static List<NetworkConnection> allowedNetworkConnections = null;
 
-    static List<CommandExecution> allowedCommandExecutions = new ArrayList<>();
+    static List<CommandExecution> allowedCommandExecutions = null;
 
-    static List<ThreadCreation> allowedThreadCreations = new ArrayList<>();
+    static List<ThreadCreation> allowedThreadCreations = null;
 
-    static List<PackageImport> allowedPackageImports = new ArrayList<>();
+    static List<PackageImport> allowedPackageImports = null;
 
 }
