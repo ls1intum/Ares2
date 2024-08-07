@@ -39,13 +39,11 @@ class PathAccessTest {
 	}
 	*/
 
-	/* OUTCOMMENTED: Test does not work as we have aspectJ for this case
+
 	@TestTest
 	void test_accessPathNormal() {
 		tests.assertThatEvents().haveExactly(1, testFailedWith(accessPathNormal, SecurityException.class));
 	}
-
-	 */
 
 	@TestTest
 	void test_accessPathRelativeGlobA() {
@@ -69,14 +67,11 @@ class PathAccessTest {
 		//		testFailedWith(accessPathRelativeGlobDirectChildrenBlacklist, SecurityException.class));
 	}
 
-	/* OUTCOMMENTED: Test does not work as we have aspectJ for this case
 	@TestTest
 	void test_accessPathRelativeGlobDirectChildrenForbidden() {
 		tests.assertThatEvents().haveExactly(1,
 				testFailedWith(accessPathRelativeGlobDirectChildrenForbidden, SecurityException.class));
 	}
-
-	 */
 
 	@TestTest
 	void test_accessPathRelativeGlobRecursiveAllowed() {
@@ -90,14 +85,11 @@ class PathAccessTest {
 		//		testFailedWith(accessPathRelativeGlobRecursiveBlacklist, SecurityException.class));
 	}
 
-	/* OUTCOMMENTED: Test does not work as we have aspectJ for this case
 	@TestTest
 	void test_accessPathRelativeGlobRecursiveForbidden() {
 		tests.assertThatEvents().haveExactly(1,
 				testFailedWith(accessPathRelativeGlobRecursiveForbidden, SecurityException.class));
 	}
-
-	 */
 
 	@TestTest
 	void test_accessPathTest() {
@@ -110,13 +102,10 @@ class PathAccessTest {
 		tests.assertThatEvents().haveExactly(1, finishedSuccessfully(weAccessPath));
 	}
 
-	/* OUTCOMMENTED: Test does not work as we have aspectJ for this case
 	@TestTest
 	void test_accessFileSystem() {
 		tests.assertThatEvents().haveExactly(1, testFailedWith("accessFileSystem", SecurityException.class));
 	}
-
-	 */
 
 
 }
