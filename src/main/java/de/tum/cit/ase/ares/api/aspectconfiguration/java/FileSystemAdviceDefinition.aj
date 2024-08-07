@@ -30,6 +30,7 @@ public aspect FileSystemAdviceDefinition {
         return true;
     }
 
+    // This method checks if the given operation type is allowed for the file system interaction.
     private boolean isOperationAllowed(FileSystemInteraction interaction, String operationType, JoinPoint thisJoinPoint) {
         switch (operationType.toLowerCase()) {
             case "read":
@@ -45,6 +46,7 @@ public aspect FileSystemAdviceDefinition {
         }
     }
 
+    // This method checks if the file paths involved in the join point are allowed according to the file system interaction rules.
     private static boolean checkAllowedPaths(FileSystemInteraction interaction, JoinPoint thisJoinPoint) {
         return Arrays
                 .stream(thisJoinPoint.getArgs())
@@ -76,6 +78,7 @@ public aspect FileSystemAdviceDefinition {
                 });
     }
 
+    // This method throws a SecurityException indicating that the join point operation could not proceed.
     private void throwSecurityException(JoinPoint thisJoinPoint) {
         throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
     }

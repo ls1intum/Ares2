@@ -99,6 +99,10 @@ public class JavaAspectConfiguration implements AspectConfiguration {
      */
     @Override
     public void runAspectConfiguration() {
+        if (securityPolicy == null) {
+            deactivateAspectJConfig();
+            return;
+        }
         switch (javaSupportedAspectConfiguration) {
             case FILESYSTEM_INTERACTION -> {
                 JavaAspectConfigurationLists.allowedFileSystemInteractions = securityPolicy.iAllowTheFollowingFileSystemInteractionsForTheStudents();
@@ -116,5 +120,13 @@ public class JavaAspectConfiguration implements AspectConfiguration {
                 JavaAspectConfigurationLists.allowedPackageImports = securityPolicy.iAllowTheFollowingPackageImportForTheStudents();
             }
         }
+    }
+
+    public void deactivateAspectJConfig () {
+        JavaAspectConfigurationLists.allowedFileSystemInteractions = null;
+        JavaAspectConfigurationLists.allowedNetworkConnections = null;
+        JavaAspectConfigurationLists.allowedCommandExecutions = null;
+        JavaAspectConfigurationLists.allowedThreadCreations = null;
+        JavaAspectConfigurationLists.allowedPackageImports = null;
     }
 }
