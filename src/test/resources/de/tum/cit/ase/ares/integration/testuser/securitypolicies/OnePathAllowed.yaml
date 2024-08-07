@@ -1,7 +1,7 @@
 # This is an example configuration file for the programming exercise "ExampleProgrammingExercise".
 theProgrammingLanguageIUseInThisProgrammingExerciseIs: JAVA
 iAllowTheFollowingFileSystemInteractionsForTheStudents:
-  - onThisPathAndAllPathsBelow: "de/tum/cit/ase/ares/integration/testuser/subject/pathaccess/PathAccessPengui.java"
+  - onThisPathAndAllPathsBelow: "/Users/aniruddhzaveri/IdeaProjects/Ares2"
     studentsAreAllowedToReadAllFiles: true
     studentsAreAllowedToOverwriteAllFiles: false
     studentsAreAllowedToExecuteAllFiles: false

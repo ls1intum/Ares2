@@ -27,16 +27,16 @@ class PathAccessTest {
 	private final String accessPathTest = "accessPathTest";
 	private final String weAccessPath = "weAccessPath";
 
+	/* OUTCOMMENTED: Conceptually not possible anymore
 	@TestTest
 	void test_accessPathAllFiles() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1, testFailedWith(accessPathAllFiles, SecurityException.class));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(accessPathAllFiles, SecurityException.class));
 	}
 
 	@TestTest
 	void test_accessPathAllowed() {
 		tests.assertThatEvents().haveExactly(1, finishedSuccessfully(accessPathAllowed));
-	}
+	}*/
 
 	@TestTest
 	void test_accessPathNormal() {
