@@ -18,6 +18,7 @@ public class JavaAspectConfiguration implements AspectConfiguration {
 
     private final JavaSupportedAspectConfiguration javaSupportedAspectConfiguration;
     private final SecurityPolicy securityPolicy;
+    // TODO: this is currently not used
     private final Path withinPath;
 
     /**
@@ -90,6 +91,7 @@ public class JavaAspectConfiguration implements AspectConfiguration {
                         .collect(Collectors.joining(",\n")));
                 content.append("\n);\n");
             }
+            default -> throw new UnsupportedOperationException("Unsupported configuration: " + javaSupportedAspectConfiguration);
         }
         return content.toString();
     }
@@ -103,26 +105,19 @@ public class JavaAspectConfiguration implements AspectConfiguration {
             deactivateAspectJConfig();
             return;
         }
+        // TODO: This is definitely a code smell. Why do we change static stuff from a non-static method take a look at java:S2696
         switch (javaSupportedAspectConfiguration) {
-            case FILESYSTEM_INTERACTION -> {
-                JavaAspectConfigurationLists.allowedFileSystemInteractions = securityPolicy.iAllowTheFollowingFileSystemInteractionsForTheStudents();
-            }
-            case NETWORK_CONNECTION -> {
-                JavaAspectConfigurationLists.allowedNetworkConnections = securityPolicy.iAllowTheFollowingNetworkConnectionsForTheStudents();
-            }
-            case COMMAND_EXECUTION -> {
-                JavaAspectConfigurationLists.allowedCommandExecutions = securityPolicy.iAllowTheFollowingCommandExecutionsForTheStudents();
-            }
-            case THREAD_CREATION -> {
-                JavaAspectConfigurationLists.allowedThreadCreations = securityPolicy.iAllowTheFollowingThreadCreationsForTheStudents();
-            }
-            case PACKAGE_IMPORT -> {
-                JavaAspectConfigurationLists.allowedPackageImports = securityPolicy.iAllowTheFollowingPackageImportForTheStudents();
-            }
+            case FILESYSTEM_INTERACTION -> JavaAspectConfigurationLists.allowedFileSystemInteractions = securityPolicy.iAllowTheFollowingFileSystemInteractionsForTheStudents();
+            case NETWORK_CONNECTION -> JavaAspectConfigurationLists.allowedNetworkConnections = securityPolicy.iAllowTheFollowingNetworkConnectionsForTheStudents();
+            case COMMAND_EXECUTION -> JavaAspectConfigurationLists.allowedCommandExecutions = securityPolicy.iAllowTheFollowingCommandExecutionsForTheStudents();
+            case THREAD_CREATION -> JavaAspectConfigurationLists.allowedThreadCreations = securityPolicy.iAllowTheFollowingThreadCreationsForTheStudents();
+            case PACKAGE_IMPORT -> JavaAspectConfigurationLists.allowedPackageImports = securityPolicy.iAllowTheFollowingPackageImportForTheStudents();
+            default -> throw new UnsupportedOperationException("Unsupported configuration: " + javaSupportedAspectConfiguration);
         }
     }
 
-    public void deactivateAspectJConfig () {
+    // TODO: Why do we even need this??? This should be handled more elegantly.
+    public static void deactivateAspectJConfig () {
         JavaAspectConfigurationLists.allowedFileSystemInteractions = null;
         JavaAspectConfigurationLists.allowedNetworkConnections = null;
         JavaAspectConfigurationLists.allowedCommandExecutions = null;
