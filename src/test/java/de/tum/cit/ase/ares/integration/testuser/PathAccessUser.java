@@ -23,6 +23,7 @@ import de.tum.cit.ase.ares.integration.testuser.subject.pathaccess.PathAccessPen
 @SuppressWarnings("static-method")
 public class PathAccessUser {
 
+	/* OUTCOMMENTED: Conceptually not possible anymore
 	@PublicTest
 	@WhitelistPath("")
 	void accessPathAllFiles() {
@@ -33,13 +34,32 @@ public class PathAccessUser {
 	@WhitelistPath("")
 	void accessPathAllowed() throws IOException {
 		PathAccessPenguin.accessPath(Path.of("pom.xml"));
-	}
+	}*/
 
 	@PublicTest
-	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/NoAllowedPathPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
 	void accessPathNormal() throws IOException {
 		PathAccessPenguin.accessPath(Path.of("pom.xml"));
 	}
+
+	@PublicTest
+	//@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
+	void accessPathRelativeGlobDirectChildrenForbidden() {
+		PathAccessPenguin.askForFilePermission("*");
+	}
+
+	@PublicTest
+	//@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
+	void accessPathRelativeGlobRecursiveForbidden() {
+		PathAccessPenguin.askForFilePermission("-");
+	}
+
+	@PublicTest
+	//@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+	void accessFileSystem() throws IOException {}
+
+
+
 
 	@WhitelistPath(value = "../*r*e*s**", type = PathType.GLOB)
 	@PublicTest
@@ -66,11 +86,7 @@ public class PathAccessUser {
 		PathAccessPenguin.askForFilePermission("*");
 	}
 
-	@PublicTest
-	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/NoAllowedPathPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
-	void accessPathRelativeGlobDirectChildrenForbidden() {
-		PathAccessPenguin.askForFilePermission("*");
-	}
+
 
 	@WhitelistPath(value = "../*r*e*s**", type = PathType.GLOB)
 	@PublicTest
@@ -83,12 +99,6 @@ public class PathAccessUser {
 	@PublicTest
 	void accessPathRelativeGlobRecursiveBlacklist() {
 		PathAccessPenguin.askForFilePermission("src/-");
-	}
-
-	@PublicTest
-	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/NoAllowedPathPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
-	void accessPathRelativeGlobRecursiveForbidden() {
-		PathAccessPenguin.askForFilePermission("-");
 	}
 
 	@PublicTest
@@ -105,8 +115,4 @@ public class PathAccessUser {
 	void weAccessPath() throws IOException {
 		Files.readString(Path.of("pom.xml"));
 	}
-
-	@PublicTest
-	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/NoAllowedPathPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-	void accessFileSystem() throws IOException {}
 }

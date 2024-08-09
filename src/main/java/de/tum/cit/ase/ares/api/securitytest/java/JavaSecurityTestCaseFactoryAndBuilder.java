@@ -2,8 +2,8 @@ package de.tum.cit.ase.ares.api.securitytest.java;
 
 import de.tum.cit.ase.ares.api.architecturetest.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecturetest.java.JavaSupportedArchitectureTestCase;
-import de.tum.cit.ase.ares.api.aspectconfiguration.JavaAspectConfiguration;
-import de.tum.cit.ase.ares.api.aspectconfiguration.JavaSupportedAspectConfiguration;
+import de.tum.cit.ase.ares.api.aspectconfiguration.java.JavaAspectConfiguration;
+import de.tum.cit.ase.ares.api.aspectconfiguration.java.JavaSupportedAspectConfiguration;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.securitytest.SecurityTestCaseAbstractFactoryAndBuilder;
 import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
@@ -80,6 +80,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         for (int i = 0; i < methods.length; i++) {
             if (isEmpty(methods[i].get())) {
                 javaArchitectureTestCases.add(new JavaArchitectureTestCase(JavaSupportedArchitectureTestCase.values()[i], withinPath));
+                javaAspectConfigurations.add(new JavaAspectConfiguration(JavaSupportedAspectConfiguration.values()[i], null, null));
             } else {
                 javaAspectConfigurations.add(new JavaAspectConfiguration(JavaSupportedAspectConfiguration.values()[i], securityPolicy, withinPath));
             }
@@ -193,6 +194,40 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
 
         //</editor-fold>
         //<editor-fold desc="Create aspect configuration files">
+        try {
+            Path javaAdviceDefinitionPath = Files.copy(
+                    Path.of("src/main/resources/aspectOrientedProgrammingFiles/FileSystemAdviceDefinition.aj"),
+                    path.resolve("FileSystemAdviceDefinition.aj")
+            );
+        }
+        //<editor-fold desc="Catches">
+        catch (InvalidPathException e) {
+            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/FileSystemAdviceDefinition.aj due to an incorrect address resolving: " + e);
+        } catch (UnsupportedOperationException e) {
+            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/FileSystemAdviceDefinition.aj due to missing supported by this JVM: " + e);
+        } catch (FileAlreadyExistsException e) {
+            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/FileSystemAdviceDefinition.aj, as it already exists: " + e);
+        } catch (IOException e) {
+            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/FileSystemAdviceDefinition.aj due to an I/O exception: " + e);
+        }
+        //</editor-fold>
+        try {
+            Path javaPointcutDefinitionPath = Files.copy(
+                    Path.of("src/main/resources/aspectOrientedProgrammingFiles/FileSystemPointcutDefinitions.aj"),
+                    path.resolve("FileSystemPointcutDefinitions.aj")
+            );
+        }
+        //<editor-fold desc="Catches">
+        catch (InvalidPathException e) {
+            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/FileSystemPointcutDefinitions.aj due to an incorrect address resolving: " + e);
+        } catch (UnsupportedOperationException e) {
+            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/FileSystemPointcutDefinitions.aj due to missing supported by this JVM: " + e);
+        } catch (FileAlreadyExistsException e) {
+            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/FileSystemPointcutDefinitions.aj, as it already exists: " + e);
+        } catch (IOException e) {
+            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/FileSystemPointcutDefinitions.aj due to an I/O exception: " + e);
+        }
+        //</editor-fold>
         Path javaAspectConfigurationCollectionFile;
         try {
             javaAspectConfigurationCollectionFile = Files.createFile(path.resolve("JavaAspectConfigurationCollection.java"));
