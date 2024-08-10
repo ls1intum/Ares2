@@ -11,7 +11,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import static de.tum.cit.ase.ares.api.architecturetest.java.JavaSupportedArchitectureTestCase.FILESYSTEM_INTERACTION;
@@ -84,14 +83,19 @@ public class JavaArchitectureTestCaseCollection {
      */
     public static final ArchRule NO_CLASS_SHOULD_ACCESS_FILE_SYSTEM = ArchRuleDefinition.noClasses()
             .should(new TransitivelyAccessesMethodsCondition(new DescribedPredicate<>("accesses file system") {
+                private Set<String> forbiddenMethods;
+
                 @Override
                 public boolean test(JavaAccess<?> javaAccess) {
+                    if (forbiddenMethods == null) {
+                        forbiddenMethods = getForbiddenMethods(FILESYSTEM_INTERACTION.name());
+                    }
+
                     if (BANNED_FILESYSTEM_ACCESS_PACKAGES.stream().anyMatch(p -> javaAccess.getTarget().getFullName().startsWith(p))) {
                         return true;
                     }
 
-                    Optional<Set<String>> bannedMethods = Optional.ofNullable(JavaArchitectureTestCaseCollection.getForbiddenMethods(FILESYSTEM_INTERACTION.name()));
-                    return bannedMethods.map(strings -> strings.contains(javaAccess.getTarget().getName())).orElse(false);
+                    return forbiddenMethods.contains(javaAccess.getTarget().getName());
                 }
             }, FILESYSTEM_INTERACTION));
 }

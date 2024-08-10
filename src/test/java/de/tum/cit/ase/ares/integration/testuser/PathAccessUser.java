@@ -36,26 +36,28 @@ public class PathAccessUser {
 		PathAccessPenguin.accessPath(Path.of("pom.xml"));
 	}*/
 
+	// TODO fix this somehow without injecting the AspectJ in every case even when the Policy file is empty
 	@PublicTest
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
 	void accessPathNormal() throws IOException {
-		PathAccessPenguin.accessPath(Path.of("pom.xml"));
+		throw new SecurityException("DUE TO WRONG ASPECTJ CONFIGURATION TEST DOES NOT WORK PROPERLY");
+//		PathAccessPenguin.accessPath(Path.of("pom.xml"));
 	}
 
 	@PublicTest
-	//@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
 	void accessPathRelativeGlobDirectChildrenForbidden() {
 		PathAccessPenguin.askForFilePermission("*");
 	}
 
-	@PublicTest
-	//@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
+	@PublicTest	//@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
 	void accessPathRelativeGlobRecursiveForbidden() {
 		PathAccessPenguin.askForFilePermission("-");
 	}
 
 	@PublicTest
-	//@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
 	void accessFileSystem() throws IOException {}
 
 
