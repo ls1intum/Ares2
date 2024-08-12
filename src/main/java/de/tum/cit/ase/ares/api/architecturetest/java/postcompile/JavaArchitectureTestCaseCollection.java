@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static de.tum.cit.ase.ares.api.architecturetest.java.JavaSupportedArchitectureTestCase.FILESYSTEM_INTERACTION;
@@ -34,19 +34,6 @@ public class JavaArchitectureTestCaseCollection {
      */
     private static final ImmutableMap.Builder<String, String> ARCHITECTURAL_RULES_CONTENT_MAP = ImmutableMap.builder();
 
-    /**
-     * The packages that should not be accessed by the student submission.
-     */
-    private static final List<String> BANNED_FILESYSTEM_ACCESS_PACKAGES = List.of(
-            "java.nio.file",
-            "java.util.prefs",
-            "sun.print",
-            "java.util.jar",
-            "java.util.zip",
-            "sun.awt.X11",
-            "javax.imageio",
-            "javax.sound.midi",
-            "javax.swing.filechooser");
 
     /**
      * Load pre file contents
@@ -91,11 +78,8 @@ public class JavaArchitectureTestCaseCollection {
                         forbiddenMethods = getForbiddenMethods(FILESYSTEM_INTERACTION.name());
                     }
 
-                    if (BANNED_FILESYSTEM_ACCESS_PACKAGES.stream().anyMatch(p -> javaAccess.getTarget().getFullName().startsWith(p))) {
-                        return true;
-                    }
-
-                    return forbiddenMethods.contains(javaAccess.getTarget().getName());
+                    Optional<Set<String>> methods = Optional.ofNullable(forbiddenMethods);
+                    return methods.map(strings -> strings.stream().anyMatch(method -> javaAccess.getTarget().getFullName().startsWith(method))).orElse(false);
                 }
             }, FILESYSTEM_INTERACTION));
 }

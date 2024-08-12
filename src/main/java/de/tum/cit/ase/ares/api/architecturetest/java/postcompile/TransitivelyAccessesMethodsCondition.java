@@ -26,18 +26,6 @@ import static java.util.stream.Collectors.toSet;
  * Checks that a class transitively accesses methods that match a given predicate.
  */
 public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClass> {
-
-    /**
-     * Set of classes that does not lead to a violation if they are accessed
-     */
-    private static final Set<String> bannedClasses = Set.of(
-            "java.lang.Object",
-            "java.lang.String",
-            "java.security.AccessControl",
-            "java.util",
-            "sun.util"
-    );
-
     /**
      * Predicate to match the accessed methods
      */
@@ -163,11 +151,6 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
          * @return all accesses to the same target as the supplied item that are not in the analyzed classes
          */
         private Set<JavaAccess<?>> getDirectAccessTargetsOutsideOfAnalyzedClasses(JavaAccess<?> item) {
-            // If the target owner is in the banned classes, return an empty set
-            if (bannedClasses.stream().anyMatch(p -> item.getTargetOwner().getFullName().startsWith(p)) || item.getTargetOwner().isAssignableTo(Exception.class) || item.getTargetOwner().isAssignableTo(Error.class)) {
-                return Collections.emptySet();
-            }
-
             // Get all subclasses of the target owner including the target owner
             JavaClass resolvedTarget = resolveTargetOwner(item.getTargetOwner());
 
@@ -185,7 +168,7 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
             }
 
             return subclasses.stream()
-                    .map(javaClass -> getAccessesFromClass(javaClass, item.getTarget().getName()))
+                    .map(javaClass -> getAccessesFromClass(javaClass, item.getTarget().getFullName().substring(item.getTargetOwner().getFullName().length())))
                     .flatMap(Set::stream)
                     .collect(toSet());
         }
@@ -195,9 +178,9 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
                     .stream()
                     .filter(a -> a
                             .getOrigin()
-                            .getName()
+                            .getFullName()
+                            .substring(javaClass.getFullName().length())
                             .equals(methodName))
-                    .filter(a -> bannedClasses.stream().noneMatch(p -> a.getTargetOwner().getFullName().startsWith(p)))
                     .collect(toSet());
         }
 
