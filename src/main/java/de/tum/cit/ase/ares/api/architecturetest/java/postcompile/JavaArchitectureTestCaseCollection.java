@@ -33,11 +33,6 @@ public class JavaArchitectureTestCaseCollection {
      */
     private static final ImmutableMap.Builder<String, Set<String>> FORBIDDEN_METHODS_FOR_SUPPORTED_ARCHITECTURAL_TEST_CASE = ImmutableMap.builder();
 
-    /**
-     * Map to store the content of the architecture test case files
-     */
-    private static final ImmutableMap.Builder<String, String> ARCHITECTURAL_RULES_CONTENT_MAP = ImmutableMap.builder();
-
 
     /**
      * Load pre file contents
