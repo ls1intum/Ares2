@@ -74,10 +74,10 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
     @SuppressWarnings("unchecked")
     private void parseTestCasesToBeCreated() {
         Supplier<List<?>>[] methods = new Supplier[]{securityPolicy::iAllowTheFollowingFileSystemInteractionsForTheStudents,
-//                securityPolicy::iAllowTheFollowingNetworkConnectionsForTheStudents,
+                securityPolicy::iAllowTheFollowingNetworkConnectionsForTheStudents,
 //                securityPolicy::iAllowTheFollowingCommandExecutionsForTheStudents,
 //                securityPolicy::iAllowTheFollowingThreadCreationsForTheStudents,
-//                securityPolicy::iAllowTheFollowingPackageImportForTheStudents
+                securityPolicy::iAllowTheFollowingPackageImportForTheStudents
         };
 
         for (int i = 0; i < methods.length; i++) {
