@@ -143,12 +143,13 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
              * These classes are always generic interfaces or abstract classes
              * TODO: Check if this is also the case for foreign packages
              */
-            if (subclasses.size() > 20) {
+            if (subclasses.size() > 20 || isExceptionOrError(resolvedTarget)) {
                 return Collections.emptySet();
             }
 
             return subclasses.stream()
-                    .map(javaClass -> getAccessesFromClass(javaClass, item.getTarget().getFullName().substring(item.getTargetOwner().getFullName().length())))
+                    .map(javaClass ->
+                            getAccessesFromClass(javaClass, item.getTarget().getFullName().substring(item.getTargetOwner().getFullName().length())))
                     .flatMap(Set::stream)
                     .collect(toSet());
         }
@@ -160,13 +161,18 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
                             .getOrigin()
                             .getFullName()
                             .substring(javaClass.getFullName().length())
-                            .equals(methodName))
+                            .equals(methodName)
+                    && isExceptionOrError(a.getTargetOwner()))
                     .collect(toSet());
         }
 
         private JavaClass resolveTargetOwner(JavaClass targetOwner) {
             Optional<JavaClass> resolvedTarget = customClassResolver.tryResolve(targetOwner.getFullName());
             return resolvedTarget.orElse(targetOwner);
+        }
+
+        private boolean isExceptionOrError(JavaClass javaClass) {
+            return javaClass.isAssignableTo(Exception.class) || javaClass.isAssignableTo(Error.class);
         }
     }
 }
