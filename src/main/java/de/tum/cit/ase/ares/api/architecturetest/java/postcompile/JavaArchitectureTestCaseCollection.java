@@ -18,6 +18,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static de.tum.cit.ase.ares.api.architecturetest.java.JavaSupportedArchitectureTestCase.FILESYSTEM_INTERACTION;
+import static de.tum.cit.ase.ares.api.architecturetest.java.JavaSupportedArchitectureTestCase.NETWORK_CONNECTION;
 
 /**
  * This class runs the security rules on the architecture for the post-compile mode.
@@ -28,6 +29,7 @@ public class JavaArchitectureTestCaseCollection {
         throw new IllegalArgumentException("This class should not be instantiated");
     }
 
+    public static final String LOAD_FORBIDDEN_METHODS_FROM_FILE_FAILED = "Could not load the architecture rule file content";
     /**
      * Map to store the forbidden methods for the supported architectural test cases
      */
@@ -69,7 +71,7 @@ public class JavaArchitectureTestCaseCollection {
                         try {
                             loadForbiddenMethodsFromFile(FileHandlerConstants.JAVA_FILESYSTEM_INTERACTION_METHODS, JavaSupportedArchitectureTestCase.FILESYSTEM_INTERACTION.name());
                         } catch (IOException e) {
-                            throw new IllegalStateException("Could not load the architecture rule file content", e);
+                            throw new IllegalStateException(LOAD_FORBIDDEN_METHODS_FROM_FILE_FAILED, e);
                         }
                         forbiddenMethods = getForbiddenMethods(FILESYSTEM_INTERACTION.name());
                     }
@@ -80,10 +82,22 @@ public class JavaArchitectureTestCaseCollection {
             }));
 
     public static final ArchRule NO_CLASSES_SHOULD_ACCESS_NETWORK = ArchRuleDefinition.noClasses()
-            .should(new TransitivelyAccessesMethodsCondition(new DescribedPredicate<JavaAccess<?>>("accesses network") {
+            .should(new TransitivelyAccessesMethodsCondition(new DescribedPredicate<>("accesses network") {
+                private Set<String> forbiddenMethods;
+
                 @Override
                 public boolean test(JavaAccess<?> javaAccess) {
-                    return javaAccess.getTarget().getFullName().startsWith("java.net");
+                    if (forbiddenMethods == null) {
+                        try {
+                            loadForbiddenMethodsFromFile(FileHandlerConstants.JAVA_NETWORK_ACCESS_METHODS, JavaSupportedArchitectureTestCase.NETWORK_CONNECTION.name());
+                        } catch (IOException e) {
+                            throw new IllegalStateException(LOAD_FORBIDDEN_METHODS_FROM_FILE_FAILED, e);
+                        }
+                        forbiddenMethods = getForbiddenMethods(NETWORK_CONNECTION.name());
+                    }
+
+                    Optional<Set<String>> methods = Optional.ofNullable(forbiddenMethods);
+                    return methods.map(strings -> strings.stream().anyMatch(method -> javaAccess.getTarget().getFullName().startsWith(method))).orElse(false);
                 }
             }));
 
@@ -98,7 +112,7 @@ public class JavaArchitectureTestCaseCollection {
             });
 
     public static final ArchRule NO_CLASSES_SHOULD_USE_REFLECTION = ArchRuleDefinition.noClasses()
-            .should(new TransitivelyAccessesMethodsCondition(new DescribedPredicate<JavaAccess<?>>("uses reflection") {
+            .should(new TransitivelyAccessesMethodsCondition(new DescribedPredicate<>("uses reflection") {
                 @Override
                 public boolean test(JavaAccess<?> javaAccess) {
                     return javaAccess.getTarget().getFullName().startsWith("java.lang.reflect")
@@ -116,7 +130,7 @@ public class JavaArchitectureTestCaseCollection {
                         try {
                             loadForbiddenMethodsFromFile(FileHandlerConstants.JAVA_JVM_TERMINATION_METHODS, "JVM_TERMINATION");
                         } catch (IOException e) {
-                            throw new IllegalStateException("Could not load the architecture rule file content", e);
+                            throw new IllegalStateException(LOAD_FORBIDDEN_METHODS_FROM_FILE_FAILED, e);
                         }
                         forbiddenMethods = getForbiddenMethods("JVM_TERMINATION");
                     }

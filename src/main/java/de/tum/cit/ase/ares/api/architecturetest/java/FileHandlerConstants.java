@@ -8,8 +8,10 @@ import java.nio.file.Path;
  */
 public class FileHandlerConstants {
 
-    public static final Path JAVA_FILESYSTEM_INTERACTION_METHODS = Path.of("src" + File.separator + "main" + File.separator + "resources" + File.separator + "archunit" + File.separator + "files" + File.separator + "java" + File.separator + "methods" + File.separator + "file-system-access-methods.txt");
-    public static final Path JAVA_JVM_TERMINATION_METHODS = Path.of("src" + File.separator + "main" + File.separator + "resources" + File.separator + "archunit" + File.separator + "files" + File.separator + "java" + File.separator + "methods" + File.separator + "jvm-termination-methods.txt");
+    private static final String JAVA_METHODS_DIRECTORY = "src" + File.separator + "main" + File.separator + "resources" + File.separator + "archunit" + File.separator + "files" + File.separator + "java" + File.separator + "methods" + File.separator;
+    public static final Path JAVA_FILESYSTEM_INTERACTION_METHODS = Path.of(JAVA_METHODS_DIRECTORY + "file-system-access-methods.txt");
+    public static final Path JAVA_NETWORK_ACCESS_METHODS = Path.of(JAVA_METHODS_DIRECTORY + "network-access-methods.txt");
+    public static final Path JAVA_JVM_TERMINATION_METHODS = Path.of(JAVA_METHODS_DIRECTORY + "jvm-termination-methods.txt");
 
     private FileHandlerConstants() {
         throw new IllegalArgumentException("FileHandlerConstants is a utility class and should not be instantiated");
