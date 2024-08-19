@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -55,7 +56,7 @@ public class JavaArchitectureTestCaseCollection {
      * Get the content of a file from the architectural rules storage
      */
     public static String getArchitectureRuleFileContent(String key) throws IOException {
-        return Files.readString(Path.of("src" + File.separator + "main" + File.separator + "resources" + File.separator + "archunit" + File.separator + "files" + File.separator + "java" + File.separator + "rules" + File.separator + "%s.txt".formatted(key)));
+        return Files.readString(Paths.get("src", "main", "resources", "archunit", "files", "java", "rules", "%s.txt".formatted(key)));
     }
 
     /**
@@ -81,6 +82,9 @@ public class JavaArchitectureTestCaseCollection {
                 }
             }));
 
+    /**
+     * This method checks if any class in the given package accesses the network.
+     */
     public static final ArchRule NO_CLASSES_SHOULD_ACCESS_NETWORK = ArchRuleDefinition.noClasses()
             .should(new TransitivelyAccessesMethodsCondition(new DescribedPredicate<>("accesses network") {
                 private Set<String> forbiddenMethods;
@@ -101,6 +105,9 @@ public class JavaArchitectureTestCaseCollection {
                 }
             }));
 
+    /**
+     * This method checks if any class in the given package imports forbidden packages.
+     */
     public static final ArchRule NO_CLASSES_SHOULD_IMPORT_FORBIDDEN_PACKAGES = ArchRuleDefinition.noClasses()
             .should()
             .transitivelyDependOnClassesThat(new DescribedPredicate<>("imports package") {
@@ -111,6 +118,9 @@ public class JavaArchitectureTestCaseCollection {
                 }
             });
 
+    /**
+     * This method checks if any class in the given package uses reflection.
+     */
     public static final ArchRule NO_CLASSES_SHOULD_USE_REFLECTION = ArchRuleDefinition.noClasses()
             .should(new TransitivelyAccessesMethodsCondition(new DescribedPredicate<>("uses reflection") {
                 @Override
@@ -120,6 +130,9 @@ public class JavaArchitectureTestCaseCollection {
                 }
             }));
 
+    /**
+     * This method checks if any class in the given package uses the command line.
+     */
     public static final ArchRule NO_CLASSES_SHOULD_TERMINATE_JVM = ArchRuleDefinition.noClasses()
             .should(new TransitivelyAccessesMethodsCondition((new DescribedPredicate<>("terminates JVM") {
                 private Set<String> forbiddenMethods;
