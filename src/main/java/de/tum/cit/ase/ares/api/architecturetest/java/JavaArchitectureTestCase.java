@@ -10,8 +10,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 
-import static de.tum.cit.ase.ares.api.architecturetest.java.JavaSupportedArchitectureTestCase.FILESYSTEM_INTERACTION;
-import static de.tum.cit.ase.ares.api.architecturetest.java.JavaSupportedArchitectureTestCase.PACKAGE_IMPORT;
 import static de.tum.cit.ase.ares.api.architecturetest.java.postcompile.JavaArchitectureTestCaseCollection.getArchitectureRuleFileContent;
 
 /**
