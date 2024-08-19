@@ -1,5 +1,7 @@
 package de.tum.cit.ase.ares.api.architecturetest;
 
+import com.tngtech.archunit.core.domain.JavaClasses;
+
 /**
  * Interface for the architecture test cases in any programming language and abstract product of the abstract factory design pattern.
  *
@@ -19,5 +21,5 @@ public interface ArchitectureTestCase {
     /**
      * Runs the architecture test case in any programming language.
      */
-    void runArchitectureTestCase();
+    void runArchitectureTestCase(JavaClasses classes);
 }
