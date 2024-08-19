@@ -106,16 +106,28 @@ public class JavaArchitectureTestCaseCollection {
             .should(new TransitivelyAccessesMethodsCondition(new DescribedPredicate<JavaAccess<?>>("uses reflection") {
                 @Override
                 public boolean test(JavaAccess<?> javaAccess) {
-                    return javaAccess.getTarget().getFullName().startsWith("java.lang.reflect");
+                    return javaAccess.getTarget().getFullName().startsWith("java.lang.reflect")
+                            || javaAccess.getTarget().getFullName().startsWith("sun.reflect.misc");
                 }
             }));
 
     public static final ArchRule NO_CLASSES_SHOULD_TERMINATE_JVM = ArchRuleDefinition.noClasses()
             .should(new TransitivelyAccessesMethodsCondition((new DescribedPredicate<>("terminates JVM") {
+                private Set<String> forbiddenMethods;
+
                 @Override
                 public boolean test(JavaAccess<?> javaAccess) {
-                    return javaAccess.getTarget().getFullName().startsWith("java.lang.System.exit")
-                            || javaAccess.getTarget().getFullName().startsWith("java.lang.Runtime.exit");
+                    if (forbiddenMethods == null) {
+                        try {
+                            loadForbiddenMethodsFromFile(FileHandlerConstants.JAVA_JVM_TERMINATION_METHODS, "JVM_TERMINATION");
+                        } catch (IOException e) {
+                            throw new IllegalStateException("Could not load the architecture rule file content", e);
+                        }
+                        forbiddenMethods = getForbiddenMethods("JVM_TERMINATION");
+                    }
+
+                    Optional<Set<String>> methods = Optional.ofNullable(forbiddenMethods);
+                    return methods.map(strings -> strings.stream().anyMatch(method -> javaAccess.getTarget().getFullName().startsWith(method))).orElse(false);
                 }
             })));
 }
