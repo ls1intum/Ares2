@@ -7,8 +7,11 @@ import de.tum.cit.ase.ares.api.architecturetest.java.postcompile.JavaArchitectur
 import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 
+import static de.tum.cit.ase.ares.api.architecturetest.java.JavaSupportedArchitectureTestCase.FILESYSTEM_INTERACTION;
+import static de.tum.cit.ase.ares.api.architecturetest.java.JavaSupportedArchitectureTestCase.PACKAGE_IMPORT;
 import static de.tum.cit.ase.ares.api.architecturetest.java.postcompile.JavaArchitectureTestCaseCollection.getArchitectureRuleFileContent;
 
 /**
@@ -43,7 +46,13 @@ public class JavaArchitectureTestCase implements ArchitectureTestCase {
      */
     @Override
     public String createArchitectureTestCaseFileContent() {
-        return getArchitectureRuleFileContent(this.javaSupportedArchitectureTestCase.name());
+        try {
+            return getArchitectureRuleFileContent(this.javaSupportedArchitectureTestCase.name());
+        } catch (AssertionError e) {
+            throw new SecurityException("Ares Security Error (Stage: Execution): Illegal Statement found: " + e.getMessage());
+        } catch (IOException e) {
+            throw new IllegalStateException("Could not load the architecture rule file content", e);
+        }
     }
 
     /**

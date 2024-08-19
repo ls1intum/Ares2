@@ -9,7 +9,6 @@ import java.nio.file.Path;
 public class FileHandlerConstants {
 
     public static final Path JAVA_FILESYSTEM_INTERACTION_METHODS = Path.of("src" + File.separator + "main" + File.separator + "resources" + File.separator + "archunit" + File.separator + "files" + File.separator + "java" + File.separator + "methods" + File.separator + "file-system-access-methods.txt");
-    public static final Path JAVA_FILESYSTEM_INTERACTION_CONTENT = Path.of("src" + File.separator + "main" + File.separator + "resources" + File.separator + "archunit" + File.separator + "files" + File.separator + "java" + File.separator + "rules" + File.separator + "file-system-arch-rule.txt");
 
     private FileHandlerConstants() {
         throw new IllegalArgumentException("FileHandlerConstants is a utility class and should not be instantiated");
