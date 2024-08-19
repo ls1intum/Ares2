@@ -77,7 +77,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                 securityPolicy::iAllowTheFollowingNetworkConnectionsForTheStudents,
 //                securityPolicy::iAllowTheFollowingCommandExecutionsForTheStudents,
 //                securityPolicy::iAllowTheFollowingThreadCreationsForTheStudents,
-                securityPolicy::iAllowTheFollowingPackageImportForTheStudents
+//                securityPolicy::iAllowTheFollowingPackageImportForTheStudents
         };
 
         for (int i = 0; i < methods.length; i++) {

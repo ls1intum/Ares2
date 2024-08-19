@@ -9,7 +9,6 @@ import com.tngtech.archunit.lang.syntax.ArchRuleDefinition;
 import de.tum.cit.ase.ares.api.architecturetest.java.FileHandlerConstants;
 import de.tum.cit.ase.ares.api.architecturetest.java.JavaSupportedArchitectureTestCase;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
