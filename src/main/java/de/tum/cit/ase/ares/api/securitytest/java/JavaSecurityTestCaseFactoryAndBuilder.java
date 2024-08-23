@@ -18,9 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.IllegalFormatException;
-import java.util.List;
+import java.util.*;
 import java.util.function.Supplier;
 
 import static com.google.common.collect.Iterables.isEmpty;
@@ -50,7 +48,9 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      * List of Java aspect configurations
      */
     List<JavaAspectConfiguration> javaAspectConfigurations;
-
+    /**
+     * Path to the directory where the security violations should be checked
+     */
     Path withinPath;
 
     /**
@@ -77,7 +77,6 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                 securityPolicy::iAllowTheFollowingNetworkConnectionsForTheStudents,
 //                securityPolicy::iAllowTheFollowingCommandExecutionsForTheStudents,
 //                securityPolicy::iAllowTheFollowingThreadCreationsForTheStudents,
-//                securityPolicy::iAllowTheFollowingPackageImportForTheStudents
         };
 
         for (int i = 0; i < methods.length; i++) {
@@ -87,6 +86,8 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                 javaAspectConfigurations.add(new JavaAspectConfiguration(JavaSupportedAspectConfiguration.values()[i], securityPolicy, withinPath));
             }
         }
+
+        javaArchitectureTestCases.add(new JavaArchitectureTestCase(JavaSupportedArchitectureTestCase.PACKAGE_IMPORT, new HashSet<>(securityPolicy.iAllowTheFollowingPackageImportForTheStudents())));
     }
 
     /**
@@ -344,6 +345,5 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_USE_REFLECTION.check(classes);
         JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_TERMINATE_JVM.check(classes);
         javaArchitectureTestCases.forEach(archTest -> archTest.runArchitectureTestCase(classes));
-        javaAspectConfigurations.forEach(JavaAspectConfiguration::runAspectConfiguration);
     }
 }

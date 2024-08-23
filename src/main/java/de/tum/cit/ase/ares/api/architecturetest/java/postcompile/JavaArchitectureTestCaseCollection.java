@@ -14,7 +14,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 
 import static de.tum.cit.ase.ares.api.architecturetest.java.JavaSupportedArchitectureTestCase.FILESYSTEM_INTERACTION;
@@ -76,8 +75,7 @@ public class JavaArchitectureTestCaseCollection {
                         forbiddenMethods = getForbiddenMethods(FILESYSTEM_INTERACTION.name());
                     }
 
-                    Optional<Set<String>> methods = Optional.ofNullable(forbiddenMethods);
-                    return methods.map(strings -> strings.stream().anyMatch(method -> javaAccess.getTarget().getFullName().startsWith(method))).orElse(false);
+                    return forbiddenMethods.stream().anyMatch(method -> javaAccess.getTarget().getFullName().startsWith(method));
                 }
             }));
 
@@ -99,23 +97,23 @@ public class JavaArchitectureTestCaseCollection {
                         forbiddenMethods = getForbiddenMethods(NETWORK_CONNECTION.name());
                     }
 
-                    Optional<Set<String>> methods = Optional.ofNullable(forbiddenMethods);
-                    return methods.map(strings -> strings.stream().anyMatch(method -> javaAccess.getTarget().getFullName().startsWith(method))).orElse(false);
+                    return forbiddenMethods.stream().anyMatch(method -> javaAccess.getTarget().getFullName().startsWith(method));
                 }
             }));
 
     /**
      * This method checks if any class in the given package imports forbidden packages.
      */
-    public static final ArchRule NO_CLASSES_SHOULD_IMPORT_FORBIDDEN_PACKAGES = ArchRuleDefinition.noClasses()
-            .should()
-            .transitivelyDependOnClassesThat(new DescribedPredicate<>("imports package") {
-                @Override
-                public boolean test(JavaClass javaClass) {
-                    // Here the classes or packages that it should not depend on did not understand this completely????
-                    return false;
-                }
-            });
+    public static ArchRule noClassesShouldImportForbiddenPackages(Set<String> allowedPackages) {
+        return ArchRuleDefinition.noClasses()
+                .should()
+                .transitivelyDependOnClassesThat(new DescribedPredicate<>("imports package") {
+                    @Override
+                    public boolean test(JavaClass javaClass) {
+                        return !allowedPackages.contains(javaClass.getPackageName());
+                    }
+                });
+    }
 
     /**
      * This method checks if any class in the given package uses reflection.
@@ -147,8 +145,7 @@ public class JavaArchitectureTestCaseCollection {
                         forbiddenMethods = getForbiddenMethods("JVM_TERMINATION");
                     }
 
-                    Optional<Set<String>> methods = Optional.ofNullable(forbiddenMethods);
-                    return methods.map(strings -> strings.stream().anyMatch(method -> javaAccess.getTarget().getFullName().startsWith(method))).orElse(false);
+                    return forbiddenMethods.stream().anyMatch(method -> javaAccess.getTarget().getFullName().startsWith(method));
                 }
             })));
 }
