@@ -36,12 +36,10 @@ public class PathAccessUser {
 		PathAccessPenguin.accessPath(Path.of("pom.xml"));
 	}*/
 
-	// TODO fix this somehow without injecting the AspectJ in every case even when the Policy file is empty
 	@PublicTest
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
 	void accessPathNormal() throws IOException {
-		throw new SecurityException("DUE TO WRONG ASPECTJ CONFIGURATION TEST DOES NOT WORK PROPERLY");
-//		PathAccessPenguin.accessPath(Path.of("pom.xml"));
+		PathAccessPenguin.accessPath(Path.of("pom.xml"));
 	}
 
 	@PublicTest

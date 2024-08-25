@@ -83,317 +83,239 @@ public aspect FileSystemAdviceDefinition {
         throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
     }
 
-    Object around(): FileSystemPointcutDefinitions.randomAccessFileExecuteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "execute")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.randomAccessFileExecuteMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "execute")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.fileReadMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "read")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.fileReadMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "read")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.fileWriteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "write")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.fileWriteMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "write")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.fileExecuteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "execute")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.fileExecuteMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "execute")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.fileDeleteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "delete")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.fileDeleteMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "delete")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.fileInputStreamInitMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "read")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.fileInputStreamInitMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "read")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.fileOutputStreamInitMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "write")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.fileOutputStreamInitMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "write")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.objectStreamClassMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "execute")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.objectStreamClassMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "execute")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.randomAccessFileInitMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "read")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.randomAccessFileInitMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "read")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.fileSystemProviderReadMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "read")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.fileSystemProviderReadMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "read")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.fileSystemProviderWriteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "write")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.fileSystemProviderWriteMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "write")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.fileSystemProviderExecuteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "execute")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.fileSystemProviderExecuteMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "execute")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.fileSystemProviderDeleteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "delete")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.fileSystemProviderDeleteMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "delete")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.fileTypeDetectorProbeContentTypeMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "execute")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.fileTypeDetectorProbeContentTypeMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "execute")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.fileImageSourceInitMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "read")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.fileImageSourceInitMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "read")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.filesReadMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "read")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.filesReadMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "read")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.filesWriteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "write")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.filesWriteMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "write")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.filesExecuteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "execute")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.filesExecuteMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "execute")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
 
-    Object around(): FileSystemPointcutDefinitions.pathReadMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "read")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.pathReadMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "read")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.pathWriteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "write")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.pathWriteMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "write")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.pathExecuteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "execute")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.pathExecuteMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "execute")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.pathDeleteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "delete")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.pathDeleteMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "delete")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.fileSystemReadMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "read")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.fileSystemReadMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "read")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.fileSystemWriteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "write")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.fileSystemWriteMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "write")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.fileSystemExecuteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "execute")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.fileSystemExecuteMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "execute")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.fileChannelExecuteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "execute")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.fileChannelExecuteMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "execute")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.fileChannelReadMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "read")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.fileChannelReadMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "read")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.fileChannelWriteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "write")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.fileChannelWriteMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "write")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.fileWriterMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "write")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.fileWriterMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "write")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.fileHandlerMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "write")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.fileHandlerMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "write")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.midiSystemMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "read")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.midiSystemMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "read")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.fileSystemsReadMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "read")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.fileSystemsReadMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "read")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.fileSystemsExecuteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "execute")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.fileSystemsExecuteMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "execute")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.defaultFileSystemExecuteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "execute")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.defaultFileSystemExecuteMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "execute")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.fileSystemProviderReadMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "read")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.fileSystemProviderReadMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "read")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.fileSystemProviderWriteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "write")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.fileSystemProviderWriteMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "write")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.fileSystemProviderExecuteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "execute")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.fileSystemProviderExecuteMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "execute")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.fileSystemProviderDeleteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "delete")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.fileSystemProviderDeleteMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "delete")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
-    Object around(): FileSystemPointcutDefinitions.desktopExecuteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "execute")) {
-            return proceed();
+    before(): FileSystemPointcutDefinitions.desktopExecuteMethods() {
+        if (!handleAroundAdvice(thisJoinPoint, "execute")) {
+            throwSecurityException(thisJoinPoint);
         }
-        throwSecurityException(thisJoinPoint);
-        return null;
     }
 
 }
