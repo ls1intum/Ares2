@@ -1,27 +1,38 @@
 # This is an example configuration file for the programming exercise "ExampleProgrammingExercise".
-theProgrammingLanguageIUseInThisProgrammingExerciseIs: JAVA
-iAllowTheFollowingFileSystemInteractionsForTheStudents:
-  - onThisPathAndAllPathsBelow: "/Path1"
-    studentsAreAllowedToReadAllFiles: true
-    studentsAreAllowedToOverwriteAllFiles: false
-    studentsAreAllowedToExecuteAllFiles: false
-  - onThisPathAndAllPathsBelow: "/Path2"
-    studentsAreAllowedToReadAllFiles: false
-    studentsAreAllowedToOverwriteAllFiles: true
-    studentsAreAllowedToExecuteAllFiles: false
-  - onThisPathAndAllPathsBelow: "/Path3"
-    studentsAreAllowedToReadAllFiles: false
-    studentsAreAllowedToOverwriteAllFiles: false
-    studentsAreAllowedToExecuteAllFiles: true
-  - onThisPathAndAllPathsBelow: "/Path4"
-    studentsAreAllowedToReadAllFiles: true
-    studentsAreAllowedToOverwriteAllFiles: true
-    studentsAreAllowedToExecuteAllFiles: true
-iAllowTheFollowingNetworkConnectionsForTheStudents:
-  -
-iAllowTheFollowingCommandExecutionsForTheStudents:
-  -
-iAllowTheFollowingThreadCreationsForTheStudents:
-  -
-iAllowTheFollowingPackageImportForTheStudents:
-  -
+theProgrammingLanguageOfTheSupervisedCodeIs: JAVA_USING_GRADLE_AND_INSTRUMENTATION,
+theFollowingFeaturesAreAllowedForTheSupervisedCode: [
+  regardingFileSystemInteractions: [
+    itIsAllowedTo: [
+      readAllFiles: true,
+      overwriteAllFiles: true,
+      executeAllFiles: true,
+      onThisPathAndAllPathsBelow: "/Path"
+    ]
+  ],
+  regardingNetworkConnections: [
+    itIsAllowedTo: [
+      openConnections: true,
+      sendData: true,
+      receiveData: true,
+      ontheHost: "www.example.com",
+      onThePort: 80
+    ]
+  ],
+  regardingCommandExecutionsForTheStudents: [
+    itIsAllowedTo: [
+      executeTheCommand: "ls",
+      withTheseArguments: [ "-l" ]
+    ]
+  ],
+  regardingThreadCreationsForTheStudents: [
+    itIsAllowedTo: [
+      createTheFollowingNumberOfThreads: 10,
+      ofThisClass: "java.lang.Thread"
+    ]
+  ],
+  regardingPackageImport: [
+    itIsAllowedTo: [
+      importTheFollowingPackage: "java.util"
+    ]
+  ],
+]
