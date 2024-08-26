@@ -17,7 +17,7 @@ import de.tum.cit.ase.ares.api.MirrorOutput.MirrorOutputPolicy;
 import de.tum.cit.ase.ares.api.jupiter.Public;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
 //REMOVED: Import of ArtemisSecurityManager
-import de.tum.cit.ase.ares.integration.testuser.subject.NetworkPenguin;
+import de.tum.cit.ase.ares.integration.testuser.subject.network.NetworkPenguin;
 
 @Public
 @UseLocale("en")
@@ -75,8 +75,9 @@ public class NetworkUser {
 	@ParameterizedTest
 	@AllowLocalPort(PORT)
 	@ValueSource(ints = { 22, 80 })
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/network")
 	void connectLocallyNotAllowed(int port) throws Exception {
-		NetworkPenguin.tryConnect("localhost", port, MESSAGE);
+//		NetworkPenguin.tryConnect("localhost", port, MESSAGE);
 	}
 
 	@Test

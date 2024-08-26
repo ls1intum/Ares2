@@ -8,17 +8,12 @@ import com.tngtech.archunit.lang.ConditionEvent;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 import com.tngtech.archunit.thirdparty.com.google.common.collect.ImmutableList;
-import de.tum.cit.ase.ares.api.architecturetest.java.FileHandlerConstants;
-import de.tum.cit.ase.ares.api.architecturetest.java.JavaSupportedArchitectureTestCase;
 
-import java.io.IOException;
 import java.util.*;
 
 import static com.tngtech.archunit.lang.ConditionEvent.createMessage;
 import static com.tngtech.archunit.thirdparty.com.google.common.base.Preconditions.checkNotNull;
 import static com.tngtech.archunit.thirdparty.com.google.common.collect.Iterables.getLast;
-import static de.tum.cit.ase.ares.api.architecturetest.java.postcompile.JavaArchitectureTestCaseCollection.loadArchitectureRuleFileContent;
-import static de.tum.cit.ase.ares.api.architecturetest.java.postcompile.JavaArchitectureTestCaseCollection.loadForbiddenMethodsFromFile;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toSet;
 
@@ -26,18 +21,6 @@ import static java.util.stream.Collectors.toSet;
  * Checks that a class transitively accesses methods that match a given predicate.
  */
 public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClass> {
-
-    /**
-     * Set of classes that does not lead to a violation if they are accessed
-     */
-    private static final Set<String> bannedClasses = Set.of(
-            "java.lang.Object",
-            "java.lang.String",
-            "java.security.AccessControl",
-            "java.util",
-            "sun.util"
-    );
-
     /**
      * Predicate to match the accessed methods
      */
@@ -56,23 +39,8 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
     /**
      * @param conditionPredicate Predicate to match the accessed methods
      */
-    public TransitivelyAccessesMethodsCondition(DescribedPredicate<? super JavaAccess<?>> conditionPredicate, JavaSupportedArchitectureTestCase javaSupportedArchitectureTestCase) {
+    public TransitivelyAccessesMethodsCondition(DescribedPredicate<? super JavaAccess<?>> conditionPredicate) {
         super("transitively depend on classes that " + conditionPredicate.getDescription());
-        switch (javaSupportedArchitectureTestCase) {
-            case FILESYSTEM_INTERACTION -> {
-                try {
-                    loadArchitectureRuleFileContent(FileHandlerConstants.JAVA_FILESYSTEM_INTERACTION_CONTENT, JavaSupportedArchitectureTestCase.FILESYSTEM_INTERACTION.name());
-                    loadForbiddenMethodsFromFile(FileHandlerConstants.JAVA_FILESYSTEM_INTERACTION_METHODS, JavaSupportedArchitectureTestCase.FILESYSTEM_INTERACTION.name());
-                } catch (IOException e) {
-                    throw new IllegalStateException("Could not load the architecture rule file content", e);
-                }
-            }
-//            case PACKAGE_IMPORT -> throw new UnsupportedOperationException("Package import not implemented yet");
-//            case THREAD_CREATION -> throw new UnsupportedOperationException("Thread creation not implemented yet");
-//            case COMMAND_EXECUTION -> throw new UnsupportedOperationException("Command execution not implemented yet");
-//            case NETWORK_CONNECTION -> throw new UnsupportedOperationException("Network connection not implemented yet");
-            case null, default -> throw new IllegalStateException("JavaSupportedArchitecture cannot be null");
-        }
         this.conditionPredicate = checkNotNull(conditionPredicate);
         this.customClassResolver = new CustomClassResolver();
     }
@@ -163,11 +131,6 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
          * @return all accesses to the same target as the supplied item that are not in the analyzed classes
          */
         private Set<JavaAccess<?>> getDirectAccessTargetsOutsideOfAnalyzedClasses(JavaAccess<?> item) {
-            // If the target owner is in the banned classes, return an empty set
-            if (bannedClasses.stream().anyMatch(p -> item.getTargetOwner().getFullName().startsWith(p)) || item.getTargetOwner().isAssignableTo(Exception.class) || item.getTargetOwner().isAssignableTo(Error.class)) {
-                return Collections.emptySet();
-            }
-
             // Get all subclasses of the target owner including the target owner
             JavaClass resolvedTarget = resolveTargetOwner(item.getTargetOwner());
 
@@ -180,12 +143,13 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
              * These classes are always generic interfaces or abstract classes
              * TODO: Check if this is also the case for foreign packages
              */
-            if (subclasses.size() > 20) {
+            if (subclasses.size() > 20 || isExceptionOrError(resolvedTarget)) {
                 return Collections.emptySet();
             }
 
             return subclasses.stream()
-                    .map(javaClass -> getAccessesFromClass(javaClass, item.getTarget().getName()))
+                    .map(javaClass ->
+                            getAccessesFromClass(javaClass, item.getTarget().getFullName().substring(item.getTargetOwner().getFullName().length())))
                     .flatMap(Set::stream)
                     .collect(toSet());
         }
@@ -195,15 +159,20 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
                     .stream()
                     .filter(a -> a
                             .getOrigin()
-                            .getName()
-                            .equals(methodName))
-                    .filter(a -> bannedClasses.stream().noneMatch(p -> a.getTargetOwner().getFullName().startsWith(p)))
+                            .getFullName()
+                            .substring(javaClass.getFullName().length())
+                            .equals(methodName)
+                    && isExceptionOrError(a.getTargetOwner()))
                     .collect(toSet());
         }
 
         private JavaClass resolveTargetOwner(JavaClass targetOwner) {
             Optional<JavaClass> resolvedTarget = customClassResolver.tryResolve(targetOwner.getFullName());
             return resolvedTarget.orElse(targetOwner);
+        }
+
+        private boolean isExceptionOrError(JavaClass javaClass) {
+            return javaClass.isAssignableTo(Exception.class) || javaClass.isAssignableTo(Error.class);
         }
     }
 }

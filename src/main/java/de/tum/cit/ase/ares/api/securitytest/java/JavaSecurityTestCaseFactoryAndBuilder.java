@@ -1,7 +1,10 @@
 package de.tum.cit.ase.ares.api.securitytest.java;
 
+import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.importer.ClassFileImporter;
 import de.tum.cit.ase.ares.api.architecturetest.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecturetest.java.JavaSupportedArchitectureTestCase;
+import de.tum.cit.ase.ares.api.architecturetest.java.postcompile.JavaArchitectureTestCaseCollection;
 import de.tum.cit.ase.ares.api.aspectconfiguration.java.JavaAspectConfiguration;
 import de.tum.cit.ase.ares.api.aspectconfiguration.java.JavaSupportedAspectConfiguration;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
@@ -15,9 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.IllegalFormatException;
-import java.util.List;
+import java.util.*;
 import java.util.function.Supplier;
 
 import static com.google.common.collect.Iterables.isEmpty;
@@ -47,7 +48,9 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      * List of Java aspect configurations
      */
     List<JavaAspectConfiguration> javaAspectConfigurations;
-
+    /**
+     * Path to the directory where the security violations should be checked
+     */
     Path withinPath;
 
     /**
@@ -71,20 +74,20 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
     @SuppressWarnings("unchecked")
     private void parseTestCasesToBeCreated() {
         Supplier<List<?>>[] methods = new Supplier[]{securityPolicy::iAllowTheFollowingFileSystemInteractionsForTheStudents,
-//                securityPolicy::iAllowTheFollowingNetworkConnectionsForTheStudents,
+                securityPolicy::iAllowTheFollowingNetworkConnectionsForTheStudents,
 //                securityPolicy::iAllowTheFollowingCommandExecutionsForTheStudents,
 //                securityPolicy::iAllowTheFollowingThreadCreationsForTheStudents,
-//                securityPolicy::iAllowTheFollowingPackageImportForTheStudents
         };
 
         for (int i = 0; i < methods.length; i++) {
             if (isEmpty(methods[i].get())) {
-                javaArchitectureTestCases.add(new JavaArchitectureTestCase(JavaSupportedArchitectureTestCase.values()[i], withinPath));
-                javaAspectConfigurations.add(new JavaAspectConfiguration(JavaSupportedAspectConfiguration.values()[i], null, null));
+                javaArchitectureTestCases.add(new JavaArchitectureTestCase(JavaSupportedArchitectureTestCase.values()[i]));
             } else {
                 javaAspectConfigurations.add(new JavaAspectConfiguration(JavaSupportedAspectConfiguration.values()[i], securityPolicy, withinPath));
             }
         }
+
+        javaArchitectureTestCases.add(new JavaArchitectureTestCase(JavaSupportedArchitectureTestCase.PACKAGE_IMPORT, new HashSet<>(securityPolicy.iAllowTheFollowingPackageImportForTheStudents())));
     }
 
     /**
@@ -338,7 +341,9 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      */
     @Override
     public void runSecurityTestCases() {
-        javaArchitectureTestCases.forEach(JavaArchitectureTestCase::runArchitectureTestCase);
-        javaAspectConfigurations.forEach(JavaAspectConfiguration::runAspectConfiguration);
+        JavaClasses classes = new ClassFileImporter().importPath((ProjectSourcesFinder.isGradleProject() ? "build" : "target") + File.separator + withinPath.toString());
+        JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_USE_REFLECTION.check(classes);
+        JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_TERMINATE_JVM.check(classes);
+        javaArchitectureTestCases.forEach(archTest -> archTest.runArchitectureTestCase(classes));
     }
 }

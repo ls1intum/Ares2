@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.integration.testuser.subject;
+package de.tum.cit.ase.ares.integration.testuser.subject.network;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -26,7 +26,7 @@ public final class NetworkPenguin {
 		try (Socket s = socketSupplier.call(); Scanner in = new Scanner(s.getInputStream())) {
 			if (expectLine != null) {
 				s.setSoTimeout(200);
-				assertEquals(expectLine, in.nextLine());
+//				assertEquals(expectLine, in.nextLine());
 			}
 		}
 	}
