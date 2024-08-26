@@ -14,7 +14,7 @@ theFollowingFeaturesAreAllowedForTheSupervisedCode: [
       openConnections: true,
       sendData: true,
       receiveData: true,
-      ontheHost: "www.example.com",
+      onTheHost: "www.example.com",
       onThePort: 80
     ]
   ],
