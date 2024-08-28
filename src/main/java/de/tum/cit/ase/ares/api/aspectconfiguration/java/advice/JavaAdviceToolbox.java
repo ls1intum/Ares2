@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.aspectconfiguration.java.advice;
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 
@@ -64,11 +65,33 @@ public class JavaAdviceToolbox {
         return null;
     }
 
+    private static Object getValueFromSettings(String fieldName) {
+        try {
+            Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aspectconfiguration.java.advice.JavaAdviceSettings", true, null);
+            Field field = adviceSettingsClass.getDeclaredField(fieldName);
+            field.setAccessible(true);
+            Object value = field.get(null);
+            field.setAccessible(false);
+            return value;
+        } catch (NoSuchFieldException | IllegalAccessException | ClassNotFoundException e) {
+            throw new SecurityException("Cannot read field " + fieldName + " in AdviceSettings", e);
+        }
+    }
+
     public static void checkFileSystemInteraction(
             String action,
-            String declaringTypeName, String methodName, String methodSignature, Object[] attributes, Object[] parameters,
-            String restrictedPackage, String[] allowedClasses, String[] allowedPaths
-    ) {
+            String declaringTypeName, String methodName, String methodSignature, Object[] attributes, Object[] parameters) {
+        String restrictedPackage = (String) getValueFromSettings("restrictedPackage");
+        String[] allowedClasses = (String[]) getValueFromSettings("allowedListedClasses");
+        String[] allowedPaths = (String[]) getValueFromSettings(
+                switch (action) {
+                    case "read" -> "pathsAllowedToBeRead";
+                    case "write" -> "pathsAllowedToBeWritten";
+                    case "execute" -> "pathsAllowedToBeExecuted";
+                    default -> throw new IllegalArgumentException("Unknown action: " + action);
+                }
+        );
+
         final String fullMethodSignature = String.format("%s.%s%s", declaringTypeName, methodName, methodSignature);
         String illegallyReadingMethod = checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses);
         if (illegallyReadingMethod != null) {

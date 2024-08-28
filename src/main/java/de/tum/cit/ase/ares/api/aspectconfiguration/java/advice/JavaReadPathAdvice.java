@@ -13,17 +13,6 @@ public class JavaReadPathAdvice {
             @This(optional = true) Object instance,
             @AllArguments Object... parameters
     ) {
-        //<editor-fold desc="Settings">
-        final String restrictedPackage = "de.tum.cit.ase";
-
-        final String[] allowedClasses = {
-                "de.tum.cit.ase.ares.api.aspectconfiguration.java.JavaAgent",
-                "de.tum.cit.ase.ares.api.aspectconfiguration.java.JavaBindings",
-                "de.tum.cit.ase.ares.api.aspectconfiguration.java.advice.JavaToolbox"
-        };
-
-        final String[] allowedPaths = {};
-        //</editor-fold>
 
         //<editor-fold desc="Attributes">
         final Field[] fields = instance != null ? instance.getClass().getDeclaredFields() : new Field[0];
@@ -43,8 +32,11 @@ public class JavaReadPathAdvice {
         //<editor-fold desc="Check">
         JavaAdviceToolbox.checkFileSystemInteraction(
                 "read",
-                declaringTypeName, methodName, methodSignature, attributes, parameters,
-                restrictedPackage, allowedClasses, allowedPaths
+                declaringTypeName,
+                methodName,
+                methodSignature,
+                attributes,
+                parameters
         );
         //</editor-fold>
     }

@@ -13,13 +13,6 @@ public class JavaWritePathAdvice {
             @This(optional = true) Object instance,
             @AllArguments Object... parameters
     ) {
-        //<editor-fold desc="Settings">
-        final String restrictedPackage = "de.tum.cit.ase";
-
-        final String[] allowedClasses = {};
-
-        final String[] allowedPaths = {};
-        //</editor-fold>
 
         //<editor-fold desc="Attributes">
         final Field[] fields = instance != null ? instance.getClass().getDeclaredFields() : new Field[0];
@@ -39,8 +32,11 @@ public class JavaWritePathAdvice {
         //<editor-fold desc="Check">
         JavaAdviceToolbox.checkFileSystemInteraction(
                 "write",
-                declaringTypeName, methodName, methodSignature, attributes, parameters,
-                restrictedPackage, allowedClasses, allowedPaths
+                declaringTypeName,
+                methodName,
+                methodSignature,
+                attributes,
+                parameters
         );
         //</editor-fold>
     }
