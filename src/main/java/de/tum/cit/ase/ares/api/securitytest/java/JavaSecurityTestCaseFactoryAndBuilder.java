@@ -75,7 +75,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
     private void parseTestCasesToBeCreated() {
         Supplier<List<?>>[] methods = new Supplier[]{securityPolicy::iAllowTheFollowingFileSystemInteractionsForTheStudents,
                 securityPolicy::iAllowTheFollowingNetworkConnectionsForTheStudents,
-//                securityPolicy::iAllowTheFollowingCommandExecutionsForTheStudents,
+                securityPolicy::iAllowTheFollowingCommandExecutionsForTheStudents,
 //                securityPolicy::iAllowTheFollowingThreadCreationsForTheStudents,
         };
 

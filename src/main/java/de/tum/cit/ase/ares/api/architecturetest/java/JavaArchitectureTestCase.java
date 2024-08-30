@@ -6,10 +6,7 @@ import de.tum.cit.ase.ares.api.architecturetest.java.postcompile.JavaArchitectur
 import de.tum.cit.ase.ares.api.policy.PackageImport;
 
 import java.io.IOException;
-import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -78,7 +75,7 @@ public class JavaArchitectureTestCase implements ArchitectureTestCase {
                 case PACKAGE_IMPORT ->  JavaArchitectureTestCaseCollection.noClassesShouldImportForbiddenPackages(allowedPackages).check(classes);
                 case THREAD_CREATION -> throw new UnsupportedOperationException("Thread creation not implemented yet");
                 case COMMAND_EXECUTION ->
-                        throw new UnsupportedOperationException("Command execution not implemented yet");
+                        JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_EXECUTE_COMMANDS.check(classes);
                 case NETWORK_CONNECTION ->
                         JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_ACCESS_NETWORK.check(classes);
                 default -> throw new UnsupportedOperationException("Not implemented yet");
