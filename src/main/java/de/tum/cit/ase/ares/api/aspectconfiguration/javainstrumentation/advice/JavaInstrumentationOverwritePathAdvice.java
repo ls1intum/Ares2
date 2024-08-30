@@ -1,10 +1,10 @@
-package de.tum.cit.ase.ares.api.aspectconfiguration.java.advice;
+package de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.advice;
 
 import java.lang.reflect.Field;
 
 import static net.bytebuddy.asm.Advice.*;
 
-public class JavaWritePathAdvice {
+public class JavaInstrumentationOverwritePathAdvice {
     @OnMethodEnter
     public static void onEnter(
             @Origin("#t") String declaringTypeName,
@@ -30,7 +30,7 @@ public class JavaWritePathAdvice {
         //</editor-fold>
 
         //<editor-fold desc="Check">
-        JavaAdviceToolbox.checkFileSystemInteraction(
+        JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
                 "write",
                 declaringTypeName,
                 methodName,

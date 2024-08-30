@@ -1,13 +1,13 @@
-package de.tum.cit.ase.ares.api.aspectconfiguration.java.advice;
+package de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.advice;
 
 import java.io.File;
 import java.lang.reflect.Field;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 
-public class JavaAdviceToolbox {
+public class JavaInstrumentationAdviceToolbox {
     //<editor-fold desc="Constructor">
-    private JavaAdviceToolbox() {
+    private JavaInstrumentationAdviceToolbox() {
         throw new IllegalStateException("Utility class");
     }
     //</editor-fold>
@@ -67,7 +67,7 @@ public class JavaAdviceToolbox {
 
     private static Object getValueFromSettings(String fieldName) {
         try {
-            Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aspectconfiguration.java.advice.JavaAdviceSettings", true, null);
+            Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.JavaInstrumentationConfigurationSettings", true, null);
             Field field = adviceSettingsClass.getDeclaredField(fieldName);
             field.setAccessible(true);
             Object value = field.get(null);
@@ -86,7 +86,7 @@ public class JavaAdviceToolbox {
         String[] allowedPaths = (String[]) getValueFromSettings(
                 switch (action) {
                     case "read" -> "pathsAllowedToBeRead";
-                    case "write" -> "pathsAllowedToBeWritten";
+                    case "write" -> "pathsAllowedToBeOverwritten";
                     case "execute" -> "pathsAllowedToBeExecuted";
                     default -> throw new IllegalArgumentException("Unknown action: " + action);
                 }

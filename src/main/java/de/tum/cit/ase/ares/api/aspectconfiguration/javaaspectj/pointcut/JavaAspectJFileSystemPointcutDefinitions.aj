@@ -1,6 +1,6 @@
-package de.tum.cit.ase.ares.api.aspectconfiguration.java;
+package de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut;
 
-public aspect FileSystemPointcutDefinitions {
+public aspect JavaAspectJFileSystemPointcutDefinitions {
 
     // These are the FileSystem related methods which we want to ban
 

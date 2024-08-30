@@ -1,10 +1,10 @@
-package de.tum.cit.ase.ares.api.aspectconfiguration.java.advice;
+package de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.advice;
 
 import java.lang.reflect.Field;
 
 import static net.bytebuddy.asm.Advice.*;
 
-public class JavaExecutePathAdvice {
+public class JavaInstrumentationReadPathAdvice {
     @OnMethodEnter
     public static void onEnter(
             @Origin("#t") String declaringTypeName,
@@ -30,8 +30,8 @@ public class JavaExecutePathAdvice {
         //</editor-fold>
 
         //<editor-fold desc="Check">
-        JavaAdviceToolbox.checkFileSystemInteraction(
-                "execute",
+        JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
+                "read",
                 declaringTypeName,
                 methodName,
                 methodSignature,

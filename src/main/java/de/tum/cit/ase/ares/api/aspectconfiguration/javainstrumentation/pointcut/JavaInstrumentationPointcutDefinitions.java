@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.api.aspectconfiguration.java;
+package de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.pointcut;
 
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -10,10 +10,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class JavaPointcuts {
+public class JavaInstrumentationPointcutDefinitions {
 
     //<editor-fold desc="Constructor">
-    private JavaPointcuts() {
+    private JavaInstrumentationPointcutDefinitions() {
         throw new IllegalStateException("Utility class");
     }
     //</editor-fold>
@@ -56,47 +56,47 @@ public class JavaPointcuts {
 
     //<editor-fold desc="Read Path">
     static final Map<String, List<String>> methodsWhichCanReadFiles = Map.of(
-            "java.io.FileInputStream",
+            "javainstrumentation.io.FileInputStream",
             List.of("<init>", "read"),
-            "java.io.RandomAccessFile",
+            "javainstrumentation.io.RandomAccessFile",
             List.of("read", "readFully", "readLine", "readBoolean", "readByte", "readChar", "readDouble",
                     "readFloat", "readInt", "readLong", "readShort", "readUnsignedByte", "readUnsignedShort"),
-            "java.io.UnixFileSystem",
+            "javainstrumentation.io.UnixFileSystem",
             List.of("getLastModifiedTime", "getBooleanAttributes0", "getSpace", "canonicalize0"),
-            "java.io.WinNTFileSystem",
+            "javainstrumentation.io.WinNTFileSystem",
             List.of("getBooleanAttributes", "canonicalize", "getLastModifiedTime", "getSpace"),
-            "java.io.Win32FileSystem",
+            "javainstrumentation.io.Win32FileSystem",
             List.of("getBooleanAttributes", "canonicalize", "getLastModifiedTime", "getSpace"),
-            "java.nio.file.Files",
+            "javainstrumentation.nio.file.Files",
             List.of("readAttributes", "readAllBytes", "readAllLines", "readString", "read", "newInputStream", "lines")
     );
     //</editor-fold>
 
-    //<editor-fold desc="Write Path">
-    static final Map<String, List<String>> methodsWhichCanWriteFiles = Map.of(
-            "java.io.FileOutputStream",
+    //<editor-fold desc="Overwrite Path">
+    static final Map<String, List<String>> methodsWhichCanOverwriteFiles = Map.of(
+            "javainstrumentation.io.FileOutputStream",
             List.of("<init>","write"),
-            "java.io.RandomAccessFile",
+            "javainstrumentation.io.RandomAccessFile",
             List.of("write", "writeBoolean", "writeByte", "writeBytes",
                     "writeChar", "writeChars", "writeDouble", "writeFloat", "writeInt", "writeLong", "writeShort"),
-            "java.io.UnixFileSystem",
+            "javainstrumentation.io.UnixFileSystem",
             List.of("setLastModifiedTime", "createFileExclusively", "delete0", "createDirectory"),
-            "java.io.WinNTFileSystem",
+            "javainstrumentation.io.WinNTFileSystem",
             List.of("createFileExclusively", "delete", "setLastModifiedTime", "createDirectory"),
-            "java.io.Win32FileSystem",
+            "javainstrumentation.io.Win32FileSystem",
             List.of("createFileExclusively", "delete", "setLastModifiedTime", "createDirectory"),
-            "java.util.prefs.FileSystemPreferences",
+            "javainstrumentation.util.prefs.FileSystemPreferences",
             List.of("lockFile0", "unlockFile0")
     );
     //</editor-fold>
 
     //<editor-fold desc="Execute Path">
     static final Map<String, List<String>> methodsWhichCanExecuteFiles = Map.of(
-            "java.io.UnixFileSystem",
+            "javainstrumentation.io.UnixFileSystem",
             List.of("checkAccess", "setPermission"),
-            "java.io.WinNTFileSystem",
+            "javainstrumentation.io.WinNTFileSystem",
             List.of("checkAccess", "setReadOnly"),
-            "java.io.Win32FileSystem",
+            "javainstrumentation.io.Win32FileSystem",
             List.of("checkAccess", "setReadOnly")
     );
     //</editor-fold>

@@ -1,5 +1,6 @@
-package de.tum.cit.ase.ares.api.aspectconfiguration.java;
+package de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.advice;
 
+import de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.JavaAspectJConfigurationSettings;
 import de.tum.cit.ase.ares.api.policy.FileSystemInteraction;
 import org.aspectj.lang.JoinPoint;
 
@@ -10,15 +11,15 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Objects;
 
-public aspect FileSystemAdviceDefinition {
+public aspect JavaAspectJFileSystemAdviceDefinitions {
 
     // This method handles the security check for file system interactions by validating if the requested operation type is allowed for the file in context.
     private boolean handleAroundAdvice(JoinPoint thisJoinPoint, String operationType) {
-        if (JavaAspectConfigurationLists.getAllowedFileSystemInteractions() == null) {
+        if (JavaAspectJConfigurationSettings.getAllowedFileSystemInteractions() == null) {
             return false;
         }
 
-        boolean isNotAllowed = JavaAspectConfigurationLists.getAllowedFileSystemInteractions().stream()
+        boolean isNotAllowed = JavaAspectJConfigurationSettings.getAllowedFileSystemInteractions().stream()
                 .anyMatch(interaction -> !isOperationAllowed(interaction, operationType, thisJoinPoint) || !checkAllowedPaths(interaction, thisJoinPoint));
 
         if (isNotAllowed) {
@@ -76,236 +77,236 @@ public aspect FileSystemAdviceDefinition {
         throw new SecurityException(thisJoinPoint.getSignature().toLongString() + " was not able to proceed.");
     }
 
-    before(): FileSystemPointcutDefinitions.randomAccessFileExecuteMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.randomAccessFileExecuteMethods() {
         if (handleAroundAdvice(thisJoinPoint, "execute")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.fileReadMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.fileReadMethods() {
         if (handleAroundAdvice(thisJoinPoint, "read")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.fileWriteMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.fileWriteMethods() {
         if (handleAroundAdvice(thisJoinPoint, "write")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.fileExecuteMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.fileExecuteMethods() {
         if (handleAroundAdvice(thisJoinPoint, "execute")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.fileDeleteMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.fileDeleteMethods() {
         if (handleAroundAdvice(thisJoinPoint, "delete")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.fileInputStreamInitMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.fileInputStreamInitMethods() {
         if (handleAroundAdvice(thisJoinPoint, "read")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.fileOutputStreamInitMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.fileOutputStreamInitMethods() {
         if (handleAroundAdvice(thisJoinPoint, "write")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.objectStreamClassMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.objectStreamClassMethods() {
         if (handleAroundAdvice(thisJoinPoint, "execute")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.randomAccessFileInitMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.randomAccessFileInitMethods() {
         if (handleAroundAdvice(thisJoinPoint, "read")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.fileSystemProviderReadMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderReadMethods() {
         if (handleAroundAdvice(thisJoinPoint, "read")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.fileSystemProviderWriteMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderWriteMethods() {
         if (handleAroundAdvice(thisJoinPoint, "write")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.fileSystemProviderExecuteMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderExecuteMethods() {
         if (handleAroundAdvice(thisJoinPoint, "execute")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.fileSystemProviderDeleteMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderDeleteMethods() {
         if (handleAroundAdvice(thisJoinPoint, "delete")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.fileTypeDetectorProbeContentTypeMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.fileTypeDetectorProbeContentTypeMethods() {
         if (handleAroundAdvice(thisJoinPoint, "execute")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.fileImageSourceInitMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.fileImageSourceInitMethods() {
         if (handleAroundAdvice(thisJoinPoint, "read")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.filesReadMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.filesReadMethods() {
         if (handleAroundAdvice(thisJoinPoint, "read")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.filesWriteMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.filesWriteMethods() {
         if (handleAroundAdvice(thisJoinPoint, "write")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.filesExecuteMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.filesExecuteMethods() {
         if (handleAroundAdvice(thisJoinPoint, "execute")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
 
-    before(): FileSystemPointcutDefinitions.pathReadMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.pathReadMethods() {
         if (handleAroundAdvice(thisJoinPoint, "read")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.pathWriteMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.pathWriteMethods() {
         if (handleAroundAdvice(thisJoinPoint, "write")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.pathExecuteMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.pathExecuteMethods() {
         if (handleAroundAdvice(thisJoinPoint, "execute")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.pathDeleteMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.pathDeleteMethods() {
         if (handleAroundAdvice(thisJoinPoint, "delete")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.fileSystemReadMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemReadMethods() {
         if (handleAroundAdvice(thisJoinPoint, "read")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.fileSystemWriteMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemWriteMethods() {
         if (handleAroundAdvice(thisJoinPoint, "write")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.fileSystemExecuteMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemExecuteMethods() {
         if (handleAroundAdvice(thisJoinPoint, "execute")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.fileChannelExecuteMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.fileChannelExecuteMethods() {
         if (handleAroundAdvice(thisJoinPoint, "execute")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.fileChannelReadMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.fileChannelReadMethods() {
         if (handleAroundAdvice(thisJoinPoint, "read")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.fileChannelWriteMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.fileChannelWriteMethods() {
         if (handleAroundAdvice(thisJoinPoint, "write")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.fileWriterMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.fileWriterMethods() {
         if (handleAroundAdvice(thisJoinPoint, "write")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.fileHandlerMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.fileHandlerMethods() {
         if (handleAroundAdvice(thisJoinPoint, "write")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.midiSystemMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.midiSystemMethods() {
         if (handleAroundAdvice(thisJoinPoint, "read")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.fileSystemsReadMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemsReadMethods() {
         if (handleAroundAdvice(thisJoinPoint, "read")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.fileSystemsExecuteMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemsExecuteMethods() {
         if (handleAroundAdvice(thisJoinPoint, "execute")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.defaultFileSystemExecuteMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.defaultFileSystemExecuteMethods() {
         if (handleAroundAdvice(thisJoinPoint, "execute")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.fileSystemProviderReadMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderReadMethods() {
         if (handleAroundAdvice(thisJoinPoint, "read")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.fileSystemProviderWriteMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderWriteMethods() {
         if (handleAroundAdvice(thisJoinPoint, "write")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.fileSystemProviderExecuteMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderExecuteMethods() {
         if (handleAroundAdvice(thisJoinPoint, "execute")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.fileSystemProviderDeleteMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderDeleteMethods() {
         if (handleAroundAdvice(thisJoinPoint, "delete")) {
             throwSecurityException(thisJoinPoint);
         }
     }
 
-    before(): FileSystemPointcutDefinitions.desktopExecuteMethods() {
+    before(): de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut.JavaAspectJFileSystemPointcutDefinitions.desktopExecuteMethods() {
         if (handleAroundAdvice(thisJoinPoint, "execute")) {
             throwSecurityException(thisJoinPoint);
         }

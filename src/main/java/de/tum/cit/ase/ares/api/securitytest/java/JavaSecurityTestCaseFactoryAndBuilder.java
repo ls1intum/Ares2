@@ -5,347 +5,213 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
 import de.tum.cit.ase.ares.api.architecturetest.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecturetest.java.JavaSupportedArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecturetest.java.postcompile.JavaArchitectureTestCaseCollection;
-import de.tum.cit.ase.ares.api.aspectconfiguration.java.JavaAspectConfiguration;
-import de.tum.cit.ase.ares.api.aspectconfiguration.java.JavaSupportedAspectConfiguration;
+import de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.JavaAspectJConfiguration;
+import de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.JavaAspectJConfigurationSupported;
+import de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.JavaInstrumentationConfiguration;
+import de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.JavaInstrumentationConfigurationSupported;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.securitytest.SecurityTestCaseAbstractFactoryAndBuilder;
+import de.tum.cit.ase.ares.api.util.FileTools;
 import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.FileAlreadyExistsException;
-import java.nio.file.Files;
-import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.util.*;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
 import java.util.function.Supplier;
 
 import static com.google.common.collect.Iterables.isEmpty;
 
 /**
- * Produces and executes or writes security test cases in the Java programming language
- * and the concrete factory of the abstract factory design pattern
- * as well as the concrete builder of the builder design pattern.
- *
- * @author Markus Paulsen
- * @version 2.0.0
- * @see <a href="https://refactoring.guru/design-patterns/abstract-factory">Abstract Factory Design Pattern</a>
- * @see <a href="https://refactoring.guru/design-patterns/builder">Builder Design Pattern</a>
- * @since 2.0.0
+ * Factory and builder class for creating and running Java security test cases.
+ * <p>
+ * This class is responsible for generating the necessary security test cases based on the
+ * provided build tool, AOP mode, and security policy. It also facilitates the writing of
+ * these test cases to files and their execution.
+ * </p>
  */
 public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAbstractFactoryAndBuilder {
 
+    //<editor-fold desc="Attributes">
     /**
-     * Security policy for the security test cases
+     * The build tool used in the project (e.g., Maven or Gradle).
      */
-    SecurityPolicy securityPolicy;
-    /**
-     * List of Java architecture test cases
-     */
-    List<JavaArchitectureTestCase> javaArchitectureTestCases;
-    /**
-     * List of Java aspect configurations
-     */
-    List<JavaAspectConfiguration> javaAspectConfigurations;
-    /**
-     * Path to the directory where the security violations should be checked
-     */
-    Path withinPath;
+    private final JavaBuildTool javaBuildTool;
 
     /**
-     * Constructor for the Java security test case factory and builder.
-     *
-     * @param securityPolicy Security policy for the security test cases
+     * The Aspect-Oriented Programming (AOP) mode used in the project (e.g., AspectJ or Instrumentation).
      */
-    public JavaSecurityTestCaseFactoryAndBuilder(SecurityPolicy securityPolicy, Path withinPath) {
+    private final JavaAOPMode javaAOPMode;
+
+    /**
+     * The security policy to be enforced during the security tests.
+     */
+    private final SecurityPolicy securityPolicy;
+
+    /**
+     * List of architecture test cases to be generated based on the security policy.
+     */
+    private final List<JavaArchitectureTestCase> javaArchitectureTestCases = new ArrayList<>();
+
+    /**
+     * List of AspectJ configurations to be generated based on the security policy.
+     */
+    private final List<JavaAspectJConfiguration> javaAspectJConfigurations = new ArrayList<>();
+
+    /**
+     * List of Instrumentation configurations to be generated based on the security policy.
+     */
+    private final List<JavaInstrumentationConfiguration> javaInstrumentationConfigurations = new ArrayList<>();
+
+    /**
+     * The path within the project where the test cases will be applied.
+     */
+    private final Path withinPath;
+    //</editor-fold>
+
+    //<editor-fold desc="Constructor">
+    /**
+     * Constructs a new {@link JavaSecurityTestCaseFactoryAndBuilder} with the specified build tool, AOP mode,
+     * security policy, and within path.
+     *
+     * @param javaBuildTool the build tool used in the project.
+     * @param javaAOPMode the AOP mode used in the project.
+     * @param securityPolicy the security policy to be enforced.
+     * @param withinPath the path within the project where the test cases will be applied.
+     */
+    public JavaSecurityTestCaseFactoryAndBuilder(JavaBuildTool javaBuildTool, JavaAOPMode javaAOPMode, SecurityPolicy securityPolicy, Path withinPath) {
+        this.javaBuildTool = javaBuildTool;
+        this.javaAOPMode = javaAOPMode;
         this.securityPolicy = securityPolicy;
         this.withinPath = withinPath;
-        javaArchitectureTestCases = new ArrayList<>();
-        javaAspectConfigurations = new ArrayList<>();
-        parseTestCasesToBeCreated();
+        this.parseTestCasesToBeCreated();
     }
+    //</editor-fold>
 
+    //<editor-fold desc="Toolbox methods">
     /**
-     * Parses the test cases to be created.
-     * If there is no allowed element in a list then an architecture test is added
-     * Otherwise an Aspect configuration is added to control the allowed methods
+     * Parses the security policy to determine which test cases and configurations need to be created.
+     * <p>
+     * This method checks the security policy for specific permissions and based on the results,
+     * generates the appropriate architecture test cases or AspectJ/Instrumentation configurations.
+     * </p>
      */
-    @SuppressWarnings("unchecked")
     private void parseTestCasesToBeCreated() {
-        Supplier<List<?>>[] methods = new Supplier[]{securityPolicy::iAllowTheFollowingFileSystemInteractionsForTheStudents,
-                securityPolicy::iAllowTheFollowingNetworkConnectionsForTheStudents,
-//                securityPolicy::iAllowTheFollowingCommandExecutionsForTheStudents,
-//                securityPolicy::iAllowTheFollowingThreadCreationsForTheStudents,
-        };
+        Arrays.stream(new Supplier[]{
+                        securityPolicy.regardingTheSupervisedCode().theFollowingRessourceAccessesArePermitted()::regardingFileSystemInteractions,
+                        securityPolicy.regardingTheSupervisedCode().theFollowingRessourceAccessesArePermitted()::regardingNetworkConnections
+                })
+                .map(method -> (Supplier<List<?>>) method)
+                .forEach(method -> {
+                    if (isEmpty(method.get())) {
+                        javaArchitectureTestCases.add(new JavaArchitectureTestCase(JavaSupportedArchitectureTestCase.FILESYSTEM_INTERACTION));
+                    } else {
+                        switch (javaAOPMode) {
+                            case ASPECTJ ->
+                                    javaAspectJConfigurations.add(new JavaAspectJConfiguration(JavaAspectJConfigurationSupported.FILESYSTEM_INTERACTION, securityPolicy.regardingTheSupervisedCode().theFollowingRessourceAccessesArePermitted()));
+                            case INSTRUMENTATION ->
+                                    javaInstrumentationConfigurations.add(new JavaInstrumentationConfiguration(JavaInstrumentationConfigurationSupported.FILESYSTEM_INTERACTION, securityPolicy.regardingTheSupervisedCode().theFollowingRessourceAccessesArePermitted()));
+                        }
+                    }
+                });
 
-        for (int i = 0; i < methods.length; i++) {
-            if (isEmpty(methods[i].get())) {
-                javaArchitectureTestCases.add(new JavaArchitectureTestCase(JavaSupportedArchitectureTestCase.values()[i]));
-            } else {
-                javaAspectConfigurations.add(new JavaAspectConfiguration(JavaSupportedAspectConfiguration.values()[i], securityPolicy));
-            }
-        }
-
-        // TODO improve this since this is always allowed and java.lang, java.util classes also marked in the YAML files
-        // javaArchitectureTestCases.add(new JavaArchitectureTestCase(JavaSupportedArchitectureTestCase.PACKAGE_IMPORT, new HashSet<>(securityPolicy.iAllowTheFollowingPackageImportForTheStudents())));
+        javaArchitectureTestCases.add(new JavaArchitectureTestCase(JavaSupportedArchitectureTestCase.PACKAGE_IMPORT, new HashSet<>(securityPolicy.regardingTheSupervisedCode().theFollowingRessourceAccessesArePermitted().regardingPackageImports().itIsPermittedTo())));
     }
+    //</editor-fold>
 
+    //<editor-fold desc="Inherited methods">
     /**
-     * Writes the security test cases to files in the Java programming language.
+     * Writes the generated test cases and configurations to files in the specified path.
+     * <p>
+     * This method copies the relevant files based on the AOP mode, creates the necessary
+     * architecture test case files, and combines them with the configuration files.
+     * </p>
      *
-     * @param path Path to the directory where the files should be written to
-     * @return List of paths of the written files
+     * @param path the path where the test cases and configurations will be written.
+     * @return a list of paths representing the files that were created.
      */
     @Override
     public List<Path> writeTestCasesToFiles(Path path) {
-        //<editor-fold desc="Create architecture test case files">
-        Path javaArchitectureTestCaseCollectionFile;
-        try {
-            javaArchitectureTestCaseCollectionFile = Files.createFile(path.resolve("JavaArchitectureTestCaseCollection.java"));
-        }
-        //<editor-fold desc="Catches">
-        catch (InvalidPathException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot create JavaArchitectureTestCaseCollection.java on " + path + " due to an incorrect address resolving: " + e);
-        } catch (UnsupportedOperationException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot create JavaArchitectureTestCaseCollection.java on " + path + " due to missing supported by this JVM: " + e);
-        } catch (FileAlreadyExistsException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot create JavaArchitectureTestCaseCollection.java on " + path + ", as it already exists: " + e);
-        } catch (IOException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot create JavaArchitectureTestCaseCollection.java on " + path + " due to an I/O exception: " + e);
-        }
-        //</editor-fold>
-        String javaArchitectureTestCaseCollectionFileHeader;
-        Path javaArchitectureTestCaseCollectionFileHeaderPath = Path.of(
-                "src",
-                "main",
-                "resources",
-                "templates",
-                "javaArchitectureTestCaseCollectionFileHeader.txt"
+        //<editor-fold desc="Copy files">
+        List<Path> copiedFiles = FileTools.copyFiles(
+                switch (javaAOPMode) {
+                    case ASPECTJ -> List.of(
+                            Paths.get("src", "main", "resources", "aspectOrientedProgrammingFiles", "JavaAspectJFileSystemAdviceDefinitions.aj"),
+                            Paths.get("src", "main", "resources", "aspectOrientedProgrammingFiles", "JavaAspectJFileSystemPointcutDefinitions.aj"),
+                            Paths.get("src", "main", "resources", "aspectOrientedProgrammingFiles", "JavaAspectJConfigurationSupported.java")
+                    );
+                    case INSTRUMENTATION -> List.of(
+                            Paths.get("src", "main", "java", "de", "tum", "cit", "ase", "ares", "api", "aspectconfiguration", "javainstrumentation", "advice", "JavaInstrumentationAdviceToolbox.java"),
+                            Paths.get("src", "main", "java", "de", "tum", "cit", "ase", "ares", "api", "aspectconfiguration", "javainstrumentation", "advice", "JavaInstrumentationReadPathAdvice.java"),
+                            Paths.get("src", "main", "java", "de", "tum", "cit", "ase", "ares", "api", "aspectconfiguration", "javainstrumentation", "advice", "JavaInstrumentationOverwritePathAdvice.java"),
+                            Paths.get("src", "main", "java", "de", "tum", "cit", "ase", "ares", "api", "aspectconfiguration", "javainstrumentation", "advice", "JavaInstrumentationExecutePathAdvice.java"),
+                            Paths.get("src", "main", "java", "de", "tum", "cit", "ase", "ares", "api", "aspectconfiguration", "javainstrumentation", "JavaInstrumentationPointcutDefinitions.java"),
+                            Paths.get("src", "main", "java", "de", "tum", "cit", "ase", "ares", "api", "aspectconfiguration", "javainstrumentation", "JavaInstrumentationBindingDefinitions.java"),
+                            Paths.get("src", "main", "java", "de", "tum", "cit", "ase", "ares", "api", "aspectconfiguration", "javainstrumentation", "JavaInstrumentationAgent.java")
+                    );
+                },
+                path
         );
-        try {
-            javaArchitectureTestCaseCollectionFileHeader = String.format(
-                    Files.readString(javaArchitectureTestCaseCollectionFileHeaderPath),
-                    "de.tum.cit.ase", // TODO: Replace with flexible package name handling
-                    (ProjectSourcesFinder.isGradleProject() ? "build" : "target") + File.separator + withinPath.toString()
-            );
-        }
-        //<editor-fold desc="Catches">
-        catch (IOException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot write to JavaArchitectureTestCaseCollection.java on " + path + " due to not being able to read " + javaArchitectureTestCaseCollectionFileHeaderPath + " due to an I/O exception: " + e);
-        } catch (OutOfMemoryError e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot write to JavaArchitectureTestCaseCollection.java on " + path + " due to not being able to read " + javaArchitectureTestCaseCollectionFileHeaderPath + " due to an out of memory exception: " + e);
-        } catch (IllegalFormatException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot write to JavaArchitectureTestCaseCollection.java on " + path + " due to " + javaArchitectureTestCaseCollectionFileHeaderPath + " defining an illegal format: " + e);
-        }
-        //</editor-fold>
-        String javaArchitectureTestCaseCollectionFileBody;
-        try {
-            javaArchitectureTestCaseCollectionFileBody = String.join("\n", javaArchitectureTestCases.stream().map(JavaArchitectureTestCase::createArchitectureTestCaseFileContent).toList());
-        }
-        //<editor-fold desc="Catches">
-        catch (NullPointerException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot write to JavaArchitectureTestCaseCollection.java on " + path + " due to one of the architecture test case file contents being null: " + e);
-        }
-        //</editor-fold>
-        String javaArchitectureTestCaseCollectionFileFooter;
-        Path javaArchitectureTestCaseCollectionFileFooterPath = Path.of(
-                "src",
-                "main",
-                "resources",
-                "templates",
-                "javaArchitectureTestCaseCollectionFileFooter.txt"
-        );
-        try {
-            javaArchitectureTestCaseCollectionFileFooter = String.format(
-                    Files.readString(javaArchitectureTestCaseCollectionFileFooterPath)
-            );
-        }
-        //<editor-fold desc="Catches">
-        catch (IOException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot write to JavaArchitectureTestCaseCollection.java on " + path + " due to not being able to read " + javaArchitectureTestCaseCollectionFileFooterPath + " due to an I/O exception: " + e);
-        } catch (OutOfMemoryError e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot write to JavaArchitectureTestCaseCollection.java on " + path + " due to not being able to read " + javaArchitectureTestCaseCollectionFileFooterPath + " due to an out of memory exception: " + e);
-        } catch (IllegalFormatException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot write to JavaArchitectureTestCaseCollection.java on " + path + " due to " + javaArchitectureTestCaseCollectionFileFooterPath + " defining an illegal format: " + e);
-        }
-        //</editor-fold>
-        try {
-            Files.writeString(
-                    javaArchitectureTestCaseCollectionFile,
-                    String.join(
-                            "\n",
-                            List.of(
-                                    javaArchitectureTestCaseCollectionFileHeader,
-                                    javaArchitectureTestCaseCollectionFileBody,
-                                    javaArchitectureTestCaseCollectionFileFooter
-                            )
-                    ),
-                    StandardOpenOption.WRITE
-            );
-        }
-        //<editor-fold desc="Catches">
-        catch (IllegalArgumentException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot write to JavaArchitectureTestCaseCollection.java on " + path + " due to an illegal argument: " + e);
-        } catch (IOException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot write to JavaArchitectureTestCaseCollection.java on " + path + " due to an I/O exception: " + e);
-        } catch (NullPointerException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot write to JavaArchitectureTestCaseCollection.java on " + path + " due to one of the architecture test case file parts being null: " + e);
-        } catch (UnsupportedOperationException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot write to JavaArchitectureTestCaseCollection.java on " + path + " due to missing supported by this JVM: " + e);
-        }
         //</editor-fold>
 
+        //<editor-fold desc="Create architecture test case file">
+        Path javaArchitectureTestCaseCollectionFile = FileTools.createThreePartedFile(
+                Paths.get("src", "main", "resources", "templates", "JavaArchUnitTestCaseCollectionHeader.txt"),
+                String.join("\n", javaArchitectureTestCases.stream().map(JavaArchitectureTestCase::createArchitectureTestCaseFileContent).toList()),
+                Paths.get("src", "main", "resources", "templates", "JavaArchUnitTestCaseCollectionFooter.txt"),
+                "JavaArchitectureTestCaseCollection.java",
+                path
+        );
         //</editor-fold>
-        //<editor-fold desc="Create aspect configuration files">
-        try {
-            Path javaAdviceDefinitionPath = Files.copy(
-                    Path.of("src/main/resources/aspectOrientedProgrammingFiles/FileSystemAdviceDefinition.aj"),
-                    path.resolve("FileSystemAdviceDefinition.aj")
-            );
-        }
-        //<editor-fold desc="Catches">
-        catch (InvalidPathException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/FileSystemAdviceDefinition.aj due to an incorrect address resolving: " + e);
-        } catch (UnsupportedOperationException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/FileSystemAdviceDefinition.aj due to missing supported by this JVM: " + e);
-        } catch (FileAlreadyExistsException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/FileSystemAdviceDefinition.aj, as it already exists: " + e);
-        } catch (IOException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/FileSystemAdviceDefinition.aj due to an I/O exception: " + e);
-        }
-        //</editor-fold>
-        try {
-            Path javaPointcutDefinitionPath = Files.copy(
-                    Path.of("src/main/resources/aspectOrientedProgrammingFiles/FileSystemPointcutDefinitions.aj"),
-                    path.resolve("FileSystemPointcutDefinitions.aj")
-            );
-        }
-        //<editor-fold desc="Catches">
-        catch (InvalidPathException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/FileSystemPointcutDefinitions.aj due to an incorrect address resolving: " + e);
-        } catch (UnsupportedOperationException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/FileSystemPointcutDefinitions.aj due to missing supported by this JVM: " + e);
-        } catch (FileAlreadyExistsException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/FileSystemPointcutDefinitions.aj, as it already exists: " + e);
-        } catch (IOException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot copy src/main/resources/aspectOrientedProgrammingFiles/FileSystemPointcutDefinitions.aj due to an I/O exception: " + e);
-        }
-        //</editor-fold>
-        Path javaAspectConfigurationCollectionFile;
-        try {
-            javaAspectConfigurationCollectionFile = Files.createFile(path.resolve("JavaAspectConfigurationCollection.java"));
-        }
-        //<editor-fold desc="Catches">
-        catch (InvalidPathException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot create JavaAspectConfigurationCollection.java on " + path + " due to an incorrect address resolving: " + e);
-        } catch (UnsupportedOperationException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot create JavaAspectConfigurationCollection.java on " + path + " due to missing supported by this JVM: " + e);
-        } catch (FileAlreadyExistsException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot create JavaAspectConfigurationCollection.java on " + path + ", as it already exists: " + e);
-        } catch (IOException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot create JavaAspectConfigurationCollection.java on " + path + " due to an I/O exception: " + e);
-        }
-        //</editor-fold>
-        String javaAspectConfigurationCollectionFileHeader;
-        try {
-            javaAspectConfigurationCollectionFileHeader = String.format(
-                    Files.readString(
-                            Path.of(
-                                    "src",
-                                    "main",
-                                    "resources",
-                                    "templates",
-                                    "javaAspectConfigurationCollectionFileHeader.txt"
-                            )
-                    ),
-                    "de.tum.cit.ase", // TODO: Replace with flexible package name handling
-                    (ProjectSourcesFinder.isGradleProject() ? "build" : "target") + File.separator + withinPath.toString()
-            );
-        }
-        //<editor-fold desc="Catches">
-        catch (IOException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot write to JavaAspectConfigurationCollection.java on " + path + " due to not being able to read " + javaArchitectureTestCaseCollectionFileHeaderPath + " due to an I/O exception: " + e);
-        } catch (OutOfMemoryError e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot write to JavaAspectConfigurationCollection.java on " + path + " due to not being able to read " + javaArchitectureTestCaseCollectionFileHeaderPath + " due to an out of memory exception: " + e);
-        } catch (IllegalFormatException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot write to JavaAspectConfigurationCollection.java on " + path + " due to " + javaArchitectureTestCaseCollectionFileHeaderPath + " defining an illegal format: " + e);
-        }
-        //</editor-fold>
-        String javaAspectConfigurationCollectionFileBody;
-        try {
-            javaAspectConfigurationCollectionFileBody = String.join(
-                    "\n",
-                    javaAspectConfigurations.stream().map(JavaAspectConfiguration::createAspectConfigurationFileContent).toList()
-            );
-        }
-        //<editor-fold desc="Catches">
-        catch (NullPointerException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot write to JavaAspectConfigurationCollection.java on " + path + " due to one of the architecture test case file contents being null: " + e);
-        }
-        //</editor-fold>
-        String javaAspectConfigurationCollectionFileFooter;
-        try {
-            javaAspectConfigurationCollectionFileFooter = String.format(
-                    Files.readString(
-                            Path.of(
-                                    "src",
-                                    "main",
-                                    "resources",
-                                    "templates",
-                                    "javaAspectConfigurationCollectionFileFooter.txt"
-                            )
-                    )
-            );
-        }
-        //<editor-fold desc="Catches">
-        catch (IOException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot write to JavaAspectConfigurationCollection.java on " + path + " due to not being able to read " + javaArchitectureTestCaseCollectionFileFooterPath + " due to an I/O exception: " + e);
-        } catch (OutOfMemoryError e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot write to JavaAspectConfigurationCollection.java on " + path + " due to not being able to read " + javaArchitectureTestCaseCollectionFileFooterPath + " due to an out of memory exception: " + e);
-        } catch (IllegalFormatException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot write to JavaAspectConfigurationCollection.java on " + path + " due to " + javaArchitectureTestCaseCollectionFileFooterPath + " defining an illegal format: " + e);
-        }
-        //</editor-fold>
-        try {
-            Files.writeString(
-                    javaAspectConfigurationCollectionFile,
-                    String.join(
-                            "\n",
-                            List.of(
-                                    javaAspectConfigurationCollectionFileHeader,
-                                    javaAspectConfigurationCollectionFileBody,
-                                    javaAspectConfigurationCollectionFileFooter
-                            )
-                    ),
-                    StandardOpenOption.WRITE
-            );
-        }
-        //<editor-fold desc="Catches">
-        catch (IllegalArgumentException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot write to JavaArchitectureTestCaseCollection.java on " + path + " due to an illegal argument: " + e);
-        } catch (IOException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot write to JavaArchitectureTestCaseCollection.java on " + path + " due to an I/O exception: " + e);
-        } catch (NullPointerException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot write to JavaArchitectureTestCaseCollection.java on " + path + " due to one of the architecture test case file parts being null: " + e);
-        } catch (UnsupportedOperationException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Cannot write to JavaArchitectureTestCaseCollection.java on " + path + " due to missing supported by this JVM: " + e);
-        }
-        //</editor-fold>
-        //</editor-fold>
-        return List.of(javaArchitectureTestCaseCollectionFile, javaAspectConfigurationCollectionFile);
 
+        //<editor-fold desc="Create aspect configuration file">
+        Path javaAspectConfigurationCollectionFile = switch (javaAOPMode) {
+            case ASPECTJ -> FileTools.createThreePartedFile(
+                    Paths.get("src", "main", "resources", "templates", "JavaAspectJConfigurationCollectionHeader.txt"),
+                    String.join("\n", javaAspectJConfigurations.stream().map(JavaAspectJConfiguration::createAspectConfigurationFileContent).toList()),
+                    Paths.get("src", "main", "resources", "templates", "JavaAspectJConfigurationCollectionFooter.txt"),
+                    "JavaAspectJConfigurationSettings.java",
+                    path
+            );
+            case INSTRUMENTATION -> FileTools.createThreePartedFile(
+                    Paths.get("src", "main", "resources", "templates", "JavaInstrumentationConfigurationCollectionHeader.txt"),
+                    String.join("\n", javaInstrumentationConfigurations.stream().map(JavaInstrumentationConfiguration::createAspectConfigurationFileContent).toList()),
+                    Paths.get("src", "main", "resources", "templates", "JavaInstrumentationConfigurationCollectionFooter.txt"),
+                    "JavaInstrumentationConfigurationSettings.java",
+                    path
+            );
+        };
+        //</editor-fold>
+
+        //<editor-fold desc="Combine files">
+        return new ArrayList<>(copiedFiles) {{
+            add(javaArchitectureTestCaseCollectionFile);
+            add(javaAspectConfigurationCollectionFile);
+        }};
+        //</editor-fold>
     }
 
     /**
-     * Runs the security test cases in the Java programming language.
+     * Executes the generated security test cases.
+     * <p>
+     * This method imports the classes from the specified path and runs the security test cases
+     * defined in the architecture test cases and aspect configurations. It checks for certain
+     * architecture violations and applies aspect-oriented configurations if needed.
+     * </p>
      */
     @Override
     public void runSecurityTestCases() {
-        JavaClasses classes = new ClassFileImporter().importPath((ProjectSourcesFinder.isGradleProject() ? "build" : "target") + File.separator + withinPath.toString());
+        JavaClasses classes = new ClassFileImporter().importPath(Paths.get(ProjectSourcesFinder.isGradleProject() ? "build" : "target", withinPath.toString()).toString());
         JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_USE_REFLECTION.check(classes);
         JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_TERMINATE_JVM.check(classes);
         javaArchitectureTestCases.forEach(archTest -> archTest.runArchitectureTestCase(classes));
-        javaAspectConfigurations.forEach(JavaAspectConfiguration::runAspectConfiguration);
+        switch (javaAOPMode) {
+            case ASPECTJ -> javaAspectJConfigurations.forEach(JavaAspectJConfiguration::runAspectConfiguration);
+            case INSTRUMENTATION ->
+                    javaInstrumentationConfigurations.forEach(JavaInstrumentationConfiguration::runAspectConfiguration);
+        }
     }
+    //</editor-fold>
 }

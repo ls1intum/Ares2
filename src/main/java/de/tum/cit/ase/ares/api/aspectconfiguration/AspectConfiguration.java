@@ -1,9 +1,13 @@
 package de.tum.cit.ase.ares.api.aspectconfiguration;
 
 /**
- * Interface for the aspect configurations in any programming language and abstract product of the abstract factory design pattern.
+ * Interface for aspect configurations in any programming language.
+ * <p>
+ * This interface represents the abstract product in the Abstract Factory Design Pattern.
+ * It defines the methods that must be implemented by any concrete aspect configuration,
+ * regardless of the programming language.
+ * </p>
  *
- * @author Markus Paulsen
  * @version 2.0.0
  * @see <a href="https://refactoring.guru/design-patterns/abstract-factory">Abstract Factory Design Pattern</a>
  * @since 2.0.0
@@ -11,14 +15,22 @@ package de.tum.cit.ase.ares.api.aspectconfiguration;
 public interface AspectConfiguration {
 
     /**
-     * Creates the content of the aspect configuration file in any programming language.
+     * Creates the content of the aspect configuration file in the specific programming language.
+     * <p>
+     * This method should generate the configuration content necessary for applying aspect-oriented
+     * programming (AOP) in the target programming language.
+     * </p>
      *
-     * @return Content of the aspect configuration file
+     * @return the content of the aspect configuration file as a {@link String}.
      */
     String createAspectConfigurationFileContent();
 
     /**
-     * Runs the aspect configuration in any programming language.
+     * Executes the aspect configuration in the specific programming language.
+     * <p>
+     * This method is responsible for running or applying the aspect configuration,
+     * ensuring that the desired aspects are correctly integrated into the application.
+     * </p>
      */
     void runAspectConfiguration();
 }

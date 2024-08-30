@@ -1,38 +1,33 @@
 # This is an example configuration file for the programming exercise "ExampleProgrammingExercise".
-theProgrammingLanguageOfTheSupervisedCodeIs: JAVA_USING_GRADLE_AND_INSTRUMENTATION,
-theFollowingFeaturesAreAllowedForTheSupervisedCode: [
-  regardingFileSystemInteractions: [
-    itIsAllowedTo: [
-      readAllFiles: true,
-      overwriteAllFiles: true,
-      executeAllFiles: true,
-      onThisPathAndAllPathsBelow: "/Path"
-    ]
-  ],
-  regardingNetworkConnections: [
-    itIsAllowedTo: [
-      openConnections: true,
-      sendData: true,
-      receiveData: true,
-      onTheHost: "www.example.com",
-      onThePort: 80
-    ]
-  ],
-  regardingCommandExecutionsForTheStudents: [
-    itIsAllowedTo: [
-      executeTheCommand: "ls",
-      withTheseArguments: [ "-l" ]
-    ]
-  ],
-  regardingThreadCreationsForTheStudents: [
-    itIsAllowedTo: [
-      createTheFollowingNumberOfThreads: 10,
-      ofThisClass: "java.lang.Thread"
-    ]
-  ],
-  regardingPackageImport: [
-    itIsAllowedTo: [
-      importTheFollowingPackage: "java.util"
-    ]
-  ],
-]
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_GRADLE_AND_INSTRUMENTATION,
+  theFollowingRessourceAccessesArePermitted:
+    regardingFileSystemInteractions:
+      itIsPermittedTo: [
+        readAllFiles: true,
+        overwriteAllFiles: true,
+        executeAllFiles: true,
+        onThisPathAndAllPathsBelow: "/Path"
+      ]
+    regardingNetworkConnections:
+      itIsPermittedTo: [
+        openConnections: true,
+        sendData: true,
+        receiveData: true,
+        onTheHost: "www.example.com",
+        onThePort: 80
+      ]
+    regardingCommandExecutions:
+      itIsPermittedTo: [
+        executeTheCommand: "ls",
+        withTheseArguments: [ "-l" ]
+      ]
+    regardingThreadCreations:
+      itIsPermittedTo: [
+        createTheFollowingNumberOfThreads: 10,
+        ofThisClass: "javainstrumentation.lang.Thread"
+      ]
+    regardingPackageImports:
+      itIsPermittedTo: [
+        importTheFollowingPackage: "javainstrumentation.util"
+      ]

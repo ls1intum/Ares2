@@ -3,13 +3,10 @@ package de.tum.cit.ase.ares.api.architecturetest.java;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import de.tum.cit.ase.ares.api.architecturetest.ArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecturetest.java.postcompile.JavaArchitectureTestCaseCollection;
-import de.tum.cit.ase.ares.api.policy.PackageImport;
+import de.tum.cit.ase.ares.api.policy.SecurityPolicy.PackagePermission;
 
 import java.io.IOException;
-import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -46,10 +43,10 @@ public class JavaArchitectureTestCase implements ArchitectureTestCase {
         this.javaSupportedArchitectureTestCase = javaSupportedArchitectureTestCase;
     }
 
-    public JavaArchitectureTestCase(JavaSupportedArchitectureTestCase javaSupportedArchitectureTestCase, Set<PackageImport> packages) {
+    public JavaArchitectureTestCase(JavaSupportedArchitectureTestCase javaSupportedArchitectureTestCase, Set<PackagePermission> packages) {
         super();
         this.javaSupportedArchitectureTestCase = javaSupportedArchitectureTestCase;
-        this.allowedPackages = packages.stream().map(PackageImport::iAllowTheStudentsToImportTheFollowingPackage).collect(Collectors.toSet());
+        this.allowedPackages = packages.stream().map(PackagePermission::importTheFollowingPackage).collect(Collectors.toSet());
     }
 
     /**

@@ -1,9 +1,9 @@
-package de.tum.cit.ase.ares.api.aspectconfiguration.java;
+package de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.pointcut;
 
-import de.tum.cit.ase.ares.api.aspectconfiguration.java.advice.JavaAdviceToolbox;
-import de.tum.cit.ase.ares.api.aspectconfiguration.java.advice.JavaReadPathAdvice;
-import de.tum.cit.ase.ares.api.aspectconfiguration.java.advice.JavaWritePathAdvice;
-import de.tum.cit.ase.ares.api.aspectconfiguration.java.advice.JavaExecutePathAdvice;
+import de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.advice.JavaInstrumentationAdviceToolbox;
+import de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.advice.JavaInstrumentationExecutePathAdvice;
+import de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.advice.JavaInstrumentationReadPathAdvice;
+import de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.advice.JavaInstrumentationOverwritePathAdvice;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.ClassFileLocator;
@@ -16,9 +16,9 @@ import java.util.List;
 import java.util.Map;
 
 
-public class JavaBindings {
+public class JavaInstrumentationBindingDefinitions {
 
-    private JavaBindings() {
+    private JavaInstrumentationBindingDefinitions() {
         throw new IllegalStateException("Utility class");
     }
 
@@ -28,14 +28,14 @@ public class JavaBindings {
             Map<String, List<String>> pointcuts, Class<?> advice
     ) {
         loadToolbox(classLoader);
-        return builder.visit(Advice.to(advice).on(JavaPointcuts.getMethodsMatcher(typeDescription, pointcuts)));
+        return builder.visit(Advice.to(advice).on(JavaInstrumentationPointcutDefinitions.getMethodsMatcher(typeDescription, pointcuts)));
     }
 
     private static void loadToolbox(ClassLoader classLoader) {
         new ClassInjector.UsingUnsafe(classLoader)
                 .inject(Map.of(
-                        new TypeDescription.ForLoadedType(JavaAdviceToolbox.class),
-                        ClassFileLocator.ForClassLoader.read(JavaAdviceToolbox.class)
+                        new TypeDescription.ForLoadedType(JavaInstrumentationAdviceToolbox.class),
+                        ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceToolbox.class)
                 ));
     }
     //</editor-fold>
@@ -48,20 +48,20 @@ public class JavaBindings {
     ) {
         return createBinding(
                 builder, typeDescription, classLoader,
-                JavaPointcuts.methodsWhichCanReadFiles, JavaReadPathAdvice.class
+                JavaInstrumentationPointcutDefinitions.methodsWhichCanReadFiles, JavaInstrumentationReadPathAdvice.class
         );
     }
     //</editor-fold>
 
-    //<editor-fold desc="Write Path">
-    static DynamicType.Builder<?> createWritePathBinding(
+    //<editor-fold desc="Overwrite Path">
+    static DynamicType.Builder<?> createOverwritePathBinding(
             DynamicType.Builder<?> builder, TypeDescription typeDescription,
             ClassLoader classLoader, JavaModule ignoredJavaModule,
             ProtectionDomain ignoredProtectionDomain
     ) {
         return createBinding(
                 builder, typeDescription, classLoader,
-                JavaPointcuts.methodsWhichCanWriteFiles, JavaWritePathAdvice.class
+                JavaInstrumentationPointcutDefinitions.methodsWhichCanOverwriteFiles, JavaInstrumentationOverwritePathAdvice.class
         );
     }
     //</editor-fold>
@@ -74,7 +74,7 @@ public class JavaBindings {
     ) {
         return createBinding(
                 builder, typeDescription, classLoader,
-                JavaPointcuts.methodsWhichCanExecuteFiles, JavaExecutePathAdvice.class
+                JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteFiles, JavaInstrumentationExecutePathAdvice.class
         );
     }
     //</editor-fold>
