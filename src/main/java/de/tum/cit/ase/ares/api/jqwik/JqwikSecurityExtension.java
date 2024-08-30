@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.util.Optional;
 
 import de.tum.cit.ase.ares.api.Policy;
+import de.tum.cit.ase.ares.api.aspectconfiguration.java.JavaAspectConfigurationLists;
 import de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 import org.apiguardian.api.API;
@@ -48,7 +49,8 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
 					new SecurityPolicyReaderAndDirector(policyPath, Path.of("classes")).runSecurityTestCases();
 				}
 			}
-
+		} else {
+			JavaAspectConfigurationLists.reset();
 		}
 //REMOVED: Installing of ArtemisSecurityManager
 		PropertyExecutionResult result;

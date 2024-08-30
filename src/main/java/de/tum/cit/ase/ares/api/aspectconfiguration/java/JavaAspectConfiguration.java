@@ -3,7 +3,6 @@ package de.tum.cit.ase.ares.api.aspectconfiguration.java;
 import de.tum.cit.ase.ares.api.aspectconfiguration.AspectConfiguration;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 
-import java.nio.file.Path;
 import java.util.stream.Collectors;
 
 /**
@@ -16,22 +15,20 @@ import java.util.stream.Collectors;
  */
 public class JavaAspectConfiguration implements AspectConfiguration {
 
+    public static final String END_OF_LIST = "\n);\n";
+    
     private final JavaSupportedAspectConfiguration javaSupportedAspectConfiguration;
     private final SecurityPolicy securityPolicy;
-    // TODO: this is currently not used
-    private final Path withinPath;
 
     /**
      * Constructor for JavaAspectConfiguration.
      *
      * @param javaSupportedAspectConfiguration Selects the supported aspect configuration in the Java programming language
      * @param securityPolicy                   Security policy for the aspect configuration
-     * @param withinPath
      */
-    public JavaAspectConfiguration(JavaSupportedAspectConfiguration javaSupportedAspectConfiguration, SecurityPolicy securityPolicy, Path withinPath) {
+    public JavaAspectConfiguration(JavaSupportedAspectConfiguration javaSupportedAspectConfiguration, SecurityPolicy securityPolicy) {
         this.javaSupportedAspectConfiguration = javaSupportedAspectConfiguration;
         this.securityPolicy = securityPolicy;
-        this.withinPath = withinPath;
     }
 
     /**
@@ -52,7 +49,7 @@ public class JavaAspectConfiguration implements AspectConfiguration {
                                 securityContent.studentsAreAllowedToReadAllFiles(),
                                 securityContent.studentsAreAllowedToDeleteAllFiles()))
                         .collect(Collectors.joining(",\n")));
-                content.append("\n);\n");
+                content.append(END_OF_LIST);
             }
             case NETWORK_CONNECTION -> {
                 content.append("private static final List<NetworkConnection> allowedNetworkConnections = List.of(\n");
@@ -62,7 +59,7 @@ public class JavaAspectConfiguration implements AspectConfiguration {
                                 securityContent.forThisIPAddress(),
                                 securityContent.iAllowTheStudentsToAccessThePort()))
                         .collect(Collectors.joining(",\n")));
-                content.append("\n);\n");
+                content.append(END_OF_LIST);
             }
             case COMMAND_EXECUTION -> {
                 content.append("private static final List<CommandExecution> allowedCommandExecutions = List.of(\n");
@@ -73,7 +70,7 @@ public class JavaAspectConfiguration implements AspectConfiguration {
                                         .map(arg -> "\"" + arg + "\"")
                                         .collect(Collectors.joining(", "))))
                         .collect(Collectors.joining(",\n")));
-                content.append("\n);\n");
+                content.append(END_OF_LIST);
             }
             case THREAD_CREATION -> {
                 content.append("private static final List<ThreadCreation> allowedThreadCreations = List.of(\n");
@@ -81,7 +78,7 @@ public class JavaAspectConfiguration implements AspectConfiguration {
                         .map(securityContent -> String.format("new ThreadCreation(\"%s\")",
                                 securityContent.iAllowTheStudentsToCreateOneThreadFromTheFollowingClass()))
                         .collect(Collectors.joining(",\n")));
-                content.append("\n);\n");
+                content.append(END_OF_LIST);
             }
             case PACKAGE_IMPORT -> {
                 content.append("private static final List<PackageImport> allowedPackageImports = List.of(\n");
@@ -89,7 +86,7 @@ public class JavaAspectConfiguration implements AspectConfiguration {
                         .map(securityContent -> String.format("new PackageImport(\"%s\")",
                                 securityContent.iAllowTheStudentsToImportTheFollowingPackage()))
                         .collect(Collectors.joining(",\n")));
-                content.append("\n);\n");
+                content.append(END_OF_LIST);
             }
             default -> throw new UnsupportedOperationException("Unsupported configuration: " + javaSupportedAspectConfiguration);
         }
@@ -101,27 +98,13 @@ public class JavaAspectConfiguration implements AspectConfiguration {
      */
     @Override
     public void runAspectConfiguration() {
-        if (securityPolicy == null) {
-            deactivateAspectJConfig();
-            return;
-        }
-        // TODO: This is definitely a code smell. Why do we change static stuff from a non-static method take a look at java:S2696
         switch (javaSupportedAspectConfiguration) {
-            case FILESYSTEM_INTERACTION -> JavaAspectConfigurationLists.allowedFileSystemInteractions = securityPolicy.iAllowTheFollowingFileSystemInteractionsForTheStudents();
-            case NETWORK_CONNECTION -> JavaAspectConfigurationLists.allowedNetworkConnections = securityPolicy.iAllowTheFollowingNetworkConnectionsForTheStudents();
-            case COMMAND_EXECUTION -> JavaAspectConfigurationLists.allowedCommandExecutions = securityPolicy.iAllowTheFollowingCommandExecutionsForTheStudents();
-            case THREAD_CREATION -> JavaAspectConfigurationLists.allowedThreadCreations = securityPolicy.iAllowTheFollowingThreadCreationsForTheStudents();
-            case PACKAGE_IMPORT -> JavaAspectConfigurationLists.allowedPackageImports = securityPolicy.iAllowTheFollowingPackageImportForTheStudents();
+            case FILESYSTEM_INTERACTION -> JavaAspectConfigurationLists.setAllowedFileSystemInteractions(securityPolicy == null ? null : securityPolicy.iAllowTheFollowingFileSystemInteractionsForTheStudents());
+            case NETWORK_CONNECTION -> JavaAspectConfigurationLists.setAllowedNetworkConnections(securityPolicy == null ? null : securityPolicy.iAllowTheFollowingNetworkConnectionsForTheStudents());
+            case COMMAND_EXECUTION -> JavaAspectConfigurationLists.setAllowedCommandExecutions(securityPolicy == null ? null : securityPolicy.iAllowTheFollowingCommandExecutionsForTheStudents());
+            case THREAD_CREATION -> JavaAspectConfigurationLists.setAllowedThreadCreations(securityPolicy == null ? null : securityPolicy.iAllowTheFollowingThreadCreationsForTheStudents());
+            case PACKAGE_IMPORT -> JavaAspectConfigurationLists.setAllowedPackageImports(securityPolicy == null ? null : securityPolicy.iAllowTheFollowingPackageImportForTheStudents());
             default -> throw new UnsupportedOperationException("Unsupported configuration: " + javaSupportedAspectConfiguration);
         }
-    }
-
-    // TODO: Why do we even need this??? This should be handled more elegantly.
-    public static void deactivateAspectJConfig () {
-        JavaAspectConfigurationLists.allowedFileSystemInteractions = null;
-        JavaAspectConfigurationLists.allowedNetworkConnections = null;
-        JavaAspectConfigurationLists.allowedCommandExecutions = null;
-        JavaAspectConfigurationLists.allowedThreadCreations = null;
-        JavaAspectConfigurationLists.allowedPackageImports = null;
     }
 }

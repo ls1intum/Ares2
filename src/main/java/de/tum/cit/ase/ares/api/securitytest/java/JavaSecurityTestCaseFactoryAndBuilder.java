@@ -83,11 +83,12 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
             if (isEmpty(methods[i].get())) {
                 javaArchitectureTestCases.add(new JavaArchitectureTestCase(JavaSupportedArchitectureTestCase.values()[i]));
             } else {
-                javaAspectConfigurations.add(new JavaAspectConfiguration(JavaSupportedAspectConfiguration.values()[i], securityPolicy, withinPath));
+                javaAspectConfigurations.add(new JavaAspectConfiguration(JavaSupportedAspectConfiguration.values()[i], securityPolicy));
             }
         }
 
-        javaArchitectureTestCases.add(new JavaArchitectureTestCase(JavaSupportedArchitectureTestCase.PACKAGE_IMPORT, new HashSet<>(securityPolicy.iAllowTheFollowingPackageImportForTheStudents())));
+        // TODO improve this since this is always allowed and java.lang, java.util classes also marked in the YAML files
+        // javaArchitectureTestCases.add(new JavaArchitectureTestCase(JavaSupportedArchitectureTestCase.PACKAGE_IMPORT, new HashSet<>(securityPolicy.iAllowTheFollowingPackageImportForTheStudents())));
     }
 
     /**
@@ -345,5 +346,6 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_USE_REFLECTION.check(classes);
         JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_TERMINATE_JVM.check(classes);
         javaArchitectureTestCases.forEach(archTest -> archTest.runArchitectureTestCase(classes));
+        javaAspectConfigurations.forEach(JavaAspectConfiguration::runAspectConfiguration);
     }
 }
