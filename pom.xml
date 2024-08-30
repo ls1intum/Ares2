@@ -408,6 +408,33 @@
 				<artifactId>maven-surefire-plugin</artifactId>
 				<version>3.3.0</version>
 			</plugin>
+			<!-- Shade Plugin to package the agent JAR -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>3.2.4</version>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<transformers>
+								<!-- Ensures the MANIFEST.MF file is created -->
+								<transformer
+										implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+									<mainClass>de.tum.cit.ase.ares.api.aspectconfiguration.java.JavaAgent</mainClass>
+									<manifestEntries>
+										<Premain-Class>de.tum.cit.ase.ares.api.aspectconfiguration.java.JavaAgent</Premain-Class>
+										<Can-Retransform-Classes>true</Can-Retransform-Classes>
+									</manifestEntries>
+								</transformer>
+							</transformers>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 	<name>Ares</name>
