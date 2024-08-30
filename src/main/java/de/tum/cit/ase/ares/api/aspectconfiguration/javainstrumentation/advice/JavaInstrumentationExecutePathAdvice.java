@@ -2,7 +2,10 @@ package de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.advice;
 
 import java.lang.reflect.Field;
 
-import static net.bytebuddy.asm.Advice.*;
+import static net.bytebuddy.asm.Advice.OnMethodEnter;
+import static net.bytebuddy.asm.Advice.Origin;
+import static net.bytebuddy.asm.Advice.This;
+import static net.bytebuddy.asm.Advice.AllArguments;
 
 public class JavaInstrumentationExecutePathAdvice {
     @OnMethodEnter

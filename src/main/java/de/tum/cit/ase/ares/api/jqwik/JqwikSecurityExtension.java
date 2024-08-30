@@ -4,7 +4,8 @@ import java.nio.file.Path;
 import java.util.Optional;
 
 import de.tum.cit.ase.ares.api.Policy;
-import de.tum.cit.ase.ares.api.aspectconfiguration.java.JavaAspectConfigurationLists;
+import de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.JavaAspectJConfigurationSettings;
+import de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.JavaInstrumentationConfigurationSettings;
 import de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 import org.apiguardian.api.API;
@@ -50,7 +51,7 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
 				}
 			}
 		} else {
-			JavaAspectConfigurationLists.reset();
+			JavaAspectJConfigurationSettings.reset();
 		}
 //REMOVED: Installing of ArtemisSecurityManager
 		PropertyExecutionResult result;

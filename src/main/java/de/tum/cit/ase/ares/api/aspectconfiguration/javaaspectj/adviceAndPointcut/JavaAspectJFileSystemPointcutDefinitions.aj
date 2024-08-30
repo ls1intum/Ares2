@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.pointcut;
+package de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.adviceAndPointcut;
 
 public aspect JavaAspectJFileSystemPointcutDefinitions {
 

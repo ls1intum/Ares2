@@ -9,7 +9,11 @@ import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 import com.tngtech.archunit.thirdparty.com.google.common.collect.ImmutableList;
 
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Collections;
 
 import static com.tngtech.archunit.lang.ConditionEvent.createMessage;
 import static com.tngtech.archunit.thirdparty.com.google.common.base.Preconditions.checkNotNull;
@@ -162,7 +166,7 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
                             .getFullName()
                             .substring(javaClass.getFullName().length())
                             .equals(methodName)
-                    && isExceptionOrError(a.getTargetOwner()))
+                            && isExceptionOrError(a.getTargetOwner()))
                     .collect(toSet());
         }
 

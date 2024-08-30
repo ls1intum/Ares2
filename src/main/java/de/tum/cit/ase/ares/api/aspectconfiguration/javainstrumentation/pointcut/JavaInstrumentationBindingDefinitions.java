@@ -41,7 +41,7 @@ public class JavaInstrumentationBindingDefinitions {
     //</editor-fold>
 
     //<editor-fold desc="Read Path">
-    static DynamicType.Builder<?> createReadPathBinding(
+    public static DynamicType.Builder<?> createReadPathBinding(
             DynamicType.Builder<?> builder, TypeDescription typeDescription,
             ClassLoader classLoader, JavaModule ignoredJavaModule,
             ProtectionDomain ignoredProtectionDomain
@@ -54,7 +54,7 @@ public class JavaInstrumentationBindingDefinitions {
     //</editor-fold>
 
     //<editor-fold desc="Overwrite Path">
-    static DynamicType.Builder<?> createOverwritePathBinding(
+    public static DynamicType.Builder<?> createOverwritePathBinding(
             DynamicType.Builder<?> builder, TypeDescription typeDescription,
             ClassLoader classLoader, JavaModule ignoredJavaModule,
             ProtectionDomain ignoredProtectionDomain
@@ -67,7 +67,7 @@ public class JavaInstrumentationBindingDefinitions {
     //</editor-fold>
 
     //<editor-fold desc="Execute Path">
-    static DynamicType.Builder<?> createExecutePathBinding(
+    public static DynamicType.Builder<?> createExecutePathBinding(
             DynamicType.Builder<?> builder, TypeDescription typeDescription,
             ClassLoader classLoader, JavaModule ignoredJavaModule,
             ProtectionDomain ignoredProtectionDomain

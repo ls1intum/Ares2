@@ -36,7 +36,7 @@ public class JavaInstrumentationPointcutDefinitions {
 
     }
 
-    static ElementMatcher<NamedElement> getClassesMatcher(
+    public static ElementMatcher<NamedElement> getClassesMatcher(
             Map<String, List<String>> methodsMap
     ) {
         Set<String> classes = methodsMap.keySet();
@@ -55,7 +55,7 @@ public class JavaInstrumentationPointcutDefinitions {
     //</editor-fold>
 
     //<editor-fold desc="Read Path">
-    static final Map<String, List<String>> methodsWhichCanReadFiles = Map.of(
+    public static final Map<String, List<String>> methodsWhichCanReadFiles = Map.of(
             "javainstrumentation.io.FileInputStream",
             List.of("<init>", "read"),
             "javainstrumentation.io.RandomAccessFile",
@@ -73,7 +73,7 @@ public class JavaInstrumentationPointcutDefinitions {
     //</editor-fold>
 
     //<editor-fold desc="Overwrite Path">
-    static final Map<String, List<String>> methodsWhichCanOverwriteFiles = Map.of(
+    public static final Map<String, List<String>> methodsWhichCanOverwriteFiles = Map.of(
             "javainstrumentation.io.FileOutputStream",
             List.of("<init>","write"),
             "javainstrumentation.io.RandomAccessFile",
@@ -91,7 +91,7 @@ public class JavaInstrumentationPointcutDefinitions {
     //</editor-fold>
 
     //<editor-fold desc="Execute Path">
-    static final Map<String, List<String>> methodsWhichCanExecuteFiles = Map.of(
+    public static final Map<String, List<String>> methodsWhichCanExecuteFiles = Map.of(
             "javainstrumentation.io.UnixFileSystem",
             List.of("checkAccess", "setPermission"),
             "javainstrumentation.io.WinNTFileSystem",

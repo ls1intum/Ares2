@@ -36,10 +36,10 @@ public class JavaInstrumentationConfigurationSettings {
      */
     private static String[] allowedListedClasses = {
             "de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.JavaInstrumentationConfigurationSettings",
-            "de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.advice.JavaInstrumentationAdviceToolbox",
-            "de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.advice.JavaInstrumentationReadPathAdvice",
-            "de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.advice.JavaWritePathAdvice",
-            "de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.advice.JavaInstrumentationExecutePathAdvice",
+            "de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.adviceAndPointcut.JavaInstrumentationAdviceToolbox",
+            "de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.adviceAndPointcut.JavaInstrumentationReadPathAdvice",
+            "de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.adviceAndPointcut.JavaWritePathAdvice",
+            "de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.adviceAndPointcut.JavaInstrumentationExecutePathAdvice",
             "de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.pointcut.JavaInstrumentationPointcutDefinitions",
             "de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.pointcut.JavaInstrumentationBindingDefinitions",
             "de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.JavaInstrumentationAgent"

@@ -143,10 +143,10 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                             Paths.get("src", "main", "resources", "aspectOrientedProgrammingFiles", "JavaAspectJConfigurationSupported.java")
                     );
                     case INSTRUMENTATION -> List.of(
-                            Paths.get("src", "main", "java", "de", "tum", "cit", "ase", "ares", "api", "aspectconfiguration", "javainstrumentation", "advice", "JavaInstrumentationAdviceToolbox.java"),
-                            Paths.get("src", "main", "java", "de", "tum", "cit", "ase", "ares", "api", "aspectconfiguration", "javainstrumentation", "advice", "JavaInstrumentationReadPathAdvice.java"),
-                            Paths.get("src", "main", "java", "de", "tum", "cit", "ase", "ares", "api", "aspectconfiguration", "javainstrumentation", "advice", "JavaInstrumentationOverwritePathAdvice.java"),
-                            Paths.get("src", "main", "java", "de", "tum", "cit", "ase", "ares", "api", "aspectconfiguration", "javainstrumentation", "advice", "JavaInstrumentationExecutePathAdvice.java"),
+                            Paths.get("src", "main", "java", "de", "tum", "cit", "ase", "ares", "api", "aspectconfiguration", "javainstrumentation", "adviceAndPointcut", "JavaInstrumentationAdviceToolbox.java"),
+                            Paths.get("src", "main", "java", "de", "tum", "cit", "ase", "ares", "api", "aspectconfiguration", "javainstrumentation", "adviceAndPointcut", "JavaInstrumentationReadPathAdvice.java"),
+                            Paths.get("src", "main", "java", "de", "tum", "cit", "ase", "ares", "api", "aspectconfiguration", "javainstrumentation", "adviceAndPointcut", "JavaInstrumentationOverwritePathAdvice.java"),
+                            Paths.get("src", "main", "java", "de", "tum", "cit", "ase", "ares", "api", "aspectconfiguration", "javainstrumentation", "adviceAndPointcut", "JavaInstrumentationExecutePathAdvice.java"),
                             Paths.get("src", "main", "java", "de", "tum", "cit", "ase", "ares", "api", "aspectconfiguration", "javainstrumentation", "JavaInstrumentationPointcutDefinitions.java"),
                             Paths.get("src", "main", "java", "de", "tum", "cit", "ase", "ares", "api", "aspectconfiguration", "javainstrumentation", "JavaInstrumentationBindingDefinitions.java"),
                             Paths.get("src", "main", "java", "de", "tum", "cit", "ase", "ares", "api", "aspectconfiguration", "javainstrumentation", "JavaInstrumentationAgent.java")

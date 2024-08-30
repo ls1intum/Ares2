@@ -1,7 +1,7 @@
 package de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation;
 
 import de.tum.cit.ase.ares.api.aspectconfiguration.AspectConfiguration;
-import de.tum.cit.ase.ares.api.policy.SecurityPolicy.RessourceAccesses;
+import de.tum.cit.ase.ares.api.policy.SecurityPolicy.ResourceAccesses;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy.FilePermission;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy.NetworkPermission;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy.CommandPermission;
@@ -27,7 +27,7 @@ import java.util.stream.Stream;
 public class JavaInstrumentationConfiguration implements AspectConfiguration {
 
     private final JavaInstrumentationConfigurationSupported javaInstrumentationConfigurationSupported;
-    private final RessourceAccesses ressourceAccesses;
+    private final ResourceAccesses ressourceAccesses;
 
     /**
      * Constructs a new JavaInstrumentationConfiguration with the specified configuration and resource accesses.
@@ -35,7 +35,7 @@ public class JavaInstrumentationConfiguration implements AspectConfiguration {
      * @param javaInstrumentationConfigurationSupported the specific type of aspect configuration to support.
      * @param ressourceAccesses                         the resource accesses defined by the security policy.
      */
-    public JavaInstrumentationConfiguration(JavaInstrumentationConfigurationSupported javaInstrumentationConfigurationSupported, RessourceAccesses ressourceAccesses) {
+    public JavaInstrumentationConfiguration(JavaInstrumentationConfigurationSupported javaInstrumentationConfigurationSupported, ResourceAccesses ressourceAccesses) {
         this.javaInstrumentationConfigurationSupported = javaInstrumentationConfigurationSupported;
         this.ressourceAccesses = ressourceAccesses;
     }
@@ -43,11 +43,11 @@ public class JavaInstrumentationConfiguration implements AspectConfiguration {
     //<editor-fold desc="Tools">
 
     /**
-     * Generates a formatted string representing an advice setting value.
+     * Generates a formatted string representing an adviceAndPointcut setting value.
      *
-     * @param adviceSetting the name of the advice setting.
-     * @param value         the values to be set in the advice configuration.
-     * @return a formatted string representing the advice setting.
+     * @param adviceSetting the name of the adviceAndPointcut setting.
+     * @param value         the values to be set in the adviceAndPointcut configuration.
+     * @return a formatted string representing the adviceAndPointcut setting.
      */
     private String generateAdviceSettingValue(String adviceSetting, List<String> value) {
         return String.format(
@@ -58,20 +58,20 @@ public class JavaInstrumentationConfiguration implements AspectConfiguration {
     }
 
     /**
-     * Sets the value of a specific Java advice setting using reflection.
+     * Sets the value of a specific Java adviceAndPointcut setting using reflection.
      *
-     * @param adviceSetting the name of the advice setting.
-     * @param value         the value to set for the advice setting.
+     * @param adviceSetting the name of the adviceAndPointcut setting.
+     * @param value         the value to set for the adviceAndPointcut setting.
      */
     public void setJavaAdviceSettingValue(String adviceSetting, Object value) {
         try {
-            Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.advice.AdviceSettings", true, null);
+            Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.adviceAndPointcut.AdviceSettings", true, null);
             Field field = adviceSettingsClass.getDeclaredField(adviceSetting);
             field.setAccessible(true);
             field.set(null, value);
             field.setAccessible(false);
         } catch (NoSuchFieldException | ClassNotFoundException | IllegalAccessException e) {
-            throw new SecurityException("Failed to set Java advice setting value.", e);
+            throw new SecurityException("Failed to set Java adviceAndPointcut setting value.", e);
         }
     }
     //</editor-fold>
@@ -79,11 +79,11 @@ public class JavaInstrumentationConfiguration implements AspectConfiguration {
     //<editor-fold desc="File System Interactions">
 
     /**
-     * Generates the name of the advice setting for file system path permissions.
+     * Generates the name of the adviceAndPointcut setting for file system path permissions.
      *
-     * @param dataType       the data type of the advice setting (e.g., String[]).
+     * @param dataType       the data type of the adviceAndPointcut setting (e.g., String[]).
      * @param filePermission the type of file permission (read, overwrite, execute).
-     * @return the name of the advice setting.
+     * @return the name of the adviceAndPointcut setting.
      */
     private String getFilesystemPathAdviceSettingName(String dataType, String filePermission) {
         return dataType +
@@ -119,10 +119,10 @@ public class JavaInstrumentationConfiguration implements AspectConfiguration {
     }
 
     /**
-     * Generates the advice setting content for file system interactions.
+     * Generates the adviceAndPointcut setting content for file system interactions.
      *
      * @param filePermission the type of file permission (read, overwrite, execute).
-     * @return the advice setting content as a string.
+     * @return the adviceAndPointcut setting content as a string.
      */
     private String getFilePermissionPathsAdviceSetting(String filePermission) {
         return generateAdviceSettingValue(
@@ -135,11 +135,11 @@ public class JavaInstrumentationConfiguration implements AspectConfiguration {
     //<editor-fold desc="Network Connections">
 
     /**
-     * Generates the name of the advice setting for network host permissions.
+     * Generates the name of the adviceAndPointcut setting for network host permissions.
      *
-     * @param dataType          the data type of the advice setting (e.g., String[]).
+     * @param dataType          the data type of the adviceAndPointcut setting (e.g., String[]).
      * @param networkPermission the type of network permission (connect, send, receive).
-     * @return the name of the advice setting.
+     * @return the name of the adviceAndPointcut setting.
      */
     private String getNetworkHostAdviceSettingName(String dataType, String networkPermission) {
         return dataType +
@@ -153,11 +153,11 @@ public class JavaInstrumentationConfiguration implements AspectConfiguration {
     }
 
     /**
-     * Generates the name of the advice setting for network port permissions.
+     * Generates the name of the adviceAndPointcut setting for network port permissions.
      *
-     * @param dataType          the data type of the advice setting (e.g., int[]).
+     * @param dataType          the data type of the adviceAndPointcut setting (e.g., int[]).
      * @param networkPermission the type of network permission (connect, send, receive).
-     * @return the name of the advice setting.
+     * @return the name of the adviceAndPointcut setting.
      */
     private String getNetworkPortAdviceSettingName(String dataType, String networkPermission) {
         return dataType +
@@ -215,10 +215,10 @@ public class JavaInstrumentationConfiguration implements AspectConfiguration {
     }
 
     /**
-     * Generates the advice setting content for network connections.
+     * Generates the adviceAndPointcut setting content for network connections.
      *
      * @param networkPermission the type of network permission (connect, send, receive).
-     * @return the advice setting content as a string.
+     * @return the adviceAndPointcut setting content as a string.
      */
     private String getNetworkConnectionAdviceSetting(String networkPermission) {
         return generateAdviceSettingValue(
@@ -262,10 +262,10 @@ public class JavaInstrumentationConfiguration implements AspectConfiguration {
     }
 
     /**
-     * Generates the advice setting content for command execution.
+     * Generates the adviceAndPointcut setting content for command execution.
      *
      * @param ignored a placeholder parameter to match the method signature used in Stream operations.
-     * @return the advice setting content as a string.
+     * @return the adviceAndPointcut setting content as a string.
      */
     private String getCommandExecutionAdviceSetting(String ignored) {
         return generateAdviceSettingValue(
@@ -312,10 +312,10 @@ public class JavaInstrumentationConfiguration implements AspectConfiguration {
     }
 
     /**
-     * Generates the advice setting content for thread creation.
+     * Generates the adviceAndPointcut setting content for thread creation.
      *
      * @param ignored a placeholder parameter to match the method signature used in Stream operations.
-     * @return the advice setting content as a string.
+     * @return the adviceAndPointcut setting content as a string.
      */
     private String getThreadCreationAdviceSetting(String ignored) {
         return generateAdviceSettingValue(
@@ -365,7 +365,7 @@ public class JavaInstrumentationConfiguration implements AspectConfiguration {
     /**
      * Runs the aspect configuration in the Java programming language.
      * <p>
-     * This method applies the aspect configuration settings at runtime by updating the relevant advice settings
+     * This method applies the aspect configuration settings at runtime by updating the relevant adviceAndPointcut settings
      * in the application. It uses reflection to set the appropriate values based on the security policy.
      * </p>
      */

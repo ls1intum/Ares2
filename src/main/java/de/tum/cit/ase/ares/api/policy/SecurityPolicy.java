@@ -25,7 +25,7 @@ public record SecurityPolicy(
      */
     public record SupervisedCode(
             ProgrammingLanguageConfiguration theFollowingProgrammingLanguageConfigurationIsUsed,
-            RessourceAccesses theFollowingRessourceAccessesArePermitted
+            ResourceAccesses theFollowingRessourceAccessesArePermitted
     ) {}
 
     /**
@@ -62,7 +62,7 @@ public record SecurityPolicy(
      * @param regardingThreadCreations        the permitted thread creations.
      * @param regardingPackageImports         the permitted package imports.
      */
-    public record RessourceAccesses(
+    public record ResourceAccesses(
             FileSystemInteractions regardingFileSystemInteractions,
             NetworkConnections regardingNetworkConnections,
             CommandExecutions regardingCommandExecutions,
@@ -91,6 +91,7 @@ public record SecurityPolicy(
             boolean readAllFiles,
             boolean overwriteAllFiles,
             boolean executeAllFiles,
+            boolean deleteAllFiles,
             String onThisPathAndAllPathsBelow
     ) {}
 
