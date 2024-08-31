@@ -21,11 +21,11 @@ public record SecurityPolicy(
      * Represents the supervised code details, including programming language configuration and permitted resource accesses.
      *
      * @param theFollowingProgrammingLanguageConfigurationIsUsed the programming language configuration used by the supervised code.
-     * @param theFollowingRessourceAccessesArePermitted           the resource accesses that are permitted for the supervised code.
+     * @param theFollowingResourceAccessesArePermitted           the resource accesses that are permitted for the supervised code.
      */
     public record SupervisedCode(
             ProgrammingLanguageConfiguration theFollowingProgrammingLanguageConfigurationIsUsed,
-            ResourceAccesses theFollowingRessourceAccessesArePermitted
+            ResourceAccesses theFollowingResourceAccessesArePermitted
     ) {}
 
     /**
@@ -53,6 +53,7 @@ public record SecurityPolicy(
         JAVA_USING_GRADLE_AND_ASPECTJ
     }
 
+
     /**
      * Represents the resource accesses that are permitted for the supervised code.
      *
@@ -63,20 +64,11 @@ public record SecurityPolicy(
      * @param regardingPackageImports         the permitted package imports.
      */
     public record ResourceAccesses(
-            FileSystemInteractions regardingFileSystemInteractions,
-            NetworkConnections regardingNetworkConnections,
-            CommandExecutions regardingCommandExecutions,
-            ThreadCreations regardingThreadCreations,
-            PackageImports regardingPackageImports
-    ) {}
-
-    /**
-     * Represents the file system interactions that are permitted.
-     *
-     * @param itIsPermittedTo a list of file permissions that are permitted.
-     */
-    public record FileSystemInteractions(
-            List<FilePermission> itIsPermittedTo
+            List<FilePermission> regardingFileSystemInteractions,
+            List<NetworkPermission> regardingNetworkConnections,
+            List<CommandPermission> regardingCommandExecutions,
+            List<ThreadPermission> regardingThreadCreations,
+            List<PackagePermission> regardingPackageImports
     ) {}
 
     /**
@@ -93,15 +85,6 @@ public record SecurityPolicy(
             boolean executeAllFiles,
             boolean deleteAllFiles,
             String onThisPathAndAllPathsBelow
-    ) {}
-
-    /**
-     * Represents the network connections that are permitted.
-     *
-     * @param itIsPermittedTo a list of network permissions that are permitted.
-     */
-    public record NetworkConnections(
-            List<NetworkPermission> itIsPermittedTo
     ) {}
 
     /**
@@ -122,15 +105,6 @@ public record SecurityPolicy(
     ) {}
 
     /**
-     * Represents the command executions that are permitted.
-     *
-     * @param itIsPermittedTo a list of command permissions that are permitted.
-     */
-    public record CommandExecutions(
-            List<CommandPermission> itIsPermittedTo
-    ) {}
-
-    /**
      * Represents a command permission specifying the allowed command execution operations.
      *
      * @param executeTheCommand  the command that is permitted to be executed.
@@ -142,15 +116,6 @@ public record SecurityPolicy(
     ) {}
 
     /**
-     * Represents the thread creations that are permitted.
-     *
-     * @param itIsPermittedTo a list of thread permissions that are permitted.
-     */
-    public record ThreadCreations(
-            List<ThreadPermission> itIsPermittedTo
-    ) {}
-
-    /**
      * Represents a thread permission specifying the allowed thread creation operations.
      *
      * @param createTheFollowingNumberOfThreads the number of threads that are permitted to be created.
@@ -159,15 +124,6 @@ public record SecurityPolicy(
     public record ThreadPermission(
             int createTheFollowingNumberOfThreads,
             String ofThisClass
-    ) {}
-
-    /**
-     * Represents the package imports that are permitted.
-     *
-     * @param itIsPermittedTo a list of package permissions that are permitted.
-     */
-    public record PackageImports(
-            List<PackagePermission> itIsPermittedTo
     ) {}
 
     /**

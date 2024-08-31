@@ -42,7 +42,7 @@ public class JavaAspectJConfiguration implements AspectConfiguration {
         switch (javaAspectJConfigurationSupported) {
             case FILESYSTEM_INTERACTION -> {
                 content.append("private static final List<FilePermission> allowedFileSystemInteractions = List.of(\n");
-                content.append(resourceAccesses.regardingFileSystemInteractions().itIsPermittedTo().stream()
+                content.append(resourceAccesses.regardingFileSystemInteractions().stream()
                         .map(securityContent -> String.format("new FilePermission(%s, %s, %s, Path.of(\"%s\"))",
                                 securityContent.readAllFiles(),
                                 securityContent.overwriteAllFiles(),
@@ -53,7 +53,7 @@ public class JavaAspectJConfiguration implements AspectConfiguration {
             }
             case NETWORK_CONNECTION -> {
                 content.append("private static final List<NetworkPermission> allowedNetworkConnections = List.of(\n");
-                content.append(resourceAccesses.regardingNetworkConnections().itIsPermittedTo().stream()
+                content.append(resourceAccesses.regardingNetworkConnections().stream()
                         .map(securityContent -> String.format("new NetworkPermission(%s, %s, %s, \"%s\", %d)",
                                 securityContent.openConnections(),
                                 securityContent.sendData(),
@@ -65,7 +65,7 @@ public class JavaAspectJConfiguration implements AspectConfiguration {
             }
             case COMMAND_EXECUTION -> {
                 content.append("private static final List<CommandPermission> allowedCommandExecutions = List.of(\n");
-                content.append(resourceAccesses.regardingCommandExecutions().itIsPermittedTo().stream()
+                content.append(resourceAccesses.regardingCommandExecutions().stream()
                         .map(securityContent -> String.format("new CommandPermission(\"%s\", List.of(%s))",
                                 securityContent.executeTheCommand(),
                                 securityContent.withTheseArguments().stream()
@@ -76,7 +76,7 @@ public class JavaAspectJConfiguration implements AspectConfiguration {
             }
             case THREAD_CREATION -> {
                 content.append("private static final List<ThreadPermission> allowedThreadCreations = List.of(\n");
-                content.append(resourceAccesses.regardingThreadCreations().itIsPermittedTo().stream()
+                content.append(resourceAccesses.regardingThreadCreations().stream()
                         .map(securityContent -> String.format("new ThreadPermission(%d, \"%s\")",
                                 securityContent.createTheFollowingNumberOfThreads(),
                                 securityContent.ofThisClass()))
@@ -96,13 +96,13 @@ public class JavaAspectJConfiguration implements AspectConfiguration {
     public void runAspectConfiguration() {
         switch (javaAspectJConfigurationSupported) {
             case FILESYSTEM_INTERACTION ->
-                    JavaAspectJConfigurationSettings.setAllowedFileSystemInteractions(resourceAccesses == null ? null : resourceAccesses.regardingFileSystemInteractions().itIsPermittedTo());
+                    JavaAspectJConfigurationSettings.setAllowedFileSystemInteractions(resourceAccesses == null ? null : resourceAccesses.regardingFileSystemInteractions());
             case NETWORK_CONNECTION ->
-                    JavaAspectJConfigurationSettings.setAllowedNetworkConnections(resourceAccesses == null ? null : resourceAccesses.regardingNetworkConnections().itIsPermittedTo());
+                    JavaAspectJConfigurationSettings.setAllowedNetworkConnections(resourceAccesses == null ? null : resourceAccesses.regardingNetworkConnections());
             case COMMAND_EXECUTION ->
-                    JavaAspectJConfigurationSettings.setAllowedCommandExecutions(resourceAccesses == null ? null : resourceAccesses.regardingCommandExecutions().itIsPermittedTo());
+                    JavaAspectJConfigurationSettings.setAllowedCommandExecutions(resourceAccesses == null ? null : resourceAccesses.regardingCommandExecutions());
             case THREAD_CREATION ->
-                    JavaAspectJConfigurationSettings.setAllowedThreadCreations(resourceAccesses == null ? null : resourceAccesses.regardingThreadCreations().itIsPermittedTo());
+                    JavaAspectJConfigurationSettings.setAllowedThreadCreations(resourceAccesses == null ? null : resourceAccesses.regardingThreadCreations());
             default ->
                     throw new UnsupportedOperationException("Unsupported configuration: " + javaAspectJConfigurationSupported);
         }

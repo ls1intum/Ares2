@@ -18,7 +18,6 @@ public class CustomClassResolver {
 
     public CustomClassResolver() {
         // We need to import all classes to be able to resolve them later.
-        // TODO: We definitely need to improve this. We should not import all classes as it is not memory efficient.
         // https://www.javadoc.io/doc/com.tngtech.archunit/archunit/0.10.2/com/tngtech/archunit/core/importer/ClassFileImporter.html
         allClasses = new ClassFileImporter()
                 .withImportOption(location -> !location.contains("jrt"))

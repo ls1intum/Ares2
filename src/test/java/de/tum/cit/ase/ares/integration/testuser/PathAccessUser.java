@@ -36,6 +36,13 @@ public class PathAccessUser {
 		PathAccessPenguin.accessPath(Path.of("pom.xml"));
 	}*/
 
+    // TODO this test should fail with the given agent SecurityException currently not working
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentation.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
+    public void accessPathNormalInstrumentation() throws IOException {
+        PathAccessPenguin.accessPath(Path.of("pom212.xml"));
+    }
+
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
     public void accessPathNormal() throws IOException {
@@ -64,8 +71,8 @@ public class PathAccessUser {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
     void accessFileSystem() throws IOException {
+        // do nothing
     }
-
 
     @WhitelistPath(value = "../*r*e*s**", type = PathType.GLOB)
     @PublicTest

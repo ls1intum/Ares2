@@ -6,6 +6,7 @@ import de.tum.cit.ase.ares.api.architecturetest.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecturetest.java.JavaSupportedArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecturetest.java.postcompile.JavaArchitectureTestCaseCollection;
 import de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.JavaAspectJConfiguration;
+import de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.JavaAspectJConfigurationSettings;
 import de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.JavaAspectJConfigurationSupported;
 import de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.JavaInstrumentationConfiguration;
 import de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.JavaInstrumentationConfigurationSupported;
@@ -17,7 +18,6 @@ import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.function.Supplier;
@@ -72,14 +72,15 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
     //</editor-fold>
 
     //<editor-fold desc="Constructor">
+
     /**
      * Constructs a new {@link JavaSecurityTestCaseFactoryAndBuilder} with the specified build tool, AOP mode,
      * security policy, and within path.
      *
-     * @param javaBuildTool the build tool used in the project.
-     * @param javaAOPMode the AOP mode used in the project.
+     * @param javaBuildTool  the build tool used in the project.
+     * @param javaAOPMode    the AOP mode used in the project.
      * @param securityPolicy the security policy to be enforced.
-     * @param withinPath the path within the project where the test cases will be applied.
+     * @param withinPath     the path within the project where the test cases will be applied.
      */
     public JavaSecurityTestCaseFactoryAndBuilder(JavaBuildTool javaBuildTool, JavaAOPMode javaAOPMode, SecurityPolicy securityPolicy, Path withinPath) {
         this.javaBuildTool = javaBuildTool;
@@ -91,6 +92,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
     //</editor-fold>
 
     //<editor-fold desc="Toolbox methods">
+
     /**
      * Parses the security policy to determine which test cases and configurations need to be created.
      * <p>
@@ -99,29 +101,35 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      * </p>
      */
     private void parseTestCasesToBeCreated() {
-        Arrays.stream(new Supplier[]{
-                        securityPolicy.regardingTheSupervisedCode().theFollowingRessourceAccessesArePermitted()::regardingFileSystemInteractions,
-                        securityPolicy.regardingTheSupervisedCode().theFollowingRessourceAccessesArePermitted()::regardingNetworkConnections
-                })
-                .map(method -> (Supplier<List<?>>) method)
-                .forEach(method -> {
-                    if (isEmpty(method.get())) {
-                        javaArchitectureTestCases.add(new JavaArchitectureTestCase(JavaSupportedArchitectureTestCase.FILESYSTEM_INTERACTION));
-                    } else {
-                        switch (javaAOPMode) {
-                            case ASPECTJ ->
-                                    javaAspectJConfigurations.add(new JavaAspectJConfiguration(JavaAspectJConfigurationSupported.FILESYSTEM_INTERACTION, securityPolicy.regardingTheSupervisedCode().theFollowingRessourceAccessesArePermitted()));
-                            case INSTRUMENTATION ->
-                                    javaInstrumentationConfigurations.add(new JavaInstrumentationConfiguration(JavaInstrumentationConfigurationSupported.FILESYSTEM_INTERACTION, securityPolicy.regardingTheSupervisedCode().theFollowingRessourceAccessesArePermitted()));
-                        }
-                    }
-                });
+        if (!javaAOPMode.equals(JavaAOPMode.ASPECTJ)) {
+            JavaAspectJConfigurationSettings.reset();
+        }
 
-        javaArchitectureTestCases.add(new JavaArchitectureTestCase(JavaSupportedArchitectureTestCase.PACKAGE_IMPORT, new HashSet<>(securityPolicy.regardingTheSupervisedCode().theFollowingRessourceAccessesArePermitted().regardingPackageImports().itIsPermittedTo())));
+        Supplier<List<?>>[] methods = new Supplier[] {
+                securityPolicy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted()::regardingFileSystemInteractions,
+                securityPolicy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted()::regardingNetworkConnections
+//                securityPolicy::iAllowTheFollowingCommandExecutionsForTheStudents,
+//                securityPolicy::iAllowTheFollowingThreadCreationsForTheStudents,
+        };
+
+        for (int i = 0; i < methods.length; i++) {
+            if (isEmpty(methods[i].get())) {
+                javaArchitectureTestCases.add(new JavaArchitectureTestCase(JavaSupportedArchitectureTestCase.values()[i]));
+            } else {
+                if (javaAOPMode.equals(JavaAOPMode.ASPECTJ)) {
+                    javaAspectJConfigurations.add(new JavaAspectJConfiguration(JavaAspectJConfigurationSupported.values()[i], securityPolicy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted()));
+                } else {
+                    javaInstrumentationConfigurations.add(new JavaInstrumentationConfiguration(JavaInstrumentationConfigurationSupported.values()[i], securityPolicy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted()));
+                }
+            }
+        }
+
+        javaArchitectureTestCases.add(new JavaArchitectureTestCase(JavaSupportedArchitectureTestCase.PACKAGE_IMPORT, new HashSet<>(securityPolicy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted().regardingPackageImports())));
     }
     //</editor-fold>
 
     //<editor-fold desc="Inherited methods">
+
     /**
      * Writes the generated test cases and configurations to files in the specified path.
      * <p>

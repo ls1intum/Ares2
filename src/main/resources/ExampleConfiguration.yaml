@@ -1,13 +1,13 @@
 # This is an example configuration file for the programming exercise "ExampleProgrammingExercise".
 regardingTheSupervisedCode:
-  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_GRADLE_AND_INSTRUMENTATION,
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_GRADLE_AND_INSTRUMENTATION
   theFollowingRessourceAccessesArePermitted:
     regardingFileSystemInteractions:
       itIsPermittedTo: [
         readAllFiles: true,
         overwriteAllFiles: true,
         executeAllFiles: true,
-        onThisPathAndAllPathsBelow: "/Path"
+        onThisPathAndAllPathsBelow: "pom.xml"
       ]
     regardingNetworkConnections:
       itIsPermittedTo: [

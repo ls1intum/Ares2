@@ -65,7 +65,8 @@ public class JavaInstrumentationConfiguration implements AspectConfiguration {
      */
     public void setJavaAdviceSettingValue(String adviceSetting, Object value) {
         try {
-            Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.adviceAndPointcut.AdviceSettings", true, null);
+            ClassLoader customClassLoader = Thread.currentThread().getContextClassLoader();
+            Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.JavaInstrumentationConfigurationSettings", true, customClassLoader);
             Field field = adviceSettingsClass.getDeclaredField(adviceSetting);
             field.setAccessible(true);
             field.set(null, value);
@@ -86,9 +87,8 @@ public class JavaInstrumentationConfiguration implements AspectConfiguration {
      * @return the name of the adviceAndPointcut setting.
      */
     private String getFilesystemPathAdviceSettingName(String dataType, String filePermission) {
-        return dataType +
-                (dataType == null ? "" : " ") +
-                switch (filePermission) {
+        // TODO: discuss if dataType is necessary here I had to remove it make it work
+        return switch (filePermission) {
                     case "read" -> "pathsAllowedToBeRead";
                     case "overwrite" -> "pathsAllowedToBeOverwritten";
                     case "execute" -> "pathsAllowedToBeExecuted";
@@ -111,7 +111,6 @@ public class JavaInstrumentationConfiguration implements AspectConfiguration {
         };
         return ressourceAccesses
                 .regardingFileSystemInteractions()
-                .itIsPermittedTo()
                 .stream()
                 .filter(filter)
                 .map(FilePermission::onThisPathAndAllPathsBelow)
@@ -185,7 +184,6 @@ public class JavaInstrumentationConfiguration implements AspectConfiguration {
         };
         return ressourceAccesses
                 .regardingNetworkConnections()
-                .itIsPermittedTo()
                 .stream()
                 .filter(filter)
                 .map(NetworkPermission::onTheHost)
@@ -207,7 +205,6 @@ public class JavaInstrumentationConfiguration implements AspectConfiguration {
         };
         return ressourceAccesses
                 .regardingNetworkConnections()
-                .itIsPermittedTo()
                 .stream()
                 .filter(filter)
                 .map(NetworkPermission::onThePort)
@@ -241,7 +238,6 @@ public class JavaInstrumentationConfiguration implements AspectConfiguration {
     private List<String> getPermittedCommands() {
         return ressourceAccesses
                 .regardingCommandExecutions()
-                .itIsPermittedTo()
                 .stream()
                 .map(CommandPermission::executeTheCommand)
                 .toList();
@@ -255,7 +251,6 @@ public class JavaInstrumentationConfiguration implements AspectConfiguration {
     private List<List<String>> getPermittedArguments() {
         return ressourceAccesses
                 .regardingCommandExecutions()
-                .itIsPermittedTo()
                 .stream()
                 .map(CommandPermission::withTheseArguments)
                 .toList();
@@ -291,7 +286,6 @@ public class JavaInstrumentationConfiguration implements AspectConfiguration {
     private List<Integer> getPermittedNumberOfThreads() {
         return ressourceAccesses
                 .regardingThreadCreations()
-                .itIsPermittedTo()
                 .stream()
                 .map(ThreadPermission::createTheFollowingNumberOfThreads)
                 .toList();
@@ -305,7 +299,6 @@ public class JavaInstrumentationConfiguration implements AspectConfiguration {
     private List<String> getPermittedThreadClasses() {
         return ressourceAccesses
                 .regardingThreadCreations()
-                .itIsPermittedTo()
                 .stream()
                 .map(ThreadPermission::ofThisClass)
                 .toList();
@@ -376,45 +369,45 @@ public class JavaInstrumentationConfiguration implements AspectConfiguration {
                     .of("read", "overwrite", "execute")
                     .forEach(filePermission ->
                             setJavaAdviceSettingValue(
-                                    getFilesystemPathAdviceSettingName(null, filePermission),
-                                    getPermittedFilePaths(filePermission)
+                                    getFilesystemPathAdviceSettingName("String[]", filePermission),
+                                    getPermittedFilePaths(filePermission).toArray(new String[0])
                             )
                     );
-            case NETWORK_CONNECTION -> Stream
-                    .of("connect", "send", "receive")
-                    .forEach(networkPermission -> {
-                        setJavaAdviceSettingValue(
-                                getNetworkHostAdviceSettingName(null, networkPermission),
-                                getPermittedNetworkHosts(networkPermission)
-                        );
-                        setJavaAdviceSettingValue(
-                                getNetworkPortAdviceSettingName(null, networkPermission),
-                                getPermittedNetworkPorts(networkPermission)
-                        );
-                    });
-            case COMMAND_EXECUTION -> Stream
-                    .of("")
-                    .forEach(commandPermission -> {
-                        setJavaAdviceSettingValue(
-                                "commandsAllowedToBeExecuted",
-                                getPermittedCommands()
-                        );
-                        setJavaAdviceSettingValue(
-                                "argumentsAllowedToBePassed",
-                                getPermittedArguments()
-                        );
-                    });
-            case THREAD_CREATION -> Stream.of("")
-                    .forEach(threadPermission -> {
-                        setJavaAdviceSettingValue(
-                                "threadNumberAllowedToBeCreated",
-                                getPermittedNumberOfThreads()
-                        );
-                        setJavaAdviceSettingValue(
-                                "threadClassAllowedToBeCreated",
-                                getPermittedThreadClasses()
-                        );
-                    });
+//            case NETWORK_CONNECTION -> Stream
+//                    .of("connect", "send", "receive")
+//                    .forEach(networkPermission -> {
+//                        setJavaAdviceSettingValue(
+//                                getNetworkHostAdviceSettingName(null, networkPermission),
+//                                getPermittedNetworkHosts(networkPermission)
+//                        );
+//                        setJavaAdviceSettingValue(
+//                                getNetworkPortAdviceSettingName(null, networkPermission),
+//                                getPermittedNetworkPorts(networkPermission)
+//                        );
+//                    });
+//            case COMMAND_EXECUTION -> Stream
+//                    .of("")
+//                    .forEach(commandPermission -> {
+//                        setJavaAdviceSettingValue(
+//                                "commandsAllowedToBeExecuted",
+//                                getPermittedCommands()
+//                        );
+//                        setJavaAdviceSettingValue(
+//                                "argumentsAllowedToBePassed",
+//                                getPermittedArguments()
+//                        );
+//                    });
+//            case THREAD_CREATION -> Stream.of("")
+//                    .forEach(threadPermission -> {
+//                        setJavaAdviceSettingValue(
+//                                "threadNumberAllowedToBeCreated",
+//                                getPermittedNumberOfThreads()
+//                        );
+//                        setJavaAdviceSettingValue(
+//                                "threadClassAllowedToBeCreated",
+//                                getPermittedThreadClasses()
+//                        );
+//                    });
         }
     }
 }

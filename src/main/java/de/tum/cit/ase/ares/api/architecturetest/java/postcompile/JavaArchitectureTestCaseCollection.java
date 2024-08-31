@@ -110,7 +110,7 @@ public class JavaArchitectureTestCaseCollection {
                 .transitivelyDependOnClassesThat(new DescribedPredicate<>("imports package") {
                     @Override
                     public boolean test(JavaClass javaClass) {
-                        return !allowedPackages.contains(javaClass.getPackageName());
+                        return allowedPackages.stream().allMatch(allowedPackage -> allowedPackage.startsWith(javaClass.getPackageName()));
                     }
                 });
     }

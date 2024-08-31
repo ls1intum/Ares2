@@ -1,7 +1,14 @@
-# This is an example configuration file for the programming exercise "ExampleProgrammingExercise".
-theProgrammingLanguageIUseInThisProgrammingExerciseIs: JAVA
-iAllowTheFollowingFileSystemInteractionsForTheStudents: []
-iAllowTheFollowingNetworkConnectionsForTheStudents: []
-iAllowTheFollowingCommandExecutionsForTheStudents: []
-iAllowTheFollowingThreadCreationsForTheStudents: []
-iAllowTheFollowingPackageImportForTheStudents: []
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_AND_ASPECTJ
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions: []
+    regardingNetworkConnections: []
+    regardingCommandExecutions: []
+    regardingThreadCreations: []
+    regardingPackageImports:
+      - importTheFollowingPackage: "java.io"
+      - importTheFollowingPackage: "java.lang"
+      - importTheFollowingPackage: "java.util"
+      - importTheFollowingPackage: "de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.adviceAndPointcut"
+      - importTheFollowingPackage: "java.nio.file"
+      - importTheFollowingPackage: "org.aspectj"

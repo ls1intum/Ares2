@@ -7,6 +7,7 @@ import de.tum.cit.ase.ares.api.securitytest.java.JavaBuildTool;
 import de.tum.cit.ase.ares.api.securitytest.java.JavaSecurityTestCaseFactoryAndBuilder;
 import de.tum.cit.ase.ares.api.securitytest.SecurityTestCaseAbstractFactoryAndBuilder;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -45,7 +46,7 @@ public class SecurityPolicyReaderAndDirector {
      * @throws IOException if there is an error reading the security policy file.
      */
     public SecurityPolicyReaderAndDirector(Path path, Path policyWithinPath) throws IOException {
-        securityPolicy = new ObjectMapper(new YAMLFactory()).readValue(Files.readString(path), SecurityPolicy.class);
+        securityPolicy = new ObjectMapper(new YAMLFactory()).readValue(path.toFile(), SecurityPolicy.class);
         testCaseManager = switch (securityPolicy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed()) {
             case JAVA_USING_MAVEN_AND_INSTRUMENTATION -> new JavaSecurityTestCaseFactoryAndBuilder(
                     JavaBuildTool.MAVEN, JavaAOPMode.INSTRUMENTATION, securityPolicy, policyWithinPath

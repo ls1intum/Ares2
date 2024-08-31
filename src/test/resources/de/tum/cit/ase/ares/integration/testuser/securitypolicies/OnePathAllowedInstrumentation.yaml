@@ -1,5 +1,5 @@
 regardingTheSupervisedCode:
-  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_AND_ASPECTJ
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_AND_INSTRUMENTATION
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions:
       - readAllFiles: true

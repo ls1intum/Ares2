@@ -72,12 +72,10 @@ public class NetworkUser {
 		NetworkPenguin.tryConnect(host, PORT, MESSAGE);
 	}
 
-	@ParameterizedTest
-	@AllowLocalPort(PORT)
-	@ValueSource(ints = { 22, 80 })
+	@Test
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/network")
-	void connectLocallyNotAllowed(int port) throws Exception {
-//		NetworkPenguin.tryConnect("localhost", port, MESSAGE);
+	void connectLocallyNotAllowed() throws Exception {
+		// Should be empty
 	}
 
 	@Test

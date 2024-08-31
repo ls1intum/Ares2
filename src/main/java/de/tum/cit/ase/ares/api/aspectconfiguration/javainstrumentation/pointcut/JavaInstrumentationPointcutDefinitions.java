@@ -67,14 +67,14 @@ public class JavaInstrumentationPointcutDefinitions {
             List.of("getBooleanAttributes", "canonicalize", "getLastModifiedTime", "getSpace"),
             "javainstrumentation.io.Win32FileSystem",
             List.of("getBooleanAttributes", "canonicalize", "getLastModifiedTime", "getSpace"),
-            "javainstrumentation.nio.file.Files",
+            "java.nio.file.Files",
             List.of("readAttributes", "readAllBytes", "readAllLines", "readString", "read", "newInputStream", "lines")
     );
     //</editor-fold>
 
     //<editor-fold desc="Overwrite Path">
     public static final Map<String, List<String>> methodsWhichCanOverwriteFiles = Map.of(
-            "javainstrumentation.io.FileOutputStream",
+            "java.io.FileOutputStream",
             List.of("<init>","write"),
             "javainstrumentation.io.RandomAccessFile",
             List.of("write", "writeBoolean", "writeByte", "writeBytes",
@@ -92,11 +92,12 @@ public class JavaInstrumentationPointcutDefinitions {
 
     //<editor-fold desc="Execute Path">
     public static final Map<String, List<String>> methodsWhichCanExecuteFiles = Map.of(
-            "javainstrumentation.io.UnixFileSystem",
+            // TODO why do we have javainstrumentation I reverted them back to java but still the methods are not intercepted
+            "java.io.UnixFileSystem",
             List.of("checkAccess", "setPermission"),
-            "javainstrumentation.io.WinNTFileSystem",
+            "java.io.WinNTFileSystem",
             List.of("checkAccess", "setReadOnly"),
-            "javainstrumentation.io.Win32FileSystem",
+            "java.io.Win32FileSystem",
             List.of("checkAccess", "setReadOnly")
     );
     //</editor-fold>

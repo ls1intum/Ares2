@@ -1,11 +1,7 @@
 package de.tum.cit.ase.ares.integration;
 
 import static de.tum.cit.ase.ares.testutilities.CustomConditions.*;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import de.tum.cit.ase.ares.api.Policy;
-import org.junit.Test;
 import org.junit.platform.testkit.engine.Events;
 
 import de.tum.cit.ase.ares.integration.testuser.PathAccessUser;
@@ -46,7 +42,7 @@ class PathAccessTest {
 	// TODO: It seems like this does not work with AspectJ
 //	@TestTest
 //	void test_accessPathNormal() {
-//		tests.assertThatEvents().haveExactly(1, testFailedWith(accessPathNormal, IllegalStateException.class));
+//		tests.assertThatEvents().haveExactly(1, finishedSuccessfully(accessPathNormal));
 //	}
 
 	@TestTest
