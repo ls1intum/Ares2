@@ -1,17 +1,21 @@
 package de.tum.cit.ase.ares.api.securitytest.java;
 
+import com.google.common.collect.Streams;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
-import de.tum.cit.ase.ares.api.architecturetest.java.JavaArchitectureTestCase;
-import de.tum.cit.ase.ares.api.architecturetest.java.JavaSupportedArchitectureTestCase;
-import de.tum.cit.ase.ares.api.architecturetest.java.postcompile.JavaArchitectureTestCaseCollection;
-import de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.JavaAspectJConfiguration;
-import de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.JavaAspectJConfigurationSettings;
-import de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.JavaAspectJConfigurationSupported;
-import de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.JavaInstrumentationConfiguration;
-import de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.JavaInstrumentationConfigurationSupported;
+import de.tum.cit.ase.ares.api.architecturetest.java.archunit.JavaArchUnitTestCase;
+import de.tum.cit.ase.ares.api.architecturetest.java.archunit.JavaArchUnitTestCaseSupported;
+import de.tum.cit.ase.ares.api.architecturetest.java.archunit.postcompile.JavaArchitectureTestCaseCollection;
+import de.tum.cit.ase.ares.api.aspectconfiguration.java.aspectj.JavaAspectJConfiguration;
+import de.tum.cit.ase.ares.api.aspectconfiguration.java.aspectj.JavaAspectJConfigurationSupported;
+import de.tum.cit.ase.ares.api.aspectconfiguration.java.instrumentation.JavaInstrumentationConfiguration;
+import de.tum.cit.ase.ares.api.aspectconfiguration.java.instrumentation.JavaInstrumentationConfigurationSupported;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
+import de.tum.cit.ase.ares.api.policy.SecurityPolicy.ResourceAccesses;
 import de.tum.cit.ase.ares.api.securitytest.SecurityTestCaseAbstractFactoryAndBuilder;
+import de.tum.cit.ase.ares.api.aspectconfiguration.java.JavaAOPMode;
+import de.tum.cit.ase.ares.api.architecturetest.java.JavaArchitectureMode;
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.java.JavaBuildMode;
 import de.tum.cit.ase.ares.api.util.FileTools;
 import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 
@@ -38,7 +42,9 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
     /**
      * The build tool used in the project (e.g., Maven or Gradle).
      */
-    private final JavaBuildTool javaBuildTool;
+    private final JavaBuildMode javaBuildMode;
+
+    private final JavaArchitectureMode javaArchitectureMode;
 
     /**
      * The Aspect-Oriented Programming (AOP) mode used in the project (e.g., AspectJ or Instrumentation).
@@ -46,14 +52,9 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
     private final JavaAOPMode javaAOPMode;
 
     /**
-     * The security policy to be enforced during the security tests.
-     */
-    private final SecurityPolicy securityPolicy;
-
-    /**
      * List of architecture test cases to be generated based on the security policy.
      */
-    private final List<JavaArchitectureTestCase> javaArchitectureTestCases = new ArrayList<>();
+    private final List<JavaArchUnitTestCase> javaArchUnitTestCases = new ArrayList<>();
 
     /**
      * List of AspectJ configurations to be generated based on the security policy.
@@ -65,10 +66,14 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      */
     private final List<JavaInstrumentationConfiguration> javaInstrumentationConfigurations = new ArrayList<>();
 
+    private final String packageName;
+
+    private final ResourceAccesses ressourceAccesses;
+
     /**
      * The path within the project where the test cases will be applied.
      */
-    private final Path withinPath;
+    private final Path projectPath;
     //</editor-fold>
 
     //<editor-fold desc="Constructor">
@@ -77,16 +82,18 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      * Constructs a new {@link JavaSecurityTestCaseFactoryAndBuilder} with the specified build tool, AOP mode,
      * security policy, and within path.
      *
-     * @param javaBuildTool  the build tool used in the project.
+     * @param javaBuildMode  the build tool used in the project.
      * @param javaAOPMode    the AOP mode used in the project.
      * @param securityPolicy the security policy to be enforced.
-     * @param withinPath     the path within the project where the test cases will be applied.
+     * @param projectPath    the path within the project where the test cases will be applied.
      */
-    public JavaSecurityTestCaseFactoryAndBuilder(JavaBuildTool javaBuildTool, JavaAOPMode javaAOPMode, SecurityPolicy securityPolicy, Path withinPath) {
-        this.javaBuildTool = javaBuildTool;
+    public JavaSecurityTestCaseFactoryAndBuilder(JavaBuildMode javaBuildMode, JavaArchitectureMode javaArchitectureMode, JavaAOPMode javaAOPMode, SecurityPolicy securityPolicy, Path projectPath) {
+        this.javaBuildMode = javaBuildMode;
+        this.javaArchitectureMode = javaArchitectureMode;
         this.javaAOPMode = javaAOPMode;
-        this.securityPolicy = securityPolicy;
-        this.withinPath = withinPath;
+        this.packageName = securityPolicy.regardingTheSupervisedCode().theProgrammingLanguageUsesTheFollowingPackage();
+        this.ressourceAccesses = securityPolicy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted();
+        this.projectPath = projectPath;
         this.parseTestCasesToBeCreated();
     }
     //</editor-fold>
@@ -101,30 +108,61 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      * </p>
      */
     private void parseTestCasesToBeCreated() {
-        if (!javaAOPMode.equals(JavaAOPMode.ASPECTJ)) {
-            JavaAspectJConfigurationSettings.reset();
-        }
+        javaAOPMode.reset();
 
-        Supplier<List<?>>[] methods = new Supplier[] {
-                securityPolicy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted()::regardingFileSystemInteractions,
-                securityPolicy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted()::regardingNetworkConnections
+        //<editor-fold desc="Only architecture test case">
+        javaArchUnitTestCases.add(
+                new JavaArchUnitTestCase(
+                        JavaArchUnitTestCaseSupported.PACKAGE_IMPORT,
+                        new HashSet<>(ressourceAccesses.regardingPackageImports())
+                )
+        );
+        //</editor-fold>
+
+        //<editor-fold desc="Architecture test case and AOP">
+        Supplier<List<?>>[] methods = new Supplier[]{
+                ressourceAccesses::regardingFileSystemInteractions,
+                ressourceAccesses::regardingNetworkConnections
 //                securityPolicy::iAllowTheFollowingCommandExecutionsForTheStudents,
 //                securityPolicy::iAllowTheFollowingThreadCreationsForTheStudents,
         };
 
         for (int i = 0; i < methods.length; i++) {
+            // TODO: What if JavaArchUnitTestCaseSupported, JavaAspectJConfigurationSupported and JavaInstrumentationConfigurationSupported are not in the same order or smaller than methods?
+            JavaArchUnitTestCaseSupported javaArchitectureTestCasesSupportedValue = JavaArchUnitTestCaseSupported.values()[i];
+            JavaAspectJConfigurationSupported javaAspectJConfigurationSupportedValue = JavaAspectJConfigurationSupported.values()[i];
+            JavaInstrumentationConfigurationSupported javaInstrumentationConfigurationSupportedValue = JavaInstrumentationConfigurationSupported.values()[i];
+
             if (isEmpty(methods[i].get())) {
-                javaArchitectureTestCases.add(new JavaArchitectureTestCase(JavaSupportedArchitectureTestCase.values()[i]));
-            } else {
-                if (javaAOPMode.equals(JavaAOPMode.ASPECTJ)) {
-                    javaAspectJConfigurations.add(new JavaAspectJConfiguration(JavaAspectJConfigurationSupported.values()[i], securityPolicy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted()));
-                } else {
-                    javaInstrumentationConfigurations.add(new JavaInstrumentationConfiguration(JavaInstrumentationConfigurationSupported.values()[i], securityPolicy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted()));
+                //<editor-fold desc="Architecture test case">
+                switch (javaArchitectureMode) {
+                    case ARCHUNIT -> javaArchUnitTestCases.add(
+                            new JavaArchUnitTestCase(
+                                    javaArchitectureTestCasesSupportedValue
+                            )
+                    );
                 }
+                //</editor-fold>
+            } else {
+                //<editor-fold desc="AOP">
+                switch (javaAOPMode) {
+                    case ASPECTJ -> javaAspectJConfigurations.add(
+                            new JavaAspectJConfiguration(
+                                    javaAspectJConfigurationSupportedValue,
+                                    ressourceAccesses
+                            )
+                    );
+                    case INSTRUMENTATION -> javaInstrumentationConfigurations.add(
+                            new JavaInstrumentationConfiguration(
+                                    javaInstrumentationConfigurationSupportedValue,
+                                    ressourceAccesses
+                            )
+                    );
+                }
+                //</editor-fold>
             }
         }
-
-        javaArchitectureTestCases.add(new JavaArchitectureTestCase(JavaSupportedArchitectureTestCase.PACKAGE_IMPORT, new HashSet<>(securityPolicy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted().regardingPackageImports())));
+        //</editor-fold>
     }
     //</editor-fold>
 
@@ -137,64 +175,44 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      * architecture test case files, and combines them with the configuration files.
      * </p>
      *
-     * @param path the path where the test cases and configurations will be written.
+     * @param projectPath the path where the test cases and configurations will be written.
      * @return a list of paths representing the files that were created.
      */
     @Override
-    public List<Path> writeTestCasesToFiles(Path path) {
-        //<editor-fold desc="Copy files">
-        List<Path> copiedFiles = FileTools.copyFiles(
-                switch (javaAOPMode) {
-                    case ASPECTJ -> List.of(
-                            Paths.get("src", "main", "resources", "aspectOrientedProgrammingFiles", "JavaAspectJFileSystemAdviceDefinitions.aj"),
-                            Paths.get("src", "main", "resources", "aspectOrientedProgrammingFiles", "JavaAspectJFileSystemPointcutDefinitions.aj"),
-                            Paths.get("src", "main", "resources", "aspectOrientedProgrammingFiles", "JavaAspectJConfigurationSupported.java")
-                    );
-                    case INSTRUMENTATION -> List.of(
-                            Paths.get("src", "main", "java", "de", "tum", "cit", "ase", "ares", "api", "aspectconfiguration", "javainstrumentation", "adviceAndPointcut", "JavaInstrumentationAdviceToolbox.java"),
-                            Paths.get("src", "main", "java", "de", "tum", "cit", "ase", "ares", "api", "aspectconfiguration", "javainstrumentation", "adviceAndPointcut", "JavaInstrumentationReadPathAdvice.java"),
-                            Paths.get("src", "main", "java", "de", "tum", "cit", "ase", "ares", "api", "aspectconfiguration", "javainstrumentation", "adviceAndPointcut", "JavaInstrumentationOverwritePathAdvice.java"),
-                            Paths.get("src", "main", "java", "de", "tum", "cit", "ase", "ares", "api", "aspectconfiguration", "javainstrumentation", "adviceAndPointcut", "JavaInstrumentationExecutePathAdvice.java"),
-                            Paths.get("src", "main", "java", "de", "tum", "cit", "ase", "ares", "api", "aspectconfiguration", "javainstrumentation", "JavaInstrumentationPointcutDefinitions.java"),
-                            Paths.get("src", "main", "java", "de", "tum", "cit", "ase", "ares", "api", "aspectconfiguration", "javainstrumentation", "JavaInstrumentationBindingDefinitions.java"),
-                            Paths.get("src", "main", "java", "de", "tum", "cit", "ase", "ares", "api", "aspectconfiguration", "javainstrumentation", "JavaInstrumentationAgent.java")
-                    );
-                },
-                path
+    public List<Path> writeTestCasesToFiles(Path projectPath) {
+        //<editor-fold desc="Create architecture test case files">
+        List<Path> javaCopiedArchitectureFiles = FileTools.copyJavaFiles(
+                javaArchitectureMode.filesToCopy(),
+                javaArchitectureMode.targetsToCopyTo(projectPath, packageName),
+                javaArchitectureMode.fileValues(packageName)
+        );
+        Path javaArchitectureTestCaseCollectionFile = FileTools.createThreePartedJavaFile(
+                javaArchitectureMode.threePartedFileHeader(),
+                javaArchitectureMode.threePartedFileBody(javaArchUnitTestCases),
+                javaArchitectureMode.threePartedFileFooter(),
+                javaArchitectureMode.targetToCopyTo(projectPath, packageName),
+                javaArchitectureMode.fileValue(packageName)
         );
         //</editor-fold>
 
-        //<editor-fold desc="Create architecture test case file">
-        Path javaArchitectureTestCaseCollectionFile = FileTools.createThreePartedFile(
-                Paths.get("src", "main", "resources", "templates", "JavaArchUnitTestCaseCollectionHeader.txt"),
-                String.join("\n", javaArchitectureTestCases.stream().map(JavaArchitectureTestCase::createArchitectureTestCaseFileContent).toList()),
-                Paths.get("src", "main", "resources", "templates", "JavaArchUnitTestCaseCollectionFooter.txt"),
-                "JavaArchitectureTestCaseCollection.java",
-                path
+        //<editor-fold desc="Create aspect configuration files">
+        List<Path> javaCopiedAspectFiles = FileTools.copyJavaFiles(
+                javaAOPMode.filesToCopy(),
+                javaAOPMode.targetsToCopyTo(projectPath, packageName),
+                javaAOPMode.fileValues(packageName)
         );
-        //</editor-fold>
-
-        //<editor-fold desc="Create aspect configuration file">
-        Path javaAspectConfigurationCollectionFile = switch (javaAOPMode) {
-            case ASPECTJ -> FileTools.createThreePartedFile(
-                    Paths.get("src", "main", "resources", "templates", "JavaAspectJConfigurationCollectionHeader.txt"),
-                    String.join("\n", javaAspectJConfigurations.stream().map(JavaAspectJConfiguration::createAspectConfigurationFileContent).toList()),
-                    Paths.get("src", "main", "resources", "templates", "JavaAspectJConfigurationCollectionFooter.txt"),
-                    "JavaAspectJConfigurationSettings.java",
-                    path
-            );
-            case INSTRUMENTATION -> FileTools.createThreePartedFile(
-                    Paths.get("src", "main", "resources", "templates", "JavaInstrumentationConfigurationCollectionHeader.txt"),
-                    String.join("\n", javaInstrumentationConfigurations.stream().map(JavaInstrumentationConfiguration::createAspectConfigurationFileContent).toList()),
-                    Paths.get("src", "main", "resources", "templates", "JavaInstrumentationConfigurationCollectionFooter.txt"),
-                    "JavaInstrumentationConfigurationSettings.java",
-                    path
-            );
-        };
+        List<?> javaAspectConfigurations = javaAOPMode.equals(JavaAOPMode.ASPECTJ) ? this.javaAspectJConfigurations : this.javaInstrumentationConfigurations;
+        Path javaAspectConfigurationCollectionFile = FileTools.createThreePartedJavaFile(
+                javaAOPMode.threePartedFileHeader(),
+                javaAOPMode.threePartedFileBody(javaAspectConfigurations),
+                javaAOPMode.threePartedFileFooter(),
+                javaAOPMode.targetToCopyTo(projectPath, packageName),
+                javaAOPMode.fileValue(packageName)
+        );
         //</editor-fold>
 
         //<editor-fold desc="Combine files">
-        return new ArrayList<>(copiedFiles) {{
+        return new ArrayList<>(Streams.concat(javaCopiedArchitectureFiles.stream(), javaCopiedAspectFiles.stream()).toList()) {{
             add(javaArchitectureTestCaseCollectionFile);
             add(javaAspectConfigurationCollectionFile);
         }};
@@ -211,15 +229,23 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      */
     @Override
     public void runSecurityTestCases() {
-        JavaClasses classes = new ClassFileImporter().importPath(Paths.get(ProjectSourcesFinder.isGradleProject() ? "build" : "target", withinPath.toString()).toString());
+        //<editor-fold desc="Load classes">
+        JavaClasses classes = new ClassFileImporter().importPath(Paths.get(ProjectSourcesFinder.isGradleProject() ? "build" : "target", projectPath.toString()).toString());
+        //</editor-fold>#
+
+        //<editor-fold desc="Enforce fixed rules">
         JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_USE_REFLECTION.check(classes);
         JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_TERMINATE_JVM.check(classes);
-        javaArchitectureTestCases.forEach(archTest -> archTest.runArchitectureTestCase(classes));
+        //</editor-fold>
+
+        //<editor-fold desc="Enforce variable rules">
+        javaArchUnitTestCases.forEach(archTest -> archTest.runArchitectureTestCase(classes));
         switch (javaAOPMode) {
             case ASPECTJ -> javaAspectJConfigurations.forEach(JavaAspectJConfiguration::runAspectConfiguration);
             case INSTRUMENTATION ->
                     javaInstrumentationConfigurations.forEach(JavaInstrumentationConfiguration::runAspectConfiguration);
         }
+        //</editor-fold>
     }
     //</editor-fold>
 }

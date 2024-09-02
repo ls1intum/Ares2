@@ -2,6 +2,8 @@ package de.tum.cit.ase.ares.api.architecturetest;
 
 import com.tngtech.archunit.core.domain.JavaClasses;
 
+import java.nio.file.Path;
+
 /**
  * Interface for the architecture test cases in any programming language and abstract product of the abstract factory design pattern.
  *

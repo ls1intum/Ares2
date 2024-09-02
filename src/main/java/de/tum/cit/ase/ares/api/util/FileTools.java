@@ -1,13 +1,23 @@
 package de.tum.cit.ase.ares.api.util;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.util.Arrays;
 import java.util.IllegalFormatException;
 import java.util.List;
+import java.util.Scanner;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 /**
  * Utility class providing file-related operations such as copying files, reading file content,
@@ -27,6 +37,7 @@ public class FileTools {
         throw new IllegalStateException("Utility class");
     }
 
+    //<editor-fold desc="Copy">
     /**
      * Copies a list of files to a specified target directory.
      * <p>
@@ -36,14 +47,17 @@ public class FileTools {
      * </p>
      *
      * @param sourceFilePaths a {@link List} of {@link Path} objects representing the source files to copy.
-     * @param targetPath the target directory {@link Path} where the files will be copied.
+     * @param targetFilePaths a {@link List} of {@link Path} objects representing the target paths for the copied files.
      * @return a {@link List} of {@link Path} objects representing the paths of the copied files.
      * @throws SecurityException if an error occurs during the file copy process.
      */
-    public static List<Path> copyFiles(List<Path> sourceFilePaths, Path targetPath) {
-        return sourceFilePaths.stream().map(sourceFilePath -> {
+    /*public static List<Path> copyFiles(List<Path> sourceFilePaths, List<Path> targetFilePaths) {
+        return IntStream.range(0, sourceFilePaths.size()).mapToObj(i -> {
             try {
-                return Files.copy(sourceFilePath, targetPath.resolve(sourceFilePath.getFileName()));
+                if (!Files.exists(targetFilePaths.get(i).getParent())) {
+                    Files.createDirectories(targetFilePaths.get(i).getParent());
+                }
+                return Files.copy(sourceFilePaths.get(i), targetFilePaths.get(i), StandardCopyOption.REPLACE_EXISTING);
             } catch (InvalidPathException e) {
                 throw new SecurityException("Ares Security Error (Stage: Creation): Invalid path provided during file copy.", e);
             } catch (UnsupportedOperationException e) {
@@ -54,8 +68,53 @@ public class FileTools {
                 throw new SecurityException("Ares Security Error (Stage: Creation): IO error occurred during file copy.", e);
             }
         }).toList();
+    }*/
+
+    public static List<Path> copyFiles(List<Path> sourceFilePaths, List<Path> targetFilePaths) {
+        return IntStream.range(0, sourceFilePaths.size()).mapToObj(i -> {
+            try (InputStream sourceStream = FileTools.class.getResourceAsStream("/" + sourceFilePaths.get(i).toString())) {
+                if (sourceStream == null) {
+                    throw new IOException("Resource not found: " + sourceFilePaths.get(i));
+                }
+                if (!Files.exists(targetFilePaths.get(i).getParent())) {
+                    Files.createDirectories(targetFilePaths.get(i).getParent());
+                }
+                Files.copy(sourceStream, targetFilePaths.get(i), StandardCopyOption.REPLACE_EXISTING);
+            } catch (InvalidPathException e) {
+                throw new SecurityException("Ares Security Error (Stage: Creation): Invalid path provided during file copy.", e);
+            } catch (UnsupportedOperationException e) {
+                throw new SecurityException("Ares Security Error (Stage: Creation): Unsupported operation during file copy.", e);
+            } catch (FileAlreadyExistsException e) {
+                throw new SecurityException("Ares Security Error (Stage: Creation): File already exists at target location.", e);
+            } catch (IOException e) {
+                throw new SecurityException("Ares Security Error (Stage: Creation): IO error occurred during file copy.", e);
+            }
+            return targetFilePaths.get(i);
+        }).toList();
     }
 
+    public static List<Path> copyJavaFiles(List<Path> sourceFilePaths, List<Path> targetFilePaths, List<String[]> formatValues) {
+        List<Path> copiedFiles = copyFiles(sourceFilePaths, targetFilePaths);
+        var x = 0;
+        IntStream
+                .range(0, copiedFiles.size())
+                .forEach(i -> {
+                    try {
+                        var y = 0;
+                        Files.writeString(
+                                copiedFiles.get(i),
+                                String.format(Files.readString(copiedFiles.get(i)), formatValues.get(i)),
+                                StandardOpenOption.WRITE
+                        );
+                    } catch (IOException e) {
+                        throw new SecurityException("Ares Security Error (Stage: Creation): Failed to read content from source file.", e);
+                    }
+                });
+        return copiedFiles;
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Read">
     /**
      * Reads the content of a file from the specified path.
      * <p>
@@ -68,7 +127,7 @@ public class FileTools {
      * @return the content of the file as a {@link String}.
      * @throws SecurityException if an error occurs during the file read process.
      */
-    private static String readFile(Path sourceFilePath) {
+    /*public static String readFile(Path sourceFilePath) {
         try {
             return Files.readString(sourceFilePath);
         } catch (IOException e) {
@@ -78,8 +137,33 @@ public class FileTools {
         } catch (IllegalFormatException e) {
             throw new SecurityException("Ares Security Error (Stage: Creation): Illegal format in content.", e);
         }
-    }
+    }*/
+    public static String readFile(Path sourceFilePath) {
+        try (InputStream sourceStream = FileTools.class.getResourceAsStream("/" + sourceFilePath.toString());
+             Scanner scanner = new Scanner(sourceStream, StandardCharsets.UTF_8)) {
 
+            if (sourceStream == null) {
+                throw new IOException("Resource not found: " + sourceFilePath);
+            }
+
+            // Check if the scanner has any content
+            if (scanner.hasNext()) {
+                return scanner.useDelimiter("\\A").next();
+            } else {
+                return "";  // Return an empty string if the file is empty
+            }
+
+        } catch (IOException e) {
+            throw new SecurityException("Ares Security Error (Stage: Creation): Failed to read content from source file.", e);
+        } catch (OutOfMemoryError e) {
+            throw new SecurityException("Ares Security Error (Stage: Creation): Out of memory while reading content.", e);
+        } catch (IllegalFormatException e) {
+            throw new SecurityException("Ares Security Error (Stage: Creation): Illegal format in content.", e);
+        }
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Write">
     /**
      * Writes content to a file in the specified target directory.
      * <p>
@@ -87,29 +171,29 @@ public class FileTools {
      * content to it. If the file creation or writing process fails, it throws a {@link SecurityException}.
      * </p>
      *
-     * @param targetPath the target directory {@link Path} where the file will be created.
-     * @param fileName the name of the file to create.
+     * @param targetPath  the target directory {@link Path} where the file will be created.
+     * @param fileName    the name of the file to create.
      * @param fileContent the content to write to the file.
      * @return the {@link Path} of the created and written file.
      * @throws SecurityException if an error occurs during the file creation or writing process.
      */
     private static Path writeFile(Path targetPath, String fileName, String fileContent) {
-        Path fullTargetPath;
+        Path fullTargetPath = targetPath.resolve(fileName);
 
         try {
-            fullTargetPath = Files.createFile(targetPath.resolve(fileName));
+            if (!Files.exists(targetPath)) {
+                Files.createDirectories(targetPath);
+            }
         } catch (InvalidPathException e) {
             throw new SecurityException("Ares Security Error (Stage: Creation): Invalid path provided for file creation.", e);
         } catch (UnsupportedOperationException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Unsupported operation during file creation.", e);
-        } catch (FileAlreadyExistsException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Target file already exists.", e);
+            throw new SecurityException("Ares Security Error (Stage: Creation): Unsupported operation during directory creation.", e);
         } catch (IOException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): IO error occurred during file creation.", e);
+            throw new SecurityException("Ares Security Error (Stage: Creation): IO error occurred during directory creation.", e);
         }
 
         try {
-            return Files.writeString(fullTargetPath, fileContent, StandardOpenOption.WRITE);
+            return Files.writeString(fullTargetPath, fileContent, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
         } catch (IllegalArgumentException e) {
             throw new SecurityException("Ares Security Error (Stage: Creation): Illegal argument provided for file writing.", e);
         } catch (IOException e) {
@@ -120,6 +204,26 @@ public class FileTools {
             throw new SecurityException("Ares Security Error (Stage: Creation): Unsupported operation during file writing.", e);
         }
     }
+    //</editor-fold>
+
+    public static Path resolveOnTarget(Path target, String... furtherPathParts) {
+        return Stream
+                .of(furtherPathParts)
+                .reduce(target, Path::resolve, Path::resolve);
+    }
+
+    public static Path resolveOnResources(String... furtherPathParts) {
+        Path target = Paths.get("","de","tum","cit","ase","ares","api");
+        return resolveOnTarget(target, furtherPathParts);
+    }
+
+    public static Path resolveOnTests(Path projectPath, String packageName, String... furtherPathParts) {
+        String[] prefix = new String[]{"src", "test", "java"};
+        String[] infix = packageName.split("\\.");
+        String[] newPrefix = Stream.concat(Arrays.stream(prefix), Arrays.stream(infix)).toArray(String[]::new);
+        String[] newFurtherPathParts = Stream.concat(Arrays.stream(newPrefix), Arrays.stream(furtherPathParts)).toArray(String[]::new);
+        return resolveOnTarget(projectPath, newFurtherPathParts);
+    }
 
     /**
      * Creates a new file by combining the content of a header file, a body string, and a footer file.
@@ -129,20 +233,36 @@ public class FileTools {
      * </p>
      *
      * @param sourceHeaderPath the {@link Path} of the header file.
-     * @param sourceBody the body content as a {@link String}.
+     * @param sourceBody       the body content as a {@link String}.
      * @param sourceFooterPath the {@link Path} of the footer file.
-     * @param fileName the name of the new file to create.
-     * @param targetPath the target directory {@link Path} where the new file will be created.
+     * @param target           the target directory {@link Path} where the file will be created.
      * @return the {@link Path} of the created file.
      * @throws SecurityException if an error occurs during the file creation or writing process.
      */
     public static Path createThreePartedFile(
             Path sourceHeaderPath, String sourceBody, Path sourceFooterPath,
-            String fileName, Path targetPath
+            Path target
     ) {
         String sourceHeaderContent = readFile(sourceHeaderPath);
         String sourceFooterContent = readFile(sourceFooterPath);
         String fileContent = String.join("\n", List.of(sourceHeaderContent, sourceBody, sourceFooterContent));
-        return writeFile(targetPath, fileName, fileContent);
+        return writeFile(target.getParent(), target.getFileName().toString(), fileContent);
+    }
+
+    public static Path createThreePartedJavaFile(
+            Path sourceHeaderPath, String sourceBody, Path sourceFooterPath,
+            Path target, String[] formatValues
+    ) {
+        Path createdFile = createThreePartedFile(sourceHeaderPath, sourceBody, sourceFooterPath, target);
+        try {
+            Files.writeString(
+                    createdFile,
+                    String.format(Files.readString(createdFile), formatValues),
+                    StandardOpenOption.WRITE
+            );
+        } catch (IOException e) {
+            throw new SecurityException("Ares Security Error (Stage: Creation): Failed to read content from source file.", e);
+        }
+        return createdFile;
     }
 }

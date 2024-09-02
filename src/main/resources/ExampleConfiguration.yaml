@@ -1,6 +1,7 @@
 # This is an example configuration file for the programming exercise "ExampleProgrammingExercise".
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_GRADLE_AND_INSTRUMENTATION
+  theProgrammingLanguageUsesTheFollowingPackage: "de.tum.cit.ase"
   theFollowingRessourceAccessesArePermitted:
     regardingFileSystemInteractions:
       itIsPermittedTo: [
@@ -25,9 +26,9 @@ regardingTheSupervisedCode:
     regardingThreadCreations:
       itIsPermittedTo: [
         createTheFollowingNumberOfThreads: 10,
-        ofThisClass: "javainstrumentation.lang.Thread"
+        ofThisClass: "instrumentation.lang.Thread"
       ]
     regardingPackageImports:
       itIsPermittedTo: [
-        importTheFollowingPackage: "javainstrumentation.util"
+        importTheFollowingPackage: "instrumentation.util"
       ]

@@ -25,6 +25,6 @@ regardingTheSupervisedCode:
       - importTheFollowingPackage: "java.io"
       - importTheFollowingPackage: "java.lang"
       - importTheFollowingPackage: "java.util"
-      - importTheFollowingPackage: "de.tum.cit.ase.ares.api.aspectconfiguration.javaaspectj.adviceAndPointcut"
+      - importTheFollowingPackage: "de.tum.cit.ase.ares.api.aspectconfiguration.aspectj.adviceandpointcut"
       - importTheFollowingPackage: "java.nio.file"
-      - importTheFollowingPackage: "org.aspectj"
+      - importTheFollowingPackage: "org.java.aspectj"

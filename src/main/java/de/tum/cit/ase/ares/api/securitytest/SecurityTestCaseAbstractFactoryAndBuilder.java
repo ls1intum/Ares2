@@ -19,10 +19,10 @@ public interface SecurityTestCaseAbstractFactoryAndBuilder {
     /**
      * Writes the security test cases to files in any programming language.
      *
-     * @param path Path to the directory where the files should be written to
+     * @param projectPath Path to the directory where the files should be written to
      * @return List of paths of the written files
      */
-    List<Path> writeTestCasesToFiles(Path path);
+    List<Path> writeTestCasesToFiles(Path projectPath);
 
     /**
      * Runs the security test cases in any programming language.

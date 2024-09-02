@@ -1,6 +1,6 @@
 Manifest-Version: 1.0
-Premain-Class: de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.JavaInstrumentationAgent
-Agent-Class: de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.JavaInstrumentationAgent
+Premain-Class: de.tum.cit.ase.ares.api.aspectconfiguration.java.instrumentation.JavaInstrumentationAgent
+Agent-Class: de.tum.cit.ase.ares.api.aspectconfiguration.java.instrumentation.JavaInstrumentationAgent
 Can-Redefine-Classes: true
 Can-Retransform-Classes: true
-Main-Class: de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.JavaInstrumentationAgent
+Main-Class: de.tum.cit.ase.ares.api.aspectconfiguration.java.instrumentation.JavaInstrumentationAgent

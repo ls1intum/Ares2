@@ -25,6 +25,7 @@ public record SecurityPolicy(
      */
     public record SupervisedCode(
             ProgrammingLanguageConfiguration theFollowingProgrammingLanguageConfigurationIsUsed,
+            String theProgrammingLanguageUsesTheFollowingPackage,
             ResourceAccesses theFollowingResourceAccessesArePermitted
     ) {}
 

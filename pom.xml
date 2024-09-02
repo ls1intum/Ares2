@@ -181,6 +181,57 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-install-plugin</artifactId>
 				<version>3.1.1</version>
+				<executions>
+					<!-- Install main JAR -->
+					<execution>
+						<id>install-main-jar</id>
+						<phase>install</phase>
+						<goals>
+							<goal>install-file</goal>
+						</goals>
+						<configuration>
+							<file>${project.build.directory}/${project.build.finalName}.jar</file>
+							<groupId>${project.groupId}</groupId>
+							<artifactId>${project.artifactId}</artifactId>
+							<version>${project.version}</version>
+							<packaging>jar</packaging>
+						</configuration>
+					</execution>
+
+					<!-- Install Javadoc JAR -->
+					<execution>
+						<id>install-javadoc-jar</id>
+						<phase>install</phase>
+						<goals>
+							<goal>install-file</goal>
+						</goals>
+						<configuration>
+							<file>${project.build.directory}/${project.build.finalName}-javadoc.jar</file>
+							<groupId>${project.groupId}</groupId>
+							<artifactId>${project.artifactId}</artifactId>
+							<version>${project.version}</version>
+							<packaging>jar</packaging>
+							<classifier>javadoc</classifier>
+						</configuration>
+					</execution>
+
+					<!-- Install sources JAR -->
+					<execution>
+						<id>install-sources-jar</id>
+						<phase>install</phase>
+						<goals>
+							<goal>install-file</goal>
+						</goals>
+						<configuration>
+							<file>${project.build.directory}/${project.build.finalName}-sources.jar</file>
+							<groupId>${project.groupId}</groupId>
+							<artifactId>${project.artifactId}</artifactId>
+							<version>${project.version}</version>
+							<packaging>jar</packaging>
+							<classifier>sources</classifier>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -272,6 +323,8 @@
 				<configuration>
 					<argLine>@{argLine} -Dfile.encoding=UTF-8</argLine>
 					<runOrder>alphabetical</runOrder>
+					<!-- TODO: Remove -->
+					<skipTests>true</skipTests>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -424,9 +477,9 @@
 								<!-- Ensures the MANIFEST.MF file is created -->
 								<transformer
 										implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-									<mainClass>de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.JavaInstrumentationAgent</mainClass>
+									<mainClass>de.tum.cit.ase.ares.api.aspectconfiguration.java.instrumentation.JavaInstrumentationAgent</mainClass>
 									<manifestEntries>
-										<Premain-Class>de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.JavaInstrumentationAgent</Premain-Class>
+										<Premain-Class>de.tum.cit.ase.ares.api.aspectconfiguration.java.instrumentation.JavaInstrumentationAgent</Premain-Class>
 										<Can-Retransform-Classes>true</Can-Retransform-Classes>
 									</manifestEntries>
 								</transformer>

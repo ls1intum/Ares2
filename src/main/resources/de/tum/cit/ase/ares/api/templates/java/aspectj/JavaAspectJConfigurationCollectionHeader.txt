@@ -1,0 +1,3 @@
+package %s.aspectconfiguration.java.aspectj;
+
+public class JavaAspectConfigurationCollection {

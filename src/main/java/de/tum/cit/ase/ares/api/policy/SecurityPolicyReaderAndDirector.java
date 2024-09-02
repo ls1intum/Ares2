@@ -2,14 +2,13 @@ package de.tum.cit.ase.ares.api.policy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import de.tum.cit.ase.ares.api.securitytest.java.JavaAOPMode;
-import de.tum.cit.ase.ares.api.securitytest.java.JavaBuildTool;
+import de.tum.cit.ase.ares.api.aspectconfiguration.java.JavaAOPMode;
+import de.tum.cit.ase.ares.api.architecturetest.java.JavaArchitectureMode;
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.java.JavaBuildMode;
 import de.tum.cit.ase.ares.api.securitytest.java.JavaSecurityTestCaseFactoryAndBuilder;
 import de.tum.cit.ase.ares.api.securitytest.SecurityTestCaseAbstractFactoryAndBuilder;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -41,24 +40,24 @@ public class SecurityPolicyReaderAndDirector {
     /**
      * Constructs a new {@link SecurityPolicyReaderAndDirector} to read the security policy and configure the test case manager.
      *
-     * @param path            the path to the security policy file.
-     * @param policyWithinPath the path within the project where the policy is applied.
+     * @param securityPolicyPath the path to the security policy file.
+     * @param projectPath        the path within the project where the policy is applied.
      * @throws IOException if there is an error reading the security policy file.
      */
-    public SecurityPolicyReaderAndDirector(Path path, Path policyWithinPath) throws IOException {
-        securityPolicy = new ObjectMapper(new YAMLFactory()).readValue(path.toFile(), SecurityPolicy.class);
+    public SecurityPolicyReaderAndDirector(Path securityPolicyPath, Path projectPath) throws IOException {
+        securityPolicy = new ObjectMapper(new YAMLFactory()).readValue(securityPolicyPath.toFile(), SecurityPolicy.class);
         testCaseManager = switch (securityPolicy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed()) {
             case JAVA_USING_MAVEN_AND_INSTRUMENTATION -> new JavaSecurityTestCaseFactoryAndBuilder(
-                    JavaBuildTool.MAVEN, JavaAOPMode.INSTRUMENTATION, securityPolicy, policyWithinPath
+                    JavaBuildMode.MAVEN, JavaArchitectureMode.ARCHUNIT, JavaAOPMode.INSTRUMENTATION, securityPolicy, projectPath
             );
             case JAVA_USING_MAVEN_AND_ASPECTJ -> new JavaSecurityTestCaseFactoryAndBuilder(
-                    JavaBuildTool.MAVEN, JavaAOPMode.ASPECTJ, securityPolicy, policyWithinPath
+                    JavaBuildMode.MAVEN, JavaArchitectureMode.ARCHUNIT, JavaAOPMode.ASPECTJ, securityPolicy, projectPath
             );
             case JAVA_USING_GRADLE_AND_INSTRUMENTATION -> new JavaSecurityTestCaseFactoryAndBuilder(
-                    JavaBuildTool.GRADLE, JavaAOPMode.INSTRUMENTATION, securityPolicy, policyWithinPath
+                    JavaBuildMode.GRADLE, JavaArchitectureMode.ARCHUNIT, JavaAOPMode.INSTRUMENTATION, securityPolicy, projectPath
             );
             case JAVA_USING_GRADLE_AND_ASPECTJ -> new JavaSecurityTestCaseFactoryAndBuilder(
-                    JavaBuildTool.GRADLE, JavaAOPMode.ASPECTJ, securityPolicy, policyWithinPath
+                    JavaBuildMode.GRADLE, JavaArchitectureMode.ARCHUNIT, JavaAOPMode.ASPECTJ, securityPolicy, projectPath
             );
         };
     }
@@ -66,11 +65,11 @@ public class SecurityPolicyReaderAndDirector {
     /**
      * Writes the security test cases to the specified directory.
      *
-     * @param path the directory where the test case files should be written.
+     * @param projectPath the directory where the test case files should be written.
      * @return a list of paths representing the files that were written.
      */
-    public List<Path> writeTestCasesToFiles(Path path) {
-        return testCaseManager.writeTestCasesToFiles(path);
+    public List<Path> writeTestCasesToFiles(Path projectPath) {
+        return testCaseManager.writeTestCasesToFiles(projectPath);
     }
 
     /**
