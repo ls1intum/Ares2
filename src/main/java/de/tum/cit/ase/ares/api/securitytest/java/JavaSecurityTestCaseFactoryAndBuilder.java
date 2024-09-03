@@ -175,11 +175,11 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      * architecture test case files, and combines them with the configuration files.
      * </p>
      *
-     * @param projectPath the path where the test cases and configurations will be written.
+     * @param projectDirectory the path where the test cases and configurations will be written.
      * @return a list of paths representing the files that were created.
      */
     @Override
-    public List<Path> writeTestCasesToFiles(Path projectPath) {
+    public List<Path> writeTestCasesToFiles(Path projectDirectory) {
         //<editor-fold desc="Create architecture test case files">
         List<Path> javaCopiedArchitectureFiles = FileTools.copyJavaFiles(
                 javaArchitectureMode.filesToCopy(),
