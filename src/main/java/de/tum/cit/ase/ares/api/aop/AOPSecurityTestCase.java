@@ -1,13 +1,5 @@
 package de.tum.cit.ase.ares.api.aop;
 
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationConfigurationSupported;
-import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
-
-import java.security.Permission;
-import java.util.List;
-import java.util.function.Function;
-import java.util.function.Predicate;
-
 /**
  * Interface for aspect-oriented programming (AOP) security test case configurations across various programming languages.
  * <p>

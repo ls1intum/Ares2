@@ -1,11 +1,9 @@
 package de.tum.cit.ase.ares.api.aop.java;
 
-import de.tum.cit.ase.ares.api.aop.java.aspectj.JavaAspectjSecurityTestCase;
-import de.tum.cit.ase.ares.api.aop.java.aspectj.JavaAspectJConfigurationSettings;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationSecurityTestCase;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationSecurityTestCaseSettings;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.IntStream;
@@ -93,51 +91,48 @@ public enum JavaAOPMode {
     }
 
     public Path threePartedFileHeader() {
-        return FileTools.resolveOnResources(switch (this) {
-            case ASPECTJ ->
-                    new String[]{"templates", "java", "aspectj", "JavaAspectJConfigurationCollectionHeader.txt"};
-            case INSTRUMENTATION ->
-                    new String[]{"templates", "java", "instrumentation", "JavaInstrumentationConfigurationCollectionHeader.txt"};
-        });
+        return FileTools.resolveOnResources("templates", "java", "JavaSecurityTestCaseSettingsHeader.txt");
     }
 
-    public String threePartedFileBody(List<?> configuration) {
-        return switch (this) {
-            case ASPECTJ ->
-                    JavaAspectjSecurityTestCase.createAspectConfigurationFileFullContent((List<JavaAspectjSecurityTestCase>) configuration);
-            case INSTRUMENTATION ->
-                    JavaInstrumentationSecurityTestCase.writeAOPSecurityTestCaseFile((List<JavaInstrumentationSecurityTestCase>) configuration);
-        };
+    public String threePartedFileBody(
+            String aomMode,
+            String restrictedPackage,
+            String[] allowedListedClasses,
+            List<JavaSecurityTestCase> javaSecurityTestCases
+    ) {
+        return JavaSecurityTestCase.writeAOPSecurityTestCaseFile(aomMode, restrictedPackage, allowedListedClasses, javaSecurityTestCases);
     }
 
     public Path threePartedFileFooter() {
-        return FileTools.resolveOnResources(switch (this) {
-            case ASPECTJ ->
-                    new String[]{"templates", "java", "aspectj", "JavaAspectJConfigurationCollectionFooter.txt"};
-            case INSTRUMENTATION ->
-                    new String[]{"templates", "java", "instrumentation", "JavaInstrumentationConfigurationCollectionFooter.txt"};
-        });
+        return FileTools.resolveOnResources("templates", "java", "JavaSecurityTestCaseSettingsFooter.txt");
     }
 
     public String[] fileValue(String packageName) {
-        return switch (this) {
-            case ASPECTJ -> new String[]{packageName};
-            case INSTRUMENTATION -> new String[]{packageName};
-        };
+        return new String[]{packageName};
     }
 
     public Path targetToCopyTo(Path projectPath, String packageName) {
-        return FileTools.resolveOnTests(projectPath, packageName, switch (this) {
-            case ASPECTJ -> new String[]{"aop", "java", "aspectj", "JavaAspectJConfigurationSettings.java"};
-            case INSTRUMENTATION -> new String[]{"aop", "java", "instrumentation", "JavaInstrumentationSecurityTestCaseSettings.java"};
-        });
+        return FileTools.resolveOnTests(projectPath, packageName, "aop", "java", "JavaSecurityTestCaseSettings.java");
     }
 
 
     public void reset() {
-        switch (this) {
-            case ASPECTJ -> JavaAspectJConfigurationSettings.reset();
-            case INSTRUMENTATION -> JavaInstrumentationSecurityTestCaseSettings.reset();
+        try {
+            Class<?> settingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, null);
+            Method method = settingsClass.getDeclaredMethod("reset");
+            method.invoke(null);
+
+        } catch (ClassNotFoundException e) {
+            throw new SecurityException("Security configuration error: The class for the specific security test case settings could not be found. Ensure the class name is correct and the class is available at runtime.", e);
+
+        } catch (NoSuchMethodException e) {
+            throw new SecurityException("Security configuration error: The 'reset' method could not be found in the specified class. Ensure the method exists and is correctly named.", e);
+
+        } catch (IllegalAccessException e) {
+            throw new SecurityException("Security configuration error: Access to the 'reset' method was denied. Ensure the method is public and accessible.", e);
+
+        } catch (InvocationTargetException e) {
+            throw new SecurityException("Security configuration error: An error occurred while invoking the 'reset' method. This could be due to an underlying issue within the method implementation.", e);
         }
     }
 }

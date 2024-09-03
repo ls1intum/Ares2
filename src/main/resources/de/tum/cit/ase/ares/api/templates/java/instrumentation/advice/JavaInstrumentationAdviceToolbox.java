@@ -67,7 +67,7 @@ public class JavaInstrumentationAdviceToolbox {
 
     private static Object getValueFromSettings(String fieldName) {
         try {
-            Class<?> adviceSettingsClass = Class.forName("%s.aop.java.instrumentation.JavaInstrumentationSecurityTestCaseSettings", true, null);
+            Class<?> adviceSettingsClass = Class.forName("%s.aop.java.instrumentation.JavaSecurityTestCaseSettings", true, null);
             Field field = adviceSettingsClass.getDeclaredField(fieldName);
             field.setAccessible(true);
             Object value = field.get(null);

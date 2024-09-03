@@ -1,5 +1,7 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation;
 
+import de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings;
+
 /**
  * Configuration settings for Java instrumentation aspect configurations.
  * <p>
@@ -35,7 +37,7 @@ public class JavaInstrumentationConfigurationSettings {
      * List of classes that are allowed to be instrumented.
      */
     private static String[] allowedListedClasses = {
-            "de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationSecurityTestCaseSettings",
+            "de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings",
             "de.tum.cit.ase.ares.api.aop.instrumentation.adviceandpointcut.JavaInstrumentationAdviceToolbox",
             "de.tum.cit.ase.ares.api.aop.instrumentation.adviceandpointcut.JavaInstrumentationReadPathAdvice",
             "de.tum.cit.ase.ares.api.aop.instrumentation.adviceandpointcut.JavaWritePathAdvice",
@@ -111,9 +113,9 @@ public class JavaInstrumentationConfigurationSettings {
     private static String[] threadClassAllowedToBeCreated = {};
 
     public static void reset() {
-        JavaInstrumentationSecurityTestCaseSettings.restrictedPackage = "";
-        JavaInstrumentationSecurityTestCaseSettings.allowedListedClasses = new String[]{
-                "de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationSecurityTestCaseSettings",
+        JavaSecurityTestCaseSettings.restrictedPackage = "";
+        JavaSecurityTestCaseSettings.allowedListedClasses = new String[]{
+                "de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings",
                 "de.tum.cit.ase.ares.api.aop.instrumentation.adviceandpointcut.JavaInstrumentationAdviceToolbox",
                 "de.tum.cit.ase.ares.api.aop.instrumentation.adviceandpointcut.JavaInstrumentationReadPathAdvice",
                 "de.tum.cit.ase.ares.api.aop.instrumentation.adviceandpointcut.JavaWritePathAdvice",
@@ -122,18 +124,18 @@ public class JavaInstrumentationConfigurationSettings {
                 "de.tum.cit.ase.ares.api.aop.java.pointcut.instrumentation.JavaInstrumentationBindingDefinitions",
                 "de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent"
         };
-        JavaInstrumentationSecurityTestCaseSettings.pathsAllowedToBeRead = new String[]{};
-        JavaInstrumentationSecurityTestCaseSettings.pathsAllowedToBeOverwritten = new String[]{};
-        JavaInstrumentationSecurityTestCaseSettings.pathsAllowedToBeExecuted = new String[]{};
-        JavaInstrumentationSecurityTestCaseSettings.hostsAllowedToBeConnectedTo = new String[]{};
-        JavaInstrumentationSecurityTestCaseSettings.portsAllowedToBeConnecedTo = new int[]{};
-        JavaInstrumentationSecurityTestCaseSettings.hostsAllowedToBeSentTo = new String[]{};
-        JavaInstrumentationSecurityTestCaseSettings.portsAllowedToBeSentTo = new int[]{};
-        JavaInstrumentationSecurityTestCaseSettings.hostsAllowedToBeReceivedFrom = new String[]{};
-        JavaInstrumentationSecurityTestCaseSettings.portsAllowedToBeReceivedFrom = new int[]{};
-        JavaInstrumentationSecurityTestCaseSettings.commandsAllowedToBeExecuted = new String[]{};
-        JavaInstrumentationSecurityTestCaseSettings.argumentsAllowedToBePassed = new String[][]{};
-        JavaInstrumentationSecurityTestCaseSettings.threadNumberAllowedToBeCreated = new int[]{};
-        JavaInstrumentationSecurityTestCaseSettings.threadClassAllowedToBeCreated = new String[]{};
+        JavaSecurityTestCaseSettings.pathsAllowedToBeRead = new String[]{};
+        JavaSecurityTestCaseSettings.pathsAllowedToBeOverwritten = new String[]{};
+        JavaSecurityTestCaseSettings.pathsAllowedToBeExecuted = new String[]{};
+        JavaSecurityTestCaseSettings.hostsAllowedToBeConnectedTo = new String[]{};
+        JavaSecurityTestCaseSettings.portsAllowedToBeConnecedTo = new int[]{};
+        JavaSecurityTestCaseSettings.hostsAllowedToBeSentTo = new String[]{};
+        JavaSecurityTestCaseSettings.portsAllowedToBeSentTo = new int[]{};
+        JavaSecurityTestCaseSettings.hostsAllowedToBeReceivedFrom = new String[]{};
+        JavaSecurityTestCaseSettings.portsAllowedToBeReceivedFrom = new int[]{};
+        JavaSecurityTestCaseSettings.commandsAllowedToBeExecuted = new String[]{};
+        JavaSecurityTestCaseSettings.argumentsAllowedToBePassed = new String[][]{};
+        JavaSecurityTestCaseSettings.threadNumberAllowedToBeCreated = new int[]{};
+        JavaSecurityTestCaseSettings.threadClassAllowedToBeCreated = new String[]{};
     }
 }

@@ -1,10 +1,12 @@
 package de.tum.cit.ase.ares.api.jqwik;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import de.tum.cit.ase.ares.api.Policy;
-import de.tum.cit.ase.ares.api.aop.java.aspectj.JavaAspectJConfigurationSettings;
 import de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 import org.apiguardian.api.API;
@@ -50,7 +52,21 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
 				}
 			}
 		} else {
-			JavaAspectJConfigurationSettings.reset();
+			try {
+				Class<?> javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, null);
+				Method resetMethod = javaSecurityTestCaseSettingsClass.getDeclaredMethod("reset");
+				resetMethod.setAccessible(true);
+				resetMethod.invoke(null);
+				resetMethod.setAccessible(false);
+			} catch (ClassNotFoundException e) {
+				throw new SecurityException("Security configuration error: The class for the specific security test case settings could not be found. Ensure the class name is correct and the class is available at runtime.", e);
+			}  catch (NoSuchMethodException e) {
+				throw new SecurityException("Security configuration error: The 'reset' method could not be found in the specified class. Ensure the method exists and is correctly named.", e);
+			}  catch (IllegalAccessException e) {
+				throw new SecurityException("Security configuration error: Access to the 'reset' method was denied. Ensure the method is public and accessible.", e);
+			} catch (InvocationTargetException e) {
+				throw new SecurityException("Security configuration error: An error occurred while invoking the 'reset' method. This could be due to an underlying issue within the method implementation.", e);
+			}
 		}
 //REMOVED: Installing of ArtemisSecurityManager
 		PropertyExecutionResult result;

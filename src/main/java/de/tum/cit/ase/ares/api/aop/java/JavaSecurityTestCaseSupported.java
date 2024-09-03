@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.api.aop.java.instrumentation;
+package de.tum.cit.ase.ares.api.aop.java;
 
 /**
  * Enum representing the supported aspect configurations in the Java programming language.
@@ -12,7 +12,7 @@ package de.tum.cit.ase.ares.api.aop.java.instrumentation;
  * @version 2.0.0
  * @since 2.0.0
  */
-public enum JavaInstrumentationConfigurationSupported {
+public enum JavaSecurityTestCaseSupported {
 
     /**
      * Aspect configuration for managing file system interactions.

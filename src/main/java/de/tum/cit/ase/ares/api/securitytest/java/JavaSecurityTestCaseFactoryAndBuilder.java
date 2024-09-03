@@ -5,13 +5,11 @@ package de.tum.cit.ase.ares.api.securitytest.java;
 import com.google.common.collect.Streams;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
-import de.tum.cit.ase.ares.api.aop.java.aspectj.JavaAspectjSecurityTestCase;
+import de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSupported;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitSecurityTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitTestCaseSupported;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile.JavaArchitectureTestCaseCollection;
-import de.tum.cit.ase.ares.api.aop.java.aspectj.JavaAspectJConfigurationSupported;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationSecurityTestCase;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationConfigurationSupported;
+import de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCase;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy.ResourceAccesses;
 import de.tum.cit.ase.ares.api.securitytest.SecurityTestCaseAbstractFactoryAndBuilder;
@@ -24,10 +22,12 @@ import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static com.google.common.collect.Iterables.isEmpty;
 //</editor-fold>
@@ -61,16 +61,24 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
     private final List<JavaArchUnitSecurityTestCase> javaArchUnitTestCases = new ArrayList<>();
 
     /**
-     * List of AspectJ configurations to be generated based on the security policy.
-     */
-    private final List<JavaAspectjSecurityTestCase> javaAspectJConfigurations = new ArrayList<>();
-
-    /**
      * List of Instrumentation configurations to be generated based on the security policy.
      */
-    private final List<JavaInstrumentationSecurityTestCase> javaInstrumentationSecurityTestCases = new ArrayList<>();
+    private final List<JavaSecurityTestCase> javaSecurityTestCases = new ArrayList<>();
 
     private final String packageName;
+
+    private final String[] testClasses;
+
+    private final String[] functionClasses = {
+            "de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings",
+            "de.tum.cit.ase.ares.api.aop.instrumentation.adviceAndPointcut.JavaInstrumentationAdviceToolbox",
+            "de.tum.cit.ase.ares.api.aop.instrumentation.adviceAndPointcut.JavaInstrumentationReadPathAdvice",
+            "de.tum.cit.ase.ares.api.aop.instrumentation.adviceAndPointcut.JavaWritePathAdvice",
+            "de.tum.cit.ase.ares.api.aop.instrumentation.adviceAndPointcut.JavaInstrumentationExecutePathAdvice",
+            "de.tum.cit.ase.ares.api.aop.java.pointcut.instrumentation.JavaInstrumentationPointcutDefinitions",
+            "de.tum.cit.ase.ares.api.aop.java.pointcut.instrumentation.JavaInstrumentationBindingDefinitions",
+            "de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent"
+    };
 
     private final ResourceAccesses ressourceAccesses;
 
@@ -97,6 +105,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         this.javaAOPMode = javaAOPMode;
         this.packageName = securityPolicy.regardingTheSupervisedCode().theProgrammingLanguageUsesTheFollowingPackage();
         this.ressourceAccesses = securityPolicy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted();
+        this.testClasses = securityPolicy.regardingTheSupervisedCode().theFollowingClassesAreTestClasses();
         this.projectPath = projectPath;
         this.createSecurityTestCases();
     }
@@ -136,38 +145,27 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                 .range(0, methods.length)
                 .forEach(i -> {
                     //<editor-fold desc="Load supported checks code">
-                    // TODO: What if JavaArchUnitTestCaseSupported, JavaAspectJConfigurationSupported and JavaInstrumentationConfigurationSupported are not in the same order or smaller than methods?
+                    // TODO: What if JavaArchUnitTestCaseSupported, JavaAspectJSecurityTestCaseSupported and JavaSecurityTestCaseSupported are not in the same order or smaller than methods?
                     JavaArchUnitTestCaseSupported javaArchitectureTestCasesSupportedValue = JavaArchUnitTestCaseSupported.values()[i];
-                    JavaAspectJConfigurationSupported javaAspectJConfigurationSupportedValue = JavaAspectJConfigurationSupported.values()[i];
-                    JavaInstrumentationConfigurationSupported javaInstrumentationConfigurationSupportedValue = JavaInstrumentationConfigurationSupported.values()[i];
+                    JavaSecurityTestCaseSupported javaSecurityTestCaseSupportedValue = JavaSecurityTestCaseSupported.values()[i];
                     //</editor-fold>
 
                     if (isEmpty(methods[i].get())) {
                         //<editor-fold desc="Architecture test case code">
-                        switch (javaArchitectureMode) {
-                            case ARCHUNIT -> javaArchUnitTestCases.add(
-                                    new JavaArchUnitSecurityTestCase(
-                                            javaArchitectureTestCasesSupportedValue
-                                    )
-                            );
-                        }
+                        javaArchUnitTestCases.add(
+                                new JavaArchUnitSecurityTestCase(
+                                        javaArchitectureTestCasesSupportedValue
+                                )
+                        );
                         //</editor-fold>
                     } else {
                         //<editor-fold desc="AOP code">
-                        switch (javaAOPMode) {
-                            case ASPECTJ -> javaAspectJConfigurations.add(
-                                    new JavaAspectjSecurityTestCase(
-                                            javaAspectJConfigurationSupportedValue,
-                                            ressourceAccesses
-                                    )
-                            );
-                            case INSTRUMENTATION -> javaInstrumentationSecurityTestCases.add(
-                                    new JavaInstrumentationSecurityTestCase(
-                                            javaInstrumentationConfigurationSupportedValue,
-                                            ressourceAccesses
-                                    )
-                            );
-                        }
+                        javaSecurityTestCases.add(
+                                new JavaSecurityTestCase(
+                                        javaSecurityTestCaseSupportedValue,
+                                        ressourceAccesses
+                                )
+                        );
                         //</editor-fold>
                     }
                 });
@@ -210,10 +208,19 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                 javaAOPMode.targetsToCopyTo(projectPath, packageName),
                 javaAOPMode.fileValues(packageName)
         );
-        List<?> javaAspectConfigurations = javaAOPMode.equals(JavaAOPMode.ASPECTJ) ? this.javaAspectJConfigurations : this.javaInstrumentationSecurityTestCases;
         Path javaAspectConfigurationCollectionFile = FileTools.createThreePartedJavaFile(
                 javaAOPMode.threePartedFileHeader(),
-                javaAOPMode.threePartedFileBody(javaAspectConfigurations),
+                javaAOPMode.threePartedFileBody(
+                        switch (javaAOPMode) {
+                            case ASPECTJ -> "AspectJ";
+                            case INSTRUMENTATION -> "Instrumentation";
+                        }, packageName
+                        , Stream.concat(
+                                Arrays.stream(testClasses),
+                                Arrays.stream(functionClasses)
+                        ).toArray(String[]::new),
+                        this.javaSecurityTestCases
+                ),
                 javaAOPMode.threePartedFileFooter(),
                 javaAOPMode.targetToCopyTo(projectPath, packageName),
                 javaAOPMode.fileValue(packageName)
@@ -252,11 +259,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
 
         //<editor-fold desc="Enforce variable rules code">
         javaArchUnitTestCases.forEach(archTest -> archTest.executeArchitectureTestCase(classes));
-        switch (javaAOPMode) {
-            case ASPECTJ -> javaAspectJConfigurations.forEach(JavaAspectjSecurityTestCase::executeAOPSecurityTestCase);
-            case INSTRUMENTATION ->
-                    javaInstrumentationSecurityTestCases.forEach(JavaInstrumentationSecurityTestCase::executeAOPSecurityTestCase);
-        }
+        javaSecurityTestCases.forEach(JavaSecurityTestCase::executeAOPSecurityTestCase);
         //</editor-fold>
     }
     //</editor-fold>
