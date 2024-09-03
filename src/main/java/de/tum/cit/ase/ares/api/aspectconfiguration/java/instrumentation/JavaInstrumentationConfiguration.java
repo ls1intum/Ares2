@@ -268,26 +268,6 @@ public class JavaInstrumentationConfiguration implements AspectConfiguration {
      */
     @Override
     public String createAspectConfigurationFileContent() {
-        /*StringBuilder content = new StringBuilder();
-        switch (javaInstrumentationConfigurationSupported) {
-            case FILESYSTEM_INTERACTION -> Stream
-                    .of("read", "overwrite", "execute")
-                    .map(this::getFilePermissionPathsAdviceSetting)
-                    .forEach(content::append);
-            case NETWORK_CONNECTION -> Stream
-                    .of("connect", "send", "receive")
-                    .map(this::getNetworkConnectionAdviceSetting)
-                    .forEach(content::append);
-            case COMMAND_EXECUTION -> Stream
-                    .of("")
-                    .map(this::getCommandExecutionAdviceSetting)
-                    .forEach(content::append);
-            case THREAD_CREATION -> Stream
-                    .of("")
-                    .map(this::getThreadCreationAdviceSetting)
-                    .forEach(content::append);
-        }
-        return content.toString();*/
         return "";
     }
 
