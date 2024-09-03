@@ -5,18 +5,18 @@ package de.tum.cit.ase.ares.api.securitytest.java;
 import com.google.common.collect.Streams;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
-import de.tum.cit.ase.ares.api.architecturetest.java.archunit.JavaArchUnitTestCase;
-import de.tum.cit.ase.ares.api.architecturetest.java.archunit.JavaArchUnitTestCaseSupported;
-import de.tum.cit.ase.ares.api.architecturetest.java.archunit.postcompile.JavaArchitectureTestCaseCollection;
-import de.tum.cit.ase.ares.api.aspectconfiguration.java.aspectj.JavaAspectJConfiguration;
-import de.tum.cit.ase.ares.api.aspectconfiguration.java.aspectj.JavaAspectJConfigurationSupported;
-import de.tum.cit.ase.ares.api.aspectconfiguration.java.instrumentation.JavaInstrumentationConfiguration;
-import de.tum.cit.ase.ares.api.aspectconfiguration.java.instrumentation.JavaInstrumentationConfigurationSupported;
+import de.tum.cit.ase.ares.api.aop.java.aspectj.JavaAspectjSecurityTestCase;
+import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitSecurityTestCase;
+import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitTestCaseSupported;
+import de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile.JavaArchitectureTestCaseCollection;
+import de.tum.cit.ase.ares.api.aop.java.aspectj.JavaAspectJConfigurationSupported;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationSecurityTestCase;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationConfigurationSupported;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy.ResourceAccesses;
 import de.tum.cit.ase.ares.api.securitytest.SecurityTestCaseAbstractFactoryAndBuilder;
-import de.tum.cit.ase.ares.api.aspectconfiguration.java.JavaAOPMode;
-import de.tum.cit.ase.ares.api.architecturetest.java.JavaArchitectureMode;
+import de.tum.cit.ase.ares.api.aop.java.JavaAOPMode;
+import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.java.JavaBuildMode;
 import de.tum.cit.ase.ares.api.util.FileTools;
 import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
@@ -58,17 +58,17 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
     /**
      * List of architecture test cases to be generated based on the security policy.
      */
-    private final List<JavaArchUnitTestCase> javaArchUnitTestCases = new ArrayList<>();
+    private final List<JavaArchUnitSecurityTestCase> javaArchUnitTestCases = new ArrayList<>();
 
     /**
      * List of AspectJ configurations to be generated based on the security policy.
      */
-    private final List<JavaAspectJConfiguration> javaAspectJConfigurations = new ArrayList<>();
+    private final List<JavaAspectjSecurityTestCase> javaAspectJConfigurations = new ArrayList<>();
 
     /**
      * List of Instrumentation configurations to be generated based on the security policy.
      */
-    private final List<JavaInstrumentationConfiguration> javaInstrumentationConfigurations = new ArrayList<>();
+    private final List<JavaInstrumentationSecurityTestCase> javaInstrumentationSecurityTestCases = new ArrayList<>();
 
     private final String packageName;
 
@@ -118,7 +118,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
 
         //<editor-fold desc="Create fixed rules code">
         javaArchUnitTestCases.add(
-                new JavaArchUnitTestCase(
+                new JavaArchUnitSecurityTestCase(
                         JavaArchUnitTestCaseSupported.PACKAGE_IMPORT,
                         new HashSet<>(ressourceAccesses.regardingPackageImports())
                 )
@@ -146,7 +146,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                         //<editor-fold desc="Architecture test case code">
                         switch (javaArchitectureMode) {
                             case ARCHUNIT -> javaArchUnitTestCases.add(
-                                    new JavaArchUnitTestCase(
+                                    new JavaArchUnitSecurityTestCase(
                                             javaArchitectureTestCasesSupportedValue
                                     )
                             );
@@ -156,13 +156,13 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                         //<editor-fold desc="AOP code">
                         switch (javaAOPMode) {
                             case ASPECTJ -> javaAspectJConfigurations.add(
-                                    new JavaAspectJConfiguration(
+                                    new JavaAspectjSecurityTestCase(
                                             javaAspectJConfigurationSupportedValue,
                                             ressourceAccesses
                                     )
                             );
-                            case INSTRUMENTATION -> javaInstrumentationConfigurations.add(
-                                    new JavaInstrumentationConfiguration(
+                            case INSTRUMENTATION -> javaInstrumentationSecurityTestCases.add(
+                                    new JavaInstrumentationSecurityTestCase(
                                             javaInstrumentationConfigurationSupportedValue,
                                             ressourceAccesses
                                     )
@@ -210,7 +210,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                 javaAOPMode.targetsToCopyTo(projectPath, packageName),
                 javaAOPMode.fileValues(packageName)
         );
-        List<?> javaAspectConfigurations = javaAOPMode.equals(JavaAOPMode.ASPECTJ) ? this.javaAspectJConfigurations : this.javaInstrumentationConfigurations;
+        List<?> javaAspectConfigurations = javaAOPMode.equals(JavaAOPMode.ASPECTJ) ? this.javaAspectJConfigurations : this.javaInstrumentationSecurityTestCases;
         Path javaAspectConfigurationCollectionFile = FileTools.createThreePartedJavaFile(
                 javaAOPMode.threePartedFileHeader(),
                 javaAOPMode.threePartedFileBody(javaAspectConfigurations),
@@ -251,11 +251,11 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         //</editor-fold>
 
         //<editor-fold desc="Enforce variable rules code">
-        javaArchUnitTestCases.forEach(archTest -> archTest.runArchitectureTestCase(classes));
+        javaArchUnitTestCases.forEach(archTest -> archTest.executeArchitectureTestCase(classes));
         switch (javaAOPMode) {
-            case ASPECTJ -> javaAspectJConfigurations.forEach(JavaAspectJConfiguration::runAspectConfiguration);
+            case ASPECTJ -> javaAspectJConfigurations.forEach(JavaAspectjSecurityTestCase::executeAOPSecurityTestCase);
             case INSTRUMENTATION ->
-                    javaInstrumentationConfigurations.forEach(JavaInstrumentationConfiguration::runAspectConfiguration);
+                    javaInstrumentationSecurityTestCases.forEach(JavaInstrumentationSecurityTestCase::executeAOPSecurityTestCase);
         }
         //</editor-fold>
     }

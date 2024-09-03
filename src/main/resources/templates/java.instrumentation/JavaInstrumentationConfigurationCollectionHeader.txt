@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation;
+package de.tum.cit.ase.ares.api.aop.javainstrumentation;
 
 /**
  * Configuration settings for Java instrumentation aspect configurations.
@@ -28,12 +28,12 @@ public class JavaInstrumentationConfigurationSettings {
 
     private static final String RESTRICTED_PACKAGE = "de.tum.cit.ase.ares";
     private static final String[] ALLOWED_LISTED_CLASSES = {
-        "de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.JavaInstrumentationConfigurationSettings",
-        "de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.adviceAndPointcut.JavaInstrumentationAdviceToolbox",
-        "de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.adviceAndPointcut.JavaInstrumentationReadPathAdvice",
-        "de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.adviceAndPointcut.JavaWritePathAdvice",
-        "de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.adviceAndPointcut.JavaInstrumentationExecutePathAdvice",
-        "de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.pointcut.JavaInstrumentationPointcutDefinitions",
-        "de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.pointcut.JavaInstrumentationBindingDefinitions",
-        "de.tum.cit.ase.ares.api.aspectconfiguration.javainstrumentation.JavaInstrumentationAgent"
+        "de.tum.cit.ase.ares.api.aop.javainstrumentation.JavaInstrumentationConfigurationSettings",
+        "de.tum.cit.ase.ares.api.aop.javainstrumentation.adviceAndPointcut.JavaInstrumentationAdviceToolbox",
+        "de.tum.cit.ase.ares.api.aop.javainstrumentation.adviceAndPointcut.JavaInstrumentationReadPathAdvice",
+        "de.tum.cit.ase.ares.api.aop.javainstrumentation.adviceAndPointcut.JavaWritePathAdvice",
+        "de.tum.cit.ase.ares.api.aop.javainstrumentation.adviceAndPointcut.JavaInstrumentationExecutePathAdvice",
+        "de.tum.cit.ase.ares.api.aop.javainstrumentation.pointcut.JavaInstrumentationPointcutDefinitions",
+        "de.tum.cit.ase.ares.api.aop.javainstrumentation.pointcut.JavaInstrumentationBindingDefinitions",
+        "de.tum.cit.ase.ares.api.aop.javainstrumentation.JavaInstrumentationAgent"
     };

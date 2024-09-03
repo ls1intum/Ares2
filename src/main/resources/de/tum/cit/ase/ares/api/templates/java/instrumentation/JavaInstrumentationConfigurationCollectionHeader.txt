@@ -28,12 +28,12 @@ public class JavaInstrumentationConfigurationSettings {
 
     private static final String RESTRICTED_PACKAGE = "de.tum.cit.ase.ares";
     private static final String[] ALLOWED_LISTED_CLASSES = {
-        "de.tum.cit.ase.ares.api.aspectconfiguration.java.instrumentation.JavaInstrumentationConfigurationSettings",
-        "de.tum.cit.ase.ares.api.aspectconfiguration.instrumentation.adviceAndPointcut.JavaInstrumentationAdviceToolbox",
-        "de.tum.cit.ase.ares.api.aspectconfiguration.instrumentation.adviceAndPointcut.JavaInstrumentationReadPathAdvice",
-        "de.tum.cit.ase.ares.api.aspectconfiguration.instrumentation.adviceAndPointcut.JavaWritePathAdvice",
-        "de.tum.cit.ase.ares.api.aspectconfiguration.instrumentation.adviceAndPointcut.JavaInstrumentationExecutePathAdvice",
-        "de.tum.cit.ase.ares.api.aspectconfiguration.java.pointcut.instrumentation.JavaInstrumentationPointcutDefinitions",
-        "de.tum.cit.ase.ares.api.aspectconfiguration.java.pointcut.instrumentation.JavaInstrumentationBindingDefinitions",
-        "de.tum.cit.ase.ares.api.aspectconfiguration.java.instrumentation.JavaInstrumentationAgent"
+        "de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationSecurityTestCaseSettings",
+        "de.tum.cit.ase.ares.api.aop.instrumentation.adviceAndPointcut.JavaInstrumentationAdviceToolbox",
+        "de.tum.cit.ase.ares.api.aop.instrumentation.adviceAndPointcut.JavaInstrumentationReadPathAdvice",
+        "de.tum.cit.ase.ares.api.aop.instrumentation.adviceAndPointcut.JavaWritePathAdvice",
+        "de.tum.cit.ase.ares.api.aop.instrumentation.adviceAndPointcut.JavaInstrumentationExecutePathAdvice",
+        "de.tum.cit.ase.ares.api.aop.java.pointcut.instrumentation.JavaInstrumentationPointcutDefinitions",
+        "de.tum.cit.ase.ares.api.aop.java.pointcut.instrumentation.JavaInstrumentationBindingDefinitions",
+        "de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent"
     };

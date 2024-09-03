@@ -4,8 +4,8 @@ package de.tum.cit.ase.ares.api.policy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import de.tum.cit.ase.ares.api.aspectconfiguration.java.JavaAOPMode;
-import de.tum.cit.ase.ares.api.architecturetest.java.JavaArchitectureMode;
+import de.tum.cit.ase.ares.api.aop.java.JavaAOPMode;
+import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.java.JavaBuildMode;
 import de.tum.cit.ase.ares.api.securitytest.java.JavaSecurityTestCaseFactoryAndBuilder;
 import de.tum.cit.ase.ares.api.securitytest.SecurityTestCaseAbstractFactoryAndBuilder;

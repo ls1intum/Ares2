@@ -1,5 +1,7 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation;
 
+import de.tum.cit.ase.ares.api.aop.AOPSecurityTestCase;
+
 /**
  * Configuration settings for Java instrumentation aspect configurations.
  * <p>
@@ -14,7 +16,7 @@ package de.tum.cit.ase.ares.api.aop.java.instrumentation;
  * @version 2.0.0
  * @since 2.0.0
  */
-public class JavaInstrumentationConfigurationSettings {
+public class JavaInstrumentationSecurityTestCaseSettings {
 
     /**
      * Private constructor to prevent instantiation of this utility class.
@@ -22,7 +24,7 @@ public class JavaInstrumentationConfigurationSettings {
      * The constructor throws an {@link IllegalStateException} to enforce the utility class pattern.
      * </p>
      */
-    private JavaInstrumentationConfigurationSettings() {
+    private JavaInstrumentationSecurityTestCaseSettings() {
         throw new IllegalStateException("Utility class");
     }
 

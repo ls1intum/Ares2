@@ -4,7 +4,7 @@ import java.nio.file.Path;
 import java.util.Optional;
 
 import de.tum.cit.ase.ares.api.Policy;
-import de.tum.cit.ase.ares.api.aspectconfiguration.java.aspectj.JavaAspectJConfigurationSettings;
+import de.tum.cit.ase.ares.api.aop.java.aspectj.JavaAspectJConfigurationSettings;
 import de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 import org.apiguardian.api.API;

@@ -1,0 +1,136 @@
+package de.tum.cit.ase.ares.api.aop.java.aspectj;
+
+//<editor-fold desc="Imports">
+import de.tum.cit.ase.ares.api.aop.AOPSecurityTestCase;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationConfigurationSupported;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationSecurityTestCase;
+import de.tum.cit.ase.ares.api.policy.SecurityPolicy.ResourceAccesses;
+
+import java.security.Permission;
+import java.util.List;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+//</editor-fold>
+
+/**
+ * Aspect configuration for the Java programming language and concrete product of the abstract factory design pattern.
+ *
+ * @author Markus Paulsen
+ * @version 2.0.0
+ * @see <a href="https://refactoring.guru/design-patterns/abstract-factory">Abstract Factory Design Pattern</a>
+ * @since 2.0.0
+ */
+public class JavaAspectjSecurityTestCase implements AOPSecurityTestCase {
+
+    //<editor-fold desc="Attributes">
+    public static final String END_OF_LIST = "\n);\n";
+
+    private final JavaAspectJConfigurationSupported javaAspectJConfigurationSupported;
+    private final ResourceAccesses resourceAccesses;
+    //</editor-fold>
+
+    //<editor-fold desc="Constructor">
+    /**
+     * Constructor for JavaAspectConfiguration.
+     *
+     * @param javaAspectJConfigurationSupported Selects the supported aspect configuration in the Java programming language
+     * @param resourceAccesses                  Security policy for the aspect configuration
+     */
+    public JavaAspectjSecurityTestCase(JavaAspectJConfigurationSupported javaAspectJConfigurationSupported, ResourceAccesses resourceAccesses) {
+        this.javaAspectJConfigurationSupported = javaAspectJConfigurationSupported;
+        this.resourceAccesses = resourceAccesses;
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Tool methods">
+    public static String createAspectConfigurationFileFullContent(List<JavaAspectjSecurityTestCase> javaAspectJConfigurations) {
+        return String.join("\n", javaAspectJConfigurations.stream().map(JavaAspectjSecurityTestCase::writeAOPSecurityTestCase).toList());
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Write security test cases methods">
+    /**
+     * Creates the content of the aspect configuration file in the Java programming language.
+     *
+     * @return Content of the aspect configuration file
+     */
+    @Override
+    public String writeAOPSecurityTestCase() {
+        StringBuilder content = new StringBuilder();
+        switch (javaAspectJConfigurationSupported) {
+            case FILESYSTEM_INTERACTION -> {
+                content.append("private static final List<FilePermission> allowedFileSystemInteractions = List.of(\n");
+                content.append(resourceAccesses.regardingFileSystemInteractions().stream()
+                        .map(securityContent -> String.format("new FilePermission(%s, %s, %s, Path.of(\"%s\"))",
+                                securityContent.readAllFiles(),
+                                securityContent.overwriteAllFiles(),
+                                securityContent.executeAllFiles(),
+                                securityContent.onThisPathAndAllPathsBelow()))
+                        .collect(Collectors.joining(",\n")));
+                content.append(END_OF_LIST);
+            }
+            case NETWORK_CONNECTION -> {
+                content.append("private static final List<NetworkPermission> allowedNetworkConnections = List.of(\n");
+                content.append(resourceAccesses.regardingNetworkConnections().stream()
+                        .map(securityContent -> String.format("new NetworkPermission(%s, %s, %s, \"%s\", %d)",
+                                securityContent.openConnections(),
+                                securityContent.sendData(),
+                                securityContent.receiveData(),
+                                securityContent.onTheHost(),
+                                securityContent.onThePort()))
+                        .collect(Collectors.joining(",\n")));
+                content.append(END_OF_LIST);
+            }
+            case COMMAND_EXECUTION -> {
+                content.append("private static final List<CommandPermission> allowedCommandExecutions = List.of(\n");
+                content.append(resourceAccesses.regardingCommandExecutions().stream()
+                        .map(securityContent -> String.format("new CommandPermission(\"%s\", List.of(%s))",
+                                securityContent.executeTheCommand(),
+                                securityContent.withTheseArguments().stream()
+                                        .map(arg -> "\"" + arg + "\"")
+                                        .collect(Collectors.joining(", "))))
+                        .collect(Collectors.joining(",\n")));
+                content.append(END_OF_LIST);
+            }
+            case THREAD_CREATION -> {
+                content.append("private static final List<ThreadPermission> allowedThreadCreations = List.of(\n");
+                content.append(resourceAccesses.regardingThreadCreations().stream()
+                        .map(securityContent -> String.format("new ThreadPermission(%d, \"%s\")",
+                                securityContent.createTheFollowingNumberOfThreads(),
+                                securityContent.ofThisClass()))
+                        .collect(Collectors.joining(",\n")));
+                content.append(END_OF_LIST);
+            }
+            default ->
+                    throw new UnsupportedOperationException("Unsupported configuration: " + javaAspectJConfigurationSupported);
+        }
+        return content.toString();
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Write security test case file methods">
+    public static String writeAOPSecurityTestCaseFile(List<JavaInstrumentationSecurityTestCase> javaInstrumentationSecurityTestCases) {
+        return "";
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Execute security test case methods">
+    /**
+     * Runs the aspect configuration in Java programming language.
+     */
+    @Override
+    public void executeAOPSecurityTestCase() {
+        switch (javaAspectJConfigurationSupported) {
+            case FILESYSTEM_INTERACTION ->
+                    JavaAspectJConfigurationSettings.setAllowedFileSystemInteractions(resourceAccesses == null ? null : resourceAccesses.regardingFileSystemInteractions());
+            case NETWORK_CONNECTION ->
+                    JavaAspectJConfigurationSettings.setAllowedNetworkConnections(resourceAccesses == null ? null : resourceAccesses.regardingNetworkConnections());
+            case COMMAND_EXECUTION ->
+                    JavaAspectJConfigurationSettings.setAllowedCommandExecutions(resourceAccesses == null ? null : resourceAccesses.regardingCommandExecutions());
+            case THREAD_CREATION ->
+                    JavaAspectJConfigurationSettings.setAllowedThreadCreations(resourceAccesses == null ? null : resourceAccesses.regardingThreadCreations());
+        }
+    }
+    //</editor-fold>
+}
