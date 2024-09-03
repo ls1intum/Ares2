@@ -2,8 +2,6 @@ package de.tum.cit.ase.ares.api.util;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
@@ -25,6 +23,8 @@ import java.util.stream.Stream;
  * secure and reliable file handling is required.
  */
 public class FileTools {
+    
+    public static final String ARES_ERROR_MESSAGE = "Ares Security Error (Stage: Creation): Failed to read content from source file.";
 
     /**
      * Private constructor to prevent instantiation of this utility class.
@@ -95,19 +95,17 @@ public class FileTools {
 
     public static List<Path> copyJavaFiles(List<Path> sourceFilePaths, List<Path> targetFilePaths, List<String[]> formatValues) {
         List<Path> copiedFiles = copyFiles(sourceFilePaths, targetFilePaths);
-        var x = 0;
         IntStream
                 .range(0, copiedFiles.size())
                 .forEach(i -> {
                     try {
-                        var y = 0;
                         Files.writeString(
                                 copiedFiles.get(i),
-                                String.format(Files.readString(copiedFiles.get(i)), formatValues.get(i)),
+                                String.format(Files.readString(copiedFiles.get(i)), (Object) formatValues.get(i)),
                                 StandardOpenOption.WRITE
                         );
                     } catch (IOException e) {
-                        throw new SecurityException("Ares Security Error (Stage: Creation): Failed to read content from source file.", e);
+                        throw new SecurityException(ARES_ERROR_MESSAGE, e);
                     }
                 });
         return copiedFiles;
@@ -131,7 +129,7 @@ public class FileTools {
         try {
             return Files.readString(sourceFilePath);
         } catch (IOException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Failed to read content from source file.", e);
+            throw new SecurityException(ARES_ERROR_MESSAGE, e);
         } catch (OutOfMemoryError e) {
             throw new SecurityException("Ares Security Error (Stage: Creation): Out of memory while reading content.", e);
         } catch (IllegalFormatException e) {
@@ -154,7 +152,7 @@ public class FileTools {
             }
 
         } catch (IOException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Failed to read content from source file.", e);
+            throw new SecurityException(ARES_ERROR_MESSAGE, e);
         } catch (OutOfMemoryError e) {
             throw new SecurityException("Ares Security Error (Stage: Creation): Out of memory while reading content.", e);
         } catch (IllegalFormatException e) {
@@ -257,11 +255,11 @@ public class FileTools {
         try {
             Files.writeString(
                     createdFile,
-                    String.format(Files.readString(createdFile), formatValues),
+                    String.format(Files.readString(createdFile), (Object) formatValues),
                     StandardOpenOption.WRITE
             );
         } catch (IOException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Failed to read content from source file.", e);
+            throw new SecurityException(ARES_ERROR_MESSAGE, e);
         }
         return createdFile;
     }

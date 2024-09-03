@@ -200,6 +200,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                 javaArchitectureMode.targetToCopyTo(projectPath, packageName),
                 javaArchitectureMode.fileValue(packageName)
         );
+        javaCopiedArchitectureFiles.add(javaArchitectureTestCaseCollectionFile);
         //</editor-fold>
 
         //<editor-fold desc="Create aspect configuration files code">
@@ -225,13 +226,10 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                 javaAOPMode.targetToCopyTo(projectPath, packageName),
                 javaAOPMode.fileValue(packageName)
         );
+        javaCopiedAspectFiles.add(javaAspectConfigurationCollectionFile);
         //</editor-fold>
-
         //<editor-fold desc="Combine files code">
-        return new ArrayList<>(Streams.concat(javaCopiedArchitectureFiles.stream(), javaCopiedAspectFiles.stream()).toList()) {{
-            add(javaArchitectureTestCaseCollectionFile);
-            add(javaAspectConfigurationCollectionFile);
-        }};
+        return new ArrayList<>(Streams.concat(javaCopiedArchitectureFiles.stream(), javaCopiedAspectFiles.stream()).toList());
         //</editor-fold>
     }
     //</editor-fold>
