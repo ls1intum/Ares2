@@ -27,5 +27,5 @@ public interface SecurityTestCaseAbstractFactoryAndBuilder {
     /**
      * Runs the security test cases in any programming language.
      */
-    void runSecurityTestCases();
+    void executeSecurityTestCases();
 }

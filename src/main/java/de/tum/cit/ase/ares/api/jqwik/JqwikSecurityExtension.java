@@ -44,9 +44,9 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
 				Path policyPath = JupiterSecurityExtension.testAndGetPolicyValue(policyAnnotation.get());
 				if (!policyAnnotation.get().withinPath().isBlank()) {
 					Path withinPath = JupiterSecurityExtension.testAndGetPolicyWithinPath(policyAnnotation.get());
-					new SecurityPolicyReaderAndDirector(policyPath, withinPath).runSecurityTestCases();
+					new SecurityPolicyReaderAndDirector(policyPath, withinPath).executeSecurityTestCases();
 				} else {
-					new SecurityPolicyReaderAndDirector(policyPath, Path.of("classes")).runSecurityTestCases();
+					new SecurityPolicyReaderAndDirector(policyPath, Path.of("classes")).executeSecurityTestCases();
 				}
 			}
 		} else {

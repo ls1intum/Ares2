@@ -228,7 +228,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      * </p>
      */
     @Override
-    public void runSecurityTestCases() {
+    public void executeSecurityTestCases() {
         //<editor-fold desc="Load classes">
         JavaClasses classes = new ClassFileImporter().importPath(Paths.get(ProjectSourcesFinder.isGradleProject() ? "build" : "target", projectPath.toString()).toString());
         //</editor-fold>#

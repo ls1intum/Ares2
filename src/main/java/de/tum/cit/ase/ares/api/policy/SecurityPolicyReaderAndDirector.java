@@ -47,17 +47,17 @@ public class SecurityPolicyReaderAndDirector {
     public SecurityPolicyReaderAndDirector(Path securityPolicyPath, Path projectPath) throws IOException {
         securityPolicy = new ObjectMapper(new YAMLFactory()).readValue(securityPolicyPath.toFile(), SecurityPolicy.class);
         testCaseManager = switch (securityPolicy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed()) {
-            case JAVA_USING_MAVEN_AND_INSTRUMENTATION -> new JavaSecurityTestCaseFactoryAndBuilder(
-                    JavaBuildMode.MAVEN, JavaArchitectureMode.ARCHUNIT, JavaAOPMode.INSTRUMENTATION, securityPolicy, projectPath
-            );
-            case JAVA_USING_MAVEN_AND_ASPECTJ -> new JavaSecurityTestCaseFactoryAndBuilder(
+            case JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ -> new JavaSecurityTestCaseFactoryAndBuilder(
                     JavaBuildMode.MAVEN, JavaArchitectureMode.ARCHUNIT, JavaAOPMode.ASPECTJ, securityPolicy, projectPath
             );
-            case JAVA_USING_GRADLE_AND_INSTRUMENTATION -> new JavaSecurityTestCaseFactoryAndBuilder(
-                    JavaBuildMode.GRADLE, JavaArchitectureMode.ARCHUNIT, JavaAOPMode.INSTRUMENTATION, securityPolicy, projectPath
+            case JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION -> new JavaSecurityTestCaseFactoryAndBuilder(
+                    JavaBuildMode.MAVEN, JavaArchitectureMode.ARCHUNIT, JavaAOPMode.INSTRUMENTATION, securityPolicy, projectPath
             );
-            case JAVA_USING_GRADLE_AND_ASPECTJ -> new JavaSecurityTestCaseFactoryAndBuilder(
+            case JAVA_USING_GRADLE_ARCHUNIT_AND_ASPECTJ -> new JavaSecurityTestCaseFactoryAndBuilder(
                     JavaBuildMode.GRADLE, JavaArchitectureMode.ARCHUNIT, JavaAOPMode.ASPECTJ, securityPolicy, projectPath
+            );
+            case JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION -> new JavaSecurityTestCaseFactoryAndBuilder(
+                    JavaBuildMode.GRADLE, JavaArchitectureMode.ARCHUNIT, JavaAOPMode.INSTRUMENTATION, securityPolicy, projectPath
             );
         };
     }
@@ -75,8 +75,8 @@ public class SecurityPolicyReaderAndDirector {
     /**
      * Executes the generated security test cases.
      */
-    public void runSecurityTestCases() {
-        testCaseManager.runSecurityTestCases();
+    public void executeSecurityTestCases() {
+        testCaseManager.executeSecurityTestCases();
     }
 
 }
