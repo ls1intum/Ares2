@@ -7,7 +7,6 @@ import de.tum.cit.ase.ares.api.policy.SecurityPolicy.PackagePermission;
 
 import java.io.IOException;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -40,18 +39,14 @@ public class JavaArchUnitSecurityTestCase implements ArchitectureSecurityTestCas
      */
     public JavaArchUnitSecurityTestCase(JavaArchUnitTestCaseSupported javaArchitectureTestCaseSupported) {
         super();
-        this.allowedPackages = new HashSet<>();
         this.javaArchitectureTestCaseSupported = javaArchitectureTestCaseSupported;
+        this.allowedPackages = new HashSet<>();
     }
 
     public JavaArchUnitSecurityTestCase(JavaArchUnitTestCaseSupported javaArchitectureTestCaseSupported, Set<PackagePermission> packages) {
         super();
         this.javaArchitectureTestCaseSupported = javaArchitectureTestCaseSupported;
         this.allowedPackages = packages.stream().map(PackagePermission::importTheFollowingPackage).collect(Collectors.toSet());
-    }
-
-    public static String createArchitectureTestCaseFileFullContent(List<JavaArchUnitSecurityTestCase> javaArchUnitTestCases) {
-        return String.join("\n", javaArchUnitTestCases.stream().map(javaArchUnitTestCase -> javaArchUnitTestCase.writeArchitectureTestCase()).toList());
     }
 
     /**

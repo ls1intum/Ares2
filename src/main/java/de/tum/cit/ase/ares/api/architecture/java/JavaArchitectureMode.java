@@ -34,11 +34,10 @@ public enum JavaArchitectureMode {
         });
     }
 
+    @SuppressWarnings("unchecked")
     public String threePartedFileBody(List<?> testCases) {
         return switch (this) {
-            case ARCHUNIT ->
-                    JavaArchUnitSecurityTestCase.createArchitectureTestCaseFileFullContent((List<JavaArchUnitSecurityTestCase>) testCases
-                    );
+            case ARCHUNIT -> String.join("\n", ((List<JavaArchUnitSecurityTestCase>) testCases).stream().map(JavaArchUnitSecurityTestCase::writeArchitectureTestCase).toList());
         };
     }
 
