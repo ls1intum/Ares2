@@ -1,5 +1,7 @@
 package de.tum.cit.ase.ares.api.policy;
 
+//<editor-fold desc="Imports">
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import de.tum.cit.ase.ares.api.aspectconfiguration.java.JavaAOPMode;
@@ -7,10 +9,12 @@ import de.tum.cit.ase.ares.api.architecturetest.java.JavaArchitectureMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.java.JavaBuildMode;
 import de.tum.cit.ase.ares.api.securitytest.java.JavaSecurityTestCaseFactoryAndBuilder;
 import de.tum.cit.ase.ares.api.securitytest.SecurityTestCaseAbstractFactoryAndBuilder;
+import de.tum.cit.ase.ares.api.policy.SecurityPolicy.ProgrammingLanguageConfiguration;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+//</editor-fold>
 
 /**
  * Handles the reading of security policy files and manages the creation and execution of security test cases.
@@ -27,6 +31,7 @@ import java.util.List;
  */
 public class SecurityPolicyReaderAndDirector {
 
+    //<editor-fold desc="Attributes">
     /**
      * The security policy used for generating security test cases.
      */
@@ -36,6 +41,9 @@ public class SecurityPolicyReaderAndDirector {
      * The factory and builder for creating and managing security test cases.
      */
     private final SecurityTestCaseAbstractFactoryAndBuilder testCaseManager;
+    //</editor-fold>
+
+    //<editor-fold desc="Constructor">
 
     /**
      * Constructs a new {@link SecurityPolicyReaderAndDirector} to read the security policy and configure the test case manager.
@@ -46,7 +54,24 @@ public class SecurityPolicyReaderAndDirector {
      */
     public SecurityPolicyReaderAndDirector(Path securityPolicyPath, Path projectPath) throws IOException {
         securityPolicy = new ObjectMapper(new YAMLFactory()).readValue(securityPolicyPath.toFile(), SecurityPolicy.class);
-        testCaseManager = switch (securityPolicy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed()) {
+        testCaseManager = createSecurityTestCases(
+                securityPolicy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed(),
+                projectPath
+        );
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Create security test cases methods">
+
+    /**
+     * Creates the appropriate security test case factory and builder based on the programming language configuration.
+     *
+     * @param programmingLanguageConfiguration the programming language configuration used for the security test cases.
+     * @param projectPath                      the path within the project where the test cases will be applied.
+     * @return the factory and builder for creating and managing security test cases.
+     */
+    public JavaSecurityTestCaseFactoryAndBuilder createSecurityTestCases(ProgrammingLanguageConfiguration programmingLanguageConfiguration, Path projectPath) {
+        return switch (programmingLanguageConfiguration) {
             case JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ -> new JavaSecurityTestCaseFactoryAndBuilder(
                     JavaBuildMode.MAVEN, JavaArchitectureMode.ARCHUNIT, JavaAOPMode.ASPECTJ, securityPolicy, projectPath
             );
@@ -61,6 +86,9 @@ public class SecurityPolicyReaderAndDirector {
             );
         };
     }
+    //</editor-fold>
+
+    //<editor-fold desc="Write security test cases methods">
 
     /**
      * Writes the security test cases to the specified directory.
@@ -68,9 +96,12 @@ public class SecurityPolicyReaderAndDirector {
      * @param projectPath the directory where the test case files should be written.
      * @return a list of paths representing the files that were written.
      */
-    public List<Path> writeTestCasesToFiles(Path projectPath) {
-        return testCaseManager.writeTestCasesToFiles(projectPath);
+    public List<Path> writeSecurityTestCases(Path projectPath) {
+        return testCaseManager.writeSecurityTestCases(projectPath);
     }
+    //</editor-fold>
+
+    //<editor-fold desc="Execute security test cases methods">
 
     /**
      * Executes the generated security test cases.
@@ -78,5 +109,6 @@ public class SecurityPolicyReaderAndDirector {
     public void executeSecurityTestCases() {
         testCaseManager.executeSecurityTestCases();
     }
+    //</editor-fold>
 
 }

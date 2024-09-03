@@ -21,7 +21,7 @@ public interface SecurityTestCaseAbstractFactoryAndBuilder {
      * @param projectDirectory the directory where the test case files will be saved
      * @return a list of file paths pointing to the generated test cases
      */
-    List<Path> writeTestCasesToFiles(Path projectDirectory);
+    List<Path> writeSecurityTestCases(Path projectDirectory);
 
     /**
      * Executes the security test cases in any programming language.

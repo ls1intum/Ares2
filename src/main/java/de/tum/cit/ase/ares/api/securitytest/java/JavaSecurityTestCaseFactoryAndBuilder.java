@@ -1,5 +1,7 @@
 package de.tum.cit.ase.ares.api.securitytest.java;
 
+//<editor-fold desc="Imports">
+
 import com.google.common.collect.Streams;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
@@ -25,8 +27,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
 
 import static com.google.common.collect.Iterables.isEmpty;
+//</editor-fold>
 
 /**
  * Factory and builder class for creating and running Java security test cases.
@@ -94,11 +98,11 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         this.packageName = securityPolicy.regardingTheSupervisedCode().theProgrammingLanguageUsesTheFollowingPackage();
         this.ressourceAccesses = securityPolicy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted();
         this.projectPath = projectPath;
-        this.parseTestCasesToBeCreated();
+        this.createSecurityTestCases();
     }
     //</editor-fold>
 
-    //<editor-fold desc="Toolbox methods">
+    //<editor-fold desc="Create security test cases methods">
 
     /**
      * Parses the security policy to determine which test cases and configurations need to be created.
@@ -107,10 +111,12 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      * generates the appropriate architecture test cases or AspectJ/Instrumentation configurations.
      * </p>
      */
-    private void parseTestCasesToBeCreated() {
+    private void createSecurityTestCases() {
+        //<editor-fold desc="Delete old rules code">
         javaAOPMode.reset();
+        //</editor-fold>
 
-        //<editor-fold desc="Only architecture test case">
+        //<editor-fold desc="Create fixed rules code">
         javaArchUnitTestCases.add(
                 new JavaArchUnitTestCase(
                         JavaArchUnitTestCaseSupported.PACKAGE_IMPORT,
@@ -119,54 +125,57 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         );
         //</editor-fold>
 
-        //<editor-fold desc="Architecture test case and AOP">
+        //<editor-fold desc="Create variable rules code">
         Supplier<List<?>>[] methods = new Supplier[]{
                 ressourceAccesses::regardingFileSystemInteractions,
                 ressourceAccesses::regardingNetworkConnections
 //                securityPolicy::iAllowTheFollowingCommandExecutionsForTheStudents,
 //                securityPolicy::iAllowTheFollowingThreadCreationsForTheStudents,
         };
+        IntStream
+                .range(0, methods.length)
+                .forEach(i -> {
+                    //<editor-fold desc="Load supported checks code">
+                    // TODO: What if JavaArchUnitTestCaseSupported, JavaAspectJConfigurationSupported and JavaInstrumentationConfigurationSupported are not in the same order or smaller than methods?
+                    JavaArchUnitTestCaseSupported javaArchitectureTestCasesSupportedValue = JavaArchUnitTestCaseSupported.values()[i];
+                    JavaAspectJConfigurationSupported javaAspectJConfigurationSupportedValue = JavaAspectJConfigurationSupported.values()[i];
+                    JavaInstrumentationConfigurationSupported javaInstrumentationConfigurationSupportedValue = JavaInstrumentationConfigurationSupported.values()[i];
+                    //</editor-fold>
 
-        for (int i = 0; i < methods.length; i++) {
-            // TODO: What if JavaArchUnitTestCaseSupported, JavaAspectJConfigurationSupported and JavaInstrumentationConfigurationSupported are not in the same order or smaller than methods?
-            JavaArchUnitTestCaseSupported javaArchitectureTestCasesSupportedValue = JavaArchUnitTestCaseSupported.values()[i];
-            JavaAspectJConfigurationSupported javaAspectJConfigurationSupportedValue = JavaAspectJConfigurationSupported.values()[i];
-            JavaInstrumentationConfigurationSupported javaInstrumentationConfigurationSupportedValue = JavaInstrumentationConfigurationSupported.values()[i];
-
-            if (isEmpty(methods[i].get())) {
-                //<editor-fold desc="Architecture test case">
-                switch (javaArchitectureMode) {
-                    case ARCHUNIT -> javaArchUnitTestCases.add(
-                            new JavaArchUnitTestCase(
-                                    javaArchitectureTestCasesSupportedValue
-                            )
-                    );
-                }
-                //</editor-fold>
-            } else {
-                //<editor-fold desc="AOP">
-                switch (javaAOPMode) {
-                    case ASPECTJ -> javaAspectJConfigurations.add(
-                            new JavaAspectJConfiguration(
-                                    javaAspectJConfigurationSupportedValue,
-                                    ressourceAccesses
-                            )
-                    );
-                    case INSTRUMENTATION -> javaInstrumentationConfigurations.add(
-                            new JavaInstrumentationConfiguration(
-                                    javaInstrumentationConfigurationSupportedValue,
-                                    ressourceAccesses
-                            )
-                    );
-                }
-                //</editor-fold>
-            }
-        }
+                    if (isEmpty(methods[i].get())) {
+                        //<editor-fold desc="Architecture test case code">
+                        switch (javaArchitectureMode) {
+                            case ARCHUNIT -> javaArchUnitTestCases.add(
+                                    new JavaArchUnitTestCase(
+                                            javaArchitectureTestCasesSupportedValue
+                                    )
+                            );
+                        }
+                        //</editor-fold>
+                    } else {
+                        //<editor-fold desc="AOP code">
+                        switch (javaAOPMode) {
+                            case ASPECTJ -> javaAspectJConfigurations.add(
+                                    new JavaAspectJConfiguration(
+                                            javaAspectJConfigurationSupportedValue,
+                                            ressourceAccesses
+                                    )
+                            );
+                            case INSTRUMENTATION -> javaInstrumentationConfigurations.add(
+                                    new JavaInstrumentationConfiguration(
+                                            javaInstrumentationConfigurationSupportedValue,
+                                            ressourceAccesses
+                                    )
+                            );
+                        }
+                        //</editor-fold>
+                    }
+                });
         //</editor-fold>
     }
     //</editor-fold>
 
-    //<editor-fold desc="Inherited methods">
+    //<editor-fold desc="Write security test cases methods">
 
     /**
      * Writes the generated test cases and configurations to files in the specified path.
@@ -179,8 +188,8 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      * @return a list of paths representing the files that were created.
      */
     @Override
-    public List<Path> writeTestCasesToFiles(Path projectDirectory) {
-        //<editor-fold desc="Create architecture test case files">
+    public List<Path> writeSecurityTestCases(Path projectDirectory) {
+        //<editor-fold desc="Create architecture test case files code">
         List<Path> javaCopiedArchitectureFiles = FileTools.copyJavaFiles(
                 javaArchitectureMode.filesToCopy(),
                 javaArchitectureMode.targetsToCopyTo(projectPath, packageName),
@@ -195,7 +204,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         );
         //</editor-fold>
 
-        //<editor-fold desc="Create aspect configuration files">
+        //<editor-fold desc="Create aspect configuration files code">
         List<Path> javaCopiedAspectFiles = FileTools.copyJavaFiles(
                 javaAOPMode.filesToCopy(),
                 javaAOPMode.targetsToCopyTo(projectPath, packageName),
@@ -211,13 +220,16 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         );
         //</editor-fold>
 
-        //<editor-fold desc="Combine files">
+        //<editor-fold desc="Combine files code">
         return new ArrayList<>(Streams.concat(javaCopiedArchitectureFiles.stream(), javaCopiedAspectFiles.stream()).toList()) {{
             add(javaArchitectureTestCaseCollectionFile);
             add(javaAspectConfigurationCollectionFile);
         }};
         //</editor-fold>
     }
+    //</editor-fold>
+
+    //<editor-fold desc="Execute security test cases methods">
 
     /**
      * Executes the generated security test cases.
@@ -229,16 +241,16 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      */
     @Override
     public void executeSecurityTestCases() {
-        //<editor-fold desc="Load classes">
+        //<editor-fold desc="Load classes code">
         JavaClasses classes = new ClassFileImporter().importPath(Paths.get(ProjectSourcesFinder.isGradleProject() ? "build" : "target", projectPath.toString()).toString());
         //</editor-fold>#
 
-        //<editor-fold desc="Enforce fixed rules">
+        //<editor-fold desc="Enforce fixed rules code">
         JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_USE_REFLECTION.check(classes);
         JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_TERMINATE_JVM.check(classes);
         //</editor-fold>
 
-        //<editor-fold desc="Enforce variable rules">
+        //<editor-fold desc="Enforce variable rules code">
         javaArchUnitTestCases.forEach(archTest -> archTest.runArchitectureTestCase(classes));
         switch (javaAOPMode) {
             case ASPECTJ -> javaAspectJConfigurations.forEach(JavaAspectJConfiguration::runAspectConfiguration);
