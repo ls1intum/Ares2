@@ -3,32 +3,27 @@ regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_GRADLE_AND_INSTRUMENTATION
   theProgrammingLanguageUsesTheFollowingPackage: "de.tum.cit.ase"
   theFollowingRessourceAccessesArePermitted:
-    regardingFileSystemInteractions:
-      itIsPermittedTo: [
-        readAllFiles: true,
-        overwriteAllFiles: true,
-        executeAllFiles: true,
-        onThisPathAndAllPathsBelow: "pom.xml"
-      ]
-    regardingNetworkConnections:
-      itIsPermittedTo: [
-        openConnections: true,
-        sendData: true,
-        receiveData: true,
-        onTheHost: "www.example.com",
-        onThePort: 80
-      ]
-    regardingCommandExecutions:
-      itIsPermittedTo: [
-        executeTheCommand: "ls",
-        withTheseArguments: [ "-l" ]
-      ]
-    regardingThreadCreations:
-      itIsPermittedTo: [
-        createTheFollowingNumberOfThreads: 10,
-        ofThisClass: "instrumentation.lang.Thread"
-      ]
-    regardingPackageImports:
-      itIsPermittedTo: [
-        importTheFollowingPackage: "instrumentation.util"
-      ]
+    regardingFileSystemInteractions: [
+      readAllFiles: true,
+      overwriteAllFiles: true,
+      executeAllFiles: true,
+      onThisPathAndAllPathsBelow: "pom.xml"
+    ]
+    regardingNetworkConnections: [
+      openConnections: true,
+      sendData: true,
+      receiveData: true,
+      onTheHost: "www.example.com",
+      onThePort: 80
+    ]
+    regardingCommandExecutions: [
+      executeTheCommand: "ls",
+      withTheseArguments: [ "-l" ]
+    ]
+    regardingThreadCreations: [
+      createTheFollowingNumberOfThreads: 10,
+      ofThisClass: "instrumentation.lang.Thread"
+    ]
+    regardingPackageImports: [
+      importTheFollowingPackage: "instrumentation.util"
+    ]

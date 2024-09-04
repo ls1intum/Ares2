@@ -71,7 +71,9 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
      * @return a satisfied event if a transitive dependency path was found, a violated event otherwise
      */
     private static ConditionEvent newTransitiveAccessPathFoundEvent(JavaAccess<?> javaClass, List<JavaAccess<?>> transitiveDependencyPath) {
-        String message = (transitiveDependencyPath.size() > 1 ? "transitively " : "") + "accesses <" + getLast(transitiveDependencyPath).getTarget().getFullName() + ">";
+        String message = String.format("%saccesses <%s>",
+                transitiveDependencyPath.size() > 1 ? "transitively " : "",
+                getLast(transitiveDependencyPath).getTarget().getFullName());
 
         if (transitiveDependencyPath.size() > 1) {
             message += " by [" +

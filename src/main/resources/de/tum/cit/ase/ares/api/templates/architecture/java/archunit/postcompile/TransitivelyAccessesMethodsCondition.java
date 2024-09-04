@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile;
+package %s.architecture.java.archunit.postcompile;
 
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;

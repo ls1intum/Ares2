@@ -51,25 +51,6 @@ public class FileTools {
      * @return a {@link List} of {@link Path} objects representing the paths of the copied files.
      * @throws SecurityException if an error occurs during the file copy process.
      */
-    /*public static List<Path> copyFiles(List<Path> sourceFilePaths, List<Path> targetFilePaths) {
-        return IntStream.range(0, sourceFilePaths.size()).mapToObj(i -> {
-            try {
-                if (!Files.exists(targetFilePaths.get(i).getParent())) {
-                    Files.createDirectories(targetFilePaths.get(i).getParent());
-                }
-                return Files.copy(sourceFilePaths.get(i), targetFilePaths.get(i), StandardCopyOption.REPLACE_EXISTING);
-            } catch (InvalidPathException e) {
-                throw new SecurityException("Ares Security Error (Stage: Creation): Invalid path provided during file copy.", e);
-            } catch (UnsupportedOperationException e) {
-                throw new SecurityException("Ares Security Error (Stage: Creation): Unsupported operation during file copy.", e);
-            } catch (FileAlreadyExistsException e) {
-                throw new SecurityException("Ares Security Error (Stage: Creation): File already exists at target location.", e);
-            } catch (IOException e) {
-                throw new SecurityException("Ares Security Error (Stage: Creation): IO error occurred during file copy.", e);
-            }
-        }).toList();
-    }*/
-
     public static List<Path> copyFiles(List<Path> sourceFilePaths, List<Path> targetFilePaths) {
         return IntStream.range(0, sourceFilePaths.size()).mapToObj(i -> {
             try (InputStream sourceStream = FileTools.class.getResourceAsStream("/" + sourceFilePaths.get(i).toString())) {
@@ -95,19 +76,24 @@ public class FileTools {
 
     public static List<Path> copyJavaFiles(List<Path> sourceFilePaths, List<Path> targetFilePaths, List<String[]> formatValues) {
         List<Path> copiedFiles = copyFiles(sourceFilePaths, targetFilePaths);
-        IntStream
-                .range(0, copiedFiles.size())
-                .forEach(i -> {
-                    try {
-                        Files.writeString(
-                                copiedFiles.get(i),
-                                String.format(Files.readString(copiedFiles.get(i)), (Object) formatValues.get(i)),
-                                StandardOpenOption.WRITE
-                        );
-                    } catch (IOException e) {
-                        throw new SecurityException(ARES_ERROR_MESSAGE, e);
-                    }
-                });
+        for (int i = 0; i < copiedFiles.size(); i++) {
+            try {
+                String formatedFile;
+                try{
+                    formatedFile = String.format(Files.readString(copiedFiles.get(i)), (String[]) formatValues.get(i));
+                } catch (IllegalFormatException e) {
+                    System.out.println("Illegal format in " + copiedFiles.get(i).toAbsolutePath());
+                    formatedFile = "";
+                }
+                Files.writeString(
+                        copiedFiles.get(i),
+                        formatedFile,
+                        StandardOpenOption.WRITE
+                );
+            } catch (IOException e) {
+                throw new SecurityException(ARES_ERROR_MESSAGE, e);
+            }
+        }
         return copiedFiles;
     }
     //</editor-fold>
@@ -137,12 +123,15 @@ public class FileTools {
         }
     }*/
     public static String readFile(Path sourceFilePath) {
-        try (InputStream sourceStream = FileTools.class.getResourceAsStream("/" + sourceFilePath.toString());
-             Scanner scanner = new Scanner(sourceStream, StandardCharsets.UTF_8)) {
+        try {
+
+            InputStream sourceStream = FileTools.class.getResourceAsStream("/" + sourceFilePath.toString());
 
             if (sourceStream == null) {
                 throw new IOException("Resource not found: " + sourceFilePath);
             }
+
+            Scanner scanner = new Scanner(sourceStream, StandardCharsets.UTF_8);
 
             // Check if the scanner has any content
             if (scanner.hasNext()) {
@@ -211,7 +200,7 @@ public class FileTools {
     }
 
     public static Path resolveOnResources(String... furtherPathParts) {
-        Path target = Paths.get("","de","tum","cit","ase","ares","api");
+        Path target = Paths.get("de","tum","cit","ase","ares","api");
         return resolveOnTarget(target, furtherPathParts);
     }
 
@@ -252,15 +241,20 @@ public class FileTools {
             Path target, String[] formatValues
     ) {
         Path createdFile = createThreePartedFile(sourceHeaderPath, sourceBody, sourceFooterPath, target);
+        var x = 0;
         try {
             Files.writeString(
                     createdFile,
-                    String.format(Files.readString(createdFile), (Object) formatValues),
+                    String.format(Files.readString(createdFile), (String[]) formatValues),
                     StandardOpenOption.WRITE
             );
         } catch (IOException e) {
             throw new SecurityException(ARES_ERROR_MESSAGE, e);
         }
         return createdFile;
+    }
+
+    public static String[] generatePackageNameArray(String packageName, int numberOfEntries) {
+        return IntStream.range(0, numberOfEntries).mapToObj(i -> packageName).toArray(String[]::new);
     }
 }

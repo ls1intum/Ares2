@@ -104,7 +104,7 @@ public class JavaInstrumentationAdviceToolbox {
             return;
         }
 
-        final String fullMethodSignature = declaringTypeName + "." + methodName + methodSignature;
+        final String fullMethodSignature = String.format("%s.%s%s", declaringTypeName, methodName, methodSignature);
         String illegallyReadingMethod = checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses);
         if (illegallyReadingMethod != null) {
             String illegallyReadPath = checkIfVariableCriteriaIsViolated(attributes, allowedPaths);
@@ -112,7 +112,7 @@ public class JavaInstrumentationAdviceToolbox {
                 illegallyReadPath = checkIfVariableCriteriaIsViolated(parameters, allowedPaths);
             }
             if (illegallyReadPath != null) {
-                throw new SecurityException(illegallyReadingMethod + " tried to illegally " + action + " from " + illegallyReadPath + " via " +  fullMethodSignature);
+                throw new SecurityException(String.format("%s tried to illegally %s from %s via %s", illegallyReadingMethod, action, illegallyReadPath, fullMethodSignature));
             }
         }
     }

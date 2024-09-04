@@ -122,7 +122,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      */
     private void createSecurityTestCases() {
         //<editor-fold desc="Delete old rules code">
-        javaAOPMode.reset();
+        //javaAOPMode.reset();
         //</editor-fold>
 
         //<editor-fold desc="Create fixed rules code">
@@ -137,9 +137,9 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         //<editor-fold desc="Create variable rules code">
         Supplier<List<?>>[] methods = new Supplier[]{
                 ressourceAccesses::regardingFileSystemInteractions,
-                ressourceAccesses::regardingNetworkConnections
-//                securityPolicy::iAllowTheFollowingCommandExecutionsForTheStudents,
-//                securityPolicy::iAllowTheFollowingThreadCreationsForTheStudents,
+                ressourceAccesses::regardingNetworkConnections,
+                ressourceAccesses::regardingCommandExecutions,
+                ressourceAccesses::regardingThreadCreations,
         };
         IntStream
                 .range(0, methods.length)
@@ -152,20 +152,11 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
 
                     if (isEmpty(methods[i].get())) {
                         //<editor-fold desc="Architecture test case code">
-                        javaArchUnitTestCases.add(
-                                new JavaArchUnitSecurityTestCase(
-                                        javaArchitectureTestCasesSupportedValue
-                                )
-                        );
+                        javaArchUnitTestCases.add(new JavaArchUnitSecurityTestCase(javaArchitectureTestCasesSupportedValue));
                         //</editor-fold>
                     } else {
                         //<editor-fold desc="AOP code">
-                        javaSecurityTestCases.add(
-                                new JavaSecurityTestCase(
-                                        javaSecurityTestCaseSupportedValue,
-                                        ressourceAccesses
-                                )
-                        );
+                        javaSecurityTestCases.add(new JavaSecurityTestCase(javaSecurityTestCaseSupportedValue,ressourceAccesses));
                         //</editor-fold>
                     }
                 });
@@ -188,11 +179,11 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
     @Override
     public List<Path> writeSecurityTestCases(Path projectDirectory) {
         //<editor-fold desc="Create architecture test case files code">
-        List<Path> javaCopiedArchitectureFiles = FileTools.copyJavaFiles(
+        ArrayList<Path> javaCopiedArchitectureFiles = new ArrayList<>(FileTools.copyJavaFiles(
                 javaArchitectureMode.filesToCopy(),
                 javaArchitectureMode.targetsToCopyTo(projectPath, packageName),
                 javaArchitectureMode.fileValues(packageName)
-        );
+        ));
         Path javaArchitectureTestCaseCollectionFile = FileTools.createThreePartedJavaFile(
                 javaArchitectureMode.threePartedFileHeader(),
                 javaArchitectureMode.threePartedFileBody(javaArchUnitTestCases),
@@ -204,11 +195,11 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         //</editor-fold>
 
         //<editor-fold desc="Create aspect configuration files code">
-        List<Path> javaCopiedAspectFiles = FileTools.copyJavaFiles(
+        ArrayList<Path> javaCopiedAspectFiles = new ArrayList<>(FileTools.copyJavaFiles(
                 javaAOPMode.filesToCopy(),
                 javaAOPMode.targetsToCopyTo(projectPath, packageName),
                 javaAOPMode.fileValues(packageName)
-        );
+        ));
         Path javaAspectConfigurationCollectionFile = FileTools.createThreePartedJavaFile(
                 javaAOPMode.threePartedFileHeader(),
                 javaAOPMode.threePartedFileBody(
@@ -219,7 +210,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                         , Stream.concat(
                                 Arrays.stream(testClasses),
                                 Arrays.stream(functionClasses)
-                        ).toArray(String[]::new),
+                        ).toList(),
                         this.javaSecurityTestCases
                 ),
                 javaAOPMode.threePartedFileFooter(),

@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
+package %s.aop.java.instrumentation.advice;
 
 import java.io.File;
 import java.lang.reflect.Field;
@@ -72,7 +72,7 @@ public class JavaInstrumentationAdviceToolbox {
 
     private static Object getValueFromSettings(String fieldName) {
         try {
-            Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, null);
+            Class<?> adviceSettingsClass = Class.forName("%s.aop.java.JavaSecurityTestCaseSettings", true, null);
             Field field = adviceSettingsClass.getDeclaredField(fieldName);
             field.setAccessible(true);
             Object value = field.get(null);

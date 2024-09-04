@@ -77,7 +77,14 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
         }
         String illegallyReadPath = checkIfVariableCriteriaIsViolated(parameters, allowedPaths);
         if (illegallyReadPath != null) {
-            throw new SecurityException(thisJoinPoint.getSourceLocation().getWithinType().getName() + " tried to illegally " + action + " from " + illegallyReadPath + " via " +  thisJoinPoint.getSignature().toLongString());
+
+            throw new SecurityException(String.format(
+                    "%s tried to illegally %s from %s via %s",
+                    thisJoinPoint.getSourceLocation().getWithinType().getName(),
+                    action,
+                    illegallyReadPath,
+                    thisJoinPoint.getSignature().toLongString()
+            ));
         }
     }
 

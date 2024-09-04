@@ -12,25 +12,40 @@ public enum JavaArchitectureMode {
 
     public List<Path> filesToCopy() {
         return (switch (this) {
-            case ARCHUNIT -> Stream.<String[]>of();
+            case ARCHUNIT -> Stream.of(
+                    new String[]{"templates", "architecture", "java", "archunit", "postcompile", "CustomClassResolver.java"},
+                    new String[]{"templates", "architecture", "java", "archunit", "postcompile", "JavaArchitectureTestCaseCollection.java"},
+                    new String[]{"templates", "architecture", "java", "archunit", "postcompile", "TransitivelyAccessesMethodsCondition.java"},
+                    new String[]{"templates", "architecture", "java", "archunit", "FileHandlerConstants.java"}
+            );
         }).map(FileTools::resolveOnResources).toList();
     }
 
     public List<String[]> fileValues(String packageName) {
         return (switch (this) {
-            case ARCHUNIT -> Stream.<String[]>of();
+            case ARCHUNIT -> Stream.of(
+                    FileTools.generatePackageNameArray(packageName, 1),
+                    FileTools.generatePackageNameArray(packageName, 6),
+                    FileTools.generatePackageNameArray(packageName, 1),
+                    FileTools.generatePackageNameArray(packageName, 1)
+            );
         }).toList();
     }
 
     public List<Path> targetsToCopyTo(Path projectPath, String packageName) {
         return (switch (this) {
-            case ARCHUNIT -> Stream.<String[]>of();
+            case ARCHUNIT -> Stream.of(
+                    new String[]{"architecture", "java", "archunit", "postcompile", "CustomClassResolver.java"},
+                    new String[]{"architecture", "java", "archunit", "postcompile", "JavaArchitectureTestCaseCollection.java"},
+                    new String[]{"architecture", "java", "archunit", "postcompile", "TransitivelyAccessesMethodsCondition.java"},
+                    new String[]{"architecture", "java", "archunit", "FileHandlerConstants.java"}
+            );
         }).map(pathParticles -> FileTools.resolveOnTests(projectPath, packageName, pathParticles)).toList();
     }
 
     public Path threePartedFileHeader() {
         return FileTools.resolveOnResources(switch (this) {
-            case ARCHUNIT -> new String[]{"templates", "java", "archunit", "JavaArchUnitTestCaseCollectionHeader.txt"};
+            case ARCHUNIT -> new String[]{"templates", "architecture", "java", "archunit", "JavaArchitectureTestCaseCollectionHeader.txt"};
         });
     }
 
@@ -43,19 +58,19 @@ public enum JavaArchitectureMode {
 
     public Path threePartedFileFooter() {
         return FileTools.resolveOnResources(switch (this) {
-            case ARCHUNIT -> new String[]{"templates", "java", "archunit", "JavaArchUnitTestCaseCollectionFooter.txt"};
+            case ARCHUNIT -> new String[]{"templates", "architecture", "java", "archunit", "JavaArchitectureTestCaseCollectionFooter.txt"};
         });
     }
 
     public String[] fileValue(String packageName) {
         return switch (this) {
-            case ARCHUNIT -> new String[]{packageName, packageName};
+            case ARCHUNIT -> FileTools.generatePackageNameArray(packageName, 2);
         };
     }
 
     public Path targetToCopyTo(Path projectPath, String packageName) {
         return FileTools.resolveOnTests(projectPath, packageName, switch (this) {
-            case ARCHUNIT -> new String[]{"JavaArchitectureTestCaseCollection.java"};
+            case ARCHUNIT -> new String[]{"architecture", "java", "archunit", "JavaArchUnitTestCaseCollection.txt"};
         });
     }
 }

@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile;
+package %s.architecture.java.archunit.postcompile;
 
 import com.google.common.collect.ImmutableMap;
 import com.tngtech.archunit.base.DescribedPredicate;
@@ -6,8 +6,8 @@ import com.tngtech.archunit.core.domain.JavaAccess;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition;
-import de.tum.cit.ase.ares.api.architecture.java.archunit.FileHandlerConstants;
-import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitTestCaseSupported;
+import %s.architecture.java.archunit.FileHandlerConstants;
+import %s.architecture.java.archunit.JavaArchUnitTestCaseSupported;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,8 +19,8 @@ import java.util.HashSet;
 import java.util.Scanner;
 import java.util.Set;
 
-import static de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitTestCaseSupported.FILESYSTEM_INTERACTION;
-import static de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitTestCaseSupported.NETWORK_CONNECTION;
+import static %s.architecture.java.archunit.JavaArchUnitTestCaseSupported.FILESYSTEM_INTERACTION;
+import static %s.architecture.java.archunit.JavaArchUnitTestCaseSupported.NETWORK_CONNECTION;
 
 /**
  * This class runs the security rules on the architecture for the post-compile mode.
