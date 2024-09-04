@@ -118,9 +118,12 @@ public enum JavaAOPMode {
 
     public void reset() {
         try {
-            Class<?> settingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, null);
+            ClassLoader customClassLoader = Thread.currentThread().getContextClassLoader();
+            Class<?> settingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, customClassLoader);
             Method method = settingsClass.getDeclaredMethod("reset");
+            method.setAccessible(true);
             method.invoke(null);
+            method.setAccessible(false);
 
         } catch (ClassNotFoundException e) {
             throw new SecurityException("Security configuration error: The class for the specific security test case settings could not be found. Ensure the class name is correct and the class is available at runtime.", e);

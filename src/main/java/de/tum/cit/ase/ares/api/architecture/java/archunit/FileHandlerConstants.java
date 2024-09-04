@@ -8,7 +8,7 @@ import java.nio.file.Path;
  */
 public class FileHandlerConstants {
 
-    private static final String JAVA_METHODS_DIRECTORY = "src" + File.separator + "main" + File.separator + "resources" + File.separator + "archunit" + File.separator + "files" + File.separator + "java" + File.separator + "methods" + File.separator;
+    private static final String JAVA_METHODS_DIRECTORY = "src" + File.separator + "main" + File.separator + "resources" + File.separator + "de" + File.separator + "tum" + File.separator + "cit" + File.separator + "ase" + File.separator + "ares" + File.separator + "api" + File.separator + "templates" + File.separator + "java" + File.separator + "archunit" + File.separator + "methods" + File.separator;
     public static final Path JAVA_FILESYSTEM_INTERACTION_METHODS = Path.of(JAVA_METHODS_DIRECTORY + "file-system-access-methods.txt");
     public static final Path JAVA_NETWORK_ACCESS_METHODS = Path.of(JAVA_METHODS_DIRECTORY + "network-access-methods.txt");
     public static final Path JAVA_JVM_TERMINATION_METHODS = Path.of(JAVA_METHODS_DIRECTORY + "jvm-termination-methods.txt");

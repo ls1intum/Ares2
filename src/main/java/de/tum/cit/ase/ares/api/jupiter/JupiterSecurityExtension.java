@@ -41,7 +41,8 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
             }
         } else {
             try {
-                Class<?> javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, null);
+                ClassLoader customClassLoader = Thread.currentThread().getContextClassLoader();
+                Class<?> javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, customClassLoader);
                 Method resetMethod = javaSecurityTestCaseSettingsClass.getDeclaredMethod("reset");
                 resetMethod.setAccessible(true);
                 resetMethod.invoke(null);
