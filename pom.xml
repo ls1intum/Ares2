@@ -323,8 +323,6 @@
 				<configuration>
 					<argLine>@{argLine} -Dfile.encoding=UTF-8</argLine>
 					<runOrder>alphabetical</runOrder>
-					<!-- TODO: Remove -->
-					<skipTests>true</skipTests>
 				</configuration>
 			</plugin>
 			<plugin>
