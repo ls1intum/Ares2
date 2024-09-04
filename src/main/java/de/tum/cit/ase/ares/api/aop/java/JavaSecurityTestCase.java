@@ -355,10 +355,10 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
     public void executeAOPSecurityTestCase() {
         switch (javaSecurityTestCaseSupported) {
             case FILESYSTEM_INTERACTION -> Map.of(
-                    "pathsAllowedToBeRead", getPermittedFilePaths("read"),
-                    "pathsAllowedToBeOverwritten", getPermittedFilePaths("overwrite"),
-                    "pathsAllowedToBeExecuted", getPermittedFilePaths("execute"),
-                    "pathsAllowedToBeDeleted", getPermittedFilePaths("delete")
+                    "pathsAllowedToBeRead", getPermittedFilePaths("read").toArray(String[]::new),
+                    "pathsAllowedToBeOverwritten", getPermittedFilePaths("overwrite").toArray(String[]::new),
+                    "pathsAllowedToBeExecuted", getPermittedFilePaths("execute").toArray(String[]::new),
+                    "pathsAllowedToBeDeleted", getPermittedFilePaths("delete").toArray(String[]::new)
             ).forEach(this::setJavaAdviceSettingValue);
             case NETWORK_CONNECTION -> Map.of(
                     "hostsAllowedToBeConnectedTo", getPermittedNetworkHosts("connect"),

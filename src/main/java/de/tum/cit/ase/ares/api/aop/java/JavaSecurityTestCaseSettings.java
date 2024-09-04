@@ -63,6 +63,11 @@ public class JavaSecurityTestCaseSettings {
     private static String[] pathsAllowedToBeExecuted = null;
 
     /**
+     * Paths that are allowed to be executed.
+     */
+    private static String[] pathsAllowedToBeDeleted = null;
+
+    /**
      * Hosts that are allowed to be connected to.
      */
     private static String[] hostsAllowedToBeConnectedTo = null;
@@ -128,6 +133,7 @@ public class JavaSecurityTestCaseSettings {
         JavaSecurityTestCaseSettings.pathsAllowedToBeRead = null;
         JavaSecurityTestCaseSettings.pathsAllowedToBeOverwritten = null;
         JavaSecurityTestCaseSettings.pathsAllowedToBeExecuted = null;
+        JavaSecurityTestCaseSettings.pathsAllowedToBeDeleted = null;
         JavaSecurityTestCaseSettings.hostsAllowedToBeConnectedTo = null;
         JavaSecurityTestCaseSettings.portsAllowedToBeConnecedTo = null;
         JavaSecurityTestCaseSettings.hostsAllowedToBeSentTo = null;
