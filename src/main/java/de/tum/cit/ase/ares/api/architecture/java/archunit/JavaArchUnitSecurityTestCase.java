@@ -58,8 +58,6 @@ public class JavaArchUnitSecurityTestCase implements ArchitectureSecurityTestCas
             return getArchitectureRuleFileContent(this.javaArchitectureTestCaseSupported.name());
         } catch (AssertionError e) {
             throw new SecurityException("Ares Security Error (Stage: Execution): Illegal Statement found: " + e.getMessage());
-        } catch (IOException e) {
-            throw new IllegalStateException("Could not load the architecture rule file content", e);
         }
     }
 
