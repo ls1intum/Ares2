@@ -67,6 +67,8 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
 
     private final String packageName;
 
+    private final String mainClassInPackageName;
+
     private final String[] testClasses;
 
     private final String[] functionClasses = {
@@ -104,6 +106,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         this.javaArchitectureMode = javaArchitectureMode;
         this.javaAOPMode = javaAOPMode;
         this.packageName = securityPolicy.regardingTheSupervisedCode().theProgrammingLanguageUsesTheFollowingPackage();
+        this.mainClassInPackageName = securityPolicy.regardingTheSupervisedCode().theMainClassInsideThisPackageIs();
         this.ressourceAccesses = securityPolicy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted();
         this.testClasses = securityPolicy.regardingTheSupervisedCode().theFollowingClassesAreTestClasses();
         this.projectPath = projectPath;
@@ -198,7 +201,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         ArrayList<Path> javaCopiedAspectFiles = new ArrayList<>(FileTools.copyJavaFiles(
                 javaAOPMode.filesToCopy(),
                 javaAOPMode.targetsToCopyTo(projectPath, packageName),
-                javaAOPMode.fileValues(packageName)
+                javaAOPMode.fileValues(packageName, mainClassInPackageName)
         ));
         Path javaAspectConfigurationCollectionFile = FileTools.createThreePartedJavaFile(
                 javaAOPMode.threePartedFileHeader(),

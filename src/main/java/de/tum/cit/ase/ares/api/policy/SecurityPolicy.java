@@ -16,11 +16,13 @@ public record SecurityPolicy(
      *
      * @param theFollowingProgrammingLanguageConfigurationIsUsed the programming language configuration used by the supervised code.
      * @param theProgrammingLanguageUsesTheFollowingPackage      the package used by the programming language.
+     * @param theMainClassInsideThisPackageIs                    the main class inside the package.
      * @param theFollowingResourceAccessesArePermitted           the permitted resource accesses for the supervised code.
      */
     public record SupervisedCode(
             ProgrammingLanguageConfiguration theFollowingProgrammingLanguageConfigurationIsUsed,
             String theProgrammingLanguageUsesTheFollowingPackage,
+            String theMainClassInsideThisPackageIs,
             String[] theFollowingClassesAreTestClasses,
             ResourceAccesses theFollowingResourceAccessesArePermitted
     ) {

@@ -48,12 +48,13 @@ public enum JavaAOPMode {
                     new String[]{"templates", "aop", "java", "instrumentation", "advice", "JavaInstrumentationReadPathAdvice.java"},
                     new String[]{"templates", "aop", "java", "instrumentation", "pointcut", "JavaInstrumentationBindingDefinitions.java"},
                     new String[]{"templates", "aop", "java", "instrumentation", "pointcut", "JavaInstrumentationPointcutDefinitions.java"},
-                    new String[]{"templates", "aop", "java", "instrumentation", "JavaInstrumentationAgent.java"}
+                    new String[]{"templates", "aop", "java", "instrumentation", "JavaInstrumentationAgent.java"},
+                    new String[]{"templates", "META-INF", "MANIFEST.MF"}
             );
         }).map(FileTools::resolveOnResources).toList();
     }
 
-    public List<String[]> fileValues(String packageName) {
+    public List<String[]> fileValues(String packageName, String mainClassInPackageName) {
         return switch (this) {
             case ASPECTJ -> Stream.of(
                             FileTools.generatePackageNameArray(packageName, 67),
@@ -66,7 +67,8 @@ public enum JavaAOPMode {
                             FileTools.generatePackageNameArray(packageName, 1),
                             FileTools.generatePackageNameArray(packageName, 5),
                             FileTools.generatePackageNameArray(packageName, 1),
-                            FileTools.generatePackageNameArray(packageName, 3)
+                            FileTools.generatePackageNameArray(packageName, 3),
+                            new String[]{packageName, packageName, mainClassInPackageName}
                     )
                     .toList();
         };
@@ -85,7 +87,8 @@ public enum JavaAOPMode {
                     new String[]{"aop", "java", "instrumentation", "advice", "JavaInstrumentationReadPathAdvice.java"},
                     new String[]{"aop", "java", "instrumentation", "pointcut", "JavaInstrumentationBindingDefinitions.java"},
                     new String[]{"aop", "java", "instrumentation", "pointcut", "JavaInstrumentationPointcutDefinitions.java"},
-                    new String[]{"aop", "java", "instrumentation", "JavaInstrumentationAgent.java"}
+                    new String[]{"aop", "java", "instrumentation", "JavaInstrumentationAgent.java"},
+                    new String[]{"templates", "META-INF", "MANIFEST.MF"}
             );
         }).map(pathParticles -> FileTools.resolveOnTests(projectPath, packageName, pathParticles)).toList();
     }
