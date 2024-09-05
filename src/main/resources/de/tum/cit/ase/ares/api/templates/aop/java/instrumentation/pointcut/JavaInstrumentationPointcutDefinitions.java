@@ -102,5 +102,9 @@ public class JavaInstrumentationPointcutDefinitions {
     );
     //</editor-fold>
 
+    //<editor-fold desc="Delete Path">
+    public static final Map<String, List<String>> methodsWhichCanDeleteFiles = Map.of();
+    //</editor-fold>
+
 }
 

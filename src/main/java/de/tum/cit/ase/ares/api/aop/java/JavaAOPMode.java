@@ -43,6 +43,7 @@ public enum JavaAOPMode {
             );
             case INSTRUMENTATION -> Stream.of(
                     new String[]{"templates", "aop", "java", "instrumentation", "advice", "JavaInstrumentationAdviceToolbox.java"},
+                    new String[]{"templates", "aop", "java", "instrumentation", "advice", "JavaInstrumentationDeletePathAdvice.java"},
                     new String[]{"templates", "aop", "java", "instrumentation", "advice", "JavaInstrumentationExecutePathAdvice.java"},
                     new String[]{"templates", "aop", "java", "instrumentation", "advice", "JavaInstrumentationOverwritePathAdvice.java"},
                     new String[]{"templates", "aop", "java", "instrumentation", "advice", "JavaInstrumentationReadPathAdvice.java"},
@@ -65,6 +66,7 @@ public enum JavaAOPMode {
                             FileTools.generatePackageNameArray(packageName, 1),
                             FileTools.generatePackageNameArray(packageName, 1),
                             FileTools.generatePackageNameArray(packageName, 1),
+                            FileTools.generatePackageNameArray(packageName, 1),
                             FileTools.generatePackageNameArray(packageName, 5),
                             FileTools.generatePackageNameArray(packageName, 1),
                             FileTools.generatePackageNameArray(packageName, 3),
@@ -82,6 +84,7 @@ public enum JavaAOPMode {
             );
             case INSTRUMENTATION -> Stream.of(
                     new String[]{"aop", "java", "instrumentation", "advice", "JavaInstrumentationAdviceToolbox.java"},
+                    new String[]{"aop", "java", "instrumentation", "advice", "JavaInstrumentationDeletePathAdvice.java"},
                     new String[]{"aop", "java", "instrumentation", "advice", "JavaInstrumentationExecutePathAdvice.java"},
                     new String[]{"aop", "java", "instrumentation", "advice", "JavaInstrumentationOverwritePathAdvice.java"},
                     new String[]{"aop", "java", "instrumentation", "advice", "JavaInstrumentationReadPathAdvice.java"},

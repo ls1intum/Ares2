@@ -4,6 +4,8 @@ import %s.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox;
 import %s.aop.java.instrumentation.advice.JavaInstrumentationExecutePathAdvice;
 import %s.aop.java.instrumentation.advice.JavaInstrumentationReadPathAdvice;
 import %s.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathAdvice;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathAdvice;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationPointcutDefinitions;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.ClassFileLocator;
@@ -75,6 +77,19 @@ public class JavaInstrumentationBindingDefinitions {
         return createBinding(
                 builder, typeDescription, classLoader,
                 JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteFiles, JavaInstrumentationExecutePathAdvice.class
+        );
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Delete Path">
+    public static DynamicType.Builder<?> createDeletePathBinding(
+            DynamicType.Builder<?> builder, TypeDescription typeDescription,
+            ClassLoader classLoader, JavaModule ignoredJavaModule,
+            ProtectionDomain ignoredProtectionDomain
+    ) {
+        return createBinding(
+                builder, typeDescription, classLoader,
+                JavaInstrumentationPointcutDefinitions.methodsWhichCanDeleteFiles, JavaInstrumentationDeletePathAdvice.class
         );
     }
     //</editor-fold>
