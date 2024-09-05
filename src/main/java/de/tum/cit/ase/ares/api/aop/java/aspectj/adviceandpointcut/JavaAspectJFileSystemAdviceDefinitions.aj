@@ -45,7 +45,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
 
     private static Object getValueFromSettings(String fieldName) {
         try {
-            Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, null);
+            ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
+            Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, currentClassLoader);
             Field field = adviceSettingsClass.getDeclaredField(fieldName);
             field.setAccessible(true);
             Object value = field.get(null);
@@ -67,6 +68,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
                     default -> throw new IllegalArgumentException("Unknown action: " + action);
                 }
         );
+        // TODO this is not working where does restrictedPackage come from? @sarps
         Object[] parameters = thisJoinPoint.getArgs();
         if (restrictedPackage == null
                 || allowedPaths == null
