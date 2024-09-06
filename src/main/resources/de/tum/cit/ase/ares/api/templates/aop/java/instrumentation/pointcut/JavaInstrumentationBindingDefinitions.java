@@ -1,11 +1,12 @@
 package %s.aop.java.instrumentation.pointcut;
 
+import %s.aop.java.JavaSecurityTestCaseSettings;
 import %s.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox;
 import %s.aop.java.instrumentation.advice.JavaInstrumentationExecutePathAdvice;
 import %s.aop.java.instrumentation.advice.JavaInstrumentationReadPathAdvice;
 import %s.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathAdvice;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathAdvice;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationPointcutDefinitions;
+import %s.aop.java.instrumentation.advice.JavaInstrumentationDeletePathAdvice;
+import %s.aop.java.instrumentation.pointcut.JavaInstrumentationPointcutDefinitions;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.ClassFileLocator;
@@ -37,7 +38,9 @@ public class JavaInstrumentationBindingDefinitions {
         new ClassInjector.UsingUnsafe(classLoader)
                 .inject(Map.of(
                         new TypeDescription.ForLoadedType(JavaInstrumentationAdviceToolbox.class),
-                        ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceToolbox.class)
+                        ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceToolbox.class),
+                        new TypeDescription.ForLoadedType(JavaSecurityTestCaseSettings.class),
+                        ClassFileLocator.ForClassLoader.read(JavaSecurityTestCaseSettings.class)
                 ));
     }
     //</editor-fold>

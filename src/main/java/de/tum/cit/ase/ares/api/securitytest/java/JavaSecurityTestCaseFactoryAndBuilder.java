@@ -71,16 +71,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
 
     private final String[] testClasses;
 
-    private final String[] functionClasses = {
-            "de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings",
-            "de.tum.cit.ase.ares.api.aop.instrumentation.adviceAndPointcut.JavaInstrumentationAdviceToolbox",
-            "de.tum.cit.ase.ares.api.aop.instrumentation.adviceAndPointcut.JavaInstrumentationReadPathAdvice",
-            "de.tum.cit.ase.ares.api.aop.instrumentation.adviceAndPointcut.JavaWritePathAdvice",
-            "de.tum.cit.ase.ares.api.aop.instrumentation.adviceAndPointcut.JavaInstrumentationExecutePathAdvice",
-            "de.tum.cit.ase.ares.api.aop.java.pointcut.instrumentation.JavaInstrumentationPointcutDefinitions",
-            "de.tum.cit.ase.ares.api.aop.java.pointcut.instrumentation.JavaInstrumentationBindingDefinitions",
-            "de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent"
-    };
+    private final String[] functionClasses;
 
     private final ResourceAccesses ressourceAccesses;
 
@@ -110,6 +101,20 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         this.ressourceAccesses = securityPolicy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted();
         this.testClasses = securityPolicy.regardingTheSupervisedCode().theFollowingClassesAreTestClasses();
         this.projectPath = projectPath;
+
+        this.functionClasses = new String[]{
+                packageName + ".aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemAdviceDefinitions",
+                packageName + ".aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions",
+                packageName + ".aop.java.JavaSecurityTestCaseSettings",
+                packageName + ".aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox",
+                packageName + ".aop.java.instrumentation.advice.JavaInstrumentationDeletePathAdvice",
+                packageName + ".aop.java.instrumentation.advice.JavaInstrumentationExecutePathAdvice",
+                packageName + ".aop.java.instrumentation.advice.JavaInstrumentationOverwritePathAdvice",
+                packageName + ".aop.java.instrumentation.advice.JavaInstrumentationReadPathAdvice",
+                packageName + ".aop.java.pointcut.instrumentation.JavaInstrumentationPointcutDefinitions",
+                packageName + ".aop.java.pointcut.instrumentation.JavaInstrumentationBindingDefinitions",
+                packageName + ".aop.java.instrumentation.JavaInstrumentationAgent"
+        };
         this.createSecurityTestCases();
     }
     //</editor-fold>
@@ -159,7 +164,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                         //</editor-fold>
                     } else {
                         //<editor-fold desc="AOP code">
-                        javaSecurityTestCases.add(new JavaSecurityTestCase(javaSecurityTestCaseSupportedValue,ressourceAccesses));
+                        javaSecurityTestCases.add(new JavaSecurityTestCase(javaSecurityTestCaseSupportedValue, ressourceAccesses));
                         //</editor-fold>
                     }
                 });

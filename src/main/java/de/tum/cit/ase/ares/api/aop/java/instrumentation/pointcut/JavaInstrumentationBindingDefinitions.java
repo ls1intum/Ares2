@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut;
 
+import de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathAdvice;
@@ -36,7 +37,9 @@ public class JavaInstrumentationBindingDefinitions {
         new ClassInjector.UsingUnsafe(classLoader)
                 .inject(Map.of(
                         new TypeDescription.ForLoadedType(JavaInstrumentationAdviceToolbox.class),
-                        ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceToolbox.class)
+                        ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceToolbox.class),
+                        new TypeDescription.ForLoadedType(JavaSecurityTestCaseSettings.class),
+                        ClassFileLocator.ForClassLoader.read(JavaSecurityTestCaseSettings.class)
                 ));
     }
     //</editor-fold>

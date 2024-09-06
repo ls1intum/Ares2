@@ -67,7 +67,7 @@ public enum JavaAOPMode {
                             FileTools.generatePackageNameArray(packageName, 1),
                             FileTools.generatePackageNameArray(packageName, 1),
                             FileTools.generatePackageNameArray(packageName, 1),
-                            FileTools.generatePackageNameArray(packageName, 5),
+                            FileTools.generatePackageNameArray(packageName, 8),
                             FileTools.generatePackageNameArray(packageName, 1),
                             FileTools.generatePackageNameArray(packageName, 3),
                             new String[]{packageName, packageName, mainClassInPackageName}
@@ -91,7 +91,7 @@ public enum JavaAOPMode {
                     new String[]{"aop", "java", "instrumentation", "pointcut", "JavaInstrumentationBindingDefinitions.java"},
                     new String[]{"aop", "java", "instrumentation", "pointcut", "JavaInstrumentationPointcutDefinitions.java"},
                     new String[]{"aop", "java", "instrumentation", "JavaInstrumentationAgent.java"},
-                    new String[]{"templates", "META-INF", "MANIFEST.MF"}
+                    new String[]{"META-INF", "MANIFEST.MF"}
             );
         }).map(pathParticles -> FileTools.resolveOnTests(projectPath, packageName, pathParticles)).toList();
     }

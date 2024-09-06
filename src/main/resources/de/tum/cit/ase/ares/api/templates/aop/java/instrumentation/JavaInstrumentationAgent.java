@@ -6,8 +6,6 @@ import java.util.Map;
 
 import %s.aop.java.instrumentation.pointcut.JavaInstrumentationBindingDefinitions;
 import %s.aop.java.instrumentation.pointcut.JavaInstrumentationPointcutDefinitions;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationBindingDefinitions;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationPointcutDefinitions;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.matcher.ElementMatchers;
 
