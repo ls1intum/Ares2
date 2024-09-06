@@ -22,7 +22,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
 
     private static boolean checkIfPathIsAllowed(String[] allowedPaths, Path pathToCheck) {
         for (String allowedPath : allowedPaths) {
-            if (allowedPath.equals(pathToCheck.toString())) {
+            if (variableToPath(allowedPath).toString().equals(pathToCheck.toString())) {
                 return true;
             }
         }
@@ -70,8 +70,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
         );
         // TODO this is not working where does restrictedPackage come from? @sarps
         Object[] parameters = thisJoinPoint.getArgs();
-        if (restrictedPackage == null
-                || allowedPaths == null
+        if (allowedPaths == null
                 || parameters == null
                 || parameters.length == 0
         ) {
