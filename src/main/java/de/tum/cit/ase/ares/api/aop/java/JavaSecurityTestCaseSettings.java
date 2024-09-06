@@ -26,6 +26,9 @@ public class JavaSecurityTestCaseSettings {
         throw new IllegalStateException("Utility class");
     }
 
+    /**
+     * Resets the configuration settings to their default values.
+     */
     private static String aomMode = null;
 
     /**
