@@ -52,8 +52,10 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
 				}
 			}
 		} else {
+			// TODO this method is duplicated make utils class and use it instead???
 			try {
-				Class<?> javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, null);
+				ClassLoader customClassLoader = Thread.currentThread().getContextClassLoader();
+				Class<?> javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, customClassLoader);
 				Method resetMethod = javaSecurityTestCaseSettingsClass.getDeclaredMethod("reset");
 				resetMethod.setAccessible(true);
 				resetMethod.invoke(null);
