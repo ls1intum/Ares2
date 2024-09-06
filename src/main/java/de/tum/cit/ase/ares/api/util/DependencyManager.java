@@ -24,6 +24,9 @@ public class DependencyManager {
         this.filePath = filePath;
     }
 
+    /**
+     * Adds a dependency to the file
+     */
     public void addDependency(String groupId, String artifactId, String version) throws Exception {
         if (filePath.endsWith("pom.xml")) {
             addDependencyToPom(groupId, artifactId, version);
@@ -32,6 +35,9 @@ public class DependencyManager {
         }
     }
 
+    /**
+     * Removes a dependency from the file
+     */
     public void removeDependency(String groupId, String artifactId) throws Exception {
         if (filePath.endsWith("pom.xml")) {
             removeDependencyFromPom(groupId, artifactId);
@@ -40,6 +46,9 @@ public class DependencyManager {
         }
     }
 
+    /**
+     * Adds a dependency to the pom.xml file
+     */
     private void addDependencyToPom(String groupId, String artifactId, String version) throws ParserConfigurationException, IOException, SAXException, TransformerException {
         File pomFile = new File(filePath);
         var docFactory = DocumentBuilderFactory.newInstance();
@@ -67,6 +76,9 @@ public class DependencyManager {
         saveXmlChanges(doc, pomFile);
     }
 
+    /**
+     * Removes a dependency from the pom.xml file
+     */
     private void removeDependencyFromPom(String groupId, String artifactId) throws Exception {
         var pomFile = new File(filePath);
         var docFactory = DocumentBuilderFactory.newInstance();
@@ -92,6 +104,9 @@ public class DependencyManager {
         saveXmlChanges(doc, pomFile);
     }
 
+    /**
+     * Adds a dependency to the build.gradle file
+     */
     private void addDependencyToGradle(String groupId, String artifactId, String version) throws IOException {
         String dependencyLine = "implementation '" + groupId + ":" + artifactId + ":" + version + "'";
         Path path = Paths.get(filePath);
@@ -113,6 +128,9 @@ public class DependencyManager {
         }
     }
 
+    /**
+     * Removes a dependency from the build.gradle file
+     */
     private void removeDependencyFromGradle(String groupId, String artifactId) throws IOException {
         String dependencyPrefix = "implementation '" + groupId + ":" + artifactId + ":";
         Path path = Paths.get(filePath);
@@ -121,6 +139,9 @@ public class DependencyManager {
         Files.write(path, lines);
     }
 
+    /**
+     * Saves the changes made to the XML document back to the file
+     */
     private void saveXmlChanges(Document doc, File file) throws TransformerException {
         var transformerFactory = TransformerFactory.newInstance();
         Transformer transformer = transformerFactory.newTransformer();
@@ -129,10 +150,14 @@ public class DependencyManager {
         transformer.transform(source, result);
     }
 
+    /**
+     * Example usage!!!
+     * @param args
+     */
     public static void main(String[] args) {
         try {
-            DependencyManager manager = new DependencyManager("/home/sarps/IdeaProjects/Ares2/src/test/java/de/tum/cit/ase/ares/integration/testuser/subject/example/build/tools/pom.xml");
-//            manager.addDependency("org.example", "example-artifact", "1.0.0");
+            DependencyManager manager = new DependencyManager("/path/to/pom.xml");
+            manager.addDependency("org.example", "example-artifact", "1.0.0");
             manager.removeDependency("org.example", "example-artifact");
         } catch (Exception e) {
             e.printStackTrace();
