@@ -85,7 +85,12 @@ public class JavaInstrumentationAdviceToolbox {
 
     public static void checkFileSystemInteraction(
             String action,
-            String declaringTypeName, String methodName, String methodSignature, Object[] attributes, Object[] parameters) {
+            String declaringTypeName,
+            String methodName,
+            String methodSignature,
+            Object[] attributes,
+            Object[] parameters
+    ) {
         String restrictedPackage = (String) getValueFromSettings("restrictedPackage");
         String[] allowedClasses = (String[]) getValueFromSettings("allowedListedClasses");
         String[] allowedPaths = (String[]) getValueFromSettings(
@@ -107,12 +112,12 @@ public class JavaInstrumentationAdviceToolbox {
         final String fullMethodSignature = declaringTypeName + "." + methodName + methodSignature;
         String illegallyReadingMethod = checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses);
         if (illegallyReadingMethod != null) {
-            String illegallyReadPath = checkIfVariableCriteriaIsViolated(attributes, allowedPaths);
+            String illegallyReadPath = checkIfVariableCriteriaIsViolated(parameters, allowedPaths);
             if (illegallyReadPath == null) {
-                illegallyReadPath = checkIfVariableCriteriaIsViolated(parameters, allowedPaths);
+                illegallyReadPath = checkIfVariableCriteriaIsViolated(attributes, allowedPaths);
             }
             if (illegallyReadPath != null) {
-                throw new SecurityException(illegallyReadingMethod + " tried to illegally " + action + " from " + illegallyReadPath + " via " +  fullMethodSignature);
+                throw new SecurityException(illegallyReadingMethod + " tried to illegally " + action + " from " + illegallyReadPath + " via " + fullMethodSignature);
             }
         }
     }
