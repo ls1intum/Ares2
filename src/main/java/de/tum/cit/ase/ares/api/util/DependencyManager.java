@@ -1,5 +1,7 @@
 package de.tum.cit.ase.ares.api.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.*;
 import org.xml.sax.SAXException;
 
@@ -18,19 +20,23 @@ import java.util.List;
 
 public class DependencyManager {
 
+    private static final Logger log = LoggerFactory.getLogger(DependencyManager.class);
     private final String filePath;
 
     public DependencyManager(String filePath) {
+        if (filePath == null || filePath.isEmpty()) {
+            throw new IllegalArgumentException("File path cannot be null or empty.");
+        }
         this.filePath = filePath;
     }
 
     /**
      * Adds a dependency to the file
      */
-    public void addDependency(String groupId, String artifactId, String version) throws Exception {
-        if (filePath.endsWith("pom.xml")) {
+    public void addDependency(String groupId, String artifactId, String version) throws IOException, ParserConfigurationException, TransformerException, SAXException {
+        if (filePath.trim().endsWith("pom.xml")) {
             addDependencyToPom(groupId, artifactId, version);
-        } else if (filePath.endsWith("build.gradle")) {
+        } else if (filePath.trim().endsWith("build.gradle")) {
             addDependencyToGradle(groupId, artifactId, version);
         }
     }
@@ -57,6 +63,28 @@ public class DependencyManager {
 
         Node dependenciesNode = doc.getElementsByTagName("dependencies").item(0);
 
+        if (dependenciesNode == null) {
+            throw new IllegalStateException("No dependencies tag found in pom.xml");
+        }
+
+        // Check if the dependency already exists
+        NodeList dependencies = dependenciesNode.getChildNodes();
+        for (int i = 0; i < dependencies.getLength(); i++) {
+            Node node = dependencies.item(i);
+
+            if (node.getNodeType() == Node.ELEMENT_NODE) {
+                Element dependency = (Element) node;
+                String existingGroupId = dependency.getElementsByTagName("groupId").item(0).getTextContent();
+                String existingArtifactId = dependency.getElementsByTagName("artifactId").item(0).getTextContent();
+
+                if (existingGroupId.equals(groupId) && existingArtifactId.equals(artifactId)) {
+                    DependencyManager.log.info("Dependency {}:{} already exists in pom.xml", groupId, artifactId);
+                    return;  // Exit without adding duplicate
+                }
+            }
+        }
+
+        // Add the new dependency if not present
         Element dependency = doc.createElement("dependency");
 
         Element groupIdElement = doc.createElement("groupId");
@@ -108,11 +136,20 @@ public class DependencyManager {
      * Adds a dependency to the build.gradle file
      */
     private void addDependencyToGradle(String groupId, String artifactId, String version) throws IOException {
-        String dependencyLine = "implementation '" + groupId + ":" + artifactId + ":" + version + "'";
+        String dependencyLine = "    implementation '" + groupId + ":" + artifactId + ":" + version + "'";
         Path path = Paths.get(filePath);
         List<String> lines = Files.readAllLines(path);
-        int dependenciesIndex = -1;
 
+        // Check if the dependency already exists
+        for (String line : lines) {
+            if (line.trim().contains("implementation '" + groupId + ":" + artifactId)) {
+                log.info("Dependency {}:{} already exists in build.gradle", groupId, artifactId);
+                return;  // Exit without adding duplicate
+            }
+        }
+
+        // Find the dependencies block and add the new dependency
+        int dependenciesIndex = -1;
         for (int i = 0; i < lines.size(); i++) {
             if (lines.get(i).trim().equalsIgnoreCase("dependencies {")) {
                 dependenciesIndex = i;
@@ -152,15 +189,14 @@ public class DependencyManager {
 
     /**
      * Example usage!!!
-     * @param args
      */
     public static void main(String[] args) {
         try {
-            DependencyManager manager = new DependencyManager("/path/to/pom.xml");
+            DependencyManager manager = new DependencyManager("/home/sarps/IdeaProjects/Ares2/src/test/java/de/tum/cit/ase/ares/integration/testuser/subject/example/build/tools/pom.xml");
             manager.addDependency("org.example", "example-artifact", "1.0.0");
-            manager.removeDependency("org.example", "example-artifact");
+//            manager.removeDependency("org.example", "example-artifact");
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error(e.getLocalizedMessage());
         }
     }
 }
