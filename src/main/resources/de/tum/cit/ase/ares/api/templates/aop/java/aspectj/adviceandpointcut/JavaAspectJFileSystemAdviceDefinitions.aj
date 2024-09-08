@@ -9,6 +9,20 @@ import java.nio.file.Path;
 
 public aspect JavaAspectJFileSystemAdviceDefinitions {
 
+    //<editor-fold desc="Callstack criteria methods">
+    private static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses, String readingMethod) {
+        if(readingMethod.startsWith(restrictedPackage)) {
+            for (String allowedClass : allowedClasses) {
+                if (readingMethod.startsWith(allowedClass)) {
+                    return null;
+                }
+            }
+            return readingMethod;
+        }
+        return null;
+    }
+    //</editor-fold>
+
     //<editor-fold desc="Variable criteria methods">
     private static Path variableToPath(Object variableValue) {
         return switch (variableValue) {
@@ -22,7 +36,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
 
     private static boolean checkIfPathIsAllowed(String[] allowedPaths, Path pathToCheck) {
         for (String allowedPath : allowedPaths) {
-            if (allowedPath.equals(pathToCheck.toString())) {
+            if (variableToPath(allowedPath).toString().equals(pathToCheck.toString())) {
                 return true;
             }
         }
@@ -45,7 +59,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
 
     private static Object getValueFromSettings(String fieldName) {
         try {
-            Class<?> adviceSettingsClass = Class.forName("%s.aop.java.JavaSecurityTestCaseSettings", true, null);
+            ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
+            Class<?> adviceSettingsClass = Class.forName("%s.aop.java.JavaSecurityTestCaseSettings");
             Field field = adviceSettingsClass.getDeclaredField(fieldName);
             field.setAccessible(true);
             Object value = field.get(null);
@@ -59,6 +74,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
     // This method handles the security check for file system interactions by validating if the requested operation type is allowed for the file in context.
     private void checkFileSystemInteraction(JoinPoint thisJoinPoint, String action) {
         String restrictedPackage = (String) getValueFromSettings("restrictedPackage");
+        String[] allowedClasses = (String[]) getValueFromSettings("allowedListedClasses");
         String[] allowedPaths = (String[]) getValueFromSettings(
                 switch (action) {
                     case "read" -> "pathsAllowedToBeRead";
@@ -68,17 +84,21 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
                 }
         );
         Object[] parameters = thisJoinPoint.getArgs();
+
         if (restrictedPackage == null
                 || allowedPaths == null
-                || parameters == null
-                || parameters.length == 0
+                || (parameters == null || parameters.length == 0)
         ) {
             return;
         }
-        String illegallyReadPath = checkIfVariableCriteriaIsViolated(parameters, allowedPaths);
-        if (illegallyReadPath != null) {
-            throw new SecurityException(thisJoinPoint.getSourceLocation().getWithinType().getName() + " tried to illegally " + action + " from " + illegallyReadPath + " via " +  thisJoinPoint.getSignature().toLongString());
 
+        final String fullMethodSignature = thisJoinPoint.getSignature().toLongString();
+        String illegallyReadingMethod = checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses, thisJoinPoint.getSourceLocation().getWithinType().getName());
+        if (illegallyReadingMethod != null) {
+            String illegallyReadPath = checkIfVariableCriteriaIsViolated(parameters, allowedPaths);
+            if (illegallyReadPath != null) {
+                throw new SecurityException(illegallyReadingMethod + " tried to illegally " + action + " from " + illegallyReadPath + " via " + fullMethodSignature);
+            }
         }
     }
 
@@ -123,240 +143,5 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
                     %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderDeleteMethods() {
         checkFileSystemInteraction(thisJoinPoint, "delete");
     }
-
-    /*before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.randomAccessFileExecuteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "execute")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileReadMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "read")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileWriteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "write")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileExecuteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "execute")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileDeleteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "delete")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileInputStreamInitMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "read")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileOutputStreamInitMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "write")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.objectStreamClassMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "execute")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.randomAccessFileInitMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "read")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderReadMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "read")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderWriteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "write")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderExecuteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "execute")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderDeleteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "delete")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileTypeDetectorProbeContentTypeMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "execute")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileImageSourceInitMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "read")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.filesReadMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "read")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.filesWriteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "write")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.filesExecuteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "execute")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.pathReadMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "read")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.pathWriteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "write")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.pathExecuteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "execute")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.pathDeleteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "delete")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemReadMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "read")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemWriteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "write")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemExecuteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "execute")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileChannelExecuteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "execute")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileChannelReadMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "read")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileChannelWriteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "write")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileWriterMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "write")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileHandlerMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "write")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.midiSystemMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "read")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemsReadMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "read")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemsExecuteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "execute")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.defaultFileSystemExecuteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "execute")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderReadMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "read")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderWriteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "write")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderExecuteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "execute")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderDeleteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "delete")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }
-
-    before(): %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.desktopExecuteMethods() {
-        if (handleAroundAdvice(thisJoinPoint, "execute")) {
-            throwSecurityException(thisJoinPoint);
-        }
-    }*/
 
 }

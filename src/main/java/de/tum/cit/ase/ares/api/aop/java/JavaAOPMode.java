@@ -58,8 +58,8 @@ public enum JavaAOPMode {
     public List<String[]> fileValues(String packageName, String mainClassInPackageName) {
         return switch (this) {
             case ASPECTJ -> Stream.of(
-                            FileTools.generatePackageNameArray(packageName, 67),
-                            FileTools.generatePackageNameArray(packageName, 38))
+                            FileTools.generatePackageNameArray(packageName, 28),
+                            FileTools.generatePackageNameArray(packageName, 1))
                     .toList();
             case INSTRUMENTATION -> Stream.of(
                             FileTools.generatePackageNameArray(packageName, 2),
