@@ -1,11 +1,18 @@
 package de.tum.cit.ase.ares.integration;
 
 import static de.tum.cit.ase.ares.testutilities.CustomConditions.*;
+import static org.junit.jupiter.api.Assertions.fail;
 
+import de.tum.cit.ase.ares.api.Policy;
+import de.tum.cit.ase.ares.api.jupiter.PublicTest;
+import de.tum.cit.ase.ares.integration.testuser.subject.pathaccess.PathAccessPenguin;
 import org.junit.platform.testkit.engine.Events;
 
 import de.tum.cit.ase.ares.integration.testuser.PathAccessUser;
 import de.tum.cit.ase.ares.testutilities.*;
+
+import java.io.IOException;
+import java.nio.file.Path;
 
 @UserBased(PathAccessUser.class)
 class PathAccessTest {
@@ -16,6 +23,7 @@ class PathAccessTest {
 	private final String accessPathAllFiles = "accessPathAllFiles";
 	private final String accessPathAllowed = "accessPathAllowed";
 	private final String accessPathNormal = "accessPathNormal";
+	private final String accessPathNormalAllowed = "accessPathNormalAllowed";
 	private final String accessPathRelativeGlobA = "accessPathRelativeGlobA";
 	private final String accessPathRelativeGlobB = "accessPathRelativeGlobB";
 	private final String accessPathRelativeGlobDirectChildrenAllowed = "accessPathRelativeGlobDirectChildrenAllowed";
@@ -39,11 +47,23 @@ class PathAccessTest {
 	}
 	*/
 
-	// TODO: It seems like this does not work with AspectJ
-//	@TestTest
-//	void test_accessPathNormal() {
-//		tests.assertThatEvents().haveExactly(1, finishedSuccessfully(accessPathNormal));
-//	}
+	@TestTest
+	@PublicTest
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
+	void test_accessPathNormal() throws IOException {
+		try {
+			PathAccessPenguin.accessPath(Path.of("pom212.xml"));
+			fail();
+		} catch (SecurityException e) {
+			// TODO: check if the exception message is correct
+			// expected
+		}
+	}
+
+	@TestTest
+	void test_accessPathAllowed() {
+		tests.assertThatEvents().haveExactly(1, finishedSuccessfully(accessPathNormalAllowed));
+	}
 
 	@TestTest
 	void test_accessPathRelativeGlobA() {
@@ -104,7 +124,7 @@ class PathAccessTest {
 
 	@TestTest
 	void test_accessFileSystem() {
-		//tests.assertThatEvents().haveExactly(1, testFailedWith("accessFileSystem", SecurityException.class));
+		tests.assertThatEvents().haveExactly(1, testFailedWith("accessFileSystem", SecurityException.class));
 	}
 
 

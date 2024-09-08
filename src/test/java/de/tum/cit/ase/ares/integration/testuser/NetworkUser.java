@@ -74,7 +74,7 @@ public class NetworkUser {
 
 	@Test
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/network")
-	void connectLocallyNotAllowed() throws Exception {
+	void connectLocallyNotAllowed() {
 		// Should be empty
 	}
 
