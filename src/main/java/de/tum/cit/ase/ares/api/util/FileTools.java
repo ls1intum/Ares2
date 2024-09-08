@@ -82,8 +82,7 @@ public class FileTools {
                 try{
                     formatedFile = String.format(Files.readString(copiedFiles.get(i)), (String[]) formatValues.get(i));
                 } catch (IllegalFormatException e) {
-                    System.out.println("Illegal format in " + copiedFiles.get(i).toAbsolutePath());
-                    formatedFile = "";
+                    throw new SecurityException("Ares Security Error (Stage: Creation): Illegal format in " + copiedFiles.get(i).toAbsolutePath() + ".", e);
                 }
                 Files.writeString(
                         copiedFiles.get(i),
@@ -111,17 +110,6 @@ public class FileTools {
      * @return the content of the file as a {@link String}.
      * @throws SecurityException if an error occurs during the file read process.
      */
-    /*public static String readFile(Path sourceFilePath) {
-        try {
-            return Files.readString(sourceFilePath);
-        } catch (IOException e) {
-            throw new SecurityException(ARES_ERROR_MESSAGE, e);
-        } catch (OutOfMemoryError e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Out of memory while reading content.", e);
-        } catch (IllegalFormatException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Illegal format in content.", e);
-        }
-    }*/
     public static String readFile(Path sourceFilePath) {
         try {
 

@@ -55,7 +55,7 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
             case "String" -> {
                 if (!(value instanceof String)) {
                     throw new SecurityException(String.format(
-                            "Invalid value type for String advice setting: %s but should be String",
+                            "Invalid value type for String advice setting: %s but should be String.",
                             value.getClass()));
                 }
                 yield String.format("private static String %s = \"%s\";%n", adviceSetting, value);
@@ -63,7 +63,7 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
             case "String[]" -> {
                 if (!(value instanceof List<?>)) {
                     throw new SecurityException(String.format(
-                            "Invalid value type for String[] advice setting: %s but should be List<String>",
+                            "Invalid value type for String[] advice setting: %s but should be List<String>.",
                             value.getClass()));
                 }
                 String stringArrayValue = ((List<?>) value).stream()
@@ -75,7 +75,7 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
             case "String[][]" -> {
                 if (!(value instanceof List<?>)) {
                     throw new SecurityException(String.format(
-                            "Invalid value type for String[][] advice setting: %s but should be List<List<String>>",
+                            "Invalid value type for String[][] advice setting: %s but should be List<List<String>>.",
                             value.getClass()));
                 }
                 String stringArrayArrayValue = ((List<?>) value).stream()
@@ -92,7 +92,7 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
             case "int[]" -> {
                 if (!(value instanceof List<?>)) {
                     throw new SecurityException(String.format(
-                            "Invalid value type for int[] advice setting: %s but should be List<Integer>",
+                            "Invalid value type for int[] advice setting: %s but should be List<Integer>.",
                             value.getClass()));
                 }
                 String intArrayValue = ((List<?>) value).stream()

@@ -92,7 +92,6 @@ public class JavaInstrumentationPointcutDefinitions {
 
     //<editor-fold desc="Execute Path">
     public static final Map<String, List<String>> methodsWhichCanExecuteFiles = Map.of(
-            // TODO why do we have instrumentation I reverted them back to java but still the methods are not intercepted
             "java.io.UnixFileSystem",
             List.of("checkAccess", "setPermission"),
             "java.io.WinNTFileSystem",
