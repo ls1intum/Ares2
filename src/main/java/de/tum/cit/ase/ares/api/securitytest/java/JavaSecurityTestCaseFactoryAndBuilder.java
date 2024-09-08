@@ -100,6 +100,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         this.mainClassInPackageName = securityPolicy.regardingTheSupervisedCode().theMainClassInsideThisPackageIs();
         this.ressourceAccesses = securityPolicy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted();
         this.testClasses = securityPolicy.regardingTheSupervisedCode().theFollowingClassesAreTestClasses();
+        // TODO projectPath is configured wrongly, since for AOP and Architecture tests different paths are used (for Architectural path to bytecode, for AOP path to source code)
         this.projectPath = projectPath;
 
         this.functionClasses = new String[]{
