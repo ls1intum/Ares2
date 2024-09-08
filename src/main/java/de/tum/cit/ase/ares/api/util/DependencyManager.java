@@ -177,6 +177,112 @@ public class DependencyManager {
     }
 
     /**
+     * Adds a plugin to the pom.xml file
+     */
+    public void addPlugin(String groupId, String artifactId, String version, List<Element> configurations, List<Element> executions) throws Exception {
+        if (filePath.trim().endsWith("pom.xml")) {
+            addPluginToPom(groupId, artifactId, version, configurations, executions);
+        } else {
+            throw new UnsupportedOperationException("Plugin management is only supported for pom.xml files.");
+        }
+    }
+
+    /**
+     * Adds a plugin to the pom.xml file, if not already present
+     */
+    private void addPluginToPom(String groupId, String artifactId, String version, List<Element> configurations, List<Element> executions) throws ParserConfigurationException, IOException, SAXException, TransformerException {
+        File pomFile = new File(filePath);
+        var docFactory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+        Document doc = docBuilder.parse(pomFile);
+
+        Node pluginsNode = getOrCreatePluginsNode(doc);
+
+        if (!isPluginPresent(doc, groupId, artifactId)) {
+            // Create plugin element
+            Element plugin = doc.createElement("plugin");
+
+            // Add groupId, artifactId, version
+            Element groupIdElement = doc.createElement("groupId");
+            groupIdElement.appendChild(doc.createTextNode(groupId));
+            plugin.appendChild(groupIdElement);
+
+            Element artifactIdElement = doc.createElement("artifactId");
+            artifactIdElement.appendChild(doc.createTextNode(artifactId));
+            plugin.appendChild(artifactIdElement);
+
+            Element versionElement = doc.createElement("version");
+            versionElement.appendChild(doc.createTextNode(version));
+            plugin.appendChild(versionElement);
+
+            // Add configurations (if any)
+            if (configurations != null && !configurations.isEmpty()) {
+                Element configurationElement = doc.createElement("configuration");
+                for (Element config : configurations) {
+                    configurationElement.appendChild(doc.importNode(config, true));
+                }
+                plugin.appendChild(configurationElement);
+            }
+
+            // Add executions (if any)
+            if (executions != null && !executions.isEmpty()) {
+                Element executionsElement = doc.createElement("executions");
+                for (Element execution : executions) {
+                    executionsElement.appendChild(doc.importNode(execution, true));
+                }
+                plugin.appendChild(executionsElement);
+            }
+
+            // Add the plugin to the <plugins> section
+            pluginsNode.appendChild(plugin);
+
+            // Save the updated pom.xml file
+            saveXmlChanges(doc, pomFile);
+        } else {
+            System.out.println("Plugin " + groupId + ":" + artifactId + " already exists.");
+        }
+    }
+
+    /**
+     * Checks if a plugin is already present in the pom.xml file
+     */
+    private boolean isPluginPresent(Document doc, String groupId, String artifactId) {
+        NodeList plugins = doc.getElementsByTagName("plugin");
+        for (int i = 0; i < plugins.getLength(); i++) {
+            Node node = plugins.item(i);
+
+            if (node.getNodeType() == Node.ELEMENT_NODE) {
+                Element plugin = (Element) node;
+                String pluginGroupId = plugin.getElementsByTagName("groupId").item(0).getTextContent();
+                String pluginArtifactId = plugin.getElementsByTagName("artifactId").item(0).getTextContent();
+
+                if (groupId.equals(pluginGroupId) && artifactId.equals(pluginArtifactId)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Get or create the <plugins> node in the pom.xml file
+     */
+    private Node getOrCreatePluginsNode(Document doc) {
+        NodeList pluginsList = doc.getElementsByTagName("plugins");
+        Node pluginsNode;
+
+        if (pluginsList.getLength() == 0) {
+            // Create a new <plugins> section if it doesn't exist
+            pluginsNode = doc.createElement("plugins");
+            doc.getDocumentElement().appendChild(pluginsNode);
+        } else {
+            pluginsNode = pluginsList.item(0);
+        }
+
+        return pluginsNode;
+    }
+
+    /**
      * Saves the changes made to the XML document back to the file
      */
     private void saveXmlChanges(Document doc, File file) throws TransformerException {
@@ -192,13 +298,80 @@ public class DependencyManager {
      */
     public static void main(String[] args) {
         try {
-            DependencyManager manager = new DependencyManager("/home/sarps/IdeaProjects/Ares2/src/test/java/de/tum/cit/ase/ares/integration/testuser/subject/example/build/tools/pom.xml");
-            manager.addDependency("org.example", "example-artifact", "1.0.0");
+            pluginTest(args);
+//            DependencyManager manager = new DependencyManager("/path/to/pom.xml");
+//            manager.addDependency("org.example", "example-artifact", "1.0.0");
 //            manager.removeDependency("org.example", "example-artifact");
         } catch (Exception e) {
             log.error(e.getLocalizedMessage());
         }
     }
+
+    public static void pluginTest(String[] args) {
+        try {
+            DependencyManager manager = new DependencyManager("/path/to/pom.xml");
+
+            // Create document to build XML elements
+            var docFactory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+            Document doc = docBuilder.newDocument();
+
+            // 1. Create the dependencies section
+            Element dependencies = doc.createElement("dependencies");
+            Element dependency = doc.createElement("dependency");
+
+            Element groupIdDep = doc.createElement("groupId");
+            groupIdDep.appendChild(doc.createTextNode("org.aspectj"));
+            dependency.appendChild(groupIdDep);
+
+            Element artifactIdDep = doc.createElement("artifactId");
+            artifactIdDep.appendChild(doc.createTextNode("aspectjtools"));
+            dependency.appendChild(artifactIdDep);
+
+            Element versionDep = doc.createElement("version");
+            versionDep.appendChild(doc.createTextNode("${aspectj.version}"));
+            dependency.appendChild(versionDep);
+
+            dependencies.appendChild(dependency);
+
+            // 2. Create the configuration section
+            Element complianceLevel = doc.createElement("complianceLevel");
+            complianceLevel.appendChild(doc.createTextNode("21"));
+            Element aspectDirectory = doc.createElement("aspectDirectory");
+            aspectDirectory.appendChild(doc.createTextNode("src/test/java"));
+
+            // First execution
+            Element execution1 = doc.createElement("execution");
+            Element goals1 = doc.createElement("goals");
+            Element goalCompile = doc.createElement("goal");
+            goalCompile.appendChild(doc.createTextNode("compile"));
+            Element goalTestCompile = doc.createElement("goal");
+            goalTestCompile.appendChild(doc.createTextNode("test-compile"));
+            goals1.appendChild(goalCompile);
+            goals1.appendChild(goalTestCompile);
+            execution1.appendChild(goals1);
+
+            // Second execution
+            Element execution2 = doc.createElement("execution");
+            Element executionId = doc.createElement("id");
+            executionId.appendChild(doc.createTextNode("process-integration-test-classes"));
+            Element phase = doc.createElement("phase");
+            phase.appendChild(doc.createTextNode("process-test-classes"));
+            Element goals2 = doc.createElement("goals");
+            Element goalCompileAgain = doc.createElement("goal");
+            goalCompileAgain.appendChild(doc.createTextNode("compile"));
+            goals2.appendChild(goalCompileAgain);
+            execution2.appendChild(executionId);
+            execution2.appendChild(phase);
+            execution2.appendChild(goals2);
+
+            // Add the plugin with dependencies, configuration, and executions
+            manager.addPlugin("dev.aspectj", "aspectj-maven-plugin", "1.14", List.of(complianceLevel, aspectDirectory), List.of(execution1, execution2));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
 }
 
 
