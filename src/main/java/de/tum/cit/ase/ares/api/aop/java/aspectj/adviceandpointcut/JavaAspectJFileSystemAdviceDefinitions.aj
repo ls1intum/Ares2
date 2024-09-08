@@ -59,7 +59,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
 
     private static Object getValueFromSettings(String fieldName) {
         try {
-            ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
             Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings");
             Field field = adviceSettingsClass.getDeclaredField(fieldName);
             field.setAccessible(true);
@@ -80,13 +79,17 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
                     case "read" -> "pathsAllowedToBeRead";
                     case "write" -> "pathsAllowedToBeOverwritten";
                     case "execute" -> "pathsAllowedToBeExecuted";
+                    case "delete" -> "pathsAllowedToBeDeleted";
                     default -> throw new IllegalArgumentException("Unknown action: " + action);
                 }
         );
         Object[] parameters = thisJoinPoint.getArgs();
 
-        if (restrictedPackage == null
-                || allowedPaths == null
+        // TODO delete this statement, this is a workaround since the YAML reader doesn't work properly
+        if (restrictedPackage == null) {
+            restrictedPackage = "de.tum.cit.ase";
+        }
+        if (allowedPaths == null
                 || (parameters == null || parameters.length == 0)
         ) {
             return;
