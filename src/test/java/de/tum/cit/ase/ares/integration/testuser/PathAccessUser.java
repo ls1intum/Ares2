@@ -36,83 +36,95 @@ public class PathAccessUser {
 		PathAccessPenguin.accessPath(Path.of("pom.xml"));
 	}*/
 
-	@PublicTest
-	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
-	void accessPathNormal() throws IOException {
-		PathAccessPenguin.accessPath(Path.of("pom.xml"));
-	}
+    // TODO this test should fail with the given agent SecurityException currently not working
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentation.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
+    public void accessPathNormalInstrumentation() throws IOException {
+        PathAccessPenguin.accessPath(Path.of("pom212.xml"));
+    }
 
-	@PublicTest
-	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
-	void accessPathRelativeGlobDirectChildrenForbidden() {
-		PathAccessPenguin.askForFilePermission("*");
-	}
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
+    public void accessPathNormal() throws IOException {
+        PathAccessPenguin.accessPath(Path.of("pom212.xml"));
+    }
 
-	@PublicTest	//@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
-	void accessPathRelativeGlobRecursiveForbidden() {
-		PathAccessPenguin.askForFilePermission("-");
-	}
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
+    void accessPathNormalAllowed() throws IOException {
+        PathAccessPenguin.accessPath(Path.of("pom.xml"));
+    }
 
-	@PublicTest
-	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-	void accessFileSystem() throws IOException {}
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
+    void accessPathRelativeGlobDirectChildrenForbidden() {
+        PathAccessPenguin.askForFilePermission("*");
+    }
+
+    @PublicTest
+    //@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
+    void accessPathRelativeGlobRecursiveForbidden() {
+        PathAccessPenguin.askForFilePermission("-");
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+    void accessFileSystem() throws IOException {
+        // do nothing
+    }
+
+    @WhitelistPath(value = "../*r*e*s**", type = PathType.GLOB)
+    @PublicTest
+    void accessPathRelativeGlobA() throws IOException {
+        PathAccessPenguin.accessPath(Path.of("pom.xml").toAbsolutePath());
+    }
+
+    @WhitelistPath(value = "./pom.xml", type = PathType.GLOB)
+    @PublicTest
+    void accessPathRelativeGlobB() throws IOException {
+        PathAccessPenguin.accessPath(Path.of("pom.xml").toAbsolutePath());
+    }
+
+    @WhitelistPath(value = "../*r*e*s**", type = PathType.GLOB)
+    @PublicTest
+    void accessPathRelativeGlobDirectChildrenAllowed() {
+        PathAccessPenguin.askForFilePermission("src/*");
+    }
+
+    @WhitelistPath(value = "../*r*e*s**", type = PathType.GLOB)
+    @BlacklistPath(value = "abc")
+    @PublicTest
+    void accessPathRelativeGlobDirectChildrenBlacklist() {
+        PathAccessPenguin.askForFilePermission("*");
+    }
 
 
+    @WhitelistPath(value = "../*r*e*s**", type = PathType.GLOB)
+    @PublicTest
+    void accessPathRelativeGlobRecursiveAllowed() {
+        PathAccessPenguin.askForFilePermission("-");
+    }
 
+    @WhitelistPath(value = "../*r*e*s**", type = PathType.GLOB)
+    @BlacklistPath(value = "abc")
+    @PublicTest
+    void accessPathRelativeGlobRecursiveBlacklist() {
+        PathAccessPenguin.askForFilePermission("src/-");
+    }
 
-	@WhitelistPath(value = "../*r*e*s**", type = PathType.GLOB)
-	@PublicTest
-	void accessPathRelativeGlobA() throws IOException {
-		PathAccessPenguin.accessPath(Path.of("pom.xml").toAbsolutePath());
-	}
+    @PublicTest
+    @WhitelistPath("")
+    @BlacklistPath(value = "**Test*.{java,class}", type = PathType.GLOB)
+    void accessPathTest() throws IOException {
+        Path file = Path.of("src/test/java/de/tum/cit/ase/ares/integration/SecurityTest.java");
+        if (!Files.exists(file))
+            fail("File not present: " + file.toAbsolutePath());
+        PathAccessPenguin.accessPath(file);
+    }
 
-	@WhitelistPath(value = "./pom.xml", type = PathType.GLOB)
-	@PublicTest
-	void accessPathRelativeGlobB() throws IOException {
-		PathAccessPenguin.accessPath(Path.of("pom.xml").toAbsolutePath());
-	}
-
-	@WhitelistPath(value = "../*r*e*s**", type = PathType.GLOB)
-	@PublicTest
-	void accessPathRelativeGlobDirectChildrenAllowed() {
-		PathAccessPenguin.askForFilePermission("src/*");
-	}
-
-	@WhitelistPath(value = "../*r*e*s**", type = PathType.GLOB)
-	@BlacklistPath(value = "abc")
-	@PublicTest
-	void accessPathRelativeGlobDirectChildrenBlacklist() {
-		PathAccessPenguin.askForFilePermission("*");
-	}
-
-
-
-	@WhitelistPath(value = "../*r*e*s**", type = PathType.GLOB)
-	@PublicTest
-	void accessPathRelativeGlobRecursiveAllowed() {
-		PathAccessPenguin.askForFilePermission("-");
-	}
-
-	@WhitelistPath(value = "../*r*e*s**", type = PathType.GLOB)
-	@BlacklistPath(value = "abc")
-	@PublicTest
-	void accessPathRelativeGlobRecursiveBlacklist() {
-		PathAccessPenguin.askForFilePermission("src/-");
-	}
-
-	@PublicTest
-	@WhitelistPath("")
-	@BlacklistPath(value = "**Test*.{java,class}", type = PathType.GLOB)
-	void accessPathTest() throws IOException {
-		Path file = Path.of("src/test/java/de/tum/cit/ase/ares/integration/SecurityTest.java");
-		if (!Files.exists(file))
-			fail("File not present: " + file.toAbsolutePath());
-		PathAccessPenguin.accessPath(file);
-	}
-
-	@PublicTest
-	void weAccessPath() throws IOException {
-		Files.readString(Path.of("pom.xml"));
-	}
+    @PublicTest
+    void weAccessPath() throws IOException {
+        Files.readString(Path.of("pom.xml"));
+    }
 }

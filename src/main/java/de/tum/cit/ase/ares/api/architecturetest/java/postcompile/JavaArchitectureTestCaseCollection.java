@@ -103,19 +103,10 @@ public class JavaArchitectureTestCaseCollection {
      */
     public static final ArchRule NO_CLASSES_SHOULD_USE_REFLECTION = ArchRuleDefinition.noClasses()
             .should(new TransitivelyAccessesMethodsCondition(new DescribedPredicate<>("uses reflection") {
-                private Set<String> forbiddenMethods;
-
                 @Override
                 public boolean test(JavaAccess<?> javaAccess) {
-                    if (forbiddenMethods == null) {
-                        try {
-                            forbiddenMethods = getForbiddenMethods(FileHandlerConstants.JAVA_REFLECTION_METHODS);
-                        } catch (IOException e) {
-                            throw new IllegalStateException(LOAD_FORBIDDEN_METHODS_FROM_FILE_FAILED, e);
-                        }
-                    }
-
-                    return forbiddenMethods.stream().anyMatch(method -> javaAccess.getTarget().getFullName().startsWith(method));
+                    return javaAccess.getTarget().getFullName().startsWith("java.lang.reflect")
+                            || javaAccess.getTarget().getFullName().startsWith("sun.reflect.misc");
                 }
             }));
 
@@ -130,31 +121,14 @@ public class JavaArchitectureTestCaseCollection {
                 public boolean test(JavaAccess<?> javaAccess) {
                     if (forbiddenMethods == null) {
                         try {
-                            forbiddenMethods = getForbiddenMethods(FileHandlerConstants.JAVA_JVM_TERMINATION_METHODS);
+                            loadForbiddenMethodsFromFile(FileHandlerConstants.JAVA_JVM_TERMINATION_METHODS, "JVM_TERMINATION");
                         } catch (IOException e) {
                             throw new IllegalStateException(LOAD_FORBIDDEN_METHODS_FROM_FILE_FAILED, e);
                         }
+                        forbiddenMethods = getForbiddenMethods("JVM_TERMINATION");
                     }
 
                     return forbiddenMethods.stream().anyMatch(method -> javaAccess.getTarget().getFullName().startsWith(method));
                 }
             })));
-
-    public static final ArchRule NO_CLASSES_SHOULD_EXECUTE_COMMANDS = ArchRuleDefinition.noClasses()
-            .should(new TransitivelyAccessesMethodsCondition(new DescribedPredicate<>("executes commands") {
-                private Set<String> forbiddenMethods;
-
-                @Override
-                public boolean test(JavaAccess<?> javaAccess) {
-                    if (forbiddenMethods == null) {
-                        try {
-                            forbiddenMethods = getForbiddenMethods(FileHandlerConstants.JAVA_COMMAND_EXECUTION_METHODS);
-                        } catch (IOException e) {
-                            throw new IllegalStateException(LOAD_FORBIDDEN_METHODS_FROM_FILE_FAILED, e);
-                        }
-                    }
-
-                    return forbiddenMethods.stream().anyMatch(method -> javaAccess.getTarget().getFullName().startsWith(method));
-                }
-            }));
 }

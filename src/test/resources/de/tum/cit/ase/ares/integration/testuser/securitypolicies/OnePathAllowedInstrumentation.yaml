@@ -1,0 +1,30 @@
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_AND_INSTRUMENTATION
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions:
+      - readAllFiles: true
+        overwriteAllFiles: false
+        executeAllFiles: false
+        deleteAllFiles: false
+        onThisPathAndAllPathsBelow: "pom.xml"
+    regardingNetworkConnections:
+      - openConnections: true
+        sendData: true
+        receiveData: true
+        onTheHost: "localhost"
+        onThePort: 8080
+    regardingCommandExecutions:
+      - executeTheCommand: "someCommand"
+        withTheseArguments:
+          - "-arg1"
+          - "-arg2"
+    regardingThreadCreations:
+      - createTheFollowingNumberOfThreads: 10
+        ofThisClass: "com.example.ThreadClass"
+    regardingPackageImports:
+      - importTheFollowingPackage: "java.io"
+      - importTheFollowingPackage: "java.lang"
+      - importTheFollowingPackage: "java.util"
+      - importTheFollowingPackage: "de.tum.cit.ase.ares.api.aop.aspectj.adviceandpointcut"
+      - importTheFollowingPackage: "java.nio.file"
+      - importTheFollowingPackage: "org.java.aspectj"

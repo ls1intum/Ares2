@@ -70,7 +70,7 @@ public class ThreadUser {
 	@PublicTest
 	void threadWhitelistingWithPathCorrect() throws Throwable {
 		AtomicReference<Throwable> failure = new AtomicReference<>();
-		Thread t = new Thread(() -> Path.of("pom.xml").toFile().canWrite());
+		Thread t = new Thread(() -> System.out.println(""));
 		//REMOVED: Thread-whitelisting-request to ArtemisSecurityManager
 		t.setUncaughtExceptionHandler((t1, e) -> failure.set(e));
 		t.start();

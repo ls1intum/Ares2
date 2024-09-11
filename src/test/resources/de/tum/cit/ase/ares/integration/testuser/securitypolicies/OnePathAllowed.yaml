@@ -1,12 +1,23 @@
-# This is an example configuration file for the programming exercise "ExampleProgrammingExercise".
-theProgrammingLanguageIUseInThisProgrammingExerciseIs: JAVA
-iAllowTheFollowingFileSystemInteractionsForTheStudents:
-  - onThisPathAndAllPathsBelow: "/Users/aniruddhzaveri/IdeaProjects/Ares2"
-    studentsAreAllowedToReadAllFiles: true
-    studentsAreAllowedToOverwriteAllFiles: false
-    studentsAreAllowedToExecuteAllFiles: false
-    studentsAreAllowedToDeleteAllFiles: false
-iAllowTheFollowingNetworkConnectionsForTheStudents: []
-iAllowTheFollowingCommandExecutionsForTheStudents: []
-iAllowTheFollowingThreadCreationsForTheStudents: []
-iAllowTheFollowingPackageImportForTheStudents: []
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+  theProgrammingLanguageUsesTheFollowingPackage: "de.tum.cit.ase"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.cit.ase.example.ExampleTest"
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions:
+      - readAllFiles: true
+        overwriteAllFiles: false
+        executeAllFiles: false
+        deleteAllFiles: false
+        onThisPathAndAllPathsBelow: "pom.xml"
+    regardingNetworkConnections: []
+    regardingCommandExecutions: []
+    regardingThreadCreations: []
+    regardingPackageImports:
+      - importTheFollowingPackage: "java.io"
+      - importTheFollowingPackage: "java.lang"
+      - importTheFollowingPackage: "java.util"
+      - importTheFollowingPackage: "de.tum.cit.ase.ares.api.aop.aspectj.adviceandpointcut"
+      - importTheFollowingPackage: "java.nio.file"
+      - importTheFollowingPackage: "org.java.aspectj"
