@@ -14,7 +14,7 @@ public class JavaInstrumentationPointcutDefinitions {
 
     //<editor-fold desc="Constructor">
     private JavaInstrumentationPointcutDefinitions() {
-        throw new IllegalStateException("Utility class");
+        throw new UnsupportedOperationException("JavaInstrumentationPointcutDefinitions is a utility class and should not be instantiated");
     }
     //</editor-fold>
 

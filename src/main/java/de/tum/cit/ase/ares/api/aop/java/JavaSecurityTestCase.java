@@ -10,7 +10,9 @@ import de.tum.cit.ase.ares.api.policy.SecurityPolicy.CommandPermission;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy.ThreadPermission;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InaccessibleObjectException;
 import java.util.Arrays;
+import java.util.IllegalFormatException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -47,61 +49,91 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
      */
 
     private static String generateAdviceSettingValue(String dataType, String adviceSetting, Object value) {
-        if (value == null) {
-            return String.format("private static %s %s = null;%n", dataType, adviceSetting);
+        try {
+            if (value == null) {
+                return String.format("private static %s %s = null;%n", dataType, adviceSetting);
+            }
+
+            return switch (dataType) {
+                case "String" -> {
+                    if (!(value instanceof String)) {
+                        throw new SecurityException(String.format(
+                                "Ares Security Error (Reason: Ares-Code; Stage: Creation): "
+                                        + "Invalid value type for String advice setting: "
+                                        + "%s but should be String.",
+                                value.getClass()));
+                    }
+                    yield String.format("private static String %s = \"%s\";%n", adviceSetting, value);
+                }
+                case "String[]" -> {
+                    if (!(value instanceof List<?>)) {
+                        throw new SecurityException(String.format(
+                                "Ares Security Error (Reason: Ares-Code; Stage: Creation): "
+                                        + "Invalid value type for String[] advice setting: "
+                                        + "%s but should be List<String>.",
+                                value.getClass()));
+                    }
+                    String stringArrayValue = ((List<?>) value).stream()
+                            .map(Object::toString)
+                            .map(s -> String.format("\"%s\"", s))
+                            .collect(Collectors.joining(", "));
+                    yield String.format("private static String[] %s = new String[] {%s};%n", adviceSetting, stringArrayValue);
+                }
+                case "String[][]" -> {
+                    if (!(value instanceof List<?>)) {
+                        throw new SecurityException(String.format(
+                                "Ares Security Error (Reason: Ares-Code; Stage: Creation): "
+                                        + "Invalid value type for String[][] advice setting: "
+                                        + "%s but should be List<List<String>>.",
+                                value.getClass()));
+                    }
+                    String stringArrayArrayValue = ((List<?>) value).stream()
+                            .filter(e -> e instanceof List<?>)
+                            .map(e -> (List<?>) e)
+                            .map(innerList -> innerList.stream()
+                                    .map(Object::toString)
+                                    .map(s -> String.format("\"%s\"", s))
+                                    .collect(Collectors.joining(", ")))
+                            .map(innerArray -> "new String[]{" + innerArray + "}")
+                            .collect(Collectors.joining(", "));
+                    yield String.format("private static String[][] %s = new String[][] {%s};%n", adviceSetting, stringArrayArrayValue);
+                }
+                case "int[]" -> {
+                    if (!(value instanceof List<?>)) {
+                        throw new SecurityException(String.format(
+                                "Ares Security Error (Reason: Ares-Code; Stage: Creation): "
+                                        + "Invalid value type for int[] advice setting: "
+                                        + "%s but should be List<Integer>.",
+                                value.getClass()));
+                    }
+                    String intArrayValue = ((List<?>) value).stream()
+                            .map(Object::toString)
+                            .collect(Collectors.joining(", "));
+                    yield String.format("private static int[] %s = new int[] {%s};%n", adviceSetting, intArrayValue);
+                }
+                default -> throw new SecurityException(
+                        "Ares Security Error (Reason: Ares-Code; Stage: Creation): "
+                                + "Unknown data type while creating the value "
+                                + value
+                                + " for the advice settings "
+                                + dataType
+                                + " "
+                                + adviceSetting
+                );
+            };
+        } catch (IllegalFormatException e) {
+            throw new SecurityException(
+                    "Ares Security Error (Reason: Ares-Code; Stage: Creation): "
+                            + "Format error while creating the value "
+                            + value
+                            + " for the advice settings "
+                            + dataType
+                            + " "
+                            + adviceSetting,
+                    e
+            );
         }
 
-        return switch (dataType) {
-            case "String" -> {
-                if (!(value instanceof String)) {
-                    throw new SecurityException(String.format(
-                            "Invalid value type for String advice setting: %s but should be String.",
-                            value.getClass()));
-                }
-                yield String.format("private static String %s = \"%s\";%n", adviceSetting, value);
-            }
-            case "String[]" -> {
-                if (!(value instanceof List<?>)) {
-                    throw new SecurityException(String.format(
-                            "Invalid value type for String[] advice setting: %s but should be List<String>.",
-                            value.getClass()));
-                }
-                String stringArrayValue = ((List<?>) value).stream()
-                        .map(Object::toString)
-                        .map(s -> String.format("\"%s\"", s))
-                        .collect(Collectors.joining(", "));
-                yield String.format("private static String[] %s = new String[] {%s};%n", adviceSetting, stringArrayValue);
-            }
-            case "String[][]" -> {
-                if (!(value instanceof List<?>)) {
-                    throw new SecurityException(String.format(
-                            "Invalid value type for String[][] advice setting: %s but should be List<List<String>>.",
-                            value.getClass()));
-                }
-                String stringArrayArrayValue = ((List<?>) value).stream()
-                        .filter(e -> e instanceof List<?>)
-                        .map(e -> (List<?>) e)
-                        .map(innerList -> innerList.stream()
-                                .map(Object::toString)
-                                .map(s -> String.format("\"%s\"", s))
-                                .collect(Collectors.joining(", ")))
-                        .map(innerArray -> "new String[]{" + innerArray + "}")
-                        .collect(Collectors.joining(", "));
-                yield String.format("private static String[][] %s = new String[][] {%s};%n", adviceSetting, stringArrayArrayValue);
-            }
-            case "int[]" -> {
-                if (!(value instanceof List<?>)) {
-                    throw new SecurityException(String.format(
-                            "Invalid value type for int[] advice setting: %s but should be List<Integer>.",
-                            value.getClass()));
-                }
-                String intArrayValue = ((List<?>) value).stream()
-                        .map(Object::toString)
-                        .collect(Collectors.joining(", "));
-                yield String.format("private static int[] %s = new int[] {%s};%n", adviceSetting, intArrayValue);
-            }
-            default -> throw new IllegalArgumentException(String.format("Unsupported data type: %s", dataType));
-        };
     }
 
     /**
@@ -115,14 +147,56 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
             field.setAccessible(true);
             field.set(null, value);
             field.setAccessible(false);
+        } catch (LinkageError e) {
+            throw new SecurityException(
+                    "Ares Security Error (Reason: Ares-Code; Stage: Creation):"
+                            + "Linkage error while accessing field '"
+                            + adviceSetting
+                            + "' in AdviceSettings",
+                    e);
         } catch (ClassNotFoundException e) {
-            throw new SecurityException("Failed to find the class for setting Java advice setting: " + adviceSetting, e);
+            throw new SecurityException(
+                    "Ares Security Error (Reason: Ares-Code; Stage: Creation):"
+                            + "Could not find 'JavaSecurityTestCaseSettings' class to access field '"
+                            + adviceSetting
+                            + "'",
+                    e);
         } catch (NoSuchFieldException e) {
-            throw new SecurityException("Failed to find the field for setting Java advice setting: " + adviceSetting, e);
+            throw new SecurityException(
+                    "Ares Security Error (Reason: Ares-Code; Stage: Creation):"
+                            + "Field '"
+                            + adviceSetting
+                            + "' not found in AdviceSettings",
+                    e);
+        } catch (NullPointerException e) {
+            throw new SecurityException(
+                    "Ares Security Error (Reason: Ares-Code; Stage: Creation):"
+                            + "Null pointer exception while accessing field '"
+                            + adviceSetting
+                            + "' in AdviceSettings",
+                    e);
         } catch (IllegalAccessException e) {
-            throw new SecurityException("Illegal access while setting Java advice setting: " + adviceSetting, e);
-        } catch (Exception e) {
-            throw new SecurityException("An unexpected error occurred while setting Java advice setting: " + adviceSetting, e);
+            throw new SecurityException(
+                    "Ares Security Error (Reason: Ares-Code; Stage: Creation):"
+                            + "Field '"
+                            + adviceSetting
+                            + "' is not accessible in AdviceSettings",
+                    e);
+        } catch (IllegalArgumentException e) {
+            throw new SecurityException(
+                    "Ares Security Error (Reason: Ares-Code; Stage: Creation):"
+                            + "Illegal argument while setting field '"
+                            + adviceSetting
+                            + "' in AdviceSettings with value "
+                            + value,
+                    e);
+        } catch (InaccessibleObjectException e) {
+            throw new SecurityException(
+                    "Ares Security Error (Reason: Ares-Code; Stage: Creation):"
+                            + "Field '"
+                            + adviceSetting
+                            + "' is inaccessible in AdviceSettings",
+                    e);
         }
     }
     //</editor-fold>
@@ -148,7 +222,7 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
             case "overwrite" -> FilePermission::overwriteAllFiles;
             case "execute" -> FilePermission::executeAllFiles;
             case "delete" -> FilePermission::deleteAllFiles;
-            default -> throw new IllegalArgumentException("Invalid file permission: " + filePermission);
+            default -> throw new IllegalArgumentException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Invalid file permission: " + filePermission);
         };
         return resourceAccesses.regardingFileSystemInteractions()
                 .stream()
@@ -190,7 +264,7 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
             case "connect" -> NetworkPermission::openConnections;
             case "send" -> NetworkPermission::sendData;
             case "receive" -> NetworkPermission::receiveData;
-            default -> throw new IllegalArgumentException("Invalid network permission: " + networkPermission);
+            default -> throw new IllegalArgumentException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Invalid network permission: " + networkPermission);
         };
         return resourceAccesses.regardingNetworkConnections()
                 .stream()
@@ -207,7 +281,7 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
             case "connect" -> NetworkPermission::openConnections;
             case "send" -> NetworkPermission::sendData;
             case "receive" -> NetworkPermission::receiveData;
-            default -> throw new IllegalArgumentException("Invalid network permission: " + networkPermission);
+            default -> throw new IllegalArgumentException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Invalid network permission: " + networkPermission);
         };
         return resourceAccesses.regardingNetworkConnections()
                 .stream()

@@ -15,6 +15,6 @@ public class FileHandlerConstants {
     public static final Path JAVA_REFLECTION_METHODS = Path.of(JAVA_METHODS_DIRECTORY + "reflection-methods.txt");
 
     private FileHandlerConstants() {
-        throw new IllegalArgumentException("FileHandlerConstants is a utility class and should not be instantiated");
+        throw new UnsupportedOperationException("FileHandlerConstants is a utility class and should not be instantiated");
     }
 }

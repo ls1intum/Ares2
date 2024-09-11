@@ -132,16 +132,16 @@ public enum JavaAOPMode {
             method.setAccessible(false);
 
         } catch (ClassNotFoundException e) {
-            throw new SecurityException("Security configuration error: The class for the specific security test case settings could not be found. Ensure the class name is correct and the class is available at runtime.", e);
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): The class for the specific security test case settings could not be found. Ensure the class name is correct and the class is available at runtime.", e);
 
         } catch (NoSuchMethodException e) {
-            throw new SecurityException("Security configuration error: The 'reset' method could not be found in the specified class. Ensure the method exists and is correctly named.", e);
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): The 'reset' method could not be found in the specified class. Ensure the method exists and is correctly named.", e);
 
         } catch (IllegalAccessException e) {
-            throw new SecurityException("Security configuration error: Access to the 'reset' method was denied. Ensure the method is public and accessible.", e);
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Access to the 'reset' method was denied. Ensure the method is public and accessible.", e);
 
         } catch (InvocationTargetException e) {
-            throw new SecurityException("Security configuration error: An error occurred while invoking the 'reset' method. This could be due to an underlying issue within the method implementation.", e);
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): An error occurred while invoking the 'reset' method. This could be due to an underlying issue within the method implementation.", e);
         }
     }
 }

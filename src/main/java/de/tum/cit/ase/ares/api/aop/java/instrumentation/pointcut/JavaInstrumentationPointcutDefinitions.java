@@ -14,7 +14,7 @@ public class JavaInstrumentationPointcutDefinitions {
 
     //<editor-fold desc="Constructor">
     private JavaInstrumentationPointcutDefinitions() {
-        throw new IllegalStateException("Utility class");
+        throw new UnsupportedOperationException("Ares Security Error (Reason: Ares-Code; Stage: Creation): JavaInstrumentationPointcutDefinitions is a utility class and should not be instantiated.");
     }
     //</editor-fold>
 

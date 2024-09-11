@@ -1,4 +1,6 @@
-package %s.aop.java.instrumentation.advice;
+package
+
+%s.aop.java.instrumentation.advice;
 
 import java.io.File;
 import java.lang.reflect.Field;
@@ -8,7 +10,7 @@ import java.nio.file.Path;
 public class JavaInstrumentationAdviceToolbox {
     //<editor-fold desc="Constructor">
     private JavaInstrumentationAdviceToolbox() {
-        throw new IllegalStateException("Utility class");
+        throw new UnsupportedOperationException("JavaInstrumentationAdviceToolbox is a utility class and should not be instantiated");
     }
     //</editor-fold>
 
@@ -85,7 +87,12 @@ public class JavaInstrumentationAdviceToolbox {
 
     public static void checkFileSystemInteraction(
             String action,
-            String declaringTypeName, String methodName, String methodSignature, Object[] attributes, Object[] parameters) {
+            String declaringTypeName,
+            String methodName,
+            String methodSignature,
+            Object[] attributes,
+            Object[] parameters
+    ) {
         String restrictedPackage = (String) getValueFromSettings("restrictedPackage");
         String[] allowedClasses = (String[]) getValueFromSettings("allowedListedClasses");
         String[] allowedPaths = (String[]) getValueFromSettings(
@@ -96,23 +103,19 @@ public class JavaInstrumentationAdviceToolbox {
                     default -> throw new IllegalArgumentException("Unknown action: " + action);
                 }
         );
-        if (restrictedPackage == null
-                || allowedPaths == null
-                || ((attributes == null || attributes.length == 0) && (parameters == null || parameters.length == 0)
-        )
-        ) {
+        if (restrictedPackage == null || allowedPaths == null) {
             return;
         }
 
         final String fullMethodSignature = declaringTypeName + "." + methodName + methodSignature;
         String illegallyReadingMethod = checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses);
         if (illegallyReadingMethod != null) {
-            String illegallyReadPath = checkIfVariableCriteriaIsViolated(attributes, allowedPaths);
+            String illegallyReadPath = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, allowedPaths);
             if (illegallyReadPath == null) {
-                illegallyReadPath = checkIfVariableCriteriaIsViolated(parameters, allowedPaths);
+                illegallyReadPath = (attributes == null || attributes.length == 0) ? null : checkIfVariableCriteriaIsViolated(attributes, allowedPaths);
             }
             if (illegallyReadPath != null) {
-                throw new SecurityException(illegallyReadingMethod + " tried to illegally " + action + " from " + illegallyReadPath + " via " +  fullMethodSignature);
+                throw new SecurityException("Ares Security Error (Reason: Student-Code; Stage: Execution):" + illegallyReadingMethod + " tried to illegally " + action + " from " + illegallyReadPath + " via " + fullMethodSignature + "but was blocked by Ares.");
             }
         }
     }

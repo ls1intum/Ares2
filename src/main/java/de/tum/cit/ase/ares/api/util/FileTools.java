@@ -30,11 +30,11 @@ public class FileTools {
      * Private constructor to prevent instantiation of this utility class.
      * <p>
      * Since this is a utility class, it is not intended to be instantiated. The constructor
-     * throws an {@link IllegalStateException} to enforce this restriction.
+     * throws an {@link UnsupportedOperationException} to enforce this restriction.
      * </p>
      */
     private FileTools() {
-        throw new IllegalStateException("Utility class");
+        throw new UnsupportedOperationException("FileTools is a utility class and should not be instantiated");
     }
 
     //<editor-fold desc="Copy">

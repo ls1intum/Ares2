@@ -4,12 +4,50 @@ import org.aspectj.lang.JoinPoint;
 
 import java.io.File;
 import java.lang.reflect.Field;
+import java.lang.reflect.InaccessibleObjectException;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 
 public aspect JavaAspectJFileSystemAdviceDefinitions {
 
+    //<editor-fold desc="Tool methods">
+    private static Object getValueFromSettings(String fieldName) {
+        try {
+            // Take standard class loader as class loader in order to get the JavaSecurityTestCaseSettings class at compile time for aspectj
+            Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings");
+            Field field = adviceSettingsClass.getDeclaredField(fieldName);
+            field.setAccessible(true);
+            Object value = field.get(null);
+            field.setAccessible(false);
+            return value;
+        } catch (LinkageError e) {
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Linkage error while accessing field '" + fieldName + "' in AdviceSettings", e);
+        } catch (ClassNotFoundException e) {
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Could not find 'JavaSecurityTestCaseSettings' class to access field '" + fieldName + "'", e);
+        } catch (NoSuchFieldException e) {
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Field '" + fieldName + "' not found in AdviceSettings", e);
+        } catch (NullPointerException e) {
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Null pointer exception while accessing field '" + fieldName + "' in AdviceSettings", e);
+        } catch (IllegalAccessException e) {
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Field '" + fieldName + "' is not accessible in AdviceSettings", e);
+        } catch (InaccessibleObjectException e) {
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Field '" + fieldName + "' is inaccessible in AdviceSettings", e);
+        }
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="File system methods">
+
     //<editor-fold desc="Callstack criteria methods">
+    /**
+     * This method checks if the callstack criteria is violated.
+     * The callstack criteria is violated if the restricted package is found in the callstack and the calling class is not in the allowed classes.
+     *
+     * @param restrictedPackage The package that is restricted.
+     * @param allowedClasses    The classes that are allowed to access the restricted package.
+     * @param readingMethod     The method that is trying to access the restricted package.
+     * @return The method that is trying to access the restricted package if the callstack criteria is violated, otherwise null.
+     */
     private static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses, String readingMethod) {
         if(readingMethod.startsWith(restrictedPackage)) {
             for (String allowedClass : allowedClasses) {
@@ -27,9 +65,27 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
     private static Path variableToPath(Object variableValue) {
         return switch (variableValue) {
             case null -> throw new InvalidPathException("null", "Cannot transform to path");
-            case Path path -> path.normalize().toAbsolutePath();
-            case String string -> Path.of(string).normalize().toAbsolutePath();
-            case File file -> Path.of(file.toURI()).normalize().toAbsolutePath();
+            case Path path -> {
+                try {
+                    yield path.normalize().toAbsolutePath();
+                } catch (InvalidPathException e) {
+                    throw new InvalidPathException(path.toString(), "Cannot transform to path");
+                }
+            }
+            case String string -> {
+                try {
+                    yield Path.of(string).normalize().toAbsolutePath();
+                } catch (InvalidPathException e) {
+                    throw new InvalidPathException(string, "Cannot transform to path");
+                }
+            }
+            case File file -> {
+                try {
+                    yield Path.of(file.toURI()).normalize().toAbsolutePath();
+                } catch (InvalidPathException e) {
+                    throw new InvalidPathException(file.toString(), "Cannot transform to path");
+                }
+            }
             default -> throw new InvalidPathException(variableValue.toString(), "Cannot transform to path");
         };
     }
@@ -57,21 +113,11 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
     }
     //</editor-fold>
 
-    private static Object getValueFromSettings(String fieldName) {
-        try {
-            Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings");
-            Field field = adviceSettingsClass.getDeclaredField(fieldName);
-            field.setAccessible(true);
-            Object value = field.get(null);
-            field.setAccessible(false);
-            return value;
-        } catch (NoSuchFieldException | IllegalAccessException | ClassNotFoundException e) {
-            throw new SecurityException("Cannot read field " + fieldName + " in AdviceSettings", e);
-        }
-    }
-
-    // This method handles the security check for file system interactions by validating if the requested operation type is allowed for the file in context.
-    private void checkFileSystemInteraction(JoinPoint thisJoinPoint, String action) {
+    //<editor-fold desc="Check methods">
+    private void checkFileSystemInteraction(
+            String action,
+            JoinPoint thisJoinPoint
+    ) {
         String restrictedPackage = (String) getValueFromSettings("restrictedPackage");
         String[] allowedClasses = (String[]) getValueFromSettings("allowedListedClasses");
         String[] allowedPaths = (String[]) getValueFromSettings(
@@ -84,26 +130,21 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
                 }
         );
         Object[] parameters = thisJoinPoint.getArgs();
-
         // TODO delete this statement, this is a workaround since the YAML reader doesn't work properly
         if (restrictedPackage == null) {
             restrictedPackage = "de.tum.cit.ase";
         }
-        if (allowedPaths == null
-                || (parameters == null || parameters.length == 0)
-        ) {
-            return;
-        }
-
         final String fullMethodSignature = thisJoinPoint.getSignature().toLongString();
-        String illegallyReadingMethod = checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses, thisJoinPoint.getSourceLocation().getWithinType().getName());
+        String illegallyReadingMethod = allowedPaths == null ? null : checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses, thisJoinPoint.getSourceLocation().getWithinType().getName());
         if (illegallyReadingMethod != null) {
-            String illegallyReadPath = checkIfVariableCriteriaIsViolated(parameters, allowedPaths);
+            String illegallyReadPath = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, allowedPaths);
             if (illegallyReadPath != null) {
-                throw new SecurityException(illegallyReadingMethod + " tried to illegally " + action + " from " + illegallyReadPath + " via " + fullMethodSignature);
+                throw new SecurityException("Ares Security Error (Reason: Student-Code; Stage: Execution):" + illegallyReadingMethod + " tried to illegally " + action + " from " + illegallyReadPath + " via " + fullMethodSignature + "but was blocked by Ares.");
             }
         }
     }
+    //</editor-fold>
+    //</editor-fold>
 
     before():
             de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileReadMethods() ||
@@ -113,7 +154,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.midiSystemMethods() ||
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemsReadMethods() ||
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderReadMethods() {
-        checkFileSystemInteraction(thisJoinPoint, "read");
+        checkFileSystemInteraction("read", thisJoinPoint);
     }
 
     before():
@@ -124,7 +165,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileWriterMethods() ||
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileHandlerMethods() ||
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderWriteMethods() {
-        checkFileSystemInteraction(thisJoinPoint, "write");
+        checkFileSystemInteraction("write", thisJoinPoint);
     }
 
     before():
@@ -136,7 +177,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.objectStreamClassMethods() ||
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.desktopExecuteMethods() ||
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderExecuteMethods() {
-        checkFileSystemInteraction(thisJoinPoint, "execute");
+        checkFileSystemInteraction("execute", thisJoinPoint);
     }
 
     before():
@@ -144,7 +185,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.pathDeleteMethods() ||
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.filesDeleteMethods() ||
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderDeleteMethods() {
-        checkFileSystemInteraction(thisJoinPoint, "delete");
+        checkFileSystemInteraction("delete", thisJoinPoint);
     }
 
 }

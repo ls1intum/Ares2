@@ -19,11 +19,11 @@ public class JavaSecurityTestCaseSettings {
     /**
      * Private constructor to prevent instantiation of this utility class.
      * <p>
-     * The constructor throws an {@link IllegalStateException} to enforce the utility class pattern.
+     * The constructor throws an {@link UnsupportedOperationException} to enforce the utility class pattern.
      * </p>
      */
     private JavaSecurityTestCaseSettings() {
-        throw new IllegalStateException("Utility class");
+        throw new UnsupportedOperationException("JavaSecurityTestCaseSettings is a utility class and should not be instantiated");
     }
 
     /**
@@ -120,6 +120,9 @@ public class JavaSecurityTestCaseSettings {
      */
     private static String[] threadClassAllowedToBeCreated = null;
 
+    /**
+     * Resets the configuration settings to their default values.
+     */
     private static void reset() {
         JavaSecurityTestCaseSettings.aomMode = null;
         JavaSecurityTestCaseSettings.restrictedPackage = null;

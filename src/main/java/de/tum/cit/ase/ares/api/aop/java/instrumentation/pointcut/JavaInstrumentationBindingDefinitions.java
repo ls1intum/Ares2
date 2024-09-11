@@ -20,27 +20,42 @@ import java.util.Map;
 
 public class JavaInstrumentationBindingDefinitions {
 
+    //<editor-fold desc="Constructor">
     private JavaInstrumentationBindingDefinitions() {
-        throw new IllegalStateException("Utility class");
+        throw new UnsupportedOperationException("Ares Security Error (Reason: Ares-Code; Stage: Creation): JavaInstrumentationBindingDefinitions is a utility class and should not be instantiated.");
     }
+    //</editor-fold>
 
     //<editor-fold desc="Tools">
     private static DynamicType.Builder<?> createBinding(
             DynamicType.Builder<?> builder, TypeDescription typeDescription, ClassLoader classLoader,
             Map<String, List<String>> pointcuts, Class<?> advice
     ) {
-        loadToolbox(classLoader);
-        return builder.visit(Advice.to(advice).on(JavaInstrumentationPointcutDefinitions.getMethodsMatcher(typeDescription, pointcuts)));
+        try{
+            loadToolbox(classLoader);
+            return builder.visit(Advice.to(advice).on(JavaInstrumentationPointcutDefinitions.getMethodsMatcher(typeDescription, pointcuts)));
+        }
+        catch (Exception e) {
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Could not create a binding in general.", e);
+        }
+
     }
 
     private static void loadToolbox(ClassLoader classLoader) {
-        new ClassInjector.UsingUnsafe(classLoader)
-                .inject(Map.of(
-                        new TypeDescription.ForLoadedType(JavaInstrumentationAdviceToolbox.class),
-                        ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceToolbox.class),
-                        new TypeDescription.ForLoadedType(JavaSecurityTestCaseSettings.class),
-                        ClassFileLocator.ForClassLoader.read(JavaSecurityTestCaseSettings.class)
-                ));
+        try {
+            new ClassInjector
+                    .UsingUnsafe(classLoader)
+                    .inject(Map.of(
+                            new TypeDescription.ForLoadedType(JavaInstrumentationAdviceToolbox.class),
+                            ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceToolbox.class),
+                            new TypeDescription.ForLoadedType(JavaSecurityTestCaseSettings.class),
+                            ClassFileLocator.ForClassLoader.read(JavaSecurityTestCaseSettings.class)
+                    ));
+        }
+        catch (Exception e) {
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Could not add the related classes to the bootstrap loader.", e);
+        }
+
     }
     //</editor-fold>
 
@@ -50,10 +65,14 @@ public class JavaInstrumentationBindingDefinitions {
             ClassLoader classLoader, JavaModule ignoredJavaModule,
             ProtectionDomain ignoredProtectionDomain
     ) {
-        return createBinding(
-                builder, typeDescription, classLoader,
-                JavaInstrumentationPointcutDefinitions.methodsWhichCanReadFiles, JavaInstrumentationReadPathAdvice.class
-        );
+        try {
+            return createBinding(
+                    builder, typeDescription, classLoader,
+                    JavaInstrumentationPointcutDefinitions.methodsWhichCanReadFiles, JavaInstrumentationReadPathAdvice.class
+            );
+        } catch (Exception e) {
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Could not create binding for read path.", e);
+        }
     }
     //</editor-fold>
 
@@ -63,10 +82,15 @@ public class JavaInstrumentationBindingDefinitions {
             ClassLoader classLoader, JavaModule ignoredJavaModule,
             ProtectionDomain ignoredProtectionDomain
     ) {
-        return createBinding(
-                builder, typeDescription, classLoader,
-                JavaInstrumentationPointcutDefinitions.methodsWhichCanOverwriteFiles, JavaInstrumentationOverwritePathAdvice.class
-        );
+        try {
+            return createBinding(
+                    builder, typeDescription, classLoader,
+                    JavaInstrumentationPointcutDefinitions.methodsWhichCanOverwriteFiles, JavaInstrumentationOverwritePathAdvice.class
+            );
+        } catch (Exception e) {
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Could not create binding for overwrite path.", e);
+        }
+
     }
     //</editor-fold>
 
@@ -76,10 +100,14 @@ public class JavaInstrumentationBindingDefinitions {
             ClassLoader classLoader, JavaModule ignoredJavaModule,
             ProtectionDomain ignoredProtectionDomain
     ) {
-        return createBinding(
-                builder, typeDescription, classLoader,
-                JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteFiles, JavaInstrumentationExecutePathAdvice.class
-        );
+        try {
+            return createBinding(
+                    builder, typeDescription, classLoader,
+                    JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteFiles, JavaInstrumentationExecutePathAdvice.class
+            );
+        } catch (Exception e) {
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Could not create binding for execute path.", e);
+        }
     }
     //</editor-fold>
 
@@ -89,10 +117,14 @@ public class JavaInstrumentationBindingDefinitions {
             ClassLoader classLoader, JavaModule ignoredJavaModule,
             ProtectionDomain ignoredProtectionDomain
     ) {
-        return createBinding(
-                builder, typeDescription, classLoader,
-                JavaInstrumentationPointcutDefinitions.methodsWhichCanDeleteFiles, JavaInstrumentationDeletePathAdvice.class
-        );
+        try {
+            return createBinding(
+                    builder, typeDescription, classLoader,
+                    JavaInstrumentationPointcutDefinitions.methodsWhichCanDeleteFiles, JavaInstrumentationDeletePathAdvice.class
+            );
+        } catch (Exception e) {
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Could not create binding for delete path.", e);
+        }
     }
     //</editor-fold>
 }

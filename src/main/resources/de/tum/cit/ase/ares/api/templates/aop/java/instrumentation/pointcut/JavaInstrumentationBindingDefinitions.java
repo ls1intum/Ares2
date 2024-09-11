@@ -22,7 +22,7 @@ import java.util.Map;
 public class JavaInstrumentationBindingDefinitions {
 
     private JavaInstrumentationBindingDefinitions() {
-        throw new IllegalStateException("Utility class");
+        throw new UnsupportedOperationException("JavaInstrumentationBindingDefinitions is a utility class and should not be instantiated");
     }
 
     //<editor-fold desc="Tools">

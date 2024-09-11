@@ -23,12 +23,17 @@ public class JavaInstrumentationAgent {
             Map<String, List<String>> methodsMap,
             AgentBuilder.Transformer transformer
     ) {
-        new AgentBuilder
-                .Default()
-                .ignore(ElementMatchers.none())
-                .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
-                .type(JavaInstrumentationPointcutDefinitions.getClassesMatcher(methodsMap))
-                .transform(transformer)
-                .installOn(inst);
+        try {
+            new AgentBuilder
+                    .Default()
+                    .ignore(ElementMatchers.none())
+                    .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
+                    .type(JavaInstrumentationPointcutDefinitions.getClassesMatcher(methodsMap))
+                    .transform(transformer)
+                    .installOn(inst);
+        } catch (Exception e) {
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Failed to install agent builder on " + String.join(", ", methodsMap.keySet()) + ".", e);
+
+        }
     }
 }
