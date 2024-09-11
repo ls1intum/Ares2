@@ -27,16 +27,59 @@ import static %s.architecture.java.archunit.JavaArchUnitTestCaseSupported.NETWOR
  */
 public class JavaArchitectureTestCaseCollection {
 
-    private JavaArchitectureTestCaseCollection() {
-        throw new IllegalArgumentException("This class should not be instantiated");
-    }
-
-    public static final String LOAD_FORBIDDEN_METHODS_FROM_FILE_FAILED = "Could not load the architecture rule file content";
+    //<editor-fold desc="Attributes">
+    public static final String LOAD_FORBIDDEN_METHODS_FROM_FILE_FAILED = "Ares Security Error (Reason: Ares-Code; Stage: Execution): Could not load the architecture rule file content";
     /**
      * Map to store the forbidden methods for the supported architectural test cases
      */
     private static final ImmutableMap.Builder<String, Set<String>> FORBIDDEN_METHODS_FOR_SUPPORTED_ARCHITECTURAL_TEST_CASE = ImmutableMap.builder();
 
+
+    //<editor-fold desc="File System Interactions related rule">
+    /**
+     * This method checks if any class in the given package accesses the file system.
+     */
+    public static final ArchRule NO_CLASS_SHOULD_ACCESS_FILE_SYSTEM = createNoClassShoudHaveMethodRule(
+            "accesses file system",
+            FileHandlerConstants.JAVA_FILESYSTEM_INTERACTION_METHODS,
+            JavaArchUnitTestCaseSupported.FILESYSTEM_INTERACTION.name(),
+            FILESYSTEM_INTERACTION.name()
+    );
+    //</editor-fold>
+
+    //<editor-fold desc="Network Connections related rule">
+    /**
+     * This method checks if any class in the given package accesses the network.
+     */
+    public static final ArchRule NO_CLASSES_SHOULD_ACCESS_NETWORK = createNoClassShoudHaveMethodRule(
+            "accesses network",
+            FileHandlerConstants.JAVA_NETWORK_ACCESS_METHODS,
+            JavaArchUnitTestCaseSupported.NETWORK_CONNECTION.name(),
+            NETWORK_CONNECTION.name()
+    );
+    //</editor-fold>
+
+    //<editor-fold desc="Termination related rule">
+
+    /**
+     * This method checks if any class in the given package uses the command line.
+     */
+    public static final ArchRule NO_CLASSES_SHOULD_TERMINATE_JVM = createNoClassShoudHaveMethodRule(
+            "terminates JVM",
+            FileHandlerConstants.JAVA_JVM_TERMINATION_METHODS,
+            "JVM_TERMINATION",
+            "JVM_TERMINATION"
+    );
+    //</editor-fold>
+    //</editor-fold>
+
+    //<editor-fold desc="Constructor">
+    private JavaArchitectureTestCaseCollection() {
+        throw new IllegalArgumentException("Ares Security Error (Reason: Ares-Code; Stage: Execution): JavaArchitectureTestCaseCollection is a utility class and should not be instantiated.");
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Tool methods">
 
     /**
      * Load pre file contents
@@ -76,50 +119,6 @@ public class JavaArchitectureTestCaseCollection {
     }
 
     /**
-     * This method checks if any class in the given package accesses the file system.
-     */
-    public static final ArchRule NO_CLASS_SHOULD_ACCESS_FILE_SYSTEM = ArchRuleDefinition.noClasses()
-            .should(new TransitivelyAccessesMethodsCondition(new DescribedPredicate<>("accesses file system") {
-                private Set<String> forbiddenMethods;
-
-                @Override
-                public boolean test(JavaAccess<?> javaAccess) {
-                    if (forbiddenMethods == null) {
-                        try {
-                            loadForbiddenMethodsFromFile(FileHandlerConstants.JAVA_FILESYSTEM_INTERACTION_METHODS, JavaArchUnitTestCaseSupported.FILESYSTEM_INTERACTION.name());
-                        } catch (IOException e) {
-                            throw new IllegalStateException(LOAD_FORBIDDEN_METHODS_FROM_FILE_FAILED, e);
-                        }
-                        forbiddenMethods = getForbiddenMethods(FILESYSTEM_INTERACTION.name());
-                    }
-
-                    return forbiddenMethods.stream().anyMatch(method -> javaAccess.getTarget().getFullName().startsWith(method));
-                }
-            }));
-
-    /**
-     * This method checks if any class in the given package accesses the network.
-     */
-    public static final ArchRule NO_CLASSES_SHOULD_ACCESS_NETWORK = ArchRuleDefinition.noClasses()
-            .should(new TransitivelyAccessesMethodsCondition(new DescribedPredicate<>("accesses network") {
-                private Set<String> forbiddenMethods;
-
-                @Override
-                public boolean test(JavaAccess<?> javaAccess) {
-                    if (forbiddenMethods == null) {
-                        try {
-                            loadForbiddenMethodsFromFile(FileHandlerConstants.JAVA_NETWORK_ACCESS_METHODS, JavaArchUnitTestCaseSupported.NETWORK_CONNECTION.name());
-                        } catch (IOException e) {
-                            throw new IllegalStateException(LOAD_FORBIDDEN_METHODS_FROM_FILE_FAILED, e);
-                        }
-                        forbiddenMethods = getForbiddenMethods(NETWORK_CONNECTION.name());
-                    }
-
-                    return forbiddenMethods.stream().anyMatch(method -> javaAccess.getTarget().getFullName().startsWith(method));
-                }
-            }));
-
-    /**
      * This method checks if any class in the given package imports forbidden packages.
      */
     public static ArchRule noClassesShouldImportForbiddenPackages(Set<String> allowedPackages) {
@@ -133,37 +132,59 @@ public class JavaArchitectureTestCaseCollection {
                 });
     }
 
+    private static ArchRule createNoClassShoudHaveMethodRule(
+            String ruleName,
+            Path methodsFilePath,
+            String javaArchUnitTestCaseSupportedName,
+            String forbiddenMethodsKey
+    ) {
+        return ArchRuleDefinition.noClasses()
+                .should(new TransitivelyAccessesMethodsCondition(new DescribedPredicate<>(ruleName) {
+                    // TODO: When is this not null?
+                    private Set<String> forbiddenMethods;
+                    @Override
+                    public boolean test(JavaAccess<?> javaAccess) {
+                        if (forbiddenMethods == null) {
+                            try {
+                                loadForbiddenMethodsFromFile(methodsFilePath, javaArchUnitTestCaseSupportedName);
+                            } catch (IOException e) {
+                                throw new IllegalStateException(LOAD_FORBIDDEN_METHODS_FROM_FILE_FAILED, e);
+                            }
+                            forbiddenMethods = getForbiddenMethods(forbiddenMethodsKey);
+                        }
+                        return forbiddenMethods
+                                .stream()
+                                .anyMatch(
+                                        method -> javaAccess
+                                                .getTarget()
+                                                .getFullName()
+                                                .startsWith(method)
+                                );
+                    }
+                }));
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Reflection related rule">
+    // TODO: Adjust it to make it work with createNoClassShoudHaveMethodRule
     /**
      * This method checks if any class in the given package uses reflection.
      */
     public static final ArchRule NO_CLASSES_SHOULD_USE_REFLECTION = ArchRuleDefinition.noClasses()
             .should(new TransitivelyAccessesMethodsCondition(new DescribedPredicate<>("uses reflection") {
+                private final Set<String> forbiddenPackages = Set.of("java.lang.reflect", "sun.reflect.misc");
+
                 @Override
                 public boolean test(JavaAccess<?> javaAccess) {
-                    return javaAccess.getTarget().getFullName().startsWith("java.lang.reflect")
-                            || javaAccess.getTarget().getFullName().startsWith("sun.reflect.misc");
+                    return forbiddenPackages
+                            .stream()
+                            .anyMatch(
+                                    forbiddenPackage -> javaAccess
+                                            .getTarget()
+                                            .getFullName()
+                                            .startsWith(forbiddenPackage)
+                            );
                 }
             }));
-
-    /**
-     * This method checks if any class in the given package uses the command line.
-     */
-    public static final ArchRule NO_CLASSES_SHOULD_TERMINATE_JVM = ArchRuleDefinition.noClasses()
-            .should(new TransitivelyAccessesMethodsCondition((new DescribedPredicate<>("terminates JVM") {
-                private Set<String> forbiddenMethods;
-
-                @Override
-                public boolean test(JavaAccess<?> javaAccess) {
-                    if (forbiddenMethods == null) {
-                        try {
-                            loadForbiddenMethodsFromFile(FileHandlerConstants.JAVA_JVM_TERMINATION_METHODS, "JVM_TERMINATION");
-                        } catch (IOException e) {
-                            throw new IllegalStateException(LOAD_FORBIDDEN_METHODS_FROM_FILE_FAILED, e);
-                        }
-                        forbiddenMethods = getForbiddenMethods("JVM_TERMINATION");
-                    }
-
-                    return forbiddenMethods.stream().anyMatch(method -> javaAccess.getTarget().getFullName().startsWith(method));
-                }
-            })));
+    //</editor-fold>
 }

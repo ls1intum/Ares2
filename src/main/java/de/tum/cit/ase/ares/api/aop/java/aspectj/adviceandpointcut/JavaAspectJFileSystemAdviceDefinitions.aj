@@ -11,6 +11,15 @@ import java.nio.file.Path;
 public aspect JavaAspectJFileSystemAdviceDefinitions {
 
     //<editor-fold desc="Tool methods">
+    /**
+     * Get the value of a field from the JavaSecurityTestCaseSettings class.
+     * This method retrieves the value of a field from the JavaSecurityTestCaseSettings class.
+     * The field is specified by its name, and the value is returned as an Object.
+     *
+     * @param fieldName The name of the field to retrieve from the JavaSecurityTestCaseSettings class.
+     * @return The value of the specified field.
+     * @throws SecurityException If the field cannot be accessed or does not exist.
+     */
     private static Object getValueFromSettings(String fieldName) {
         try {
             // Take standard class loader as class loader in order to get the JavaSecurityTestCaseSettings class at compile time for aspectj
@@ -39,17 +48,20 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
     //<editor-fold desc="File system methods">
 
     //<editor-fold desc="Callstack criteria methods">
+
     /**
-     * This method checks if the callstack criteria is violated.
-     * The callstack criteria is violated if the restricted package is found in the callstack and the calling class is not in the allowed classes.
+     * Check if the call stack violates the specified criteria.
+     * This method examines the current call stack to determine if any element belongs to a restricted package.
+     * If such an element is found, and it is not in the allowed classes list, the violating call stack element
+     * is returned.
      *
-     * @param restrictedPackage The package that is restricted.
-     * @param allowedClasses    The classes that are allowed to access the restricted package.
-     * @param readingMethod     The method that is trying to access the restricted package.
-     * @return The method that is trying to access the restricted package if the callstack criteria is violated, otherwise null.
+     * @param restrictedPackage The package that is restricted in the call stack.
+     * @param allowedClasses The list of classes that are allowed to be present in the call stack.
+     * @param readingMethod The method that is currently being executed.
+     * @return The call stack element that violates the criteria, or null if no violation occurred.
      */
     private static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses, String readingMethod) {
-        if(readingMethod.startsWith(restrictedPackage)) {
+        if (readingMethod.startsWith(restrictedPackage)) {
             for (String allowedClass : allowedClasses) {
                 if (readingMethod.startsWith(allowedClass)) {
                     return null;
@@ -62,6 +74,17 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
     //</editor-fold>
 
     //<editor-fold desc="Variable criteria methods">
+
+    /**
+     * Transform a variable value into a normalized absolute path.
+     * This method converts the provided variable (e.g., Path, String, or File) into an absolute
+     * normalized path. This path is used to check whether the file system interaction is permitted
+     * according to security policies.
+     *
+     * @param variableValue The variable value to transform into a path. Supported types are Path, String, or File.
+     * @return The normalized absolute path of the variable value.
+     * @throws InvalidPathException If the variable cannot be transformed into a valid path.
+     */
     private static Path variableToPath(Object variableValue) {
         return switch (variableValue) {
             case null -> throw new InvalidPathException("null", "Cannot transform to path");
@@ -90,6 +113,15 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
         };
     }
 
+    /**
+     * Check if the provided path is allowed according to security policies.
+     * This method compares the given path with the list of allowed paths to determine whether the path
+     * is permitted for access or modification based on the defined security rules.
+     *
+     * @param allowedPaths The list of allowed paths that can be accessed or modified.
+     * @param pathToCheck The path that needs to be checked against the allowed paths.
+     * @return True if the path is allowed, false otherwise.
+     */
     private static boolean checkIfPathIsAllowed(String[] allowedPaths, Path pathToCheck) {
         for (String allowedPath : allowedPaths) {
             if (variableToPath(allowedPath).toString().equals(pathToCheck.toString())) {
@@ -99,6 +131,13 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
         return false;
     }
 
+    /**
+     * Check if the variable criteria is violated.
+     *
+     * @param variables     The variables to check.
+     * @param allowedPaths  The paths that are allowed to be accessed.
+     * @return The path that violates the criteria, null if no violation occurred.
+     */
     private static String checkIfVariableCriteriaIsViolated(Object[] variables, String[] allowedPaths) {
         for (Object variable : variables) {
             try {
@@ -114,6 +153,18 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
     //</editor-fold>
 
     //<editor-fold desc="Check methods">
+
+    /**
+     * Check if the file system interaction is allowed according to security policies.
+     * This method verifies that the specified file system action (read, write, execute, delete) complies
+     * with the allowed paths and call stack criteria. If any violation is detected, a SecurityException is thrown.
+     * It checks if the action is restricted based on the method call, attributes, and parameters. If a method
+     * violates the file system security rules, the action is blocked.
+     *
+     * @param action The file system action being performed (e.g., read, write, execute, delete).
+     * @param thisJoinPoint The current join point of the method being executed.
+     * @throws SecurityException If the file system interaction is found to be unauthorized.
+     */
     private void checkFileSystemInteraction(
             String action,
             JoinPoint thisJoinPoint
@@ -130,7 +181,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
                 }
         );
         Object[] parameters = thisJoinPoint.getArgs();
-        // TODO delete this statement, this is a workaround since the YAML reader doesn't work properly
+        // TODO Sarp: delete this statement, this is a workaround since the YAML reader doesn't work properly
         if (restrictedPackage == null) {
             restrictedPackage = "de.tum.cit.ase";
         }
