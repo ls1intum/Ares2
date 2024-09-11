@@ -71,7 +71,7 @@ public class JavaArchitectureTestCaseCollection {
      * Get the content of a file from the architectural rules storage
      */
     public static Set<String> getForbiddenMethods(Path filePath) {
-        return new HashSet<>(List.of(FileTools.readFile(filePath).split("\n")));
+        return new HashSet<>(List.of(FileTools.readFile(filePath).split("\r\n")));
     }
 
     /**
