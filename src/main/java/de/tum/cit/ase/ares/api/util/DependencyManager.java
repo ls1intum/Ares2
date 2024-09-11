@@ -297,19 +297,19 @@ public class DependencyManager {
      * Example usage!!!
      */
     public static void main(String[] args) {
+        addDependenciesAndPluginsForMaven("path/to/pom.xml");
         try {
-            pluginTest(args);
-//            DependencyManager manager = new DependencyManager("/path/to/pom.xml");
-//            manager.addDependency("org.example", "example-artifact", "1.0.0");
-//            manager.removeDependency("org.example", "example-artifact");
+            DependencyManager manager = new DependencyManager("/path/to/pom.xml");
+            manager.addDependency("org.example", "example-artifact", "1.0.0");
+            manager.removeDependency("org.example", "example-artifact");
         } catch (Exception e) {
             log.error(e.getLocalizedMessage());
         }
     }
 
-    public static void pluginTest(String[] args) {
+    public static void addDependenciesAndPluginsForMaven(String pomPath) {
         try {
-            DependencyManager manager = new DependencyManager("/path/to/pom.xml");
+            DependencyManager manager = new DependencyManager(pomPath);
 
             // Create document to build XML elements
             var docFactory = DocumentBuilderFactory.newInstance();
