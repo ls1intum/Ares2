@@ -1,7 +1,5 @@
 package de.tum.cit.ase.ares.integration.testuser.subject.network;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 import java.net.*;
 import java.util.Scanner;
 import java.util.concurrent.Callable;

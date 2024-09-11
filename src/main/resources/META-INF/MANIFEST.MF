@@ -1,0 +1,5 @@
+Manifest-Version: 1.0
+Premain-Class: de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent
+Can-Redefine-Classes: true
+Can-Retransform-Classes: true
+Main-Class: de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent
