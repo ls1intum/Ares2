@@ -167,7 +167,7 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
      * @param value         the value to assign to the advice setting, can be null.
      * @throws SecurityException if there is any error during field access or value assignment.
      */
-    public void setJavaAdviceSettingValue(@Nonnull String adviceSetting, @Nullable Object value) {
+    public static void setJavaAdviceSettingValue(@Nonnull String adviceSetting, @Nullable Object value) {
         try {
             @Nullable ClassLoader customClassLoader = Thread.currentThread().getContextClassLoader();
             @Nonnull Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, customClassLoader);
@@ -549,7 +549,7 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
                     "pathsAllowedToBeOverwritten", getPermittedFilePaths("overwrite").toArray(String[]::new),
                     "pathsAllowedToBeExecuted", getPermittedFilePaths("execute").toArray(String[]::new),
                     "pathsAllowedToBeDeleted", getPermittedFilePaths("delete").toArray(String[]::new)
-            ).forEach(this::setJavaAdviceSettingValue);
+            ).forEach(JavaSecurityTestCase::setJavaAdviceSettingValue);
             case NETWORK_CONNECTION -> Map.of(
                     "hostsAllowedToBeConnectedTo", getPermittedNetworkHosts("connect"),
                     "portsAllowedToBeConnectedTo", getPermittedNetworkPorts("connect"),
@@ -557,15 +557,15 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
                     "portsAllowedToBeSentTo", getPermittedNetworkPorts("send"),
                     "hostsAllowedToBeReceivedFrom", getPermittedNetworkHosts("receive"),
                     "portsAllowedToBeReceivedFrom", getPermittedNetworkPorts("receive")
-            ).forEach(this::setJavaAdviceSettingValue);
+            ).forEach(JavaSecurityTestCase::setJavaAdviceSettingValue);
             case COMMAND_EXECUTION -> Map.of(
                     "commandsAllowedToBeExecuted", getPermittedCommands(),
                     "argumentsAllowedToBePassed", getPermittedArguments()
-            ).forEach(this::setJavaAdviceSettingValue);
+            ).forEach(JavaSecurityTestCase::setJavaAdviceSettingValue);
             case THREAD_CREATION -> Map.of(
                     "threadNumberAllowedToBeCreated", getPermittedNumberOfThreads(),
                     "threadClassAllowedToBeCreated", getPermittedThreadClasses()
-            ).forEach(this::setJavaAdviceSettingValue);
+            ).forEach(JavaSecurityTestCase::setJavaAdviceSettingValue);
         }
     }
     //</editor-fold>

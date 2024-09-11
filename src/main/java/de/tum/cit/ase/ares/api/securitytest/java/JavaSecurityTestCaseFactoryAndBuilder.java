@@ -301,6 +301,10 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         //<editor-fold desc="Enforce variable rules code">
         javaArchUnitTestCases.forEach(archTest -> archTest.executeArchitectureTestCase(classes));
         javaSecurityTestCases.forEach(JavaSecurityTestCase::executeAOPSecurityTestCase);
+        JavaSecurityTestCase.setJavaAdviceSettingValue("allowedListedClasses", Stream.concat(
+                Arrays.stream(testClasses),
+                Arrays.stream(functionClasses)
+        ).toArray(String[]::new));
         //</editor-fold>
     }
     //</editor-fold>
