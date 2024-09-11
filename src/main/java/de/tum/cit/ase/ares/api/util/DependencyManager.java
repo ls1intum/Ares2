@@ -38,7 +38,7 @@ public class DependencyManager {
      */
     public DependencyManager(String filePath) {
         if (filePath == null || filePath.isEmpty()) {
-            throw new IllegalArgumentException("File path cannot be null or empty.");
+            throw new SecurityException("File path cannot be null or empty.");
         }
         this.filePath = filePath;
     }
