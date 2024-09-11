@@ -2,6 +2,8 @@ package de.tum.cit.ase.ares.api.policy;
 
 //<editor-fold desc="Imports">
 
+import com.fasterxml.jackson.core.exc.StreamReadException;
+import com.fasterxml.jackson.databind.DatabindException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPMode;
@@ -53,11 +55,21 @@ public class SecurityPolicyReaderAndDirector {
      * @throws IOException if there is an error reading the security policy file.
      */
     public SecurityPolicyReaderAndDirector(Path securityPolicyPath, Path projectPath) throws IOException {
-        securityPolicy = new ObjectMapper(new YAMLFactory()).readValue(securityPolicyPath.toFile(), SecurityPolicy.class);
-        testCaseManager = createSecurityTestCases(
-                securityPolicy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed(),
-                projectPath
-        );
+        try {
+            securityPolicy = new ObjectMapper(new YAMLFactory()).readValue(securityPolicyPath.toFile(), SecurityPolicy.class);
+            testCaseManager = createSecurityTestCases(
+                    securityPolicy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed(),
+                    projectPath
+            );
+        } catch (StreamReadException e) {
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Failed to read the security policy file '" + securityPolicyPath + "'.", e);
+        } catch (DatabindException e) {
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Failed to bind data from the security policy file '" + securityPolicyPath + "'.", e);
+        } catch (UnsupportedOperationException e) {
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): The security policy contains unsupported operations.", e);
+        } catch (IOException e) {
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Error occurred while accessing the security policy file '" + securityPolicyPath + "'.", e);
+        }
     }
     //</editor-fold>
 

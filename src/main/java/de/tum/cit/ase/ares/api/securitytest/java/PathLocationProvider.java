@@ -34,8 +34,8 @@ public class PathLocationProvider implements LocationProvider {
     @Override
     public Set<Location> get(Class<?> testClass) {
         if (!testClass.isAnnotationPresent(StudentCompiledClassesPath.class)) {
-            throw new IllegalArgumentException(
-                    String.format("%s can only be used on classes annotated with @%s",
+            throw new SecurityException(
+                    String.format("Ares Security Error (Reason: Ares-Code; Stage: Creation): %s can only be used on classes annotated with @%s",
                             getClass().getSimpleName(), StudentCompiledClassesPath.class.getSimpleName()));
         }
 

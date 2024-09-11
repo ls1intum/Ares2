@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile;
 
+//<editor-fold desc="Imports">
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaAccess;
@@ -20,11 +21,13 @@ import static com.tngtech.archunit.thirdparty.com.google.common.base.Preconditio
 import static com.tngtech.archunit.thirdparty.com.google.common.collect.Iterables.getLast;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toSet;
+//</editor-fold>
 
 /**
  * Checks that a class transitively accesses methods that match a given predicate.
  */
 public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClass> {
+    //<editor-fold desc="Attributes">
     /**
      * Predicate to match the accessed methods
      */
@@ -39,7 +42,9 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
      * Custom class resolver to resolve classes that are outside classpath to be able to analyze them transitively
      */
     private final CustomClassResolver customClassResolver;
+    //</editor-fold>
 
+    //<editor-fold desc="Constructor">
     /**
      * @param conditionPredicate Predicate to match the accessed methods
      */
@@ -48,6 +53,7 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
         this.conditionPredicate = checkNotNull(conditionPredicate);
         this.customClassResolver = new CustomClassResolver();
     }
+    //</editor-fold>
 
     /**
      * Checks that a class transitively accesses methods that match a given predicate.
