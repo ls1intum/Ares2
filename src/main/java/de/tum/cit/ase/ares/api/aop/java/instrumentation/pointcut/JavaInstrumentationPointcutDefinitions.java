@@ -24,7 +24,7 @@ public class JavaInstrumentationPointcutDefinitions {
      * This constructor is private to prevent instantiation of this utility class.
      */
     private JavaInstrumentationPointcutDefinitions() {
-        throw new UnsupportedOperationException("Ares Security Error (Reason: Ares-Code; Stage: Creation): JavaInstrumentationPointcutDefinitions is a utility class and should not be instantiated.");
+        throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): JavaInstrumentationPointcutDefinitions is a utility class and should not be instantiated.");
     }
     //</editor-fold>
 

@@ -19,11 +19,11 @@ public class JavaSecurityTestCaseSettings {
     /**
      * Private constructor to prevent instantiation of this utility class.
      * <p>
-     * The constructor throws an {@link UnsupportedOperationException} to enforce the utility class pattern.
+     * The constructor throws an {@link SecurityException} to enforce the utility class pattern.
      * </p>
      */
     private JavaSecurityTestCaseSettings() {
-        throw new UnsupportedOperationException("JavaSecurityTestCaseSettings is a utility class and should not be instantiated");
+        throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): JavaSecurityTestCaseSettings is a utility class and should not be instantiated.");
     }
 
     /**

@@ -32,7 +32,7 @@ public class JavaInstrumentationBindingDefinitions {
      * This class is a utility class and should not be instantiated.
      */
     private JavaInstrumentationBindingDefinitions() {
-        throw new UnsupportedOperationException("Ares Security Error (Reason: Ares-Code; Stage: Creation): JavaInstrumentationBindingDefinitions is a utility class and should not be instantiated.");
+        throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): JavaInstrumentationBindingDefinitions is a utility class and should not be instantiated.");
     }
     //</editor-fold>
 
