@@ -189,7 +189,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         @Nonnull Supplier<List<?>>[] methods = new Supplier[]{
                 (Supplier<List<?>>) resourceAccesses::regardingFileSystemInteractions,
                 (Supplier<List<?>>) resourceAccesses::regardingNetworkConnections,
-//                (Supplier<List<?>>) resourceAccesses::regardingCommandExecutions,
+                (Supplier<List<?>>) resourceAccesses::regardingCommandExecutions,
 //                (Supplier<List<?>>) resourceAccesses::regardingThreadCreations,
         };
         IntStream

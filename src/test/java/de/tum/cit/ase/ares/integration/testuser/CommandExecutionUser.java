@@ -21,5 +21,7 @@ public class CommandExecutionUser {
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/commandexecution")
-    void executeCommand() throws IOException {}
+    void testExecuteCommand() {
+        // do nothing
+    }
 }

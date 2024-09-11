@@ -6,7 +6,6 @@ import de.tum.cit.ase.ares.api.architecture.ArchitectureSecurityTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile.JavaArchitectureTestCaseCollection;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy.PackagePermission;
 
-import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -92,7 +91,7 @@ public class JavaArchUnitSecurityTestCase implements ArchitectureSecurityTestCas
                 case THREAD_CREATION ->
                         throw new UnsupportedOperationException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Thread creation not implemented yet.");
                 case COMMAND_EXECUTION ->
-                        throw new UnsupportedOperationException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Command execution not implemented yet.");
+                        JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_EXECUTE_COMMANDS.check(classes);
                 default -> throw new UnsupportedOperationException("Not implemented yet");
             }
         } catch (AssertionError e) {

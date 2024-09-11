@@ -13,6 +13,7 @@ public class FileHandlerConstants {
     public static final Path JAVA_NETWORK_ACCESS_METHODS = Path.of(JAVA_METHODS_DIRECTORY + "network-access-methods.txt");
     public static final Path JAVA_JVM_TERMINATION_METHODS = Path.of(JAVA_METHODS_DIRECTORY + "jvm-termination-methods.txt");
     public static final Path JAVA_REFLECTION_METHODS = Path.of(JAVA_METHODS_DIRECTORY + "reflection-methods.txt");
+    public static final Path JAVA_COMMAND_EXECUTION_METHODS = Path.of(JAVA_METHODS_DIRECTORY + "command-execution-methods.txt");
 
     private FileHandlerConstants() {
         throw new UnsupportedOperationException("Ares Security Error (Reason: Ares-Code; Stage: Execution): FileHandlerConstants is a utility class and should not be instantiated.");

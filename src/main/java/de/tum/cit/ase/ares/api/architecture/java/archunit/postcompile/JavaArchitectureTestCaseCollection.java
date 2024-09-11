@@ -1,13 +1,11 @@
 package de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile;
 
-import com.google.common.collect.ImmutableMap;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaAccess;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.FileHandlerConstants;
-import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitTestCaseSupported;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,9 +17,6 @@ import java.util.HashSet;
 import java.util.Scanner;
 import java.util.Set;
 
-import static de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitTestCaseSupported.FILESYSTEM_INTERACTION;
-import static de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitTestCaseSupported.NETWORK_CONNECTION;
-
 /**
  * This class runs the security rules on the architecture for the post-compile mode.
  */
@@ -29,10 +24,6 @@ public class JavaArchitectureTestCaseCollection {
 
     //<editor-fold desc="Attributes">
     public static final String LOAD_FORBIDDEN_METHODS_FROM_FILE_FAILED = "Ares Security Error (Reason: Ares-Code; Stage: Execution): Could not load the architecture rule file content";
-    /**
-     * Map to store the forbidden methods for the supported architectural test cases
-     */
-    private static final ImmutableMap.Builder<String, Set<String>> FORBIDDEN_METHODS_FOR_SUPPORTED_ARCHITECTURAL_TEST_CASE = ImmutableMap.builder();
 
 
     //<editor-fold desc="File System Interactions related rule">
@@ -41,9 +32,7 @@ public class JavaArchitectureTestCaseCollection {
      */
     public static final ArchRule NO_CLASS_SHOULD_ACCESS_FILE_SYSTEM = createNoClassShoudHaveMethodRule(
             "accesses file system",
-            FileHandlerConstants.JAVA_FILESYSTEM_INTERACTION_METHODS,
-            JavaArchUnitTestCaseSupported.FILESYSTEM_INTERACTION.name(),
-            FILESYSTEM_INTERACTION.name()
+            FileHandlerConstants.JAVA_FILESYSTEM_INTERACTION_METHODS
     );
     //</editor-fold>
 
@@ -53,9 +42,7 @@ public class JavaArchitectureTestCaseCollection {
      */
     public static final ArchRule NO_CLASSES_SHOULD_ACCESS_NETWORK = createNoClassShoudHaveMethodRule(
             "accesses network",
-            FileHandlerConstants.JAVA_NETWORK_ACCESS_METHODS,
-            JavaArchUnitTestCaseSupported.NETWORK_CONNECTION.name(),
-            NETWORK_CONNECTION.name()
+            FileHandlerConstants.JAVA_NETWORK_ACCESS_METHODS
     );
     //</editor-fold>
 
@@ -66,9 +53,7 @@ public class JavaArchitectureTestCaseCollection {
      */
     public static final ArchRule NO_CLASSES_SHOULD_TERMINATE_JVM = createNoClassShoudHaveMethodRule(
             "terminates JVM",
-            FileHandlerConstants.JAVA_JVM_TERMINATION_METHODS,
-            "JVM_TERMINATION",
-            "JVM_TERMINATION"
+            FileHandlerConstants.JAVA_JVM_TERMINATION_METHODS
     );
     //</editor-fold>
     //</editor-fold>
@@ -80,20 +65,11 @@ public class JavaArchitectureTestCaseCollection {
     //</editor-fold>
 
     //<editor-fold desc="Tool methods">
-
-    /**
-     * Load pre file contents
-     */
-    public static void loadForbiddenMethodsFromFile(Path filePath, String key) throws IOException {
-        Set<String> content = new HashSet<>(Files.readAllLines(filePath));
-        FORBIDDEN_METHODS_FOR_SUPPORTED_ARCHITECTURAL_TEST_CASE.put(key, content);
-    }
-
     /**
      * Get the content of a file from the architectural rules storage
      */
-    public static Set<String> getForbiddenMethods(String key) {
-        return FORBIDDEN_METHODS_FOR_SUPPORTED_ARCHITECTURAL_TEST_CASE.build().get(key);
+    public static Set<String> getForbiddenMethods(Path filePath) throws IOException {
+        return new HashSet<>(Files.readAllLines(filePath));
     }
 
     /**
@@ -134,23 +110,20 @@ public class JavaArchitectureTestCaseCollection {
 
     private static ArchRule createNoClassShoudHaveMethodRule(
             String ruleName,
-            Path methodsFilePath,
-            String javaArchUnitTestCaseSupportedName,
-            String forbiddenMethodsKey
+            Path methodsFilePath
     ) {
         return ArchRuleDefinition.noClasses()
                 .should(new TransitivelyAccessesMethodsCondition(new DescribedPredicate<>(ruleName) {
-                    // TODO: When is this not null?
                     private Set<String> forbiddenMethods;
+
                     @Override
                     public boolean test(JavaAccess<?> javaAccess) {
                         if (forbiddenMethods == null) {
                             try {
-                                loadForbiddenMethodsFromFile(methodsFilePath, javaArchUnitTestCaseSupportedName);
+                                forbiddenMethods = getForbiddenMethods(methodsFilePath);
                             } catch (IOException e) {
                                 throw new IllegalStateException(LOAD_FORBIDDEN_METHODS_FROM_FILE_FAILED, e);
                             }
-                            forbiddenMethods = getForbiddenMethods(forbiddenMethodsKey);
                         }
                         return forbiddenMethods
                                 .stream()
@@ -166,25 +139,19 @@ public class JavaArchitectureTestCaseCollection {
     //</editor-fold>
 
     //<editor-fold desc="Reflection related rule">
-    // TODO: Adjust it to make it work with createNoClassShoudHaveMethodRule
     /**
      * This method checks if any class in the given package uses reflection.
      */
-    public static final ArchRule NO_CLASSES_SHOULD_USE_REFLECTION = ArchRuleDefinition.noClasses()
-            .should(new TransitivelyAccessesMethodsCondition(new DescribedPredicate<>("uses reflection") {
-                private final Set<String> forbiddenPackages = Set.of("java.lang.reflect", "sun.reflect.misc");
+    public static final ArchRule NO_CLASSES_SHOULD_USE_REFLECTION = createNoClassShoudHaveMethodRule(
+            "uses Reflection",
+            FileHandlerConstants.JAVA_REFLECTION_METHODS
+    );
+    //</editor-fold>
 
-                @Override
-                public boolean test(JavaAccess<?> javaAccess) {
-                    return forbiddenPackages
-                            .stream()
-                            .anyMatch(
-                                    forbiddenPackage -> javaAccess
-                                            .getTarget()
-                                            .getFullName()
-                                            .startsWith(forbiddenPackage)
-                            );
-                }
-            }));
+    //<editor-fold desc="Command Execution related rule">
+    public static final ArchRule NO_CLASSES_SHOULD_EXECUTE_COMMANDS = createNoClassShoudHaveMethodRule(
+            "executes commands",
+            FileHandlerConstants.JAVA_COMMAND_EXECUTION_METHODS
+    );
     //</editor-fold>
 }
