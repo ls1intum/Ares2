@@ -1,5 +1,7 @@
 package de.tum.cit.ase.ares.api.policy;
 
+import javax.annotation.Nullable;
+import javax.annotation.Nonnull;
 import java.util.List;
 
 /**
@@ -7,8 +9,8 @@ import java.util.List;
  *
  * @param regardingTheSupervisedCode the supervised code details, including its programming language configuration and permitted resource accesses.
  */
-public record SecurityPolicy(
-        SupervisedCode regardingTheSupervisedCode
+@Nonnull public record SecurityPolicy(
+        @Nonnull SupervisedCode regardingTheSupervisedCode
 ) {
 
     /**
@@ -17,21 +19,22 @@ public record SecurityPolicy(
      * @param theFollowingProgrammingLanguageConfigurationIsUsed the programming language configuration used by the supervised code.
      * @param theProgrammingLanguageUsesTheFollowingPackage      the package used by the programming language.
      * @param theMainClassInsideThisPackageIs                    the main class inside the package.
+     * @param theFollowingClassesAreTestClasses                  the test classes for the supervised code (these are ignored in the analysis).
      * @param theFollowingResourceAccessesArePermitted           the permitted resource accesses for the supervised code.
      */
-    public record SupervisedCode(
-            ProgrammingLanguageConfiguration theFollowingProgrammingLanguageConfigurationIsUsed,
-            String theProgrammingLanguageUsesTheFollowingPackage,
-            String theMainClassInsideThisPackageIs,
-            String[] theFollowingClassesAreTestClasses,
-            ResourceAccesses theFollowingResourceAccessesArePermitted
+    @Nonnull public record SupervisedCode(
+            @Nonnull ProgrammingLanguageConfiguration theFollowingProgrammingLanguageConfigurationIsUsed,
+            @Nullable String theProgrammingLanguageUsesTheFollowingPackage,
+            @Nullable String theMainClassInsideThisPackageIs,
+            @Nonnull String[] theFollowingClassesAreTestClasses,
+            @Nonnull ResourceAccesses theFollowingResourceAccessesArePermitted
     ) {
     }
 
     /**
      * Supported programming language configurations for the policy.
      */
-    public enum ProgrammingLanguageConfiguration {
+    @Nonnull public enum ProgrammingLanguageConfiguration {
         /**
          * Java using Maven build tool, ArchUnit for architecture tests and instrumentation-based aspect-oriented programming.
          */
@@ -63,12 +66,12 @@ public record SecurityPolicy(
      * @param regardingThreadCreations        permitted thread creations.
      * @param regardingPackageImports         permitted package imports.
      */
-    public record ResourceAccesses(
-            List<FilePermission> regardingFileSystemInteractions,
-            List<NetworkPermission> regardingNetworkConnections,
-            List<CommandPermission> regardingCommandExecutions,
-            List<ThreadPermission> regardingThreadCreations,
-            List<PackagePermission> regardingPackageImports
+    @Nonnull public record ResourceAccesses(
+            @Nonnull List<FilePermission> regardingFileSystemInteractions,
+            @Nonnull List<NetworkPermission> regardingNetworkConnections,
+            @Nonnull List<CommandPermission> regardingCommandExecutions,
+            @Nonnull List<ThreadPermission> regardingThreadCreations,
+            @Nonnull List<PackagePermission> regardingPackageImports
     ) {
     }
 
@@ -79,14 +82,14 @@ public record SecurityPolicy(
      * @param overwriteAllFiles          whether overwriting all files is permitted.
      * @param executeAllFiles            whether executing all files is permitted.
      * @param deleteAllFiles             whether deleting all files is permitted.
-     * @param onThisPathAndAllPathsBelow the path and its subpaths where these permissions apply.
+     * @param onThisPathAndAllPathsBelow the path and its sub-paths where these permissions apply.
      */
-    public record FilePermission(
+    @Nonnull public record FilePermission(
             boolean readAllFiles,
             boolean overwriteAllFiles,
             boolean executeAllFiles,
             boolean deleteAllFiles,
-            String onThisPathAndAllPathsBelow
+            @Nonnull String onThisPathAndAllPathsBelow
     ) {
     }
 
@@ -99,11 +102,11 @@ public record SecurityPolicy(
      * @param onTheHost       the host where these operations are permitted.
      * @param onThePort       the port where these operations are permitted.
      */
-    public record NetworkPermission(
+    @Nonnull public record NetworkPermission(
             boolean openConnections,
             boolean sendData,
             boolean receiveData,
-            String onTheHost,
+            @Nonnull String onTheHost,
             int onThePort
     ) {
     }
@@ -112,11 +115,11 @@ public record SecurityPolicy(
      * Specifies allowed command execution operations.
      *
      * @param executeTheCommand  the command that is permitted to be executed.
-     * @param withTheseArguments the arguments that are permitted with the command.
+     * @param withTheseArguments the arguments that are permitted to be attached to the command when executing it. These arguments are predefined and cannot be altered by the user at runtime.
      */
-    public record CommandPermission(
-            String executeTheCommand,
-            List<String> withTheseArguments
+    @Nonnull public record CommandPermission(
+            @Nonnull String executeTheCommand,
+            @Nonnull List<String> withTheseArguments
     ) {
     }
 
@@ -126,9 +129,9 @@ public record SecurityPolicy(
      * @param createTheFollowingNumberOfThreads the number of threads that are permitted to be created.
      * @param ofThisClass                       the class of the threads that are permitted to be created.
      */
-    public record ThreadPermission(
+    @Nonnull public record ThreadPermission(
             int createTheFollowingNumberOfThreads,
-            String ofThisClass
+            @Nonnull String ofThisClass
     ) {
     }
 
@@ -137,8 +140,8 @@ public record SecurityPolicy(
      *
      * @param importTheFollowingPackage the package that is permitted to be imported.
      */
-    public record PackagePermission(
-            String importTheFollowingPackage
+    @Nonnull public record PackagePermission(
+            @Nonnull String importTheFollowingPackage
     ) {
     }
 

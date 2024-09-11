@@ -13,6 +13,7 @@ import de.tum.cit.ase.ares.api.securitytest.java.JavaSecurityTestCaseFactoryAndB
 import de.tum.cit.ase.ares.api.securitytest.SecurityTestCaseAbstractFactoryAndBuilder;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy.ProgrammingLanguageConfiguration;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -37,12 +38,12 @@ public class SecurityPolicyReaderAndDirector {
     /**
      * The security policy used for generating security test cases.
      */
-    private final SecurityPolicy securityPolicy;
+    @Nonnull private final SecurityPolicy securityPolicy;
 
     /**
      * The factory and builder for creating and managing security test cases.
      */
-    private final SecurityTestCaseAbstractFactoryAndBuilder testCaseManager;
+    @Nonnull private final SecurityTestCaseAbstractFactoryAndBuilder testCaseManager;
     //</editor-fold>
 
     //<editor-fold desc="Constructor">
@@ -52,9 +53,8 @@ public class SecurityPolicyReaderAndDirector {
      *
      * @param securityPolicyPath the path to the security policy file.
      * @param projectPath        the path within the project where the policy is applied.
-     * @throws IOException if there is an error reading the security policy file.
      */
-    public SecurityPolicyReaderAndDirector(Path securityPolicyPath, Path projectPath) throws IOException {
+    public SecurityPolicyReaderAndDirector(@Nonnull Path securityPolicyPath, @Nonnull Path projectPath) {
         try {
             securityPolicy = new ObjectMapper(new YAMLFactory()).readValue(securityPolicyPath.toFile(), SecurityPolicy.class);
             testCaseManager = createSecurityTestCases(
@@ -82,7 +82,7 @@ public class SecurityPolicyReaderAndDirector {
      * @param projectPath                      the path within the project where the test cases will be applied.
      * @return the factory and builder for creating and managing security test cases.
      */
-    public JavaSecurityTestCaseFactoryAndBuilder createSecurityTestCases(ProgrammingLanguageConfiguration programmingLanguageConfiguration, Path projectPath) {
+    @Nonnull public JavaSecurityTestCaseFactoryAndBuilder createSecurityTestCases(@Nonnull ProgrammingLanguageConfiguration programmingLanguageConfiguration, @Nonnull Path projectPath) {
         return switch (programmingLanguageConfiguration) {
             case JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ -> new JavaSecurityTestCaseFactoryAndBuilder(
                     JavaBuildMode.MAVEN, JavaArchitectureMode.ARCHUNIT, JavaAOPMode.ASPECTJ, securityPolicy, projectPath
@@ -106,9 +106,9 @@ public class SecurityPolicyReaderAndDirector {
      * Writes the security test cases to the specified directory.
      *
      * @param projectPath the directory where the test case files should be written.
-     * @return a list of paths representing the files that were written.
+     * @return a list of paths representing the files that were written. Each path corresponds to a test case file generated in the specified directory.
      */
-    public List<Path> writeSecurityTestCases(Path projectPath) {
+    @Nonnull public List<Path> writeSecurityTestCases(@Nonnull Path projectPath) {
         return testCaseManager.writeSecurityTestCases(projectPath);
     }
     //</editor-fold>
@@ -117,6 +117,9 @@ public class SecurityPolicyReaderAndDirector {
 
     /**
      * Executes the generated security test cases.
+     * <p>
+     * If any of the test cases fail during execution, this method logs the failure or throws an exception, depending on the configuration of the underlying test case manager.
+     * </p>
      */
     public void executeSecurityTestCases() {
         testCaseManager.executeSecurityTestCases();

@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.api.securitytest.java;
 
+import javax.annotation.Nonnull;
 import java.lang.annotation.Retention;
 
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
@@ -24,5 +25,5 @@ public @interface StudentCompiledClassesPath {
      *
      * @return the path of the compiled student classes as a {@link String}.
      */
-    String value();
+    @Nonnull String value();
 }

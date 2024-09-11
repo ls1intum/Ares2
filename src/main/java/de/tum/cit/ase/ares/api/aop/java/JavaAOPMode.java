@@ -2,11 +2,11 @@ package de.tum.cit.ase.ares.api.aop.java;
 
 import de.tum.cit.ase.ares.api.util.FileTools;
 
+import javax.annotation.Nonnull;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
@@ -35,6 +35,13 @@ public enum JavaAOPMode {
      */
     ASPECTJ;
 
+    //<editor-fold desc="Multi-file methods">
+    /**
+     * Retrieves a list of file paths to copy for the specific AOP mode.
+     *
+     * @return a list of file paths for the selected AOP mode (AspectJ or Instrumentation).
+     */
+    @Nonnull
     public List<Path> filesToCopy() {
         return (switch (this) {
             case ASPECTJ -> Stream.of(
@@ -55,7 +62,15 @@ public enum JavaAOPMode {
         }).map(FileTools::resolveOnResources).toList();
     }
 
-    public List<String[]> fileValues(String packageName, String mainClassInPackageName) {
+    /**
+     * Retrieves the values for file templates to copy based on the AOP mode.
+     *
+     * @param packageName            the base package name for the Java files.
+     * @param mainClassInPackageName the main class inside the package.
+     * @return a list of arrays representing the file values to be copied.
+     */
+    @Nonnull
+    public List<String[]> fileValues(@Nonnull String packageName, @Nonnull String mainClassInPackageName) {
         return switch (this) {
             case ASPECTJ -> Stream.of(
                             FileTools.generatePackageNameArray(packageName, 28),
@@ -76,7 +91,15 @@ public enum JavaAOPMode {
         };
     }
 
-    public List<Path> targetsToCopyTo(Path projectPath, String packageName) {
+    /**
+     * Determines the target locations where the files should be copied for the selected AOP mode.
+     *
+     * @param projectPath the path to the project where files should be copied.
+     * @param packageName the base package name.
+     * @return a list of paths representing the copy targets.
+     */
+    @Nonnull
+    public List<Path> targetsToCopyTo(@Nonnull Path projectPath, @Nonnull String packageName) {
         return (switch (this) {
             case ASPECTJ -> Stream.of(
                     new String[]{"aop", "java", "aspectj", "adviceandpointcut", "JavaAspectJFileSystemAdviceDefinitions.aj"},
@@ -95,33 +118,78 @@ public enum JavaAOPMode {
             );
         }).map(pathParticles -> FileTools.resolveOnTests(projectPath, packageName, pathParticles)).toList();
     }
+    //</editor-fold>
 
+    //<editor-fold desc="Single-file methods">
+    /**
+     * Retrieves the file header for the three-parted security test case file.
+     *
+     * @return the path to the file header template.
+     */
+    @Nonnull
     public Path threePartedFileHeader() {
         return FileTools.resolveOnResources("templates", "aop", "java", "JavaSecurityTestCaseSettingsHeader.txt");
     }
 
+    /**
+     * Generates the body for the three-parted security test case file based on the provided mode and classes.
+     *
+     * @param aomMode               the AOP mode (AspectJ or Instrumentation).
+     * @param restrictedPackage     the package being restricted by the security test cases.
+     * @param allowedListedClasses  the list of allowed classes in the restricted package.
+     * @param javaSecurityTestCases the list of security test cases.
+     * @return the body of the three-parted security test case file.
+     */
+    @Nonnull
     public String threePartedFileBody(
-            String aomMode,
-            String restrictedPackage,
-            List<String> allowedListedClasses,
-            List<JavaSecurityTestCase> javaSecurityTestCases
+            @Nonnull String aomMode,
+            @Nonnull String restrictedPackage,
+            @Nonnull List<String> allowedListedClasses,
+            @Nonnull List<JavaSecurityTestCase> javaSecurityTestCases
     ) {
         return JavaSecurityTestCase.writeAOPSecurityTestCaseFile(aomMode, restrictedPackage, allowedListedClasses, javaSecurityTestCases);
     }
 
+    /**
+     * Retrieves the file footer for the three-parted security test case file.
+     *
+     * @return the path to the file footer template.
+     */
+    @Nonnull
     public Path threePartedFileFooter() {
         return FileTools.resolveOnResources("templates", "aop", "java", "JavaSecurityTestCaseSettingsFooter.txt");
     }
 
-    public String[] fileValue(String packageName) {
+    /**
+     * Generates the file value array based on the package name.
+     *
+     * @param packageName the base package name.
+     * @return an array representing the file value.
+     */
+    @Nonnull
+    public String[] fileValue(@Nonnull String packageName) {
         return FileTools.generatePackageNameArray(packageName, 1);
     }
 
-    public Path targetToCopyTo(Path projectPath, String packageName) {
+    /**
+     * Determines the target path for the main configuration file.
+     *
+     * @param projectPath the path to the project.
+     * @param packageName the base package name.
+     * @return the target path for the main configuration file.
+     */
+    @Nonnull
+    public Path targetToCopyTo(@Nonnull Path projectPath, @Nonnull String packageName) {
         return FileTools.resolveOnTests(projectPath, packageName, "aop", "java", "JavaSecurityTestCaseSettings.java");
     }
+    //</editor-fold>
 
-
+    //<editor-fold desc="Reset methods">
+    /**
+     * Resets the security test case settings.
+     *
+     * <p>This method invokes the reset method in the settings class using reflection.</p>
+     */
     public void reset() {
         try {
             ClassLoader customClassLoader = Thread.currentThread().getContextClassLoader();
@@ -144,4 +212,5 @@ public enum JavaAOPMode {
             throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): An error occurred while invoking the 'reset' method. This could be due to an underlying issue within the method implementation.", e);
         }
     }
+    //</editor-fold>
 }

@@ -74,6 +74,19 @@ public class FileTools {
         }).toList();
     }
 
+    /**
+     * Copies Java files, formats the content, and writes it to the target directory.
+     * <p>
+     * This method copies files from the source to the target and formats the copied files' content based
+     * on the provided format values.
+     * </p>
+     *
+     * @param sourceFilePaths the source file paths.
+     * @param targetFilePaths the target file paths.
+     * @param formatValues the format values for formatting the files.
+     * @return a list of copied paths.
+     * @throws SecurityException if an error occurs during the process.
+     */
     public static List<Path> copyJavaFiles(List<Path> sourceFilePaths, List<Path> targetFilePaths, List<String[]> formatValues) {
         List<Path> copiedFiles = copyFiles(sourceFilePaths, targetFilePaths);
         for (int i = 0; i < copiedFiles.size(); i++) {
@@ -181,17 +194,36 @@ public class FileTools {
     }
     //</editor-fold>
 
+    /**
+     * Resolves a path based on the target and additional path parts.
+     *
+     * @param target the base path to resolve.
+     * @param furtherPathParts additional path parts.
+     * @return the resolved path.
+     */
     public static Path resolveOnTarget(Path target, String... furtherPathParts) {
         return Stream
                 .of(furtherPathParts)
                 .reduce(target, Path::resolve, Path::resolve);
     }
 
+    /**
+     * Resolves a path based on the target and additional path parts.
+     *
+     * @param furtherPathParts additional path parts.
+     * @return the resolved path.
+     */
     public static Path resolveOnResources(String... furtherPathParts) {
         Path target = Paths.get("de","tum","cit","ase","ares","api");
         return resolveOnTarget(target, furtherPathParts);
     }
 
+    /**
+     * Resolves a path based on the target and additional path parts.
+     *
+     * @param furtherPathParts additional path parts.
+     * @return the resolved path.
+     */
     public static Path resolveOnTests(Path projectPath, String packageName, String... furtherPathParts) {
         String[] prefix = new String[]{"src", "test", "java"};
         String[] infix = packageName.split("\\.");
@@ -229,7 +261,6 @@ public class FileTools {
             Path target, String[] formatValues
     ) {
         Path createdFile = createThreePartedFile(sourceHeaderPath, sourceBody, sourceFooterPath, target);
-        var x = 0;
         try {
             Files.writeString(
                     createdFile,
@@ -242,6 +273,17 @@ public class FileTools {
         return createdFile;
     }
 
+    /**
+     * Generates an array of package name strings.
+     * <p>
+     * This method creates an array containing multiple copies of the provided package name.
+     * The length of the array is determined by the {@code numberOfEntries} parameter.
+     * </p>
+     *
+     * @param packageName     the package name to be repeated in the array.
+     * @param numberOfEntries the number of times the package name should be repeated in the array.
+     * @return a {@link String} array where each element is the provided package name.
+     */
     public static String[] generatePackageNameArray(String packageName, int numberOfEntries) {
         return IntStream.range(0, numberOfEntries).mapToObj(i -> packageName).toArray(String[]::new);
     }

@@ -78,7 +78,7 @@ public class JavaSecurityTestCaseSettings {
     /**
      * Ports that are allowed to be connected to.
      */
-    private static int[] portsAllowedToBeConnecedTo = null;
+    private static int[] portsAllowedToBeConnectedTo = null;
 
     /**
      * Hosts that are allowed to send data to.
@@ -141,7 +141,7 @@ public class JavaSecurityTestCaseSettings {
         JavaSecurityTestCaseSettings.pathsAllowedToBeExecuted = null;
         JavaSecurityTestCaseSettings.pathsAllowedToBeDeleted = null;
         JavaSecurityTestCaseSettings.hostsAllowedToBeConnectedTo = null;
-        JavaSecurityTestCaseSettings.portsAllowedToBeConnecedTo = null;
+        JavaSecurityTestCaseSettings.portsAllowedToBeConnectedTo = null;
         JavaSecurityTestCaseSettings.hostsAllowedToBeSentTo = null;
         JavaSecurityTestCaseSettings.portsAllowedToBeSentTo = null;
         JavaSecurityTestCaseSettings.hostsAllowedToBeReceivedFrom = null;

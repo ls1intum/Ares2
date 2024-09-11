@@ -1,5 +1,7 @@
 package de.tum.cit.ase.ares.api.aop;
 
+import javax.annotation.Nonnull;
+
 /**
  * Interface for aspect-oriented programming (AOP) security test case configurations across various programming languages.
  * <p>
@@ -25,7 +27,7 @@ public interface AOPSecurityTestCase {
      *
      * @return a {@link String} representing the content of the aspect configuration file.
      */
-    String writeAOPSecurityTestCase();
+    @Nonnull String writeAOPSecurityTestCase();
 
     /**
      * Executes the aspect configuration in any programming language.
