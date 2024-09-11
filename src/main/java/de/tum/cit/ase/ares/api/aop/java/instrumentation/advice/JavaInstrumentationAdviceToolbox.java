@@ -16,7 +16,7 @@ public class JavaInstrumentationAdviceToolbox {
     //<editor-fold desc="Tool methods">
     private static Object getValueFromSettings(String fieldName) {
         try {
-            // Take boot loader as class loader in order to get the JavaSecurityTestCaseSettings class at bootloading time for instrumentation
+            // Take bootloader as class loader in order to get the JavaSecurityTestCaseSettings class at bootloading time for instrumentation
             Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, null);
             Field field = adviceSettingsClass.getDeclaredField(fieldName);
             field.setAccessible(true);
