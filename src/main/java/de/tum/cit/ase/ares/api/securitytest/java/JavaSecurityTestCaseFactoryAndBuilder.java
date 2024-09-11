@@ -132,8 +132,8 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
             throw new IllegalArgumentException("Ares Security Error (Reason: Ares-Code; Stage: Execution): The package name cannot be null.");
         } else if (securityPolicy.regardingTheSupervisedCode().theMainClassInsideThisPackageIs() == null) {
             throw new IllegalArgumentException("Ares Security Error (Reason: Ares-Code; Stage: Execution): The main class inside the package cannot be null.");
-
         }
+
         this.javaBuildMode = javaBuildMode;
         this.javaArchitectureMode = javaArchitectureMode;
         this.javaAOPMode = javaAOPMode;

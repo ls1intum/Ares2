@@ -1,5 +1,7 @@
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+  theProgrammingLanguageUsesTheFollowingPackage: de.tum.cit.ase
+  theMainClassInsideThisPackageIs: Main
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions: []
     regardingNetworkConnections: []
