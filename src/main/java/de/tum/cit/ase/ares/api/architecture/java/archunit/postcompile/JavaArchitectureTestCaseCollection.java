@@ -96,10 +96,10 @@ public class JavaArchitectureTestCaseCollection {
     public static ArchRule noClassesShouldImportForbiddenPackages(Set<String> allowedPackages) {
         return ArchRuleDefinition.noClasses()
                 .should()
-                .transitivelyDependOnClassesThat(new DescribedPredicate<>("imports package") {
+                .dependOnClassesThat(new DescribedPredicate<>("imports package") {
                     @Override
                     public boolean test(JavaClass javaClass) {
-                        return allowedPackages.stream().allMatch(allowedPackage -> allowedPackage.startsWith(javaClass.getPackageName()));
+                        return allowedPackages.stream().noneMatch(allowedPackage -> javaClass.getPackageName().startsWith(allowedPackage));
                     }
                 });
     }
