@@ -22,12 +22,6 @@ import java.util.Set;
  * This class runs the security rules on the architecture for the post-compile mode.
  */
 public class JavaArchitectureTestCaseCollection {
-
-    //<editor-fold desc="Attributes">
-    public static final String LOAD_FORBIDDEN_METHODS_FROM_FILE_FAILED = "Ares Security Error (Reason: Ares-Code; Stage: Execution): Could not load the architecture rule file content";
-
-
-    //<editor-fold desc="File System Interactions related rule">
     /**
      * This method checks if any class in the given package accesses the file system.
      */
