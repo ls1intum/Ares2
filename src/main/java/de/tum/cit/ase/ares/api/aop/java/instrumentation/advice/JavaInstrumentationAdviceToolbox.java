@@ -209,6 +209,10 @@ public class JavaInstrumentationAdviceToolbox {
             Object[] attributes,
             Object[] parameters
     ) {
+        String aopMode = (String) getValueFromSettings("aopMode");
+        if(aopMode == null || !aopMode.equals("INSTRUMENTATION")) {
+            return;
+        }
         String restrictedPackage = (String) getValueFromSettings("restrictedPackage");
         String[] allowedClasses = (String[]) getValueFromSettings("allowedListedClasses");
         String[] allowedPaths = (String[]) getValueFromSettings(

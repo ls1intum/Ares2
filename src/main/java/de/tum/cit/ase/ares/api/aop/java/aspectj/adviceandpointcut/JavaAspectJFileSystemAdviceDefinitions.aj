@@ -169,6 +169,10 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
             String action,
             JoinPoint thisJoinPoint
     ) {
+        String aopMode = (String) getValueFromSettings("aopMode");
+        if(aopMode == null || !aopMode.equals("ASPECTJ")) {
+            return;
+        }
         String restrictedPackage = (String) getValueFromSettings("restrictedPackage");
         String[] allowedClasses = (String[]) getValueFromSettings("allowedListedClasses");
         String[] allowedPaths = (String[]) getValueFromSettings(

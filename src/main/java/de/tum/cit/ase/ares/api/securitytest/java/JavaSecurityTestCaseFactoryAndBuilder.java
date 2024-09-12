@@ -309,6 +309,8 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                 Arrays.stream(testClasses),
                 Arrays.stream(functionClasses)
         ).toArray(String[]::new));
+        JavaSecurityTestCase.setJavaAdviceSettingValue("restrictedPackage", packageName);
+        JavaSecurityTestCase.setJavaAdviceSettingValue("aopMode", javaAOPMode.toString());
         //</editor-fold>
     }
     //</editor-fold>

@@ -29,7 +29,7 @@ public class JavaSecurityTestCaseSettings {
     /**
      * Resets the configuration settings to their default values.
      */
-    private static String aomMode = null;
+    private static String aopMode = null;
 
     /**
      * The package that is restricted from certain operations.
@@ -124,7 +124,7 @@ public class JavaSecurityTestCaseSettings {
      * Resets the configuration settings to their default values.
      */
     private static void reset() {
-        JavaSecurityTestCaseSettings.aomMode = null;
+        JavaSecurityTestCaseSettings.aopMode = null;
         JavaSecurityTestCaseSettings.restrictedPackage = null;
         JavaSecurityTestCaseSettings.allowedListedClasses = new String[]{
                 "de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox",
