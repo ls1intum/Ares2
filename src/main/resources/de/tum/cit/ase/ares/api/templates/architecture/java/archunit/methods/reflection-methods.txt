@@ -1,3 +1,4 @@
 sun.reflect.misc
 java.lang.reflect
 java.lang.invoke
+java.lang.Class.forName
