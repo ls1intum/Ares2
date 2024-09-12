@@ -96,7 +96,7 @@ public class JavaArchitectureTestCaseCollection {
     public static ArchRule noClassesShouldImportForbiddenPackages(Set<String> allowedPackages) {
         return ArchRuleDefinition.noClasses()
                 .should()
-                .dependOnClassesThat(new DescribedPredicate<>("imports package") {
+                .dependOnClassesThat(new DescribedPredicate<>("imports a forbidden package package") {
                     @Override
                     public boolean test(JavaClass javaClass) {
                         return allowedPackages.stream().noneMatch(allowedPackage -> javaClass.getPackageName().startsWith(allowedPackage));
