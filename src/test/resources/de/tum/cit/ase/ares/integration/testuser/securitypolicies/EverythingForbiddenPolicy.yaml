@@ -9,12 +9,5 @@ regardingTheSupervisedCode:
     regardingThreadCreations: []
     regardingPackageImports:
       - importTheFollowingPackage: "java.io"
-      - importTheFollowingPackage: "java.lang"
       - importTheFollowingPackage: "java.util"
-      - importTheFollowingPackage: "de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut"
       - importTheFollowingPackage: "java.nio"
-      - importTheFollowingPackage: "org.java.aspectj"
-      - importTheFollowingPackage: "org.aspectj"
-      - importTheFollowingPackage: "jdk.internal"
-      - importTheFollowingPackage: "java.net"
-      - importTheFollowingPackage: "sun.reflect"
