@@ -4,10 +4,10 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
 
     // These are the FileSystem related methods which we want to ban
 
-    pointcut randomAccessFileExecuteMethods() :
-                    call(java.io.RandomAccessFile.new(..));
+    pointcut randomAccessFileExecuteMethods():
+            call(java.io.RandomAccessFile.new(..));
 
-    pointcut fileReadMethods() :
+    pointcut fileReadMethods():
             (call(* java.io.File.canRead(..)) ||
                     call(* java.io.File.exists(..)) ||
                     call(* java.io.File.getFreeSpace(..)) ||
@@ -20,7 +20,7 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.io.File.length(..)) ||
                     call(* java.io.File.normalizedList(..)));
 
-    pointcut fileWriteMethods() :
+    pointcut fileWriteMethods():
             (call(* java.io.File.canWrite(..)) ||
                     call(* java.io.File.createNewFile(..)) ||
                     call(* java.io.File.createTempFile(..)) ||
@@ -31,7 +31,7 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.io.File.setWritable(..)) ||
                     call(* java.io.File.mkdir(..)));
 
-    pointcut fileExecuteMethods() :
+    pointcut fileExecuteMethods():
             (call(* java.io.File.canExecute(..)) ||
                     call(* java.io.File.renameTo(..))||
                     call(* java.io.File.toPath(..)) ||
@@ -39,26 +39,26 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.io.File.mkdirs(..))||
                     call(* java.io.File.listFiles(..)));
 
-    pointcut fileDeleteMethods() :
+    pointcut fileDeleteMethods():
             (call(* java.io.File.delete(..)) ||
                     call(* java.io.File.deleteOnExit(..)));
 
 
-    pointcut fileInputStreamInitMethods() : call(java.io.FileInputStream.new(..));
+    pointcut fileInputStreamInitMethods(): call(java.io.FileInputStream.new(..));
 
-    pointcut fileOutputStreamInitMethods() : call(java.io.FileOutputStream.new(..));
+    pointcut fileOutputStreamInitMethods(): call(java.io.FileOutputStream.new(..));
 
-    pointcut objectStreamClassMethods() : call(* java.io.ObjectStreamClass.getField(..));
+    pointcut objectStreamClassMethods(): call(* java.io.ObjectStreamClass.getField(..));
 
-    pointcut randomAccessFileInitMethods() : call(java.io.RandomAccessFile.new(..));
+    pointcut randomAccessFileInitMethods(): call(java.io.RandomAccessFile.new(..));
 
-    pointcut fileTypeDetectorProbeContentTypeMethods() : call(* java.nio.file.spi.FileTypeDetector.probeContentType(..));
+    pointcut fileTypeDetectorProbeContentTypeMethods(): call(* java.nio.file.spi.FileTypeDetector.probeContentType(..));
 
-    pointcut fileImageSourceInitMethods() : call(sun.awt.image.FileImageSource.new(..));
+    pointcut fileImageSourceInitMethods(): call(sun.awt.image.FileImageSource.new(..));
 
-    pointcut imageConsumerQueueInitMethods() : call(sun.awt.image.ImageConsumerQueue.new(..));
+    pointcut imageConsumerQueueInitMethods(): call(sun.awt.image.ImageConsumerQueue.new(..));
 
-    pointcut filesReadMethods() :
+    pointcut filesReadMethods():
             (call(* java.nio.file.Files.readAllBytes(..)) ||
                     call(* java.nio.file.Files.readAllLines(..)) ||
                     call(* java.nio.file.Files.readString(..)) ||
@@ -69,7 +69,7 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.nio.file.Files.probeContentType(..)) ||
                     call(* java.nio.file.Files.isReadable(..)));
 
-    pointcut filesWriteMethods() :
+    pointcut filesWriteMethods():
             (call(* java.nio.file.Files.write(..)) ||
                     call(* java.nio.file.Files.writeString(..)) ||
                     call(* java.nio.file.Files.newBufferedWriter(..)) ||
@@ -80,7 +80,7 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.nio.file.Files.setPosixFilePermissions(..)) ||
                     call(* java.nio.file.Files.isWritable(..)));
 
-    pointcut filesExecuteMethods() :
+    pointcut filesExecuteMethods():
             (call(* java.nio.file.Files.walk(..)) ||
                     call(* java.nio.file.Files.walkFileTree(..)) ||
                     call(* java.nio.file.Files.find(..)) ||
@@ -94,7 +94,7 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.nio.file.Files.createSymbolicLink(..)) ||
                     call(* java.nio.file.Files.isExecutable(..)));
 
-    pointcut filesDeleteMethods() :
+    pointcut filesDeleteMethods():
             (call(* java.nio.file.Files.delete(..)) ||
                     call(* java.nio.file.Files.deleteIfExists(..)) ||
                     call(* java.nio.file.Files.isDirectory(..)) ||
@@ -104,39 +104,7 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.nio.file.Files.notExists(..)) ||
                     call(* java.nio.file.Files.size(..)));
 
-    pointcut pathReadMethods() :
-            (call(* java.nio.file.Path.toFile(..)) ||
-                    call(* java.nio.file.Path.getFileName(..)) ||
-                    call(* java.nio.file.Path.getName(..)) ||
-                    call(* java.nio.file.Path.getNameCount(..)) ||
-                    call(* java.nio.file.Path.getParent(..)) ||
-                    call(* java.nio.file.Path.getRoot(..)) ||
-                    call(* java.nio.file.Path.iterator(..)) ||
-                    call(* java.nio.file.Path.subpath(..)) ||
-                    call(* java.nio.file.Path.toAbsolutePath(..)) ||
-                    call(* java.nio.file.Path.toRealPath(..)) ||
-                    call(* java.nio.file.Path.toUri(..)) ||
-                    call(* java.nio.file.Path.toString(..)) ||
-                    call(* java.nio.file.Path.resolve(..)) ||
-                    call(* java.nio.file.Path.resolveSibling(..)) ||
-                    call(* java.nio.file.Path.relativize(..)) ||
-                    call(* java.nio.file.Path.normalize(..)));
-
-    pointcut pathWriteMethods() :
-            (call(* java.nio.file.Path.register(..)) ||
-                    call(* java.nio.file.Path.toFile(..)));
-
-    pointcut pathExecuteMethods() :
-            (call(* java.nio.file.Path.compareTo(..)) ||
-                    call(* java.nio.file.Path.endsWith(..)) ||
-                    call(* java.nio.file.Path.startsWith(..)) ||
-                    call(* java.nio.file.Path.equals(..)));
-
-    pointcut pathDeleteMethods() :
-            (call(* java.nio.file.Path.deleteIfExists(..)) ||
-                    call(* java.nio.file.Path.delete(..)));
-
-    pointcut fileSystemReadMethods() :
+    pointcut fileSystemReadMethods():
             (call(* java.nio.file.FileSystem.getFileStores(..)) ||
                     call(* java.nio.file.FileSystem.getPath(..)) ||
                     call(* java.nio.file.FileSystem.getPathMatcher(..)) ||
@@ -146,38 +114,38 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.nio.file.FileSystem.isOpen(..)) ||
                     call(* java.nio.file.FileSystem.isReadOnly(..)));
 
-    pointcut fileSystemWriteMethods() :
+    pointcut fileSystemWriteMethods():
             (call(* java.nio.file.FileSystem.newWatchService(..)) ||
                     call(* java.nio.file.FileSystem.close(..)));
 
-    pointcut fileSystemExecuteMethods() :
+    pointcut fileSystemExecuteMethods():
             (call(* java.nio.file.FileSystem.equals(..)) ||
                     call(* java.nio.file.FileSystem.hashCode(..)) ||
                     call(* java.nio.file.FileSystem.toString(..)));
 
-    pointcut fileChannelExecuteMethods() :
+    pointcut fileChannelExecuteMethods():
             (call(* java.nio.channels.FileChannel.open(..)) ||
                     call(* java.nio.channels.AsynchronousFileChannel.open()) ||
                     call(* java.nio.channels.FileChannel.position(..)) ||
                     call(* java.nio.channels.FileChannel.tryLock(..)) ||
                     call(* java.nio.channels.AsynchronousFileChannel.tryLock()));
 
-    pointcut fileChannelReadMethods() :
+    pointcut fileChannelReadMethods():
             (call(* java.nio.channels.FileChannel.read(..)) ||
                     call(* java.nio.channels.FileChannel.size(..)));
 
-    pointcut fileChannelWriteMethods() :
+    pointcut fileChannelWriteMethods():
             (call(* java.nio.channels.FileChannel.write(..)) ||
                     call(* java.nio.channels.FileChannel.force(..)));
 
-    pointcut fileWriterMethods() :
+    pointcut fileWriterMethods():
             (call(java.io.FileWriter.new(..)) ||
                     call(* java.io.FileWriter.append(..)) ||
                     call(* java.io.FileWriter.write(..)) ||
                     call(* java.io.FileWriter.flush(..)) ||
                     call(* java.io.FileWriter.close(..)));
 
-    pointcut fileHandlerMethods() :
+    pointcut fileHandlerMethods():
             (call(java.util.logging.FileHandler.new(..)) ||
                     call(* java.util.logging.FileHandler.close(..)) ||
                     call(* java.util.logging.FileHandler.flush(..)) ||
@@ -185,7 +153,7 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.util.logging.FileHandler.setLevel(..)) ||
                     call(* java.util.logging.FileHandler.setFormatter(..)));
 
-    pointcut midiSystemMethods() :
+    pointcut midiSystemMethods():
             (call(* javax.sound.midi.MidiSystem.getMidiDevice(..)) ||
                     call(* javax.sound.midi.MidiSystem.getMidiDeviceInfo(..)) ||
                     call(* javax.sound.midi.MidiSystem.getReceiver(..)) ||
@@ -194,54 +162,54 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* javax.sound.midi.MidiSystem.getSynthesizer(..)) ||
                     call(* javax.sound.midi.MidiSystem.getTransmitter(..)));
 
-        pointcut fileSystemsReadMethods() :
-                (call(* java.nio.file.FileSystems.getDefault(..)) ||
-                        call(* java.nio.file.FileSystems.getFileSystem(..)));
+    pointcut fileSystemsReadMethods():
+            (call(* java.nio.file.FileSystems.getDefault(..)) ||
+                    call(* java.nio.file.FileSystems.getFileSystem(..)));
 
-        pointcut fileSystemsExecuteMethods() :
-                call(* java.nio.file.FileSystems.newFileSystem(..));
+    pointcut fileSystemsExecuteMethods():
+            call(* java.nio.file.FileSystems.newFileSystem(..));
 
-        pointcut defaultFileSystemExecuteMethods() :
-                call(* java.io.DefaultFileSystem.getFileSystem(..));
+    pointcut defaultFileSystemExecuteMethods():
+            call(* java.io.DefaultFileSystem.getFileSystem(..));
 
-        // FileSystemProvider Methods
-        pointcut fileSystemProviderReadMethods() :
-                (call(* java.nio.file.spi.FileSystemProvider.checkAccess(..)) ||
-                        call(* java.nio.file.spi.FileSystemProvider.getFileAttributeView(..)) ||
-                        call(* java.nio.file.spi.FileSystemProvider.getFileStore(..)) ||
-                        call(* java.nio.file.spi.FileSystemProvider.getPath(..)) ||
-                        call(* java.nio.file.spi.FileSystemProvider.getScheme(..)) ||
-                        call(* java.nio.file.spi.FileSystemProvider.isHidden(..)) ||
-                        call(* java.nio.file.spi.FileSystemProvider.isSameFile(..)) ||
-                        call(* java.nio.file.spi.FileSystemProvider.isSymbolicLink(..)) ||
-                        call(* java.nio.file.spi.FileSystemProvider.newAsynchronousFileChannel(..)) ||
-                        call(* java.nio.file.spi.FileSystemProvider.newByteChannel(..)) ||
-                        call(* java.nio.file.spi.FileSystemProvider.newDirectoryStream(..)) ||
-                        call(* java.nio.file.spi.FileSystemProvider.newFileChannel(..)) ||
-                        call(* java.nio.file.spi.FileSystemProvider.newInputStream(..)) ||
-                        call(* java.nio.file.spi.FileSystemProvider.newOutputStream(..)) ||
-                        call(* java.nio.file.spi.FileSystemProvider.newWatchService(..)) ||
-                        call(* java.nio.file.spi.FileSystemProvider.readAttributes(..)) ||
-                        call(* java.nio.file.spi.FileSystemProvider.readSymbolicLink(..)));
+    // FileSystemProvider Methods
+    pointcut fileSystemProviderReadMethods():
+            (call(* java.nio.file.spi.FileSystemProvider.checkAccess(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider.getFileAttributeView(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider.getFileStore(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider.getPath(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider.getScheme(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider.isHidden(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider.isSameFile(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider.isSymbolicLink(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider.newAsynchronousFileChannel(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider.newByteChannel(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider.newDirectoryStream(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider.newFileChannel(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider.newInputStream(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider.newOutputStream(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider.newWatchService(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider.readAttributes(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider.readSymbolicLink(..)));
 
-        pointcut fileSystemProviderWriteMethods() :
-                (call(* java.nio.file.spi.FileSystemProvider.copy(..)) ||
-                        call(* java.nio.file.spi.FileSystemProvider.createDirectory(..)) ||
-                        call(* java.nio.file.spi.FileSystemProvider.createLink(..)) ||
-                        call(* java.nio.file.spi.FileSystemProvider.createSymbolicLink(..)) ||
-                        call(* java.nio.file.spi.FileSystemProvider.move(..)) ||
-                        call(* java.nio.file.spi.FileSystemProvider.setAttribute(..))||
-                        call(* java.nio.file.spi.FileSystemProvider.newFileSystem(..)));
+    pointcut fileSystemProviderWriteMethods():
+            (call(* java.nio.file.spi.FileSystemProvider.copy(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider.createDirectory(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider.createLink(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider.createSymbolicLink(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider.move(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider.setAttribute(..))||
+                    call(* java.nio.file.spi.FileSystemProvider.newFileSystem(..)));
 
-        pointcut fileSystemProviderExecuteMethods() :
-                call(* java.nio.file.spi.FileSystemProvider.checkAccess(..));
+    pointcut fileSystemProviderExecuteMethods():
+            call(* java.nio.file.spi.FileSystemProvider.checkAccess(..));
 
-        pointcut fileSystemProviderDeleteMethods() :
-                (call(* java.nio.file.spi.FileSystemProvider.delete(..)) ||
-                        call(* java.nio.file.spi.FileSystemProvider.deleteIfExists(..)));
+    pointcut fileSystemProviderDeleteMethods():
+            (call(* java.nio.file.spi.FileSystemProvider.delete(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider.deleteIfExists(..)));
 
     //TODO Sarp: These should definetly be considered in different pointcut files or this one
-    pointcut desktopExecuteMethods() :
+    pointcut desktopExecuteMethods():
             (call(* java.awt.Desktop.browse(..)) ||
                     call(* java.awt.Desktop.browseFileDirectory(..)) ||
                     call(* java.awt.Desktop.edit(..)) ||

@@ -1,4 +1,4 @@
-package %s.aop.java.aspectj.adviceandpointcut;
+package %s.api.aop.java.aspectj.adviceandpointcut;
 
 import org.aspectj.lang.JoinPoint;
 
@@ -24,7 +24,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
     private static Object getValueFromSettings(String fieldName) {
         try {
             // Take standard class loader as class loader in order to get the JavaSecurityTestCaseSettings class at compile time for aspectj
-            Class<?> adviceSettingsClass = Class.forName("%s.aop.java.JavaSecurityTestCaseSettings");
+            Class<?> adviceSettingsClass = Class.forName("%s.api.aop.java.JavaSecurityTestCaseSettings");
             Field field = adviceSettingsClass.getDeclaredField(fieldName);
             field.setAccessible(true);
             Object value = field.get(null);
@@ -86,31 +86,32 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
      * @throws InvalidPathException If the variable cannot be transformed into a valid path.
      */
     private static Path variableToPath(Object variableValue) {
-        return switch (variableValue) {
-            case null -> throw new InvalidPathException("null", "Cannot transform to path");
-            case Path path -> {
-                try {
-                    yield path.normalize().toAbsolutePath();
-                } catch (InvalidPathException e) {
-                    throw new InvalidPathException(path.toString(), "Cannot transform to path");
-                }
+        if (variableValue == null) {
+            throw new InvalidPathException("null", "Cannot transform to path");
+        } else if (variableValue instanceof Path) {
+            Path path = (Path) variableValue;
+            try {
+                return path.normalize().toAbsolutePath();
+            } catch (InvalidPathException e) {
+                throw new InvalidPathException(path.toString(), "Cannot transform to path");
             }
-            case String string -> {
-                try {
-                    yield Path.of(string).normalize().toAbsolutePath();
-                } catch (InvalidPathException e) {
-                    throw new InvalidPathException(string, "Cannot transform to path");
-                }
+        } else if (variableValue instanceof String) {
+            String string = (String) variableValue;
+            try {
+                return Path.of(string).normalize().toAbsolutePath();
+            } catch (InvalidPathException e) {
+                throw new InvalidPathException(string, "Cannot transform to path");
             }
-            case File file -> {
-                try {
-                    yield Path.of(file.toURI()).normalize().toAbsolutePath();
-                } catch (InvalidPathException e) {
-                    throw new InvalidPathException(file.toString(), "Cannot transform to path");
-                }
+        } else if (variableValue instanceof File) {
+            File file = (File) variableValue;
+            try {
+                return Path.of(file.toURI()).normalize().toAbsolutePath();
+            } catch (InvalidPathException e) {
+                throw new InvalidPathException(file.toString(), "Cannot transform to path");
             }
-            default -> throw new InvalidPathException(variableValue.toString(), "Cannot transform to path");
-        };
+        } else {
+            throw new InvalidPathException(variableValue.toString(), "Cannot transform to path");
+        }
     }
 
     /**
@@ -123,8 +124,9 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
      * @return True if the path is allowed, false otherwise.
      */
     private static boolean checkIfPathIsAllowed(String[] allowedPaths, Path pathToCheck) {
+        Path absoluteNormalisedPathToCheck = pathToCheck.toAbsolutePath().normalize();
         for (String allowedPath : allowedPaths) {
-            if (variableToPath(allowedPath).toString().equals(pathToCheck.toString())) {
+            if (absoluteNormalisedPathToCheck.startsWith( variableToPath(allowedPath))) {
                 return true;
             }
         }
@@ -169,6 +171,10 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
             String action,
             JoinPoint thisJoinPoint
     ) {
+        String aopMode = (String) getValueFromSettings("aopMode");
+        if(aopMode == null || !aopMode.equals("ASPECTJ")) {
+            return;
+        }
         String restrictedPackage = (String) getValueFromSettings("restrictedPackage");
         String[] allowedClasses = (String[]) getValueFromSettings("allowedListedClasses");
         String[] allowedPaths = (String[]) getValueFromSettings(
@@ -181,10 +187,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
                 }
         );
         Object[] parameters = thisJoinPoint.getArgs();
-        // TODO Sarp: delete this statement, this is a workaround since the YAML reader doesn't work properly
-        if (restrictedPackage == null) {
-            restrictedPackage = "de.tum.cit.ase";
-        }
         final String fullMethodSignature = thisJoinPoint.getSignature().toLongString();
         String illegallyReadingMethod = allowedPaths == null ? null : checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses, thisJoinPoint.getSourceLocation().getWithinType().getName());
         if (illegallyReadingMethod != null) {
@@ -198,44 +200,42 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
     //</editor-fold>
 
     before():
-            %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileReadMethods() ||
-                    %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.filesReadMethods() ||
-                    %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileInputStreamInitMethods() ||
-                    %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileChannelReadMethods() ||
-                    %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.midiSystemMethods() ||
-                    %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemsReadMethods() ||
-                    %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderReadMethods() {
+            %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileReadMethods() ||
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.filesReadMethods() ||
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileInputStreamInitMethods() ||
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileChannelReadMethods() ||
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.midiSystemMethods() ||
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemsReadMethods() ||
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderReadMethods() {
         checkFileSystemInteraction("read", thisJoinPoint);
     }
 
     before():
-            %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileWriteMethods() ||
-                    %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.filesWriteMethods() ||
-                    %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileOutputStreamInitMethods() ||
-                    %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileChannelWriteMethods() ||
-                    %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileWriterMethods() ||
-                    %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileHandlerMethods() ||
-                    %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderWriteMethods() {
+            %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileWriteMethods() ||
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.filesWriteMethods() ||
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileOutputStreamInitMethods() ||
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileChannelWriteMethods() ||
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileWriterMethods() ||
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileHandlerMethods() ||
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderWriteMethods() {
         checkFileSystemInteraction("write", thisJoinPoint);
     }
 
     before():
-            %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileExecuteMethods() ||
-                    %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.filesExecuteMethods() ||
-                    %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.pathExecuteMethods() ||
-                    %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemExecuteMethods() ||
-                    %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileChannelExecuteMethods() ||
-                    %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.objectStreamClassMethods() ||
-                    %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.desktopExecuteMethods() ||
-                    %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderExecuteMethods() {
+            %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileExecuteMethods() ||
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.filesExecuteMethods() ||
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemExecuteMethods() ||
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileChannelExecuteMethods() ||
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.objectStreamClassMethods() ||
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.desktopExecuteMethods() ||
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderExecuteMethods() {
         checkFileSystemInteraction("execute", thisJoinPoint);
     }
 
     before():
-            %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileDeleteMethods() ||
-                    %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.pathDeleteMethods() ||
-                    %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.filesDeleteMethods() ||
-                    %s.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderDeleteMethods() {
+            %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileDeleteMethods() ||
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.filesDeleteMethods() ||
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderDeleteMethods() {
         checkFileSystemInteraction("delete", thisJoinPoint);
     }
 

@@ -1,4 +1,4 @@
-package %s.aop.java;
+package %s.api.aop.java;
 
 /**
  * Configuration settings for Java instrumentation aspect configurations.

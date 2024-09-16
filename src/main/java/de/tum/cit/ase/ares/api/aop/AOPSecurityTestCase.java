@@ -27,7 +27,7 @@ public interface AOPSecurityTestCase {
      *
      * @return a {@link String} representing the content of the aspect configuration file.
      */
-    @Nonnull String writeAOPSecurityTestCase();
+    @Nonnull String writeAOPSecurityTestCase(@Nonnull String aomMode);
 
     /**
      * Executes the aspect configuration in any programming language.
@@ -38,5 +38,5 @@ public interface AOPSecurityTestCase {
      * with the security configurations in place.
      * </p>
      */
-    void executeAOPSecurityTestCase();
+    void executeAOPSecurityTestCase(@Nonnull String aomMode);
 }

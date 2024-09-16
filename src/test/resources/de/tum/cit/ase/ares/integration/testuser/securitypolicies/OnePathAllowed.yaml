@@ -1,9 +1,8 @@
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
-  theProgrammingLanguageUsesTheFollowingPackage: "de.tum.cit.ase"
+  theProgrammingLanguageUsesTheFollowingPackage: "de.tum.cit.ase.ares"
   theMainClassInsideThisPackageIs: "Main"
-  theFollowingClassesAreTestClasses:
-    - "de.tum.cit.ase.example.ExampleTest"
+  theFollowingClassesAreTestClasses: []
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions:
       - readAllFiles: true
@@ -18,3 +17,4 @@ regardingTheSupervisedCode:
       - importTheFollowingPackage: "java.io"
       - importTheFollowingPackage: "java.util"
       - importTheFollowingPackage: "java.nio"
+      - importTheFollowingPackage: "java.net"

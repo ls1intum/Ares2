@@ -57,21 +57,21 @@ public enum JavaArchitectureMode {
     public List<Path> targetsToCopyTo(Path projectPath, String packageName) {
         return (switch (this) {
             case ARCHUNIT -> Stream.of(
-                    new String[]{"architecture", "java", "archunit", "methods", "file-system-access-methods.txt"},
-                    new String[]{"architecture", "java", "archunit", "methods", "jvm-termination-methods.txt"},
-                    new String[]{"architecture", "java", "archunit", "methods", "network-access-methods.txt"},
-                    new String[]{"architecture", "java", "archunit", "methods", "reflection-methods.txt"},
-                    new String[]{"architecture", "java", "archunit", "postcompile", "CustomClassResolver.java"},
-                    new String[]{"architecture", "java", "archunit", "postcompile", "JavaArchitectureTestCaseCollection.java"},
-                    new String[]{"architecture", "java", "archunit", "postcompile", "TransitivelyAccessesMethodsCondition.java"},
-                    new String[]{"architecture", "java", "archunit", "rules", "COMMAND_EXECUTION.txt"},
-                    new String[]{"architecture", "java", "archunit", "rules", "FILESYSTEM_INTERACTION.txt"},
-                    new String[]{"architecture", "java", "archunit", "rules", "NETWORK_CONNECTION.txt"},
-                    new String[]{"architecture", "java", "archunit", "rules", "PACKAGE_IMPORT.txt"},
-                    new String[]{"architecture", "java", "archunit", "rules", "THREAD_CREATION.txt"},
-                    new String[]{"architecture", "java", "archunit", "archunit.properties"},
-                    new String[]{"architecture", "java", "archunit", "FileHandlerConstants.java"},
-                    new String[]{"architecture", "java", "archunit", "JavaArchUnitTestCaseSupported.java"}
+                    new String[]{"api", "architecture", "java", "archunit", "methods", "file-system-access-methods.txt"},
+                    new String[]{"api", "architecture", "java", "archunit", "methods", "jvm-termination-methods.txt"},
+                    new String[]{"api", "architecture", "java", "archunit", "methods", "network-access-methods.txt"},
+                    new String[]{"api", "architecture", "java", "archunit", "methods", "reflection-methods.txt"},
+                    new String[]{"api", "architecture", "java", "archunit", "postcompile", "CustomClassResolver.java"},
+                    new String[]{"api", "architecture", "java", "archunit", "postcompile", "JavaArchitectureTestCaseCollection.java"},
+                    new String[]{"api", "architecture", "java", "archunit", "postcompile", "TransitivelyAccessesMethodsCondition.java"},
+                    new String[]{"api", "architecture", "java", "archunit", "rules", "COMMAND_EXECUTION.txt"},
+                    new String[]{"api", "architecture", "java", "archunit", "rules", "FILESYSTEM_INTERACTION.txt"},
+                    new String[]{"api", "architecture", "java", "archunit", "rules", "NETWORK_CONNECTION.txt"},
+                    new String[]{"api", "architecture", "java", "archunit", "rules", "PACKAGE_IMPORT.txt"},
+                    new String[]{"api", "architecture", "java", "archunit", "rules", "THREAD_CREATION.txt"},
+                    new String[]{"api", "architecture", "java", "archunit", "archunit.properties"},
+                    new String[]{"api", "architecture", "java", "archunit", "FileHandlerConstants.java"},
+                    new String[]{"api", "architecture", "java", "archunit", "JavaArchUnitTestCaseSupported.java"}
             );
         }).map(pathParticles -> FileTools.resolveOnTests(projectPath, packageName, pathParticles)).toList();
     }
@@ -106,7 +106,7 @@ public enum JavaArchitectureMode {
 
     public Path targetToCopyTo(Path projectPath, String packageName) {
         return FileTools.resolveOnTests(projectPath, packageName, switch (this) {
-            case ARCHUNIT -> new String[]{"architecture", "java", "archunit", "JavaArchUnitTestCaseCollection.txt"};
+            case ARCHUNIT -> new String[]{"api", "architecture", "java", "archunit", "JavaArchUnitTestCaseCollection.txt"};
         });
     }
 }

@@ -39,16 +39,7 @@ public class JavaSecurityTestCaseSettings {
     /**
      * List of classes that are allowed to be instrumented.
      */
-    private static String[] allowedListedClasses = {
-            "de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings",
-            "de.tum.cit.ase.ares.api.aop.instrumentation.adviceandpointcut.JavaInstrumentationAdviceToolbox",
-            "de.tum.cit.ase.ares.api.aop.instrumentation.adviceandpointcut.JavaInstrumentationReadPathAdvice",
-            "de.tum.cit.ase.ares.api.aop.instrumentation.adviceandpointcut.JavaWritePathAdvice",
-            "de.tum.cit.ase.ares.api.aop.instrumentation.adviceandpointcut.JavaInstrumentationExecutePathAdvice",
-            "de.tum.cit.ase.ares.api.aop.java.pointcut.instrumentation.JavaInstrumentationPointcutDefinitions",
-            "de.tum.cit.ase.ares.api.aop.java.pointcut.instrumentation.JavaInstrumentationBindingDefinitions",
-            "de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent"
-    };
+    private static String[] allowedListedClasses = null;
 
     /**
      * Paths that are allowed to be read.
@@ -126,16 +117,7 @@ public class JavaSecurityTestCaseSettings {
     private static void reset() {
         JavaSecurityTestCaseSettings.aopMode = null;
         JavaSecurityTestCaseSettings.restrictedPackage = null;
-        JavaSecurityTestCaseSettings.allowedListedClasses = new String[]{
-                "de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox",
-                "de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathAdvice",
-                "de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathAdvice",
-                "de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathAdvice",
-                "de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationPointcutDefinitions",
-                "de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationBindingDefinitions",
-                "de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent",
-                "de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings"
-        };
+        JavaSecurityTestCaseSettings.allowedListedClasses = null;
         JavaSecurityTestCaseSettings.pathsAllowedToBeRead = null;
         JavaSecurityTestCaseSettings.pathsAllowedToBeOverwritten = null;
         JavaSecurityTestCaseSettings.pathsAllowedToBeExecuted = null;

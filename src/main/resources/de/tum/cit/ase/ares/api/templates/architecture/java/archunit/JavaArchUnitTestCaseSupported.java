@@ -1,4 +1,4 @@
-package %s.architecture.java.archunit;
+package %s.api.architecture.java.archunit;
 
 /**
  * Supported architecture test cases in Java programming language.

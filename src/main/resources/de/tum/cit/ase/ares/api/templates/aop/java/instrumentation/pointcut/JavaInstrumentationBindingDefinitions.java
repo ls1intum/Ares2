@@ -1,12 +1,12 @@
-package %s.aop.java.instrumentation.pointcut;
+package %s.api.aop.java.instrumentation.pointcut;
 
-import %s.aop.java.JavaSecurityTestCaseSettings;
-import %s.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox;
-import %s.aop.java.instrumentation.advice.JavaInstrumentationExecutePathAdvice;
-import %s.aop.java.instrumentation.advice.JavaInstrumentationReadPathAdvice;
-import %s.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathAdvice;
-import %s.aop.java.instrumentation.advice.JavaInstrumentationDeletePathAdvice;
-import %s.aop.java.instrumentation.pointcut.JavaInstrumentationPointcutDefinitions;
+import %s.api.aop.java.JavaSecurityTestCaseSettings;
+import %s.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox;
+import %s.api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathAdvice;
+import %s.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathAdvice;
+import %s.api.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathAdvice;
+import %s.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathAdvice;
+import %s.api.aop.java.instrumentation.pointcut.JavaInstrumentationPointcutDefinitions;
 import de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathAdvice;

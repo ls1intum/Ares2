@@ -1,4 +1,4 @@
-package %s.aop.java.instrumentation.advice;
+package %s.api.aop.java.instrumentation.advice;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;

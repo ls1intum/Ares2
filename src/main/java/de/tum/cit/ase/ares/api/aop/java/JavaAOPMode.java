@@ -106,14 +106,14 @@ public enum JavaAOPMode {
                     new String[]{"aop", "java", "aspectj", "adviceandpointcut", "JavaAspectJFileSystemPointcutDefinitions.aj"}
             );
             case INSTRUMENTATION -> Stream.of(
-                    new String[]{"aop", "java", "instrumentation", "advice", "JavaInstrumentationAdviceToolbox.java"},
-                    new String[]{"aop", "java", "instrumentation", "advice", "JavaInstrumentationDeletePathAdvice.java"},
-                    new String[]{"aop", "java", "instrumentation", "advice", "JavaInstrumentationExecutePathAdvice.java"},
-                    new String[]{"aop", "java", "instrumentation", "advice", "JavaInstrumentationOverwritePathAdvice.java"},
-                    new String[]{"aop", "java", "instrumentation", "advice", "JavaInstrumentationReadPathAdvice.java"},
-                    new String[]{"aop", "java", "instrumentation", "pointcut", "JavaInstrumentationBindingDefinitions.java"},
-                    new String[]{"aop", "java", "instrumentation", "pointcut", "JavaInstrumentationPointcutDefinitions.java"},
-                    new String[]{"aop", "java", "instrumentation", "JavaInstrumentationAgent.java"},
+                    new String[]{"api", "aop", "java", "instrumentation", "advice", "JavaInstrumentationAdviceToolbox.java"},
+                    new String[]{"api", "aop", "java", "instrumentation", "advice", "JavaInstrumentationDeletePathAdvice.java"},
+                    new String[]{"api", "aop", "java", "instrumentation", "advice", "JavaInstrumentationExecutePathAdvice.java"},
+                    new String[]{"api", "aop", "java", "instrumentation", "advice", "JavaInstrumentationOverwritePathAdvice.java"},
+                    new String[]{"api", "aop", "java", "instrumentation", "advice", "JavaInstrumentationReadPathAdvice.java"},
+                    new String[]{"api", "aop", "java", "instrumentation", "pointcut", "JavaInstrumentationBindingDefinitions.java"},
+                    new String[]{"api", "aop", "java", "instrumentation", "pointcut", "JavaInstrumentationPointcutDefinitions.java"},
+                    new String[]{"api", "aop", "java", "instrumentation", "JavaInstrumentationAgent.java"},
                     new String[]{"META-INF", "MANIFEST.MF"}
             );
         }).map(pathParticles -> FileTools.resolveOnTests(projectPath, packageName, pathParticles)).toList();
@@ -180,7 +180,7 @@ public enum JavaAOPMode {
      */
     @Nonnull
     public Path targetToCopyTo(@Nonnull Path projectPath, @Nonnull String packageName) {
-        return FileTools.resolveOnTests(projectPath, packageName, "aop", "java", "JavaSecurityTestCaseSettings.java");
+        return FileTools.resolveOnTests(projectPath, packageName, "api", "aop", "java", "JavaSecurityTestCaseSettings.java");
     }
     //</editor-fold>
 

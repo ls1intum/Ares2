@@ -1,4 +1,4 @@
-package %s.architecture.java.archunit.postcompile;
+package %s.api.architecture.java.archunit.postcompile;
 
 import com.google.common.collect.ImmutableMap;
 import com.tngtech.archunit.base.DescribedPredicate;

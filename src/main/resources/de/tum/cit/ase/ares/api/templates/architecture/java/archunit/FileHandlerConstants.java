@@ -1,4 +1,4 @@
-package %s.architecture.java.archunit;
+package %s.api.architecture.java.archunit;
 
 import java.io.File;
 import java.nio.file.Path;
