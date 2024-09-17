@@ -20,6 +20,7 @@ import java.util.Set;
 public class JavaInstrumentationPointcutDefinitions {
 
     //<editor-fold desc="Constructor">
+
     /**
      * This constructor is private to prevent instantiation of this utility class.
      */
@@ -85,7 +86,7 @@ public class JavaInstrumentationPointcutDefinitions {
      * @param methodsMap      A map containing class names as keys and lists of method names as values. These
      *                        define the methods to be instrumented.
      * @return An element matcher that matches methods based on the provided methods map.
-     * If no methods are found for the class, returns {@code ElementMatchers.none()}.
+     *         If no methods are found for the class, returns {@code ElementMatchers.none()}.
      */
     static ElementMatcher<MethodDescription> getMethodsMatcher(
             TypeDescription typeDescription,
@@ -120,20 +121,23 @@ public class JavaInstrumentationPointcutDefinitions {
      * and the values are lists of method names that are considered to be file read operations.
      */
     public static final Map<String, List<String>> methodsWhichCanReadFiles = Map.of(
-            "instrumentation.io.FileInputStream",
+            "java.io.FileInputStream",
             List.of("<init>", "read"),
-            "instrumentation.io.RandomAccessFile",
-            List.of("read", "readFully", "readLine", "readBoolean", "readByte", "readChar", "readDouble", "readFloat", "readInt", "readLong", "readShort", "readUnsignedByte", "readUnsignedShort"),
-            "instrumentation.io.UnixFileSystem",
+            "java.io.RandomAccessFile",
+            List.of("read", "readFully", "readLine", "readBoolean", "readByte", "readChar", "readDouble",
+                    "readFloat", "readInt", "readLong", "readShort", "readUnsignedByte", "readUnsignedShort"),
+            "java.io.UnixFileSystem",
             List.of("getLastModifiedTime", "getBooleanAttributes0", "getSpace", "canonicalize0"),
-            "instrumentation.io.WinNTFileSystem",
+            "java.io.WinNTFileSystem",
             List.of("getBooleanAttributes", "canonicalize", "getLastModifiedTime", "getSpace"),
-            "instrumentation.io.Win32FileSystem",
+            "java.io.Win32FileSystem",
             List.of("getBooleanAttributes", "canonicalize", "getLastModifiedTime", "getSpace"),
             "java.nio.file.Files",
             List.of("readAttributes", "readAllBytes", "readAllLines", "readString", "read", "newInputStream", "lines"),
             "java.io.FileReader",
-            List.of("<init>")
+            List.of("<init>", "read", "readLine"),
+            "java.io.BufferedReader",
+            List.of("lines")
     );
     //</editor-fold>
 
@@ -178,7 +182,10 @@ public class JavaInstrumentationPointcutDefinitions {
      * This map contains the methods which can delete files. The map keys represent class names,
      * and the values are lists of method names that are considered to be file delete operations.
      */
-    public static final Map<String, List<String>> methodsWhichCanDeleteFiles = Map.of();
+    public static final Map<String, List<String>> methodsWhichCanDeleteFiles = Map.of(
+            "java.io.File",
+            List.of("delete", "deleteOnExit")
+    );
     //</editor-fold>
 
 }
