@@ -122,7 +122,7 @@ public class JavaInstrumentationPointcutDefinitions {
      */
     public static final Map<String, List<String>> methodsWhichCanReadFiles = Map.of(
             "java.io.FileInputStream",
-            List.of("<init>", "read"),
+            List.of("<init>"),
             "java.io.RandomAccessFile",
             List.of("read", "readFully", "readLine", "readBoolean", "readByte", "readChar", "readDouble",
                     "readFloat", "readInt", "readLong", "readShort", "readUnsignedByte", "readUnsignedShort"),
@@ -148,16 +148,16 @@ public class JavaInstrumentationPointcutDefinitions {
      */
     public static final Map<String, List<String>> methodsWhichCanOverwriteFiles = Map.of(
             "java.io.FileOutputStream",
-            List.of("<init>", "write"),
-            "instrumentation.io.RandomAccessFile",
+            List.of("<init>"),
+            "java.io.RandomAccessFile",
             List.of("write", "writeBoolean", "writeByte", "writeBytes", "writeChar", "writeChars", "writeDouble", "writeFloat", "writeInt", "writeLong", "writeShort"),
-            "instrumentation.io.UnixFileSystem",
+            "java.io.UnixFileSystem",
             List.of("setLastModifiedTime", "createFileExclusively", "delete0", "createDirectory"),
-            "instrumentation.io.WinNTFileSystem",
+            "java.io.WinNTFileSystem",
             List.of("createFileExclusively", "delete", "setLastModifiedTime", "createDirectory"),
-            "instrumentation.io.Win32FileSystem",
+            "java.io.Win32FileSystem",
             List.of("createFileExclusively", "delete", "setLastModifiedTime", "createDirectory"),
-            "instrumentation.util.prefs.FileSystemPreferences",
+            "java.util.prefs.FileSystemPreferences",
             List.of("lockFile0", "unlockFile0")
     );
     //</editor-fold>
