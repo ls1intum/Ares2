@@ -1,4 +1,4 @@
-package %s.api.aop.java.instrumentation.advice;
+package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
@@ -17,7 +17,7 @@ import static net.bytebuddy.asm.Advice.AllArguments;
  * unauthorized file executions. The class interacts with the JavaInstrumentationAdviceToolbox to
  * perform these security checks.
  */
-public class JavaInstrumentationOverwritePathAdvice {
+public class JavaInstrumentationReadPathMethodAdvice {
     /**
      * This method is called when a method annotated with the @ExecutePath annotation is entered.
      * It performs security checks to determine whether the method execution is allowed according
@@ -52,7 +52,7 @@ public class JavaInstrumentationOverwritePathAdvice {
                 try {
                     fields[i].setAccessible(true);
                     attributes[i] = fields[i].get(instance);
-                }catch (InaccessibleObjectException e) {
+                } catch (InaccessibleObjectException e) {
                     throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Unable to make field '" + fields[i].getName() + "' in class '"
                             + instance.getClass().getName() + "' accessible due to JVM security restrictions.", e);
                 } catch (IllegalAccessException e) {
@@ -75,7 +75,7 @@ public class JavaInstrumentationOverwritePathAdvice {
 
         //<editor-fold desc="Check">
         JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
-                "write",
+                "read",
                 declaringTypeName,
                 methodName,
                 methodSignature,

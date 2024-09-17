@@ -23,10 +23,15 @@ public class JavaInstrumentationAgent {
      * @param inst      The instrumentation instance.
      */
     public static void premain(String agentArgs, Instrumentation inst) {
-        installAgentBuilder(inst, JavaInstrumentationPointcutDefinitions.methodsWhichCanReadFiles, JavaInstrumentationBindingDefinitions::createReadPathBinding);
-        installAgentBuilder(inst, JavaInstrumentationPointcutDefinitions.methodsWhichCanOverwriteFiles, JavaInstrumentationBindingDefinitions::createOverwritePathBinding);
-        installAgentBuilder(inst, JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteFiles, JavaInstrumentationBindingDefinitions::createExecutePathBinding);
-        installAgentBuilder(inst, JavaInstrumentationPointcutDefinitions.methodsWhichCanDeleteFiles, JavaInstrumentationBindingDefinitions::createDeletePathBinding);
+        installAgentBuilder(inst, JavaInstrumentationPointcutDefinitions.methodsWhichCanReadFiles, JavaInstrumentationBindingDefinitions::createReadPathMethodBinding);
+        installAgentBuilder(inst, JavaInstrumentationPointcutDefinitions.methodsWhichCanOverwriteFiles, JavaInstrumentationBindingDefinitions::createOverwritePathMethodBinding);
+        installAgentBuilder(inst, JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteFiles, JavaInstrumentationBindingDefinitions::createExecutePathMethodBinding);
+        installAgentBuilder(inst, JavaInstrumentationPointcutDefinitions.methodsWhichCanDeleteFiles, JavaInstrumentationBindingDefinitions::createDeletePathMethodBinding);
+
+        installAgentBuilder(inst, JavaInstrumentationPointcutDefinitions.methodsWhichCanReadFiles, JavaInstrumentationBindingDefinitions::createReadPathConstructorBinding);
+        installAgentBuilder(inst, JavaInstrumentationPointcutDefinitions.methodsWhichCanOverwriteFiles, JavaInstrumentationBindingDefinitions::createOverwritePathConstructorBinding);
+        installAgentBuilder(inst, JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteFiles, JavaInstrumentationBindingDefinitions::createExecutePathConstructorBinding);
+        installAgentBuilder(inst, JavaInstrumentationPointcutDefinitions.methodsWhichCanDeleteFiles, JavaInstrumentationBindingDefinitions::createDeletePathConstructorBinding);
     }
 
     /**

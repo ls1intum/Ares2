@@ -2,18 +2,14 @@ package %s.api.aop.java.instrumentation.pointcut;
 
 import %s.api.aop.java.JavaSecurityTestCaseSettings;
 import %s.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox;
-import %s.api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathAdvice;
-import %s.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathAdvice;
-import %s.api.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathAdvice;
-import %s.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathAdvice;
-import %s.api.aop.java.instrumentation.pointcut.JavaInstrumentationPointcutDefinitions;
-import de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathAdvice;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathAdvice;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathAdvice;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathAdvice;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationPointcutDefinitions;
+import %s.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathConstructorAdvice;
+import %s.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathMethodAdvice;
+import %s.api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathConstructorAdvice;
+import %s.api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathMethodAdvice;
+import %s.api.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathConstructorAdvice;
+import %s.api.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathMethodAdvice;
+import %s.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathConstructorAdvice;
+import %s.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathMethodAdvice;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.ClassFileLocator;
@@ -24,7 +20,6 @@ import net.bytebuddy.utility.JavaModule;
 import java.security.ProtectionDomain;
 import java.util.List;
 import java.util.Map;
-
 
 /**
  * This class provides the definitions for the bindings of the Java instrumentation.
@@ -52,26 +47,36 @@ public class JavaInstrumentationBindingDefinitions {
      * and applies the provided advice. This ensures that security policies are enforced on methods interacting
      * with the file system, preventing unauthorized actions such as file manipulation or access.
      *
-     * @param builder The builder used to create the binding.
+     * @param builder         The builder used to create the binding.
      * @param typeDescription The description of the class whose methods are being instrumented.
-     * @param classLoader The class loader responsible for loading the class.
-     * @param pointcuts The pointcuts that specify which methods should be instrumented.
-     * @param advice The advice to be applied to the methods matched by the pointcuts.
+     * @param classLoader     The class loader responsible for loading the class.
+     * @param pointcuts       The pointcuts that specify which methods should be instrumented.
+     * @param advice          The advice to be applied to the methods matched by the pointcuts.
      * @return The builder with the binding applied.
      * @throws SecurityException If the binding could not be created, preventing the enforcement of security policies.
      */
-    private static DynamicType.Builder<?> createBinding(
+    private static DynamicType.Builder<?> createMethodBinding(
             DynamicType.Builder<?> builder, TypeDescription typeDescription, ClassLoader classLoader,
             Map<String, List<String>> pointcuts, Class<?> advice
     ) {
-        try{
+        try {
             loadToolbox(classLoader);
             return builder.visit(Advice.to(advice).on(JavaInstrumentationPointcutDefinitions.getMethodsMatcher(typeDescription, pointcuts)));
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Could not create a binding in general.", e);
         }
+    }
 
+    private static DynamicType.Builder<?> createConstructorBinding(
+            DynamicType.Builder<?> builder, TypeDescription typeDescription, ClassLoader classLoader,
+            Map<String, List<String>> pointcuts, Class<?> advice
+    ) {
+        try {
+            loadToolbox(classLoader);
+            return builder.visit(Advice.to(advice).on(JavaInstrumentationPointcutDefinitions.getConstructorsMatcher(typeDescription, pointcuts)));
+        } catch (Exception e) {
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Could not create a binding in general.", e);
+        }
     }
 
     /**
@@ -110,26 +115,41 @@ public class JavaInstrumentationBindingDefinitions {
      * advice is applied when methods that read files are invoked. This helps to enforce security policies
      * related to file read operations, preventing unauthorized access to files.
      *
-     * @param builder The builder used to create the binding.
-     * @param typeDescription The description of the class whose methods are being instrumented.
-     * @param classLoader The class loader responsible for loading the class.
-     * @param ignoredJavaModule The Java module being ignored (for compatibility reasons).
+     * @param builder                 The builder used to create the binding.
+     * @param typeDescription         The description of the class whose methods are being instrumented.
+     * @param classLoader             The class loader responsible for loading the class.
+     * @param ignoredJavaModule       The Java module being ignored (for compatibility reasons).
      * @param ignoredProtectionDomain The protection domain being ignored (for compatibility reasons).
      * @return The builder with the binding applied for file read operations.
      * @throws SecurityException If the binding could not be created for the read path, preventing the security advice from being applied.
      */
-    public static DynamicType.Builder<?> createReadPathBinding(
+    public static DynamicType.Builder<?> createReadPathMethodBinding(
             DynamicType.Builder<?> builder, TypeDescription typeDescription,
             ClassLoader classLoader, JavaModule ignoredJavaModule,
             ProtectionDomain ignoredProtectionDomain
     ) {
         try {
-            return createBinding(
+            return createMethodBinding(
                     builder, typeDescription, classLoader,
-                    JavaInstrumentationPointcutDefinitions.methodsWhichCanReadFiles, JavaInstrumentationReadPathAdvice.class
+                    JavaInstrumentationPointcutDefinitions.methodsWhichCanReadFiles, JavaInstrumentationReadPathMethodAdvice.class
             );
         } catch (Exception e) {
-            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Could not create binding for read path.", e);
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Could not create binding for read path method.", e);
+        }
+    }
+
+    public static DynamicType.Builder<?> createReadPathConstructorBinding(
+            DynamicType.Builder<?> builder, TypeDescription typeDescription,
+            ClassLoader classLoader, JavaModule ignoredJavaModule,
+            ProtectionDomain ignoredProtectionDomain
+    ) {
+        try {
+            return createConstructorBinding(
+                    builder, typeDescription, classLoader,
+                    JavaInstrumentationPointcutDefinitions.methodsWhichCanReadFiles, JavaInstrumentationReadPathConstructorAdvice.class
+            );
+        } catch (Exception e) {
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Could not create binding for read path constructor.", e);
         }
     }
     //</editor-fold>
@@ -141,26 +161,42 @@ public class JavaInstrumentationBindingDefinitions {
      * advice is applied when methods that overwrite files are invoked. This ensures that unauthorized or
      * potentially harmful file overwriting actions are detected and prevented.
      *
-     * @param builder The builder used to create the binding.
-     * @param typeDescription The description of the class whose methods are being instrumented.
-     * @param classLoader The class loader responsible for loading the class.
-     * @param ignoredJavaModule The Java module being ignored (for compatibility reasons).
+     * @param builder                 The builder used to create the binding.
+     * @param typeDescription         The description of the class whose methods are being instrumented.
+     * @param classLoader             The class loader responsible for loading the class.
+     * @param ignoredJavaModule       The Java module being ignored (for compatibility reasons).
      * @param ignoredProtectionDomain The protection domain being ignored (for compatibility reasons).
      * @return The builder with the binding applied for file overwrite operations.
      * @throws SecurityException If the binding could not be created for the overwrite path, preventing the application of security advice for file overwriting operations.
      */
-    public static DynamicType.Builder<?> createOverwritePathBinding(
+    public static DynamicType.Builder<?> createOverwritePathMethodBinding(
             DynamicType.Builder<?> builder, TypeDescription typeDescription,
             ClassLoader classLoader, JavaModule ignoredJavaModule,
             ProtectionDomain ignoredProtectionDomain
     ) {
         try {
-            return createBinding(
+            return createMethodBinding(
                     builder, typeDescription, classLoader,
-                    JavaInstrumentationPointcutDefinitions.methodsWhichCanOverwriteFiles, JavaInstrumentationOverwritePathAdvice.class
+                    JavaInstrumentationPointcutDefinitions.methodsWhichCanOverwriteFiles, JavaInstrumentationOverwritePathMethodAdvice.class
             );
         } catch (Exception e) {
-            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Could not create binding for overwrite path.", e);
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Could not create binding for overwrite path method.", e);
+        }
+
+    }
+
+    public static DynamicType.Builder<?> createOverwritePathConstructorBinding(
+            DynamicType.Builder<?> builder, TypeDescription typeDescription,
+            ClassLoader classLoader, JavaModule ignoredJavaModule,
+            ProtectionDomain ignoredProtectionDomain
+    ) {
+        try {
+            return createConstructorBinding(
+                    builder, typeDescription, classLoader,
+                    JavaInstrumentationPointcutDefinitions.methodsWhichCanOverwriteFiles, JavaInstrumentationOverwritePathConstructorAdvice.class
+            );
+        } catch (Exception e) {
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Could not create binding for overwrite path constructor.", e);
         }
 
     }
@@ -173,26 +209,41 @@ public class JavaInstrumentationBindingDefinitions {
      * advice is applied when methods that execute files are invoked. This helps to prevent unauthorized
      * file executions that could compromise the system's integrity.
      *
-     * @param builder The builder used to create the binding.
-     * @param typeDescription The description of the class whose methods are being instrumented.
-     * @param classLoader The class loader responsible for loading the class.
-     * @param ignoredJavaModule The Java module being ignored (for compatibility reasons).
+     * @param builder                 The builder used to create the binding.
+     * @param typeDescription         The description of the class whose methods are being instrumented.
+     * @param classLoader             The class loader responsible for loading the class.
+     * @param ignoredJavaModule       The Java module being ignored (for compatibility reasons).
      * @param ignoredProtectionDomain The protection domain being ignored (for compatibility reasons).
      * @return The builder with the binding applied for file execution operations.
      * @throws SecurityException If the binding could not be created for the execute path, preventing the enforcement of security policies for file execution.
      */
-    public static DynamicType.Builder<?> createExecutePathBinding(
+    public static DynamicType.Builder<?> createExecutePathMethodBinding(
             DynamicType.Builder<?> builder, TypeDescription typeDescription,
             ClassLoader classLoader, JavaModule ignoredJavaModule,
             ProtectionDomain ignoredProtectionDomain
     ) {
         try {
-            return createBinding(
+            return createMethodBinding(
                     builder, typeDescription, classLoader,
-                    JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteFiles, JavaInstrumentationExecutePathAdvice.class
+                    JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteFiles, JavaInstrumentationExecutePathMethodAdvice.class
             );
         } catch (Exception e) {
-            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Could not create binding for execute path.", e);
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Could not create binding for execute path method.", e);
+        }
+    }
+
+    public static DynamicType.Builder<?> createExecutePathConstructorBinding(
+            DynamicType.Builder<?> builder, TypeDescription typeDescription,
+            ClassLoader classLoader, JavaModule ignoredJavaModule,
+            ProtectionDomain ignoredProtectionDomain
+    ) {
+        try {
+            return createConstructorBinding(
+                    builder, typeDescription, classLoader,
+                    JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteFiles, JavaInstrumentationExecutePathConstructorAdvice.class
+            );
+        } catch (Exception e) {
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Could not create binding for execute path constructor.", e);
         }
     }
     //</editor-fold>
@@ -204,27 +255,43 @@ public class JavaInstrumentationBindingDefinitions {
      * advice is applied when methods that delete files are invoked. This safeguards against unauthorized
      * or harmful file deletion operations.
      *
-     * @param builder The builder used to create the binding.
-     * @param typeDescription The description of the class whose methods are being instrumented.
-     * @param classLoader The class loader responsible for loading the class.
-     * @param ignoredJavaModule The Java module being ignored (for compatibility reasons).
+     * @param builder                 The builder used to create the binding.
+     * @param typeDescription         The description of the class whose methods are being instrumented.
+     * @param classLoader             The class loader responsible for loading the class.
+     * @param ignoredJavaModule       The Java module being ignored (for compatibility reasons).
      * @param ignoredProtectionDomain The protection domain being ignored (for compatibility reasons).
      * @return The builder with the binding applied for file deletion operations.
      * @throws SecurityException If the binding could not be created for the delete path, preventing the enforcement of security policies for file deletion operations.
      */
-    public static DynamicType.Builder<?> createDeletePathBinding(
+    public static DynamicType.Builder<?> createDeletePathMethodBinding(
             DynamicType.Builder<?> builder, TypeDescription typeDescription,
             ClassLoader classLoader, JavaModule ignoredJavaModule,
             ProtectionDomain ignoredProtectionDomain
     ) {
         try {
-            return createBinding(
+            return createMethodBinding(
                     builder, typeDescription, classLoader,
-                    JavaInstrumentationPointcutDefinitions.methodsWhichCanDeleteFiles, JavaInstrumentationDeletePathAdvice.class
+                    JavaInstrumentationPointcutDefinitions.methodsWhichCanDeleteFiles, JavaInstrumentationDeletePathMethodAdvice.class
             );
         } catch (Exception e) {
-            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Could not create binding for delete path.", e);
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Could not create binding for delete path method.", e);
+        }
+    }
+
+    public static DynamicType.Builder<?> createDeletePathConstructorBinding(
+            DynamicType.Builder<?> builder, TypeDescription typeDescription,
+            ClassLoader classLoader, JavaModule ignoredJavaModule,
+            ProtectionDomain ignoredProtectionDomain
+    ) {
+        try {
+            return createConstructorBinding(
+                    builder, typeDescription, classLoader,
+                    JavaInstrumentationPointcutDefinitions.methodsWhichCanDeleteFiles, JavaInstrumentationDeletePathConstructorAdvice.class
+            );
+        } catch (Exception e) {
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Could not create binding for delete path constructor.", e);
         }
     }
     //</editor-fold>
 }
+

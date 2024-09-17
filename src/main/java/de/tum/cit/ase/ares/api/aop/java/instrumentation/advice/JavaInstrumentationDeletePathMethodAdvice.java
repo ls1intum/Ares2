@@ -14,7 +14,7 @@ import static net.bytebuddy.asm.Advice.*;
  * unauthorized file executions. The class interacts with the JavaInstrumentationAdviceToolbox to
  * perform these security checks.
  */
-public class JavaInstrumentationDeletePathAdvice {
+public class JavaInstrumentationDeletePathMethodAdvice {
     /**
      * This method is called when a method annotated with the @ExecutePath annotation is entered.
      * It performs security checks to determine whether the method execution is allowed according

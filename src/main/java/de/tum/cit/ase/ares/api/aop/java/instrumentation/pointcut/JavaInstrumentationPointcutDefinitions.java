@@ -29,34 +29,6 @@ public class JavaInstrumentationPointcutDefinitions {
     //</editor-fold>
 
     //<editor-fold desc="Tools">
-    /**
-     * This method returns a matcher that matches the methods of the provided class (type description)
-     * against the specified methods map. The map defines the method signatures to target for instrumentation.
-     * Each key in the methods map represents a class name, and the corresponding value is a list of method
-     * names that are used as pointcuts for monitoring and modifying their execution.
-     *
-     * @param typeDescription The description of the class whose methods are to be matched.
-     * @param methodsMap      A map containing class names as keys and lists of method names as values. These
-     *                        define the methods to be instrumented.
-     * @return An element matcher that matches methods based on the provided methods map.
-     *         If no methods are found for the class, returns {@code ElementMatchers.none()}.
-     */
-    static ElementMatcher<MethodDescription> getMethodsMatcher(
-            TypeDescription typeDescription,
-            Map<String, List<String>> methodsMap
-    ) {
-        List<String> methods = methodsMap.get(typeDescription.getName());
-        if (methods == null || methods.isEmpty()) {
-            return ElementMatchers.none();
-        }
-        return ElementMatchers.namedOneOf(
-                methods
-                        .stream()
-                        .distinct()
-                        .toArray(String[]::new)
-        );
-
-    }
 
     /**
      * This method returns a matcher that matches classes based on the provided methods map.
@@ -65,7 +37,7 @@ public class JavaInstrumentationPointcutDefinitions {
      * @param methodsMap A map containing class names as keys and lists of method names as values. These
      *                   define the classes and their respective methods for instrumentation.
      * @return An element matcher that matches classes based on the method map.
-     *         If no classes are found in the map, returns {@code ElementMatchers.none()}.
+     * If no classes are found in the map, returns {@code ElementMatchers.none()}.
      */
     public static ElementMatcher<NamedElement> getClassesMatcher(
             Map<String, List<String>> methodsMap
@@ -83,6 +55,63 @@ public class JavaInstrumentationPointcutDefinitions {
 
     }
 
+    static ElementMatcher<MethodDescription> getConstructorsMatcher(
+            TypeDescription typeDescription,
+            Map<String, List<String>> methodsMap
+    ) {
+        List<String> methods = methodsMap.get(typeDescription.getName());
+        if (
+                methods == null
+                        || methods.isEmpty()
+                        || methods
+                        .stream()
+                        .filter(method -> method.equals("<init>"))
+                        .toList()
+                        .isEmpty()
+        ) {
+            return ElementMatchers.none();
+        } else {
+            return ElementMatchers.isConstructor();
+        }
+    }
+
+    /**
+     * This method returns a matcher that matches the methods of the provided class (type description)
+     * against the specified methods map. The map defines the method signatures to target for instrumentation.
+     * Each key in the methods map represents a class name, and the corresponding value is a list of method
+     * names that are used as pointcuts for monitoring and modifying their execution.
+     *
+     * @param typeDescription The description of the class whose methods are to be matched.
+     * @param methodsMap      A map containing class names as keys and lists of method names as values. These
+     *                        define the methods to be instrumented.
+     * @return An element matcher that matches methods based on the provided methods map.
+     * If no methods are found for the class, returns {@code ElementMatchers.none()}.
+     */
+    static ElementMatcher<MethodDescription> getMethodsMatcher(
+            TypeDescription typeDescription,
+            Map<String, List<String>> methodsMap
+    ) {
+        List<String> methods = methodsMap.get(typeDescription.getName());
+        if (
+                methods == null
+                        || methods.isEmpty()
+                        || methods
+                        .stream()
+                        .filter(method -> !method.equals("<init>"))
+                        .toList()
+                        .isEmpty()
+        ) {
+            return ElementMatchers.none();
+        } else {
+            return ElementMatchers.namedOneOf(
+                    methods
+                            .stream()
+                            .distinct()
+                            .toArray(String[]::new)
+            );
+        }
+    }
+
     //</editor-fold>
 
     //<editor-fold desc="Read Path">
@@ -94,8 +123,7 @@ public class JavaInstrumentationPointcutDefinitions {
             "instrumentation.io.FileInputStream",
             List.of("<init>", "read"),
             "instrumentation.io.RandomAccessFile",
-            List.of("read", "readFully", "readLine", "readBoolean", "readByte", "readChar", "readDouble",
-                    "readFloat", "readInt", "readLong", "readShort", "readUnsignedByte", "readUnsignedShort"),
+            List.of("read", "readFully", "readLine", "readBoolean", "readByte", "readChar", "readDouble", "readFloat", "readInt", "readLong", "readShort", "readUnsignedByte", "readUnsignedShort"),
             "instrumentation.io.UnixFileSystem",
             List.of("getLastModifiedTime", "getBooleanAttributes0", "getSpace", "canonicalize0"),
             "instrumentation.io.WinNTFileSystem",
@@ -103,7 +131,9 @@ public class JavaInstrumentationPointcutDefinitions {
             "instrumentation.io.Win32FileSystem",
             List.of("getBooleanAttributes", "canonicalize", "getLastModifiedTime", "getSpace"),
             "java.nio.file.Files",
-            List.of("readAttributes", "readAllBytes", "readAllLines", "readString", "read", "newInputStream", "lines")
+            List.of("readAttributes", "readAllBytes", "readAllLines", "readString", "read", "newInputStream", "lines"),
+            "java.io.FileReader",
+            List.of("<init>")
     );
     //</editor-fold>
 
@@ -114,10 +144,9 @@ public class JavaInstrumentationPointcutDefinitions {
      */
     public static final Map<String, List<String>> methodsWhichCanOverwriteFiles = Map.of(
             "java.io.FileOutputStream",
-            List.of("<init>","write"),
+            List.of("<init>", "write"),
             "instrumentation.io.RandomAccessFile",
-            List.of("write", "writeBoolean", "writeByte", "writeBytes",
-                    "writeChar", "writeChars", "writeDouble", "writeFloat", "writeInt", "writeLong", "writeShort"),
+            List.of("write", "writeBoolean", "writeByte", "writeBytes", "writeChar", "writeChars", "writeDouble", "writeFloat", "writeInt", "writeLong", "writeShort"),
             "instrumentation.io.UnixFileSystem",
             List.of("setLastModifiedTime", "createFileExclusively", "delete0", "createDirectory"),
             "instrumentation.io.WinNTFileSystem",
