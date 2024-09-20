@@ -458,7 +458,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-shade-plugin</artifactId>
-				<version>3.2.4</version>
+				<version>3.3.0</version>
 				<executions>
 					<execution>
 						<phase>package</phase>
@@ -466,17 +466,22 @@
 							<goal>shade</goal>
 						</goals>
 						<configuration>
+							<shadedArtifactAttached>true</shadedArtifactAttached>
+							<shadedClassifierName>agent</shadedClassifierName>
 							<transformers>
-								<!-- Ensures the MANIFEST.MF file is created -->
-								<transformer
-										implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-									<mainClass>de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent</mainClass>
+								<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
 									<manifestEntries>
 										<Premain-Class>de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent</Premain-Class>
+										<Can-Redefine-Classes>true</Can-Redefine-Classes>
 										<Can-Retransform-Classes>true</Can-Retransform-Classes>
 									</manifestEntries>
 								</transformer>
 							</transformers>
+							<artifactSet>
+								<includes>
+									<include>de.tum.cit.ase:ares</include>
+								</includes>
+							</artifactSet>
 						</configuration>
 					</execution>
 				</executions>
@@ -589,6 +594,7 @@
 								<!-- There seem to be race conditions with forks and jqwik -->
 								<configurationParameters>jqwik.database=</configurationParameters>
 							</properties>
+							<argLine>-javaagent:${project.build.directory}/${project.build.finalName}-agent.jar</argLine>
 						</configuration>
 					</plugin>
 				</plugins>
