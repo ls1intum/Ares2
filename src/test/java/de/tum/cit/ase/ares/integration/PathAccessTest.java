@@ -17,23 +17,23 @@ import java.nio.file.Path;
 @UserBased(PathAccessUser.class)
 class PathAccessTest {
 
-	@UserTestResults
-	private static Events tests;
+    @UserTestResults
+    private static Events tests;
 
-	private final String accessPathAllFiles = "accessPathAllFiles";
-	private final String accessPathAllowed = "accessPathAllowed";
-	private final String accessPathNormal = "accessPathNormal";
-	private final String accessPathNormalAllowed = "accessPathNormalAllowed";
-	private final String accessPathRelativeGlobA = "accessPathRelativeGlobA";
-	private final String accessPathRelativeGlobB = "accessPathRelativeGlobB";
-	private final String accessPathRelativeGlobDirectChildrenAllowed = "accessPathRelativeGlobDirectChildrenAllowed";
-	private final String accessPathRelativeGlobDirectChildrenBlacklist = "accessPathRelativeGlobDirectChildrenBlacklist";
-	private final String accessPathRelativeGlobDirectChildrenForbidden = "accessPathRelativeGlobDirectChildrenForbidden";
-	private final String accessPathRelativeGlobRecursiveAllowed = "accessPathRelativeGlobRecursiveAllowed";
-	private final String accessPathRelativeGlobRecursiveBlacklist = "accessPathRelativeGlobRecursiveBlacklist";
-	private final String accessPathRelativeGlobRecursiveForbidden = "accessPathRelativeGlobRecursiveForbidden";
-	private final String accessPathTest = "accessPathTest";
-	private final String weAccessPath = "weAccessPath";
+    private final String accessPathAllFiles = "accessPathAllFiles";
+    private final String accessPathAllowed = "accessPathAllowed";
+    private final String accessPathNormal = "accessPathNormal";
+    private final String accessPathNormalAllowed = "accessPathNormalAllowed";
+    private final String accessPathRelativeGlobA = "accessPathRelativeGlobA";
+    private final String accessPathRelativeGlobB = "accessPathRelativeGlobB";
+    private final String accessPathRelativeGlobDirectChildrenAllowed = "accessPathRelativeGlobDirectChildrenAllowed";
+    private final String accessPathRelativeGlobDirectChildrenBlacklist = "accessPathRelativeGlobDirectChildrenBlacklist";
+    private final String accessPathRelativeGlobDirectChildrenForbidden = "accessPathRelativeGlobDirectChildrenForbidden";
+    private final String accessPathRelativeGlobRecursiveAllowed = "accessPathRelativeGlobRecursiveAllowed";
+    private final String accessPathRelativeGlobRecursiveBlacklist = "accessPathRelativeGlobRecursiveBlacklist";
+    private final String accessPathRelativeGlobRecursiveForbidden = "accessPathRelativeGlobRecursiveForbidden";
+    private final String accessPathTest = "accessPathTest";
+    private final String weAccessPath = "weAccessPath";
 
 	/* OUTCOMMENTED: Conceptually not possible anymore
 	@TestTest
@@ -47,85 +47,98 @@ class PathAccessTest {
 	}
 	*/
 
-	@TestTest
-	@PublicTest
-	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
-	void test_accessPathNormal() throws IOException {
-		try {
-			PathAccessPenguin.accessPath(Path.of("pom212.xml"));
-			fail();
-		} catch (SecurityException e) {
-			// TODO: check if the exception message is correct
-			// expected
-		}
-	}
+    @TestTest
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
+    void test_accessPathNormal() throws IOException {
+        try {
+            PathAccessPenguin.accessPath(Path.of("pom212.xml"));
+            fail();
+        } catch (SecurityException e) {
+            // TODO: check if the exception message is correct
+            // expected
+        }
+    }
 
-	@TestTest
-	void test_accessPathAllowed() {
-		tests.assertThatEvents().haveExactly(1, finishedSuccessfully(accessPathNormalAllowed));
-	}
+    @TestTest
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentation.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
+    void test_accessPathNormalInstrumentation() throws IOException {
+        try {
+            PathAccessPenguin.accessPath(Path.of("pom212.xml"));
+            fail();
+        } catch (SecurityException e) {
+            // TODO: check if the exception message is correct
+            // expected
+        }
+    }
 
-	@TestTest
-	void test_accessPathRelativeGlobA() {
-		tests.assertThatEvents().haveExactly(1, finishedSuccessfully(accessPathRelativeGlobA));
-	}
+    @TestTest
+    void test_accessPathAllowed() {
+        tests.assertThatEvents().haveExactly(1, finishedSuccessfully(accessPathNormalAllowed));
+    }
 
-	@TestTest
-	void test_accessPathRelativeGlobB() {
-		tests.assertThatEvents().haveExactly(1, finishedSuccessfully(accessPathRelativeGlobB));
-	}
+    @TestTest
+    void test_accessPathRelativeGlobA() {
+        tests.assertThatEvents().haveExactly(1, finishedSuccessfully(accessPathRelativeGlobA));
+    }
 
-	@TestTest
-	void test_accessPathRelativeGlobDirectChildrenAllowed() {
-		tests.assertThatEvents().haveExactly(1, finishedSuccessfully(accessPathRelativeGlobDirectChildrenAllowed));
-	}
+    @TestTest
+    void test_accessPathRelativeGlobB() {
+        tests.assertThatEvents().haveExactly(1, finishedSuccessfully(accessPathRelativeGlobB));
+    }
 
-	@TestTest
-	void test_accessPathRelativeGlobDirectChildrenBlacklist() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1,
-		//		testFailedWith(accessPathRelativeGlobDirectChildrenBlacklist, SecurityException.class));
-	}
+    @TestTest
+    void test_accessPathRelativeGlobDirectChildrenAllowed() {
+        tests.assertThatEvents().haveExactly(1, finishedSuccessfully(accessPathRelativeGlobDirectChildrenAllowed));
+    }
 
-	@TestTest
-	void test_accessPathRelativeGlobDirectChildrenForbidden() {
-		// tests.assertThatEvents().haveExactly(1,
-		//		testFailedWith(accessPathRelativeGlobDirectChildrenForbidden, SecurityException.class));
-	}
+    @TestTest
+    void test_accessPathRelativeGlobDirectChildrenBlacklist() {
+        //OUTCOMMENTED: Test does not pass
+        //tests.assertThatEvents().haveExactly(1,
+        //		testFailedWith(accessPathRelativeGlobDirectChildrenBlacklist, SecurityException.class));
+    }
 
-	@TestTest
-	void test_accessPathRelativeGlobRecursiveAllowed() {
-		tests.assertThatEvents().haveExactly(1, finishedSuccessfully(accessPathRelativeGlobRecursiveAllowed));
-	}
+    @TestTest
+    void test_accessPathRelativeGlobDirectChildrenForbidden() {
+        // tests.assertThatEvents().haveExactly(1,
+        //		testFailedWith(accessPathRelativeGlobDirectChildrenForbidden, SecurityException.class));
+    }
 
-	@TestTest
-	void test_accessPathRelativeGlobRecursiveBlacklist() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1,
-		//		testFailedWith(accessPathRelativeGlobRecursiveBlacklist, SecurityException.class));
-	}
+    @TestTest
+    void test_accessPathRelativeGlobRecursiveAllowed() {
+        tests.assertThatEvents().haveExactly(1, finishedSuccessfully(accessPathRelativeGlobRecursiveAllowed));
+    }
 
-	@TestTest
-	void test_accessPathRelativeGlobRecursiveForbidden() {
-		//tests.assertThatEvents().haveExactly(1,
-		//		testFailedWith(accessPathRelativeGlobRecursiveForbidden, SecurityException.class));
-	}
+    @TestTest
+    void test_accessPathRelativeGlobRecursiveBlacklist() {
+        //OUTCOMMENTED: Test does not pass
+        //tests.assertThatEvents().haveExactly(1,
+        //		testFailedWith(accessPathRelativeGlobRecursiveBlacklist, SecurityException.class));
+    }
 
-	@TestTest
-	void test_accessPathTest() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1, testFailedWith(accessPathTest, SecurityException.class));
-	}
+    @TestTest
+    void test_accessPathRelativeGlobRecursiveForbidden() {
+        //tests.assertThatEvents().haveExactly(1,
+        //		testFailedWith(accessPathRelativeGlobRecursiveForbidden, SecurityException.class));
+    }
 
-	@TestTest
-	void test_weAccessPath() {
-		tests.assertThatEvents().haveExactly(1, finishedSuccessfully(weAccessPath));
-	}
+    @TestTest
+    void test_accessPathTest() {
+        //OUTCOMMENTED: Test does not pass
+        //tests.assertThatEvents().haveExactly(1, testFailedWith(accessPathTest, SecurityException.class));
+    }
 
-	@TestTest
-	void test_accessFileSystem() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith("accessFileSystem", SecurityException.class));
-	}
+    @TestTest
+    void test_weAccessPath() {
+        tests.assertThatEvents().haveExactly(1, finishedSuccessfully(weAccessPath));
+    }
+
+    @TestTest
+    void test_accessFileSystem() {
+        tests.assertThatEvents().haveExactly(1, testFailedWith("accessFileSystem", SecurityException.class));
+    }
 
 
 }

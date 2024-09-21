@@ -31,7 +31,9 @@ jobs:
           sudo ln -s /usr/share/apache-maven-3.9.8/bin/mvn /usr/bin/mvn
 
       - name: Build and Test with Maven
-        run: mvn -B package --file pom.xml
+        run: |
+          mvn -B package --file pom.xml -DskipTests
+          mvn test
 
       - name: Run Tests on Student Submission
         run: |
