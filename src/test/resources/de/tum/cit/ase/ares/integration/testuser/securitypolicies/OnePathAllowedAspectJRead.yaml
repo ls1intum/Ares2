@@ -13,9 +13,10 @@ regardingTheSupervisedCode:
     - "de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile.TransitivelyAccessesMethodsCondition$TransitiveAccessPath"
     - "de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile.TransitivelyAccessesMethodsCondition"
     - "de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitSecurityTestCase"
+    - "de.tum.cit.ase.ares.testutilities.TestUserExtension"
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions:
-      - readAllFiles: false
+      - readAllFiles: true
         overwriteAllFiles: false
         executeAllFiles: false
         deleteAllFiles: false

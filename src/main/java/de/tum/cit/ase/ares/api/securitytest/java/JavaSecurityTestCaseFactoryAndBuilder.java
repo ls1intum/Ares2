@@ -3,6 +3,7 @@ package de.tum.cit.ase.ares.api.securitytest.java;
 //<editor-fold desc="Imports">
 
 import com.google.common.collect.Streams;
+import com.tngtech.archunit.ArchConfiguration;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSupported;
@@ -322,6 +323,11 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         //<editor-fold desc="Load classes code">
         @Nonnull JavaClasses classes = new ClassFileImporter().importPath(Paths.get(ProjectSourcesFinder.isGradleProject() ? "build" : "target", projectPath.toString()).toString());
         //</editor-fold>#
+
+        //<editor-fold desc="Set ArchUnit properties for optimization">
+        ArchConfiguration.get().setProperty("archRule.failOnEmptyShould", "false");
+        ArchConfiguration.get().setResolveMissingDependenciesFromClassPath(false);
+        //</editor-fold>
 
         //<editor-fold desc="Enforce fixed rules code">
         JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_USE_REFLECTION.check(classes);

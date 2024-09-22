@@ -15,6 +15,7 @@ import org.apiguardian.api.API.Status;
 import net.jqwik.api.lifecycle.*;
 
 import static de.tum.cit.ase.ares.api.internal.TestGuardUtils.hasAnnotation;
+import static de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension.resetSettings;
 import static org.junit.platform.commons.support.AnnotationSupport.findAnnotation;
 //REMOVED: Import of ArtemisSecurityManager
 
@@ -52,22 +53,13 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
 				}
 			}
 		} else {
-			// TODO this method is duplicated make utils class and use it instead???
 			try {
-				ClassLoader customClassLoader = Thread.currentThread().getContextClassLoader();
-				Class<?> javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, customClassLoader);
-				Method resetMethod = javaSecurityTestCaseSettingsClass.getDeclaredMethod("reset");
-				resetMethod.setAccessible(true);
-				resetMethod.invoke(null);
-				resetMethod.setAccessible(false);
+				Class<?> javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings");
+				resetSettings(javaSecurityTestCaseSettingsClass);
+				javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, null);
+				resetSettings(javaSecurityTestCaseSettingsClass);
 			} catch (ClassNotFoundException e) {
 				throw new SecurityException("Security configuration error: The class for the specific security test case settings could not be found. Ensure the class name is correct and the class is available at runtime.", e);
-			}  catch (NoSuchMethodException e) {
-				throw new SecurityException("Security configuration error: The 'reset' method could not be found in the specified class. Ensure the method exists and is correctly named.", e);
-			}  catch (IllegalAccessException e) {
-				throw new SecurityException("Security configuration error: Access to the 'reset' method was denied. Ensure the method is public and accessible.", e);
-			} catch (InvocationTargetException e) {
-				throw new SecurityException("Security configuration error: An error occurred while invoking the 'reset' method. This could be due to an underlying issue within the method implementation.", e);
 			}
 		}
 //REMOVED: Installing of ArtemisSecurityManager

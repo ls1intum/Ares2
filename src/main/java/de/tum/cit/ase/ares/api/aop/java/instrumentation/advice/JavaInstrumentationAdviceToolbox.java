@@ -19,6 +19,7 @@ import java.nio.file.Path;
  */
 public class JavaInstrumentationAdviceToolbox {
     //<editor-fold desc="Constructor">
+
     /**
      * Private constructor to prevent instantiation of this utility class.
      */
@@ -28,6 +29,7 @@ public class JavaInstrumentationAdviceToolbox {
     //</editor-fold>
 
     //<editor-fold desc="Tool methods">
+
     /**
      * Get the value of a field from the JavaSecurityTestCaseSettings class.
      * This method dynamically accesses a field in the JavaSecurityTestCaseSettings class
@@ -66,6 +68,7 @@ public class JavaInstrumentationAdviceToolbox {
     //<editor-fold desc="File system methods">
 
     //<editor-fold desc="Callstack criteria methods">
+
     /**
      * Check if the provided call stack element is allowed.
      * This method verifies whether the class in the call stack element belongs to the list of allowed
@@ -91,7 +94,7 @@ public class JavaInstrumentationAdviceToolbox {
      * is returned.
      *
      * @param restrictedPackage The package that is restricted in the call stack.
-     * @param allowedClasses The list of classes that are allowed to be present in the call stack.
+     * @param allowedClasses    The list of classes that are allowed to be present in the call stack.
      * @return The call stack element that violates the criteria, or null if no violation occurred.
      */
     private static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses) {
@@ -108,6 +111,7 @@ public class JavaInstrumentationAdviceToolbox {
     //</editor-fold>
 
     //<editor-fold desc="Variable criteria methods">
+
     /**
      * Transform a variable value into a normalized absolute path.
      * This method converts the provided variable (e.g., Path, String, or File) into an absolute
@@ -153,13 +157,13 @@ public class JavaInstrumentationAdviceToolbox {
      * is permitted for access or modification based on the defined security rules.
      *
      * @param allowedPaths The list of allowed paths that can be accessed or modified.
-     * @param pathToCheck The path that needs to be checked against the allowed paths.
+     * @param pathToCheck  The path that needs to be checked against the allowed paths.
      * @return True if the path is allowed, false otherwise.
      */
     private static boolean checkIfPathIsAllowed(String[] allowedPaths, Path pathToCheck) {
         Path absoluteNormalisedPathToCheck = pathToCheck.toAbsolutePath().normalize();
         for (String allowedPath : allowedPaths) {
-            if (absoluteNormalisedPathToCheck.startsWith( variableToPath(allowedPath))) {
+            if (absoluteNormalisedPathToCheck.startsWith(variableToPath(allowedPath))) {
                 return true;
             }
         }
@@ -169,8 +173,8 @@ public class JavaInstrumentationAdviceToolbox {
     /**
      * Check if the variable criteria is violated.
      *
-     * @param variables     The variables to check.
-     * @param allowedPaths  The paths that are allowed to be accessed.
+     * @param variables    The variables to check.
+     * @param allowedPaths The paths that are allowed to be accessed.
      * @return The path that violates the criteria, null if no violation occurred.
      */
     private static String checkIfVariableCriteriaIsViolated(Object[] variables, String[] allowedPaths) {
@@ -188,6 +192,7 @@ public class JavaInstrumentationAdviceToolbox {
     //</editor-fold>
 
     //<editor-fold desc="Check methods">
+
     /**
      * Check if the file system interaction is allowed according to security policies.
      * This method verifies that the specified file system action (read, write, execute, delete) complies
@@ -195,12 +200,12 @@ public class JavaInstrumentationAdviceToolbox {
      * It checks if the action is restricted based on the method call, attributes, and parameters. If a method
      * violates the file system security rules, the action is blocked.
      *
-     * @param action The file system action being performed (e.g., read, write, execute, delete).
+     * @param action            The file system action being performed (e.g., read, write, execute, delete).
      * @param declaringTypeName The name of the class declaring the method.
-     * @param methodName The name of the method being invoked.
-     * @param methodSignature The signature of the method.
-     * @param attributes The attributes of the method (if any).
-     * @param parameters The parameters of the method (if any).
+     * @param methodName        The name of the method being invoked.
+     * @param methodSignature   The signature of the method.
+     * @param attributes        The attributes of the method (if any).
+     * @param parameters        The parameters of the method (if any).
      * @throws SecurityException If the file system interaction is found to be unauthorized.
      */
     public static void checkFileSystemInteraction(
@@ -212,7 +217,7 @@ public class JavaInstrumentationAdviceToolbox {
             Object[] parameters
     ) {
         String aopMode = (String) getValueFromSettings("aopMode");
-        if(aopMode == null || !aopMode.equals("INSTRUMENTATION")) {
+        if (aopMode == null || !aopMode.equals("INSTRUMENTATION")) {
             return;
         }
         String restrictedPackage = (String) getValueFromSettings("restrictedPackage");

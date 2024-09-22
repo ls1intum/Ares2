@@ -4,22 +4,22 @@ import java.io.IOException;
 
 public class CommandExecutingStudent {
 
-    public void method() throws IOException {
+    public void processBuilder() throws IOException {
         ProcessBuilder processBuilder = new ProcessBuilder();
         processBuilder.start();
     }
 
-    public void method2() throws IOException {
+    public void processBuilderWithCommand() throws IOException {
         ProcessBuilder processBuilder = new ProcessBuilder();
         processBuilder.command("ls");
         processBuilder.start();
     }
 
-    public void method3() throws IOException {
+    public void runtimeExec() throws IOException {
         Runtime.getRuntime().exec("ls");
     }
 
-    public void method4() throws IOException {
+    public void runtimeExecNewerVersion() throws IOException {
         Runtime.getRuntime().exec(new String[] {"ls"});
     }
 }

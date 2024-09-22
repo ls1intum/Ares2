@@ -13,3 +13,5 @@ regardingTheSupervisedCode:
       - importTheFollowingPackage: "java.util"
       - importTheFollowingPackage: "java.nio"
       - importTheFollowingPackage: "java.net"
+      - importTheFollowingPackage: "java.awt"
+      - importTheFollowingPackage: "javax.swing"
