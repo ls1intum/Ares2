@@ -1,4 +1,4 @@
-package %s.aop.java.instrumentation.advice;
+package %s.api.aop.java.instrumentation.advice;
 
 import java.io.File;
 import java.lang.reflect.Field;
@@ -41,7 +41,7 @@ public class JavaInstrumentationAdviceToolbox {
     private static Object getValueFromSettings(String fieldName) {
         try {
             // Take bootloader as class loader in order to get the JavaSecurityTestCaseSettings class at bootloader time for instrumentation
-            Class<?> adviceSettingsClass = Class.forName("%s.aop.java.JavaSecurityTestCaseSettings", true, null);
+            Class<?> adviceSettingsClass = Class.forName("%s.api.aop.java.JavaSecurityTestCaseSettings", true, null);
             Field field = adviceSettingsClass.getDeclaredField(fieldName);
             field.setAccessible(true);
             Object value = field.get(null);
@@ -77,7 +77,7 @@ public class JavaInstrumentationAdviceToolbox {
      */
     private static boolean checkIfCallstackElementIsAllowed(String[] allowedClasses, StackTraceElement elementToCheck) {
         for (String allowedClass : allowedClasses) {
-            if (elementToCheck.getClassName().equals(allowedClass)) {
+            if (elementToCheck.getClassName().startsWith(allowedClass)) {
                 return true;
             }
         }
@@ -97,7 +97,7 @@ public class JavaInstrumentationAdviceToolbox {
     private static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses) {
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
         for (StackTraceElement element : stackTrace) {
-            if (element.toString().contains(restrictedPackage)) {
+            if (element.toString().startsWith(restrictedPackage)) {
                 if (!checkIfCallstackElementIsAllowed(allowedClasses, element)) {
                     return element.toString();
                 }
@@ -119,31 +119,32 @@ public class JavaInstrumentationAdviceToolbox {
      * @throws InvalidPathException If the variable cannot be transformed into a valid path.
      */
     private static Path variableToPath(Object variableValue) {
-        return switch (variableValue) {
-            case null -> throw new InvalidPathException("null", "Cannot transform to path");
-            case Path path -> {
-                try {
-                    yield path.normalize().toAbsolutePath();
-                } catch (InvalidPathException e) {
-                    throw new InvalidPathException(path.toString(), "Cannot transform to path");
-                }
+        if (variableValue == null) {
+            throw new InvalidPathException("null", "Cannot transform to path");
+        } else if (variableValue instanceof Path) {
+            Path path = (Path) variableValue;
+            try {
+                return path.normalize().toAbsolutePath();
+            } catch (InvalidPathException e) {
+                throw new InvalidPathException(path.toString(), "Cannot transform to path");
             }
-            case String string -> {
-                try {
-                    yield Path.of(string).normalize().toAbsolutePath();
-                } catch (InvalidPathException e) {
-                    throw new InvalidPathException(string, "Cannot transform to path");
-                }
+        } else if (variableValue instanceof String) {
+            String string = (String) variableValue;
+            try {
+                return Path.of(string).normalize().toAbsolutePath();
+            } catch (InvalidPathException e) {
+                throw new InvalidPathException(string, "Cannot transform to path");
             }
-            case File file -> {
-                try {
-                    yield Path.of(file.toURI()).normalize().toAbsolutePath();
-                } catch (InvalidPathException e) {
-                    throw new InvalidPathException(file.toString(), "Cannot transform to path");
-                }
+        } else if (variableValue instanceof File) {
+            File file = (File) variableValue;
+            try {
+                return Path.of(file.toURI()).normalize().toAbsolutePath();
+            } catch (InvalidPathException e) {
+                throw new InvalidPathException(file.toString(), "Cannot transform to path");
             }
-            default -> throw new InvalidPathException(variableValue.toString(), "Cannot transform to path");
-        };
+        } else {
+            throw new InvalidPathException(variableValue.toString(), "Cannot transform to path");
+        }
     }
 
     /**
@@ -156,8 +157,9 @@ public class JavaInstrumentationAdviceToolbox {
      * @return True if the path is allowed, false otherwise.
      */
     private static boolean checkIfPathIsAllowed(String[] allowedPaths, Path pathToCheck) {
+        Path absoluteNormalisedPathToCheck = pathToCheck.toAbsolutePath().normalize();
         for (String allowedPath : allowedPaths) {
-            if (variableToPath(allowedPath).toString().equals(pathToCheck.toString())) {
+            if (absoluteNormalisedPathToCheck.startsWith( variableToPath(allowedPath))) {
                 return true;
             }
         }
@@ -209,6 +211,10 @@ public class JavaInstrumentationAdviceToolbox {
             Object[] attributes,
             Object[] parameters
     ) {
+        String aopMode = (String) getValueFromSettings("aopMode");
+        if(aopMode == null || !aopMode.equals("INSTRUMENTATION")) {
+            return;
+        }
         String restrictedPackage = (String) getValueFromSettings("restrictedPackage");
         String[] allowedClasses = (String[]) getValueFromSettings("allowedListedClasses");
         String[] allowedPaths = (String[]) getValueFromSettings(
@@ -220,10 +226,6 @@ public class JavaInstrumentationAdviceToolbox {
                     default -> throw new IllegalArgumentException("Unknown action: " + action);
                 }
         );
-        // TODO Markus: delete this statement, this is a workaround since the YAML reader doesn't work properly
-        if (restrictedPackage == null) {
-            restrictedPackage = "de.tum.cit.ase";
-        }
         final String fullMethodSignature = declaringTypeName + "." + methodName + methodSignature;
         String illegallyReadingMethod = allowedPaths == null ? null : checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses);
         if (illegallyReadingMethod != null) {

@@ -1,4 +1,4 @@
-package %s.architecture.java.archunit.postcompile;
+package %s.api.architecture.java.archunit.postcompile;
 
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;

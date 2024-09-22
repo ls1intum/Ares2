@@ -43,7 +43,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
             throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Field '" + fieldName + "' is inaccessible in AdviceSettings", e);
         }
     }
-    //</editor-fold>
+    // </editor-fold>
 
     //<editor-fold desc="File system methods">
 
@@ -86,31 +86,32 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
      * @throws InvalidPathException If the variable cannot be transformed into a valid path.
      */
     private static Path variableToPath(Object variableValue) {
-        return switch (variableValue) {
-            case null -> throw new InvalidPathException("null", "Cannot transform to path");
-            case Path path -> {
-                try {
-                    yield path.normalize().toAbsolutePath();
-                } catch (InvalidPathException e) {
-                    throw new InvalidPathException(path.toString(), "Cannot transform to path");
-                }
+        if (variableValue == null) {
+            throw new InvalidPathException("null", "Cannot transform to path");
+        } else if (variableValue instanceof Path) {
+            Path path = (Path) variableValue;
+            try {
+                return path.normalize().toAbsolutePath();
+            } catch (InvalidPathException e) {
+                throw new InvalidPathException(path.toString(), "Cannot transform to path");
             }
-            case String string -> {
-                try {
-                    yield Path.of(string).normalize().toAbsolutePath();
-                } catch (InvalidPathException e) {
-                    throw new InvalidPathException(string, "Cannot transform to path");
-                }
+        } else if (variableValue instanceof String) {
+            String string = (String) variableValue;
+            try {
+                return Path.of(string).normalize().toAbsolutePath();
+            } catch (InvalidPathException e) {
+                throw new InvalidPathException(string, "Cannot transform to path");
             }
-            case File file -> {
-                try {
-                    yield Path.of(file.toURI()).normalize().toAbsolutePath();
-                } catch (InvalidPathException e) {
-                    throw new InvalidPathException(file.toString(), "Cannot transform to path");
-                }
+        } else if (variableValue instanceof File) {
+            File file = (File) variableValue;
+            try {
+                return Path.of(file.toURI()).normalize().toAbsolutePath();
+            } catch (InvalidPathException e) {
+                throw new InvalidPathException(file.toString(), "Cannot transform to path");
             }
-            default -> throw new InvalidPathException(variableValue.toString(), "Cannot transform to path");
-        };
+        } else {
+            throw new InvalidPathException(variableValue.toString(), "Cannot transform to path");
+        }
     }
 
     /**
@@ -123,8 +124,9 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
      * @return True if the path is allowed, false otherwise.
      */
     private static boolean checkIfPathIsAllowed(String[] allowedPaths, Path pathToCheck) {
+        Path absoluteNormalisedPathToCheck = pathToCheck.toAbsolutePath().normalize();
         for (String allowedPath : allowedPaths) {
-            if (variableToPath(allowedPath).toString().equals(pathToCheck.toString())) {
+            if (absoluteNormalisedPathToCheck.startsWith( variableToPath(allowedPath))) {
                 return true;
             }
         }
@@ -169,6 +171,10 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
             String action,
             JoinPoint thisJoinPoint
     ) {
+        String aopMode = (String) getValueFromSettings("aopMode");
+        if(aopMode == null || !aopMode.equals("ASPECTJ")) {
+            return;
+        }
         String restrictedPackage = (String) getValueFromSettings("restrictedPackage");
         String[] allowedClasses = (String[]) getValueFromSettings("allowedListedClasses");
         String[] allowedPaths = (String[]) getValueFromSettings(
@@ -181,10 +187,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
                 }
         );
         Object[] parameters = thisJoinPoint.getArgs();
-        // TODO Sarp: delete this statement, this is a workaround since the YAML reader doesn't work properly
-        if (restrictedPackage == null) {
-            restrictedPackage = "de.tum.cit.ase";
-        }
         final String fullMethodSignature = thisJoinPoint.getSignature().toLongString();
         String illegallyReadingMethod = allowedPaths == null ? null : checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses, thisJoinPoint.getSourceLocation().getWithinType().getName());
         if (illegallyReadingMethod != null) {
@@ -204,7 +206,12 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileChannelReadMethods() ||
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.midiSystemMethods() ||
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemsReadMethods() ||
-                    de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderReadMethods() {
+                    de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderReadMethods() ||
+                    de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.bufferedReaderInitMethods() ||
+                    de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.scannerInitMethods() ||
+                    de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileReaderInitMethods() ||
+                    de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.lineNumberReaderInitMethods() ||
+                    de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.randomAccessFileInitMethods() {
         checkFileSystemInteraction("read", thisJoinPoint);
     }
 
@@ -215,14 +222,19 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileChannelWriteMethods() ||
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileWriterMethods() ||
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileHandlerMethods() ||
-                    de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderWriteMethods() {
+                    de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderWriteMethods() ||
+                    de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.printWriterInitMethods() ||
+                    de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.bufferedWriterInitMethods() ||
+                    de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.outputStreamWriterInitMethods() ||
+                    de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.dataOutputStreamInitMethods() ||
+                    de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.objectOutputStreamInitMethods() ||
+                    de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.printStreamInitMethods() {
         checkFileSystemInteraction("write", thisJoinPoint);
     }
 
     before():
             de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileExecuteMethods() ||
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.filesExecuteMethods() ||
-                    de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.pathExecuteMethods() ||
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemExecuteMethods() ||
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileChannelExecuteMethods() ||
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.objectStreamClassMethods() ||
@@ -233,7 +245,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
 
     before():
             de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileDeleteMethods() ||
-                    de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.pathDeleteMethods() ||
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.filesDeleteMethods() ||
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderDeleteMethods() {
         checkFileSystemInteraction("delete", thisJoinPoint);

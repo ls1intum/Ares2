@@ -19,6 +19,7 @@ import java.nio.file.Path;
  */
 public class JavaInstrumentationAdviceToolbox {
     //<editor-fold desc="Constructor">
+
     /**
      * Private constructor to prevent instantiation of this utility class.
      */
@@ -28,6 +29,7 @@ public class JavaInstrumentationAdviceToolbox {
     //</editor-fold>
 
     //<editor-fold desc="Tool methods">
+
     /**
      * Get the value of a field from the JavaSecurityTestCaseSettings class.
      * This method dynamically accesses a field in the JavaSecurityTestCaseSettings class
@@ -66,6 +68,7 @@ public class JavaInstrumentationAdviceToolbox {
     //<editor-fold desc="File system methods">
 
     //<editor-fold desc="Callstack criteria methods">
+
     /**
      * Check if the provided call stack element is allowed.
      * This method verifies whether the class in the call stack element belongs to the list of allowed
@@ -77,7 +80,7 @@ public class JavaInstrumentationAdviceToolbox {
      */
     private static boolean checkIfCallstackElementIsAllowed(String[] allowedClasses, StackTraceElement elementToCheck) {
         for (String allowedClass : allowedClasses) {
-            if (elementToCheck.getClassName().equals(allowedClass)) {
+            if (elementToCheck.getClassName().startsWith(allowedClass)) {
                 return true;
             }
         }
@@ -91,13 +94,13 @@ public class JavaInstrumentationAdviceToolbox {
      * is returned.
      *
      * @param restrictedPackage The package that is restricted in the call stack.
-     * @param allowedClasses The list of classes that are allowed to be present in the call stack.
+     * @param allowedClasses    The list of classes that are allowed to be present in the call stack.
      * @return The call stack element that violates the criteria, or null if no violation occurred.
      */
     private static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses) {
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
         for (StackTraceElement element : stackTrace) {
-            if (element.toString().contains(restrictedPackage)) {
+            if (element.toString().startsWith(restrictedPackage)) {
                 if (!checkIfCallstackElementIsAllowed(allowedClasses, element)) {
                     return element.toString();
                 }
@@ -108,6 +111,7 @@ public class JavaInstrumentationAdviceToolbox {
     //</editor-fold>
 
     //<editor-fold desc="Variable criteria methods">
+
     /**
      * Transform a variable value into a normalized absolute path.
      * This method converts the provided variable (e.g., Path, String, or File) into an absolute
@@ -119,31 +123,32 @@ public class JavaInstrumentationAdviceToolbox {
      * @throws InvalidPathException If the variable cannot be transformed into a valid path.
      */
     private static Path variableToPath(Object variableValue) {
-        return switch (variableValue) {
-            case null -> throw new InvalidPathException("null", "Cannot transform to path");
-            case Path path -> {
-                try {
-                    yield path.normalize().toAbsolutePath();
-                } catch (InvalidPathException e) {
-                    throw new InvalidPathException(path.toString(), "Cannot transform to path");
-                }
+        if (variableValue == null) {
+            throw new InvalidPathException("null", "Cannot transform to path");
+        } else if (variableValue instanceof Path) {
+            Path path = (Path) variableValue;
+            try {
+                return path.normalize().toAbsolutePath();
+            } catch (InvalidPathException e) {
+                throw new InvalidPathException(path.toString(), "Cannot transform to path");
             }
-            case String string -> {
-                try {
-                    yield Path.of(string).normalize().toAbsolutePath();
-                } catch (InvalidPathException e) {
-                    throw new InvalidPathException(string, "Cannot transform to path");
-                }
+        } else if (variableValue instanceof String) {
+            String string = (String) variableValue;
+            try {
+                return Path.of(string).normalize().toAbsolutePath();
+            } catch (InvalidPathException e) {
+                throw new InvalidPathException(string, "Cannot transform to path");
             }
-            case File file -> {
-                try {
-                    yield Path.of(file.toURI()).normalize().toAbsolutePath();
-                } catch (InvalidPathException e) {
-                    throw new InvalidPathException(file.toString(), "Cannot transform to path");
-                }
+        } else if (variableValue instanceof File) {
+            File file = (File) variableValue;
+            try {
+                return Path.of(file.toURI()).normalize().toAbsolutePath();
+            } catch (InvalidPathException e) {
+                throw new InvalidPathException(file.toString(), "Cannot transform to path");
             }
-            default -> throw new InvalidPathException(variableValue.toString(), "Cannot transform to path");
-        };
+        } else {
+            throw new InvalidPathException(variableValue.toString(), "Cannot transform to path");
+        }
     }
 
     /**
@@ -152,12 +157,13 @@ public class JavaInstrumentationAdviceToolbox {
      * is permitted for access or modification based on the defined security rules.
      *
      * @param allowedPaths The list of allowed paths that can be accessed or modified.
-     * @param pathToCheck The path that needs to be checked against the allowed paths.
+     * @param pathToCheck  The path that needs to be checked against the allowed paths.
      * @return True if the path is allowed, false otherwise.
      */
     private static boolean checkIfPathIsAllowed(String[] allowedPaths, Path pathToCheck) {
+        Path absoluteNormalisedPathToCheck = pathToCheck.toAbsolutePath().normalize();
         for (String allowedPath : allowedPaths) {
-            if (variableToPath(allowedPath).toString().equals(pathToCheck.toString())) {
+            if (absoluteNormalisedPathToCheck.startsWith(variableToPath(allowedPath))) {
                 return true;
             }
         }
@@ -167,8 +173,8 @@ public class JavaInstrumentationAdviceToolbox {
     /**
      * Check if the variable criteria is violated.
      *
-     * @param variables     The variables to check.
-     * @param allowedPaths  The paths that are allowed to be accessed.
+     * @param variables    The variables to check.
+     * @param allowedPaths The paths that are allowed to be accessed.
      * @return The path that violates the criteria, null if no violation occurred.
      */
     private static String checkIfVariableCriteriaIsViolated(Object[] variables, String[] allowedPaths) {
@@ -186,6 +192,7 @@ public class JavaInstrumentationAdviceToolbox {
     //</editor-fold>
 
     //<editor-fold desc="Check methods">
+
     /**
      * Check if the file system interaction is allowed according to security policies.
      * This method verifies that the specified file system action (read, write, execute, delete) complies
@@ -193,12 +200,12 @@ public class JavaInstrumentationAdviceToolbox {
      * It checks if the action is restricted based on the method call, attributes, and parameters. If a method
      * violates the file system security rules, the action is blocked.
      *
-     * @param action The file system action being performed (e.g., read, write, execute, delete).
+     * @param action            The file system action being performed (e.g., read, write, execute, delete).
      * @param declaringTypeName The name of the class declaring the method.
-     * @param methodName The name of the method being invoked.
-     * @param methodSignature The signature of the method.
-     * @param attributes The attributes of the method (if any).
-     * @param parameters The parameters of the method (if any).
+     * @param methodName        The name of the method being invoked.
+     * @param methodSignature   The signature of the method.
+     * @param attributes        The attributes of the method (if any).
+     * @param parameters        The parameters of the method (if any).
      * @throws SecurityException If the file system interaction is found to be unauthorized.
      */
     public static void checkFileSystemInteraction(
@@ -209,6 +216,10 @@ public class JavaInstrumentationAdviceToolbox {
             Object[] attributes,
             Object[] parameters
     ) {
+        String aopMode = (String) getValueFromSettings("aopMode");
+        if (aopMode == null || !aopMode.equals("INSTRUMENTATION")) {
+            return;
+        }
         String restrictedPackage = (String) getValueFromSettings("restrictedPackage");
         String[] allowedClasses = (String[]) getValueFromSettings("allowedListedClasses");
         String[] allowedPaths = (String[]) getValueFromSettings(
@@ -220,10 +231,6 @@ public class JavaInstrumentationAdviceToolbox {
                     default -> throw new IllegalArgumentException("Unknown action: " + action);
                 }
         );
-        // TODO Markus: delete this statement, this is a workaround since the YAML reader doesn't work properly
-        if (restrictedPackage == null) {
-            restrictedPackage = "de.tum.cit.ase";
-        }
         final String fullMethodSignature = declaringTypeName + "." + methodName + methodSignature;
         String illegallyReadingMethod = allowedPaths == null ? null : checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses);
         if (illegallyReadingMethod != null) {

@@ -1,7 +1,8 @@
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
-  theProgrammingLanguageUsesTheFollowingPackage: de.tum.cit.ase
-  theMainClassInsideThisPackageIs: Main
+  theProgrammingLanguageUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses: []
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions: []
     regardingNetworkConnections: []
@@ -9,8 +10,9 @@ regardingTheSupervisedCode:
     regardingThreadCreations: []
     regardingPackageImports:
       - importTheFollowingPackage: "java.io"
-      - importTheFollowingPackage: "java.lang"
       - importTheFollowingPackage: "java.util"
-      - importTheFollowingPackage: "de.tum.cit.ase.ares.api.aop.aspectj.adviceandpointcut"
-      - importTheFollowingPackage: "java.nio.file"
-      - importTheFollowingPackage: "org.java.aspectj"
+      - importTheFollowingPackage: "java.nio"
+      - importTheFollowingPackage: "java.net"
+      - importTheFollowingPackage: "java.awt"
+      - importTheFollowingPackage: "javax.swing"
+      - importTheFollowingPackage: "javax.sound"

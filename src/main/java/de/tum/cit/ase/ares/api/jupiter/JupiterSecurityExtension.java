@@ -41,20 +41,13 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
             }
         } else {
             try {
-                ClassLoader customClassLoader = Thread.currentThread().getContextClassLoader();
-                Class<?> javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, customClassLoader);
-                Method resetMethod = javaSecurityTestCaseSettingsClass.getDeclaredMethod("reset");
-                resetMethod.setAccessible(true);
-                resetMethod.invoke(null);
-                resetMethod.setAccessible(false);
+                // We have to reset both the settings classes in the runtime and the bootstrap class loader to be able to run multiple tests in the same JVM instance.
+                Class<?> javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings");
+                resetSettings(javaSecurityTestCaseSettingsClass);
+                javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, null);
+                resetSettings(javaSecurityTestCaseSettingsClass);
             } catch (ClassNotFoundException e) {
                 throw new SecurityException("Security configuration error: The class for the specific security test case settings could not be found. Ensure the class name is correct and the class is available at runtime.", e);
-            }  catch (NoSuchMethodException e) {
-                throw new SecurityException("Security configuration error: The 'reset' method could not be found in the specified class. Ensure the method exists and is correctly named.", e);
-            }  catch (IllegalAccessException e) {
-                throw new SecurityException("Security configuration error: Access to the 'reset' method was denied. Ensure the method is public and accessible.", e);
-            } catch (InvocationTargetException e) {
-                throw new SecurityException("Security configuration error: An error occurred while invoking the 'reset' method. This could be due to an underlying issue within the method implementation.", e);
             }
         }
         //REMOVED: Installing of ArtemisSecurityManager
@@ -75,6 +68,21 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
             }
         }
         throw failure;
+    }
+
+    public static void resetSettings(Class<?> javaSecurityTestCaseSettingsClass) {
+        try {
+            Method resetMethod = javaSecurityTestCaseSettingsClass.getDeclaredMethod("reset");
+            resetMethod.setAccessible(true);
+            resetMethod.invoke(null);
+            resetMethod.setAccessible(false);
+        } catch (NoSuchMethodException e) {
+            throw new SecurityException("Security configuration error: The 'reset' method could not be found in the specified class. Ensure the method exists and is correctly named.", e);
+        } catch (IllegalAccessException e) {
+            throw new SecurityException("Security configuration error: Access to the 'reset' method was denied. Ensure the method is public and accessible.", e);
+        } catch (InvocationTargetException e) {
+            throw new SecurityException("Security configuration error: An error occurred while invoking the 'reset' method. This could be due to an underlying issue within the method implementation.", e);
+        }
     }
 
     public static Path testAndGetPolicyValue(Policy policyAnnotation) {

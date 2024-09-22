@@ -3,6 +3,7 @@ package de.tum.cit.ase.ares.api.securitytest.java;
 //<editor-fold desc="Imports">
 
 import com.google.common.collect.Streams;
+import com.tngtech.archunit.ArchConfiguration;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSupported;
@@ -20,12 +21,10 @@ import de.tum.cit.ase.ares.api.util.FileTools;
 import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -122,9 +121,9 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      * @param projectPath    the path within the project where the test cases will be applied.
      */
     public JavaSecurityTestCaseFactoryAndBuilder(
-            @Nonnull JavaBuildMode javaBuildMode,
-            @Nonnull JavaArchitectureMode javaArchitectureMode,
-            @Nonnull JavaAOPMode javaAOPMode,
+            @Nullable JavaBuildMode javaBuildMode,
+            @Nullable JavaArchitectureMode javaArchitectureMode,
+            @Nullable JavaAOPMode javaAOPMode,
             @Nonnull SecurityPolicy securityPolicy,
             @Nonnull Path projectPath
     ) {
@@ -134,28 +133,53 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
             throw new IllegalArgumentException("Ares Security Error (Reason: Ares-Code; Stage: Execution): The main class inside the package cannot be null.");
         }
 
+        if (javaBuildMode == null) {
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): The build mode cannot be null.");
+        }
         this.javaBuildMode = javaBuildMode;
+        if (javaArchitectureMode == null) {
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): The architecture mode cannot be null.");
+        }
         this.javaArchitectureMode = javaArchitectureMode;
+        if (javaAOPMode == null) {
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): The AOP mode cannot be null.");
+        }
         this.javaAOPMode = javaAOPMode;
+        if (securityPolicy.regardingTheSupervisedCode().theProgrammingLanguageUsesTheFollowingPackage() == null) {
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): The x cannot be null.");
+        }
         this.packageName = securityPolicy.regardingTheSupervisedCode().theProgrammingLanguageUsesTheFollowingPackage();
+        if (securityPolicy.regardingTheSupervisedCode().theMainClassInsideThisPackageIs() == null) {
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): The x cannot be null.");
+        }
         this.mainClassInPackageName = securityPolicy.regardingTheSupervisedCode().theMainClassInsideThisPackageIs();
+        if (securityPolicy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted() == null) {
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): The x cannot be null.");
+        }
         this.resourceAccesses = securityPolicy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted();
+        if (securityPolicy.regardingTheSupervisedCode().theFollowingClassesAreTestClasses() == null) {
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): The x cannot be null.");
+        }
         this.testClasses = securityPolicy.regardingTheSupervisedCode().theFollowingClassesAreTestClasses();
         // TODO Markus: projectPath is configured wrongly, since for AOP and Architecture tests different paths are used (for Architectural path to bytecode, for AOP path to source code)
         this.projectPath = projectPath;
 
         this.functionClasses = new String[]{
-                packageName + ".aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemAdviceDefinitions",
-                packageName + ".aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions",
-                packageName + ".aop.java.JavaSecurityTestCaseSettings",
-                packageName + ".aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox",
-                packageName + ".aop.java.instrumentation.advice.JavaInstrumentationDeletePathAdvice",
-                packageName + ".aop.java.instrumentation.advice.JavaInstrumentationExecutePathAdvice",
-                packageName + ".aop.java.instrumentation.advice.JavaInstrumentationOverwritePathAdvice",
-                packageName + ".aop.java.instrumentation.advice.JavaInstrumentationReadPathAdvice",
-                packageName + ".aop.java.pointcut.instrumentation.JavaInstrumentationPointcutDefinitions",
-                packageName + ".aop.java.pointcut.instrumentation.JavaInstrumentationBindingDefinitions",
-                packageName + ".aop.java.instrumentation.JavaInstrumentationAgent"
+                packageName + ".api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemAdviceDefinitions",
+                packageName + ".api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions",
+                packageName + ".api.aop.java.JavaSecurityTestCaseSettings",
+                packageName + ".api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox",
+                packageName + ".api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathMethodAdvice",
+                packageName + ".api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathMethodAdvice",
+                packageName + ".api.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathMethodAdvice",
+                packageName + ".api.aop.java.instrumentation.advice.JavaInstrumentationReadPathMethodAdvice",
+                packageName + ".api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathConstructorAdvice",
+                packageName + ".api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathConstructorAdvice",
+                packageName + ".api.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathConstructorAdvice",
+                packageName + ".api.aop.java.instrumentation.advice.JavaInstrumentationReadPathConstructorAdvice",
+                packageName + ".api.aop.java.pointcut.instrumentation.JavaInstrumentationPointcutDefinitions",
+                packageName + ".api.aop.java.pointcut.instrumentation.JavaInstrumentationBindingDefinitions",
+                packageName + ".api.aop.java.instrumentation.JavaInstrumentationAgent"
         };
         this.createSecurityTestCases();
     }
@@ -177,10 +201,17 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         //</editor-fold>
 
         //<editor-fold desc="Create fixed rules code">
+        Set<SecurityPolicy.PackagePermission> allowedPackages = new HashSet<>(resourceAccesses.regardingPackageImports());
+        // Add default imports needed for the execution
+        allowedPackages.addAll(Set.of(
+                new SecurityPolicy.PackagePermission("java.lang"),
+                new SecurityPolicy.PackagePermission("org.java.aspectj"),
+                new SecurityPolicy.PackagePermission("org.aspectj"),
+                new SecurityPolicy.PackagePermission("de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut")));
         javaArchUnitTestCases.add(
                 new JavaArchUnitSecurityTestCase(
                         JavaArchUnitTestCaseSupported.PACKAGE_IMPORT,
-                        new HashSet<>(resourceAccesses.regardingPackageImports())
+                        allowedPackages
                 )
         );
         //</editor-fold>
@@ -189,7 +220,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         @Nonnull Supplier<List<?>>[] methods = new Supplier[]{
                 (Supplier<List<?>>) resourceAccesses::regardingFileSystemInteractions,
                 (Supplier<List<?>>) resourceAccesses::regardingNetworkConnections,
-//                (Supplier<List<?>>) resourceAccesses::regardingCommandExecutions,
+                (Supplier<List<?>>) resourceAccesses::regardingCommandExecutions,
 //                (Supplier<List<?>>) resourceAccesses::regardingThreadCreations,
         };
         IntStream
@@ -293,14 +324,28 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         @Nonnull JavaClasses classes = new ClassFileImporter().importPath(Paths.get(ProjectSourcesFinder.isGradleProject() ? "build" : "target", projectPath.toString()).toString());
         //</editor-fold>#
 
+        //<editor-fold desc="Set ArchUnit properties for optimization">
+        ArchConfiguration.get().setProperty("archRule.failOnEmptyShould", "false");
+        ArchConfiguration.get().setResolveMissingDependenciesFromClassPath(false);
+        //</editor-fold>
+
         //<editor-fold desc="Enforce fixed rules code">
         JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_USE_REFLECTION.check(classes);
         JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_TERMINATE_JVM.check(classes);
         //</editor-fold>
 
         //<editor-fold desc="Enforce variable rules code">
+        JavaSecurityTestCase.setJavaAdviceSettingValue("aopMode", javaAOPMode.toString(), javaAOPMode.toString());
+        JavaSecurityTestCase.setJavaAdviceSettingValue("restrictedPackage", packageName, javaAOPMode.toString());
+        JavaSecurityTestCase.setJavaAdviceSettingValue(
+                "allowedListedClasses",
+                Stream.concat(
+                        Arrays.stream(testClasses),
+                        ("de.tum.cit.ase.ares").equals(packageName) ? Arrays.stream(functionClasses): Stream.of("de.tum.cit.ase.ares")
+                ).toArray(String[]::new),
+                javaAOPMode.toString());
         javaArchUnitTestCases.forEach(archTest -> archTest.executeArchitectureTestCase(classes));
-        javaSecurityTestCases.forEach(JavaSecurityTestCase::executeAOPSecurityTestCase);
+        javaSecurityTestCases.forEach(javaSecurityTestCase -> javaSecurityTestCase.executeAOPSecurityTestCase(javaAOPMode.toString()));
         //</editor-fold>
     }
     //</editor-fold>

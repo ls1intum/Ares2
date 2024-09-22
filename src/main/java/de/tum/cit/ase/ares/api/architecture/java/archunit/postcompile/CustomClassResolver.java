@@ -1,10 +1,12 @@
 package de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile;
 
 //<editor-fold desc="Imports">
+import com.tngtech.archunit.ArchConfiguration;
 import com.tngtech.archunit.core.domain.JavaClass;
-import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
+import com.tngtech.archunit.core.importer.resolvers.ClassResolverFromClasspath;
 
+import java.net.URL;
 import java.util.Optional;
 //</editor-fold>
 
@@ -13,39 +15,32 @@ import java.util.Optional;
  */
 public class CustomClassResolver {
 
-    //<editor-fold desc="Attributes">
+    private CustomClassResolver() {
+        throw new IllegalStateException("Utility class");
+    }
+
     /**
      * Class file importer to import the class files.
      * This is used to import the class files from the URL.
      */
-    private final JavaClasses allClasses;
-    //</editor-fold>
+    private static final ClassFileImporter classFileImporter = new ClassFileImporter();
 
-    //<editor-fold desc="Constructor">
-    public CustomClassResolver() {
-        // We need to import all classes to be able to resolve them later.
-        // https://www.javadoc.io/doc/com.tngtech.archunit/archunit/0.10.2/com/tngtech/archunit/core/importer/ClassFileImporter.html
-        allClasses = new ClassFileImporter()
-                .withImportOption(location -> !location.contains("jrt"))
-                .importClasspath();
-    }
-    //</editor-fold>
-
-    //<editor-fold desc="Methods">
     /**
      * Try to resolve the class by the given type name.
      *
      * @param typeName The type name of the class to resolve.
      * @return The resolved class if it exists.
      */
-    public Optional<JavaClass> tryResolve(String typeName) {
+    public static Optional<JavaClass> tryResolve(String typeName) {
+        ArchConfiguration.get().setClassResolver(ClassResolverFromClasspath.class);
+        URL url = CustomClassResolver.class.getResource("/" + typeName.replace(".", "/") + ".class");
         try {
-            // Try to resolve the class by the given type name.
-            return Optional.ofNullable(allClasses.get(typeName));
+            if (url == null) {
+                return Optional.empty();
+            }
+            return Optional.of(classFileImporter.withImportOption(location -> !location.contains("jrt")).importUrl(url).get(typeName));
         } catch (IllegalArgumentException e) {
             return Optional.empty();
         }
     }
-    //</editor-fold>
-
 }

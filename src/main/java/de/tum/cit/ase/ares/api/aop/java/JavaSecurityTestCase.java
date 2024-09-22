@@ -30,12 +30,14 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
     /**
      * The type of security test case supported by this class (e.g., file system, network, etc.).
      */
-    @Nonnull private final JavaSecurityTestCaseSupported javaSecurityTestCaseSupported;
+    @Nonnull
+    private final JavaSecurityTestCaseSupported javaSecurityTestCaseSupported;
 
     /**
      * The resource accesses permitted as defined in the security policy.
      */
-    @Nonnull private final ResourceAccesses resourceAccesses;
+    @Nonnull
+    private final ResourceAccesses resourceAccesses;
     //</editor-fold>
 
     //<editor-fold desc="Constructor">
@@ -44,7 +46,7 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
      * Initializes the configuration with the given support type and resource accesses.
      *
      * @param javaSecurityTestCaseSupported the type of security test case being supported, must not be null.
-     * @param resourceAccesses the resource accesses permitted by the security policy, must not be null.
+     * @param resourceAccesses              the resource accesses permitted by the security policy, must not be null.
      */
     public JavaSecurityTestCase(@Nonnull JavaSecurityTestCaseSupported javaSecurityTestCaseSupported, @Nonnull ResourceAccesses resourceAccesses) {
         this.javaSecurityTestCaseSupported = javaSecurityTestCaseSupported;
@@ -62,9 +64,9 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
      * String[][], and int[].
      * </p>
      *
-     * @param dataType the data type of the advice setting (e.g., "String", "String[]"), must not be null.
+     * @param dataType      the data type of the advice setting (e.g., "String", "String[]"), must not be null.
      * @param adviceSetting the name of the advice setting to generate, must not be null.
-     * @param value the value to be assigned to the advice setting, can be null.
+     * @param value         the value to be assigned to the advice setting, can be null.
      * @return a formatted string representing the advice setting definition.
      * @throws SecurityException if the value does not match the expected data type or formatting errors occur.
      */
@@ -167,10 +169,10 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
      * @param value         the value to assign to the advice setting, can be null.
      * @throws SecurityException if there is any error during field access or value assignment.
      */
-    public void setJavaAdviceSettingValue(@Nonnull String adviceSetting, @Nullable Object value) {
+    public static void setJavaAdviceSettingValue(@Nonnull String adviceSetting, @Nullable Object value, @Nonnull String aopMode) {
         try {
             @Nullable ClassLoader customClassLoader = Thread.currentThread().getContextClassLoader();
-            @Nonnull Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, customClassLoader);
+            @Nonnull Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, aopMode.equals("INSTRUMENTATION") ? null : customClassLoader);
             @Nonnull Field field = adviceSettingsClass.getDeclaredField(adviceSetting);
             field.setAccessible(true);
             field.set(null, value);
@@ -234,7 +236,7 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
     /**
      * Extracts the permitted file paths from the provided configurations based on the given predicate.
      *
-     * @param configs the list of JavaSecurityTestCase configurations, must not be null.
+     * @param configs   the list of JavaSecurityTestCase configurations, must not be null.
      * @param predicate a filter for determining which paths are permitted, must not be null.
      * @return a list of permitted paths.
      */
@@ -262,7 +264,8 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
             case "overwrite" -> FilePermission::overwriteAllFiles;
             case "execute" -> FilePermission::executeAllFiles;
             case "delete" -> FilePermission::deleteAllFiles;
-            default -> throw new IllegalArgumentException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Invalid file permission: " + filePermission);
+            default ->
+                    throw new IllegalArgumentException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Invalid file permission: " + filePermission);
         };
         return resourceAccesses.regardingFileSystemInteractions()
                 .stream()
@@ -278,7 +281,7 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
     /**
      * Extracts the permitted network hosts from the provided configurations based on the given predicate.
      *
-     * @param configs the list of JavaSecurityTestCase configurations, must not be null.
+     * @param configs   the list of JavaSecurityTestCase configurations, must not be null.
      * @param predicate a filter for determining which hosts are permitted, must not be null.
      * @return a list of permitted hosts.
      */
@@ -296,7 +299,7 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
     /**
      * Extracts the permitted network ports from the provided configurations based on the given predicate.
      *
-     * @param configs the list of JavaSecurityTestCase configurations, must not be null.
+     * @param configs   the list of JavaSecurityTestCase configurations, must not be null.
      * @param predicate a filter for determining which ports are permitted, must not be null.
      * @return a list of permitted ports.
      */
@@ -324,7 +327,8 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
             case "connect" -> NetworkPermission::openConnections;
             case "send" -> NetworkPermission::sendData;
             case "receive" -> NetworkPermission::receiveData;
-            default -> throw new IllegalArgumentException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Invalid network permission: " + networkPermission);
+            default ->
+                    throw new IllegalArgumentException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Invalid network permission: " + networkPermission);
         };
         return resourceAccesses.regardingNetworkConnections()
                 .stream()
@@ -345,7 +349,8 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
             case "connect" -> NetworkPermission::openConnections;
             case "send" -> NetworkPermission::sendData;
             case "receive" -> NetworkPermission::receiveData;
-            default -> throw new IllegalArgumentException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Invalid network permission: " + networkPermission);
+            default ->
+                    throw new IllegalArgumentException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Invalid network permission: " + networkPermission);
         };
         return resourceAccesses.regardingNetworkConnections()
                 .stream()
@@ -490,7 +495,7 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
      */
     @Override
     @Nonnull
-    public String writeAOPSecurityTestCase() {
+    public String writeAOPSecurityTestCase(@Nonnull String aopMode) {
         return "";
     }
     //</editor-fold>
@@ -500,22 +505,22 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
     /**
      * Writes the aspect configuration content based on the provided security test cases.
      *
-     * @param aomMode             the AOP mode (AspectJ or Instrumentation), must not be null.
-     * @param restrictedPackage    the restricted package, must not be null.
-     * @param allowedListedClasses the list of allowed classes in the restricted package, must not be null.
+     * @param aopMode               the AOP mode (AspectJ or Instrumentation), must not be null.
+     * @param restrictedPackage     the restricted package, must not be null.
+     * @param allowedListedClasses  the list of allowed classes in the restricted package, must not be null.
      * @param javaSecurityTestCases the list of security test cases to be used, must not be null.
      * @return a string representing the content of the AOP security test case configuration file.
      */
     @SuppressWarnings("StringBufferReplaceableByString")
     @Nonnull
     public static String writeAOPSecurityTestCaseFile(
-            @Nonnull String aomMode,
+            @Nonnull String aopMode,
             @Nonnull String restrictedPackage,
             @Nonnull List<String> allowedListedClasses,
             @Nonnull List<JavaSecurityTestCase> javaSecurityTestCases
     ) {
         @Nonnull StringBuilder fileContentBuilder = new StringBuilder();
-        fileContentBuilder.append(generateAdviceSettingValue("String", "aomMode", aomMode));
+        fileContentBuilder.append(generateAdviceSettingValue("String", "aopMode", aopMode));
         fileContentBuilder.append(generateAdviceSettingValue("String", "restrictedPackage", restrictedPackage));
         fileContentBuilder.append(generateAdviceSettingValue("String[]", "allowedListedClasses", allowedListedClasses));
         fileContentBuilder.append(generateAdviceSettingValue("String[]", "pathsAllowedToBeRead", extractPaths(javaSecurityTestCases, FilePermission::readAllFiles)));
@@ -542,14 +547,14 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
      * Executes the AOP security test case by setting Java advice settings.
      */
     @Override
-    public void executeAOPSecurityTestCase() {
+    public void executeAOPSecurityTestCase(@Nonnull String aopMode) {
         switch (javaSecurityTestCaseSupported) {
             case FILESYSTEM_INTERACTION -> Map.of(
                     "pathsAllowedToBeRead", getPermittedFilePaths("read").toArray(String[]::new),
                     "pathsAllowedToBeOverwritten", getPermittedFilePaths("overwrite").toArray(String[]::new),
                     "pathsAllowedToBeExecuted", getPermittedFilePaths("execute").toArray(String[]::new),
                     "pathsAllowedToBeDeleted", getPermittedFilePaths("delete").toArray(String[]::new)
-            ).forEach(this::setJavaAdviceSettingValue);
+            ).forEach((k, v) -> JavaSecurityTestCase.setJavaAdviceSettingValue(k, v, aopMode));
             case NETWORK_CONNECTION -> Map.of(
                     "hostsAllowedToBeConnectedTo", getPermittedNetworkHosts("connect"),
                     "portsAllowedToBeConnectedTo", getPermittedNetworkPorts("connect"),
@@ -557,15 +562,15 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
                     "portsAllowedToBeSentTo", getPermittedNetworkPorts("send"),
                     "hostsAllowedToBeReceivedFrom", getPermittedNetworkHosts("receive"),
                     "portsAllowedToBeReceivedFrom", getPermittedNetworkPorts("receive")
-            ).forEach(this::setJavaAdviceSettingValue);
+            ).forEach((k, v) -> JavaSecurityTestCase.setJavaAdviceSettingValue(k, v, aopMode));
             case COMMAND_EXECUTION -> Map.of(
                     "commandsAllowedToBeExecuted", getPermittedCommands(),
                     "argumentsAllowedToBePassed", getPermittedArguments()
-            ).forEach(this::setJavaAdviceSettingValue);
+            ).forEach((k, v) -> JavaSecurityTestCase.setJavaAdviceSettingValue(k, v, aopMode));
             case THREAD_CREATION -> Map.of(
                     "threadNumberAllowedToBeCreated", getPermittedNumberOfThreads(),
                     "threadClassAllowedToBeCreated", getPermittedThreadClasses()
-            ).forEach(this::setJavaAdviceSettingValue);
+            ).forEach((k, v) -> JavaSecurityTestCase.setJavaAdviceSettingValue(k, v, aopMode));
         }
     }
     //</editor-fold>

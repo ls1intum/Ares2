@@ -3,7 +3,7 @@ package de.tum.cit.ase.ares.integration.testuser;
 import java.io.IOException;
 import java.nio.file.Path;
 
-import de.tum.cit.ase.ares.integration.testuser.subject.pathaccess.PathAccessPenguin;
+import de.tum.cit.ase.ares.integration.testuser.subject.fileSystem.FileSystemAccessPenguin;
 import org.junit.jupiter.api.Test;
 
 import de.tum.cit.ase.ares.api.*;
@@ -21,7 +21,7 @@ public class TrustedClassesUser {
 
 	@Test
 	void testNotWhitelisted() throws IOException {
-		PathAccessPenguin.accessPath(PATH);
+		FileSystemAccessPenguin.accessPath(PATH);
 	}
 
 	@Test

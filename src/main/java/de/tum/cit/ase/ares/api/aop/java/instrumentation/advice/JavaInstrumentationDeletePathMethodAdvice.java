@@ -3,10 +3,7 @@ package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 
-import static net.bytebuddy.asm.Advice.OnMethodEnter;
-import static net.bytebuddy.asm.Advice.Origin;
-import static net.bytebuddy.asm.Advice.This;
-import static net.bytebuddy.asm.Advice.AllArguments;
+import static net.bytebuddy.asm.Advice.*;
 
 /**
  * This class provides advice for the execution of methods annotated with the @ExecutePath annotation.
@@ -17,7 +14,7 @@ import static net.bytebuddy.asm.Advice.AllArguments;
  * unauthorized file executions. The class interacts with the JavaInstrumentationAdviceToolbox to
  * perform these security checks.
  */
-public class JavaInstrumentationReadPathAdvice {
+public class JavaInstrumentationDeletePathMethodAdvice {
     /**
      * This method is called when a method annotated with the @ExecutePath annotation is entered.
      * It performs security checks to determine whether the method execution is allowed according
@@ -75,7 +72,7 @@ public class JavaInstrumentationReadPathAdvice {
 
         //<editor-fold desc="Check">
         JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
-                "read",
+                "delete",
                 declaringTypeName,
                 methodName,
                 methodSignature,

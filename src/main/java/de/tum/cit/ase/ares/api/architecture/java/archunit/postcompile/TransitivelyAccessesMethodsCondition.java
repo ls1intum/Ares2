@@ -37,11 +37,6 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
      * Transitive access path to find the path to the accessed method
      */
     private final TransitiveAccessPath transitiveAccessPath = new TransitiveAccessPath();
-
-    /**
-     * Custom class resolver to resolve classes that are outside classpath to be able to analyze them transitively
-     */
-    private final CustomClassResolver customClassResolver;
     //</editor-fold>
 
     //<editor-fold desc="Constructor">
@@ -51,7 +46,6 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
     public TransitivelyAccessesMethodsCondition(DescribedPredicate<? super JavaAccess<?>> conditionPredicate) {
         super("transitively depend on classes that " + conditionPredicate.getDescription());
         this.conditionPredicate = checkNotNull(conditionPredicate);
-        this.customClassResolver = new CustomClassResolver();
     }
     //</editor-fold>
 
@@ -175,7 +169,7 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
         }
 
         private JavaClass resolveTargetOwner(JavaClass targetOwner) {
-            Optional<JavaClass> resolvedTarget = customClassResolver.tryResolve(targetOwner.getFullName());
+            Optional<JavaClass> resolvedTarget = CustomClassResolver.tryResolve(targetOwner.getFullName());
             return resolvedTarget.orElse(targetOwner);
         }
 
