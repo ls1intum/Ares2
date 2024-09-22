@@ -10,18 +10,24 @@ import java.nio.file.spi.FileSystemProvider;
 import java.util.Scanner;
 import java.util.logging.FileHandler;
 
+@SuppressWarnings({"resource", "ResultOfMethodCallIgnored"})
 public final class FileSystemAccessPenguin {
 
-	private FileSystemAccessPenguin() {
+    //<editor-fold desc="Constructor">
+    private FileSystemAccessPenguin() {
+		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): FileSystemAccessPenguin is a utility class and should not be instantiated.");
 	}
+    //</editor-fold>
 
-	public static void accessPath(Path p) throws IOException {
+    //<editor-fold desc="Other Methods">
+    public static void accessPath(Path p) throws IOException {
 		Files.readString(p);
 	}
 
 	public static void askForFilePermission(String path) {
 		//REMOVED: Checking Permission of the system's SecurityManager for "read"
 	}
+    //</editor-fold>
 
     //<editor-fold desc="Read Methods">
 
@@ -191,7 +197,7 @@ public final class FileSystemAccessPenguin {
 			File file = new File("pom123.xml");
 			file.canWrite();
 			file.createNewFile();
-			file.createTempFile("temp", ".txt");
+			File.createTempFile("temp", ".txt");
 			file.setReadable(true);
 			file.setWritable(true);
 		} catch (Exception e) {
@@ -383,7 +389,7 @@ public final class FileSystemAccessPenguin {
 	 */
 	public static void accessFileSystemViaFileSystemProvider() {
 		try {
-			FileSystemProvider provider = FileSystemProvider.installedProviders().get(0);
+			FileSystemProvider provider = FileSystemProvider.installedProviders().getFirst();
 			provider.delete(Path.of("file.txt"));
 			provider.readAttributes(Path.of("pom123.xml"), "*");
 		} catch (Exception e) {
