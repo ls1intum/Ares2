@@ -23,7 +23,9 @@ public final class FileSystemAccessPenguin {
 		//REMOVED: Checking Permission of the system's SecurityManager for "read"
 	}
 
-	// --- Read Methods ---
+    //<editor-fold desc="Read Methods">
+
+    // --- Read Methods ---
 
 	/**
 	 * Access the file system using the {@link RandomAccessFile} class.
@@ -107,6 +109,42 @@ public final class FileSystemAccessPenguin {
 	}
 
 	/**
+	 * Access the file system using the {@link DataInputStream} class.
+	 */
+	public static void accessFileSystemViaDataInputStream() {
+		try {
+			DataInputStream stream = new DataInputStream(new FileInputStream("pom123.xml"));
+			stream.read();
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	/**
+	 * Access the file system using the {@link ObjectInputStream} class.
+	 */
+	public static void accessFileSystemViaObjectInputStream() {
+		try {
+			ObjectInputStream stream = new ObjectInputStream(new FileInputStream("pom123.xml"));
+			stream.readObject();
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	/**
+	 * Access the file system using the {@link InputStreamReader} class.
+	 */
+	public static void accessFileSystemViaInputStreamReader() {
+		try {
+			InputStreamReader reader = new InputStreamReader(new FileInputStream("pom123.xml"));
+			reader.read();
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	/**
 	 * Access the file system using the {@link FileChannel} class for reading.
 	 */
 	public static void accessFileSystemViaFileChannelRead() {
@@ -128,8 +166,10 @@ public final class FileSystemAccessPenguin {
 			throw new RuntimeException(e);
 		}
 	}
+    //</editor-fold>
 
-	// --- Write Methods ---
+    //<editor-fold desc="Write Methods">
+    // --- Write Methods ---
 
 	/**
 	 * Access the file system using the {@link RandomAccessFile} class for writing.
@@ -270,19 +310,6 @@ public final class FileSystemAccessPenguin {
 	}
 
 	/**
-	 * Access the file system using the {@link FileHandler} class.
-	 */
-	public static void accessFileSystemViaFileHandler() {
-		try {
-			FileHandler handler = new FileHandler("pom123.xml");
-			handler.flush();
-			handler.close();
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	/**
 	 * Access the file system using various methods from the {@link Files} class for writing.
 	 */
 	public static void accessFileSystemViaFilesWrite() {
@@ -295,42 +322,21 @@ public final class FileSystemAccessPenguin {
 	}
 
 	/**
-	 * Access the file system using the {@link DataInputStream} class.
+	 * Access the file system using the {@link FileHandler} class.
 	 */
-	public static void accessFileSystemViaDataInputStream() {
+	public static void accessFileSystemViaFileHandler() {
 		try {
-			DataInputStream stream = new DataInputStream(new FileInputStream("pom123.xml"));
-			stream.read();
+			FileHandler handler = new FileHandler("pom123.xml");
+			handler.flush();
+			handler.close();
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
+    //</editor-fold>
 
-	/**
-	 * Access the file system using the {@link ObjectInputStream} class.
-	 */
-	public static void accessFileSystemViaObjectInputStream() {
-		try {
-			ObjectInputStream stream = new ObjectInputStream(new FileInputStream("pom123.xml"));
-			stream.readObject();
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	/**
-	 * Access the file system using the {@link InputStreamReader} class.
-	 */
-	public static void accessFileSystemViaInputStreamReader() {
-		try {
-			InputStreamReader reader = new InputStreamReader(new FileInputStream("pom123.xml"));
-			reader.read();
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	// --- Execute Methods ---
+    //<editor-fold desc="Execute Methods">
+    // --- Execute Methods ---
 
 	/**
 	 * Access the file system using the {@link File} class for execution.
@@ -356,8 +362,10 @@ public final class FileSystemAccessPenguin {
 			throw new RuntimeException(e);
 		}
 	}
+    //</editor-fold>
 
-	// --- Delete Methods ---
+    //<editor-fold desc="Delete Methods">
+    // --- Delete Methods ---
 
 	/**
 	 * Access the file system using various methods from the {@link Files} class for deletion.
@@ -390,4 +398,5 @@ public final class FileSystemAccessPenguin {
 		JFileChooser fileChooser = new JFileChooser();
 		fileChooser.showOpenDialog(null);
 	}
+    //</editor-fold>
 }

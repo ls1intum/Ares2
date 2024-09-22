@@ -21,6 +21,7 @@ class FileSystemAccessTest {
     @UserTestResults
     private static Events tests;
 
+    //<editor-fold desc="Constants">
     private final String accessPathAllFiles = "accessPathAllFiles";
     private final String accessPathAllowed = "accessPathAllowed";
     private final String accessPathNormal = "accessPathNormal";
@@ -37,7 +38,9 @@ class FileSystemAccessTest {
     private final String weAccessPath = "weAccessPath";
 
     private final String errorMessage = "No Security Exception was thrown. Check if the policy is correctly applied.";
+    //</editor-fold>
 
+    //<editor-fold desc="Other Tests">
 	/* OUTCOMMENTED: Conceptually not possible anymore
 	@TestTest
 	void test_accessPathAllFiles() {
@@ -116,39 +119,16 @@ class FileSystemAccessTest {
     void test_accessFileSystem() {
         tests.assertThatEvents().haveExactly(1, testFailedWith("accessFileSystem", RuntimeException.class));
     }
+    //</editor-fold>
 
     //TODO Markus: Look into why we are catching Runtime Exceptions and not Security Exceptions
 
+    //<editor-fold desc="Read Operations">
     // --- Read Operations ---
     @Nested
     class ReadOperations {
 
-        @TestTest
-        @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
-        void test_accessPathNormalAspectJ() throws IOException {
-            try {
-                FileSystemAccessPenguin.accessPath(Path.of("pom212.xml"));
-                fail();
-            } catch (RuntimeException e) {
-                // TODO: check if the exception message is correct
-                // expected
-            }
-        }
-
-        @TestTest
-        @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
-        void test_accessPathNormalInstrumentation() throws IOException {
-            try {
-                FileSystemAccessPenguin.accessPath(Path.of("pom212.xml"));
-                fail();
-            } catch (RuntimeException e) {
-                // TODO: check if the exception message is correct
-                // expected
-            }
-        }
-
+        //<editor-fold desc="accessFileSystemViaRandomAccessFileRead">
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
@@ -172,7 +152,9 @@ class FileSystemAccessTest {
                 // Expected exception
             }
         }
+        //</editor-fold>
 
+        //<editor-fold desc="accessFileSystemViaFileRead">
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
@@ -196,7 +178,9 @@ class FileSystemAccessTest {
                 // Expected exception
             }
         }
+        //</editor-fold>
 
+        //<editor-fold desc="accessFileSystemViaFileInputStream">
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
@@ -220,7 +204,9 @@ class FileSystemAccessTest {
                 // Expected exception
             }
         }
+        //</editor-fold>
 
+        //<editor-fold desc="accessFileSystemViaFileReader">
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
@@ -244,7 +230,9 @@ class FileSystemAccessTest {
                 // Expected exception
             }
         }
+        //</editor-fold>
 
+        //<editor-fold desc="accessFileSystemViaBufferedReader">
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
@@ -268,7 +256,9 @@ class FileSystemAccessTest {
                 // Expected exception
             }
         }
+        //</editor-fold>
 
+        //<editor-fold desc="accessFileSystemViaScanner">
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
@@ -292,55 +282,9 @@ class FileSystemAccessTest {
                 // Expected exception
             }
         }
+        //</editor-fold>
 
-        @TestTest
-        @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFileChannelReadAspectJ() {
-            try {
-                FileSystemAccessPenguin.accessFileSystemViaFileChannelRead();
-                fail(errorMessage);
-            } catch (RuntimeException e) {
-                // Expected exception
-            }
-        }
-
-        @TestTest
-        @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFileChannelReadInstrumentation() {
-            try {
-                FileSystemAccessPenguin.accessFileSystemViaFileChannelRead();
-                fail(errorMessage);
-            } catch (RuntimeException e) {
-                // Expected exception
-            }
-        }
-
-        @TestTest
-        @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFilesReadAspectJ() {
-            try {
-                FileSystemAccessPenguin.accessFileSystemViaFilesRead();
-                fail(errorMessage);
-            } catch (RuntimeException e) {
-                // Expected exception
-            }
-        }
-
-        @TestTest
-        @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFilesReadInstrumentation() {
-            try {
-                FileSystemAccessPenguin.accessFileSystemViaFilesRead();
-                fail(errorMessage);
-            } catch (RuntimeException e) {
-                // Expected exception
-            }
-        }
-
+        //<editor-fold desc="accessFileSystemViaDataInputStream">
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
@@ -364,7 +308,9 @@ class FileSystemAccessTest {
                 // Expected exception
             }
         }
+        //</editor-fold>
 
+        //<editor-fold desc="accessFileSystemViaObjectInputStream">
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
@@ -388,7 +334,9 @@ class FileSystemAccessTest {
                 // Expected exception
             }
         }
+        //</editor-fold>
 
+        //<editor-fold desc="accessFileSystemViaInputStreamReader">
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
@@ -412,12 +360,68 @@ class FileSystemAccessTest {
                 // Expected exception
             }
         }
-    }
+        //</editor-fold>
 
+        //<editor-fold desc="accessFileSystemViaFileChannelRead">
+        @TestTest
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+        void test_accessFileSystemViaFileChannelReadAspectJ() {
+            try {
+                FileSystemAccessPenguin.accessFileSystemViaFileChannelRead();
+                fail(errorMessage);
+            } catch (RuntimeException e) {
+                // Expected exception
+            }
+        }
+
+        @TestTest
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+        void test_accessFileSystemViaFileChannelReadInstrumentation() {
+            try {
+                FileSystemAccessPenguin.accessFileSystemViaFileChannelRead();
+                fail(errorMessage);
+            } catch (RuntimeException e) {
+                // Expected exception
+            }
+        }
+        //</editor-fold>
+
+        //<editor-fold desc="accessFileSystemViaFilesRead">
+        @TestTest
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+        void test_accessFileSystemViaFilesReadAspectJ() {
+            try {
+                FileSystemAccessPenguin.accessFileSystemViaFilesRead();
+                fail(errorMessage);
+            } catch (RuntimeException e) {
+                // Expected exception
+            }
+        }
+
+        @TestTest
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+        void test_accessFileSystemViaFilesReadInstrumentation() {
+            try {
+                FileSystemAccessPenguin.accessFileSystemViaFilesRead();
+                fail(errorMessage);
+            } catch (RuntimeException e) {
+                // Expected exception
+            }
+        }
+        //</editor-fold>
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Write Operations">
     // --- Write Operations ---
     @Nested
     class WriteOperations {
 
+        //<editor-fold desc="accessFileSystemViaRandomAccessFileWrite">
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
@@ -441,7 +445,9 @@ class FileSystemAccessTest {
                 // Expected exception
             }
         }
+        //</editor-fold>
 
+        //<editor-fold desc="accessFileSystemViaFileWrite">
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
@@ -465,7 +471,9 @@ class FileSystemAccessTest {
                 // Expected exception
             }
         }
+        //</editor-fold>
 
+        //<editor-fold desc="accessFileSystemViaFileOutputStream">
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
@@ -489,7 +497,9 @@ class FileSystemAccessTest {
                 // Expected exception
             }
         }
+        //</editor-fold>
 
+        //<editor-fold desc="accessFileSystemViaFileWriter">
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
@@ -513,7 +523,9 @@ class FileSystemAccessTest {
                 // Expected exception
             }
         }
+        //</editor-fold>
 
+        //<editor-fold desc="accessFileSystemViaBufferedWriter">
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
@@ -537,7 +549,9 @@ class FileSystemAccessTest {
                 // Expected exception
             }
         }
+        //</editor-fold>
 
+        //<editor-fold desc="accessFileSystemViaPrintWriter">
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
@@ -561,7 +575,9 @@ class FileSystemAccessTest {
                 // Expected exception
             }
         }
+        //</editor-fold>
 
+        //<editor-fold desc="accessFileSystemViaDataOutputStream">
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
@@ -585,7 +601,9 @@ class FileSystemAccessTest {
                 // Expected exception
             }
         }
+        //</editor-fold>
 
+        //<editor-fold desc="accessFileSystemViaOutputStreamWriter">
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
@@ -609,7 +627,9 @@ class FileSystemAccessTest {
                 // Expected exception
             }
         }
+        //</editor-fold>
 
+        //<editor-fold desc="accessFileSystemViaObjectOutputStream">
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
@@ -633,7 +653,9 @@ class FileSystemAccessTest {
                 // Expected exception
             }
         }
+        //</editor-fold>
 
+        //<editor-fold desc="accessFileSystemViaPrintStream">
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
@@ -657,7 +679,9 @@ class FileSystemAccessTest {
                 // Expected exception
             }
         }
+        //</editor-fold>
 
+        //<editor-fold desc="accessFileSystemViaFileChannelWrite">
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
@@ -681,31 +705,9 @@ class FileSystemAccessTest {
                 // Expected exception
             }
         }
+        //</editor-fold>
 
-        @TestTest
-        @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFileHandlerAspectJ() {
-            try {
-                FileSystemAccessPenguin.accessFileSystemViaFileHandler();
-                fail(errorMessage);
-            } catch (RuntimeException e) {
-                // Expected exception
-            }
-        }
-
-        @TestTest
-        @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFileHandlerInstrumentation() {
-            try {
-                FileSystemAccessPenguin.accessFileSystemViaFileHandler();
-                fail(errorMessage);
-            } catch (RuntimeException e) {
-                // Expected exception
-            }
-        }
-
+        //<editor-fold desc="accessFileSystemViaFilesWrite">
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
@@ -729,12 +731,42 @@ class FileSystemAccessTest {
                 // Expected exception
             }
         }
-    }
+        //</editor-fold>
 
+        //<editor-fold desc="accessFileSystemViaFileHandler">
+        @TestTest
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+        void test_accessFileSystemViaFileHandlerAspectJ() {
+            try {
+                FileSystemAccessPenguin.accessFileSystemViaFileHandler();
+                fail(errorMessage);
+            } catch (RuntimeException e) {
+                // Expected exception
+            }
+        }
+
+        @TestTest
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+        void test_accessFileSystemViaFileHandlerInstrumentation() {
+            try {
+                FileSystemAccessPenguin.accessFileSystemViaFileHandler();
+                fail(errorMessage);
+            } catch (RuntimeException e) {
+                // Expected exception
+            }
+        }
+        //</editor-fold>
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Execute Operations">
     // --- Execute Operations ---
     @Nested
     class ExecuteOperations {
 
+        //<editor-fold desc="accessFileSystemViaFileExecute">
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
@@ -758,7 +790,9 @@ class FileSystemAccessTest {
                 // Expected exception
             }
         }
+        //</editor-fold>
 
+        //<editor-fold desc="accessFileSystemViaDesktop">
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
@@ -782,12 +816,16 @@ class FileSystemAccessTest {
                 // Expected exception
             }
         }
+        //</editor-fold>
     }
+    //</editor-fold>
 
+    //<editor-fold desc="Delete Operations">
     // --- Delete Operations ---
     @Nested
     class DeleteOperations {
 
+        //<editor-fold desc="accessFileSystemViaFilesDelete">
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
@@ -811,7 +849,9 @@ class FileSystemAccessTest {
                 // Expected exception
             }
         }
+        //</editor-fold>
 
+        //<editor-fold desc="accessFileSystemViaFileSystemProvider">
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
@@ -835,5 +875,9 @@ class FileSystemAccessTest {
                 // Expected exception
             }
         }
+        //</editor-fold>
+
+        // TODO Aniruddh: accessFileSystemViaJFileChooser
     }
+    //</editor-fold>
 }
