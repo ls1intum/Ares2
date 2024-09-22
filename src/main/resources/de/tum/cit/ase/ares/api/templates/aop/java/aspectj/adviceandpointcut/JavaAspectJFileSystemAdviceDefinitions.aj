@@ -206,7 +206,11 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
                     %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileChannelReadMethods() ||
                     %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.midiSystemMethods() ||
                     %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemsReadMethods() ||
-                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderReadMethods() {
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderReadMethods() ||
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.bufferedReaderInitMethods() ||
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.scannerInitMethods() ||
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileReaderInitMethods() ||
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.lineNumberReaderInitMethods() {
         checkFileSystemInteraction("read", thisJoinPoint);
     }
 
@@ -217,7 +221,13 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
                     %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileChannelWriteMethods() ||
                     %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileWriterMethods() ||
                     %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileHandlerMethods() ||
-                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderWriteMethods() {
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderWriteMethods() ||
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.printWriterInitMethods() ||
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.bufferedWriterInitMethods() ||
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.outputStreamWriterInitMethods() ||
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.dataOutputStreamInitMethods() ||
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.objectOutputStreamInitMethods() ||
+                    %s.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.printStreamInitMethods() {
         checkFileSystemInteraction("write", thisJoinPoint);
     }
 

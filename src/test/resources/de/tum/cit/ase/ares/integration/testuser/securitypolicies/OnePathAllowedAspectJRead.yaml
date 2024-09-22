@@ -1,0 +1,33 @@
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+  theProgrammingLanguageUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.cit.ase.ares.api.securitytest.java.JavaSecurityTestCaseFactoryAndBuilder"
+    - "de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector"
+    - "de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension"
+    - "de.tum.cit.ase.ares.api.jupiter.UnifiedInvocationInterceptor"
+    - "de.tum.cit.ase.ares.api.internal.ReportingUtils"
+    - "de.tum.cit.ase.ares.api.jupiter.JupiterTestGuard"
+    - "de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile.CustomClassResolver"
+    - "de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile.TransitivelyAccessesMethodsCondition$TransitiveAccessPath"
+    - "de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile.TransitivelyAccessesMethodsCondition"
+    - "de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitSecurityTestCase"
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions:
+      - readAllFiles: false
+        overwriteAllFiles: false
+        executeAllFiles: false
+        deleteAllFiles: false
+        onThisPathAndAllPathsBelow: "pom.xml"
+    regardingNetworkConnections: []
+    regardingCommandExecutions: []
+    regardingThreadCreations: []
+    regardingPackageImports:
+      - importTheFollowingPackage: "java.io"
+      - importTheFollowingPackage: "java.util"
+      - importTheFollowingPackage: "java.nio"
+      - importTheFollowingPackage: "java.net"
+      - importTheFollowingPackage: "java.awt"
+      - importTheFollowingPackage: "javax.swing"
+      - importTheFollowingPackage: "javax.sound"

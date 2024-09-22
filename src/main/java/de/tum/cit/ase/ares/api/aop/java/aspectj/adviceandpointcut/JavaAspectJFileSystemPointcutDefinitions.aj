@@ -4,9 +4,6 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
 
     // These are the FileSystem related methods which we want to ban
 
-    pointcut randomAccessFileExecuteMethods():
-            call(java.io.RandomAccessFile.new(..));
-
     pointcut fileReadMethods():
             (call(* java.io.File.canRead(..)) ||
                     call(* java.io.File.exists(..)) ||
@@ -18,7 +15,8 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.io.File.isHidden(..)) ||
                     call(* java.io.File.lastModified(..)) ||
                     call(* java.io.File.length(..)) ||
-                    call(* java.io.File.normalizedList(..)));
+                    call(* java.io.File.normalizedList(..)) ||
+                    call(* java.io.RandomAccessFile.read(..)));
 
     pointcut fileWriteMethods():
             (call(* java.io.File.canWrite(..)) ||
@@ -29,20 +27,25 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.io.File.setReadOnly(..)) ||
                     call(* java.io.File.setReadable(..)) ||
                     call(* java.io.File.setWritable(..)) ||
-                    call(* java.io.File.mkdir(..)));
+                    call(* java.io.File.mkdir(..)) ||
+                    call(* java.nio.channels.FileChannel.write(..)) ||
+                    call(* java.nio.file.Files.write(..)) ||
+                    call(* java.nio.file.Files.newBufferedWriter(..)) ||
+                    call(* java.nio.file.Files.newOutputStream(..)) ||
+                    call(* java.io.FileOutputStream.write(..)) ||
+                    call(* java.io.RandomAccessFile.write(..)));
 
     pointcut fileExecuteMethods():
             (call(* java.io.File.canExecute(..)) ||
-                    call(* java.io.File.renameTo(..))||
+                    call(* java.io.File.renameTo(..)) ||
                     call(* java.io.File.toPath(..)) ||
-                    call(* java.io.File.toURI(..))||
-                    call(* java.io.File.mkdirs(..))||
+                    call(* java.io.File.toURI(..)) ||
+                    call(* java.io.File.mkdirs(..)) ||
                     call(* java.io.File.listFiles(..)));
 
     pointcut fileDeleteMethods():
             (call(* java.io.File.delete(..)) ||
                     call(* java.io.File.deleteOnExit(..)));
-
 
     pointcut fileInputStreamInitMethods(): call(java.io.FileInputStream.new(..));
 
@@ -172,7 +175,6 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
     pointcut defaultFileSystemExecuteMethods():
             call(* java.io.DefaultFileSystem.getFileSystem(..));
 
-    // FileSystemProvider Methods
     pointcut fileSystemProviderReadMethods():
             (call(* java.nio.file.spi.FileSystemProvider.checkAccess(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider.getFileAttributeView(..)) ||
@@ -198,7 +200,7 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.nio.file.spi.FileSystemProvider.createLink(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider.createSymbolicLink(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider.move(..)) ||
-                    call(* java.nio.file.spi.FileSystemProvider.setAttribute(..))||
+                    call(* java.nio.file.spi.FileSystemProvider.setAttribute(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider.newFileSystem(..)));
 
     pointcut fileSystemProviderExecuteMethods():
@@ -208,7 +210,27 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
             (call(* java.nio.file.spi.FileSystemProvider.delete(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider.deleteIfExists(..)));
 
-    //TODO Sarp: These should definetly be considered in different pointcut files or this one
+    pointcut bufferedReaderInitMethods(): call(java.io.BufferedReader.new(..));
+
+    pointcut scannerInitMethods(): call(java.util.Scanner.new(java.io.File));
+
+    pointcut fileReaderInitMethods(): call(java.io.FileReader.new(..));
+
+    pointcut lineNumberReaderInitMethods(): call(java.io.LineNumberReader.new(..));
+
+    pointcut printWriterInitMethods(): call(java.io.PrintWriter.new(..));
+
+    pointcut bufferedWriterInitMethods(): call(java.io.BufferedWriter.new(..));
+
+    pointcut outputStreamWriterInitMethods(): call(java.io.OutputStreamWriter.new(..));
+
+    pointcut dataOutputStreamInitMethods(): call(java.io.DataOutputStream.new(..));
+
+    pointcut objectOutputStreamInitMethods(): call(java.io.ObjectOutputStream.new(..));
+
+    pointcut printStreamInitMethods(): call(java.io.PrintStream.new(..));
+
+    //TODO Sarp: These should definitely be considered in different pointcut files or this one
     pointcut desktopExecuteMethods():
             (call(* java.awt.Desktop.browse(..)) ||
                     call(* java.awt.Desktop.browseFileDirectory(..)) ||

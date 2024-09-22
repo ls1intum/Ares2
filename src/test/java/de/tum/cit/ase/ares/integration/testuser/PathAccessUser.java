@@ -13,7 +13,7 @@ import de.tum.cit.ase.ares.api.*;
 import de.tum.cit.ase.ares.api.MirrorOutput.MirrorOutputPolicy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
-import de.tum.cit.ase.ares.integration.testuser.subject.pathaccess.PathAccessPenguin;
+import de.tum.cit.ase.ares.integration.testuser.subject.fileSystem.FileSystemAccessPenguin;
 
 @UseLocale("en")
 @MirrorOutput(MirrorOutputPolicy.DISABLED)
@@ -40,32 +40,32 @@ public class PathAccessUser {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentation.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
     public void accessPathNormalInstrumentation() throws IOException {
-        PathAccessPenguin.accessPath(Path.of("pom212.xml"));
+        FileSystemAccessPenguin.accessPath(Path.of("pom212.xml"));
     }
 
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
     public void accessPathNormal() throws IOException {
-        PathAccessPenguin.accessPath(Path.of("pom212.xml"));
+        FileSystemAccessPenguin.accessPath(Path.of("pom212.xml"));
     }
 
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
     void accessPathNormalAllowed() throws IOException {
-        PathAccessPenguin.accessPath(Path.of("pom.xml"));
+        FileSystemAccessPenguin.accessPath(Path.of("pom.xml"));
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
     void accessPathRelativeGlobDirectChildrenForbidden() {
-        PathAccessPenguin.askForFilePermission("*");
+        FileSystemAccessPenguin.askForFilePermission("*");
     }
 
     @PublicTest
     //@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
     void accessPathRelativeGlobRecursiveForbidden() {
-        PathAccessPenguin.askForFilePermission("-");
+        FileSystemAccessPenguin.askForFilePermission("-");
     }
 
     @PublicTest
@@ -77,40 +77,40 @@ public class PathAccessUser {
     @WhitelistPath(value = "../*r*e*s**", type = PathType.GLOB)
     @PublicTest
     void accessPathRelativeGlobA() throws IOException {
-        PathAccessPenguin.accessPath(Path.of("pom.xml").toAbsolutePath());
+        FileSystemAccessPenguin.accessPath(Path.of("pom.xml").toAbsolutePath());
     }
 
     @WhitelistPath(value = "./pom.xml", type = PathType.GLOB)
     @PublicTest
     void accessPathRelativeGlobB() throws IOException {
-        PathAccessPenguin.accessPath(Path.of("pom.xml").toAbsolutePath());
+        FileSystemAccessPenguin.accessPath(Path.of("pom.xml").toAbsolutePath());
     }
 
     @WhitelistPath(value = "../*r*e*s**", type = PathType.GLOB)
     @PublicTest
     void accessPathRelativeGlobDirectChildrenAllowed() {
-        PathAccessPenguin.askForFilePermission("src/*");
+        FileSystemAccessPenguin.askForFilePermission("src/*");
     }
 
     @WhitelistPath(value = "../*r*e*s**", type = PathType.GLOB)
     @BlacklistPath(value = "abc")
     @PublicTest
     void accessPathRelativeGlobDirectChildrenBlacklist() {
-        PathAccessPenguin.askForFilePermission("*");
+        FileSystemAccessPenguin.askForFilePermission("*");
     }
 
 
     @WhitelistPath(value = "../*r*e*s**", type = PathType.GLOB)
     @PublicTest
     void accessPathRelativeGlobRecursiveAllowed() {
-        PathAccessPenguin.askForFilePermission("-");
+        FileSystemAccessPenguin.askForFilePermission("-");
     }
 
     @WhitelistPath(value = "../*r*e*s**", type = PathType.GLOB)
     @BlacklistPath(value = "abc")
     @PublicTest
     void accessPathRelativeGlobRecursiveBlacklist() {
-        PathAccessPenguin.askForFilePermission("src/-");
+        FileSystemAccessPenguin.askForFilePermission("src/-");
     }
 
     @PublicTest
@@ -120,7 +120,7 @@ public class PathAccessUser {
         Path file = Path.of("src/test/java/de/tum/cit/ase/ares/integration/SecurityTest.java");
         if (!Files.exists(file))
             fail("File not present: " + file.toAbsolutePath());
-        PathAccessPenguin.accessPath(file);
+        FileSystemAccessPenguin.accessPath(file);
     }
 
     @PublicTest
