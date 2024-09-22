@@ -495,7 +495,7 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
      */
     @Override
     @Nonnull
-    public String writeAOPSecurityTestCase(@Nonnull String aomMode) {
+    public String writeAOPSecurityTestCase(@Nonnull String aopMode) {
         return "";
     }
     //</editor-fold>
@@ -505,7 +505,7 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
     /**
      * Writes the aspect configuration content based on the provided security test cases.
      *
-     * @param aomMode               the AOP mode (AspectJ or Instrumentation), must not be null.
+     * @param aopMode               the AOP mode (AspectJ or Instrumentation), must not be null.
      * @param restrictedPackage     the restricted package, must not be null.
      * @param allowedListedClasses  the list of allowed classes in the restricted package, must not be null.
      * @param javaSecurityTestCases the list of security test cases to be used, must not be null.
@@ -514,13 +514,13 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
     @SuppressWarnings("StringBufferReplaceableByString")
     @Nonnull
     public static String writeAOPSecurityTestCaseFile(
-            @Nonnull String aomMode,
+            @Nonnull String aopMode,
             @Nonnull String restrictedPackage,
             @Nonnull List<String> allowedListedClasses,
             @Nonnull List<JavaSecurityTestCase> javaSecurityTestCases
     ) {
         @Nonnull StringBuilder fileContentBuilder = new StringBuilder();
-        fileContentBuilder.append(generateAdviceSettingValue("String", "aomMode", aomMode));
+        fileContentBuilder.append(generateAdviceSettingValue("String", "aopMode", aopMode));
         fileContentBuilder.append(generateAdviceSettingValue("String", "restrictedPackage", restrictedPackage));
         fileContentBuilder.append(generateAdviceSettingValue("String[]", "allowedListedClasses", allowedListedClasses));
         fileContentBuilder.append(generateAdviceSettingValue("String[]", "pathsAllowedToBeRead", extractPaths(javaSecurityTestCases, FilePermission::readAllFiles)));
@@ -547,14 +547,14 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
      * Executes the AOP security test case by setting Java advice settings.
      */
     @Override
-    public void executeAOPSecurityTestCase(@Nonnull String aomMode) {
+    public void executeAOPSecurityTestCase(@Nonnull String aopMode) {
         switch (javaSecurityTestCaseSupported) {
             case FILESYSTEM_INTERACTION -> Map.of(
                     "pathsAllowedToBeRead", getPermittedFilePaths("read").toArray(String[]::new),
                     "pathsAllowedToBeOverwritten", getPermittedFilePaths("overwrite").toArray(String[]::new),
                     "pathsAllowedToBeExecuted", getPermittedFilePaths("execute").toArray(String[]::new),
                     "pathsAllowedToBeDeleted", getPermittedFilePaths("delete").toArray(String[]::new)
-            ).forEach((k, v) -> JavaSecurityTestCase.setJavaAdviceSettingValue(k, v, aomMode));
+            ).forEach((k, v) -> JavaSecurityTestCase.setJavaAdviceSettingValue(k, v, aopMode));
             case NETWORK_CONNECTION -> Map.of(
                     "hostsAllowedToBeConnectedTo", getPermittedNetworkHosts("connect"),
                     "portsAllowedToBeConnectedTo", getPermittedNetworkPorts("connect"),
@@ -562,15 +562,15 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
                     "portsAllowedToBeSentTo", getPermittedNetworkPorts("send"),
                     "hostsAllowedToBeReceivedFrom", getPermittedNetworkHosts("receive"),
                     "portsAllowedToBeReceivedFrom", getPermittedNetworkPorts("receive")
-            ).forEach((k, v) -> JavaSecurityTestCase.setJavaAdviceSettingValue(k, v, aomMode));
+            ).forEach((k, v) -> JavaSecurityTestCase.setJavaAdviceSettingValue(k, v, aopMode));
             case COMMAND_EXECUTION -> Map.of(
                     "commandsAllowedToBeExecuted", getPermittedCommands(),
                     "argumentsAllowedToBePassed", getPermittedArguments()
-            ).forEach((k, v) -> JavaSecurityTestCase.setJavaAdviceSettingValue(k, v, aomMode));
+            ).forEach((k, v) -> JavaSecurityTestCase.setJavaAdviceSettingValue(k, v, aopMode));
             case THREAD_CREATION -> Map.of(
                     "threadNumberAllowedToBeCreated", getPermittedNumberOfThreads(),
                     "threadClassAllowedToBeCreated", getPermittedThreadClasses()
-            ).forEach((k, v) -> JavaSecurityTestCase.setJavaAdviceSettingValue(k, v, aomMode));
+            ).forEach((k, v) -> JavaSecurityTestCase.setJavaAdviceSettingValue(k, v, aopMode));
         }
     }
     //</editor-fold>

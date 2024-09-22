@@ -146,7 +146,7 @@ public enum JavaAOPMode {
     /**
      * Generates the body for the three-parted security test case file based on the provided mode and classes.
      *
-     * @param aomMode               the AOP mode (AspectJ or Instrumentation).
+     * @param aopMode               the AOP mode (AspectJ or Instrumentation).
      * @param restrictedPackage     the package being restricted by the security test cases.
      * @param allowedListedClasses  the list of allowed classes in the restricted package.
      * @param javaSecurityTestCases the list of security test cases.
@@ -154,12 +154,12 @@ public enum JavaAOPMode {
      */
     @Nonnull
     public String threePartedFileBody(
-            @Nonnull String aomMode,
+            @Nonnull String aopMode,
             @Nonnull String restrictedPackage,
             @Nonnull List<String> allowedListedClasses,
             @Nonnull List<JavaSecurityTestCase> javaSecurityTestCases
     ) {
-        return JavaSecurityTestCase.writeAOPSecurityTestCaseFile(aomMode, restrictedPackage, allowedListedClasses, javaSecurityTestCases);
+        return JavaSecurityTestCase.writeAOPSecurityTestCaseFile(aopMode, restrictedPackage, allowedListedClasses, javaSecurityTestCases);
     }
 
     /**
