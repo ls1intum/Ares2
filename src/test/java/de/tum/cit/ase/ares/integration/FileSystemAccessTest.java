@@ -12,9 +12,6 @@ import org.junit.platform.testkit.engine.Events;
 import de.tum.cit.ase.ares.integration.testuser.FileSystemAccessUser;
 import de.tum.cit.ase.ares.testutilities.*;
 
-import java.io.IOException;
-import java.nio.file.Path;
-
 @UserBased(FileSystemAccessUser.class)
 class FileSystemAccessTest {
 
@@ -40,6 +37,7 @@ class FileSystemAccessTest {
     private final String errorMessage = "No Security Exception was thrown. Check if the policy is correctly applied.";
     //</editor-fold>
 
+    // TODO Markus: Look into why we cannot structure the rest of the tests like "Other Tests"
     //<editor-fold desc="Other Tests">
 	/* OUTCOMMENTED: Conceptually not possible anymore
 	@TestTest
