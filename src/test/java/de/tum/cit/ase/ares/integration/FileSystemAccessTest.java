@@ -133,7 +133,7 @@ class FileSystemAccessTest {
         void test_accessFileSystemViaRandomAccessFileReadAspectJ() {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaRandomAccessFile();
-                fail();
+                fail(errorMessage);
             } catch (RuntimeException e) {
                 // Expected exception
             }
@@ -601,32 +601,6 @@ class FileSystemAccessTest {
         }
         //</editor-fold>
 
-        //<editor-fold desc="accessFileSystemViaOutputStreamWriter">
-        @TestTest
-        @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaOutputStreamWriterAspectJ() {
-            try {
-                FileSystemAccessPenguin.accessFileSystemViaOutputStreamWriter();
-                fail(errorMessage);
-            } catch (RuntimeException e) {
-                // Expected exception
-            }
-        }
-
-        @TestTest
-        @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaOutputStreamWriterInstrumentation() {
-            try {
-                FileSystemAccessPenguin.accessFileSystemViaOutputStreamWriter();
-                fail(errorMessage);
-            } catch (RuntimeException e) {
-                // Expected exception
-            }
-        }
-        //</editor-fold>
-
         //<editor-fold desc="accessFileSystemViaObjectOutputStream">
         @TestTest
         @PublicTest
@@ -646,6 +620,32 @@ class FileSystemAccessTest {
         void test_accessFileSystemViaObjectOutputStreamInstrumentation() {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaObjectOutputStream();
+                fail(errorMessage);
+            } catch (RuntimeException e) {
+                // Expected exception
+            }
+        }
+        //</editor-fold>
+
+        //<editor-fold desc="accessFileSystemViaOutputStreamWriter">
+        @TestTest
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+        void test_accessFileSystemViaOutputStreamWriterAspectJ() {
+            try {
+                FileSystemAccessPenguin.accessFileSystemViaOutputStreamWriter();
+                fail(errorMessage);
+            } catch (RuntimeException e) {
+                // Expected exception
+            }
+        }
+
+        @TestTest
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+        void test_accessFileSystemViaOutputStreamWriterInstrumentation() {
+            try {
+                FileSystemAccessPenguin.accessFileSystemViaOutputStreamWriter();
                 fail(errorMessage);
             } catch (RuntimeException e) {
                 // Expected exception
