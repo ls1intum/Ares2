@@ -21,7 +21,7 @@ import de.tum.cit.ase.ares.integration.testuser.subject.fileSystem.FileSystemAcc
 @TestMethodOrder(MethodName.class)
 @WhitelistPath(value = "target/**", type = PathType.GLOB)
 @SuppressWarnings("static-method")
-public class PathAccessUser {
+public class FileSystemAccessUser {
 
 	/* OUTCOMMENTED: Conceptually not possible anymore
 	@PublicTest

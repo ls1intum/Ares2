@@ -9,14 +9,14 @@ import de.tum.cit.ase.ares.integration.testuser.subject.fileSystem.FileSystemAcc
 import org.junit.jupiter.api.Nested;
 import org.junit.platform.testkit.engine.Events;
 
-import de.tum.cit.ase.ares.integration.testuser.PathAccessUser;
+import de.tum.cit.ase.ares.integration.testuser.FileSystemAccessUser;
 import de.tum.cit.ase.ares.testutilities.*;
 
 import java.io.IOException;
 import java.nio.file.Path;
 
-@UserBased(PathAccessUser.class)
-class PathAccessTest {
+@UserBased(FileSystemAccessUser.class)
+class FileSystemAccessTest {
 
     @UserTestResults
     private static Events tests;
@@ -335,6 +335,78 @@ class PathAccessTest {
         void test_accessFileSystemViaFilesReadInstrumentation() {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaFilesRead();
+                fail(errorMessage);
+            } catch (RuntimeException e) {
+                // Expected exception
+            }
+        }
+
+        @TestTest
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+        void test_accessFileSystemViaDataInputStreamAspectJ() {
+            try {
+                FileSystemAccessPenguin.accessFileSystemViaDataInputStream();
+                fail(errorMessage);
+            } catch (RuntimeException e) {
+                // Expected exception
+            }
+        }
+
+        @TestTest
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+        void test_accessFileSystemViaDataInputStreamInstrumentation() {
+            try {
+                FileSystemAccessPenguin.accessFileSystemViaDataInputStream();
+                fail(errorMessage);
+            } catch (RuntimeException e) {
+                // Expected exception
+            }
+        }
+
+        @TestTest
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+        void test_accessFileSystemViaObjectInputStreamAspectJ() {
+            try {
+                FileSystemAccessPenguin.accessFileSystemViaObjectInputStream();
+                fail(errorMessage);
+            } catch (RuntimeException e) {
+                // Expected exception
+            }
+        }
+
+        @TestTest
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+        void test_accessFileSystemViaObjectInputStreamInstrumentation() {
+            try {
+                FileSystemAccessPenguin.accessFileSystemViaObjectInputStream();
+                fail(errorMessage);
+            } catch (RuntimeException e) {
+                // Expected exception
+            }
+        }
+
+        @TestTest
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+        void test_accessFileSystemViaInputStreamReaderAspectJ() {
+            try {
+                FileSystemAccessPenguin.accessFileSystemViaInputStreamReader();
+                fail(errorMessage);
+            } catch (RuntimeException e) {
+                // Expected exception
+            }
+        }
+
+        @TestTest
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+        void test_accessFileSystemViaInputStreamReaderInstrumentation() {
+            try {
+                FileSystemAccessPenguin.accessFileSystemViaInputStreamReader();
                 fail(errorMessage);
             } catch (RuntimeException e) {
                 // Expected exception

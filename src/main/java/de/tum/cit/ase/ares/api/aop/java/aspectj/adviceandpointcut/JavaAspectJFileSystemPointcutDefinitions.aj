@@ -70,7 +70,12 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.nio.file.Files.newBufferedReader(..)) ||
                     call(* java.nio.file.Files.newInputStream(..)) ||
                     call(* java.nio.file.Files.probeContentType(..)) ||
-                    call(* java.nio.file.Files.isReadable(..)));
+                    call(* java.nio.file.Files.isReadable(..)) ||
+                    call(* java.io.DataInputStream.read(..)) ||
+                    call(* java.io.DataInputStream.readFully(..)) ||
+                    call(* java.io.ObjectInputStream.readObject(..)) ||
+                    call(* java.io.ObjectInputStream.read(..)) ||
+                    call(* java.io.InputStreamReader.read(..)));
 
     pointcut filesWriteMethods():
             (call(* java.nio.file.Files.write(..)) ||

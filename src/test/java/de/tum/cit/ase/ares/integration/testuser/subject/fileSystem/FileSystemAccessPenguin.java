@@ -294,6 +294,42 @@ public final class FileSystemAccessPenguin {
 		}
 	}
 
+	/**
+	 * Access the file system using the {@link DataInputStream} class.
+	 */
+	public static void accessFileSystemViaDataInputStream() {
+		try {
+			DataInputStream stream = new DataInputStream(new FileInputStream("pom123.xml"));
+			stream.read();
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	/**
+	 * Access the file system using the {@link ObjectInputStream} class.
+	 */
+	public static void accessFileSystemViaObjectInputStream() {
+		try {
+			ObjectInputStream stream = new ObjectInputStream(new FileInputStream("pom123.xml"));
+			stream.readObject();
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	/**
+	 * Access the file system using the {@link InputStreamReader} class.
+	 */
+	public static void accessFileSystemViaInputStreamReader() {
+		try {
+			InputStreamReader reader = new InputStreamReader(new FileInputStream("pom123.xml"));
+			reader.read();
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	// --- Execute Methods ---
 
 	/**
