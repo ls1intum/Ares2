@@ -6,6 +6,7 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
 
     pointcut fileReadMethods():
             (call(* java.io.File.canRead(..)) ||
+                    call(java.io.File.new(..)) ||
                     call(* java.io.File.exists(..)) ||
                     call(* java.io.File.getFreeSpace(..)) ||
                     call(* java.io.File.getTotalSpace(..)) ||
