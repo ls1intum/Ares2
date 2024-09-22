@@ -873,9 +873,32 @@ class FileSystemAccessTest {
                 // Expected exception
             }
         }
-        //</editor-fold>
 
-        // TODO Aniruddh: accessFileSystemViaJFileChooser
+        //<editor-fold desc="accessFileSystemViaJFileChooser">
+        @TestTest
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+        void test_accessFileSystemViaJFileChooserAspectJ() {
+            try {
+                FileSystemAccessPenguin.accessFileSystemViaFileSystemProvider();
+                fail(errorMessage);
+            } catch (RuntimeException e) {
+                // Expected exception
+            }
+        }
+
+        @TestTest
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+        void test_accessFileSystemViaJFileChooserInstrumentation() {
+            try {
+                FileSystemAccessPenguin.accessFileSystemViaJFileChooser();
+                fail(errorMessage);
+            } catch (RuntimeException e) {
+                // Expected exception
+            }
+        }
+        //</editor-fold>
     }
     //</editor-fold>
 }
