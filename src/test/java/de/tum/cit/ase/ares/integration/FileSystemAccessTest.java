@@ -873,6 +873,7 @@ class FileSystemAccessTest {
                 // Expected exception
             }
         }
+        //</editor-fold>
 
         //<editor-fold desc="accessFileSystemViaJFileChooser">
         @TestTest
