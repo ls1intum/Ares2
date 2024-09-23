@@ -225,7 +225,7 @@ public class JavaInstrumentationAdviceToolbox {
         String[] allowedPaths = (String[]) getValueFromSettings(
                 switch (action) {
                     case "read" -> "pathsAllowedToBeRead";
-                    case "write" -> "pathsAllowedToBeOverwritten";
+                    case "overwrite" -> "pathsAllowedToBeOverwritten";
                     case "execute" -> "pathsAllowedToBeExecuted";
                     case "delete" -> "pathsAllowedToBeDeleted";
                     default -> throw new IllegalArgumentException("Unknown action: " + action);
