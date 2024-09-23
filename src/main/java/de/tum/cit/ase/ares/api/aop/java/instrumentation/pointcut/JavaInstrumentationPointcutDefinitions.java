@@ -158,7 +158,9 @@ public class JavaInstrumentationPointcutDefinitions {
             "java.io.Win32FileSystem",
             List.of("createFileExclusively", "delete", "setLastModifiedTime", "createDirectory"),
             "java.util.prefs.FileSystemPreferences",
-            List.of("lockFile0", "unlockFile0")
+            List.of("lockFile0", "unlockFile0"),
+            "java.nio.file.Files",
+            List.of("write", "writeString", "newOutputStream", "writeBytes", "writeAllBytes", "writeLines")
 
     );
     //</editor-fold>
