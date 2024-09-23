@@ -2,7 +2,6 @@ package de.tum.cit.ase.ares.api.architecture.java.archunit;
 
 import de.tum.cit.ase.ares.api.util.FileTools;
 
-import java.io.File;
 import java.nio.file.Path;
 
 /**

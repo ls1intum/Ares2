@@ -159,6 +159,7 @@ public class JavaInstrumentationPointcutDefinitions {
             List.of("createFileExclusively", "delete", "setLastModifiedTime", "createDirectory"),
             "java.util.prefs.FileSystemPreferences",
             List.of("lockFile0", "unlockFile0")
+
     );
     //</editor-fold>
 
@@ -173,7 +174,9 @@ public class JavaInstrumentationPointcutDefinitions {
             "java.io.WinNTFileSystem",
             List.of("checkAccess", "setReadOnly"),
             "java.io.Win32FileSystem",
-            List.of("checkAccess", "setReadOnly")
+            List.of("checkAccess", "setReadOnly"),
+            "java.nio.file.Files",
+            List.of("setPosixFilePermissions")
     );
     //</editor-fold>
 
@@ -184,7 +187,9 @@ public class JavaInstrumentationPointcutDefinitions {
      */
     public static final Map<String, List<String>> methodsWhichCanDeleteFiles = Map.of(
             "java.io.File",
-            List.of("delete", "deleteOnExit")
+            List.of("delete", "deleteOnExit"),
+            "java.nio.file.Files",
+            List.of("delete")
     );
     //</editor-fold>
 
