@@ -163,8 +163,7 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
                             .getOrigin()
                             .getFullName()
                             .substring(javaClass.getFullName().length())
-                            .equals(methodName)
-                            && isExceptionOrError(a.getTargetOwner()))
+                            .equals(methodName))
                     .collect(toSet());
         }
 
