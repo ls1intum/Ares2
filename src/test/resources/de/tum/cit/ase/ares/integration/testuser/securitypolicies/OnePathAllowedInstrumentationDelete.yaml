@@ -14,6 +14,7 @@ regardingTheSupervisedCode:
     - "de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile.TransitivelyAccessesMethodsCondition"
     - "de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitSecurityTestCase"
     - "de.tum.cit.ase.ares.testutilities.TestUserExtension"
+    - "sun.awt.X11FontManager"
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions:
       - readAllFiles: false

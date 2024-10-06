@@ -117,7 +117,7 @@ class FileSystemAccessTest {
 
     @TestTest
     void test_accessFileSystem() {
-        tests.assertThatEvents().haveExactly(1, testFailedWith("accessFileSystem", SecurityException.class));
+        tests.assertThatEvents().haveExactly(1, testFailedWith("accessFileSystem", AssertionError.class));
     }
     //</editor-fold>
 

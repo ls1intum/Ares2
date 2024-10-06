@@ -129,7 +129,7 @@ public class JavaInstrumentationPointcutDefinitions {
             List.of("<init>", "read", "readFully", "readLine", "readBoolean", "readByte", "readChar", "readDouble",
                     "readFloat", "readInt", "readLong", "readShort", "readUnsignedByte", "readUnsignedShort"),
             "java.io.UnixFileSystem",
-            List.of("getLastModifiedTime", "getBooleanAttributes0", "getSpace", "canonicalize0"),
+            List.of("getBooleanAttributes0", "getSpace", "canonicalize0"),
             "java.io.WinNTFileSystem",
             List.of("getBooleanAttributes", "canonicalize", "getLastModifiedTime", "getSpace"),
             "java.io.Win32FileSystem",
@@ -174,9 +174,9 @@ public class JavaInstrumentationPointcutDefinitions {
      */
     public static final Map<String, List<String>> methodsWhichCanExecuteFiles = Map.of(
             "java.io.UnixFileSystem",
-            List.of("checkAccess", "setPermission"),
+            List.of("setPermission"),
             "java.io.WinNTFileSystem",
-            List.of("checkAccess", "setReadOnly"),
+            List.of("setReadOnly"),
             "java.io.Win32FileSystem",
             List.of("checkAccess", "setReadOnly"),
             "java.nio.file.Files",

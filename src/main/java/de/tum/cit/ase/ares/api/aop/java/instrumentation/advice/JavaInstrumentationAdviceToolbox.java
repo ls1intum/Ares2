@@ -101,10 +101,10 @@ public class JavaInstrumentationAdviceToolbox {
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
         for (StackTraceElement element : stackTrace) {
             if (element.toString().startsWith(restrictedPackage)) {
+                // TODO: Check if the method is allowed to access the file system, this happened in the Demo with the OutputTester currently not working
                 if (!checkIfCallstackElementIsAllowed(allowedClasses, element)) {
                     return element.toString();
                 }
-                // TODO: Check if the method is allowed to access the file system, this happened in the Demo with the OutputTester
             }
         }
         return null;
