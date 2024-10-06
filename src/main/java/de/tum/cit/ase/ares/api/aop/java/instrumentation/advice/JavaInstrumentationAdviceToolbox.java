@@ -104,6 +104,7 @@ public class JavaInstrumentationAdviceToolbox {
                 if (!checkIfCallstackElementIsAllowed(allowedClasses, element)) {
                     return element.toString();
                 }
+                // TODO: Check if the method is allowed to access the file system, this happened in the Demo with the OutputTester
             }
         }
         return null;

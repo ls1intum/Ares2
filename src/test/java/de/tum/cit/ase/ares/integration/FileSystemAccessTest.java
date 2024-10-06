@@ -12,6 +12,8 @@ import org.junit.platform.testkit.engine.Events;
 import de.tum.cit.ase.ares.integration.testuser.FileSystemAccessUser;
 import de.tum.cit.ase.ares.testutilities.*;
 
+import java.io.IOException;
+
 @UserBased(FileSystemAccessUser.class)
 class FileSystemAccessTest {
 
@@ -115,7 +117,7 @@ class FileSystemAccessTest {
 
     @TestTest
     void test_accessFileSystem() {
-        tests.assertThatEvents().haveExactly(1, testFailedWith("accessFileSystem", RuntimeException.class));
+        tests.assertThatEvents().haveExactly(1, testFailedWith("accessFileSystem", SecurityException.class));
     }
     //</editor-fold>
 
@@ -130,11 +132,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaRandomAccessFileReadAspectJ() {
+        void test_accessFileSystemViaRandomAccessFileReadAspectJ() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaRandomAccessFile();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -142,11 +144,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaRandomAccessFileReadInstrumentation() {
+        void test_accessFileSystemViaRandomAccessFileReadInstrumentation() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaRandomAccessFile();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -160,7 +162,7 @@ class FileSystemAccessTest {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaFileRead();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -172,7 +174,7 @@ class FileSystemAccessTest {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaFileRead();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -182,11 +184,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFileInputStreamAspectJ() {
+        void test_accessFileSystemViaFileInputStreamAspectJ() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaFileInputStream();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -194,11 +196,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFileInputStreamInstrumentation() {
+        void test_accessFileSystemViaFileInputStreamInstrumentation() throws IOException{
             try {
                 FileSystemAccessPenguin.accessFileSystemViaFileInputStream();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -208,11 +210,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFileReaderAspectJ() {
+        void test_accessFileSystemViaFileReaderAspectJ() throws IOException{
             try {
                 FileSystemAccessPenguin.accessFileSystemViaFileReader();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -220,11 +222,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFileReaderInstrumentation() {
+        void test_accessFileSystemViaFileReaderInstrumentation() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaFileReader();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -234,11 +236,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaBufferedReaderAspectJ() {
+        void test_accessFileSystemViaBufferedReaderAspectJ() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaBufferedReader();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -246,11 +248,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaBufferedReaderInstrumentation() {
+        void test_accessFileSystemViaBufferedReaderInstrumentation() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaBufferedReader();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -260,11 +262,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaScannerAspectJ() {
+        void test_accessFileSystemViaScannerAspectJ() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaScanner();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -272,11 +274,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaScannerInstrumentation() {
+        void test_accessFileSystemViaScannerInstrumentation() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaScanner();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -286,11 +288,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaDataInputStreamAspectJ() {
+        void test_accessFileSystemViaDataInputStreamAspectJ() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaDataInputStream();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -298,11 +300,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaDataInputStreamInstrumentation() {
+        void test_accessFileSystemViaDataInputStreamInstrumentation() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaDataInputStream();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -312,11 +314,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaObjectInputStreamAspectJ() {
+        void test_accessFileSystemViaObjectInputStreamAspectJ() throws IOException, ClassNotFoundException{
             try {
                 FileSystemAccessPenguin.accessFileSystemViaObjectInputStream();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -324,11 +326,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaObjectInputStreamInstrumentation() {
+        void test_accessFileSystemViaObjectInputStreamInstrumentation() throws IOException, ClassNotFoundException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaObjectInputStream();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -338,11 +340,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaInputStreamReaderAspectJ() {
+        void test_accessFileSystemViaInputStreamReaderAspectJ() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaInputStreamReader();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -350,11 +352,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaInputStreamReaderInstrumentation() {
+        void test_accessFileSystemViaInputStreamReaderInstrumentation() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaInputStreamReader();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -364,11 +366,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFileChannelReadAspectJ() {
+        void test_accessFileSystemViaFileChannelReadAspectJ() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaFileChannelRead();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -376,11 +378,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFileChannelReadInstrumentation() {
+        void test_accessFileSystemViaFileChannelReadInstrumentation() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaFileChannelRead();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -390,11 +392,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFilesReadAspectJ() {
+        void test_accessFileSystemViaFilesReadAspectJ() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaFilesRead();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -402,11 +404,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFilesReadInstrumentation() {
+        void test_accessFileSystemViaFilesReadInstrumentation() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaFilesRead();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -423,11 +425,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaRandomAccessFileWriteAspectJ() {
+        void test_accessFileSystemViaRandomAccessFileWriteAspectJ() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaRandomAccessFileWrite();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -435,11 +437,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaRandomAccessFileWriteInstrumentation() {
+        void test_accessFileSystemViaRandomAccessFileWriteInstrumentation() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaRandomAccessFileWrite();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -449,11 +451,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFileWriteAspectJ() {
+        void test_accessFileSystemViaFileWriteAspectJ() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaFileWrite();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -461,11 +463,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFileWriteInstrumentation() {
+        void test_accessFileSystemViaFileWriteInstrumentation() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaFileWrite();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -475,11 +477,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFileOutputStreamAspectJ() {
+        void test_accessFileSystemViaFileOutputStreamAspectJ() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaFileOutputStream();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -487,11 +489,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFileOutputStreamInstrumentation() {
+        void test_accessFileSystemViaFileOutputStreamInstrumentation() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaFileOutputStream();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -501,11 +503,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFileWriterAspectJ() {
+        void test_accessFileSystemViaFileWriterAspectJ() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaFileWriter();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -513,11 +515,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFileWriterInstrumentation() {
+        void test_accessFileSystemViaFileWriterInstrumentation() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaFileWriter();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -527,11 +529,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaBufferedWriterAspectJ() {
+        void test_accessFileSystemViaBufferedWriterAspectJ() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaBufferedWriter();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -539,11 +541,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaBufferedWriterInstrumentation() {
+        void test_accessFileSystemViaBufferedWriterInstrumentation() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaBufferedWriter();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -553,11 +555,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaPrintWriterAspectJ() {
+        void test_accessFileSystemViaPrintWriterAspectJ() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaPrintWriter();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -565,11 +567,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaPrintWriterInstrumentation() {
+        void test_accessFileSystemViaPrintWriterInstrumentation() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaPrintWriter();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -579,11 +581,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaDataOutputStreamAspectJ() {
+        void test_accessFileSystemViaDataOutputStreamAspectJ() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaDataOutputStream();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -591,11 +593,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaDataOutputStreamInstrumentation() {
+        void test_accessFileSystemViaDataOutputStreamInstrumentation() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaDataOutputStream();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -605,11 +607,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaObjectOutputStreamAspectJ() {
+        void test_accessFileSystemViaObjectOutputStreamAspectJ() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaObjectOutputStream();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -617,11 +619,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaObjectOutputStreamInstrumentation() {
+        void test_accessFileSystemViaObjectOutputStreamInstrumentation() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaObjectOutputStream();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -631,11 +633,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaOutputStreamWriterAspectJ() {
+        void test_accessFileSystemViaOutputStreamWriterAspectJ() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaOutputStreamWriter();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -643,11 +645,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaOutputStreamWriterInstrumentation() {
+        void test_accessFileSystemViaOutputStreamWriterInstrumentation() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaOutputStreamWriter();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -657,11 +659,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaPrintStreamAspectJ() {
+        void test_accessFileSystemViaPrintStreamAspectJ() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaPrintStream();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -669,11 +671,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaPrintStreamInstrumentation() {
+        void test_accessFileSystemViaPrintStreamInstrumentation() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaPrintStream();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -683,11 +685,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFileChannelWriteAspectJ() {
+        void test_accessFileSystemViaFileChannelWriteAspectJ() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaFileChannelWrite();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -695,11 +697,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFileChannelWriteInstrumentation() {
+        void test_accessFileSystemViaFileChannelWriteInstrumentation() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaFileChannelWrite();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -709,11 +711,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFilesWriteAspectJ() {
+        void test_accessFileSystemViaFilesWriteAspectJ() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaFilesWrite();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -721,11 +723,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFilesWriteInstrumentation() {
+        void test_accessFileSystemViaFilesWriteInstrumentation() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaFilesWrite();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -735,11 +737,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFileHandlerAspectJ() {
+        void test_accessFileSystemViaFileHandlerAspectJ() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaFileHandler();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -747,11 +749,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFileHandlerInstrumentation() {
+        void test_accessFileSystemViaFileHandlerInstrumentation() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaFileHandler();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -772,7 +774,7 @@ class FileSystemAccessTest {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaFileExecute();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -784,7 +786,7 @@ class FileSystemAccessTest {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaFileExecute();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -794,11 +796,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaDesktopAspectJ() {
+        void test_accessFileSystemViaDesktopAspectJ() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaDesktop();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -806,11 +808,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaDesktopInstrumentation() {
+        void test_accessFileSystemViaDesktopInstrumentation() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaDesktop();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -827,11 +829,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFilesDeleteAspectJ() {
+        void test_accessFileSystemViaFilesDeleteAspectJ() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaFilesDelete();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -839,11 +841,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFilesDeleteInstrumentation() {
+        void test_accessFileSystemViaFilesDeleteInstrumentation() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaFilesDelete();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -853,11 +855,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFileSystemProviderAspectJ() {
+        void test_accessFileSystemViaFileSystemProviderAspectJ() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaFileSystemProvider();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -865,11 +867,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFileSystemProviderInstrumentation() {
+        void test_accessFileSystemViaFileSystemProviderInstrumentation() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaFileSystemProvider();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -879,11 +881,11 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaJFileChooserAspectJ() {
+        void test_accessFileSystemViaJFileChooserAspectJ() throws IOException {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaFileSystemProvider();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
@@ -895,7 +897,7 @@ class FileSystemAccessTest {
             try {
                 FileSystemAccessPenguin.accessFileSystemViaJFileChooser();
                 fail(errorMessage);
-            } catch (RuntimeException e) {
+            } catch (SecurityException e) {
                 // Expected exception
             }
         }
