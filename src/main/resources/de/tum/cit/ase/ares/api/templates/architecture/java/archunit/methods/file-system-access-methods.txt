@@ -34,7 +34,6 @@ java.io.PrintWriter.<init>(java.lang.String)
 java.io.PrintWriter.<init>(java.lang.String, java.lang.String)
 java.io.PrintWriter.<init>(java.lang.String, java.nio.charset.Charset)
 java.io.RandomAccessFile
-java.lang.ProcessImpl
 java.lang.Runtime.exec([Ljava.lang.String;, [Ljava.lang.String;, java.io.File)
 java.lang.Runtime.exec(java.lang.String, [Ljava.lang.String;, java.io.File)
 java.net.http.HttpRequest$BodyPublishers.ofFile(java.nio.file.Path)
@@ -44,7 +43,7 @@ java.net.http.HttpResponse$BodyHandlers.ofFileDownload(java.nio.file.Path, [Ljav
 java.net.http.HttpResponse$BodySubscribers.ofFile(java.nio.file.Path)
 java.net.http.HttpResponse$BodySubscribers.ofFile(java.nio.file.Path, [Ljava.nio.file.OpenOption;)
 java.nio.channels.FileChannel
-java.nio.file
+java.nio.file.Files
 java.security.KeyStore$Builder.newInstance(java.io.File, java.security.KeyStore$ProtectionParameter)
 java.security.KeyStore$Builder.newInstance(java.lang.String, java.security.Provider, java.io.File, java.security.KeyStore$ProtectionParameter)
 java.security.KeyStore.getInstance(java.io.File, [C)
@@ -67,15 +66,7 @@ java.util.logging.FileHandler.<init>(java.lang.String, int, int, boolean)
 java.util.logging.FileHandler.<init>(java.lang.String, long, int, boolean)
 java.util.logging.FileHandler.close()
 java.util.prefs
-java.util.prefs
 java.util.zip
-java.util.zip.ZipFile.<init>(java.io.File)
-java.util.zip.ZipFile.<init>(java.io.File, int)
-java.util.zip.ZipFile.<init>(java.io.File, int, java.nio.charset.Charset)
-java.util.zip.ZipFile.<init>(java.io.File, int, java.nio.charset.Charset)
-java.util.zip.ZipFile.<init>(java.io.File, java.nio.charset.Charset)
-java.util.zip.ZipFile.<init>(java.lang.String)
-java.util.zip.ZipFile.<init>(java.lang.String, java.nio.charset.Charset)
 javax.imageio
 javax.imageio.ImageIO.createImageInputStream(java.lang.Object)
 javax.imageio.ImageIO.createImageOutputStream(java.lang.Object)
@@ -92,18 +83,6 @@ javax.imageio.stream.FileCacheImageOutputStream.<init>(java.io.OutputStream, jav
 javax.imageio.stream.FileCacheImageOutputStream.close()
 javax.imageio.stream.FileImageInputStream.<init>(java.io.File)
 javax.imageio.stream.FileImageOutputStream.<init>(java.io.File)
-javax.management.loading.MLet.<init>()
-javax.management.loading.MLet.<init>([Ljava.net.URL;)
-javax.management.loading.MLet.<init>([Ljava.net.URL;, boolean)
-javax.management.loading.MLet.<init>([Ljava.net.URL;, java.lang.ClassLoader)
-javax.management.loading.MLet.<init>([Ljava.net.URL;, java.lang.ClassLoader, boolean)
-javax.management.loading.MLet.<init>([Ljava.net.URL;, java.lang.ClassLoader, java.net.URLStreamHandlerFactory)
-javax.management.loading.MLet.<init>([Ljava.net.URL;, java.lang.ClassLoader, java.net.URLStreamHandlerFactory, boolean)
-javax.management.loading.MLet.getMBeansFromURL(java.lang.String)
-javax.management.loading.MLet.getMBeansFromURL(java.net.URL)
-javax.management.loading.PrivateMLet.<init>([Ljava.net.URL;, boolean)
-javax.management.loading.PrivateMLet.<init>([Ljava.net.URL;, java.lang.ClassLoader, boolean)
-javax.management.loading.PrivateMLet.<init>([Ljava.net.URL;, java.lang.ClassLoader, java.net.URLStreamHandlerFactory, boolean)
 javax.management.modelmbean.RequiredModelMBean.sendAttributeChangeNotification(javax.management.Attribute, javax.management.Attribute)
 javax.management.modelmbean.RequiredModelMBean.sendAttributeChangeNotification(javax.management.AttributeChangeNotification)
 javax.management.modelmbean.RequiredModelMBean.sendNotification(java.lang.String)

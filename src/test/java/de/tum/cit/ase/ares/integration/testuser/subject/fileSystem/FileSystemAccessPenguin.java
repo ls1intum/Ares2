@@ -1,5 +1,7 @@
 package de.tum.cit.ase.ares.integration.testuser.subject.fileSystem;
 
+import de.tum.cit.ase.ares.integration.testuser.subject.thirdpartypackage.ThirdPartyPackagePenguin;
+
 import javax.swing.*;
 import java.awt.*;
 import java.io.*;
@@ -296,4 +298,8 @@ public final class FileSystemAccessPenguin {
         fileChooser.showOpenDialog(null);
     }
     //</editor-fold>
+
+    public void accessPathThroughThirdPartyPackage() throws IOException {
+        ThirdPartyPackagePenguin.accessFileSystem();
+    }
 }

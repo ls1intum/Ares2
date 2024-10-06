@@ -30,6 +30,9 @@ public class CustomClassResolver {
      * @return The resolved class if it exists.
      */
     public static Optional<JavaClass> tryResolve(String typeName) {
+        if (typeName.startsWith("de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemAdviceDefinitions")) {
+            return Optional.empty();
+        }
         URL url = CustomClassResolver.class.getResource("/" + typeName.replace(".", "/") + ".class");
         try {
             if (url == null) {
