@@ -100,14 +100,14 @@ public class JavaInstrumentationAdviceToolbox {
     private static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses) {
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
         for (StackTraceElement element : stackTrace) {
-            if (element.toString().startsWith(restrictedPackage)) {
+            if (element.getClassName().startsWith(restrictedPackage)) {
                 // Skip the OutputTester and InputTester classes, as they intercept the output and input for System.out and System.in
                 // Therefore, they cause false positives.
                 if (element.toString().equals("de.tum.cit.ase.ares.api.io.OutputTester") || element.toString().equals("de.tum.cit.ase.ares.api.io.InputTester")) {
                     return null;
                 }
                 if (!checkIfCallstackElementIsAllowed(allowedClasses, element)) {
-                    return element.toString();
+                    return element.getClassName();
                 }
             }
         }

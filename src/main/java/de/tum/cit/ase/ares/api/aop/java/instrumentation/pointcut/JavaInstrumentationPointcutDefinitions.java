@@ -121,7 +121,7 @@ public class JavaInstrumentationPointcutDefinitions {
      * and the values are lists of method names that are considered to be file read operations.
      */
     public static final Map<String, List<String>> methodsWhichCanReadFiles = Map.of(
-            // TODO: Currently the methods which can read are not properly instrumented
+            // TODO Markus: Currently the methods which can read are not properly instrumented
             "java.io.FileInputStream",
             List.of("<init>", "read"),
             "java.io.RandomAccessFile",
@@ -161,7 +161,9 @@ public class JavaInstrumentationPointcutDefinitions {
             "java.util.prefs.FileSystemPreferences",
             List.of("lockFile0", "unlockFile0"),
             "java.nio.file.Files",
-            List.of("write", "writeString", "newOutputStream", "writeBytes", "writeAllBytes", "writeLines")
+            List.of("write", "writeString", "newOutputStream", "writeBytes", "writeAllBytes", "writeLines"),
+            "java.io.File",
+            List.of("setWritable")
 
     );
     //</editor-fold>
@@ -192,7 +194,7 @@ public class JavaInstrumentationPointcutDefinitions {
             "java.io.File",
             List.of("delete", "deleteOnExit"),
             "java.nio.file.Files",
-            List.of("delete")
+            List.of("delete", "deleteIfExists")
     );
     //</editor-fold>
 
