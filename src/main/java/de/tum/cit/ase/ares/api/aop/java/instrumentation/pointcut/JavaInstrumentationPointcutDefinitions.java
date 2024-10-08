@@ -123,7 +123,7 @@ public class JavaInstrumentationPointcutDefinitions {
     public static final Map<String, List<String>> methodsWhichCanReadFiles = Map.of(
             // TODO Markus: Currently the methods which can read are not properly instrumented
             "java.io.FileInputStream",
-            List.of("<init>", "read"),
+            List.of("<init>", "read", "open"),
             "java.io.RandomAccessFile",
             List.of("<init>", "read", "readFully", "readLine", "readBoolean", "readByte", "readChar", "readDouble",
                     "readFloat", "readInt", "readLong", "readShort", "readUnsignedByte", "readUnsignedShort"),
@@ -138,7 +138,9 @@ public class JavaInstrumentationPointcutDefinitions {
             "java.io.FileReader",
             List.of("<init>", "read", "readLine"),
             "java.io.BufferedReader",
-            List.of("lines")
+            List.of("lines"),
+            "java.nio.channels.FileChannel",
+            List.of("open")
     );
     //</editor-fold>
 
@@ -163,7 +165,9 @@ public class JavaInstrumentationPointcutDefinitions {
             "java.nio.file.Files",
             List.of("write", "writeString", "newOutputStream", "writeBytes", "writeAllBytes", "writeLines"),
             "java.io.File",
-            List.of("setWritable")
+            List.of("setWritable"),
+            "java.nio.channels.FileChannel",
+            List.of("open")
 
     );
     //</editor-fold>
@@ -181,7 +185,9 @@ public class JavaInstrumentationPointcutDefinitions {
             "java.io.Win32FileSystem",
             List.of("checkAccess", "setReadOnly"),
             "java.nio.file.Files",
-            List.of("setPosixFilePermissions")
+            List.of("setPosixFilePermissions"),
+            "java.awt.Desktop",
+            List.of("open", "edit", "print", "browse", "mail")
     );
     //</editor-fold>
 
@@ -194,7 +200,9 @@ public class JavaInstrumentationPointcutDefinitions {
             "java.io.File",
             List.of("delete", "deleteOnExit"),
             "java.nio.file.Files",
-            List.of("delete", "deleteIfExists")
+            List.of("delete", "deleteIfExists"),
+            "sun.nio.fs.UnixFileSystemProvider",
+            List.of("implDelete")
     );
     //</editor-fold>
 

@@ -103,7 +103,8 @@ public class JavaInstrumentationAdviceToolbox {
             if (element.getClassName().startsWith(restrictedPackage)) {
                 // Skip the OutputTester and InputTester classes, as they intercept the output and input for System.out and System.in
                 // Therefore, they cause false positives.
-                if (element.toString().equals("de.tum.cit.ase.ares.api.io.OutputTester") || element.toString().equals("de.tum.cit.ase.ares.api.io.InputTester")) {
+                // Also, X11FontManager needs to be set when using AWT therefore we have to allow it
+                if (element.getClassName().equals("de.tum.cit.ase.ares.api.io.OutputTester") || element.getClassName().equals("de.tum.cit.ase.ares.api.io.InputTester") || element.getClassName().equals("sun.awt.X11FontManager")) {
                     return null;
                 }
                 if (!checkIfCallstackElementIsAllowed(allowedClasses, element)) {
