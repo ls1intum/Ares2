@@ -101,7 +101,11 @@ public class JavaInstrumentationAdviceToolbox {
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
         for (StackTraceElement element : stackTrace) {
             if (element.toString().startsWith(restrictedPackage)) {
-                // TODO: Check if the method is allowed to access the file system, this happened in the Demo with the OutputTester currently not working
+                // Skip the OutputTester and InputTester classes, as they intercept the output and input for System.out and System.in
+                // Therefore, they cause false positives.
+                if (element.toString().equals("de.tum.cit.ase.ares.api.io.OutputTester") || element.toString().equals("de.tum.cit.ase.ares.api.io.InputTester")) {
+                    return null;
+                }
                 if (!checkIfCallstackElementIsAllowed(allowedClasses, element)) {
                     return element.toString();
                 }

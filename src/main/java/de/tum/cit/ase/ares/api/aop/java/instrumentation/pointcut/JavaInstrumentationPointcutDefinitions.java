@@ -121,11 +121,9 @@ public class JavaInstrumentationPointcutDefinitions {
      * and the values are lists of method names that are considered to be file read operations.
      */
     public static final Map<String, List<String>> methodsWhichCanReadFiles = Map.of(
-            // TODO: Remove the object init, when the read methods are correctly instrumented
-            "java.lang.Object",
-            List.of("<init>"),
+            // TODO: Currently the methods which can read are not properly instrumented
             "java.io.FileInputStream",
-            List.of("<init>"),
+            List.of("<init>", "read"),
             "java.io.RandomAccessFile",
             List.of("<init>", "read", "readFully", "readLine", "readBoolean", "readByte", "readChar", "readDouble",
                     "readFloat", "readInt", "readLong", "readShort", "readUnsignedByte", "readUnsignedShort"),
