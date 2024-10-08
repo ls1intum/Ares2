@@ -346,20 +346,6 @@ public class DependencyManager {
         transformer.transform(source, result);
     }
 
-    /**
-     * Example usage!!!
-     */
-    public static void main(String[] args) {
-        addDependenciesAndPluginsForMaven("path/to/pom.xml");
-        try {
-            DependencyManager manager = new DependencyManager("/path/to/pom.xml");
-            manager.addDependency("org.example", "example-artifact", "1.0.0");
-            manager.removeDependency("org.example", "example-artifact");
-        } catch (Exception e) {
-            log.error(e.getLocalizedMessage());
-        }
-    }
-
     public static void addDependenciesAndPluginsForMaven(String pomPath) {
         try {
             DependencyManager manager = new DependencyManager(pomPath);
