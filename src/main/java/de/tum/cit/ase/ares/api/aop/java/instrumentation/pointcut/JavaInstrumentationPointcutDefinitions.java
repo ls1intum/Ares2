@@ -178,8 +178,8 @@ public class JavaInstrumentationPointcutDefinitions {
      * and the values are lists of method names that are considered to be file execute operations.
      */
     public static final Map<String, List<String>> methodsWhichCanExecuteFiles = Map.of(
-            "java.io.UnixFileSystem",
-            List.of("setPermission"),
+            "java.io.File",
+            List.of("setExecutable"),
             "java.io.WinNTFileSystem",
             List.of("setReadOnly"),
             "java.io.Win32FileSystem",
