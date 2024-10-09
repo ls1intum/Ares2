@@ -324,11 +324,6 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         @Nonnull JavaClasses classes = new ClassFileImporter().importPath(Paths.get(ProjectSourcesFinder.isGradleProject() ? "build" : "target", projectPath.toString()).toString());
         //</editor-fold>#
 
-        //<editor-fold desc="Set ArchUnit properties for optimization">
-        ArchConfiguration.get().setProperty("archRule.failOnEmptyShould", "false");
-        ArchConfiguration.get().setResolveMissingDependenciesFromClassPath(false);
-        //</editor-fold>
-
         //<editor-fold desc="Enforce fixed rules code">
         JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_USE_REFLECTION.check(classes);
         JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_TERMINATE_JVM.check(classes);

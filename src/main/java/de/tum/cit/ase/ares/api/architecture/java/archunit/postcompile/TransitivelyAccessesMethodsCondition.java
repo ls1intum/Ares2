@@ -130,6 +130,7 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
         }
 
         /**
+         * We are currently using CHA, which resolves all the subclasses of a given class
          * @return all accesses to the same target as the supplied item that are not in the analyzed classes
          */
         private Set<JavaAccess<?>> getDirectAccessTargetsOutsideOfAnalyzedClasses(JavaAccess<?> item) {
@@ -163,8 +164,7 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
                             .getOrigin()
                             .getFullName()
                             .substring(javaClass.getFullName().length())
-                            .equals(methodName)
-                            && isExceptionOrError(a.getTargetOwner()))
+                            .equals(methodName))
                     .collect(toSet());
         }
 

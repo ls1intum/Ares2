@@ -100,9 +100,15 @@ public class JavaInstrumentationAdviceToolbox {
     private static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses) {
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
         for (StackTraceElement element : stackTrace) {
-            if (element.toString().startsWith(restrictedPackage)) {
+            if (element.getClassName().startsWith(restrictedPackage)) {
+                // Skip the OutputTester and InputTester classes, as they intercept the output and input for System.out and System.in
+                // Therefore, they cause false positives.
+                // Also, X11FontManager needs to be set when using AWT therefore we have to allow it
+                if (element.getClassName().equals("de.tum.cit.ase.ares.api.io.OutputTester") || element.getClassName().equals("de.tum.cit.ase.ares.api.io.InputTester") || element.getClassName().equals("sun.awt.X11FontManager")) {
+                    return null;
+                }
                 if (!checkIfCallstackElementIsAllowed(allowedClasses, element)) {
-                    return element.toString();
+                    return element.getClassName();
                 }
             }
         }
@@ -225,7 +231,7 @@ public class JavaInstrumentationAdviceToolbox {
         String[] allowedPaths = (String[]) getValueFromSettings(
                 switch (action) {
                     case "read" -> "pathsAllowedToBeRead";
-                    case "write" -> "pathsAllowedToBeOverwritten";
+                    case "overwrite" -> "pathsAllowedToBeOverwritten";
                     case "execute" -> "pathsAllowedToBeExecuted";
                     case "delete" -> "pathsAllowedToBeDeleted";
                     default -> throw new IllegalArgumentException("Unknown action: " + action);

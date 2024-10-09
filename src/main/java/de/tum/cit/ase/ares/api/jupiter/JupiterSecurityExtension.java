@@ -24,6 +24,7 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
     public <T> T interceptGenericInvocation(Invocation<T> invocation, ExtensionContext extensionContext,
                                             Optional<ReflectiveInvocationContext<?>> invocationContext) throws Throwable {
         JupiterContext testContext = JupiterContext.of(extensionContext);
+
         /**
          * Check if the test method has the {@link Policy} annotation. If it does, read
          * the policy file and run the security test cases.

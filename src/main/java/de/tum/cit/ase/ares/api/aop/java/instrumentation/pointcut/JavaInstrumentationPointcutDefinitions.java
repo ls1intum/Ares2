@@ -121,13 +121,14 @@ public class JavaInstrumentationPointcutDefinitions {
      * and the values are lists of method names that are considered to be file read operations.
      */
     public static final Map<String, List<String>> methodsWhichCanReadFiles = Map.of(
+            // TODO Markus: Currently the methods which can read are not properly instrumented
             "java.io.FileInputStream",
-            List.of("<init>"),
+            List.of("<init>", "read", "open"),
             "java.io.RandomAccessFile",
-            List.of("read", "readFully", "readLine", "readBoolean", "readByte", "readChar", "readDouble",
+            List.of("<init>", "read", "readFully", "readLine", "readBoolean", "readByte", "readChar", "readDouble",
                     "readFloat", "readInt", "readLong", "readShort", "readUnsignedByte", "readUnsignedShort"),
             "java.io.UnixFileSystem",
-            List.of("getLastModifiedTime", "getBooleanAttributes0", "getSpace", "canonicalize0"),
+            List.of("getBooleanAttributes0", "getSpace", "canonicalize0"),
             "java.io.WinNTFileSystem",
             List.of("getBooleanAttributes", "canonicalize", "getLastModifiedTime", "getSpace"),
             "java.io.Win32FileSystem",
@@ -137,7 +138,9 @@ public class JavaInstrumentationPointcutDefinitions {
             "java.io.FileReader",
             List.of("<init>", "read", "readLine"),
             "java.io.BufferedReader",
-            List.of("lines")
+            List.of("lines"),
+            "java.nio.channels.FileChannel",
+            List.of("open")
     );
     //</editor-fold>
 
@@ -158,7 +161,14 @@ public class JavaInstrumentationPointcutDefinitions {
             "java.io.Win32FileSystem",
             List.of("createFileExclusively", "delete", "setLastModifiedTime", "createDirectory"),
             "java.util.prefs.FileSystemPreferences",
-            List.of("lockFile0", "unlockFile0")
+            List.of("lockFile0", "unlockFile0"),
+            "java.nio.file.Files",
+            List.of("write", "writeString", "newOutputStream", "writeBytes", "writeAllBytes", "writeLines"),
+            "java.io.File",
+            List.of("setWritable"),
+            "java.nio.channels.FileChannel",
+            List.of("open")
+
     );
     //</editor-fold>
 
@@ -168,12 +178,16 @@ public class JavaInstrumentationPointcutDefinitions {
      * and the values are lists of method names that are considered to be file execute operations.
      */
     public static final Map<String, List<String>> methodsWhichCanExecuteFiles = Map.of(
-            "java.io.UnixFileSystem",
-            List.of("checkAccess", "setPermission"),
+            "java.io.File",
+            List.of("setExecutable"),
             "java.io.WinNTFileSystem",
-            List.of("checkAccess", "setReadOnly"),
+            List.of("setReadOnly"),
             "java.io.Win32FileSystem",
-            List.of("checkAccess", "setReadOnly")
+            List.of("checkAccess", "setReadOnly"),
+            "java.nio.file.Files",
+            List.of("setPosixFilePermissions"),
+            "java.awt.Desktop",
+            List.of("open", "edit", "print", "browse", "mail")
     );
     //</editor-fold>
 
@@ -184,7 +198,11 @@ public class JavaInstrumentationPointcutDefinitions {
      */
     public static final Map<String, List<String>> methodsWhichCanDeleteFiles = Map.of(
             "java.io.File",
-            List.of("delete", "deleteOnExit")
+            List.of("delete", "deleteOnExit"),
+            "java.nio.file.Files",
+            List.of("delete", "deleteIfExists"),
+            "sun.nio.fs.UnixFileSystemProvider",
+            List.of("implDelete")
     );
     //</editor-fold>
 

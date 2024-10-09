@@ -89,7 +89,7 @@ public class JavaArchUnitSecurityTestCase implements ArchitectureSecurityTestCas
                                 .NO_CLASSES_SHOULD_ACCESS_NETWORK
                                 .check(classes);
                 case THREAD_CREATION ->
-                        throw new UnsupportedOperationException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Thread creation not implemented yet.");
+                        JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_CREATE_THREADS.check(classes);
                 case COMMAND_EXECUTION ->
                         JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_EXECUTE_COMMANDS.check(classes);
                 default -> throw new UnsupportedOperationException("Not implemented yet");

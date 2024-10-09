@@ -48,6 +48,23 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
     //<editor-fold desc="File system methods">
 
     //<editor-fold desc="Callstack criteria methods">
+    /**
+     * Check if the provided call stack element is allowed.
+     * This method verifies whether the class in the call stack element belongs to the list of allowed
+     * classes, ensuring that only authorized classes are permitted to perform certain file system operations.
+     *
+     * @param allowedClasses The list of classes allowed to be present in the call stack.
+     * @param elementToCheck The call stack element to check.
+     * @return True if the call stack element is allowed, false otherwise.
+     */
+    private static boolean checkIfCallstackElementIsAllowed(String[] allowedClasses, StackTraceElement elementToCheck) {
+        for (String allowedClass : allowedClasses) {
+            if (elementToCheck.getClassName().startsWith(allowedClass)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     /**
      * Check if the call stack violates the specified criteria.
@@ -61,13 +78,18 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
      * @return The call stack element that violates the criteria, or null if no violation occurred.
      */
     private static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses, String readingMethod) {
-        if (readingMethod.startsWith(restrictedPackage)) {
-            for (String allowedClass : allowedClasses) {
-                if (readingMethod.startsWith(allowedClass)) {
+        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+        for (StackTraceElement element : stackTrace) {
+            if (element.getClassName().startsWith(restrictedPackage)) {
+                // Skip the OutputTester and InputTester classes, as they intercept the output and input for System.out and System.in
+                // Therefore, they cause false positives.
+                if (element.toString().equals("de.tum.cit.ase.ares.api.io.OutputTester") || element.toString().equals("de.tum.cit.ase.ares.api.io.InputTester")) {
                     return null;
                 }
+                if (!checkIfCallstackElementIsAllowed(allowedClasses, element)) {
+                    return element.getClassName();
+                }
             }
-            return readingMethod;
         }
         return null;
     }

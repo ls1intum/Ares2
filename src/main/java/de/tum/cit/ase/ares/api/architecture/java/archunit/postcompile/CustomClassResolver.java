@@ -1,10 +1,8 @@
 package de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile;
 
 //<editor-fold desc="Imports">
-import com.tngtech.archunit.ArchConfiguration;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
-import com.tngtech.archunit.core.importer.resolvers.ClassResolverFromClasspath;
 
 import java.net.URL;
 import java.util.Optional;
@@ -32,7 +30,9 @@ public class CustomClassResolver {
      * @return The resolved class if it exists.
      */
     public static Optional<JavaClass> tryResolve(String typeName) {
-        ArchConfiguration.get().setClassResolver(ClassResolverFromClasspath.class);
+        if (typeName.startsWith("de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemAdviceDefinitions")) {
+            return Optional.empty();
+        }
         URL url = CustomClassResolver.class.getResource("/" + typeName.replace(".", "/") + ".class");
         try {
             if (url == null) {

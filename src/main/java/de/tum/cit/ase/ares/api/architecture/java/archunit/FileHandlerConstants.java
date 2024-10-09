@@ -2,7 +2,6 @@ package de.tum.cit.ase.ares.api.architecture.java.archunit;
 
 import de.tum.cit.ase.ares.api.util.FileTools;
 
-import java.io.File;
 import java.nio.file.Path;
 
 /**
@@ -15,6 +14,7 @@ public class FileHandlerConstants {
     public static final Path JAVA_JVM_TERMINATION_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "archunit", "methods", "jvm-termination-methods.txt");
     public static final Path JAVA_REFLECTION_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "archunit", "methods", "reflection-methods.txt");
     public static final Path JAVA_COMMAND_EXECUTION_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "archunit", "methods", "command-execution-methods.txt");
+    public static final Path JAVA_THREAD_CREATION_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "archunit", "methods", "thread-creation-methods.txt");
 
     private FileHandlerConstants() {
         throw new UnsupportedOperationException("Ares Security Error (Reason: Ares-Code; Stage: Execution): FileHandlerConstants is a utility class and should not be instantiated.");
