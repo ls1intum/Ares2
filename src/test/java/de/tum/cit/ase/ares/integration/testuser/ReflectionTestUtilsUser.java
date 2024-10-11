@@ -16,7 +16,7 @@ import de.tum.cit.ase.ares.integration.testuser.subject.structural.subpackage.Su
 @Public
 @UseLocale("en")
 @StrictTimeout(10)
-@WhitelistPath("")
+//@WhitelistPath("")
 public class ReflectionTestUtilsUser {
 
 	private static final String SUBJECT_PACKAGE = "de.tum.cit.ase.ares.integration.testuser.subject.structural";

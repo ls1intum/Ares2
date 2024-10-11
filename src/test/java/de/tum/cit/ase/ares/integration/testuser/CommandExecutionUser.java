@@ -12,12 +12,12 @@ import java.io.IOException;
 
 @Public
 @UseLocale("en")
-@AllowThreads(maxActiveCount = 100)
+//@AllowThreads(maxActiveCount = 100)
 @MirrorOutput(MirrorOutput.MirrorOutputPolicy.DISABLED)
 @StrictTimeout(5)
 @TestMethodOrder(MethodOrderer.MethodName.class)
-@WhitelistPath(value = "target/**", type = PathType.GLOB)
-@BlacklistPath(value = "**Test*.{java,class}", type = PathType.GLOB)
+//@WhitelistPath(value = "target/**", type = PathType.GLOB)
+//@BlacklistPath(value = "**Test*.{java,class}", type = PathType.GLOB)
 public class CommandExecutionUser {
 
     @PublicTest

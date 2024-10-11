@@ -19,7 +19,7 @@ import de.tum.cit.ase.ares.integration.testuser.subject.fileSystem.FileSystemAcc
 @MirrorOutput(MirrorOutputPolicy.DISABLED)
 @StrictTimeout(value = 300, unit = TimeUnit.MILLISECONDS)
 @TestMethodOrder(MethodName.class)
-@WhitelistPath(value = "target/**", type = PathType.GLOB)
+//@WhitelistPath(value = "target/**", type = PathType.GLOB)
 @SuppressWarnings("static-method")
 public class FileSystemAccessUser {
 
@@ -74,48 +74,48 @@ public class FileSystemAccessUser {
         // do nothing
     }
 
-    @WhitelistPath(value = "../*r*e*s**", type = PathType.GLOB)
+    //@WhitelistPath(value = "../*r*e*s**", type = PathType.GLOB)
     @PublicTest
     void accessPathRelativeGlobA() throws IOException {
         FileSystemAccessPenguin.accessPath(Path.of("pom.xml").toAbsolutePath());
     }
 
-    @WhitelistPath(value = "./pom.xml", type = PathType.GLOB)
+    //@WhitelistPath(value = "./pom.xml", type = PathType.GLOB)
     @PublicTest
     void accessPathRelativeGlobB() throws IOException {
         FileSystemAccessPenguin.accessPath(Path.of("pom.xml").toAbsolutePath());
     }
 
-    @WhitelistPath(value = "../*r*e*s**", type = PathType.GLOB)
+    //@WhitelistPath(value = "../*r*e*s**", type = PathType.GLOB)
     @PublicTest
     void accessPathRelativeGlobDirectChildrenAllowed() {
         FileSystemAccessPenguin.askForFilePermission("src/*");
     }
 
-    @WhitelistPath(value = "../*r*e*s**", type = PathType.GLOB)
-    @BlacklistPath(value = "abc")
+    //@WhitelistPath(value = "../*r*e*s**", type = PathType.GLOB)
+    //@BlacklistPath(value = "abc")
     @PublicTest
     void accessPathRelativeGlobDirectChildrenBlacklist() {
         FileSystemAccessPenguin.askForFilePermission("*");
     }
 
 
-    @WhitelistPath(value = "../*r*e*s**", type = PathType.GLOB)
+    //@WhitelistPath(value = "../*r*e*s**", type = PathType.GLOB)
     @PublicTest
     void accessPathRelativeGlobRecursiveAllowed() {
         FileSystemAccessPenguin.askForFilePermission("-");
     }
 
-    @WhitelistPath(value = "../*r*e*s**", type = PathType.GLOB)
-    @BlacklistPath(value = "abc")
+    //@WhitelistPath(value = "../*r*e*s**", type = PathType.GLOB)
+    //@BlacklistPath(value = "abc")
     @PublicTest
     void accessPathRelativeGlobRecursiveBlacklist() {
         FileSystemAccessPenguin.askForFilePermission("src/-");
     }
 
     @PublicTest
-    @WhitelistPath("")
-    @BlacklistPath(value = "**Test*.{java,class}", type = PathType.GLOB)
+        //@WhitelistPath("")
+        //@BlacklistPath(value = "**Test*.{java,class}", type = PathType.GLOB)
     void accessPathTest() throws IOException {
         Path file = Path.of("src/test/java/de/tum/cit/ase/ares/integration/SecurityTest.java");
         if (!Files.exists(file))

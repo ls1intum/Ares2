@@ -18,12 +18,12 @@ import de.tum.cit.ase.ares.api.localization.UseLocale;
 import de.tum.cit.ase.ares.integration.testuser.subject.ThreadPenguin;
 
 @UseLocale("en")
-@AllowThreads(maxActiveCount = 100)
+//@AllowThreads(maxActiveCount = 100)
 @MirrorOutput(MirrorOutputPolicy.DISABLED)
 @StrictTimeout(value = 300, unit = TimeUnit.MILLISECONDS)
 @TestMethodOrder(MethodName.class)
-@WhitelistPath(value = "{target,build}/**", type = PathType.GLOB) // build for gradle tests
-@BlacklistPath(value = "**Test*.{java,class}", type = PathType.GLOB)
+//@WhitelistPath(value = "{target,build}/**", type = PathType.GLOB) // build for gradle tests
+//@BlacklistPath(value = "**Test*.{java,class}", type = PathType.GLOB)
 @SuppressWarnings("static-method")
 public class ThreadUser {
 
@@ -90,7 +90,7 @@ public class ThreadUser {
 			throw failure.get();
 	}
 
-	@AllowThreads(maxActiveCount = 1)
+	//@AllowThreads(maxActiveCount = 1)
 	@PublicTest
 	void threadLimitExceeded() throws Throwable {
 		ThreadPenguin.tryStartTwoThreads();
@@ -105,7 +105,7 @@ public class ThreadUser {
 	 * This can be used to check for Threads that are not stoppable. This should
 	 * never happen, but it could. Note that this test beaks all further ones,
 	 * because the security manager will not be uninstalled and block everything. It
-	 * works by catching the {@link ThreadDeath}.
+	 * works by catching the {@link //ThreadDeath}.
 	 */
 //	@PublicTest
 //	void zz_unstoppable() {

@@ -18,8 +18,8 @@ import de.tum.cit.ase.ares.integration.testuser.subject.PrivilegedExceptionPengu
 @MirrorOutput(MirrorOutputPolicy.DISABLED)
 @StrictTimeout(value = 300, unit = TimeUnit.MILLISECONDS)
 @TestMethodOrder(MethodName.class)
-@WhitelistPath(value = "target/**", type = PathType.GLOB)
-@BlacklistPath(value = "**Test*.{java,class}", type = PathType.GLOB)
+//@WhitelistPath(value = "target/**", type = PathType.GLOB)
+//@BlacklistPath(value = "**Test*.{java,class}", type = PathType.GLOB)
 @SuppressWarnings("static-method")
 public class PrivilegedExceptionUser {
 

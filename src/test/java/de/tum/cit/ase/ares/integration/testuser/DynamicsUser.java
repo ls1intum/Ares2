@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.MethodOrderer.MethodName;
 
-import de.tum.cit.ase.ares.api.WhitelistPath;
 import de.tum.cit.ase.ares.api.dynamic.*;
 import de.tum.cit.ase.ares.api.jupiter.Public;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
@@ -15,7 +14,7 @@ import de.tum.cit.ase.ares.integration.testuser.subject.structural.*;
 @Public
 @UseLocale("de")
 //@StrictTimeout(10)
-@WhitelistPath("")
+//@WhitelistPath("")
 @TestMethodOrder(MethodName.class)
 public class DynamicsUser {
 

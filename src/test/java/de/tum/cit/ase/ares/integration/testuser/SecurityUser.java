@@ -18,11 +18,11 @@ import de.tum.cit.ase.ares.integration.testuser.subject.SecurityPenguin;
 @Public
 @UseLocale("en")
 @MirrorOutput(MirrorOutputPolicy.DISABLED)
-@AllowThreads(maxActiveCount = 100)
+//@AllowThreads(maxActiveCount = 100)
 @StrictTimeout(value = 300, unit = TimeUnit.MILLISECONDS)
 @TestMethodOrder(MethodName.class)
-@WhitelistPath(value = "target/{classes,test-classes}/de/tum**", type = PathType.GLOB)
-@BlacklistPath(value = "**Test*.{java,class}", type = PathType.GLOB)
+//@WhitelistPath(value = "target/{classes,test-classes}/de/tum**", type = PathType.GLOB)
+//@BlacklistPath(value = "**Test*.{java,class}", type = PathType.GLOB)
 @SuppressWarnings("static-method")
 public class SecurityUser {
 
@@ -84,7 +84,7 @@ public class SecurityUser {
 	//REMOVED: Test for a new SecurityManager
 
 	@Test
-	@AddTrustedPackage("xyz.**")
+		//@AddTrustedPackage("xyz.**")
 	void trustedPackageWithoutEnforcerRule() {
 		// nothing
 	}

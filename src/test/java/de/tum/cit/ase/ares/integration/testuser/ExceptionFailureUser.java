@@ -18,10 +18,10 @@ import de.tum.cit.ase.ares.api.localization.UseLocale;
 import de.tum.cit.ase.ares.integration.testuser.subject.*;
 
 @UseLocale("en")
-@AllowThreads(maxActiveCount = 100)
+//@AllowThreads(maxActiveCount = 100)
 @TestMethodOrder(MethodName.class)
-@WhitelistPath(value = "target/**", type = PathType.GLOB)
-@BlacklistPath(value = "**Test.{java,class}", type = PathType.GLOB)
+//@WhitelistPath(value = "target/**", type = PathType.GLOB)
+//@BlacklistPath(value = "**Test.{java,class}", type = PathType.GLOB)
 @SuppressWarnings("static-method")
 public class ExceptionFailureUser {
 

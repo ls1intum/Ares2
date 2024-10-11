@@ -13,8 +13,8 @@ import de.tum.cit.ase.ares.integration.testuser.subject.*;
 
 @Public
 @UseLocale("en")
-@AddTrustedPackage("**subject.TrustedPackageP*")
-@WhitelistClass(WhitelistedClassPenguin.class)
+//@AddTrustedPackage("**subject.TrustedPackageP*")
+//@WhitelistClass(WhitelistedClassPenguin.class)
 public class TrustedClassesUser {
 
 	private static final Path PATH = Path.of("pom.xml");

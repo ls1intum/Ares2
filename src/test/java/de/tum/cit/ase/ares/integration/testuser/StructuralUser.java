@@ -23,7 +23,7 @@ import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 @Public
 @UseLocale("en")
 @StrictTimeout(10)
-@WhitelistPath("")
+//@WhitelistPath("")
 @SuppressWarnings("deprecation")
 public class StructuralUser {
 

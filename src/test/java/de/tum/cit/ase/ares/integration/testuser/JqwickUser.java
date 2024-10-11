@@ -12,7 +12,6 @@ import net.jqwik.api.*;
 import net.jqwik.api.constraints.*;
 
 import de.tum.cit.ase.ares.api.*;
-import de.tum.cit.ase.ares.api.TrustedThreads.TrustScope;
 import de.tum.cit.ase.ares.api.io.*;
 import de.tum.cit.ase.ares.api.jqwik.*;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
@@ -29,20 +28,20 @@ import de.tum.cit.ase.ares.api.localization.UseLocale;
  * <p>
  * Also see {@link de.tum.cit.ase.ares.api.jqwik} on why it is all threads here.
  */
-@TrustedThreads(TrustScope.ALL_THREADS)
+//@TrustedThreads(TrustScope.ALL_THREADS)
 /*
  * In extended trust scope, we might need to whitelist the JDK, because file
  * access is now more restricted, to have more control over security that got
  * lost by using extended mode in the first place.
  */
-@WhitelistPath(value = "**/*jdk*/**/bin/**", type = PathType.GLOB_ABSOLUTE)
+//@WhitelistPath(value = "**/*jdk*/**/bin/**", type = PathType.GLOB_ABSOLUTE)
 /*
  * In extended trust scope, we should restrict classes that are loaded even
  * more, like here to a specific package to avoid loading student classes that
  * would reside in trusted packages. Note that test-classes is only needed here
  * in the Ares repository, you should NOT do this for real exercises.
  */
-@WhitelistPath(value = "target/{classes,test-classes}/de/tum**", type = PathType.GLOB)
+//@WhitelistPath(value = "target/{classes,test-classes}/de/tum**", type = PathType.GLOB)
 public class JqwickUser {
 
 	@Example

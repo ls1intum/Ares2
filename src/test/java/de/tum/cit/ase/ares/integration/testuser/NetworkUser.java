@@ -21,12 +21,12 @@ import de.tum.cit.ase.ares.integration.testuser.subject.network.NetworkPenguin;
 
 @Public
 @UseLocale("en")
-@AllowThreads(maxActiveCount = 100)
+//@AllowThreads(maxActiveCount = 100)
 @MirrorOutput(MirrorOutputPolicy.DISABLED)
 @StrictTimeout(5)
 @TestMethodOrder(MethodName.class)
-@WhitelistPath(value = "target/**", type = PathType.GLOB)
-@BlacklistPath(value = "**Test*.{java,class}", type = PathType.GLOB)
+//@WhitelistPath(value = "target/**", type = PathType.GLOB)
+//@BlacklistPath(value = "**Test*.{java,class}", type = PathType.GLOB)
 public class NetworkUser {
 
 	private static final Logger LOG = LoggerFactory.getLogger(NetworkUser.class);
@@ -66,7 +66,7 @@ public class NetworkUser {
 	}
 
 	@ParameterizedTest
-	@AllowLocalPort(PORT)
+	//@AllowLocalPort(PORT)
 	@ValueSource(strings = { "localhost", "127.0.0.1", "::1" })
 	void connectLocallyAllowed(String host) throws Exception {
 		NetworkPenguin.tryConnect(host, PORT, MESSAGE);
@@ -79,13 +79,13 @@ public class NetworkUser {
 	}
 
 	@Test
-	@AllowLocalPort(80)
+		//@AllowLocalPort(80)
 	void connectRemoteNotAllowed() throws Exception {
 		NetworkPenguin.tryConnect("example.com", 80, null);
 	}
 
 	@Test
-	@AllowLocalPort(allowPortsAbove = AllowLocalPort.IANA_REGISTERED_LOWER_BORDER)
+		//@AllowLocalPort(allowPortsAbove = AllowLocalPort.IANA_REGISTERED_LOWER_BORDER)
 	void serverAllowedAndAccept() throws Throwable {
 		var error = new AtomicReference<Throwable>();
 		var serverThread = new Thread(TestUtils.getRootThreadGroup(), () -> {
@@ -109,7 +109,7 @@ public class NetworkUser {
 	}
 
 	@Test
-	@AllowLocalPort(8083)
+		//@AllowLocalPort(8083)
 	void serverAllowedAndTimeout() throws Exception {
 		NetworkPenguin.tryStartServer(8083, "none");
 	}

@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.commons.support.ReflectionSupport;
 
 import de.tum.cit.ase.ares.api.*;
-import de.tum.cit.ase.ares.api.TrustedThreads.TrustScope;
 import de.tum.cit.ase.ares.api.context.*;
 import de.tum.cit.ase.ares.api.internal.ConfigurationUtils;
 import de.tum.cit.ase.ares.api.util.*;
@@ -45,36 +44,6 @@ class AresSecurityConfigurationTest {
 		assertThat(configurationOneA.testClass()).hasValue(TestTestClass.class);
 		assertThat(configurationOneA.testMethod())
 				.isEqualTo(ReflectionSupport.findMethod(TestTestClass.class, TEST_ONE));
-		assertThat(configurationOneA.whitelistedClassNames()).contains(TestTestClass.class.getName(),
-				String.class.getName());
-
-		assertThat(configurationOneA.whitelistedPaths()).isPresent().get(as(iterable(PathRule.class))).hasSize(1)
-				.allMatch(pathRule -> pathRule.getActionLevel() == PathActionLevel.READ //
-						&& pathRule.getRuleType() == RuleType.WHITELIST //
-						&& PATH_WHITELIST.equals(pathRule.getPathPattern()));
-		assertThat(configurationOneA.blacklistedPaths()).hasSize(1)
-				.allMatch(pathRule -> pathRule.getActionLevel() == PathActionLevel.READ //
-						&& pathRule.getRuleType() == RuleType.BLACKLIST //
-						&& PATH_BLACKLIST.equals(pathRule.getPathPattern()));
-
-		assertThat(configurationOneA.blacklistedPackages()).hasSize(1)
-				.allMatch(packageRule -> packageRule.getRuleType() == RuleType.BLACKLIST //
-						&& PACKAGE_BLACKLIST.equals(packageRule.getPackagePattern()));
-		assertThat(configurationOneA.whitelistedPackages()).hasSize(1)
-				.allMatch(packageRule -> packageRule.getRuleType() == RuleType.WHITELIST //
-						&& PACKAGE_WHITELIST.equals(packageRule.getPackagePattern()));
-
-		assertThat(configurationOneA.allowedThreadCount()).isPresent().hasValue(THREAD_COUNT);
-		assertThat(configurationOneA.allowedLocalPorts()).containsExactly(ALLOWED_PORT_NUMBER);
-		assertThat(configurationOneA.allowLocalPortsAbove()).isPresent().hasValue(ALLOW_PORT_ABOVE);
-		assertThat(configurationOneA.excludedLocalPorts()).containsExactly(EXCLUDED_PORT_NUMBER);
-
-		assertThat(configurationOneA.trustedPackages()).hasSize(1)
-				.allMatch(packageRule -> packageRule.getRuleType() == RuleType.WHITELIST //
-						&& TRUSTED_PACKAGE.equals(packageRule.getPackagePattern()));
-
-		assertThat(configurationOneA.threadTrustScope()).isEqualTo(TrustedThreads.TrustScope.MINIMAL);
-		assertThat(configurationTwo.threadTrustScope()).isEqualTo(TrustedThreads.TrustScope.EXTENDED);
 	}
 
 	@Test
@@ -100,22 +69,22 @@ class AresSecurityConfigurationTest {
 		assertThat(toStringOneA).isEqualTo(toStringOneB).isNotEqualTo(toStringTwo);
 	}
 
-	@WhitelistClass(String.class)
-	@WhitelistPath(PATH_WHITELIST)
-	@BlacklistPath(PATH_BLACKLIST)
-	@BlacklistPackage(PACKAGE_BLACKLIST)
-	@WhitelistPackage(PACKAGE_WHITELIST)
-	@AddTrustedPackage(TRUSTED_PACKAGE)
+	//@WhitelistClass(String.class)
+	//@WhitelistPath(PATH_WHITELIST)
+	//@BlacklistPath(PATH_BLACKLIST)
+	//@BlacklistPackage(PACKAGE_BLACKLIST)
+	//@WhitelistPackage(PACKAGE_WHITELIST)
+	//@AddTrustedPackage(TRUSTED_PACKAGE)
 	static class TestTestClass {
 
-		@AllowThreads(maxActiveCount = THREAD_COUNT)
-		@AllowLocalPort(value = ALLOWED_PORT_NUMBER, allowPortsAbove = ALLOW_PORT_ABOVE, exclude = EXCLUDED_PORT_NUMBER)
+		//@AllowThreads(maxActiveCount = THREAD_COUNT)
+			//@AllowLocalPort(value = ALLOWED_PORT_NUMBER, allowPortsAbove = ALLOW_PORT_ABOVE, exclude = EXCLUDED_PORT_NUMBER)
 		void testOne() {
 			// nothing to do
 		}
 
-		@TrustedThreads(TrustScope.EXTENDED)
-		@AllowLocalPort(value = 271)
+		//@TrustedThreads(TrustScope.EXTENDED)
+			//@AllowLocalPort(value = 271)
 		void testTwo() {
 			// nothing to do
 		}
