@@ -40,7 +40,6 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
             (call(* java.io.File.canExecute(..)) ||
                     call(* java.io.File.renameTo(..)) ||
                     call(* java.io.File.toPath(..)) ||
-                    call(* java.io.File.toURI(..)) ||
                     call(* java.io.File.mkdirs(..)) ||
                     call(* java.io.File.listFiles(..)));
 
