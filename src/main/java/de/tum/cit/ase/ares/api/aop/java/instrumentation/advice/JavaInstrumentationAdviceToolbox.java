@@ -5,6 +5,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.util.Locale;
+import java.util.ResourceBundle;
 
 import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 

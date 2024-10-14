@@ -8,12 +8,14 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import de.tum.cit.ase.ares.api.Policy;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 import org.junit.jupiter.api.extension.*;
 
 import static de.tum.cit.ase.ares.api.internal.TestGuardUtils.hasAnnotation;
+import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 import static org.junit.platform.commons.support.AnnotationSupport.findAnnotation;
 //REMOVED: Import of ArtemisSecurityManager
 
@@ -48,7 +50,7 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
                 javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, null);
                 resetSettings(javaSecurityTestCaseSettingsClass);
             } catch (ClassNotFoundException e) {
-                throw new SecurityException("Security configuration error: The class for the specific security test case settings could not be found. Ensure the class name is correct and the class is available at runtime.", e);
+                throw new SecurityException(localized("security.settings.error"), e);
             }
         }
         //REMOVED: Installing of ArtemisSecurityManager
@@ -78,14 +80,15 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
             resetMethod.invoke(null);
             resetMethod.setAccessible(false);
         } catch (NoSuchMethodException e) {
-            throw new SecurityException("Security configuration error: The 'reset' method could not be found in the specified class. Ensure the method exists and is correctly named.", e);
+            throw new SecurityException(localized("security.settings.reset.method.not.found"), e);
         } catch (IllegalAccessException e) {
-            throw new SecurityException("Security configuration error: Access to the 'reset' method was denied. Ensure the method is public and accessible.", e);
+            throw new SecurityException(localized("security.settings.reset.access.denied"), e);
         } catch (InvocationTargetException e) {
-            throw new SecurityException("Security configuration error: An error occurred while invoking the 'reset' method. This could be due to an underlying issue within the method implementation.", e);
+            throw new SecurityException(localized("security.settings.error.within.method"), e);
         }
     }
 
+    // TODO: Further take a look at these!
     public static Path testAndGetPolicyValue(Policy policyAnnotation) {
         String policyValue = policyAnnotation.value();
         if (policyValue.isBlank()) {

@@ -96,7 +96,8 @@ public class JavaArchUnitSecurityTestCase implements ArchitectureSecurityTestCas
                 default -> throw new UnsupportedOperationException("Not implemented yet");
             }
         } catch (AssertionError e) {
-            throw new SecurityException(localized("security.archunit.illegal.statement") + e.getMessage());
+            assert e.getMessage().split("\n").length > 1;
+            throw new SecurityException(localized("security.archunit.illegal.execution").formatted(e.getMessage().split("\n")[1]));
         }
     }
     //</editor-fold>
