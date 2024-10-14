@@ -3,6 +3,7 @@ package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 
+import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 import static net.bytebuddy.asm.Advice.*;
 
 /**
@@ -50,21 +51,15 @@ public class JavaInstrumentationDeletePathMethodAdvice {
                     fields[i].setAccessible(true);
                     attributes[i] = fields[i].get(instance);
                 } catch (InaccessibleObjectException e) {
-                    throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Unable to make field '" + fields[i].getName() + "' in class '"
-                            + instance.getClass().getName() + "' accessible due to JVM security restrictions.", e);
+                    throw new SecurityException(localized("security.instrumentation.inaccessible.object.exception").formatted(fields[i].getName(), instance.getClass().getName()), e);
                 } catch (IllegalAccessException e) {
-                    throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Access denied to field '" + fields[i].getName()
-                            + "' in class '" + instance.getClass().getName() + "'. Field access is not permitted.", e);
+                    throw new SecurityException(localized("security.instrumentation.illegal.access.exception").formatted(fields[i].getName(), instance.getClass().getName()), e);
                 } catch (IllegalArgumentException e) {
-                    throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Field '" + fields[i].getName() + "' in class '"
-                            + fields[i].getDeclaringClass().getName() + "' cannot be accessed because the provided instance is of type '"
-                            + instance.getClass().getName() + "', which is not the declaring class or interface.", e);
+                    throw new SecurityException(localized("security.instrumentation.illegal.argument.exception").formatted(fields[i].getName(), fields[i].getDeclaringClass().getName(), instance.getClass().getName()), e);
                 } catch (NullPointerException e) {
-                    throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): The field '" + fields[i].getName()
-                            + "' in class '" + instance.getClass().getName() + "' is unexpectedly null. This may indicate a corrupt or improperly initialized object.", e);
+                    throw new SecurityException(localized("security.instrumentation.null.pointer.exception").formatted(fields[i].getName(), instance.getClass().getName()), e);
                 } catch (ExceptionInInitializerError e) {
-                    throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Initialization of the field '" + fields[i].getName()
-                            + "' in class '" + instance.getClass().getName() + "' failed due to an error during static initialization or field setup.", e);
+                    throw new SecurityException(localized("security.instrumentation.exception.in-initializer.error").formatted(fields[i].getName(), instance.getClass().getName()), e);
                 }
             }
         }

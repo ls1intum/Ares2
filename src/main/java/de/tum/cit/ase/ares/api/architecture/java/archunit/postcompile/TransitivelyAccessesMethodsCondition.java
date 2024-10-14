@@ -19,7 +19,7 @@ import java.util.Collections;
 import static com.tngtech.archunit.lang.ConditionEvent.createMessage;
 import static com.tngtech.archunit.thirdparty.com.google.common.base.Preconditions.checkNotNull;
 import static com.tngtech.archunit.thirdparty.com.google.common.collect.Iterables.getLast;
-import static java.util.stream.Collectors.joining;
+import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 import static java.util.stream.Collectors.toSet;
 //</editor-fold>
 
@@ -71,18 +71,7 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
      * @return a satisfied event if a transitive dependency path was found, a violated event otherwise
      */
     private static ConditionEvent newTransitiveAccessPathFoundEvent(JavaAccess<?> javaClass, List<JavaAccess<?>> transitiveDependencyPath) {
-        String message = (transitiveDependencyPath.size() > 1 ? "transitively " : "") + "accesses <" + getLast(transitiveDependencyPath).getTarget().getFullName() + ">";
-
-        if (transitiveDependencyPath.size() > 1) {
-            message += " by [" +
-                    transitiveDependencyPath
-                            .stream()
-                            .map(access -> access.getOrigin().getFullName())
-                            .collect(joining("->")) +
-                    "]";
-        }
-
-        return SimpleConditionEvent.satisfied(javaClass, createMessage(javaClass, message));
+        return SimpleConditionEvent.satisfied(javaClass, localized("security.archunit.illegal.file-system.method.execution").formatted(javaClass.getDescription(), getLast(transitiveDependencyPath).getTarget().getFullName()));
     }
 
     /**

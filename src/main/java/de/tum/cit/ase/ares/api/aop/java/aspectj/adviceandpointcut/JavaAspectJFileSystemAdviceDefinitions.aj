@@ -8,6 +8,8 @@ import java.lang.reflect.InaccessibleObjectException;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 
+import static de.tum.cit.ase.ares.api.localization.Messages.localized;
+
 public aspect JavaAspectJFileSystemAdviceDefinitions {
 
     //<editor-fold desc="Tool methods">
@@ -30,17 +32,17 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
             field.setAccessible(false);
             return value;
         } catch (LinkageError e) {
-            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Linkage error while accessing field '" + fieldName + "' in AdviceSettings", e);
+            throw new SecurityException(localized("security.advice.linkage.exception").formatted(fieldName), e);
         } catch (ClassNotFoundException e) {
-            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Could not find 'JavaSecurityTestCaseSettings' class to access field '" + fieldName + "'", e);
+            throw new SecurityException(localized("security.advice.class.not.found.exception").formatted(fieldName), e);
         } catch (NoSuchFieldException e) {
-            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Field '" + fieldName + "' not found in AdviceSettings", e);
+            throw new SecurityException(localized("security.advice.no.such.field.exception").formatted(fieldName), e);
         } catch (NullPointerException e) {
-            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Null pointer exception while accessing field '" + fieldName + "' in AdviceSettings", e);
+            throw new SecurityException(localized("security.advice.null.pointer.exception").formatted(fieldName), e);
         } catch (IllegalAccessException e) {
-            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Field '" + fieldName + "' is not accessible in AdviceSettings", e);
+            throw new SecurityException(localized("security.advice.illegal.access.exception").formatted(fieldName), e);
         } catch (InaccessibleObjectException e) {
-            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Field '" + fieldName + "' is inaccessible in AdviceSettings", e);
+            throw new SecurityException(localized("security.advice.inaccessible.object.exception").formatted(fieldName), e);
         }
     }
     // </editor-fold>
@@ -109,30 +111,30 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
      */
     private static Path variableToPath(Object variableValue) {
         if (variableValue == null) {
-            throw new InvalidPathException("null", "Cannot transform to path");
+            throw new InvalidPathException("null", localized("security.advice.transform.path.exception"));
         } else if (variableValue instanceof Path) {
             Path path = (Path) variableValue;
             try {
                 return path.normalize().toAbsolutePath();
             } catch (InvalidPathException e) {
-                throw new InvalidPathException(path.toString(), "Cannot transform to path");
+                throw new InvalidPathException(path.toString(), localized("security.advice.transform.path.exception"));
             }
         } else if (variableValue instanceof String) {
             String string = (String) variableValue;
             try {
                 return Path.of(string).normalize().toAbsolutePath();
             } catch (InvalidPathException e) {
-                throw new InvalidPathException(string, "Cannot transform to path");
+                throw new InvalidPathException(string, localized("security.advice.transform.path.exception"));
             }
         } else if (variableValue instanceof File) {
             File file = (File) variableValue;
             try {
                 return Path.of(file.toURI()).normalize().toAbsolutePath();
             } catch (InvalidPathException e) {
-                throw new InvalidPathException(file.toString(), "Cannot transform to path");
+                throw new InvalidPathException(file.toString(), localized("security.advice.transform.path.exception"));
             }
         } else {
-            throw new InvalidPathException(variableValue.toString(), "Cannot transform to path");
+            throw new InvalidPathException(variableValue.toString(), localized("security.advice.transform.path.exception"));
         }
     }
 
@@ -214,7 +216,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
         if (illegallyReadingMethod != null) {
             String illegallyReadPath = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, allowedPaths);
             if (illegallyReadPath != null) {
-                throw new SecurityException("Ares Security Error (Reason: Student-Code; Stage: Execution):" + illegallyReadingMethod + " tried to illegally " + action + " from " + illegallyReadPath + " via " + fullMethodSignature + "but was blocked by Ares.");
+                throw new SecurityException(localized("security.advice.illegal.method.execution").formatted(illegallyReadingMethod, action, illegallyReadPath, fullMethodSignature));
             }
         }
     }

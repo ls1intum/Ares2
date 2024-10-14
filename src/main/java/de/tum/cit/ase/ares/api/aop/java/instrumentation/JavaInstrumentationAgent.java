@@ -9,6 +9,8 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumenta
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.matcher.ElementMatchers;
 
+import static de.tum.cit.ase.ares.api.localization.Messages.localized;
+
 /**
  * This class is the entry point for the Java instrumentation agent.
  * It installs the agent builder for the different types of file operations.
@@ -58,7 +60,7 @@ public class JavaInstrumentationAgent {
                     .transform(transformer)
                     .installOn(inst);
         } catch (Exception e) {
-            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Failed to install agent builder on " + String.join(", ", methodsMap.keySet()) + ".", e);
+            throw new SecurityException(localized("security.instrumentation.agent.installation.error").formatted(String.join(", ", methodsMap.keySet())), e);
 
         }
     }

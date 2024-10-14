@@ -3,7 +3,6 @@ package de.tum.cit.ase.ares.api.securitytest.java;
 //<editor-fold desc="Imports">
 
 import com.google.common.collect.Streams;
-import com.tngtech.archunit.ArchConfiguration;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSupported;
