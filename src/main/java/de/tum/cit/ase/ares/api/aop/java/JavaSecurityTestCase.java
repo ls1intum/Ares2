@@ -18,6 +18,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
 //</editor-fold>
 
 /**
@@ -80,21 +82,13 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
             return switch (dataType) {
                 case "String" -> {
                     if (!(value instanceof String)) {
-                        throw new SecurityException(String.format(
-                                "Ares Security Error (Reason: Ares-Code; Stage: Creation): "
-                                        + "Invalid value type for String advice setting: "
-                                        + "%s but should be String.",
-                                value.getClass()));
+                        throw new SecurityException(localize("security.advice.settings.data.type.mismatch.string", value.getClass()));
                     }
                     yield String.format("private static String %s = \"%s\";%n", adviceSetting, value);
                 }
                 case "String[]" -> {
                     if (!(value instanceof List<?>)) {
-                        throw new SecurityException(String.format(
-                                "Ares Security Error (Reason: Ares-Code; Stage: Creation): "
-                                        + "Invalid value type for String[] advice setting: "
-                                        + "%s but should be List<String>.",
-                                value.getClass()));
+                        throw new SecurityException(localize("security.advice.settings.data.type.mismatch.string[]", value.getClass()));
                     }
                     String stringArrayValue = ((List<?>) value).stream()
                             .map(Object::toString)
@@ -104,11 +98,7 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
                 }
                 case "String[][]" -> {
                     if (!(value instanceof List<?>)) {
-                        throw new SecurityException(String.format(
-                                "Ares Security Error (Reason: Ares-Code; Stage: Creation): "
-                                        + "Invalid value type for String[][] advice setting: "
-                                        + "%s but should be List<List<String>>.",
-                                value.getClass()));
+                        throw new SecurityException(localize("security.advice.settings.data.type.mismatch.string[][]", value.getClass()));
                     }
                     String stringArrayArrayValue = ((List<?>) value).stream()
                             .filter(e -> e instanceof List<?>)
@@ -123,38 +113,17 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
                 }
                 case "int[]" -> {
                     if (!(value instanceof List<?>)) {
-                        throw new SecurityException(String.format(
-                                "Ares Security Error (Reason: Ares-Code; Stage: Creation): "
-                                        + "Invalid value type for int[] advice setting: "
-                                        + "%s but should be List<Integer>.",
-                                value.getClass()));
+                        throw new SecurityException(localize("security.advice.settings.data.type.mismatch.int[]", value.getClass()));
                     }
                     String intArrayValue = ((List<?>) value).stream()
                             .map(Object::toString)
                             .collect(Collectors.joining(", "));
                     yield String.format("private static int[] %s = new int[] {%s};%n", adviceSetting, intArrayValue);
                 }
-                default -> throw new SecurityException(
-                        "Ares Security Error (Reason: Ares-Code; Stage: Creation): "
-                                + "Unknown data type while creating the value "
-                                + value
-                                + " for the advice settings "
-                                + dataType
-                                + " "
-                                + adviceSetting
-                );
+                default -> throw new SecurityException(localize("security.advice.settings.data.type.unknown", value, dataType, adviceSetting));
             };
         } catch (IllegalFormatException e) {
-            throw new SecurityException(
-                    "Ares Security Error (Reason: Ares-Code; Stage: Creation): "
-                            + "Format error while creating the value "
-                            + value
-                            + " for the advice settings "
-                            + dataType
-                            + " "
-                            + adviceSetting,
-                    e
-            );
+            throw new SecurityException(localize("security.advice.invalid.format", value, dataType, adviceSetting));
         }
 
     }
@@ -179,53 +148,31 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
             field.setAccessible(false);
         } catch (LinkageError e) {
             throw new SecurityException(
-                    "Ares Security Error (Reason: Ares-Code; Stage: Creation):"
-                            + "Linkage error while accessing field '"
-                            + adviceSetting
-                            + "' in AdviceSettings",
+                    localize("security.advice.linkage.exception", adviceSetting),
                     e);
         } catch (ClassNotFoundException e) {
             throw new SecurityException(
-                    "Ares Security Error (Reason: Ares-Code; Stage: Creation):"
-                            + "Could not find 'JavaSecurityTestCaseSettings' class to access field '"
-                            + adviceSetting
-                            + "'",
+                    localize("security.advice.class.not.found.exception", adviceSetting),
                     e);
         } catch (NoSuchFieldException e) {
             throw new SecurityException(
-                    "Ares Security Error (Reason: Ares-Code; Stage: Creation):"
-                            + "Field '"
-                            + adviceSetting
-                            + "' not found in AdviceSettings",
+                    localize("security.advice.no.such.field.exception", adviceSetting),
                     e);
         } catch (NullPointerException e) {
             throw new SecurityException(
-                    "Ares Security Error (Reason: Ares-Code; Stage: Creation):"
-                            + "Null pointer exception while accessing field '"
-                            + adviceSetting
-                            + "' in AdviceSettings",
+                    localize("security.advice.null.pointer.exception", adviceSetting),
                     e);
         } catch (IllegalAccessException e) {
             throw new SecurityException(
-                    "Ares Security Error (Reason: Ares-Code; Stage: Creation):"
-                            + "Field '"
-                            + adviceSetting
-                            + "' is not accessible in AdviceSettings",
+                    localize("security.advice.illegal.access.exception", adviceSetting),
                     e);
         } catch (IllegalArgumentException e) {
             throw new SecurityException(
-                    "Ares Security Error (Reason: Ares-Code; Stage: Creation):"
-                            + "Illegal argument while setting field '"
-                            + adviceSetting
-                            + "' in AdviceSettings with value "
-                            + value,
+                    localize("security.advice.illegal.argument.exception", adviceSetting, value),
                     e);
         } catch (InaccessibleObjectException e) {
             throw new SecurityException(
-                    "Ares Security Error (Reason: Ares-Code; Stage: Creation):"
-                            + "Field '"
-                            + adviceSetting
-                            + "' is inaccessible in AdviceSettings",
+                    localize("security.advice.inaccessible.object.exception", adviceSetting),
                     e);
         }
     }
@@ -265,7 +212,7 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
             case "execute" -> FilePermission::executeAllFiles;
             case "delete" -> FilePermission::deleteAllFiles;
             default ->
-                    throw new IllegalArgumentException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Invalid file permission: " + filePermission);
+                    throw new IllegalArgumentException(localize("security.advice.settings.invalid.file.permission", filePermission));
         };
         return resourceAccesses.regardingFileSystemInteractions()
                 .stream()
@@ -328,7 +275,7 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
             case "send" -> NetworkPermission::sendData;
             case "receive" -> NetworkPermission::receiveData;
             default ->
-                    throw new IllegalArgumentException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Invalid network permission: " + networkPermission);
+                    throw new IllegalArgumentException(localize("security.advice.settings.invalid.network.permission", networkPermission));
         };
         return resourceAccesses.regardingNetworkConnections()
                 .stream()
@@ -350,7 +297,7 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
             case "send" -> NetworkPermission::sendData;
             case "receive" -> NetworkPermission::receiveData;
             default ->
-                    throw new IllegalArgumentException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Invalid network permission: " + networkPermission);
+                    throw new IllegalArgumentException(localize("security.advice.settings.invalid.network.permission", networkPermission));
         };
         return resourceAccesses.regardingNetworkConnections()
                 .stream()

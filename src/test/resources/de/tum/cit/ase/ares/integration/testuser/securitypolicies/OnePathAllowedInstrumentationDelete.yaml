@@ -14,6 +14,7 @@ regardingTheSupervisedCode:
     - "de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile.TransitivelyAccessesMethodsCondition"
     - "de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitSecurityTestCase"
     - "de.tum.cit.ase.ares.testutilities.TestUserExtension"
+    - "de.tum.cit.ase.ares.api.localization.Messages"
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions:
       - readAllFiles: false

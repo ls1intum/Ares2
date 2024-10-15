@@ -3,13 +3,10 @@ package de.tum.cit.ase.ares.api.localization;
 import java.util.*;
 import java.util.Locale.Category;
 
-import org.apiguardian.api.API;
-import org.apiguardian.api.API.Status;
 import org.opentest4j.AssertionFailedError;
 
 import de.tum.cit.ase.ares.api.util.LruCache;
 
-@API(status = Status.INTERNAL)
 public final class Messages {
 
 	private static final String BUNDLE_NAME = "de.tum.cit.ase.ares.api.localization.messages"; //$NON-NLS-1$

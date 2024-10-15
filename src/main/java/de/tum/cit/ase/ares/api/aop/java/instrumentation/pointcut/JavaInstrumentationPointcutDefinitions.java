@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
+
 /**
  * This class contains the pointcut definitions for the Java instrumentation agent.
  * These pointcuts are used to identify methods that perform file system operations
@@ -25,7 +27,7 @@ public class JavaInstrumentationPointcutDefinitions {
      * This constructor is private to prevent instantiation of this utility class.
      */
     private JavaInstrumentationPointcutDefinitions() {
-        throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): JavaInstrumentationPointcutDefinitions is a utility class and should not be instantiated.");
+        throw new SecurityException(localize("security.general.utility.initialization"));
     }
     //</editor-fold>
 

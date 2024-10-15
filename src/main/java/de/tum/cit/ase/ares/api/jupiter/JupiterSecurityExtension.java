@@ -5,7 +5,6 @@ import java.lang.reflect.Method;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
@@ -13,6 +12,7 @@ import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 import org.junit.jupiter.api.extension.*;
 
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
 import static de.tum.cit.ase.ares.api.internal.TestGuardUtils.hasAnnotation;
 import static org.junit.platform.commons.support.AnnotationSupport.findAnnotation;
 //REMOVED: Import of ArtemisSecurityManager
@@ -48,7 +48,7 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
                 javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, null);
                 resetSettings(javaSecurityTestCaseSettingsClass);
             } catch (ClassNotFoundException e) {
-                throw new SecurityException("Security configuration error: The class for the specific security test case settings could not be found. Ensure the class name is correct and the class is available at runtime.", e);
+                throw new SecurityException(localize("security.settings.error"), e);
             }
         }
         //REMOVED: Installing of ArtemisSecurityManager
@@ -78,27 +78,27 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
             resetMethod.invoke(null);
             resetMethod.setAccessible(false);
         } catch (NoSuchMethodException e) {
-            throw new SecurityException("Security configuration error: The 'reset' method could not be found in the specified class. Ensure the method exists and is correctly named.", e);
+            throw new SecurityException(localize("security.settings.reset.method.not.found"), e);
         } catch (IllegalAccessException e) {
-            throw new SecurityException("Security configuration error: Access to the 'reset' method was denied. Ensure the method is public and accessible.", e);
+            throw new SecurityException(localize("security.settings.reset.access.denied"), e);
         } catch (InvocationTargetException e) {
-            throw new SecurityException("Security configuration error: An error occurred while invoking the 'reset' method. This could be due to an underlying issue within the method implementation.", e);
+            throw new SecurityException(localize("security.settings.error.within.method"), e);
         }
     }
 
     public static Path testAndGetPolicyValue(Policy policyAnnotation) {
         String policyValue = policyAnnotation.value();
         if (policyValue.isBlank()) {
-            throw new SecurityException("The policy file path is not specified.");
+            throw new SecurityException(localize("security.policy.reader.path.blank"));
         }
         try {
             Path policyPath = Path.of(policyValue);
             if (!policyPath.toFile().exists()) {
-                throw new SecurityException("The following policy file path does not exist: " + policyPath);
+                throw new SecurityException(localize("security.policy.reader.path.not.exists", policyPath));
             }
             return policyPath;
         } catch (InvalidPathException e) {
-            throw new SecurityException("The following policy file path is invalid: " + policyValue);
+            throw new SecurityException(localize("security.policy.reader.path.invalid", policyValue));
         }
     }
 
@@ -107,11 +107,11 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
         try {
             Path policyWithinPath = Path.of(policyValue);
             if (!policyWithinPath.startsWith("classes") && !policyWithinPath.startsWith("test-classes")) {
-                throw new SecurityException("The following path is invalid for withinPath it should start with classes or test-classes: " + policyValue);
+                throw new SecurityException(localize("security.policy.within.path.wrong.bytecode.path", policyValue));
             }
             return policyWithinPath;
         } catch (InvalidPathException e) {
-            throw new SecurityException("The following path is invalid for withinPath: " + policyValue);
+            throw new SecurityException(localize("security.policy.within.path.invalid", policyValue));
         }
     }
 }

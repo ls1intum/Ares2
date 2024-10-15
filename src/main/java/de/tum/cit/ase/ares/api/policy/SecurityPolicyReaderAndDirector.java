@@ -17,6 +17,8 @@ import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
 //</editor-fold>
 
 /**
@@ -62,13 +64,13 @@ public class SecurityPolicyReaderAndDirector {
                     projectPath
             );
         } catch (StreamReadException e) {
-            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Failed to read the security policy file '" + securityPolicyPath + "'.", e);
+            throw new SecurityException(localize("security.policy.read.failed", securityPolicyPath.toString()), e);
         } catch (DatabindException e) {
-            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Failed to bind data from the security policy file '" + securityPolicyPath + "'.", e);
+            throw new SecurityException(localize("security.policy.data.bind.failed", securityPolicyPath.toString()), e);
         } catch (UnsupportedOperationException e) {
-            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): The security policy contains unsupported operations.", e);
+            throw new SecurityException(localize("security.policy.unsupported.operation"), e);
         } catch (IOException e) {
-            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Error occurred while accessing the security policy file '" + securityPolicyPath + "'.", e);
+            throw new SecurityException(localize("security.policy.io.exception", securityPolicyPath.toString()), e);
         }
     }
     //</editor-fold>

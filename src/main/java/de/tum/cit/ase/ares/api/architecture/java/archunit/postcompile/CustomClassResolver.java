@@ -30,6 +30,7 @@ public class CustomClassResolver {
      * @return The resolved class if it exists.
      */
     public static Optional<JavaClass> tryResolve(String typeName) {
+        // Advice definition uses Reflection and therefor should not be resolved
         if (typeName.startsWith("de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemAdviceDefinitions")) {
             return Optional.empty();
         }

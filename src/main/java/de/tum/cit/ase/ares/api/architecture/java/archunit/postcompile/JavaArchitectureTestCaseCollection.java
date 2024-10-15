@@ -101,7 +101,8 @@ public class JavaArchitectureTestCaseCollection {
                     public boolean test(JavaClass javaClass) {
                         return allowedPackages.stream().noneMatch(allowedPackage -> javaClass.getPackageName().startsWith(allowedPackage));
                     }
-                });
+                })
+                .as("TEST TEST");
     }
 
     private static ArchRule createNoClassShouldHaveMethodRule(

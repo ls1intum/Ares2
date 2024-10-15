@@ -40,7 +40,6 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
             (call(* java.io.File.canExecute(..)) ||
                     call(* java.io.File.renameTo(..)) ||
                     call(* java.io.File.toPath(..)) ||
-                    call(* java.io.File.toURI(..)) ||
                     call(* java.io.File.mkdirs(..)) ||
                     call(* java.io.File.listFiles(..)));
 
@@ -222,19 +221,7 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
 
     pointcut fileReaderInitMethods(): call(java.io.FileReader.new(..));
 
-    pointcut lineNumberReaderInitMethods(): call(java.io.LineNumberReader.new(..));
-
     pointcut printWriterInitMethods(): call(java.io.PrintWriter.new(..));
-
-    pointcut bufferedWriterInitMethods(): call(java.io.BufferedWriter.new(..));
-
-    pointcut outputStreamWriterInitMethods(): call(java.io.OutputStreamWriter.new(..));
-
-    pointcut dataOutputStreamInitMethods(): call(java.io.DataOutputStream.new(..));
-
-    pointcut objectOutputStreamInitMethods(): call(java.io.ObjectOutputStream.new(..));
-
-    pointcut printStreamInitMethods(): call(java.io.PrintStream.new(..));
 
     //TODO Sarp: These should definitely be considered in different pointcut files or this one
     pointcut desktopExecuteMethods():
