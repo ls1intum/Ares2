@@ -32,8 +32,9 @@ jobs:
 
       - name: Build and Test with Maven
         run: |
+          mvn clean
           mvn -B package --file pom.xml -DskipTests
-          mvn test
+          mvn test -Djava.awt.headless=true"
 
       - name: Run Tests on Student Submission
         run: |
