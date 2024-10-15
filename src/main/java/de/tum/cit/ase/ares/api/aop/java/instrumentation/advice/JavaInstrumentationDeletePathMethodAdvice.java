@@ -3,7 +3,7 @@ package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 
-import static de.tum.cit.ase.ares.api.localization.Messages.localized;
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
 import static net.bytebuddy.asm.Advice.*;
 
 /**
@@ -51,15 +51,15 @@ public class JavaInstrumentationDeletePathMethodAdvice {
                     fields[i].setAccessible(true);
                     attributes[i] = fields[i].get(instance);
                 } catch (InaccessibleObjectException e) {
-                    throw new SecurityException(localized("security.instrumentation.inaccessible.object.exception").formatted(fields[i].getName(), instance.getClass().getName()), e);
+                    throw new SecurityException(localize("security.instrumentation.inaccessible.object.exception", fields[i].getName(), instance.getClass().getName()), e);
                 } catch (IllegalAccessException e) {
-                    throw new SecurityException(localized("security.instrumentation.illegal.access.exception").formatted(fields[i].getName(), instance.getClass().getName()), e);
+                    throw new SecurityException(localize("security.instrumentation.illegal.access.exception", fields[i].getName(), instance.getClass().getName()), e);
                 } catch (IllegalArgumentException e) {
-                    throw new SecurityException(localized("security.instrumentation.illegal.argument.exception").formatted(fields[i].getName(), fields[i].getDeclaringClass().getName(), instance.getClass().getName()), e);
+                    throw new SecurityException(localize("security.instrumentation.illegal.argument.exception", fields[i].getName(), fields[i].getDeclaringClass().getName(), instance.getClass().getName()), e);
                 } catch (NullPointerException e) {
-                    throw new SecurityException(localized("security.instrumentation.null.pointer.exception").formatted(fields[i].getName(), instance.getClass().getName()), e);
+                    throw new SecurityException(localize("security.instrumentation.null.pointer.exception", fields[i].getName(), instance.getClass().getName()), e);
                 } catch (ExceptionInInitializerError e) {
-                    throw new SecurityException(localized("security.instrumentation.exception.in-initializer.error").formatted(fields[i].getName(), instance.getClass().getName()), e);
+                    throw new SecurityException(localize("security.instrumentation.exception.in-initializer.error", fields[i].getName(), instance.getClass().getName()), e);
                 }
             }
         }

@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static de.tum.cit.ase.ares.api.localization.Messages.localized;
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
 
 /**
  * This class contains the pointcut definitions for the Java instrumentation agent.
@@ -27,7 +27,7 @@ public class JavaInstrumentationPointcutDefinitions {
      * This constructor is private to prevent instantiation of this utility class.
      */
     private JavaInstrumentationPointcutDefinitions() {
-        throw new SecurityException(localized("security.general.utility.initialization"));
+        throw new SecurityException(localize("security.general.utility.initialization"));
     }
     //</editor-fold>
 

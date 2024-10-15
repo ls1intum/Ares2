@@ -3,12 +3,10 @@ package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
-import java.util.Locale;
-import java.util.ResourceBundle;
-
-import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 
 /**
  * Utility class for the Java instrumentation advice.
@@ -54,17 +52,17 @@ public class JavaInstrumentationAdviceToolbox {
             field.setAccessible(false);
             return value;
         } catch (LinkageError e) {
-            throw new SecurityException(localized("security.advice.linkage.exception").formatted(fieldName), e);
+            throw new SecurityException(localize("security.advice.linkage.exception", fieldName), e);
         } catch (ClassNotFoundException e) {
-            throw new SecurityException(localized("security.advice.class.not.found.exception").formatted(fieldName), e);
+            throw new SecurityException(localize("security.advice.class.not.found.exception", fieldName), e);
         } catch (NoSuchFieldException e) {
-            throw new SecurityException(localized("security.advice.no.such.field.exception").formatted(fieldName), e);
+            throw new SecurityException(localize("security.advice.no.such.field.exception", fieldName), e);
         } catch (NullPointerException e) {
-            throw new SecurityException(localized("security.advice.null.pointer.exception").formatted(fieldName), e);
+            throw new SecurityException(localize("security.advice.null.pointer.exception", fieldName), e);
         } catch (IllegalAccessException e) {
-            throw new SecurityException(localized("security.advice.illegal.access.exception").formatted(fieldName), e);
+            throw new SecurityException(localize("security.advice.illegal.access.exception", fieldName), e);
         } catch (InaccessibleObjectException e) {
-            throw new SecurityException(localized("security.advice.inaccessible.object.exception").formatted(fieldName), e);
+            throw new SecurityException(localize("security.advice.inaccessible.object.exception", fieldName), e);
         }
     }
     //</editor-fold>
@@ -108,7 +106,10 @@ public class JavaInstrumentationAdviceToolbox {
                 // Skip the OutputTester and InputTester classes, as they intercept the output and input for System.out and System.in
                 // Therefore, they cause false positives.
                 // Also, X11FontManager needs to be set when using AWT therefore we have to allow it
-                if (element.getClassName().equals("de.tum.cit.ase.ares.api.io.OutputTester") || element.getClassName().equals("de.tum.cit.ase.ares.api.io.InputTester") || element.getClassName().equals("sun.awt.X11FontManager")) {
+                if (element.getClassName().equals("de.tum.cit.ase.ares.api.io.OutputTester")
+                        || element.getClassName().equals("de.tum.cit.ase.ares.api.io.InputTester")
+                        || element.getClassName().equals("sun.awt.X11FontManager")
+                        || element.getClassName().equals("de.tum.cit.ase.ares.api.localization.Messages")) {
                     return null;
                 }
                 if (!checkIfCallstackElementIsAllowed(allowedClasses, element)) {
@@ -134,30 +135,27 @@ public class JavaInstrumentationAdviceToolbox {
      */
     private static Path variableToPath(Object variableValue) {
         if (variableValue == null) {
-            throw new InvalidPathException("null", localized("security.advice.transform.path.exception"));
-        } else if (variableValue instanceof Path) {
-            Path path = (Path) variableValue;
+            throw new InvalidPathException("null", localize("security.advice.transform.path.exception"));
+        } else if (variableValue instanceof Path path) {
             try {
                 return path.normalize().toAbsolutePath();
             } catch (InvalidPathException e) {
-                throw new InvalidPathException(path.toString(), localized("security.advice.transform.path.exception"));
+                throw new InvalidPathException(path.toString(), localize("security.advice.transform.path.exception"));
             }
-        } else if (variableValue instanceof String) {
-            String string = (String) variableValue;
+        } else if (variableValue instanceof String string) {
             try {
                 return Path.of(string).normalize().toAbsolutePath();
             } catch (InvalidPathException e) {
-                throw new InvalidPathException(string, localized("security.advice.transform.path.exception"));
+                throw new InvalidPathException(string, localize("security.advice.transform.path.exception"));
             }
-        } else if (variableValue instanceof File) {
-            File file = (File) variableValue;
+        } else if (variableValue instanceof File file) {
             try {
                 return Path.of(file.toURI()).normalize().toAbsolutePath();
             } catch (InvalidPathException e) {
-                throw new InvalidPathException(file.toString(), localized("security.advice.transform.path.exception"));
+                throw new InvalidPathException(file.toString(), localize("security.advice.transform.path.exception"));
             }
         } else {
-            throw new InvalidPathException(variableValue.toString(), localized("security.advice.transform.path.exception"));
+            throw new InvalidPathException(variableValue.toString(), localize("security.advice.transform.path.exception"));
         }
     }
 
@@ -249,10 +247,26 @@ public class JavaInstrumentationAdviceToolbox {
                 illegallyReadPath = (attributes == null || attributes.length == 0) ? null : checkIfVariableCriteriaIsViolated(attributes, allowedPaths);
             }
             if (illegallyReadPath != null) {
-                throw new SecurityException(localized("security.advice.illegal.method.execution").formatted(illegallyReadingMethod, action, illegallyReadPath, fullMethodSignature));
+                throw new SecurityException(localize("security.advice.illegal.method.execution", illegallyReadingMethod, action, illegallyReadPath, fullMethodSignature));
             }
         }
     }
     //</editor-fold>
     //</editor-fold>
+
+    public static String localize(String key, Object... args) {
+        try {
+            Class<?> messagesClass = Class.forName("de.tum.cit.ase.ares.api.localization.Messages", true, Thread.currentThread().getContextClassLoader());
+            Method localized = messagesClass.getDeclaredMethod("localized", String.class, Object[].class);
+            Object result = localized.invoke(null, key, args);
+            if (result instanceof String str) {
+                return str;
+            } else {
+                throw new IllegalStateException("Method does not return a String");
+            }
+        } catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
+            // TODO: Add a correct implementation of the localization
+            throw new RuntimeException(e.getMessage());
+        }
+    }
 }

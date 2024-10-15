@@ -32,17 +32,17 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
             field.setAccessible(false);
             return value;
         } catch (LinkageError e) {
-            throw new SecurityException(localized("security.advice.linkage.exception").formatted(fieldName), e);
+            throw new SecurityException(localized("security.advice.linkage.exception", fieldName), e);
         } catch (ClassNotFoundException e) {
-            throw new SecurityException(localized("security.advice.class.not.found.exception").formatted(fieldName), e);
+            throw new SecurityException(localized("security.advice.class.not.found.exception", fieldName), e);
         } catch (NoSuchFieldException e) {
-            throw new SecurityException(localized("security.advice.no.such.field.exception").formatted(fieldName), e);
+            throw new SecurityException(localized("security.advice.no.such.field.exception", fieldName), e);
         } catch (NullPointerException e) {
-            throw new SecurityException(localized("security.advice.null.pointer.exception").formatted(fieldName), e);
+            throw new SecurityException(localized("security.advice.null.pointer.exception", fieldName), e);
         } catch (IllegalAccessException e) {
-            throw new SecurityException(localized("security.advice.illegal.access.exception").formatted(fieldName), e);
+            throw new SecurityException(localized("security.advice.illegal.access.exception", fieldName), e);
         } catch (InaccessibleObjectException e) {
-            throw new SecurityException(localized("security.advice.inaccessible.object.exception").formatted(fieldName), e);
+            throw new SecurityException(localized("security.advice.inaccessible.object.exception", fieldName), e);
         }
     }
     // </editor-fold>
@@ -216,7 +216,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
         if (illegallyReadingMethod != null) {
             String illegallyReadPath = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, allowedPaths);
             if (illegallyReadPath != null) {
-                throw new SecurityException(localized("security.advice.illegal.method.execution").formatted(illegallyReadingMethod, action, illegallyReadPath, fullMethodSignature));
+                throw new SecurityException(localized("security.advice.illegal.method.execution", illegallyReadingMethod, action, illegallyReadPath, fullMethodSignature));
             }
         }
     }

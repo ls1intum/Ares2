@@ -79,6 +79,7 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
 
             return switch (dataType) {
                 case "String" -> {
+                    // TODO: Refactor the error messages here
                     if (!(value instanceof String)) {
                         throw new SecurityException(String.format(
                                 "Ares Security Error (Reason: Ares-Code; Stage: Creation): "

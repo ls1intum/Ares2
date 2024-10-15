@@ -97,7 +97,7 @@ public class JavaArchUnitSecurityTestCase implements ArchitectureSecurityTestCas
             }
         } catch (AssertionError e) {
             assert e.getMessage().split("\n").length > 1;
-            throw new SecurityException(localized("security.archunit.illegal.execution").formatted(e.getMessage().split("\n")[1]));
+            throw new SecurityException(localized("security.archunit.illegal.execution", e.getMessage().split("\n")[1]));
         }
     }
     //</editor-fold>

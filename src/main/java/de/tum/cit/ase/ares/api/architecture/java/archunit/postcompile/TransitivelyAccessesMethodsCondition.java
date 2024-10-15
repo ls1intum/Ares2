@@ -19,7 +19,6 @@ import java.util.Collections;
 import static com.tngtech.archunit.lang.ConditionEvent.createMessage;
 import static com.tngtech.archunit.thirdparty.com.google.common.base.Preconditions.checkNotNull;
 import static com.tngtech.archunit.thirdparty.com.google.common.collect.Iterables.getLast;
-import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toSet;
 //</editor-fold>

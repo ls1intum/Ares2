@@ -29,6 +29,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static com.google.common.collect.Iterables.isEmpty;
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
 //</editor-fold>
 
 /**
@@ -127,37 +128,37 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
             @Nonnull Path projectPath
     ) {
         if (securityPolicy.regardingTheSupervisedCode().theProgrammingLanguageUsesTheFollowingPackage() == null) {
-            throw new IllegalArgumentException("Ares Security Error (Reason: Ares-Code; Stage: Execution): The package name cannot be null.");
+            throw new IllegalArgumentException(localize("security.policy.restricted.package.null"));
         } else if (securityPolicy.regardingTheSupervisedCode().theMainClassInsideThisPackageIs() == null) {
-            throw new IllegalArgumentException("Ares Security Error (Reason: Ares-Code; Stage: Execution): The main class inside the package cannot be null.");
+            throw new IllegalArgumentException(localize("security.policy.package.main.class.null"));
         }
 
         if (javaBuildMode == null) {
-            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): The build mode cannot be null.");
+            throw new SecurityException(localize("security.policy.java.build.mode.null"));
         }
         this.javaBuildMode = javaBuildMode;
         if (javaArchitectureMode == null) {
-            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): The architecture mode cannot be null.");
+            throw new SecurityException(localize("security.policy.java.architecture.mode.null"));
         }
         this.javaArchitectureMode = javaArchitectureMode;
         if (javaAOPMode == null) {
-            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): The AOP mode cannot be null.");
+            throw new SecurityException(localize("security.policy.java.aop.mode.null"));
         }
         this.javaAOPMode = javaAOPMode;
         if (securityPolicy.regardingTheSupervisedCode().theProgrammingLanguageUsesTheFollowingPackage() == null) {
-            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): The x cannot be null.");
+            throw new SecurityException(localize("security.policy.java.not.correct.set"));
         }
         this.packageName = securityPolicy.regardingTheSupervisedCode().theProgrammingLanguageUsesTheFollowingPackage();
         if (securityPolicy.regardingTheSupervisedCode().theMainClassInsideThisPackageIs() == null) {
-            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): The x cannot be null.");
+            throw new SecurityException(localize("security.policy.java.not.correct.set"));
         }
         this.mainClassInPackageName = securityPolicy.regardingTheSupervisedCode().theMainClassInsideThisPackageIs();
         if (securityPolicy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted() == null) {
-            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): The x cannot be null.");
+            throw new SecurityException(localize("security.policy.java.not.correct.set"));
         }
         this.resourceAccesses = securityPolicy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted();
         if (securityPolicy.regardingTheSupervisedCode().theFollowingClassesAreTestClasses() == null) {
-            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): The x cannot be null.");
+            throw new SecurityException(localize("security.policy.java.not.correct.set"));
         }
         this.testClasses = securityPolicy.regardingTheSupervisedCode().theFollowingClassesAreTestClasses();
         // TODO Markus: projectPath is configured wrongly, since for AOP and Architecture tests different paths are used (for Architectural path to bytecode, for AOP path to source code)

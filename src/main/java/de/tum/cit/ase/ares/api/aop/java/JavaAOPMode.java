@@ -9,7 +9,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static de.tum.cit.ase.ares.api.localization.Messages.localized;
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
 
 /**
  * Enum representing the different modes of Aspect-Oriented Programming (AOP)
@@ -214,16 +214,16 @@ public enum JavaAOPMode {
             method.setAccessible(false);
 
         } catch (ClassNotFoundException e) {
-            throw new SecurityException(localized("security.creation.reset.class.not.found.exception"), e);
+            throw new SecurityException(localize("security.creation.reset.class.not.found.exception"), e);
 
         } catch (NoSuchMethodException e) {
-            throw new SecurityException(localized("security.creation.reset.no.method.exception"), e);
+            throw new SecurityException(localize("security.creation.reset.no.method.exception"), e);
 
         } catch (IllegalAccessException e) {
-            throw new SecurityException(localized("security.creation.reset.illegal.access.exception"), e);
+            throw new SecurityException(localize("security.creation.reset.illegal.access.exception"), e);
 
         } catch (InvocationTargetException e) {
-            throw new SecurityException(localized("security.creation.reset.invocation.target.exception"), e);
+            throw new SecurityException(localize("security.creation.reset.invocation.target.exception"), e);
         }
     }
     //</editor-fold>
