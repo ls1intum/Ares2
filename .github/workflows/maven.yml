@@ -23,6 +23,7 @@ jobs:
         with:
           java-version: '21'
           distribution: 'adopt'
+          cache: maven
 
       - name: Install Maven
         run: |
@@ -30,8 +31,8 @@ jobs:
           sudo wget -q -O - "https://apache.osuosl.org/maven/maven-3/3.9.8/binaries/apache-maven-3.9.8-bin.tar.gz" | sudo tar xzf - -C /usr/share
           sudo ln -s /usr/share/apache-maven-3.9.8/bin/mvn /usr/bin/mvn
 
-      - name: Build and Test with Maven
-        run: |
-          mvn clean
-          mvn package -DskipTests
-          mvn test
+      - name: Build
+        run: mvn clean package -DskipTests
+
+      - name: Test
+        run: mvn test
