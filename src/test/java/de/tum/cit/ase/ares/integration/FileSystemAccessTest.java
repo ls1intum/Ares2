@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.integration.testuser.subject.fileSystem.FileSystemAccessPenguin;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Nested;
 import org.junit.platform.testkit.engine.Events;
 
@@ -802,10 +803,7 @@ class FileSystemAccessTest {
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
         void test_accessFileSystemViaDesktopAspectJ() throws IOException {
             try {
-                if (GraphicsEnvironment.isHeadless()) {
-                    // Skip or mark the test as ignored
-                    return;
-                }
+                Assumptions.assumeFalse(GraphicsEnvironment.isHeadless(), "Skipping test in headless environment");
                 FileSystemAccessPenguin.accessFileSystemViaDesktop();
                 fail(errorMessage);
             } catch (SecurityException e) {
@@ -818,10 +816,7 @@ class FileSystemAccessTest {
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
         void test_accessFileSystemViaDesktopInstrumentation() throws IOException {
             try {
-                if (GraphicsEnvironment.isHeadless()) {
-                    // Skip or mark the test as ignored
-                    return;
-                }
+                Assumptions.assumeFalse(GraphicsEnvironment.isHeadless(), "Skipping test in headless environment");
                 FileSystemAccessPenguin.accessFileSystemViaDesktop();
                 fail(errorMessage);
             } catch (SecurityException e) {
@@ -907,10 +902,7 @@ class FileSystemAccessTest {
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
         void test_accessFileSystemViaJFileChooserInstrumentation() {
             try {
-                if (GraphicsEnvironment.isHeadless()) {
-                    // Skip or mark the test as ignored
-                    return;
-                }
+                Assumptions.assumeFalse(GraphicsEnvironment.isHeadless(), "Skipping test in headless environment");
                 FileSystemAccessPenguin.accessFileSystemViaJFileChooser();
                 fail(errorMessage);
             } catch (SecurityException e) {

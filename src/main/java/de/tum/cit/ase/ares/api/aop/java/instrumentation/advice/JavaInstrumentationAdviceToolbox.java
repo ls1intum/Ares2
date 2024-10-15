@@ -265,8 +265,8 @@ public class JavaInstrumentationAdviceToolbox {
                 throw new IllegalStateException("Method does not return a String");
             }
         } catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
-            // TODO: Add a correct implementation of the localization
-            throw new RuntimeException(e.getMessage());
+            // Fallback: Return the key if localization fails
+            return key;
         }
     }
 }
