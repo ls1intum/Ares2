@@ -198,15 +198,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      */
     private void createSecurityTestCases() {
         //<editor-fold desc="Delete old rules code">
-        try {
-            // We have to reset both the settings classes in the runtime and the bootstrap class loader to be able to run multiple tests in the same JVM instance.
-            Class<?> javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings");
-            resetSettings(javaSecurityTestCaseSettingsClass);
-            javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, null);
-            resetSettings(javaSecurityTestCaseSettingsClass);
-        } catch (ClassNotFoundException e) {
-            throw new SecurityException(localize("security.settings.error"), e);
-        }
+        // Reset
         //</editor-fold>
 
         //<editor-fold desc="Create fixed rules code">
