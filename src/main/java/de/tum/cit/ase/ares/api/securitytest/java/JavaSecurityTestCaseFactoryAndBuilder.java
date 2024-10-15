@@ -30,6 +30,7 @@ import java.util.stream.Stream;
 
 import static com.google.common.collect.Iterables.isEmpty;
 import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
+import static de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension.resetSettings;
 //</editor-fold>
 
 /**
@@ -197,7 +198,15 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      */
     private void createSecurityTestCases() {
         //<editor-fold desc="Delete old rules code">
-        //javaAOPMode.reset();
+        try {
+            // We have to reset both the settings classes in the runtime and the bootstrap class loader to be able to run multiple tests in the same JVM instance.
+            Class<?> javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings");
+            resetSettings(javaSecurityTestCaseSettingsClass);
+            javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, null);
+            resetSettings(javaSecurityTestCaseSettingsClass);
+        } catch (ClassNotFoundException e) {
+            throw new SecurityException(localize("security.settings.error"), e);
+        }
         //</editor-fold>
 
         //<editor-fold desc="Create fixed rules code">
