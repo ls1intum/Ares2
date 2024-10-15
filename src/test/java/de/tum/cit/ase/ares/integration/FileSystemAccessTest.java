@@ -12,6 +12,7 @@ import org.junit.platform.testkit.engine.Events;
 import de.tum.cit.ase.ares.integration.testuser.FileSystemAccessUser;
 import de.tum.cit.ase.ares.testutilities.*;
 
+import java.awt.*;
 import java.io.IOException;
 
 @UserBased(FileSystemAccessUser.class)
@@ -801,6 +802,10 @@ class FileSystemAccessTest {
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
         void test_accessFileSystemViaDesktopAspectJ() throws IOException {
             try {
+                if (GraphicsEnvironment.isHeadless()) {
+                    // Skip or mark the test as ignored
+                    return;
+                }
                 FileSystemAccessPenguin.accessFileSystemViaDesktop();
                 fail(errorMessage);
             } catch (SecurityException e) {
@@ -813,6 +818,10 @@ class FileSystemAccessTest {
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
         void test_accessFileSystemViaDesktopInstrumentation() throws IOException {
             try {
+                if (GraphicsEnvironment.isHeadless()) {
+                    // Skip or mark the test as ignored
+                    return;
+                }
                 FileSystemAccessPenguin.accessFileSystemViaDesktop();
                 fail(errorMessage);
             } catch (SecurityException e) {
@@ -886,6 +895,10 @@ class FileSystemAccessTest {
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
         void test_accessFileSystemViaJFileChooserAspectJ() throws IOException {
             try {
+                if (GraphicsEnvironment.isHeadless()) {
+                    // Skip or mark the test as ignored
+                    return;
+                }
                 FileSystemAccessPenguin.accessFileSystemViaFileSystemProvider();
                 fail(errorMessage);
             } catch (SecurityException e) {

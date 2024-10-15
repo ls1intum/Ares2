@@ -34,7 +34,7 @@ jobs:
         run: |
           mvn clean
           mvn -B package --file pom.xml -DskipTests
-          mvn test -Djava.awt.headless=true"
+          mvn test
 
       - name: Run Tests on Student Submission
         run: |
