@@ -895,10 +895,6 @@ class FileSystemAccessTest {
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
         void test_accessFileSystemViaJFileChooserAspectJ() throws IOException {
             try {
-                if (GraphicsEnvironment.isHeadless()) {
-                    // Skip or mark the test as ignored
-                    return;
-                }
                 FileSystemAccessPenguin.accessFileSystemViaFileSystemProvider();
                 fail(errorMessage);
             } catch (SecurityException e) {
@@ -911,6 +907,10 @@ class FileSystemAccessTest {
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
         void test_accessFileSystemViaJFileChooserInstrumentation() {
             try {
+                if (GraphicsEnvironment.isHeadless()) {
+                    // Skip or mark the test as ignored
+                    return;
+                }
                 FileSystemAccessPenguin.accessFileSystemViaJFileChooser();
                 fail(errorMessage);
             } catch (SecurityException e) {

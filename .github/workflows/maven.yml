@@ -33,7 +33,7 @@ jobs:
       - name: Build and Test with Maven
         run: |
           mvn clean
-          mvn -B package --file pom.xml -DskipTests
+          mvn package -DskipTests
           mvn test
 
       - name: Run Tests on Student Submission
