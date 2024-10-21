@@ -30,7 +30,6 @@ import java.util.stream.Stream;
 
 import static com.google.common.collect.Iterables.isEmpty;
 import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
-import static de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension.resetSettings;
 //</editor-fold>
 
 /**
@@ -197,10 +196,6 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      * </p>
      */
     private void createSecurityTestCases() {
-        //<editor-fold desc="Delete old rules code">
-        // Reset
-        //</editor-fold>
-
         //<editor-fold desc="Create fixed rules code">
         Set<SecurityPolicy.PackagePermission> allowedPackages = new HashSet<>(resourceAccesses.regardingPackageImports());
         // Add default imports needed for the execution
