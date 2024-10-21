@@ -53,16 +53,11 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
      */
     @Override
     public void check(JavaClass item, ConditionEvents events) {
-        boolean hastTransitiveAccess = false;
         for (JavaAccess<?> target : item.getAccessesFromSelf()) {
             List<JavaAccess<?>> dependencyPath = transitiveAccessPath.findPathTo(target);
             if (!dependencyPath.isEmpty()) {
                 events.add(newTransitiveAccessPathFoundEvent(target, dependencyPath));
-                hastTransitiveAccess = true;
             }
-        }
-        if (!hastTransitiveAccess) {
-            events.add(newNoTransitiveDependencyPathFoundEvent(item));
         }
     }
 
@@ -84,19 +79,12 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
         return SimpleConditionEvent.satisfied(javaClass, createMessage(javaClass, message));
     }
 
-    /**
-     * @return a violated event if no transitive dependency path was found
-     */
-    private static ConditionEvent newNoTransitiveDependencyPathFoundEvent(JavaClass javaClass) {
-        return SimpleConditionEvent.violated(javaClass, createMessage(javaClass, "does not transitively depend on any matching class"));
-    }
-
-    private class TransitiveAccessPath {
+    public class TransitiveAccessPath {
         /**
          * @return some outgoing transitive dependency path to the supplied class or empty if there is none
          */
         @SuppressWarnings("java:S1452")
-        List<JavaAccess<?>> findPathTo(JavaAccess<?> method) {
+        public List<JavaAccess<?>> findPathTo(JavaAccess<?> method) {
             ImmutableList.Builder<JavaAccess<?>> transitivePath = ImmutableList.builder();
             addAccessesToPathFrom(method, transitivePath, new HashSet<>());
             return transitivePath.build().reverse();
