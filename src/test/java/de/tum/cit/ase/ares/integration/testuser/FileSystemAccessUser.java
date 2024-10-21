@@ -36,7 +36,6 @@ public class FileSystemAccessUser {
 		PathAccessPenguin.accessPath(Path.of("pom.xml"));
 	}*/
 
-    // TODO this test should fail with the given agent SecurityException currently not working
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentation.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
     public void accessPathNormalInstrumentation() throws IOException {

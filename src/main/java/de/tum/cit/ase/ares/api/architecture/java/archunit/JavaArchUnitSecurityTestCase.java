@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile.JavaArchitectureTestCaseCollection.getArchitectureRuleFileContent;
+import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 //</editor-fold>
 
 /**
@@ -95,7 +96,10 @@ public class JavaArchUnitSecurityTestCase implements ArchitectureSecurityTestCas
                 default -> throw new UnsupportedOperationException("Not implemented yet");
             }
         } catch (AssertionError e) {
-            throw new SecurityException("Ares Security Error (Reason: Student-Code; Stage: Execution): Illegal Statement found: " + e.getMessage());
+            if (e.getMessage() == null || e.getMessage().split("\n").length < 2) {
+                throw new SecurityException(localized("security.archunit.illegal.execution", e.getMessage()));
+            }
+            throw new SecurityException(localized("security.archunit.illegal.execution", e.getMessage().split("\n")[1]));
         }
     }
     //</editor-fold>
