@@ -1,12 +1,19 @@
 package de.tum.cit.ase.ares.integration;
 
 import static de.tum.cit.ase.ares.testutilities.CustomConditions.finishedSuccessfully;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.platform.testkit.engine.Events;
 
 import de.tum.cit.ase.ares.integration.testuser.LocaleUser;
 import de.tum.cit.ase.ares.integration.testuser.LocaleUser.*;
 import de.tum.cit.ase.ares.testutilities.*;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+import java.util.Set;
 
 @UserBased({ LocaleUser.class, LocaleEn.class, LocaleUnsupported.class })
 class LocaleTest {
@@ -19,6 +26,9 @@ class LocaleTest {
 	private final String testLocaleDe = "testLocaleDe";
 	private final String testUnknownFormatted = "testUnknownFormatted";
 	private final String testUnknownNormal = "testUnknownNormal";
+
+	private static final String ENGLISH_FILE_PATH = "src/main/resources/de/tum/cit/ase/ares/api/localization/messages.properties";  // Replace with actual path
+	private static final String GERMAN_FILE_PATH = "src/main/resources/de/tum/cit/ase/ares/api/localization/messages_de.properties"; // Replace with actual path
 
 	@TestTest
 	void test_testLocaleEn() {
@@ -44,4 +54,21 @@ class LocaleTest {
 	void test_testUnknownNormal() {
 		tests.assertThatEvents().haveExactly(1, finishedSuccessfully(testUnknownNormal));
 	}
+
+	@TestTest
+	public void testTranslationsCompleteness() throws IOException {
+		Set<String> englishKeys = loadPropertiesKeys(ENGLISH_FILE_PATH);
+		Set<String> germanKeys = loadPropertiesKeys(GERMAN_FILE_PATH);
+
+		assertThat(germanKeys).containsAll(englishKeys);
+	}
+
+	private Set<String> loadPropertiesKeys(String filePath) throws IOException {
+		Properties properties = new Properties();
+		try (InputStream input = new FileInputStream(filePath)) {
+			properties.load(input);
+		}
+		return properties.stringPropertyNames();
+	}
+
 }

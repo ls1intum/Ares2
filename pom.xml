@@ -443,10 +443,10 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.3.0</version>
+                <version>3.5.1</version>
                 <configuration>
                     <forkCount>1</forkCount>
-                    <argLine>-javaagent:${project.build.directory}/ares-2.0.0-SNAPSHOT-agent.jar -Xbootclasspath/a:${user.home}/.m2/repository/org/aspectj/aspectjrt/${aspectj.version}/aspectjrt-${aspectj.version}.jar</argLine>
+                    <argLine>-javaagent:${project.build.directory}${file.separator}ares-2.0.0-SNAPSHOT-agent.jar -Xbootclasspath/a:${user.home}${file.separator}.m2${file.separator}repository${file.separator}org${file.separator}aspectj${file.separator}aspectjrt${file.separator}${aspectj.version}${file.separator}aspectjrt-${aspectj.version}.jar</argLine>
                 </configuration>
             </plugin>
             <!-- Shade Plugin to package the agent JAR -->
