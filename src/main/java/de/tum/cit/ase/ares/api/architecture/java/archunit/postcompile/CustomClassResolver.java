@@ -3,7 +3,9 @@ package de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile;
 //<editor-fold desc="Imports">
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
+import com.tngtech.archunit.thirdparty.com.google.common.io.Files;
 
+import java.io.IOException;
 import java.net.URL;
 import java.util.Optional;
 //</editor-fold>
@@ -30,6 +32,12 @@ public class CustomClassResolver {
      * @return The resolved class if it exists.
      */
     public static Optional<JavaClass> tryResolve(String typeName) {
+        try {
+            Files.readLines(null, null);
+        } catch (IOException e) {
+            // do nothing
+        }
+
         if (typeName.startsWith("de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemAdviceDefinitions")) {
             return Optional.empty();
         }
