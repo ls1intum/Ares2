@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.HashSet;
-import java.util.Collections;
 
 import static com.tngtech.archunit.lang.ConditionEvent.createMessage;
 import static com.tngtech.archunit.thirdparty.com.google.common.base.Preconditions.checkNotNull;
@@ -96,6 +95,7 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
         /**
          * @return some outgoing transitive dependency path to the supplied class or empty if there is none
          */
+        @SuppressWarnings("java:S1452")
         List<JavaAccess<?>> findPathTo(JavaAccess<?> method) {
             ImmutableList.Builder<JavaAccess<?>> transitivePath = ImmutableList.builder();
             addAccessesToPathFrom(method, transitivePath, new HashSet<>());
@@ -141,15 +141,6 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
             Set<JavaClass> subclasses = resolvedTarget.getSubclasses().stream().map(this::resolveTargetOwner).collect(toSet());
             subclasses.add(resolvedTarget);
 
-            /**
-             * If the number of subclasses is more than 20, return an empty set.
-             * These classes are always generic interfaces or abstract classes
-             * TODO: Check if this is also the case for foreign packages
-             */
-            if (subclasses.size() > 20 || isExceptionOrError(resolvedTarget)) {
-                return Collections.emptySet();
-            }
-
             return subclasses.stream()
                     .map(javaClass ->
                             getAccessesFromClass(javaClass, item.getTarget().getFullName().substring(item.getTargetOwner().getFullName().length())))
@@ -171,10 +162,6 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
         private JavaClass resolveTargetOwner(JavaClass targetOwner) {
             Optional<JavaClass> resolvedTarget = CustomClassResolver.tryResolve(targetOwner.getFullName());
             return resolvedTarget.orElse(targetOwner);
-        }
-
-        private boolean isExceptionOrError(JavaClass javaClass) {
-            return javaClass.isAssignableTo(Exception.class) || javaClass.isAssignableTo(Error.class);
         }
     }
 }
