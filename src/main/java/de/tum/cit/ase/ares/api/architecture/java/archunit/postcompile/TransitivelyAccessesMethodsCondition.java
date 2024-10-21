@@ -126,6 +126,7 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
             JavaClass resolvedTarget = resolveTargetOwner(item.getTargetOwner());
 
             // Match the accesses to the target
+            // TODO Sarp: This is a workaround use Wala to get the actual call graph!!!!
             Set<JavaClass> subclasses = resolvedTarget.getSubclasses().stream().map(this::resolveTargetOwner).collect(toSet());
             subclasses.add(resolvedTarget);
 
