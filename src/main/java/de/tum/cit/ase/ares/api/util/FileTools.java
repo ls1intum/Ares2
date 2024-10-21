@@ -17,15 +17,16 @@ import java.util.Scanner;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
+
 /**
  * Utility class providing file-related operations such as copying files, reading file content,
  * and writing content to files. These methods are intended for use in scenarios where
  * secure and reliable file handling is required.
  */
 public class FileTools {
-    
-    public static final String ARES_ERROR_MESSAGE = "Ares Security Error (Stage: Creation): Failed to read content from source file.";
 
+    // TODO: This is only needed for the pre-compile mode, translation not that necessary
     /**
      * Private constructor to prevent instantiation of this utility class.
      * <p>
@@ -103,7 +104,7 @@ public class FileTools {
                         StandardOpenOption.WRITE
                 );
             } catch (IOException e) {
-                throw new SecurityException(ARES_ERROR_MESSAGE, e);
+                throw new SecurityException(localize("security.file-tools.read.content.failure"), e);
             }
         }
         return copiedFiles;
@@ -142,7 +143,7 @@ public class FileTools {
             }
 
         } catch (IOException e) {
-            throw new SecurityException(ARES_ERROR_MESSAGE, e);
+            throw new SecurityException(localize("security.file-tools.read.content.failure"), e);
         } catch (OutOfMemoryError e) {
             throw new SecurityException("Ares Security Error (Stage: Creation): Out of memory while reading content.", e);
         } catch (IllegalFormatException e) {
@@ -268,7 +269,7 @@ public class FileTools {
                     StandardOpenOption.WRITE
             );
         } catch (IOException e) {
-            throw new SecurityException(ARES_ERROR_MESSAGE, e);
+            throw new SecurityException(localize("security.file-tools.read.content.failure"), e);
         }
         return createdFile;
     }

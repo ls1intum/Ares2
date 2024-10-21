@@ -4,6 +4,8 @@ import de.tum.cit.ase.ares.api.util.FileTools;
 
 import java.nio.file.Path;
 
+import static de.tum.cit.ase.ares.api.localization.Messages.localized;
+
 /**
  * Constants for the path of the files used in the ArchitectureTestCaseStorage
  */
@@ -17,6 +19,6 @@ public class FileHandlerConstants {
     public static final Path JAVA_THREAD_CREATION_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "archunit", "methods", "thread-creation-methods.txt");
 
     private FileHandlerConstants() {
-        throw new UnsupportedOperationException("Ares Security Error (Reason: Ares-Code; Stage: Execution): FileHandlerConstants is a utility class and should not be instantiated.");
+        throw new UnsupportedOperationException(localized("security.general.utility.initialization"));
     }
 }
