@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.HashSet;
-import java.util.Collections;
 
 import static com.tngtech.archunit.lang.ConditionEvent.createMessage;
 import static com.tngtech.archunit.thirdparty.com.google.common.base.Preconditions.checkNotNull;
@@ -54,16 +53,11 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
      */
     @Override
     public void check(JavaClass item, ConditionEvents events) {
-        boolean hastTransitiveAccess = false;
         for (JavaAccess<?> target : item.getAccessesFromSelf()) {
             List<JavaAccess<?>> dependencyPath = transitiveAccessPath.findPathTo(target);
             if (!dependencyPath.isEmpty()) {
                 events.add(newTransitiveAccessPathFoundEvent(target, dependencyPath));
-                hastTransitiveAccess = true;
             }
-        }
-        if (!hastTransitiveAccess) {
-            events.add(newNoTransitiveDependencyPathFoundEvent(item));
         }
     }
 
@@ -85,18 +79,12 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
         return SimpleConditionEvent.satisfied(javaClass, createMessage(javaClass, message));
     }
 
-    /**
-     * @return a violated event if no transitive dependency path was found
-     */
-    private static ConditionEvent newNoTransitiveDependencyPathFoundEvent(JavaClass javaClass) {
-        return SimpleConditionEvent.violated(javaClass, createMessage(javaClass, "does not transitively depend on any matching class"));
-    }
-
-    private class TransitiveAccessPath {
+    public class TransitiveAccessPath {
         /**
          * @return some outgoing transitive dependency path to the supplied class or empty if there is none
          */
-        List<JavaAccess<?>> findPathTo(JavaAccess<?> method) {
+        @SuppressWarnings("java:S1452")
+        public List<JavaAccess<?>> findPathTo(JavaAccess<?> method) {
             ImmutableList.Builder<JavaAccess<?>> transitivePath = ImmutableList.builder();
             addAccessesToPathFrom(method, transitivePath, new HashSet<>());
             return transitivePath.build().reverse();
@@ -138,17 +126,9 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
             JavaClass resolvedTarget = resolveTargetOwner(item.getTargetOwner());
 
             // Match the accesses to the target
+            // TODO Sarp: This is a workaround use Wala to get the actual call graph!!!!
             Set<JavaClass> subclasses = resolvedTarget.getSubclasses().stream().map(this::resolveTargetOwner).collect(toSet());
             subclasses.add(resolvedTarget);
-
-            /**
-             * If the number of subclasses is more than 20, return an empty set.
-             * These classes are always generic interfaces or abstract classes
-             * TODO: Check if this is also the case for foreign packages
-             */
-            if (subclasses.size() > 20 || isExceptionOrError(resolvedTarget)) {
-                return Collections.emptySet();
-            }
 
             return subclasses.stream()
                     .map(javaClass ->
@@ -171,10 +151,6 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
         private JavaClass resolveTargetOwner(JavaClass targetOwner) {
             Optional<JavaClass> resolvedTarget = CustomClassResolver.tryResolve(targetOwner.getFullName());
             return resolvedTarget.orElse(targetOwner);
-        }
-
-        private boolean isExceptionOrError(JavaClass javaClass) {
-            return javaClass.isAssignableTo(Exception.class) || javaClass.isAssignableTo(Error.class);
         }
     }
 }
