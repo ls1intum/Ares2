@@ -6,6 +6,7 @@ import de.tum.cit.ase.ares.api.architecture.ArchitectureSecurityTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile.JavaArchitectureTestCaseCollection;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy.PackagePermission;
 
+import javax.annotation.Nonnull;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -42,7 +43,7 @@ public class JavaArchUnitSecurityTestCase implements ArchitectureSecurityTestCas
      *
      * @param javaArchitectureTestCaseSupported Selects the supported architecture test case in the Java programming language
      */
-    public JavaArchUnitSecurityTestCase(JavaArchUnitTestCaseSupported javaArchitectureTestCaseSupported) {
+    public JavaArchUnitSecurityTestCase(@Nonnull JavaArchUnitTestCaseSupported javaArchitectureTestCaseSupported) {
         super();
         this.javaArchitectureTestCaseSupported = javaArchitectureTestCaseSupported;
         this.allowedPackages = new HashSet<>();
