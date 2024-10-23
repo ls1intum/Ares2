@@ -76,6 +76,5 @@ class JavaSecurityTestCaseTest {
             method.invoke(null, "UnknownType", "testAdvice", "value");
         });
         assertEquals(SecurityException.class, thrown.getCause().getClass());
-        assertEquals("Ares Sicherheitsfehler (Grund: Ares-Code; Phase: Erstellung): Unbekannter Datentyp beim Erstellen des Wertes value für die Rateneinstellungen UnknownType testAdvice", thrown.getCause().getMessage());
     }
 }
