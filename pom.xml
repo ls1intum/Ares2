@@ -55,37 +55,38 @@
 
         <!-- Maven Core Plugins -->
         <!-- Maven Clean Plugin -->
-        <maven-clean-version>3.3.2</maven-clean-version>
+        <maven-clean-version>3.4.0</maven-clean-version>
         <!-- Maven Compiler Plugin -->
-        <maven-compiler-version>3.12.1</maven-compiler-version>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
+        <maven-compiler-version>3.13.0</maven-compiler-version>
+        <!--maven.compiler.source>21</maven.compiler.source-->
+        <!--maven.compiler.target>21</maven.compiler.target-->
+        <maven.compiler.release>21</maven.compiler.release>
         <!-- Maven Deploy Plugin -->
-        <maven-deploy-version>3.1.1</maven-deploy-version>
+        <maven-deploy-version>3.1.3</maven-deploy-version>
         <!-- Maven Install Plugin -->
-        <maven-install-version>3.1.1</maven-install-version>
+        <maven-install-version>3.1.3</maven-install-version>
         <!-- Maven Resources Plugin -->
         <maven-resources-version>3.3.1</maven-resources-version>
         <!-- Maven Site Plugin -->
-        <maven-site-version>3.12.1</maven-site-version>
+        <maven-site-version>3.21.0</maven-site-version>
         <!-- Maven Surefire Plugin -->
         <maven-surefire-version>3.5.1</maven-surefire-version>
 
         <!-- Maven Packaging Tool Plugins -->
         <!-- Maven Jar Plugin -->
-        <maven-jar-version>3.3.0</maven-jar-version>
+        <maven-jar-version>3.4.2</maven-jar-version>
         <!-- Maven Shade Plugin -->
-        <maven-shade-version>3.3.0</maven-shade-version>
+        <maven-shade-version>3.6.0</maven-shade-version>
         <!-- Maven Source Plugin -->
-        <maven-source-version>3.3.0</maven-source-version>
+        <maven-source-version>3.3.1</maven-source-version>
 
         <!-- Maven Reporting plugins -->
         <!-- Maven JavaDoc Plugin -->
-        <maven-javadoc-version>3.6.3</maven-javadoc-version>
+        <maven-javadoc-version>3.10.1</maven-javadoc-version>
 
         <!-- Maven Tools Plugins -->
         <!-- Maven Enforcer Plugin -->
-        <maven-enforcer-version>3.4.1</maven-enforcer-version>
+        <maven-enforcer-version>3.5.0</maven-enforcer-version>
 
         <!-- External Plugins -->
         <aspectjPlugin-version>1.14</aspectjPlugin-version>
@@ -604,6 +605,25 @@
                     </java>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.12</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
 
         </plugins>
     </build>
@@ -694,7 +714,7 @@
                     <plugin>
                         <groupId>org.jacoco</groupId>
                         <artifactId>jacoco-maven-plugin</artifactId>
-                        <version>0.8.11</version>
+                        <version>0.8.12</version>
                         <executions>
                             <execution>
                                 <goals>

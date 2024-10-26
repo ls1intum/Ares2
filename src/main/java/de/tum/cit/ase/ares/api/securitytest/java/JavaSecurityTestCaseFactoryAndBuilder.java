@@ -213,14 +213,14 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         //</editor-fold>
 
         //<editor-fold desc="Create variable rules code">
-        @Nonnull Supplier<List<?>>[] methods = new Supplier[]{
-                (Supplier<List<?>>) resourceAccesses::regardingFileSystemInteractions,
-                (Supplier<List<?>>) resourceAccesses::regardingNetworkConnections,
-                (Supplier<List<?>>) resourceAccesses::regardingCommandExecutions,
-//                (Supplier<List<?>>) resourceAccesses::regardingThreadCreations,
-        };
+        List<Supplier<List<?>>> methods = List.of(
+                resourceAccesses::regardingFileSystemInteractions,
+                resourceAccesses::regardingNetworkConnections,
+                resourceAccesses::regardingCommandExecutions
+        );
+
         IntStream
-                .range(0, methods.length)
+                .range(0, methods.size())
                 .forEach(i -> {
                     //<editor-fold desc="Load supported checks code">
                     // TODO Markus: What if JavaArchUnitTestCaseSupported, JavaAspectJSecurityTestCaseSupported and JavaSecurityTestCaseSupported are not in the same order or smaller than methods?
@@ -228,7 +228,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                     JavaSecurityTestCaseSupported javaSecurityTestCaseSupportedValue = JavaSecurityTestCaseSupported.values()[i];
                     //</editor-fold>
 
-                    if (isEmpty(methods[i].get())) {
+                    if (isEmpty(methods.get(i).get())) {
                         //<editor-fold desc="Architecture test case code">
                         javaArchUnitTestCases.add(new JavaArchUnitSecurityTestCase(javaArchitectureTestCasesSupportedValue));
                         //</editor-fold>

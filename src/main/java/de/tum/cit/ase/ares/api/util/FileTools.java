@@ -94,7 +94,7 @@ public class FileTools {
             try {
                 String formatedFile;
                 try{
-                    formatedFile = String.format(Files.readString(copiedFiles.get(i)), (String[]) formatValues.get(i));
+                    formatedFile = String.format(Files.readString(copiedFiles.get(i)), (Object[]) formatValues.get(i));
                 } catch (IllegalFormatException e) {
                     throw new SecurityException("Ares Security Error (Stage: Creation): Illegal format in " + copiedFiles.get(i).toAbsolutePath() + ".", e);
                 }
@@ -265,7 +265,7 @@ public class FileTools {
         try {
             Files.writeString(
                     createdFile,
-                    String.format(Files.readString(createdFile), (String[]) formatValues),
+                    String.format(Files.readString(createdFile), (Object[]) formatValues),
                     StandardOpenOption.WRITE
             );
         } catch (IOException e) {
