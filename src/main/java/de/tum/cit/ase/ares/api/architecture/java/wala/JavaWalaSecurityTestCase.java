@@ -1,8 +1,7 @@
 package de.tum.cit.ase.ares.api.architecture.java.wala;
 
-import com.ibm.wala.classLoader.IClass;
-import com.ibm.wala.classLoader.IMethod;
 import com.ibm.wala.classLoader.Language;
+import com.ibm.wala.core.java11.Java9AnalysisScopeReader;
 import com.ibm.wala.core.util.config.AnalysisScopeReader;
 import com.ibm.wala.ipa.callgraph.*;
 import com.ibm.wala.ipa.callgraph.impl.DefaultEntrypoint;
@@ -11,14 +10,16 @@ import com.ibm.wala.ipa.callgraph.propagation.InstanceKey;
 import com.ibm.wala.ipa.cha.ClassHierarchy;
 import com.ibm.wala.ipa.cha.ClassHierarchyException;
 import com.ibm.wala.ipa.cha.ClassHierarchyFactory;
+import com.ibm.wala.shrike.shrikeCT.InvalidClassFileException;
 import com.ibm.wala.types.ClassLoaderReference;
+import com.ibm.wala.types.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -28,38 +29,43 @@ public class JavaWalaSecurityTestCase {
 
     public static CallGraph buildCallGraph() {
         try {
-            // Create an AnalysisScope for the Java 21 JRT modules
-            AnalysisScope.createJavaAnalysisScope();
-            // get entire classpath of the project
-            String classpath = System.getProperty("java.class.path");
-            AnalysisScope scope = AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(
-                    classpath,
-                    null);
+            long startTime = System.currentTimeMillis();
+
+            AnalysisScope scope = Java9AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(
+                    System.getProperty("java.class.path"),
+                    null
+            );
 
             // Build the class hierarchy
-            ClassHierarchy chaWholeApplication = ClassHierarchyFactory.make(scope);
+            ClassHierarchy cha = ClassHierarchyFactory.makeWithRoot(scope);
+
+            cha.getImmediateSubclasses(cha.lookupClass(TypeReference.find(ClassLoaderReference.Application, "java.lang.Object")));
 
             // Create a list to store entry points
-            List<Entrypoint> customEntryPoints = new ArrayList<>();
+            List<DefaultEntrypoint> customEntryPoints = ReachabilityChecker.getEntryPointsFromStudentSubmission("target/classes", cha);
 
             // Create AnalysisOptions for call graph
             AnalysisOptions options = new AnalysisOptions(scope, customEntryPoints);
-
+            options.setTraceStringConstants(false);
+            options.setHandleZeroLengthArray(false);
+            options.setUseLexicalScopingForGlobals(false);
+            options.setUseStacksForLexicalScoping(false);
+            options.setReflectionOptions(AnalysisOptions.ReflectionOptions.NONE);
 
             // Create call graph builder (n-CFA, context-sensitive, etc.)
-            CallGraphBuilder<InstanceKey> builder = Util.makeZeroCFABuilder(Language.JAVA, options, new AnalysisCacheImpl(), chaWholeApplication);
+            CallGraphBuilder<InstanceKey> builder = Util.makeZeroCFABuilder(Language.JAVA, options, new AnalysisCacheImpl(), cha);
 
-            long startTime = System.currentTimeMillis();
+            log.info("Building call graph...");
             // Generate the call graph
             CallGraph callGraph = builder.makeCallGraph(options, null);
             long endTime = System.currentTimeMillis();
 
             log.info("Building call graph took {} ms", endTime - startTime);
 
-            List<CGNode> violatingMethods = ReachabilityChecker.isReachable(callGraph, callGraph.getEntrypointNodes().iterator(), node -> node.getMethod().getSignature().startsWith("sun.nio.fs.UnixFileSystemProvider") || node.getMethod().getSignature().startsWith("java.security.AccessController") || node.getMethod().getSignature().startsWith("java.lang.CLassLoader.findResource"));
+            List<CGNode> violatingMethods = ReachabilityChecker.isReachable(callGraph, callGraph.getEntrypointNodes().iterator(), node -> node.getMethod().getSignature().startsWith("sun.nio.fs.UnixFileSystemProvider") || node.getMethod().getSignature().startsWith("java.lang.CLassLoader.findResource"));
             log.info("Violating methods: {}", violatingMethods);
             return callGraph;
-        } catch (IOException  | CallGraphBuilderCancelException | ClassHierarchyException e) {
+        } catch (CallGraphBuilderCancelException | ClassHierarchyException | IOException e) {
             throw new SecurityException("Error building call graph", e); //$NON-NLS-1$
         }
     }

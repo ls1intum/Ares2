@@ -19,6 +19,7 @@ import java.util.Collections;
 import static com.tngtech.archunit.lang.ConditionEvent.createMessage;
 import static com.tngtech.archunit.thirdparty.com.google.common.base.Preconditions.checkNotNull;
 import static com.tngtech.archunit.thirdparty.com.google.common.collect.Iterables.getLast;
+import static de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile.CustomClassResolver.getImmediateSubclasses;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toSet;
 //</editor-fold>
@@ -138,19 +139,10 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
             JavaClass resolvedTarget = resolveTargetOwner(item.getTargetOwner());
 
             // Match the accesses to the target
-            Set<JavaClass> subclasses = resolvedTarget.getSubclasses().stream().map(this::resolveTargetOwner).collect(toSet());
-            subclasses.add(resolvedTarget);
+            Set<JavaClass> directSubclasses = getImmediateSubclasses(item.getTargetOwner().getFullName());
+            directSubclasses.add(resolvedTarget);
 
-            /**
-             * If the number of subclasses is more than 20, return an empty set.
-             * These classes are always generic interfaces or abstract classes
-             * TODO: Check if this is also the case for foreign packages
-             */
-            if (subclasses.size() > 20 || isExceptionOrError(resolvedTarget)) {
-                return Collections.emptySet();
-            }
-
-            return subclasses.stream()
+            return directSubclasses.stream()
                     .map(javaClass ->
                             getAccessesFromClass(javaClass, item.getTarget().getFullName().substring(item.getTargetOwner().getFullName().length())))
                     .flatMap(Set::stream)
@@ -171,10 +163,6 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
         private JavaClass resolveTargetOwner(JavaClass targetOwner) {
             Optional<JavaClass> resolvedTarget = CustomClassResolver.tryResolve(targetOwner.getFullName());
             return resolvedTarget.orElse(targetOwner);
-        }
-
-        private boolean isExceptionOrError(JavaClass javaClass) {
-            return javaClass.isAssignableTo(Exception.class) || javaClass.isAssignableTo(Error.class);
         }
     }
 }

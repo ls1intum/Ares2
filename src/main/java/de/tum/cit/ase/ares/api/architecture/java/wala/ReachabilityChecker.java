@@ -2,13 +2,17 @@ package de.tum.cit.ase.ares.api.architecture.java.wala;
 
 import com.ibm.wala.classLoader.IClass;
 import com.ibm.wala.classLoader.IMethod;
+import com.ibm.wala.core.util.config.AnalysisScopeReader;
 import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.ibm.wala.ipa.callgraph.impl.DefaultEntrypoint;
 import com.ibm.wala.ipa.cha.ClassHierarchy;
+import com.ibm.wala.ipa.cha.ClassHierarchyException;
+import com.ibm.wala.ipa.cha.ClassHierarchyFactory;
 import com.ibm.wala.types.ClassLoaderReference;
 import com.ibm.wala.util.graph.traverse.DFSPathFinder;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -31,21 +35,35 @@ class ReachabilityChecker {
      * @return A list of nodes that are reachable from the start nodes and match the target node filter.
      */
     public static List<CGNode> isReachable(CallGraph callGraph, Iterator<CGNode> startNodes, Predicate<CGNode> targetNodeFilter) {
-        // TODO: Implement our own pathfinder instead of the default
         return new DFSPathFinder<>(callGraph, startNodes, targetNodeFilter).find();
     }
 
-    // TODO: This is currently not working as expected!!!
-    public static List<DefaultEntrypoint> getEntryPointsFromStudentSubmission(CallGraph callGraph, Iterator<CGNode> startNodes, ClassHierarchy cha, ClassHierarchy chaClassPath) {
+    /**
+     * Get entry points from a student submission.
+     * @param classPath The class path of the student submission.
+     * @param applicationCha The class hierarchy of the application.
+     * @return A list of entry points from the student submission.
+     */
+    public static List<DefaultEntrypoint> getEntryPointsFromStudentSubmission(String classPath, ClassHierarchy applicationCha) {
+        // Create CHA of the student submission
+        ClassHierarchy targetClasses;
+        try {
+            targetClasses = ClassHierarchyFactory
+                    .make(AnalysisScopeReader.instance
+                    .makeJavaBinaryAnalysisScope(classPath, null));
+        } catch (ClassHierarchyException | IOException e) {
+            throw new SecurityException("Could not create class hierarchy for student submission", e); // $NON-NLS-1$
+        }
+
         // Iterate through all classes in the application classloader
         List<DefaultEntrypoint> customEntryPoints = new ArrayList<>();
-            for (IClass klass : cha) {
+            for (IClass klass : targetClasses) {
                 if (klass.getClassLoader().getReference().equals(ClassLoaderReference.Application)) {
                     // Iterate through all declared methods in each class
                     for (IMethod method : klass.getDeclaredMethods()) {
                         // Exclude the 'main' methods from being entry points
                         if (!method.getName().toString().equals("main")) {
-                            customEntryPoints.add(new DefaultEntrypoint(method.getReference(), chaClassPath));
+                            customEntryPoints.add(new DefaultEntrypoint(method.getReference(), applicationCha));
                         }
                     }
                 }
