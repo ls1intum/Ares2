@@ -189,7 +189,7 @@
                             <goal>install-file</goal>
                         </goals>
                         <configuration>
-                            <file>${project.build.directory}/${project.build.finalName}.jar</file>
+                            <file>${project.build.directory}${file.separator}${project.build.finalName}.jar</file>
                             <groupId>${project.groupId}</groupId>
                             <artifactId>${project.artifactId}</artifactId>
                             <version>${project.version}</version>
@@ -203,7 +203,7 @@
                             <goal>install-file</goal>
                         </goals>
                         <configuration>
-                            <file>${basedir}/pom.xml</file> <!-- Ensure this is correctly pointing to your POM file -->
+                            <file>${basedir}${file.separator}pom.xml</file> <!-- Ensure this is correctly pointing to your POM file -->
                             <groupId>${project.groupId}</groupId>
                             <artifactId>${project.artifactId}</artifactId>
                             <version>${project.version}</version>
@@ -217,7 +217,7 @@
                             <goal>install-file</goal>
                         </goals>
                         <configuration>
-                            <file>${project.build.directory}/${project.build.finalName}-javadoc.jar</file>
+                            <file>${project.build.directory}${file.separator}${project.build.finalName}-javadoc.jar</file>
                             <groupId>${project.groupId}</groupId>
                             <artifactId>${project.artifactId}</artifactId>
                             <version>${project.version}</version>
@@ -232,7 +232,7 @@
                             <goal>install-file</goal>
                         </goals>
                         <configuration>
-                            <file>${project.build.directory}/${project.build.finalName}-sources.jar</file>
+                            <file>${project.build.directory}${file.separator}${project.build.finalName}-sources.jar</file>
                             <groupId>${project.groupId}</groupId>
                             <artifactId>${project.artifactId}</artifactId>
                             <version>${project.version}</version>
@@ -362,28 +362,28 @@
                             <rules>
                                 <requireFilesDontExist>
                                     <files>
-                                        <file>${project.build.outputDirectory}/ch/qos/logback/</file>
-                                        <file>${project.build.outputDirectory}/com/intellij/</file>
-                                        <file>${project.build.outputDirectory}/com/sun/</file>
+                                        <file>${project.build.outputDirectory}${file.separator}ch${file.separator}qos${file.separator}logback${file.separator}</file>
+                                        <file>${project.build.outputDirectory}${file.separator}com${file.separator}intellij${file.separator}</file>
+                                        <file>${project.build.outputDirectory}${file.separator}com${file.separator}sun${file.separator}</file>
                                         <!-- We cannot fulfill this one because we are building those classes here
-                                        <file>${project.build.outputDirectory}/de/tum/cit/ase/ares/api/</file> -->
-                                        <file>${project.build.outputDirectory}/java/</file>
-                                        <file>${project.build.outputDirectory}/javax/</file>
-                                        <file>${project.build.outputDirectory}/jdk/</file>
-                                        <file>${project.build.outputDirectory}/net/jqwik/</file>
-                                        <file>${project.build.outputDirectory}/org/apache/</file>
-                                        <file>${project.build.outputDirectory}/org/assertj/</file>
-                                        <file>${project.build.outputDirectory}/org/eclipse/</file>
-                                        <file>${project.build.outputDirectory}/org/jacoco/</file>
-                                        <file>${project.build.outputDirectory}/org/json/</file>
-                                        <file>${project.build.outputDirectory}/org/junit/</file>
-                                        <file>${project.build.outputDirectory}/org/opentest4j/</file>
-                                        <file>${project.build.outputDirectory}/sun/</file>
-                                        <file>${project.build.outputDirectory}/com/github/javaparser/</file>
+                                        <file>${project.build.outputDirectory}${file.separator}de${file.separator}tum${file.separator}cit${file.separator}ase${file.separator}ares${file.separator}api${file.separator}</file> -->
+                                        <file>${project.build.outputDirectory}${file.separator}java${file.separator}</file>
+                                        <file>${project.build.outputDirectory}${file.separator}javax${file.separator}</file>
+                                        <file>${project.build.outputDirectory}${file.separator}jdk${file.separator}</file>
+                                        <file>${project.build.outputDirectory}${file.separator}net${file.separator}jqwik${file.separator}</file>
+                                        <file>${project.build.outputDirectory}${file.separator}org${file.separator}apache${file.separator}</file>
+                                        <file>${project.build.outputDirectory}${file.separator}org${file.separator}assertj${file.separator}</file>
+                                        <file>${project.build.outputDirectory}${file.separator}org${file.separator}eclipse${file.separator}</file>
+                                        <file>${project.build.outputDirectory}${file.separator}org${file.separator}jacoco${file.separator}</file>
+                                        <file>${project.build.outputDirectory}${file.separator}org${file.separator}json${file.separator}</file>
+                                        <file>${project.build.outputDirectory}${file.separator}org${file.separator}junit${file.separator}</file>
+                                        <file>${project.build.outputDirectory}${file.separator}org${file.separator}opentest4j${file.separator}</file>
+                                        <file>${project.build.outputDirectory}${file.separator}sun${file.separator}</file>
+                                        <file>${project.build.outputDirectory}${file.separator}com${file.separator}github${file.separator}javaparser${file.separator}</file>
                                         <!-- Required for de.tum.cit.ase.ares.api.security.ArtemisSecurityConfigurationTest -->
-                                        <!-- <file>${project.build.outputDirectory}/abc/def/</file> -->
-                                        <file>${project.build.outputDirectory}/org/gradle/</file>
-                                        <file>${project.build.outputDirectory}/worker/org/gradle/</file>
+                                        <!-- <file>${project.build.outputDirectory}${file.separator}abc${file.separator}def${file.separator}</file> -->
+                                        <file>${project.build.outputDirectory}${file.separator}org${file.separator}gradle${file.separator}</file>
+                                        <file>${project.build.outputDirectory}${file.separator}worker${file.separator}org${file.separator}gradle${file.separator}</file>
                                     </files>
                                 </requireFilesDontExist>
                             </rules>
@@ -415,11 +415,11 @@
                     <java>
                         <removeUnusedImports/>
                         <importOrder>
-                            <file>${basedir}/.settings/eclipse-rules.importorder</file>
+                            <file>${basedir}${file.separator}.settings${file.separator}eclipse-rules.importorder</file>
                         </importOrder>
                         <eclipse>
                             <version>4.17.0</version>
-                            <file>${basedir}/.settings/eclipse-formatter-rules.xml</file>
+                            <file>${basedir}${file.separator}.settings${file.separator}eclipse-formatter-rules.xml</file>
                         </eclipse>
                     </java>
                 </configuration>
@@ -620,7 +620,7 @@
                 <!-- GitHub cannot handle snapshots correctly now, so we do nothing -->
                 <snapshotRepository>
                     <id>internal</id>
-                    <url>file://${project.build.directory}/mvn-repo</url>
+                    <url>file://${project.build.directory}${file.separator}mvn-repo</url>
                 </snapshotRepository>
             </distributionManagement>
         </profile>
@@ -636,7 +636,7 @@
                         <configuration>
                             <forkCount>1</forkCount>
                             <argLine>-javaagent:${project.build.directory}${file.separator}${project.artifactId}-${project.version}-agent.jar
-                                -Xbootclasspath/a:${user.home}/.m2/repository/org/aspectj/aspectjrt/${aspectj.version}/aspectjrt-${aspectj.version}.jar
+                                -Xbootclasspath/a:${user.home}${file.separator}.m2${file.separator}repository${file.separator}org${file.separator}aspectj${file.separator}aspectjrt${file.separator}${aspectj.version}${file.separator}aspectjrt-${aspectj.version}.jar
                             </argLine>
                         </configuration>
                     </plugin>
