@@ -37,7 +37,7 @@ Its main features are:
 * more robust tests and builds due to limits on time, threads and io
 * support for public and hidden Artemis tests, where hidden ones obey a custom deadline
 * utilities for improved feedback in Artemis like processing multiline error
-  messages or pointing to a possible location that caused an Exception
+messages or pointing to a possible location that caused an Exception
 * utilities to test exercises using System.out and System.in comfortably
 * possibilities to block potential dangerous methods in different ways like Architecture Tests, Instrumentation or AspectJ
 
@@ -169,9 +169,9 @@ public class PenguinTest {
 In this example,
 
 - `testPenguinPublic()` is supposed to be executed
-  after each push and directly give the students their feedback, while
+after each push and directly give the students their feedback, while
 - `testPenguinHidden()` should be executed only after the exercise
-  deadline, and the results should not be visible before the deadline.
+deadline, and the results should not be visible before the deadline.
 
 While Artemis has a feature to mark test cases as hidden, this will not
 prevent the contents of the test case leaking through static variables,
@@ -448,36 +448,36 @@ possible way". What is meant by that?
 There are three different ways how the timeouts can work:
 
 * like `org.junit.jupiter.api.Timeout` +
-  This timeout is not preemptive, and the test itself runs in the same
-  thread executing the tests. It will only try to stop the test via an
-  interrupt. If that fails like it does for an endless loop, the test
-  will definitively fail. After it is finished. Which might never
-  happen and the main reason not to use this when it comes to testing
-  unknown code.
+This timeout is not preemptive, and the test itself runs in the same
+thread executing the tests. It will only try to stop the test via an
+interrupt. If that fails like it does for an endless loop, the test
+will definitively fail. After it is finished. Which might never
+happen and the main reason not to use this when it comes to testing
+unknown code.
 * like `org.junit.jupiter.api.Assertions.assertTimeoutPreemptively` +
-  This will fail the test preemptively by executing the `Executable`
-  argument itself in a different thread than the thread executing all
-  tests. It will only try to stop the test via an interrupt, but if
-  that fails it will simply carry on. The test thread might still run,
-  though.
+This will fail the test preemptively by executing the `Executable`
+argument itself in a different thread than the thread executing all
+tests. It will only try to stop the test via an interrupt, but if
+that fails it will simply carry on. The test thread might still run,
+though.
 * like `de.tum.cit.ase.ares.api.StrictTimeout` +
-  This uses a mechanism similar to `assertTimeoutPreemptively`, but
-  will resort to harder means if necessary.
-  It will in the following order:
-  1. wait the given duration
-  2. interrupt the thread executing the test and wait no longer (like
-     `assertTimeoutPreemptively`)
-  3. block the creation of new threads
-  4. interrupt all threads created during the test and try to join the
-     threads
-  5. if that fails, use `Thread.stop()` on all remaining threads
-     and try to join again
-  6. repeat step 5 multiple times, if required
-  7. Should that fail, report a special SecurityException that not all
-     threads could be stopped. (see the standard error output for a detailed
-     report then) _If that happens, no more tests can be properly executed
-     because the security cannot be guaranteed and the test cases cannot be
-     executed "in isolation". All following tests will fail._
+This uses a mechanism similar to `assertTimeoutPreemptively`, but
+will resort to harder means if necessary.
+It will in the following order:
+1. wait the given duration
+2. interrupt the thread executing the test and wait no longer (like
+`assertTimeoutPreemptively`)
+3. block the creation of new threads
+4. interrupt all threads created during the test and try to join the
+threads
+5. if that fails, use `Thread.stop()` on all remaining threads
+and try to join again
+6. repeat step 5 multiple times, if required
+7. Should that fail, report a special SecurityException that not all
+threads could be stopped. (see the standard error output for a detailed
+report then) _If that happens, no more tests can be properly executed
+because the security cannot be guaranteed and the test cases cannot be
+executed "in isolation". All following tests will fail._
 
 *Rule 1: When testing with Ares, always use `@StrictTimeout` for
 timeouts, the others will not work reliably, especially in conjunction
@@ -562,3 +562,4 @@ use
 Ares was created by Christian Femers and is licensed under the
 https://github.com/ls1intum/Ares/blob/master/LICENSE[MIT License, see
 `LICENSE.md`].
+
