@@ -635,7 +635,7 @@
                         <version>3.3.0</version>
                         <configuration>
                             <forkCount>1</forkCount>
-                            <argLine>-javaagent:/home/sarps/IdeaProjects/Ares2/target/${project.artifactId}-${project.version}-agent.jar
+                            <argLine>-javaagent:${project.build.directory}${file.separator}${project.artifactId}-${project.version}-agent.jar
                                 -Xbootclasspath/a:${user.home}/.m2/repository/org/aspectj/aspectjrt/${aspectj.version}/aspectjrt-${aspectj.version}.jar
                             </argLine>
                         </configuration>
