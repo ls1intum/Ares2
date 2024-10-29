@@ -23,8 +23,12 @@
         <gpg.key.id>23E62BB282A473EE4DDA2F8763EFD39363D21A8D</gpg.key.id>
         <aspectj.version>1.9.22</aspectj.version>
 
-        <instrumentation-path>${project.build.directory}${file.separator}${project.artifactId}-${project.version}-agent.jar</instrumentation-path>
-        <aspectj-path>${user.home}${file.separator}.m2${file.separator}repository${file.separator}org${file.separator}aspectj${file.separator}aspectjrt${file.separator}${aspectj.version}${file.separator}aspectjrt-${aspectj.version}.jar</aspectj-path>
+        <instrumentation-path>
+            ${project.build.directory}${file.separator}${project.artifactId}-${project.version}-agent.jar
+        </instrumentation-path>
+        <aspectj-path>
+            ${user.home}${file.separator}.m2${file.separator}repository${file.separator}org${file.separator}aspectj${file.separator}aspectjrt${file.separator}${aspectj.version}${file.separator}aspectjrt-${aspectj.version}.jar
+        </aspectj-path>
     </properties>
     <dependencies>
         <!-- Junit frameworks -->
@@ -206,7 +210,8 @@
                             <goal>install-file</goal>
                         </goals>
                         <configuration>
-                            <file>${basedir}${file.separator}pom.xml</file> <!-- Ensure this is correctly pointing to your POM file -->
+                            <file>${basedir}${file.separator}pom.xml
+                            </file> <!-- Ensure this is correctly pointing to your POM file -->
                             <groupId>${project.groupId}</groupId>
                             <artifactId>${project.artifactId}</artifactId>
                             <version>${project.version}</version>
@@ -220,7 +225,8 @@
                             <goal>install-file</goal>
                         </goals>
                         <configuration>
-                            <file>${project.build.directory}${file.separator}${project.build.finalName}-javadoc.jar</file>
+                            <file>${project.build.directory}${file.separator}${project.build.finalName}-javadoc.jar
+                            </file>
                             <groupId>${project.groupId}</groupId>
                             <artifactId>${project.artifactId}</artifactId>
                             <version>${project.version}</version>
@@ -235,7 +241,8 @@
                             <goal>install-file</goal>
                         </goals>
                         <configuration>
-                            <file>${project.build.directory}${file.separator}${project.build.finalName}-sources.jar</file>
+                            <file>${project.build.directory}${file.separator}${project.build.finalName}-sources.jar
+                            </file>
                             <groupId>${project.groupId}</groupId>
                             <artifactId>${project.artifactId}</artifactId>
                             <version>${project.version}</version>
@@ -365,12 +372,14 @@
                             <rules>
                                 <requireFilesDontExist>
                                     <files>
-                                        <file>${project.build.outputDirectory}/abc/def/</file>
+                                        <!-- Required for de.tum.cit.ase.ares.api.security.ArtemisSecurityConfigurationTest -->
+                                        <!-- <file>${project.build.outputDirectory}/abc/def/</file> -->
                                         <file>${project.build.outputDirectory}/ch/qos/logback/</file>
                                         <file>${project.build.outputDirectory}/com/github/javaparser/</file>
                                         <file>${project.build.outputDirectory}/com/intellij/</file>
                                         <file>${project.build.outputDirectory}/com/sun/</file>
-                                        <file>${project.build.outputDirectory}/de/tum/cit/ase/ares/api/</file>
+                                        <!-- We cannot fulfill this one because we are building those classes here
+                                        <file>${project.build.outputDirectory}/de/tum/cit/ase/ares/api/</file> -->
                                         <file>${project.build.outputDirectory}/de/tum/in/test/api/</file>
                                         <file>${project.build.outputDirectory}/java/</file>
                                         <file>${project.build.outputDirectory}/javax/</file>
@@ -421,7 +430,8 @@
                         </importOrder>
                         <eclipse>
                             <version>4.17.0</version>
-                            <file>${basedir}${file.separator}.settings${file.separator}eclipse-formatter-rules.xml</file>
+                            <file>${basedir}${file.separator}.settings${file.separator}eclipse-formatter-rules.xml
+                            </file>
                         </eclipse>
                     </java>
                 </configuration>
