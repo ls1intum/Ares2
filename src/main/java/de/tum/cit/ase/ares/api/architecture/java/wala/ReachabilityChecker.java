@@ -21,7 +21,7 @@ import java.util.function.Predicate;
 /**
  * A utility class to check reachability in a call graph.
  */
-class ReachabilityChecker {
+public class ReachabilityChecker {
 
     private ReachabilityChecker() {
         // Utility class

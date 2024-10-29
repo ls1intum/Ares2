@@ -149,7 +149,7 @@ public class JavaArchitectureTestCaseCollection {
 
     //<editor-fold desc="Thread Creation related rule">
     public static final ArchRule NO_CLASSES_SHOULD_CREATE_THREADS = createNoClassShouldHaveMethodRule(
-            "creates threads",
+            "manipulates threads",
             FileHandlerConstants.JAVA_THREAD_CREATION_METHODS
     );
     //</editor-fold>

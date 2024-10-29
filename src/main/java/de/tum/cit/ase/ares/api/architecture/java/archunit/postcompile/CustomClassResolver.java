@@ -1,8 +1,11 @@
 package de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile;
 
 //<editor-fold desc="Imports">
+
+import com.ibm.wala.classLoader.IClass;
 import com.ibm.wala.core.java11.Java9AnalysisScopeReader;
 import com.ibm.wala.ipa.callgraph.AnalysisScope;
+import com.ibm.wala.ipa.callgraph.cha.CHACallGraph;
 import com.ibm.wala.ipa.cha.ClassHierarchy;
 import com.ibm.wala.ipa.cha.ClassHierarchyException;
 import com.ibm.wala.ipa.cha.ClassHierarchyFactory;
@@ -10,9 +13,11 @@ import com.ibm.wala.types.ClassLoaderReference;
 import com.ibm.wala.types.TypeReference;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
+import de.tum.cit.ase.ares.api.architecture.java.wala.ReachabilityChecker;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -43,7 +48,9 @@ public class CustomClassResolver {
             );
 
             // Build the class hierarchy
+            long start = System.currentTimeMillis();
             classHierarchy = ClassHierarchyFactory.makeWithRoot(scope);
+            System.out.println("Class hierarchy built in " + (System.currentTimeMillis() - start) + "ms");
         } catch (ClassHierarchyException | IOException e) {
             throw new SecurityException("Could not create class hierarchy for student submission", e); // $NON-NLS-1$
         }
@@ -72,10 +79,38 @@ public class CustomClassResolver {
         }
     }
 
+    /**
+     * Get the immediate subclasses of the given type name.
+     * @param typeName The type name of the class to get the immediate subclasses.
+     * @return The immediate subclasses of the given type name.
+     */
     public static Set<JavaClass> getImmediateSubclasses(String typeName) {
+        TypeReference reference = TypeReference.find(ClassLoaderReference.Application, convertTypeName(typeName));
+        if (reference == null) {
+            return Collections.emptySet();
+        }
+        IClass clazz = classHierarchy.lookupClass(TypeReference.find(ClassLoaderReference.Application, convertTypeName(typeName)));
+        if (clazz == null) {
+            return Collections.emptySet();
+        }
         return classHierarchy
-                .getImmediateSubclasses(classHierarchy
-                        .lookupClass(TypeReference.find(ClassLoaderReference.Application, typeName)))
-                .stream().map(iClass -> tryResolve(iClass.getName().toString()).orElse(null)).collect(Collectors.toSet());
+                .getImmediateSubclasses(clazz)
+                .stream()
+                .map(iClass -> tryResolve(iClass.getName().toString()))
+                .filter(Optional::isPresent)
+                .map(Optional::get).collect(Collectors.toSet());
     }
+
+    /**
+     * Convert the type name to the format that can be used in the class file.
+     * @param typeName The type name to convert.
+     * @return The converted type name.
+     */
+    public static String convertTypeName(String typeName) {
+        if (typeName == null || typeName.isEmpty()) {
+            throw new IllegalArgumentException("Type name cannot be null or empty");
+        }
+        return "L" + typeName.replace('.', '/');
+    }
+
 }
