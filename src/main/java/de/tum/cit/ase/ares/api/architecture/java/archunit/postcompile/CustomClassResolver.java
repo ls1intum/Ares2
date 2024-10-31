@@ -14,6 +14,7 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Collections;
@@ -26,8 +27,6 @@ import java.util.stream.Collectors;
  * Custom class resolver to resolve classes that are outside classpath to be able to analyze them transitively.
  */
 public class CustomClassResolver {
-
-    private static final Logger log = LoggerFactory.getLogger(CustomClassResolver.class);
 
     private CustomClassResolver() {
         throw new IllegalStateException("Utility class");
@@ -45,13 +44,11 @@ public class CustomClassResolver {
         try {
             AnalysisScope scope = Java9AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(
                     System.getProperty("java.class.path"),
-                    null
+                    new File("src/main/java/de/tum/cit/ase/ares/api/architecture/java/archunit/postcompile/exclusions.txt")
             );
 
             // Build the class hierarchy
-            long start = System.currentTimeMillis();
-            classHierarchy = ClassHierarchyFactory.makeWithRoot(scope);
-            log.info("Class hierarchy built in {}ms", System.currentTimeMillis() - start);
+            classHierarchy = ClassHierarchyFactory.make(scope);
         } catch (ClassHierarchyException | IOException e) {
             throw new SecurityException("Could not create class hierarchy for student submission", e); // $NON-NLS-1$
         }

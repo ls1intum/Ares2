@@ -10,8 +10,6 @@ import com.tngtech.archunit.lang.ConditionEvent;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 import com.tngtech.archunit.thirdparty.com.google.common.collect.ImmutableList;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
@@ -30,7 +28,6 @@ import static java.util.stream.Collectors.toSet;
  * Checks that a class transitively accesses methods that match a given predicate.
  */
 public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClass> {
-    private static final Logger log = LoggerFactory.getLogger(TransitivelyAccessesMethodsCondition.class);
     //<editor-fold desc="Attributes">
     /**
      * Predicate to match the accessed methods
@@ -59,15 +56,12 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
      */
     @Override
     public void check(JavaClass item, ConditionEvents events) {
-        long start = System.currentTimeMillis();
         for (JavaAccess<?> target : item.getAccessesFromSelf()) {
             List<JavaAccess<?>> dependencyPath = transitiveAccessPath.findPathTo(target);
             if (!dependencyPath.isEmpty()) {
                 events.add(newTransitiveAccessPathFoundEvent(target, dependencyPath));
             }
         }
-        long end = System.currentTimeMillis();
-        log.info("Transitive access check took {} ms for class {}", end - start, item.getFullName());
     }
 
     /**
