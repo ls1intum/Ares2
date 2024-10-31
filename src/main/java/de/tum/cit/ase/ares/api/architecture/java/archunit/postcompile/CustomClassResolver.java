@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile;
 
 //<editor-fold desc="Imports">
+
 import com.ibm.wala.classLoader.IClass;
 import com.ibm.wala.core.java11.Java9AnalysisScopeReader;
 import com.ibm.wala.ipa.callgraph.AnalysisScope;
@@ -79,6 +80,7 @@ public class CustomClassResolver {
 
     /**
      * Get the immediate subclasses of the given type name.
+     *
      * @param typeName The type name of the class to get the immediate subclasses.
      * @return The immediate subclasses of the given type name.
      */
@@ -87,20 +89,23 @@ public class CustomClassResolver {
         if (reference == null) {
             return Collections.emptySet();
         }
-        IClass clazz = classHierarchy.lookupClass(TypeReference.find(ClassLoaderReference.Application, convertTypeName(typeName)));
+        IClass clazz = classHierarchy.lookupClass(reference);
         if (clazz == null) {
             return Collections.emptySet();
         }
         return classHierarchy
                 .getImmediateSubclasses(clazz)
                 .stream()
-                .map(iClass -> tryResolve(iClass.getName().toString()))
+                .map(IClass::getName)
+                .map(Object::toString)
+                .map(CustomClassResolver::tryResolve)
                 .filter(Optional::isPresent)
                 .map(Optional::get).collect(Collectors.toSet());
     }
 
     /**
      * Convert the type name to the format that can be used in the class file.
+     *
      * @param typeName The type name to convert.
      * @return The converted type name.
      */

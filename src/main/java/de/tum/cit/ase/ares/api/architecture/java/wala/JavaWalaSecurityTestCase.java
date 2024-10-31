@@ -13,6 +13,7 @@ import com.ibm.wala.ipa.cha.ClassHierarchyFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * A utility class to check security rules in a call graph.
@@ -47,10 +48,16 @@ public class JavaWalaSecurityTestCase {
             // Generate the call graph
             CallGraph callGraph = builder.makeCallGraph(options, null);
 
-            List<CGNode> violatingMethods = ReachabilityChecker.isReachable(callGraph, callGraph.getEntrypointNodes().iterator(), node -> node.getMethod().getSignature().startsWith("sun.nio.fs.UnixFileSystemProvider") || node.getMethod().getSignature().startsWith("java.lang.CLassLoader.findResource"));
+            List<CGNode> violatingMethods = ReachabilityChecker.findReachableMethods(callGraph, callGraph.getEntrypointNodes().iterator(), node -> node.getMethod().getSignature().startsWith("sun.nio.fs.UnixFileSystemProvider") || node.getMethod().getSignature().startsWith("java.lang.CLassLoader.findResource"));
 
             if (violatingMethods != null && !violatingMethods.isEmpty()) {
-                throw new SecurityException(violatingMethods.toString());
+                throw new SecurityException(String.format(
+                        "Security violation: Detected %d unauthorized API call(s):%n%s",
+                        violatingMethods.size(),
+                        violatingMethods.stream()
+                                .map(node -> String.format("- %s", node.getMethod().getSignature()))
+                                .collect(Collectors.joining("%n"))
+                ));
             }
             return callGraph;
         } catch (CallGraphBuilderCancelException | ClassHierarchyException | IOException e) {

@@ -29,45 +29,64 @@ public class ReachabilityChecker {
 
     /**
      * Checks if a target node is reachable from a set of start nodes in a call graph.
-     * @param callGraph The call graph to search in.
-     * @param startNodes The start nodes to search from.
+     *
+     * @param callGraph        The call graph to search in.
+     * @param startNodes       The start nodes to search from.
      * @param targetNodeFilter A filter to determine if a node is a target node.
      * @return A list of nodes that are reachable from the start nodes and match the target node filter.
      */
-    public static List<CGNode> isReachable(CallGraph callGraph, Iterator<CGNode> startNodes, Predicate<CGNode> targetNodeFilter) {
+    public static List<CGNode> findReachableMethods(CallGraph callGraph, Iterator<CGNode> startNodes, Predicate<CGNode> targetNodeFilter) {
+//        TODO: translate these messages
+        if (callGraph == null) {
+            throw new IllegalArgumentException("Call graph cannot be null");
+        }
+        if (startNodes == null) {
+            throw new IllegalArgumentException("Start nodes cannot be null");
+        }
+        if (targetNodeFilter == null) {
+            throw new IllegalArgumentException("Target node filter cannot be null");
+        }
         return new DFSPathFinder<>(callGraph, startNodes, targetNodeFilter).find();
     }
 
     /**
      * Get entry points from a student submission.
-     * @param classPath The class path of the student submission.
+     *
+     * @param classPath      The class path of the student submission.
      * @param applicationCha The class hierarchy of the application.
      * @return A list of entry points from the student submission.
      */
     public static List<DefaultEntrypoint> getEntryPointsFromStudentSubmission(String classPath, ClassHierarchy applicationCha) {
+        if (classPath == null || classPath.trim().isEmpty()) {
+            throw new IllegalArgumentException("Class path cannot be null or empty");
+        }
+        if (applicationCha == null) {
+            throw new IllegalArgumentException("Application class hierarchy cannot be null");
+        }
+
         // Create CHA of the student submission
         ClassHierarchy targetClasses;
         try {
             targetClasses = ClassHierarchyFactory
                     .make(AnalysisScopeReader.instance
-                    .makeJavaBinaryAnalysisScope(classPath, null));
+                            .makeJavaBinaryAnalysisScope(classPath, null));
         } catch (ClassHierarchyException | IOException e) {
             throw new SecurityException("Could not create class hierarchy for student submission", e); // $NON-NLS-1$
         }
 
         // Iterate through all classes in the application classloader
         List<DefaultEntrypoint> customEntryPoints = new ArrayList<>();
-            for (IClass klass : targetClasses) {
-                if (klass.getClassLoader().getReference().equals(ClassLoaderReference.Application)) {
-                    // Iterate through all declared methods in each class
-                    for (IMethod method : klass.getDeclaredMethods()) {
-                        // Exclude the 'main' methods from being entry points
-                        if (!method.getName().toString().equals("main")) {
-                            customEntryPoints.add(new DefaultEntrypoint(method.getReference(), applicationCha));
-                        }
+        for (IClass klass : targetClasses) {
+            if (klass.getClassLoader().getReference().equals(ClassLoaderReference.Application)) {
+                // Iterate through all declared methods in each class
+                for (IMethod method : klass.getDeclaredMethods()) {
+                    // Exclude the 'main' methods from being entry points
+                    if (!method.getName().toString().equals("main")) {
+                        customEntryPoints.add(new DefaultEntrypoint(method.getReference(), applicationCha));
                     }
                 }
             }
+        }
         return customEntryPoints;
     }
 }
