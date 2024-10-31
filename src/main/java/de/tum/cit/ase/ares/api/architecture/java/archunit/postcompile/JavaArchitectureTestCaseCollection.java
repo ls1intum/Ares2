@@ -153,4 +153,11 @@ public class JavaArchitectureTestCaseCollection {
             FileHandlerConstants.JAVA_THREAD_CREATION_METHODS
     );
     //</editor-fold>
+
+    //<editor-fold desc="ClassLoader related rule">
+    public static final ArchRule NO_CLASSES_SHOULD_USE_CLASSLOADERS = createNoClassShouldHaveMethodRule(
+            "uses ClassLoaders",
+            FileHandlerConstants.JAVA_CLASSLOADER_METHODS
+    );
+    //</editor-fold>
 }

@@ -1,8 +1,5 @@
 package de.tum.cit.ase.ares.integration.testuser;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.jupiter.api.Assertions.*;
-
 import java.nio.file.Path;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -15,7 +12,11 @@ import de.tum.cit.ase.ares.api.MirrorOutput.MirrorOutputPolicy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
 //REMOVED: Import of ArtemisSecurityManager
-import de.tum.cit.ase.ares.integration.testuser.subject.ThreadPenguin;
+import de.tum.cit.ase.ares.integration.testuser.subject.threads.ThreadPenguin;
+
+import static org.assertj.core.api.Fail.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 @UseLocale("en")
 @AllowThreads(maxActiveCount = 100)
@@ -26,6 +27,10 @@ import de.tum.cit.ase.ares.integration.testuser.subject.ThreadPenguin;
 @BlacklistPath(value = "**Test*.{java,class}", type = PathType.GLOB)
 @SuppressWarnings("static-method")
 public class ThreadUser {
+
+	@PublicTest
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/threads")
+	void threadAccessTest() {}
 
 	@PublicTest
 	void commonPoolInterruptable() throws InterruptedException, ExecutionException {
@@ -101,12 +106,6 @@ public class ThreadUser {
 		ThreadPenguin.tryThreadWhitelisting();
 	}
 
-	/**
-	 * This can be used to check for Threads that are not stoppable. This should
-	 * never happen, but it could. Note that this test beaks all further ones,
-	 * because the security manager will not be uninstalled and block everything. It
-	 * works by catching the {@link ThreadDeath}.
-	 */
 //	@PublicTest
 //	void zz_unstoppable() {
 //		long t = System.currentTimeMillis();

@@ -217,7 +217,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                 (Supplier<List<?>>) resourceAccesses::regardingFileSystemInteractions,
                 (Supplier<List<?>>) resourceAccesses::regardingNetworkConnections,
                 (Supplier<List<?>>) resourceAccesses::regardingCommandExecutions,
-//                (Supplier<List<?>>) resourceAccesses::regardingThreadCreations,
+                (Supplier<List<?>>) resourceAccesses::regardingThreadCreations,
         };
         IntStream
                 .range(0, methods.length)
@@ -323,6 +323,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         //<editor-fold desc="Enforce fixed rules code">
         JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_USE_REFLECTION.check(classes);
         JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_TERMINATE_JVM.check(classes);
+        JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_USE_CLASSLOADERS.check(classes);
         //</editor-fold>
 
         //<editor-fold desc="Enforce variable rules code">
