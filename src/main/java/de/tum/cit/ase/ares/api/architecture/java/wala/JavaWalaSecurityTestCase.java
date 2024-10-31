@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.api.architecture.java.wala;
 
+import com.ibm.wala.classLoader.Language;
 import com.ibm.wala.core.java11.Java9AnalysisScopeReader;
 import com.ibm.wala.ipa.callgraph.*;
 import com.ibm.wala.ipa.callgraph.impl.DefaultEntrypoint;
@@ -9,6 +10,7 @@ import com.ibm.wala.ipa.cha.ClassHierarchy;
 import com.ibm.wala.ipa.cha.ClassHierarchyException;
 import com.ibm.wala.ipa.cha.ClassHierarchyFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
@@ -20,20 +22,18 @@ public class JavaWalaSecurityTestCase {
     /**
      * Build a call graph from a class path.
      */
-    public static CallGraph buildCallGraph(String classPath) {
+    public static CallGraph buildCallGraph(String classPathToConsider, String classPathToAnalyze) {
         try {
-            long startTime = System.currentTimeMillis();
-
             AnalysisScope scope = Java9AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(
-                    System.getProperty("java.class.path"),
-                    null
+                    classPathToConsider,
+                    new File("src/main/java/de/tum/cit/ase/ares/api/architecture/java/wala/exclusions.txt")
             );
 
             // Build the class hierarchy
             ClassHierarchy cha = ClassHierarchyFactory.make(scope);
 
             // Create a list to store entry points
-            List<DefaultEntrypoint> customEntryPoints = ReachabilityChecker.getEntryPointsFromStudentSubmission(classPath, cha);
+            List<DefaultEntrypoint> customEntryPoints = ReachabilityChecker.getEntryPointsFromStudentSubmission(classPathToAnalyze, cha);
 
             // Create AnalysisOptions for call graph
             AnalysisOptions options = new AnalysisOptions(scope, customEntryPoints);
@@ -42,7 +42,7 @@ public class JavaWalaSecurityTestCase {
             options.setReflectionOptions(AnalysisOptions.ReflectionOptions.NONE);
 
             // Create call graph builder (n-CFA, context-sensitive, etc.)
-            CallGraphBuilder<InstanceKey> builder = Util.makeNCFABuilder(1, options, new AnalysisCacheImpl(), cha);
+            CallGraphBuilder<InstanceKey> builder = Util.makeZeroOneCFABuilder(Language.JAVA, options, new AnalysisCacheImpl(), cha);
 
             // Generate the call graph
             CallGraph callGraph = builder.makeCallGraph(options, null);
