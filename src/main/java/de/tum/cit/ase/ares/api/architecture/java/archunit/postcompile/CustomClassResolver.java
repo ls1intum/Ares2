@@ -1,11 +1,9 @@
 package de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile;
 
 //<editor-fold desc="Imports">
-
 import com.ibm.wala.classLoader.IClass;
 import com.ibm.wala.core.java11.Java9AnalysisScopeReader;
 import com.ibm.wala.ipa.callgraph.AnalysisScope;
-import com.ibm.wala.ipa.callgraph.cha.CHACallGraph;
 import com.ibm.wala.ipa.cha.ClassHierarchy;
 import com.ibm.wala.ipa.cha.ClassHierarchyException;
 import com.ibm.wala.ipa.cha.ClassHierarchyFactory;
@@ -13,7 +11,8 @@ import com.ibm.wala.types.ClassLoaderReference;
 import com.ibm.wala.types.TypeReference;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
-import de.tum.cit.ase.ares.api.architecture.java.wala.ReachabilityChecker;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URL;
@@ -27,6 +26,8 @@ import java.util.stream.Collectors;
  * Custom class resolver to resolve classes that are outside classpath to be able to analyze them transitively.
  */
 public class CustomClassResolver {
+
+    private static final Logger log = LoggerFactory.getLogger(CustomClassResolver.class);
 
     private CustomClassResolver() {
         throw new IllegalStateException("Utility class");
@@ -50,7 +51,7 @@ public class CustomClassResolver {
             // Build the class hierarchy
             long start = System.currentTimeMillis();
             classHierarchy = ClassHierarchyFactory.makeWithRoot(scope);
-            System.out.println("Class hierarchy built in " + (System.currentTimeMillis() - start) + "ms");
+            log.info("Class hierarchy built in {}ms", System.currentTimeMillis() - start);
         } catch (ClassHierarchyException | IOException e) {
             throw new SecurityException("Could not create class hierarchy for student submission", e); // $NON-NLS-1$
         }
