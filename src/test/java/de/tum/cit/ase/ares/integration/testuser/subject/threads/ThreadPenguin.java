@@ -71,14 +71,22 @@ public final class ThreadPenguin extends Thread {
 			throw failure.get();
 	}
 
-	void threadWhitelistingWithPathFail() throws Throwable {
+	private void verifyThreadWhitelisting(String message) throws Throwable {
 		AtomicReference<Throwable> failure = new AtomicReference<>();
-		Thread t = new Thread(() -> failure.set(new SecurityException("Thread not whitelisted")));
+		Thread t = new Thread(() -> failure.set(new SecurityException(message)));
 		t.setUncaughtExceptionHandler((t1, e) -> failure.set(e));
 		t.start();
 		t.join();
 		if (failure.get() != null)
 			throw failure.get();
+	}
+
+	public static void tryThreadWhitelisting() throws Throwable {
+		verifyThreadWhitelisting("Thread not whitelisted");
+	}
+
+	void threadWhitelistingWithPathFail() throws Throwable {
+		verifyThreadWhitelisting("Thread not whitelisted");
 	}
 
 	void commonPoolInterruptable() throws InterruptedException, ExecutionException {
