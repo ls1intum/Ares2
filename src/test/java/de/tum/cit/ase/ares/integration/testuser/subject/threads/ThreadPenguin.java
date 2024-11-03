@@ -60,18 +60,7 @@ public final class ThreadPenguin extends Thread {
 		}
 	}
 
-	public static void tryThreadWhitelisting() throws Throwable {
-		AtomicReference<Throwable> failure = new AtomicReference<>();
-		Thread t = new Thread(() -> failure.set(new SecurityException("Thread not whitelisted")));
-		//REMOVED: Thread-whitelisting-request to ArtemisSecurityManager
-		t.setUncaughtExceptionHandler((t1, e) -> failure.set(e));
-		t.start();
-		t.join();
-		if (failure.get() != null)
-			throw failure.get();
-	}
-
-	private void verifyThreadWhitelisting(String message) throws Throwable {
+	private static void verifyThreadWhitelisting(String message) throws Throwable {
 		AtomicReference<Throwable> failure = new AtomicReference<>();
 		Thread t = new Thread(() -> failure.set(new SecurityException(message)));
 		t.setUncaughtExceptionHandler((t1, e) -> failure.set(e));
