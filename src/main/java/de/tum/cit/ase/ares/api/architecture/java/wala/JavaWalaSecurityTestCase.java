@@ -9,21 +9,36 @@ import com.ibm.wala.ipa.callgraph.propagation.InstanceKey;
 import com.ibm.wala.ipa.cha.ClassHierarchy;
 import com.ibm.wala.ipa.cha.ClassHierarchyException;
 import com.ibm.wala.ipa.cha.ClassHierarchyFactory;
+import de.tum.cit.ase.ares.api.architecture.ArchitectureSecurityTestCase;
+import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitTestCaseSupported;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
+import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 
 /**
  * A utility class to check security rules in a call graph.
  */
-public class JavaWalaSecurityTestCase {
+public class JavaWalaSecurityTestCase implements ArchitectureSecurityTestCase {
+
+    /**
+     * Selects the supported architecture test case in the Java programming language.
+     */
+    // TODO Sarp: Generalize this
+    private final JavaArchUnitTestCaseSupported javaArchitectureTestCaseSupported;
+
+    public JavaWalaSecurityTestCase(JavaArchUnitTestCaseSupported javaSecurityTestCaseSupported) {
+        this.javaArchitectureTestCaseSupported = javaSecurityTestCaseSupported;
+    }
 
     /**
      * Build a call graph from a class path.
      */
-    public static CallGraph buildCallGraph(String classPathToConsider, String classPathToAnalyze) {
+    public static CallGraph buildCallGraph(String classPathToConsider, String classPathToAnalyze, Predicate<CGNode> securityViolationCheck) {
         try {
             AnalysisScope scope = Java9AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(
                     classPathToConsider,
@@ -48,7 +63,7 @@ public class JavaWalaSecurityTestCase {
             // Generate the call graph
             CallGraph callGraph = builder.makeCallGraph(options, null);
 
-            List<CGNode> violatingMethods = ReachabilityChecker.findReachableMethods(callGraph, callGraph.getEntrypointNodes().iterator(), node -> node.getMethod().getSignature().startsWith("sun.nio.fs.UnixFileSystemProvider") || node.getMethod().getSignature().startsWith("java.lang.CLassLoader.findResource"));
+            List<CGNode> violatingMethods = ReachabilityChecker.findReachableMethods(callGraph, callGraph.getEntrypointNodes().iterator(), securityViolationCheck);
 
             if (violatingMethods != null && !violatingMethods.isEmpty()) {
                 throw new SecurityException(String.format(
@@ -62,6 +77,32 @@ public class JavaWalaSecurityTestCase {
             return callGraph;
         } catch (CallGraphBuilderCancelException | ClassHierarchyException | IOException e) {
             throw new SecurityException("Error building call graph", e); //$NON-NLS-1$
+        }
+    }
+
+    @Override
+    public String writeArchitectureTestCase() {
+        // TODO: For further releases
+        return "";
+    }
+
+    @Override
+    public void executeArchitectureTestCase(Object path) {
+        if (!(path instanceof String claasPath)) {
+            throw new IllegalArgumentException(localized("security.archunit.invalid.argument"));
+        }
+        try {
+            // TODO Sarp: implement this more efficiently only pass the predicate that we need!!!!! also fpr ArchUnit
+            switch (this.javaArchitectureTestCaseSupported) {
+                default -> throw new UnsupportedOperationException("Not implemented yet");
+            }
+        } catch (AssertionError e) {
+            String[] split = null;
+            if (e.getMessage() == null || e.getMessage().split("\n").length < 2) {
+                throw new SecurityException(localized("security.archunit.illegal.execution", e.getMessage()));
+            }
+            split = e.getMessage().split("\n");
+            throw new SecurityException(localized("security.archunit.violation.error", split[0].replaceAll(".*?'(.*?)'.*", "$1"), split[1]));
         }
     }
 }

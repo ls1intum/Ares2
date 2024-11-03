@@ -46,7 +46,7 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
      * @param conditionPredicate Predicate to match the accessed methods
      */
     public TransitivelyAccessesMethodsCondition(DescribedPredicate<? super JavaAccess<?>> conditionPredicate) {
-        super("transitively depend on classes that " + conditionPredicate.getDescription());
+        super(conditionPredicate.getDescription());
         this.conditionPredicate = checkNotNull(conditionPredicate);
     }
     //</editor-fold>

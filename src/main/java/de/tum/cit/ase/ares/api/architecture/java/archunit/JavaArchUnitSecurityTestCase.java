@@ -74,32 +74,39 @@ public class JavaArchUnitSecurityTestCase implements ArchitectureSecurityTestCas
      * Runs the architecture test case in the Java programming language.
      */
     @Override
-    public void executeArchitectureTestCase(JavaClasses classes) {
+    public void executeArchitectureTestCase(Object classes) {
+        // check if instance of object
+        if (!(classes instanceof JavaClasses javaClasses)) {
+            throw new IllegalArgumentException(localized("security.archunit.invalid.argument"));
+        }
+
         try {
             switch (this.javaArchitectureTestCaseSupported) {
                 case PACKAGE_IMPORT ->
                         JavaArchitectureTestCaseCollection
                                 .noClassesShouldImportForbiddenPackages(allowedPackages)
-                                .check(classes);
+                                .check(javaClasses);
                 case FILESYSTEM_INTERACTION ->
                         JavaArchitectureTestCaseCollection
                                 .NO_CLASS_SHOULD_ACCESS_FILE_SYSTEM
-                                .check(classes);
+                                .check(javaClasses);
                 case NETWORK_CONNECTION ->
                         JavaArchitectureTestCaseCollection
                                 .NO_CLASSES_SHOULD_ACCESS_NETWORK
-                                .check(classes);
+                                .check(javaClasses);
                 case THREAD_CREATION ->
-                        JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_CREATE_THREADS.check(classes);
+                        JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_CREATE_THREADS.check(javaClasses);
                 case COMMAND_EXECUTION ->
-                        JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_EXECUTE_COMMANDS.check(classes);
+                        JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_EXECUTE_COMMANDS.check(javaClasses);
                 default -> throw new UnsupportedOperationException("Not implemented yet");
             }
         } catch (AssertionError e) {
+            String[] split = null;
             if (e.getMessage() == null || e.getMessage().split("\n").length < 2) {
                 throw new SecurityException(localized("security.archunit.illegal.execution", e.getMessage()));
             }
-            throw new SecurityException(localized("security.archunit.illegal.execution", e.getMessage().split("\n")[1]));
+            split = e.getMessage().split("\n");
+            throw new SecurityException(localized("security.archunit.violation.error", split[0].replaceAll(".*?'(.*?)'.*", "$1"), split[1]));
         }
     }
     //</editor-fold>

@@ -39,5 +39,5 @@ public interface ArchitectureSecurityTestCase {
      *
      * @param classes a set of {@link JavaClasses} representing the codebase to which the test case will be applied.
      */
-    void executeArchitectureTestCase(JavaClasses classes);
+    void executeArchitectureTestCase(Object classes);
 }

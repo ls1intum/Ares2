@@ -26,7 +26,7 @@ public class JavaArchitectureTestCaseCollection {
      * This method checks if any class in the given package accesses the file system.
      */
     public static final ArchRule NO_CLASS_SHOULD_ACCESS_FILE_SYSTEM = createNoClassShouldHaveMethodRule(
-            "accesses file system",
+            "Accesses file system",
             FileHandlerConstants.JAVA_FILESYSTEM_INTERACTION_METHODS
     );
     //</editor-fold>
@@ -36,7 +36,7 @@ public class JavaArchitectureTestCaseCollection {
      * This method checks if any class in the given package accesses the network.
      */
     public static final ArchRule NO_CLASSES_SHOULD_ACCESS_NETWORK = createNoClassShouldHaveMethodRule(
-            "accesses network",
+            "Accesses network",
             FileHandlerConstants.JAVA_NETWORK_ACCESS_METHODS
     );
     //</editor-fold>
@@ -47,7 +47,7 @@ public class JavaArchitectureTestCaseCollection {
      * This method checks if any class in the given package uses the command line.
      */
     public static final ArchRule NO_CLASSES_SHOULD_TERMINATE_JVM = createNoClassShouldHaveMethodRule(
-            "terminates JVM",
+            "Terminates JVM",
             FileHandlerConstants.JAVA_JVM_TERMINATION_METHODS
     );
     //</editor-fold>
@@ -126,7 +126,8 @@ public class JavaArchitectureTestCaseCollection {
                                                 .startsWith(method)
                                 );
                     }
-                }));
+                }))
+                .as(ruleName);
     }
     //</editor-fold>
 
@@ -135,21 +136,21 @@ public class JavaArchitectureTestCaseCollection {
      * This method checks if any class in the given package uses reflection.
      */
     public static final ArchRule NO_CLASSES_SHOULD_USE_REFLECTION = createNoClassShouldHaveMethodRule(
-            "uses Reflection",
+            "Uses Reflection",
             FileHandlerConstants.JAVA_REFLECTION_METHODS
     );
     //</editor-fold>
 
     //<editor-fold desc="Command Execution related rule">
     public static final ArchRule NO_CLASSES_SHOULD_EXECUTE_COMMANDS = createNoClassShouldHaveMethodRule(
-            "executes commands",
+            "Executes commands",
             FileHandlerConstants.JAVA_COMMAND_EXECUTION_METHODS
     );
     //</editor-fold>
 
     //<editor-fold desc="Thread Creation related rule">
     public static final ArchRule NO_CLASSES_SHOULD_CREATE_THREADS = createNoClassShouldHaveMethodRule(
-            "manipulates threads",
+            "Manipulates threads",
             FileHandlerConstants.JAVA_THREAD_CREATION_METHODS
     );
     //</editor-fold>
