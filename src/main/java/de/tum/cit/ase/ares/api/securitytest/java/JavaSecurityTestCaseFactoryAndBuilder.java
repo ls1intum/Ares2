@@ -6,9 +6,9 @@ import com.google.common.collect.Streams;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSupported;
+import de.tum.cit.ase.ares.api.architecture.java.JavaArchitecturalTestCaseSupported;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitSecurityTestCase;
-import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitTestCaseSupported;
-import de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile.JavaArchitectureTestCaseCollection;
+import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseCollection;
 import de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCase;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy.ResourceAccesses;
@@ -160,6 +160,9 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         if (securityPolicy.regardingTheSupervisedCode().theFollowingClassesAreTestClasses() == null) {
             throw new SecurityException(localize("security.policy.java.not.correct.set"));
         }
+        if (securityPolicy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted().regardingFileSystemInteractions() == null) {
+            throw new SecurityException(localize("security.policy.java.not.correct.set", "regardingFileSystemInteractions"));
+        }
         this.testClasses = securityPolicy.regardingTheSupervisedCode().theFollowingClassesAreTestClasses();
         // TODO Markus: projectPath is configured wrongly, since for AOP and Architecture tests different paths are used (for Architectural path to bytecode, for AOP path to source code)
         this.projectPath = projectPath;
@@ -204,12 +207,16 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                 new SecurityPolicy.PackagePermission("org.java.aspectj"),
                 new SecurityPolicy.PackagePermission("org.aspectj"),
                 new SecurityPolicy.PackagePermission("de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut")));
-        javaArchUnitTestCases.add(
+        javaArchUnitTestCases.addAll(List.of(
                 new JavaArchUnitSecurityTestCase(
-                        JavaArchUnitTestCaseSupported.PACKAGE_IMPORT,
+                        JavaArchitecturalTestCaseSupported.PACKAGE_IMPORT,
                         allowedPackages
+                ), new JavaArchUnitSecurityTestCase(
+                        JavaArchitecturalTestCaseSupported.TERMINATE_JVM
+                ), new JavaArchUnitSecurityTestCase(
+                        JavaArchitecturalTestCaseSupported.REFLECTION
                 )
-        );
+        ));
         //</editor-fold>
 
         //<editor-fold desc="Create variable rules code">
@@ -224,7 +231,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                 .forEach(i -> {
                     //<editor-fold desc="Load supported checks code">
                     // TODO Markus: What if JavaArchUnitTestCaseSupported, JavaAspectJSecurityTestCaseSupported and JavaSecurityTestCaseSupported are not in the same order or smaller than methods?
-                    JavaArchUnitTestCaseSupported javaArchitectureTestCasesSupportedValue = JavaArchUnitTestCaseSupported.values()[i];
+                    JavaArchitecturalTestCaseSupported javaArchitectureTestCasesSupportedValue = JavaArchitecturalTestCaseSupported.values()[i];
                     JavaSecurityTestCaseSupported javaSecurityTestCaseSupportedValue = JavaSecurityTestCaseSupported.values()[i];
                     //</editor-fold>
 
@@ -319,11 +326,6 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         //<editor-fold desc="Load classes code">
         @Nonnull JavaClasses classes = new ClassFileImporter().importPath(Paths.get(ProjectSourcesFinder.isGradleProject() ? "build" : "target", projectPath.toString()).toString());
         //</editor-fold>#
-
-        //<editor-fold desc="Enforce fixed rules code">
-        JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_USE_REFLECTION.check(classes);
-        JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_TERMINATE_JVM.check(classes);
-        //</editor-fold>
 
         //<editor-fold desc="Enforce variable rules code">
         JavaSecurityTestCase.setJavaAdviceSettingValue("aopMode", javaAOPMode.toString(), javaAOPMode.toString());

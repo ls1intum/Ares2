@@ -10,6 +10,7 @@ import com.tngtech.archunit.lang.ConditionEvent;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 import com.tngtech.archunit.thirdparty.com.google.common.collect.ImmutableList;
+import de.tum.cit.ase.ares.api.architecture.java.CallGraphBuilderUtils;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,7 +20,7 @@ import java.util.HashSet;
 import static com.tngtech.archunit.lang.ConditionEvent.createMessage;
 import static com.tngtech.archunit.thirdparty.com.google.common.base.Preconditions.checkNotNull;
 import static com.tngtech.archunit.thirdparty.com.google.common.collect.Iterables.getLast;
-import static de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile.CustomClassResolver.getImmediateSubclasses;
+import static de.tum.cit.ase.ares.api.architecture.java.CallGraphBuilderUtils.getImmediateSubclasses;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toSet;
 //</editor-fold>
@@ -156,7 +157,7 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
         }
 
         private JavaClass resolveTargetOwner(JavaClass targetOwner) {
-            Optional<JavaClass> resolvedTarget = CustomClassResolver.tryResolve(targetOwner.getFullName());
+            Optional<JavaClass> resolvedTarget = CallGraphBuilderUtils.tryResolve(targetOwner.getFullName());
             return resolvedTarget.orElse(targetOwner);
         }
     }

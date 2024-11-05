@@ -1,10 +1,14 @@
-package de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile;
+package de.tum.cit.ase.ares.api.architecture.java;
 
 //<editor-fold desc="Imports">
 
 import com.ibm.wala.classLoader.IClass;
+import com.ibm.wala.classLoader.Language;
 import com.ibm.wala.core.java11.Java9AnalysisScopeReader;
-import com.ibm.wala.ipa.callgraph.AnalysisScope;
+import com.ibm.wala.ipa.callgraph.*;
+import com.ibm.wala.ipa.callgraph.impl.DefaultEntrypoint;
+import com.ibm.wala.ipa.callgraph.impl.Util;
+import com.ibm.wala.ipa.callgraph.propagation.InstanceKey;
 import com.ibm.wala.ipa.cha.ClassHierarchy;
 import com.ibm.wala.ipa.cha.ClassHierarchyException;
 import com.ibm.wala.ipa.cha.ClassHierarchyFactory;
@@ -12,22 +16,24 @@ import com.ibm.wala.types.ClassLoaderReference;
 import com.ibm.wala.types.TypeReference;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
+import de.tum.cit.ase.ares.api.architecture.java.wala.ReachabilityChecker;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 //</editor-fold>
 
 /**
- * Custom class resolver to resolve classes that are outside classpath to be able to analyze them transitively.
+ * Utility class to build a call graph from a class path.
  */
-public class CustomClassResolver {
+public class CallGraphBuilderUtils {
 
-    private CustomClassResolver() {
+    private CallGraphBuilderUtils() {
         throw new IllegalStateException("Utility class");
     }
 
@@ -39,11 +45,13 @@ public class CustomClassResolver {
 
     private static final ClassHierarchy classHierarchy;
 
+    private static final AnalysisScope scope;
+
     static {
         try {
-            AnalysisScope scope = Java9AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(
+            scope = Java9AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(
                     System.getProperty("java.class.path"),
-                    new File("src/main/java/de/tum/cit/ase/ares/api/architecture/java/archunit/postcompile/exclusions.txt")
+                    null
             );
 
             // Build the class hierarchy
@@ -65,7 +73,7 @@ public class CustomClassResolver {
         if (typeName.startsWith("de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemAdviceDefinitions")) {
             return Optional.empty();
         }
-        URL url = CustomClassResolver.class.getResource("/" + typeName.replace(".", "/") + ".class");
+        URL url = CallGraphBuilderUtils.class.getResource("/" + typeName.replace(".", "/") + ".class");
         try {
             if (url == null) {
                 return Optional.empty();
@@ -96,7 +104,7 @@ public class CustomClassResolver {
                 .stream()
                 .map(IClass::getName)
                 .map(Object::toString)
-                .map(CustomClassResolver::tryResolve)
+                .map(CallGraphBuilderUtils::tryResolve)
                 .filter(Optional::isPresent)
                 .map(Optional::get).collect(Collectors.toSet());
     }
@@ -112,5 +120,42 @@ public class CustomClassResolver {
             throw new IllegalArgumentException("Type name cannot be null or empty");
         }
         return "L" + typeName.replace('.', '/');
+    }
+
+    /**
+     * Build a call graph from a class path.
+     */
+    public static CallGraph buildCallGraph(String classPathToAnalyze, Predicate<CGNode> securityViolationCheck) {
+        try {
+            // Create a list to store entry points
+            List<DefaultEntrypoint> customEntryPoints = ReachabilityChecker.getEntryPointsFromStudentSubmission(classPathToAnalyze, classHierarchy);
+
+            // Create AnalysisOptions for call graph
+            AnalysisOptions options = new AnalysisOptions(scope, customEntryPoints);
+            options.setTraceStringConstants(false);
+            options.setHandleZeroLengthArray(false);
+            options.setReflectionOptions(AnalysisOptions.ReflectionOptions.NONE);
+
+            // Create call graph builder (n-CFA, context-sensitive, etc.)
+            com.ibm.wala.ipa.callgraph.CallGraphBuilder<InstanceKey> builder = Util.makeZeroOneCFABuilder(Language.JAVA, options, new AnalysisCacheImpl(), classHierarchy);
+
+            // Generate the call graph
+            CallGraph callGraph = builder.makeCallGraph(options, null);
+
+            List<CGNode> violatingMethods = ReachabilityChecker.findReachableMethods(callGraph, callGraph.getEntrypointNodes().iterator(), securityViolationCheck);
+
+            if (violatingMethods != null && !violatingMethods.isEmpty()) {
+                throw new SecurityException(String.format(
+                        "Security violation: Detected %d unauthorized API call(s):%n%s",
+                        violatingMethods.size(),
+                        violatingMethods.stream()
+                                .map(node -> String.format("- %s", node.getMethod().getSignature()))
+                                .collect(Collectors.joining("%n"))
+                ));
+            }
+            return callGraph;
+        } catch (CallGraphBuilderCancelException e) {
+            throw new SecurityException("Error building call graph", e); //$NON-NLS-1$
+        }
     }
 }

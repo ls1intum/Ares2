@@ -8,15 +8,15 @@ import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition;
 import de.tum.cit.ase.ares.api.architecture.java.ArchitectureTestCaseStorage;
-import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitTestCaseSupported;
+import de.tum.cit.ase.ares.api.architecture.java.JavaArchitecturalTestCaseSupported;
 import de.tum.cit.ase.ares.api.securitytest.java.PathLocationProvider;
 import de.tum.cit.ase.ares.api.securitytest.java.StudentCompiledClassesPath;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile.TransitivelyAccessesMethodsCondition;
 
 import java.util.List;
 
-import static de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitTestCaseSupported.FILESYSTEM_INTERACTION;
-import static de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile.JavaArchitectureTestCaseCollection.getForbiddenMethods;
+import static de.tum.cit.ase.ares.api.architecture.java.JavaArchitecturalTestCaseSupported.FILESYSTEM_INTERACTION;
+import static de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseCollection.getForbiddenMethods;
 
 
 /**
