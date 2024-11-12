@@ -3,14 +3,15 @@ package de.tum.cit.ase.ares.api.architecture.java.archunit;
 //<editor-fold desc="Imports">
 import com.tngtech.archunit.core.domain.JavaClasses;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureSecurityTestCase;
-import de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile.JavaArchitectureTestCaseCollection;
+import de.tum.cit.ase.ares.api.architecture.java.JavaArchitecturalTestCaseSupported;
+import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseCollection;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy.PackagePermission;
 
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile.JavaArchitectureTestCaseCollection.getArchitectureRuleFileContent;
+import static de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseCollection.getArchitectureRuleFileContent;
 import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 //</editor-fold>
 
@@ -28,7 +29,7 @@ public class JavaArchUnitSecurityTestCase implements ArchitectureSecurityTestCas
     /**
      * Selects the supported architecture test case in the Java programming language.
      */
-    private final JavaArchUnitTestCaseSupported javaArchitectureTestCaseSupported;
+    private final JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported;
 
     /**
      * List of allowed packages to be imported.
@@ -42,13 +43,13 @@ public class JavaArchUnitSecurityTestCase implements ArchitectureSecurityTestCas
      *
      * @param javaArchitectureTestCaseSupported Selects the supported architecture test case in the Java programming language
      */
-    public JavaArchUnitSecurityTestCase(JavaArchUnitTestCaseSupported javaArchitectureTestCaseSupported) {
+    public JavaArchUnitSecurityTestCase(JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported) {
         super();
         this.javaArchitectureTestCaseSupported = javaArchitectureTestCaseSupported;
         this.allowedPackages = new HashSet<>();
     }
 
-    public JavaArchUnitSecurityTestCase(JavaArchUnitTestCaseSupported javaArchitectureTestCaseSupported, Set<PackagePermission> packages) {
+    public JavaArchUnitSecurityTestCase(JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported, Set<PackagePermission> packages) {
         super();
         this.javaArchitectureTestCaseSupported = javaArchitectureTestCaseSupported;
         this.allowedPackages = packages.stream().map(PackagePermission::importTheFollowingPackage).collect(Collectors.toSet());
@@ -86,6 +87,14 @@ public class JavaArchUnitSecurityTestCase implements ArchitectureSecurityTestCas
                         JavaArchitectureTestCaseCollection
                                 .noClassesShouldImportForbiddenPackages(allowedPackages)
                                 .check(javaClasses);
+                case REFLECTION ->
+                        JavaArchitectureTestCaseCollection
+                                .NO_CLASSES_SHOULD_USE_REFLECTION
+                                .check(javaClasses);
+                case TERMINATE_JVM ->
+                        JavaArchitectureTestCaseCollection
+                                .NO_CLASSES_SHOULD_TERMINATE_JVM
+                                .check(javaClasses);
                 case FILESYSTEM_INTERACTION ->
                         JavaArchitectureTestCaseCollection
                                 .NO_CLASS_SHOULD_ACCESS_FILE_SYSTEM
@@ -106,7 +115,7 @@ public class JavaArchUnitSecurityTestCase implements ArchitectureSecurityTestCas
                 throw new SecurityException(localized("security.archunit.illegal.execution", e.getMessage()));
             }
             split = e.getMessage().split("\n");
-            throw new SecurityException(localized("security.archunit.violation.error", split[0].replaceAll(".*?'(.*?)'.*", "$1"), split[1]));
+            throw new SecurityException(localized("security.archunit.violation.error", split[0].replaceAll(".*?'(.*?)'.*\r", "$1"), split[1]));
         }
     }
     //</editor-fold>

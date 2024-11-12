@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.api.architecture.java.archunit;
+package de.tum.cit.ase.ares.api.architecture.java;
 
 /**
  * Supported architecture test cases in Java programming language.
@@ -7,7 +7,7 @@ package de.tum.cit.ase.ares.api.architecture.java.archunit;
  * @version 2.0.0
  * @since 2.0.0
  */
-public enum JavaArchUnitTestCaseSupported {
+public enum JavaArchitecturalTestCaseSupported {
     /**
      * Architecture test case for the file system interaction.
      */
@@ -27,5 +27,14 @@ public enum JavaArchUnitTestCaseSupported {
     /**
      * Architecture test case for the package import.
      */
-    PACKAGE_IMPORT
+    PACKAGE_IMPORT,
+    /**
+     * Architecture test case for the premature jvm termination.
+     */
+    TERMINATE_JVM,
+    /**
+     * Architecture test case for the reflection.
+     */
+    REFLECTION,
+
 }
