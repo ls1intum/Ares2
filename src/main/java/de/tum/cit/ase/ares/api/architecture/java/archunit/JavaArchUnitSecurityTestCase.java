@@ -2,17 +2,16 @@ package de.tum.cit.ase.ares.api.architecture.java.archunit;
 
 //<editor-fold desc="Imports">
 import com.tngtech.archunit.core.domain.JavaClasses;
-import de.tum.cit.ase.ares.api.architecture.ArchitectureSecurityTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitecturalTestCaseSupported;
-import de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile.JavaArchitectureTestCaseCollection;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy.PackagePermission;
 
+import javax.annotation.Nonnull;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile.JavaArchitectureTestCaseCollection.getArchitectureRuleFileContent;
-import static de.tum.cit.ase.ares.api.localization.Messages.localized;
+import static de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase.parseErrorMessage;
+import static de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchitectureTestCaseCollection.getArchitectureRuleFileContent;
 //</editor-fold>
 
 /**
@@ -23,12 +22,13 @@ import static de.tum.cit.ase.ares.api.localization.Messages.localized;
  * @see <a href="https://refactoring.guru/design-patterns/abstract-factory">Abstract Factory Design Pattern</a>
  * @since 2.0.0
  */
-public class JavaArchUnitSecurityTestCase implements ArchitectureSecurityTestCase {
+public class JavaArchUnitSecurityTestCase {
 
     //<editor-fold desc="Attributes">
     /**
      * Selects the supported architecture test case in the Java programming language.
      */
+    @Nonnull
     private final JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported;
 
     /**
@@ -37,35 +37,33 @@ public class JavaArchUnitSecurityTestCase implements ArchitectureSecurityTestCas
     private final Set<String> allowedPackages;
 
     /**
-     * Flag to determine if the error message should be long or parsed for less details.
+     * Flag to determine if the error message should be long or parsed for fewer details.
      */
-    private boolean longError;
+    private final boolean longError;
     //</editor-fold>
 
     //<editor-fold desc="Constructors">
     /**
      * Constructor for JavaArchUnitSecurityTestCase.
      *
-     * @param javaArchitectureTestCaseSupported Selects the supported architecture test case in the Java programming language
+     * @param builder Selects the supported architecture test case in the Java programming language
      */
-    public JavaArchUnitSecurityTestCase(JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported) {
-        super();
-        this.javaArchitectureTestCaseSupported = javaArchitectureTestCaseSupported;
-        this.allowedPackages = new HashSet<>();
+    private JavaArchUnitSecurityTestCase(Builder builder) {
+        if (builder.javaArchitectureTestCaseSupported == null) {
+            throw new IllegalArgumentException("javaArchitectureTestCaseSupported must not be null");
+        }
+        this.javaArchitectureTestCaseSupported = builder.javaArchitectureTestCaseSupported;
+        this.allowedPackages = builder.allowedPackages;
+        this.longError = builder.longError;
     }
 
-    public JavaArchUnitSecurityTestCase(JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported, Set<PackagePermission> packages) {
-        super();
-        this.javaArchitectureTestCaseSupported = javaArchitectureTestCaseSupported;
-        this.allowedPackages = packages.stream().map(PackagePermission::importTheFollowingPackage).collect(Collectors.toSet());
-    }
     //</editor-fold>
 
     //<editor-fold desc="Tool methods">
+
     /**
      * Returns the content of the architecture test case file in the Java programming language.
      */
-    @Override
     public String writeArchitectureTestCase() {
         try {
             return getArchitectureRuleFileContent(this.javaArchitectureTestCaseSupported.name());
@@ -79,13 +77,7 @@ public class JavaArchUnitSecurityTestCase implements ArchitectureSecurityTestCas
     /**
      * Runs the architecture test case in the Java programming language.
      */
-    @Override
-    public void executeArchitectureTestCase(Object classes) {
-        // check if instance of object
-        if (!(classes instanceof JavaClasses javaClasses)) {
-            throw new IllegalArgumentException(localized("security.archunit.invalid.argument"));
-        }
-
+    public void executeArchitectureTestCase(JavaClasses javaClasses) {
         try {
             switch (this.javaArchitectureTestCaseSupported) {
                 case PACKAGE_IMPORT ->
@@ -115,19 +107,45 @@ public class JavaArchUnitSecurityTestCase implements ArchitectureSecurityTestCas
                 default -> throw new UnsupportedOperationException("Not implemented yet");
             }
         } catch (AssertionError e) {
-            String[] split;
-            if (e.getMessage() == null || e.getMessage().split("\n").length < 2) {
-                throw new SecurityException(localized("security.archunit.illegal.execution", e.getMessage()));
-            }
-            split = e.getMessage().split("\n");
-            throw new SecurityException(localized("security.archunit.violation.error", split[0].replaceAll(".*?'(.*?)'.*\r", "$1"), split[1]));
+            parseErrorMessage(e, longError);
         }
     }
     //</editor-fold>
 
-    //<editor-fold desc="Getters and Setters">
-    public void setLongError(boolean longError) {
-        this.longError = longError;
+
+    // Static method to start the builder
+    public static Builder builder() {
+        return new Builder();
     }
-    //</editor-fold>
+
+
+    // Static Builder class
+    public static class Builder {
+        private JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported;
+        private Set<String> allowedPackages = new HashSet<>();
+        private boolean longError = false;
+
+        public Builder javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported) {
+            this.javaArchitectureTestCaseSupported = javaArchitectureTestCaseSupported;
+            return this;
+        }
+
+        public Builder allowedPackages(Set<PackagePermission> packages) {
+            if (packages != null) {
+                this.allowedPackages = packages.stream()
+                        .map(PackagePermission::importTheFollowingPackage)
+                        .collect(Collectors.toSet());
+            }
+            return this;
+        }
+
+        public Builder longError(boolean longError) {
+            this.longError = longError;
+            return this;
+        }
+
+        public JavaArchUnitSecurityTestCase build() {
+            return new JavaArchUnitSecurityTestCase(this);
+        }
+    }
 }

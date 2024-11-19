@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.architecture;
 
 import com.tngtech.archunit.core.domain.JavaClasses;
+import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureMode;
 
 /**
  * Interface for defining architecture security test cases in various programming languages.
@@ -39,5 +40,5 @@ public interface ArchitectureSecurityTestCase {
      *
      * @param classes a set of {@link JavaClasses} representing the codebase to which the test case will be applied.
      */
-    void executeArchitectureTestCase(Object classes);
+    void executeArchitectureTestCase(JavaArchitectureMode architectureMode);
 }

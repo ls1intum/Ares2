@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile;
+package de.tum.cit.ase.ares.api.architecture.java.archunit;
 
 //<editor-fold desc="Imports">
 
