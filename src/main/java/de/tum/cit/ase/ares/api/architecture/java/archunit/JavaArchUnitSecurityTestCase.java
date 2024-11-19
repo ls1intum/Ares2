@@ -4,14 +4,14 @@ package de.tum.cit.ase.ares.api.architecture.java.archunit;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureSecurityTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitecturalTestCaseSupported;
-import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseCollection;
+import de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile.JavaArchitectureTestCaseCollection;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy.PackagePermission;
 
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseCollection.getArchitectureRuleFileContent;
+import static de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile.JavaArchitectureTestCaseCollection.getArchitectureRuleFileContent;
 import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 //</editor-fold>
 
@@ -35,6 +35,11 @@ public class JavaArchUnitSecurityTestCase implements ArchitectureSecurityTestCas
      * List of allowed packages to be imported.
      */
     private final Set<String> allowedPackages;
+
+    /**
+     * Flag to determine if the error message should be long or parsed for less details.
+     */
+    private boolean longError;
     //</editor-fold>
 
     //<editor-fold desc="Constructors">
@@ -110,13 +115,19 @@ public class JavaArchUnitSecurityTestCase implements ArchitectureSecurityTestCas
                 default -> throw new UnsupportedOperationException("Not implemented yet");
             }
         } catch (AssertionError e) {
-            String[] split = null;
+            String[] split;
             if (e.getMessage() == null || e.getMessage().split("\n").length < 2) {
                 throw new SecurityException(localized("security.archunit.illegal.execution", e.getMessage()));
             }
             split = e.getMessage().split("\n");
             throw new SecurityException(localized("security.archunit.violation.error", split[0].replaceAll(".*?'(.*?)'.*\r", "$1"), split[1]));
         }
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Getters and Setters">
+    public void setLongError(boolean longError) {
+        this.longError = longError;
     }
     //</editor-fold>
 }

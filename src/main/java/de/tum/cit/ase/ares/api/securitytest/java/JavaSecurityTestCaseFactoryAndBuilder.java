@@ -8,7 +8,6 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
 import de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSupported;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitecturalTestCaseSupported;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitSecurityTestCase;
-import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseCollection;
 import de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCase;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy.ResourceAccesses;
@@ -326,6 +325,10 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         //<editor-fold desc="Load classes code">
         @Nonnull JavaClasses classes = new ClassFileImporter().importPath(Paths.get(ProjectSourcesFinder.isGradleProject() ? "build" : "target", projectPath.toString()).toString());
         //</editor-fold>#
+
+        //<editor-fold desc="Enforce fixed rules code">
+        javaArchUnitTestCases.forEach(archTest -> archTest.setLongError(projectPath.startsWith("test-classes")));
+        //</editor-fold>
 
         //<editor-fold desc="Enforce variable rules code">
         JavaSecurityTestCase.setJavaAdviceSettingValue("aopMode", javaAOPMode.toString(), javaAOPMode.toString());

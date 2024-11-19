@@ -23,6 +23,8 @@ import java.util.function.Predicate;
  */
 public class ReachabilityChecker {
 
+    // TODO Sarp: translate error messages
+
     private ReachabilityChecker() {
         // Utility class
     }
@@ -36,7 +38,6 @@ public class ReachabilityChecker {
      * @return A list of nodes that are reachable from the start nodes and match the target node filter.
      */
     public static List<CGNode> findReachableMethods(CallGraph callGraph, Iterator<CGNode> startNodes, Predicate<CGNode> targetNodeFilter) {
-//        TODO: translate these messages
         if (callGraph == null) {
             throw new IllegalArgumentException("Call graph cannot be null");
         }

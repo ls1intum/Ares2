@@ -16,7 +16,7 @@ import de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile.Transitive
 import java.util.List;
 
 import static de.tum.cit.ase.ares.api.architecture.java.JavaArchitecturalTestCaseSupported.FILESYSTEM_INTERACTION;
-import static de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseCollection.getForbiddenMethods;
+import static de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile.JavaArchitectureTestCaseCollection.getForbiddenMethods;
 
 
 /**

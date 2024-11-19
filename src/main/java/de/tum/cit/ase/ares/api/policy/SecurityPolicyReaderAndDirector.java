@@ -98,6 +98,18 @@ public class SecurityPolicyReaderAndDirector {
             case JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION -> new JavaSecurityTestCaseFactoryAndBuilder(
                     JavaBuildMode.GRADLE, JavaArchitectureMode.ARCHUNIT, JavaAOPMode.INSTRUMENTATION, securityPolicy, projectPath
             );
+            case JAVA_USING_MAVEN_WALA_AND_ASPECTJ -> new JavaSecurityTestCaseFactoryAndBuilder(
+                    JavaBuildMode.MAVEN, JavaArchitectureMode.WALA, JavaAOPMode.ASPECTJ, securityPolicy, projectPath
+            );
+            case JAVA_USING_MAVEN_WALA_AND_INSTRUMENTATION -> new JavaSecurityTestCaseFactoryAndBuilder(
+                    JavaBuildMode.MAVEN, JavaArchitectureMode.WALA, JavaAOPMode.INSTRUMENTATION, securityPolicy, projectPath
+            );
+            case JAVA_USING_GRADLE_WALA_AND_ASPECTJ -> new JavaSecurityTestCaseFactoryAndBuilder(
+                    JavaBuildMode.GRADLE, JavaArchitectureMode.WALA, JavaAOPMode.ASPECTJ, securityPolicy, projectPath
+            );
+            case JAVA_USING_GRADLE_WALA_AND_INSTRUMENTATION -> new JavaSecurityTestCaseFactoryAndBuilder(
+                    JavaBuildMode.GRADLE, JavaArchitectureMode.WALA, JavaAOPMode.INSTRUMENTATION, securityPolicy, projectPath
+            );
         };
     }
     //</editor-fold>

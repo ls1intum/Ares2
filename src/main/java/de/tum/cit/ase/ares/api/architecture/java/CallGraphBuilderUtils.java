@@ -123,9 +123,9 @@ public class CallGraphBuilderUtils {
     }
 
     /**
-     * Build a call graph from a class path.
+     * Build a call graph from a class path and the passed in predicate
      */
-    public static CallGraph buildCallGraph(String classPathToAnalyze, Predicate<CGNode> securityViolationCheck) {
+    public static CallGraph buildCallGraph(String classPathToAnalyze) {
         try {
             // Create a list to store entry points
             List<DefaultEntrypoint> customEntryPoints = ReachabilityChecker.getEntryPointsFromStudentSubmission(classPathToAnalyze, classHierarchy);
@@ -140,20 +140,7 @@ public class CallGraphBuilderUtils {
             com.ibm.wala.ipa.callgraph.CallGraphBuilder<InstanceKey> builder = Util.makeZeroOneCFABuilder(Language.JAVA, options, new AnalysisCacheImpl(), classHierarchy);
 
             // Generate the call graph
-            CallGraph callGraph = builder.makeCallGraph(options, null);
-
-            List<CGNode> violatingMethods = ReachabilityChecker.findReachableMethods(callGraph, callGraph.getEntrypointNodes().iterator(), securityViolationCheck);
-
-            if (violatingMethods != null && !violatingMethods.isEmpty()) {
-                throw new SecurityException(String.format(
-                        "Security violation: Detected %d unauthorized API call(s):%n%s",
-                        violatingMethods.size(),
-                        violatingMethods.stream()
-                                .map(node -> String.format("- %s", node.getMethod().getSignature()))
-                                .collect(Collectors.joining("%n"))
-                ));
-            }
-            return callGraph;
+            return builder.makeCallGraph(options, null);
         } catch (CallGraphBuilderCancelException e) {
             throw new SecurityException("Error building call graph", e); //$NON-NLS-1$
         }

@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.api.architecture.java;
+package de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile;
 
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaAccess;
@@ -6,7 +6,6 @@ import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.FileHandlerConstants;
-import de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile.TransitivelyAccessesMethodsCondition;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
 import java.io.IOException;

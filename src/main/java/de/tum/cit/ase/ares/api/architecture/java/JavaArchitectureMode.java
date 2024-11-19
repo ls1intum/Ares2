@@ -8,7 +8,14 @@ import java.util.List;
 import java.util.stream.Stream;
 
 public enum JavaArchitectureMode {
-    ARCHUNIT;
+    /**
+     * The ArchUnit architecture mode.
+     */
+    ARCHUNIT,
+    /**
+     * The WALA architecture mode.
+     */
+    WALA;
 
     public List<Path> filesToCopy() {
         return (switch (this) {
@@ -29,6 +36,7 @@ public enum JavaArchitectureMode {
                     new String[]{"templates", "architecture", "java", "archunit", "FileHandlerConstants.java"},
                     new String[]{"templates", "architecture", "java", "archunit", "JavaArchUnitTestCaseSupported.java"}
             );
+            default -> throw new UnsupportedOperationException("Not implemented yet");
         }).map(FileTools::resolveOnResources).toList();
     }
 
@@ -51,6 +59,7 @@ public enum JavaArchitectureMode {
                     FileTools.generatePackageNameArray(packageName, 1),
                     FileTools.generatePackageNameArray(packageName, 1)
             );
+            default -> throw new UnsupportedOperationException("Not implemented yet");
         }).toList();
     }
 
@@ -73,6 +82,7 @@ public enum JavaArchitectureMode {
                     new String[]{"api", "architecture", "java", "archunit", "FileHandlerConstants.java"},
                     new String[]{"api", "architecture", "java", "archunit", "JavaArchUnitTestCaseSupported.java"}
             );
+            default -> throw new UnsupportedOperationException("Not implemented yet");
         }).map(pathParticles -> FileTools.resolveOnTests(projectPath, packageName, pathParticles)).toList();
     }
 
@@ -80,6 +90,7 @@ public enum JavaArchitectureMode {
         return FileTools.resolveOnResources(switch (this) {
             case ARCHUNIT ->
                     new String[]{"templates", "architecture", "java", "archunit", "JavaArchitectureTestCaseCollectionHeader.txt"};
+            default -> throw new UnsupportedOperationException("Not implemented yet");
         });
     }
 
@@ -88,6 +99,7 @@ public enum JavaArchitectureMode {
         return switch (this) {
             case ARCHUNIT ->
                     String.join("\n", ((List<JavaArchUnitSecurityTestCase>) testCases).stream().map(JavaArchUnitSecurityTestCase::writeArchitectureTestCase).toList());
+            default -> throw new UnsupportedOperationException("Not implemented yet");
         };
     }
 
@@ -95,18 +107,21 @@ public enum JavaArchitectureMode {
         return FileTools.resolveOnResources(switch (this) {
             case ARCHUNIT ->
                     new String[]{"templates", "architecture", "java", "archunit", "JavaArchitectureTestCaseCollectionFooter.txt"};
+            default -> throw new UnsupportedOperationException("Not implemented yet");
         });
     }
 
     public String[] fileValue(String packageName) {
         return switch (this) {
             case ARCHUNIT -> FileTools.generatePackageNameArray(packageName, 2);
+            default -> throw new UnsupportedOperationException("Not implemented yet");
         };
     }
 
     public Path targetToCopyTo(Path projectPath, String packageName) {
         return FileTools.resolveOnTests(projectPath, packageName, switch (this) {
             case ARCHUNIT -> new String[]{"api", "architecture", "java", "archunit", "JavaArchUnitTestCaseCollection.txt"};
+            default -> throw new UnsupportedOperationException("Not implemented yet");
         });
     }
 }
