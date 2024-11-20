@@ -47,9 +47,9 @@ public class JavaArchitectureTestCase implements ArchitectureSecurityTestCase {
             case WALA -> JavaWalaSecurityTestCase.builder()
                     .javaArchitecturalTestCaseSupported(javaArchitectureTestCaseSupported)
                     .longError(longErrorActive)
-                    // TODO Sarp: add import package support
+                    .allowedPackages(allowedPackages)
                     .build()
-                    .executeArchitectureTestCase(callGraph);
+                    .executeArchitectureTestCase(callGraph, javaClasses);
             case ARCHUNIT -> JavaArchUnitSecurityTestCase.builder()
                     .javaArchitecturalTestCaseSupported(javaArchitectureTestCaseSupported)
                     .allowedPackages(allowedPackages)

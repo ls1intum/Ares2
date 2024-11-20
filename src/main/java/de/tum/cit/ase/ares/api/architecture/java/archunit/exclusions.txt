@@ -32,7 +32,6 @@ java/security/.*
 java/sql/.*
 java/text/.*
 java/time/.*
-java/util/.*
 javax/.*
 sun/.*
 com/sun/.*

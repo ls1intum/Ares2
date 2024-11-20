@@ -1,4 +1,3 @@
-java/util/.*
 jdk/.*
 java/time/.*
 java/security/.*

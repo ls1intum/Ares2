@@ -230,12 +230,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         String classPath = Paths.get(ProjectSourcesFinder.isGradleProject() ? "build" : "target", projectPath.toString()).toString();
         //<editor-fold desc="Load classes code">
         // Memoized suppliers for JavaClasses and CallGraph
-        Supplier<JavaClasses> classesSupplier = memoize(() -> {
-            if (javaArchitectureMode == JavaArchitectureMode.ARCHUNIT) {
-                return new ClassFileImporter().importPath(classPath);
-            }
-            return null;
-        });
+        Supplier<JavaClasses> classesSupplier = memoize(() -> new ClassFileImporter().importPath(classPath));
 
         Supplier<CallGraph> callGraphSupplier = memoize(() -> {
             if (javaArchitectureMode == JavaArchitectureMode.WALA) {
@@ -247,8 +242,8 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         // Access them without recomputation
         JavaClasses classes = classesSupplier.get();
         CallGraph callGraph = callGraphSupplier.get();
-
         //</editor-fold>#
+
         IntStream
                 .range(0, methods.length)
                 .forEach(i -> {

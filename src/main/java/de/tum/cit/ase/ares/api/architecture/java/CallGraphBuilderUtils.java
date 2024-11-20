@@ -17,13 +17,12 @@ import com.ibm.wala.types.TypeReference;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import de.tum.cit.ase.ares.api.architecture.java.wala.ReachabilityChecker;
+import de.tum.cit.ase.ares.api.util.FileTools;
 
 import java.io.IOException;
 import java.net.URL;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.nio.file.Path;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 //</editor-fold>
@@ -144,5 +143,12 @@ public class CallGraphBuilderUtils {
         } catch (CallGraphBuilderCancelException e) {
             throw new SecurityException("Error building call graph", e); //$NON-NLS-1$
         }
+    }
+
+    /**
+     * Get the content of a file from the architectural rules storage
+     */
+    public static Set<String> getForbiddenMethods(Path filePath) {
+        return new HashSet<>(List.of(FileTools.readFile(filePath).split("\r\n")));
     }
 }

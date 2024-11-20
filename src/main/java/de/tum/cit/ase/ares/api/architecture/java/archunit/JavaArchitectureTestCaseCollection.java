@@ -17,6 +17,9 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
 
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
+import static de.tum.cit.ase.ares.api.architecture.java.CallGraphBuilderUtils.getForbiddenMethods;
+
 /**
  * This class runs the security rules on the architecture for the post-compile mode.
  */
@@ -25,7 +28,7 @@ public class JavaArchitectureTestCaseCollection {
      * This method checks if any class in the given package accesses the file system.
      */
     public static final ArchRule NO_CLASS_SHOULD_ACCESS_FILE_SYSTEM = createNoClassShouldHaveMethodRule(
-            "Accesses file system",
+            localize("security.architecture.file.system.access"),
             FileHandlerConstants.JAVA_FILESYSTEM_INTERACTION_METHODS
     );
     //</editor-fold>
@@ -35,18 +38,17 @@ public class JavaArchitectureTestCaseCollection {
      * This method checks if any class in the given package accesses the network.
      */
     public static final ArchRule NO_CLASSES_SHOULD_ACCESS_NETWORK = createNoClassShouldHaveMethodRule(
-            "Accesses network",
+            localize("security.architecture.network.access"),
             FileHandlerConstants.JAVA_NETWORK_ACCESS_METHODS
     );
     //</editor-fold>
 
     //<editor-fold desc="Termination related rule">
-
     /**
      * This method checks if any class in the given package uses the command line.
      */
     public static final ArchRule NO_CLASSES_SHOULD_TERMINATE_JVM = createNoClassShouldHaveMethodRule(
-            "Terminates JVM",
+            localize("security.architecture.terminate.jvm"),
             FileHandlerConstants.JAVA_JVM_TERMINATION_METHODS
     );
     //</editor-fold>
@@ -59,14 +61,6 @@ public class JavaArchitectureTestCaseCollection {
     //</editor-fold>
 
     //<editor-fold desc="Tool methods">
-
-    /**
-     * Get the content of a file from the architectural rules storage
-     */
-    public static Set<String> getForbiddenMethods(Path filePath) {
-        return new HashSet<>(List.of(FileTools.readFile(filePath).split("\r\n")));
-    }
-
     /**
      * Get the content of a file from the architectural rules storage
      */
@@ -101,7 +95,7 @@ public class JavaArchitectureTestCaseCollection {
                         return allowedPackages.stream().noneMatch(allowedPackage -> javaClass.getPackageName().startsWith(allowedPackage));
                     }
                 })
-                .as("Imports forbidden packages");
+                .as(localize("security.architecture.package.import"));
     }
 
     private static ArchRule createNoClassShouldHaveMethodRule(
@@ -136,21 +130,21 @@ public class JavaArchitectureTestCaseCollection {
      * This method checks if any class in the given package uses reflection.
      */
     public static final ArchRule NO_CLASSES_SHOULD_USE_REFLECTION = createNoClassShouldHaveMethodRule(
-            "Uses Reflection",
+            localize("security.architecture.reflection.uses"),
             FileHandlerConstants.JAVA_REFLECTION_METHODS
     );
     //</editor-fold>
 
     //<editor-fold desc="Command Execution related rule">
     public static final ArchRule NO_CLASSES_SHOULD_EXECUTE_COMMANDS = createNoClassShouldHaveMethodRule(
-            "Executes commands",
+            localize("security.architecture.execute.command"),
             FileHandlerConstants.JAVA_COMMAND_EXECUTION_METHODS
     );
     //</editor-fold>
 
     //<editor-fold desc="Thread Creation related rule">
     public static final ArchRule NO_CLASSES_SHOULD_CREATE_THREADS = createNoClassShouldHaveMethodRule(
-            "Manipulates threads",
+            localize("security.architecture.manipulate.threads"),
             FileHandlerConstants.JAVA_THREAD_CREATION_METHODS
     );
     //</editor-fold>

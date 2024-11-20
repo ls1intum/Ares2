@@ -2,9 +2,14 @@ package de.tum.cit.ase.ares.api.architecture.java.wala;
 
 import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
+import com.tngtech.archunit.core.domain.JavaClasses;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitecturalTestCaseSupported;
+import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchitectureTestCaseCollection;
+import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 
+import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase.parseErrorMessage;
 
@@ -23,9 +28,15 @@ public class JavaWalaSecurityTestCase {
      */
     private final boolean longError;
 
+    /**
+     * List of allowed packages to be imported.
+     */
+    private Set<String> allowedPackages;
+
     public JavaWalaSecurityTestCase(Builder builder) {
         this.javaArchitectureTestCaseSupported = builder.javaArchitectureTestCaseSupported;
         this.longError = builder.longError;
+        this.allowedPackages = builder.allowedPackages;
     }
 
     @SuppressWarnings("unused")
@@ -34,17 +45,19 @@ public class JavaWalaSecurityTestCase {
         return "";
     }
 
-    public void executeArchitectureTestCase(CallGraph callGraph) {
+    public void executeArchitectureTestCase(CallGraph callGraph, JavaClasses javaClasses) {
         try {
             switch (this.javaArchitectureTestCaseSupported) {
                 case REFLECTION -> JavaWalaSecurityTestCaseCollection.noReflection(callGraph);
-                case FILESYSTEM_INTERACTION -> throw new UnsupportedOperationException("Not implemented yet");
-                case TERMINATE_JVM -> throw new UnsupportedOperationException("Not implemented yet");
-                case NETWORK_CONNECTION -> throw new UnsupportedOperationException("Not implemented yet");
-                case COMMAND_EXECUTION -> throw new UnsupportedOperationException("Not implemented yet");
-                case PACKAGE_IMPORT -> throw new UnsupportedOperationException("Not implemented yet");
-                case THREAD_CREATION -> throw new UnsupportedOperationException("Not implemented yet");
-                default -> throw new UnsupportedOperationException("Not implemented yet");
+                case FILESYSTEM_INTERACTION -> JavaWalaSecurityTestCaseCollection.noFileSystemAccess(callGraph);
+                case TERMINATE_JVM -> JavaWalaSecurityTestCaseCollection.noJVMTermination(callGraph);
+                case NETWORK_CONNECTION -> JavaWalaSecurityTestCaseCollection.noNetworkAccess(callGraph);
+                case COMMAND_EXECUTION -> JavaWalaSecurityTestCaseCollection.noCommandExecution(callGraph);
+                case PACKAGE_IMPORT -> JavaArchitectureTestCaseCollection
+                        .noClassesShouldImportForbiddenPackages(allowedPackages)
+                        .check(javaClasses);
+                case THREAD_CREATION -> JavaWalaSecurityTestCaseCollection.noThreadCreation(callGraph);
+                default -> throw new UnsupportedOperationException("Not implemented yet %s".formatted(this.javaArchitectureTestCaseSupported));
             }
         } catch (AssertionError e) {
             // check if long error message is enabled
@@ -63,6 +76,7 @@ public class JavaWalaSecurityTestCase {
         private JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported;
         private Predicate<CGNode> targetNodeFilter;
         private boolean longError = false;
+        private Set<String> allowedPackages;
 
         public Builder javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported) {
             if (javaArchitectureTestCaseSupported == null) {
@@ -74,6 +88,15 @@ public class JavaWalaSecurityTestCase {
 
         public Builder longError(boolean longError) {
             this.longError = longError;
+            return this;
+        }
+
+        public Builder allowedPackages(Set<SecurityPolicy.PackagePermission> packages) {
+            if (packages != null) {
+                this.allowedPackages = packages.stream()
+                        .map(SecurityPolicy.PackagePermission::importTheFollowingPackage)
+                        .collect(Collectors.toSet());
+            }
             return this;
         }
 
