@@ -349,3 +349,10 @@ sun.swing.FilePane.getViewMenu()
 sun.swing.FilePane.propertyChange(java.beans.PropertyChangeEvent)
 sun.swing.FilePane.setViewType(int)
 sun.swing.FilePane.usesShellFolder(javax.swing.JFileChooser)
+java.awt.Desktop.browse(Ljava/net/URI;)
+java.awt.Desktop.browseFileDirectory(Ljava/io/File;)
+java.awt.Desktop.edit(Ljava/io/File;)
+java.awt.Desktop.mail(Ljava/net/URI;)
+java.awt.Desktop.open
+java.awt.Desktop.print(Ljava/io/File;)
+java.awt.Desktop.setOpenFileHandler

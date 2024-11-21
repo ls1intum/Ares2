@@ -1,6 +1,5 @@
 package de.tum.cit.ase.ares.api.architecture.java.wala;
 
-import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitecturalTestCaseSupported;
@@ -8,7 +7,6 @@ import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchitectureTestCa
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 
 import java.util.Set;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase.parseErrorMessage;
@@ -31,7 +29,7 @@ public class JavaWalaSecurityTestCase {
     /**
      * List of allowed packages to be imported.
      */
-    private Set<String> allowedPackages;
+    private final Set<String> allowedPackages;
 
     public JavaWalaSecurityTestCase(Builder builder) {
         this.javaArchitectureTestCaseSupported = builder.javaArchitectureTestCaseSupported;
@@ -74,7 +72,6 @@ public class JavaWalaSecurityTestCase {
     // Static Builder class
     public static class Builder {
         private JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported;
-        private Predicate<CGNode> targetNodeFilter;
         private boolean longError = false;
         private Set<String> allowedPackages;
 

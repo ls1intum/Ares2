@@ -2,6 +2,7 @@ package de.tum.cit.ase.ares.api.architecture.java.wala;
 
 import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
+import com.ibm.wala.shrike.shrikeCT.InvalidClassFileException;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.FileHandlerConstants;
 
 import java.nio.file.Path;
@@ -75,6 +76,10 @@ public class JavaWalaSecurityTestCaseCollection {
                                         .startsWith(method)));
 
         // TODO Sarp: Error message
-        throw new AssertionError(reachableNodes.getFirst() + " " + ruleName);
+        try {
+            throw new AssertionError(reachableNodes.getFirst().getMethod().getSignature() + " " + ruleName + "\n" + reachableNodes.getLast().getMethod().getSourcePosition(0).getFirstLine());
+        } catch (InvalidClassFileException e) {
+            e.printStackTrace();
+        }
     }
 }
