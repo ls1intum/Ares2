@@ -270,6 +270,44 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                     }
                 });
         //</editor-fold>
+
+        //<editor-fold desc="Create fixed rules code">
+        javaArchUnitTestCases.add(JavaArchitectureTestCase.builder()
+                .javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported.PACKAGE_IMPORT)
+                .longErrorActive(errorLong)
+                .javaClasses(classes)
+                .callGraph(callGraph)
+                .allowedPackages(allowedPackages)
+                .build());
+        javaArchUnitTestCases.add(JavaArchitectureTestCase.builder()
+                .javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported.REFLECTION)
+                .longErrorActive(errorLong)
+                .javaClasses(classes)
+                .callGraph(callGraph)
+                .allowedPackages(allowedPackages)
+                .build());
+        javaArchUnitTestCases.add(JavaArchitectureTestCase.builder()
+                .javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported.SERIALIZATION)
+                .longErrorActive(errorLong)
+                .javaClasses(classes)
+                .callGraph(callGraph)
+                .allowedPackages(allowedPackages)
+                .build());
+        javaArchUnitTestCases.add(JavaArchitectureTestCase.builder()
+                .javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported.CLASS_LOADING)
+                .longErrorActive(errorLong)
+                .javaClasses(classes)
+                .callGraph(callGraph)
+                .allowedPackages(allowedPackages)
+                .build());
+        javaArchUnitTestCases.add(JavaArchitectureTestCase.builder()
+                .javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported.TERMINATE_JVM)
+                .longErrorActive(errorLong)
+                .javaClasses(classes)
+                .callGraph(callGraph)
+                .allowedPackages(allowedPackages)
+                .build());
+        //</editor-fold>
     }
     //</editor-fold>
 

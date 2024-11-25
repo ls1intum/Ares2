@@ -104,6 +104,9 @@ public class JavaArchUnitSecurityTestCase {
                         JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_CREATE_THREADS.check(javaClasses);
                 case COMMAND_EXECUTION ->
                         JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_EXECUTE_COMMANDS.check(javaClasses);
+                case SERIALIZATION ->
+                        JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_SERIALIZE.check(javaClasses);
+                case CLASS_LOADING -> {}
                 default -> throw new UnsupportedOperationException("Not implemented yet");
             }
         } catch (AssertionError e) {

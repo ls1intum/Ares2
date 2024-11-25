@@ -13,7 +13,7 @@ import de.tum.cit.ase.ares.api.*;
 import de.tum.cit.ase.ares.api.MirrorOutput.MirrorOutputPolicy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
-import de.tum.cit.ase.ares.integration.testuser.subject.fileSystem.FileSystemAccessPenguin;
+import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.fileSystem.FileSystemAccessPenguin;
 
 @UseLocale("en")
 @MirrorOutput(MirrorOutputPolicy.DISABLED)

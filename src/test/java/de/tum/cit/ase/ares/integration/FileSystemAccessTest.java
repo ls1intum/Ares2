@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
-import de.tum.cit.ase.ares.integration.testuser.subject.fileSystem.FileSystemAccessPenguin;
+import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.fileSystem.FileSystemAccessPenguin;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Nested;
 import org.junit.platform.testkit.engine.Events;

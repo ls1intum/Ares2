@@ -55,6 +55,8 @@ public class JavaWalaSecurityTestCase {
                         .noClassesShouldImportForbiddenPackages(allowedPackages)
                         .check(javaClasses);
                 case THREAD_CREATION -> JavaWalaSecurityTestCaseCollection.noThreadCreation(callGraph);
+                case SERIALIZATION -> JavaWalaSecurityTestCaseCollection.noSerialization(callGraph);
+                case CLASS_LOADING -> JavaWalaSecurityTestCaseCollection.noClassLoading(callGraph);
                 default -> throw new UnsupportedOperationException("Not implemented yet %s".formatted(this.javaArchitectureTestCaseSupported));
             }
         } catch (AssertionError e) {

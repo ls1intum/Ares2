@@ -36,5 +36,13 @@ public enum JavaArchitecturalTestCaseSupported {
      * Architecture test case for the reflection.
      */
     REFLECTION,
+    /**
+     * Architecture test case for the serialization.
+     */
+    SERIALIZATION,
+    /**
+     * Architecture test case for the class loading.
+     */
+    CLASS_LOADING,
 
 }

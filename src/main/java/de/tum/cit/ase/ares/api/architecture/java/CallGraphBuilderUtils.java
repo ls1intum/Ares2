@@ -19,6 +19,7 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
 import de.tum.cit.ase.ares.api.architecture.java.wala.ReachabilityChecker;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;
@@ -50,7 +51,7 @@ public class CallGraphBuilderUtils {
         try {
             scope = Java9AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(
                     System.getProperty("java.class.path"),
-                    null
+                    new File("src/main/java/de/tum/cit/ase/ares/api/architecture/java/wala/exclusions.txt")
             );
 
             // Build the class hierarchy

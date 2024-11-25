@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.integration.testuser.subject.thirdpartypackage;
+package de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdpartypackage;
 
 import java.io.IOException;
 import java.io.PrintStream;

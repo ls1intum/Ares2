@@ -1,6 +1,6 @@
-package de.tum.cit.ase.ares.integration.testuser.subject.fileSystem;
+package de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.fileSystem;
 
-import de.tum.cit.ase.ares.integration.testuser.subject.thirdpartypackage.ThirdPartyPackagePenguin;
+import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdpartypackage.ThirdPartyPackagePenguin;
 
 import javax.swing.*;
 import java.awt.*;

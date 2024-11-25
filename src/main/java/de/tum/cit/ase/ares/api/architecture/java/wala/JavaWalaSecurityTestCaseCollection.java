@@ -3,7 +3,7 @@ package de.tum.cit.ase.ares.api.architecture.java.wala;
 import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.ibm.wala.shrike.shrikeCT.InvalidClassFileException;
-import de.tum.cit.ase.ares.api.architecture.java.archunit.FileHandlerConstants;
+import de.tum.cit.ase.ares.api.architecture.java.FileHandlerConstants;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -17,7 +17,7 @@ public class JavaWalaSecurityTestCaseCollection {
     public static void noReflection(CallGraph cg) {
         createNoClassShouldHaveMethodRule(
                 localize("security.architecture.reflection.uses"),
-                FileHandlerConstants.JAVA_REFLECTION_METHODS,
+                FileHandlerConstants.WALA_REFLECTION_METHODS,
                 cg
         );
     }
@@ -25,7 +25,7 @@ public class JavaWalaSecurityTestCaseCollection {
     public static void noFileSystemAccess(CallGraph cg) {
         createNoClassShouldHaveMethodRule(
                 localize("security.architecture.file.system.access"),
-                FileHandlerConstants.JAVA_FILESYSTEM_INTERACTION_METHODS,
+                FileHandlerConstants.WALA_FILESYSTEM_METHODS,
                 cg);
     }
 
@@ -33,7 +33,7 @@ public class JavaWalaSecurityTestCaseCollection {
     public static void noNetworkAccess(CallGraph cg) {
         createNoClassShouldHaveMethodRule(
                 localize("security.architecture.network.access"),
-                FileHandlerConstants.JAVA_NETWORK_ACCESS_METHODS,
+                FileHandlerConstants.WALA_NETWORK_METHODS,
                 cg
         );
     }
@@ -41,7 +41,7 @@ public class JavaWalaSecurityTestCaseCollection {
     public static void noJVMTermination(CallGraph cg) {
         createNoClassShouldHaveMethodRule(
                 localize("security.architecture.terminate.jvm"),
-                FileHandlerConstants.JAVA_JVM_TERMINATION_METHODS,
+                FileHandlerConstants.WALA_JVM_METHODS,
                 cg
         );
     }
@@ -49,7 +49,7 @@ public class JavaWalaSecurityTestCaseCollection {
     public static void noCommandExecution(CallGraph cg) {
         createNoClassShouldHaveMethodRule(
                 localize("security.architecture.execute.command"),
-                FileHandlerConstants.JAVA_COMMAND_EXECUTION_METHODS,
+                FileHandlerConstants.WALA_COMMAND_EXECUTION_METHODS,
                 cg
         );
     }
@@ -57,8 +57,24 @@ public class JavaWalaSecurityTestCaseCollection {
     public static void noThreadCreation(CallGraph cg) {
         createNoClassShouldHaveMethodRule(
                 localize("security.architecture.manipulate.threads"),
-                FileHandlerConstants.JAVA_THREAD_CREATION_METHODS,
+                FileHandlerConstants.WALA_THREAD_MANIPULATION_METHODS,
                 cg
+        );
+    }
+
+    public static void noSerialization(CallGraph callGraph) {
+        createNoClassShouldHaveMethodRule(
+                localize("security.architecture.serialize"),
+                FileHandlerConstants.WALA_SERIALIZATION_METHODS,
+                callGraph
+        );
+    }
+
+    public static void noClassLoading(CallGraph callGraph) {
+        createNoClassShouldHaveMethodRule(
+                localize("security.architecture.class.loading"),
+                FileHandlerConstants.WALA_CLASSLOADER_METHODS,
+                callGraph
         );
     }
 
@@ -76,10 +92,7 @@ public class JavaWalaSecurityTestCaseCollection {
                                         .startsWith(method)));
 
         // TODO Sarp: Error message
-        try {
-            throw new AssertionError(reachableNodes.getFirst().getMethod().getSignature() + " " + ruleName + "\n" + reachableNodes.getLast().getMethod().getSourcePosition(0).getFirstLine());
-        } catch (InvalidClassFileException e) {
-            e.printStackTrace();
-        }
+        // reachableNodes.getFirst().getMethod().getSignature() + " " + ruleName + "\n" + reachableNodes.getLast().getMethod().getSourcePosition(0).getFirstLine()
+        throw new AssertionError(ruleName + " " + reachableNodes.toString());
     }
 }

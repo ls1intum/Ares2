@@ -5,15 +5,13 @@ import com.tngtech.archunit.core.domain.JavaAccess;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition;
-import de.tum.cit.ase.ares.api.util.FileTools;
+import de.tum.cit.ase.ares.api.architecture.java.FileHandlerConstants;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
 
@@ -145,7 +143,14 @@ public class JavaArchitectureTestCaseCollection {
     //<editor-fold desc="Thread Creation related rule">
     public static final ArchRule NO_CLASSES_SHOULD_CREATE_THREADS = createNoClassShouldHaveMethodRule(
             localize("security.architecture.manipulate.threads"),
-            FileHandlerConstants.JAVA_THREAD_CREATION_METHODS
+            FileHandlerConstants.JAVA_THREAD_MANIPULATION_METHODS
+    );
+    //</editor-fold>
+
+    //<editor-fold desc="Serialization related rule">
+    public static final ArchRule NO_CLASSES_SHOULD_SERIALIZE = createNoClassShouldHaveMethodRule(
+            localize("security.architecture.serialize"),
+            FileHandlerConstants.JAVA_SERIALIZATION_METHODS
     );
     //</editor-fold>
 }

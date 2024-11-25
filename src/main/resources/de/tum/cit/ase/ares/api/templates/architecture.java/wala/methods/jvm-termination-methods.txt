@@ -1,4 +1,0 @@
-Desktop.checkQuitPermission()  (java.awt)
-JFrame.setDefaultCloseOperation(int)  (javax.swing)
-Runtime.exit(int)  (java.lang)
-Runtime.halt(int)  (java.lang)
