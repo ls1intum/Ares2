@@ -30,7 +30,7 @@ public class JavaArchitectureTestCase implements ArchitectureSecurityTestCase {
     //</editor-fold>
 
     //<editor-fold desc="Constructor">
-    public JavaArchitectureTestCase(JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported, boolean longErrorActive, JavaClasses javaClasses, CallGraph callGraph, Set<SecurityPolicy.PackagePermission> allowedPackages) {
+    public JavaArchitectureTestCase(@Nonnull JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported, boolean longErrorActive, @Nonnull JavaClasses javaClasses, @Nullable CallGraph callGraph, @Nullable Set<SecurityPolicy.PackagePermission> allowedPackages) {
         this.javaArchitectureTestCaseSupported = javaArchitectureTestCaseSupported;
         this.javaClasses = javaClasses;
         this.callGraph = callGraph;
@@ -49,7 +49,7 @@ public class JavaArchitectureTestCase implements ArchitectureSecurityTestCase {
 
     //<editor-fold desc="Execute architecture test case methods">
     @Override
-    public void executeArchitectureTestCase(JavaArchitectureMode architectureMode) {
+    public void executeArchitectureTestCase(@Nonnull JavaArchitectureMode architectureMode) {
         // TODO: Add some checks for the modes and the needs e.g. (CallGraph not null for WALA)
         switch (architectureMode) {
             case WALA -> JavaWalaSecurityTestCase.builder()
