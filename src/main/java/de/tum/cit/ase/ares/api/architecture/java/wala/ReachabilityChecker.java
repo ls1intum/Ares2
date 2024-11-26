@@ -11,6 +11,7 @@ import com.ibm.wala.ipa.cha.ClassHierarchyException;
 import com.ibm.wala.ipa.cha.ClassHierarchyFactory;
 import com.ibm.wala.types.ClassLoaderReference;
 import com.ibm.wala.util.graph.traverse.DFSPathFinder;
+import de.tum.cit.ase.ares.api.architecture.java.FileHandlerConstants;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -19,16 +20,15 @@ import java.util.List;
 import java.util.function.Predicate;
 
 import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
+import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 
 /**
  * A utility class to check reachability in a call graph.
  */
 public class ReachabilityChecker {
 
-    // TODO Sarp: translate error messages
-
     private ReachabilityChecker() {
-        // Utility class
+        throw new SecurityException(localized("security.general.utility.initialization", FileHandlerConstants.class.getName()));
     }
 
     /**
