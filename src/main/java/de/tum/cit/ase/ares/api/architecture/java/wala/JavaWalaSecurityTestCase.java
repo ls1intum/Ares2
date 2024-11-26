@@ -3,14 +3,12 @@ package de.tum.cit.ase.ares.api.architecture.java.wala;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitecturalTestCaseSupported;
-import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchitectureTestCaseCollection;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
 import static de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase.parseErrorMessage;
+import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 
 /**
  * Security test case for the Java programming language using WALA.
@@ -51,13 +49,11 @@ public class JavaWalaSecurityTestCase {
                 case TERMINATE_JVM -> JavaWalaSecurityTestCaseCollection.noJVMTermination(callGraph);
                 case NETWORK_CONNECTION -> JavaWalaSecurityTestCaseCollection.noNetworkAccess(callGraph);
                 case COMMAND_EXECUTION -> JavaWalaSecurityTestCaseCollection.noCommandExecution(callGraph);
-                case PACKAGE_IMPORT -> JavaArchitectureTestCaseCollection
-                        .noClassesShouldImportForbiddenPackages(allowedPackages)
-                        .check(javaClasses);
+                case PACKAGE_IMPORT -> JavaWalaSecurityTestCaseCollection.restrictPackageImport(javaClasses, allowedPackages);
                 case THREAD_CREATION -> JavaWalaSecurityTestCaseCollection.noThreadManipulation(callGraph);
                 case SERIALIZATION -> JavaWalaSecurityTestCaseCollection.noSerialization(callGraph);
                 case CLASS_LOADING -> JavaWalaSecurityTestCaseCollection.noClassLoading(callGraph);
-                default -> throw new SecurityException(localize("security.common.unsupported.operation", this.javaArchitectureTestCaseSupported));
+                default -> throw new SecurityException(localized("security.common.unsupported.operation", this.javaArchitectureTestCaseSupported));
             }
         } catch (AssertionError e) {
             // check if long error message is enabled

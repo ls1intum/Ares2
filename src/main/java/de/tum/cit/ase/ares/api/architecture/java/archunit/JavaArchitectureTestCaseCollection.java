@@ -16,7 +16,7 @@ import java.util.Scanner;
 import java.util.Set;
 
 import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
-import static de.tum.cit.ase.ares.api.architecture.java.CallGraphBuilderUtils.getForbiddenMethods;
+import static de.tum.cit.ase.ares.api.util.FileTools.readMethodsFromGivenPath;
 
 /**
  * This class runs the security rules on the architecture for the post-compile mode.
@@ -107,7 +107,7 @@ public class JavaArchitectureTestCaseCollection {
                     @Override
                     public boolean test(JavaAccess<?> javaAccess) {
                         if (forbiddenMethods == null) {
-                            forbiddenMethods = getForbiddenMethods(methodsFilePath);
+                            forbiddenMethods = readMethodsFromGivenPath(methodsFilePath);
                         }
                         return forbiddenMethods
                                 .stream()

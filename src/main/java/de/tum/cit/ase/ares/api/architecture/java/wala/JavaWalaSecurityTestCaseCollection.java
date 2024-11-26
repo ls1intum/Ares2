@@ -3,14 +3,16 @@ package de.tum.cit.ase.ares.api.architecture.java.wala;
 import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.ibm.wala.shrike.shrikeCT.InvalidClassFileException;
+import com.tngtech.archunit.core.domain.JavaClasses;
 import de.tum.cit.ase.ares.api.architecture.java.FileHandlerConstants;
+import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchitectureTestCaseCollection;
 
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 
 import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
-import static de.tum.cit.ase.ares.api.architecture.java.CallGraphBuilderUtils.getForbiddenMethods;
+import static de.tum.cit.ase.ares.api.util.FileTools.readMethodsFromGivenPath;
 
 /**
  * Collection of security test cases that analyze Java applications using WALA framework.
@@ -116,6 +118,12 @@ public class JavaWalaSecurityTestCaseCollection {
         );
     }
 
+    public static void restrictPackageImport(JavaClasses javaClasses, Set<String> allowedPackages) {
+        JavaArchitectureTestCaseCollection
+                .noClassesShouldImportForbiddenPackages(allowedPackages)
+                .check(javaClasses);
+    }
+
     /**
      * Creates a rule that checks if a class has a forbidden method.
      */
@@ -124,7 +132,7 @@ public class JavaWalaSecurityTestCaseCollection {
             Path methodsFilePath,
             CallGraph cg
     ) {
-        Set<String> forbiddenMethods = getForbiddenMethods(methodsFilePath);
+        Set<String> forbiddenMethods = readMethodsFromGivenPath(methodsFilePath);
         List<CGNode> reachableNodes= ReachabilityChecker.findReachableMethods(cg, cg.getEntrypointNodes().iterator(),
                         cgNode -> forbiddenMethods.stream()
                                 .anyMatch(method -> cgNode

@@ -10,10 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
-import java.util.Arrays;
-import java.util.IllegalFormatException;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -287,5 +284,16 @@ public class FileTools {
      */
     public static String[] generatePackageNameArray(String packageName, int numberOfEntries) {
         return IntStream.range(0, numberOfEntries).mapToObj(i -> packageName).toArray(String[]::new);
+    }
+
+    /**
+     * Reads the content of a file and returns it as a set of strings.
+     * @param filePath
+     * @return
+     */
+    public static Set<String> readMethodsFromGivenPath(Path filePath) {
+        String fileContent = FileTools.readFile(filePath);
+        String normalizedContent = fileContent.replace("\r\n", "\n").replace("\r", "\n");
+        return new HashSet<>(List.of(normalizedContent.split("\n")));
     }
 }

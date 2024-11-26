@@ -35,6 +35,7 @@ public class JavaArchUnitSecurityTestCase {
     /**
      * List of allowed packages to be imported.
      */
+    @Nonnull
     private final Set<String> allowedPackages;
     //</editor-fold>
 
@@ -44,7 +45,7 @@ public class JavaArchUnitSecurityTestCase {
      *
      * @param builder Selects the supported architecture test case in the Java programming language
      */
-    private JavaArchUnitSecurityTestCase(Builder builder) {
+    private JavaArchUnitSecurityTestCase(@Nonnull Builder builder) {
         this.javaArchitectureTestCaseSupported = builder.javaArchitectureTestCaseSupported;
         this.allowedPackages = builder.allowedPackages;
     }
@@ -93,11 +94,16 @@ public class JavaArchUnitSecurityTestCase {
                                 .NO_CLASSES_SHOULD_ACCESS_NETWORK
                                 .check(javaClasses);
                 case THREAD_CREATION ->
-                        JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_CREATE_THREADS.check(javaClasses);
+                        JavaArchitectureTestCaseCollection
+                                .NO_CLASSES_SHOULD_CREATE_THREADS
+                                .check(javaClasses);
                 case COMMAND_EXECUTION ->
-                        JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_EXECUTE_COMMANDS.check(javaClasses);
+                        JavaArchitectureTestCaseCollection
+                                .NO_CLASSES_SHOULD_EXECUTE_COMMANDS
+                                .check(javaClasses);
                 case SERIALIZATION ->
                         JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_SERIALIZE.check(javaClasses);
+                // Classloading included in the Reflection test case
                 case CLASS_LOADING -> {}
                 default -> throw new SecurityException(localized("security.common.unsupported.operation", this.javaArchitectureTestCaseSupported));
             }

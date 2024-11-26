@@ -1,3 +1,6 @@
+jdk/.*
+java/time/.*
+java/security/.*
 java/awt/.*
 java/beans/.*
 java/io/.*
@@ -28,11 +31,8 @@ java/math/.*
 java/net/.*
 java/nio/.*
 java/rmi/.*
-java/security/.*
 java/sql/.*
 java/text/.*
-java/time/.*
 javax/.*
 sun/.*
 com/sun/.*
-jdk/.*

@@ -7,7 +7,9 @@ import java.nio.file.Path;
 import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 
 /**
- * Constants for the path of the files used in the ArchitectureTestCaseStorage
+ * Constants for the paths storing the methods that are not allowed to be used in the Java architecture.
+ * These methods are used to create the rules for the architecture tests.
+ * The paths are used to read the methods from the files.
  */
 public class FileHandlerConstants {
 
