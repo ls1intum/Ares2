@@ -15,6 +15,7 @@ import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 
 public class JavaArchitectureTestCase implements ArchitectureSecurityTestCase {
 
+    //<editor-fold desc="Attributes">
     @Nonnull
     private final JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported;
 
@@ -26,7 +27,9 @@ public class JavaArchitectureTestCase implements ArchitectureSecurityTestCase {
     private final CallGraph callGraph;
     @Nullable
     private final Set<SecurityPolicy.PackagePermission> allowedPackages;
+    //</editor-fold>
 
+    //<editor-fold desc="Constructor">
     public JavaArchitectureTestCase(JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported, boolean longErrorActive, JavaClasses javaClasses, CallGraph callGraph, Set<SecurityPolicy.PackagePermission> allowedPackages) {
         this.javaArchitectureTestCaseSupported = javaArchitectureTestCaseSupported;
         this.javaClasses = javaClasses;
@@ -34,12 +37,17 @@ public class JavaArchitectureTestCase implements ArchitectureSecurityTestCase {
         this.longErrorActive = longErrorActive;
         this.allowedPackages = allowedPackages;
     }
+    //</editor-fold>
 
+    //<editor-fold desc="Write architecture test case methods">
+    @Nonnull
     @Override
-    public String writeArchitectureTestCase() {
+    public String writeArchitectureTestCase(@Nonnull String architectureMode) {
         return "";
     }
+    //</editor-fold>
 
+    //<editor-fold desc="Execute architecture test case methods">
     @Override
     public void executeArchitectureTestCase(JavaArchitectureMode architectureMode) {
         // TODO: Add some checks for the modes and the needs e.g. (CallGraph not null for WALA)
@@ -58,6 +66,7 @@ public class JavaArchitectureTestCase implements ArchitectureSecurityTestCase {
                     .executeArchitectureTestCase(javaClasses);
         }
     }
+    //</editor-fold>
 
     public static void parseErrorMessage(AssertionError e, boolean longError) {
         if (longError) {
@@ -71,6 +80,7 @@ public class JavaArchitectureTestCase implements ArchitectureSecurityTestCase {
         throw new SecurityException(localized("security.archunit.violation.error", split[0].replaceAll(".*?'(.*?)'.*", "$1"), split[1]));
     }
 
+    // TODO: Outsource this to a new class
     public static Builder builder() {
         return new Builder();
     }

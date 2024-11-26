@@ -3,12 +3,14 @@ package de.tum.cit.ase.ares.api.architecture;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureMode;
 
+import javax.annotation.Nonnull;
+
 /**
- * Interface for defining architecture security test cases in various programming languages.
+ * Interface for architecture security test case configurations across various programming languages.
  * <p>
- * This interface serves as an abstract product in the Abstract Factory Design Pattern,
- * outlining the required methods for generating and executing architecture test cases
- * tailored to any programming languages.
+ * This interface serves as the abstract product in the Abstract Factory Design Pattern,
+ * requiring the implementation of methods for generating and executing architecture test case
+ * files tailored to any programming languages.
  * </p>
  *
  * @version 2.0.0
@@ -28,7 +30,7 @@ public interface ArchitectureSecurityTestCase {
      *
      * @return a {@link String} representing the content of the architecture test case file.
      */
-    String writeArchitectureTestCase();
+    @Nonnull String writeArchitectureTestCase(@Nonnull String architectureMode);
 
     /**
      * Executes the architecture test case using the provided set of Java classes.
@@ -38,7 +40,8 @@ public interface ArchitectureSecurityTestCase {
      * to handle any language-specific execution details required to run the test case.
      * </p>
      *
-     * @param classes a set of {@link JavaClasses} representing the codebase to which the test case will be applied.
+     * @param architectureMode a set of {@link JavaClasses} representing the codebase to which the test case will be applied.
      */
+    // TODO: Change this from JavaArchitectureMode architectureMode to @Nonnull String architectureMode
     void executeArchitectureTestCase(JavaArchitectureMode architectureMode);
 }
