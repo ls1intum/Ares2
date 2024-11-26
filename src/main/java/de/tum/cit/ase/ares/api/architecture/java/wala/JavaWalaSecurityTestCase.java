@@ -5,9 +5,10 @@ package de.tum.cit.ase.ares.api.architecture.java.wala;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitecturalTestCaseSupported;
-import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
+import de.tum.cit.ase.ares.api.policy.SecurityPolicy.PackagePermission;
 
 import javax.annotation.Nonnull;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import static de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase.parseErrorMessage;
@@ -103,7 +104,6 @@ public class JavaWalaSecurityTestCase {
                 default -> throw new SecurityException(localized("security.common.unsupported.operation", this.javaArchitectureTestCaseSupported));
             }
         } catch (AssertionError e) {
-            // check if long error message is enabled
             parseErrorMessage(e);
         }
     }
@@ -119,17 +119,17 @@ public class JavaWalaSecurityTestCase {
     // Static Builder class
     public static class Builder {
         private JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported;
-        private Set<String> allowedPackages;
+        private Set<String> allowedPackages = new HashSet<>();;
 
         public Builder javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported) {
             this.javaArchitectureTestCaseSupported = javaArchitectureTestCaseSupported;
             return this;
         }
 
-        public Builder allowedPackages(Set<SecurityPolicy.PackagePermission> packages) {
+        public Builder allowedPackages(Set<PackagePermission> packages) {
             if (packages != null) {
                 this.allowedPackages = packages.stream()
-                        .map(SecurityPolicy.PackagePermission::importTheFollowingPackage)
+                        .map(PackagePermission::importTheFollowingPackage)
                         .collect(Collectors.toSet());
             }
             return this;
