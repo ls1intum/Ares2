@@ -23,11 +23,11 @@ import static de.tum.cit.ase.ares.api.util.FileTools.readMethodsFromGivenPath;
 /**
  * This class runs the security rules on the architecture for the post-compile mode.
  */
-public class JavaArchitectureTestCaseCollection {
+public class JavaArchUnitTestCaseCollection {
 
     //<editor-fold desc="Constructor">
-    private JavaArchitectureTestCaseCollection() {
-        throw new IllegalArgumentException("Ares Security Error (Reason: Ares-Code; Stage: Execution): JavaArchitectureTestCaseCollection is a utility class and should not be instantiated.");
+    private JavaArchUnitTestCaseCollection() {
+        throw new SecurityException(localize("security.general.utility.initialization", JavaArchUnitTestCaseCollection.class.getName()));
     }
     //</editor-fold>
 
@@ -41,7 +41,7 @@ public class JavaArchitectureTestCaseCollection {
                 "templates", "architecture", "java", "archunit", "rules", key + ".txt");
 
         // Read the file content
-        try (InputStream sourceStream = JavaArchitectureTestCaseCollection.class.getResourceAsStream("/" + resolvedPath)) {
+        try (InputStream sourceStream = JavaArchUnitTestCaseCollection.class.getResourceAsStream("/" + resolvedPath)) {
             if (sourceStream == null) {
                 throw new IOException("Resource not found: " + resolvedPath);
             }
@@ -87,7 +87,7 @@ public class JavaArchitectureTestCaseCollection {
      */
     public static final ArchRule NO_CLASS_SHOULD_ACCESS_FILE_SYSTEM = createNoClassShouldHaveMethodRule(
             localize("security.architecture.file.system.access"),
-            FileHandlerConstants.JAVA_FILESYSTEM_INTERACTION_METHODS
+            FileHandlerConstants.ARCHUNIT_FILESYSTEM_INTERACTION_METHODS
     );
     //</editor-fold>
 
@@ -97,21 +97,21 @@ public class JavaArchitectureTestCaseCollection {
      */
     public static final ArchRule NO_CLASSES_SHOULD_ACCESS_NETWORK = createNoClassShouldHaveMethodRule(
             localize("security.architecture.network.access"),
-            FileHandlerConstants.JAVA_NETWORK_ACCESS_METHODS
+            FileHandlerConstants.ARCHUNIT_NETWORK_ACCESS_METHODS
     );
     //</editor-fold>
 
     //<editor-fold desc="Thread Creation related rule">
     public static final ArchRule NO_CLASSES_SHOULD_CREATE_THREADS = createNoClassShouldHaveMethodRule(
             localize("security.architecture.manipulate.threads"),
-            FileHandlerConstants.JAVA_THREAD_MANIPULATION_METHODS
+            FileHandlerConstants.ARCHUNIT_THREAD_MANIPULATION_METHODS
     );
     //</editor-fold>
 
     //<editor-fold desc="Command Execution related rule">
     public static final ArchRule NO_CLASSES_SHOULD_EXECUTE_COMMANDS = createNoClassShouldHaveMethodRule(
             localize("security.architecture.execute.command"),
-            FileHandlerConstants.JAVA_COMMAND_EXECUTION_METHODS
+            FileHandlerConstants.ARCHUNIT_COMMAND_EXECUTION_METHODS
     );
     //</editor-fold>
 
@@ -138,7 +138,7 @@ public class JavaArchitectureTestCaseCollection {
      */
     public static final ArchRule NO_CLASSES_SHOULD_USE_REFLECTION = createNoClassShouldHaveMethodRule(
             localize("security.architecture.reflection.uses"),
-            FileHandlerConstants.JAVA_REFLECTION_METHODS
+            FileHandlerConstants.ARCHUNIT_REFLECTION_METHODS
     );
     //</editor-fold>
 
@@ -148,14 +148,14 @@ public class JavaArchitectureTestCaseCollection {
      */
     public static final ArchRule NO_CLASSES_SHOULD_TERMINATE_JVM = createNoClassShouldHaveMethodRule(
             localize("security.architecture.terminate.jvm"),
-            FileHandlerConstants.JAVA_JVM_TERMINATION_METHODS
+            FileHandlerConstants.ARCHUNIT_JVM_TERMINATION_METHODS
     );
     //</editor-fold>
 
     //<editor-fold desc="Serialization related rule">
     public static final ArchRule NO_CLASSES_SHOULD_SERIALIZE = createNoClassShouldHaveMethodRule(
             localize("security.architecture.serialize"),
-            FileHandlerConstants.JAVA_SERIALIZATION_METHODS
+            FileHandlerConstants.ARCHUNIT_SERIALIZATION_METHODS
     );
     //</editor-fold>
 }

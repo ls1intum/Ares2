@@ -14,13 +14,13 @@ import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 public class FileHandlerConstants {
 
     //<editor-fold desc="Java ArchUnit Methods">
-    public static final Path JAVA_FILESYSTEM_INTERACTION_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "archunit", "methods", "file-system-access-methods.txt");
-    public static final Path JAVA_NETWORK_ACCESS_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "archunit", "methods", "network-access-methods.txt");
-    public static final Path JAVA_JVM_TERMINATION_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "archunit", "methods", "jvm-termination-methods.txt");
-    public static final Path JAVA_REFLECTION_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "archunit", "methods", "reflection-methods.txt");
-    public static final Path JAVA_COMMAND_EXECUTION_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "archunit", "methods", "command-execution-methods.txt");
-    public static final Path JAVA_THREAD_MANIPULATION_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "archunit", "methods", "thread-manipulation-methods.txt");
-    public static final Path JAVA_SERIALIZATION_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "archunit", "methods", "serializable-methods.txt");
+    public static final Path ARCHUNIT_FILESYSTEM_INTERACTION_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "archunit", "methods", "file-system-access-methods.txt");
+    public static final Path ARCHUNIT_NETWORK_ACCESS_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "archunit", "methods", "network-access-methods.txt");
+    public static final Path ARCHUNIT_JVM_TERMINATION_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "archunit", "methods", "jvm-termination-methods.txt");
+    public static final Path ARCHUNIT_REFLECTION_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "archunit", "methods", "reflection-methods.txt");
+    public static final Path ARCHUNIT_COMMAND_EXECUTION_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "archunit", "methods", "command-execution-methods.txt");
+    public static final Path ARCHUNIT_THREAD_MANIPULATION_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "archunit", "methods", "thread-manipulation-methods.txt");
+    public static final Path ARCHUNIT_SERIALIZATION_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "archunit", "methods", "serializable-methods.txt");
     //</editor-fold>
 
     //<editor-fold desc="WALA Methods">

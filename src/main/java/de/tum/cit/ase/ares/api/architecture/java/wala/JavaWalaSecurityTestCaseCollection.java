@@ -6,7 +6,7 @@ import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.ibm.wala.shrike.shrikeCT.InvalidClassFileException;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import de.tum.cit.ase.ares.api.architecture.java.FileHandlerConstants;
-import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchitectureTestCaseCollection;
+import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitTestCaseCollection;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -125,7 +125,7 @@ public class JavaWalaSecurityTestCaseCollection {
 
     //<editor-fold desc="Package Import related rule">
     public static void restrictPackageImport(JavaClasses javaClasses, Set<String> allowedPackages) {
-        JavaArchitectureTestCaseCollection
+        JavaArchUnitTestCaseCollection
                 .noClassesShouldImportForbiddenPackages(allowedPackages)
                 .check(javaClasses);
     }

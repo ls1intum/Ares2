@@ -12,7 +12,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase.parseErrorMessage;
-import static de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchitectureTestCaseCollection.getArchitectureRuleFileContent;
+import static de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitTestCaseCollection.getArchitectureRuleFileContent;
 import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 //</editor-fold>
 
@@ -78,35 +78,35 @@ public class JavaArchUnitSecurityTestCase {
         try {
             switch (this.javaArchitectureTestCaseSupported) {
                 case FILESYSTEM_INTERACTION ->
-                        JavaArchitectureTestCaseCollection
+                        JavaArchUnitTestCaseCollection
                                 .NO_CLASS_SHOULD_ACCESS_FILE_SYSTEM
                                 .check(javaClasses);
                 case NETWORK_CONNECTION ->
-                        JavaArchitectureTestCaseCollection
+                        JavaArchUnitTestCaseCollection
                                 .NO_CLASSES_SHOULD_ACCESS_NETWORK
                                 .check(javaClasses);
                 case THREAD_CREATION ->
-                        JavaArchitectureTestCaseCollection
+                        JavaArchUnitTestCaseCollection
                                 .NO_CLASSES_SHOULD_CREATE_THREADS
                                 .check(javaClasses);
                 case COMMAND_EXECUTION ->
-                        JavaArchitectureTestCaseCollection
+                        JavaArchUnitTestCaseCollection
                                 .NO_CLASSES_SHOULD_EXECUTE_COMMANDS
                                 .check(javaClasses);
                 case PACKAGE_IMPORT ->
-                        JavaArchitectureTestCaseCollection
+                        JavaArchUnitTestCaseCollection
                                 .noClassesShouldImportForbiddenPackages(allowedPackages)
                                 .check(javaClasses);
                 case REFLECTION ->
-                        JavaArchitectureTestCaseCollection
+                        JavaArchUnitTestCaseCollection
                                 .NO_CLASSES_SHOULD_USE_REFLECTION
                                 .check(javaClasses);
                 case TERMINATE_JVM ->
-                        JavaArchitectureTestCaseCollection
+                        JavaArchUnitTestCaseCollection
                                 .NO_CLASSES_SHOULD_TERMINATE_JVM
                                 .check(javaClasses);
                 case SERIALIZATION ->
-                        JavaArchitectureTestCaseCollection
+                        JavaArchUnitTestCaseCollection
                                 .NO_CLASSES_SHOULD_SERIALIZE
                                 .check(javaClasses);
                 // Classloading included in the Reflection test case
