@@ -12,6 +12,21 @@ import java.util.Set;
 import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
 import static de.tum.cit.ase.ares.api.architecture.java.CallGraphBuilderUtils.getForbiddenMethods;
 
+/**
+ * Collection of security test cases that analyze Java applications using WALA framework.
+ * This class provides static methods to verify that analyzed code does not:
+ * - Use reflection
+ * - Access file system
+ * - Access network
+ * - Terminate JVM
+ * - Execute system commands
+ * - Create threads
+ *
+ * Each security check method accepts a CallGraph and throws AssertionError if a violation is found.
+ *
+ * @see com.ibm.wala.ipa.callgraph.CallGraph
+ * @see ReachabilityChecker
+ */
 public class JavaWalaSecurityTestCaseCollection {
 
     /**
