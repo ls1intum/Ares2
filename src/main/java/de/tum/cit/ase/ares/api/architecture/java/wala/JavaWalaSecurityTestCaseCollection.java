@@ -14,6 +14,9 @@ import static de.tum.cit.ase.ares.api.architecture.java.CallGraphBuilderUtils.ge
 
 public class JavaWalaSecurityTestCaseCollection {
 
+    /**
+     * No reflection test case.
+     */
     public static void noReflection(CallGraph cg) {
         createNoClassShouldHaveMethodRule(
                 localize("security.architecture.reflection.uses"),
@@ -22,6 +25,9 @@ public class JavaWalaSecurityTestCaseCollection {
         );
     }
 
+    /**
+     * No file system access test case.
+     */
     public static void noFileSystemAccess(CallGraph cg) {
         createNoClassShouldHaveMethodRule(
                 localize("security.architecture.file.system.access"),
@@ -29,7 +35,9 @@ public class JavaWalaSecurityTestCaseCollection {
                 cg);
     }
 
-    // create a helper method reachability checker
+    /**
+     * No network access test case.
+     */
     public static void noNetworkAccess(CallGraph cg) {
         createNoClassShouldHaveMethodRule(
                 localize("security.architecture.network.access"),
@@ -38,6 +46,9 @@ public class JavaWalaSecurityTestCaseCollection {
         );
     }
 
+    /**
+     * No JVM termination test case.
+     */
     public static void noJVMTermination(CallGraph cg) {
         createNoClassShouldHaveMethodRule(
                 localize("security.architecture.terminate.jvm"),
@@ -46,6 +57,9 @@ public class JavaWalaSecurityTestCaseCollection {
         );
     }
 
+    /**
+     * No command execution test case.
+     */
     public static void noCommandExecution(CallGraph cg) {
         createNoClassShouldHaveMethodRule(
                 localize("security.architecture.execute.command"),
@@ -54,7 +68,10 @@ public class JavaWalaSecurityTestCaseCollection {
         );
     }
 
-    public static void noThreadCreation(CallGraph cg) {
+    /**
+     * No thread manipulation test case.
+     */
+    public static void noThreadManipulation(CallGraph cg) {
         createNoClassShouldHaveMethodRule(
                 localize("security.architecture.manipulate.threads"),
                 FileHandlerConstants.WALA_THREAD_MANIPULATION_METHODS,
@@ -62,6 +79,9 @@ public class JavaWalaSecurityTestCaseCollection {
         );
     }
 
+    /**
+     * No serialization test case.
+     */
     public static void noSerialization(CallGraph callGraph) {
         createNoClassShouldHaveMethodRule(
                 localize("security.architecture.serialize"),
@@ -70,6 +90,9 @@ public class JavaWalaSecurityTestCaseCollection {
         );
     }
 
+    /**
+     * No class loading test case.
+     */
     public static void noClassLoading(CallGraph callGraph) {
         createNoClassShouldHaveMethodRule(
                 localize("security.architecture.class.loading"),
@@ -78,6 +101,9 @@ public class JavaWalaSecurityTestCaseCollection {
         );
     }
 
+    /**
+     * Creates a rule that checks if a class has a forbidden method.
+     */
     private static void createNoClassShouldHaveMethodRule(
             String ruleName,
             Path methodsFilePath,
@@ -90,9 +116,19 @@ public class JavaWalaSecurityTestCaseCollection {
                                         .getMethod()
                                         .getSignature()
                                         .startsWith(method)));
+        try {
+            String sb = "'" + ruleName + "'\r\n" +
+                    "Method <" +
+                    reachableNodes.getLast().getMethod().getSignature() +
+                    "> calls method <" +
+                    reachableNodes.get(reachableNodes.size() - 2).getMethod().getSignature() +
+                    "> in (" + reachableNodes.getLast().getMethod().getDeclaringClass().getName().getClassName().toString() + ".java:" + reachableNodes.getLast().getMethod().getSourcePosition(0).getFirstLine() +
+                    ") accesses <" +
+                    reachableNodes.getFirst().getMethod().getSignature();
 
-        // TODO Sarp: Error message
-        // reachableNodes.getFirst().getMethod().getSignature() + " " + ruleName + "\n" + reachableNodes.getLast().getMethod().getSourcePosition(0).getFirstLine()
-        throw new AssertionError(ruleName + " " + reachableNodes.toString());
+            throw new AssertionError(sb);
+        } catch (InvalidClassFileException e) {
+            throw new SecurityException(localize("security.architecture.invalid.class.file"));
+        }
     }
 }

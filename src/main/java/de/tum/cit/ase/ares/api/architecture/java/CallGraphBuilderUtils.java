@@ -26,6 +26,8 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
 //</editor-fold>
 
 /**
@@ -34,7 +36,7 @@ import java.util.stream.Collectors;
 public class CallGraphBuilderUtils {
 
     private CallGraphBuilderUtils() {
-        throw new IllegalStateException("Utility class");
+        throw new SecurityException(localize("security.general.utility.initialization", CallGraphBuilderUtils.class.getName()));
     }
 
     /**
@@ -57,7 +59,7 @@ public class CallGraphBuilderUtils {
             // Build the class hierarchy
             classHierarchy = ClassHierarchyFactory.make(scope);
         } catch (ClassHierarchyException | IOException e) {
-            throw new SecurityException("Could not create class hierarchy for student submission", e); // $NON-NLS-1$
+            throw new SecurityException(localize("security.architecture.class.hierarchy.error")); // $NON-NLS-1$
         }
     }
 
@@ -117,7 +119,7 @@ public class CallGraphBuilderUtils {
      */
     public static String convertTypeName(String typeName) {
         if (typeName == null || typeName.isEmpty()) {
-            throw new IllegalArgumentException("Type name cannot be null or empty");
+            throw new SecurityException(localize("security.architecture.class.type.resolution.error"));
         }
         return "L" + typeName.replace('.', '/');
     }
@@ -142,7 +144,7 @@ public class CallGraphBuilderUtils {
             // Generate the call graph
             return builder.makeCallGraph(options, null);
         } catch (CallGraphBuilderCancelException e) {
-            throw new SecurityException("Error building call graph", e); //$NON-NLS-1$
+            throw new SecurityException(localize("security.architecture.build.call.graph.error")); //$NON-NLS-1$
         }
     }
 

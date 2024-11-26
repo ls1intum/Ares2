@@ -9,10 +9,11 @@ import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
 import static de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase.parseErrorMessage;
 
 /**
- * A utility class to check security rules in a call graph.
+ * Security test case for the Java programming language using WALA.
  */
 public class JavaWalaSecurityTestCase {
 
@@ -22,18 +23,12 @@ public class JavaWalaSecurityTestCase {
     private final JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported;
 
     /**
-     * Flag to determine if the error message should be long or parsed for less details.
-     */
-    private final boolean longError;
-
-    /**
      * List of allowed packages to be imported.
      */
     private final Set<String> allowedPackages;
 
     public JavaWalaSecurityTestCase(Builder builder) {
         this.javaArchitectureTestCaseSupported = builder.javaArchitectureTestCaseSupported;
-        this.longError = builder.longError;
         this.allowedPackages = builder.allowedPackages;
     }
 
@@ -43,6 +38,11 @@ public class JavaWalaSecurityTestCase {
         return "";
     }
 
+    /**
+     * Execute the architecture test case.
+     * @param callGraph The call graph to check
+     * @param javaClasses The Java classes to check
+     */
     public void executeArchitectureTestCase(CallGraph callGraph, JavaClasses javaClasses) {
         try {
             switch (this.javaArchitectureTestCaseSupported) {
@@ -54,14 +54,14 @@ public class JavaWalaSecurityTestCase {
                 case PACKAGE_IMPORT -> JavaArchitectureTestCaseCollection
                         .noClassesShouldImportForbiddenPackages(allowedPackages)
                         .check(javaClasses);
-                case THREAD_CREATION -> JavaWalaSecurityTestCaseCollection.noThreadCreation(callGraph);
+                case THREAD_CREATION -> JavaWalaSecurityTestCaseCollection.noThreadManipulation(callGraph);
                 case SERIALIZATION -> JavaWalaSecurityTestCaseCollection.noSerialization(callGraph);
                 case CLASS_LOADING -> JavaWalaSecurityTestCaseCollection.noClassLoading(callGraph);
-                default -> throw new UnsupportedOperationException("Not implemented yet %s".formatted(this.javaArchitectureTestCaseSupported));
+                default -> throw new SecurityException(localize("security.common.unsupported.operation", this.javaArchitectureTestCaseSupported));
             }
         } catch (AssertionError e) {
             // check if long error message is enabled
-            parseErrorMessage(e, longError);
+            parseErrorMessage(e);
         }
     }
 
@@ -74,19 +74,10 @@ public class JavaWalaSecurityTestCase {
     // Static Builder class
     public static class Builder {
         private JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported;
-        private boolean longError = false;
         private Set<String> allowedPackages;
 
         public Builder javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported) {
-            if (javaArchitectureTestCaseSupported == null) {
-                throw new IllegalArgumentException("javaArchitectureTestCaseSupported must not be null");
-            }
             this.javaArchitectureTestCaseSupported = javaArchitectureTestCaseSupported;
-            return this;
-        }
-
-        public Builder longError(boolean longError) {
-            this.longError = longError;
             return this;
         }
 

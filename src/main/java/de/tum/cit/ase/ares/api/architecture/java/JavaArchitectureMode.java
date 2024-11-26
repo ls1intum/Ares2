@@ -8,6 +8,8 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Stream;
 
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
+
 // TODO: Add documentation
 public enum JavaArchitectureMode {
     /**
@@ -41,7 +43,7 @@ public enum JavaArchitectureMode {
                     new String[]{"templates", "architecture", "java", "archunit", "JavaArchUnitTestCaseSupported.java"}
             );
             // Todo: Add WALA and remove default
-            default -> throw new UnsupportedOperationException("Not implemented yet");
+            default -> throw new SecurityException(localize("security.common.unsupported.operation", this));
         }).map(FileTools::resolveOnResources).toList();
     }
 
@@ -66,7 +68,7 @@ public enum JavaArchitectureMode {
                     FileTools.generatePackageNameArray(packageName, 1)
             );
             // Todo: Add WALA and remove default
-            default -> throw new UnsupportedOperationException("Not implemented yet");
+            default ->  throw new SecurityException(localize("security.common.unsupported.operation", this));
         }).toList();
     }
 
@@ -91,7 +93,7 @@ public enum JavaArchitectureMode {
                     new String[]{"api", "architecture", "java", "archunit", "JavaArchUnitTestCaseSupported.java"}
             );
             // Todo: Add WALA and remove default
-            default -> throw new UnsupportedOperationException("Not implemented yet");
+            default ->  throw new SecurityException(localize("security.common.unsupported.operation", this));
         }).map(pathParticles -> FileTools.resolveOnTests(projectPath, packageName, pathParticles)).toList();
     }
     //</editor-fold>
@@ -103,7 +105,7 @@ public enum JavaArchitectureMode {
             case ARCHUNIT ->
                     new String[]{"templates", "architecture", "java", "archunit", "JavaArchitectureTestCaseCollectionHeader.txt"};
             // Todo: Add WALA and remove default
-            default -> throw new UnsupportedOperationException("Not implemented yet");
+            default ->  throw new SecurityException(localize("security.common.unsupported.operation", this));
         });
     }
 
@@ -115,7 +117,7 @@ public enum JavaArchitectureMode {
             case ARCHUNIT ->
                     String.join("\n", ((List<JavaArchUnitSecurityTestCase>) testCases).stream().map(JavaArchUnitSecurityTestCase::writeArchitectureTestCase).toList());
             // Todo: Add WALA and remove default
-            default -> throw new UnsupportedOperationException("Not implemented yet");
+            default ->  throw new SecurityException(localize("security.common.unsupported.operation", this));
         };
     }
 
@@ -125,7 +127,7 @@ public enum JavaArchitectureMode {
             case ARCHUNIT ->
                     new String[]{"templates", "architecture", "java", "archunit", "JavaArchitectureTestCaseCollectionFooter.txt"};
             // Todo: Add WALA and remove default
-            default -> throw new UnsupportedOperationException("Not implemented yet");
+            default ->  throw new SecurityException(localize("security.common.unsupported.operation", this));
         });
     }
 
@@ -134,7 +136,7 @@ public enum JavaArchitectureMode {
         return switch (this) {
             case ARCHUNIT -> FileTools.generatePackageNameArray(packageName, 2);
             // Todo: Add WALA and remove default
-            default -> throw new UnsupportedOperationException("Not implemented yet");
+            default ->  throw new SecurityException(localize("security.common.unsupported.operation", this));
         };
     }
 
@@ -143,7 +145,7 @@ public enum JavaArchitectureMode {
         return FileTools.resolveOnTests(projectPath, packageName, switch (this) {
             case ARCHUNIT -> new String[]{"api", "architecture", "java", "archunit", "JavaArchUnitTestCaseCollection.txt"};
             // Todo: Add WALA and remove default
-            default -> throw new UnsupportedOperationException("Not implemented yet");
+            default ->  throw new SecurityException(localize("security.common.unsupported.operation", this));
         });
     }
     //</editor-fold>

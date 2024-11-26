@@ -111,8 +111,6 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      */
     @Nonnull
     private final Path projectPath;
-
-    private boolean errorLong = false;
     //</editor-fold>
 
     //<editor-fold desc="Constructor">
@@ -172,10 +170,6 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         this.testClasses = securityPolicy.regardingTheSupervisedCode().theFollowingClassesAreTestClasses();
         // TODO Markus: projectPath is configured wrongly, since for AOP and Architecture tests different paths are used (for Architectural path to bytecode, for AOP path to source code)
         this.projectPath = projectPath;
-
-        if (projectPath.startsWith("test-classes")) {
-            errorLong = true;
-        }
 
         this.functionClasses = new String[]{
                 packageName + ".api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemAdviceDefinitions",
@@ -257,7 +251,6 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                         //<editor-fold desc="Architecture test case code">
                         javaArchUnitTestCases.add(JavaArchitectureTestCase.builder()
                                 .javaArchitecturalTestCaseSupported(javaArchitectureTestCasesSupportedValue)
-                                .longErrorActive(errorLong)
                                 .javaClasses(classes)
                                 .callGraph(callGraph)
                                 .allowedPackages(allowedPackages)
@@ -274,35 +267,30 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         //<editor-fold desc="Create fixed rules code">
         javaArchUnitTestCases.add(JavaArchitectureTestCase.builder()
                 .javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported.PACKAGE_IMPORT)
-                .longErrorActive(errorLong)
                 .javaClasses(classes)
                 .callGraph(callGraph)
                 .allowedPackages(allowedPackages)
                 .build());
         javaArchUnitTestCases.add(JavaArchitectureTestCase.builder()
                 .javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported.REFLECTION)
-                .longErrorActive(errorLong)
                 .javaClasses(classes)
                 .callGraph(callGraph)
                 .allowedPackages(allowedPackages)
                 .build());
         javaArchUnitTestCases.add(JavaArchitectureTestCase.builder()
                 .javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported.SERIALIZATION)
-                .longErrorActive(errorLong)
                 .javaClasses(classes)
                 .callGraph(callGraph)
                 .allowedPackages(allowedPackages)
                 .build());
         javaArchUnitTestCases.add(JavaArchitectureTestCase.builder()
                 .javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported.CLASS_LOADING)
-                .longErrorActive(errorLong)
                 .javaClasses(classes)
                 .callGraph(callGraph)
                 .allowedPackages(allowedPackages)
                 .build());
         javaArchUnitTestCases.add(JavaArchitectureTestCase.builder()
                 .javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported.TERMINATE_JVM)
-                .longErrorActive(errorLong)
                 .javaClasses(classes)
                 .callGraph(callGraph)
                 .allowedPackages(allowedPackages)

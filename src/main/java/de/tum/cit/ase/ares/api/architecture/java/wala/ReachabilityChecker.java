@@ -18,6 +18,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.Predicate;
 
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
+
 /**
  * A utility class to check reachability in a call graph.
  */
@@ -39,13 +41,13 @@ public class ReachabilityChecker {
      */
     public static List<CGNode> findReachableMethods(CallGraph callGraph, Iterator<CGNode> startNodes, Predicate<CGNode> targetNodeFilter) {
         if (callGraph == null) {
-            throw new IllegalArgumentException("Call graph cannot be null");
+            throw new SecurityException(localize("security.common.not.null", "CallGraph", ReachabilityChecker.class.getName()));
         }
         if (startNodes == null) {
-            throw new IllegalArgumentException("Start nodes cannot be null");
+            throw new SecurityException(localize("security.common.not.null", "startNodes", ReachabilityChecker.class.getName()));
         }
         if (targetNodeFilter == null) {
-            throw new IllegalArgumentException("Target node filter cannot be null");
+            throw new SecurityException(localize("security.common.not.null", "targetNodeFilter", ReachabilityChecker.class.getName()));
         }
         return new DFSPathFinder<>(callGraph, startNodes, targetNodeFilter).find();
     }
@@ -59,10 +61,10 @@ public class ReachabilityChecker {
      */
     public static List<DefaultEntrypoint> getEntryPointsFromStudentSubmission(String classPath, ClassHierarchy applicationCha) {
         if (classPath == null || classPath.trim().isEmpty()) {
-            throw new IllegalArgumentException("Class path cannot be null or empty");
+            throw new SecurityException(localize("security.common.not.null", "classPath", ReachabilityChecker.class.getName()));
         }
         if (applicationCha == null) {
-            throw new IllegalArgumentException("Application class hierarchy cannot be null");
+            throw new SecurityException(localize("security.common.not.null", "Class hierarchy", ReachabilityChecker.class.getName()));
         }
 
         // Create CHA of the student submission
@@ -72,7 +74,7 @@ public class ReachabilityChecker {
                     .make(AnalysisScopeReader.instance
                             .makeJavaBinaryAnalysisScope(classPath, null));
         } catch (ClassHierarchyException | IOException e) {
-            throw new SecurityException("Could not create class hierarchy for student submission", e); // $NON-NLS-1$
+            throw new SecurityException(localize("security.architecture.class.hierarchy.error")); // $NON-NLS-1$
         }
 
         // Iterate through all classes in the application classloader

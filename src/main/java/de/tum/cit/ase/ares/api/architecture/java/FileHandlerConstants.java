@@ -35,6 +35,6 @@ public class FileHandlerConstants {
 
 
     private FileHandlerConstants() {
-        throw new UnsupportedOperationException(localized("security.general.utility.initialization"));
+        throw new SecurityException(localized("security.general.utility.initialization", FileHandlerConstants.class.getName()));
     }
 }

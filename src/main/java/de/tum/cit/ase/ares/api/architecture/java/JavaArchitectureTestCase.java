@@ -19,8 +19,6 @@ public class JavaArchitectureTestCase implements ArchitectureSecurityTestCase {
     @Nonnull
     private final JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported;
 
-    private final boolean longErrorActive;
-
     @Nonnull
     private final JavaClasses javaClasses;
     @Nullable
@@ -30,11 +28,10 @@ public class JavaArchitectureTestCase implements ArchitectureSecurityTestCase {
     //</editor-fold>
 
     //<editor-fold desc="Constructor">
-    public JavaArchitectureTestCase(@Nonnull JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported, boolean longErrorActive, @Nonnull JavaClasses javaClasses, @Nullable CallGraph callGraph, @Nullable Set<SecurityPolicy.PackagePermission> allowedPackages) {
+    public JavaArchitectureTestCase(@Nonnull JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported, @Nonnull JavaClasses javaClasses, @Nullable CallGraph callGraph, @Nullable Set<SecurityPolicy.PackagePermission> allowedPackages) {
         this.javaArchitectureTestCaseSupported = javaArchitectureTestCaseSupported;
         this.javaClasses = javaClasses;
         this.callGraph = callGraph;
-        this.longErrorActive = longErrorActive;
         this.allowedPackages = allowedPackages;
     }
     //</editor-fold>
@@ -54,54 +51,53 @@ public class JavaArchitectureTestCase implements ArchitectureSecurityTestCase {
         switch (architectureMode) {
             case WALA -> JavaWalaSecurityTestCase.builder()
                     .javaArchitecturalTestCaseSupported(javaArchitectureTestCaseSupported)
-                    .longError(longErrorActive)
                     .allowedPackages(allowedPackages)
                     .build()
                     .executeArchitectureTestCase(callGraph, javaClasses);
             case ARCHUNIT -> JavaArchUnitSecurityTestCase.builder()
                     .javaArchitecturalTestCaseSupported(javaArchitectureTestCaseSupported)
                     .allowedPackages(allowedPackages)
-                    .longError(longErrorActive)
                     .build()
                     .executeArchitectureTestCase(javaClasses);
         }
     }
     //</editor-fold>
 
-    public static void parseErrorMessage(AssertionError e, boolean longError) {
-        if (longError) {
-            throw new SecurityException(e.getMessage());
-        }
+    /**
+     * Parses the error message of an assertion error.
+     */
+    public static void parseErrorMessage(AssertionError e) {
         String[] split;
         if (e.getMessage() == null || e.getMessage().split("\n").length < 2) {
             throw new SecurityException(localized("security.archunit.illegal.execution", e.getMessage()));
         }
         split = e.getMessage().split("\n");
-        throw new SecurityException(localized("security.archunit.violation.error", split[0].replaceAll(".*?'(.*?)'.*", "$1"), split[1]));
+        throw new SecurityException(localized("security.archunit.violation.error", split[0].replaceAll(".*?'(.*?)'.*\r*", "$1"), split[1]));
     }
 
     // TODO: Outsource this to a new class
+    /**
+     * Starts the builder for the Java architecture test case.
+     */
     public static Builder builder() {
         return new Builder();
     }
 
+    /**
+     * Builder for the Java architecture test case.
+     */
+    //<editor-fold desc="Builder">
     public static class Builder {
         private JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported;
-        private boolean longErrorActive;
         private JavaClasses javaClasses;
         private CallGraph callGraph;
         private Set<SecurityPolicy.PackagePermission> allowedPackages;
 
         public Builder javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported) {
             if (javaArchitectureTestCaseSupported == null) {
-                throw new IllegalArgumentException("javaArchitectureTestCaseSupported must not be null");
+                throw new SecurityException(localized("security.common.not.null", "javaArchitectureTestCaseSupported"));
             }
             this.javaArchitectureTestCaseSupported = javaArchitectureTestCaseSupported;
-            return this;
-        }
-
-        public Builder longErrorActive(boolean longErrorActive) {
-            this.longErrorActive = longErrorActive;
             return this;
         }
 
@@ -122,10 +118,11 @@ public class JavaArchitectureTestCase implements ArchitectureSecurityTestCase {
 
         public JavaArchitectureTestCase build() {
             if (javaArchitectureTestCaseSupported == null) {
-                throw new IllegalStateException("JavaArchitecturalTestCaseSupported must be set");
+                throw new SecurityException(localized("security.common.not.null", "javaArchitectureTestCaseSupported"));
             }
-            return new JavaArchitectureTestCase(javaArchitectureTestCaseSupported, longErrorActive, javaClasses, callGraph, allowedPackages);
+            return new JavaArchitectureTestCase(javaArchitectureTestCaseSupported, javaClasses, callGraph, allowedPackages);
         }
     }
+    //</editor-fold>
 
 }

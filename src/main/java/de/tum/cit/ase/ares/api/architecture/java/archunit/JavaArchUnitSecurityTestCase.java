@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 
 import static de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase.parseErrorMessage;
 import static de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchitectureTestCaseCollection.getArchitectureRuleFileContent;
+import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 //</editor-fold>
 
 /**
@@ -35,11 +36,6 @@ public class JavaArchUnitSecurityTestCase {
      * List of allowed packages to be imported.
      */
     private final Set<String> allowedPackages;
-
-    /**
-     * Flag to determine if the error message should be long or parsed for fewer details.
-     */
-    private final boolean longError;
     //</editor-fold>
 
     //<editor-fold desc="Constructors">
@@ -49,12 +45,8 @@ public class JavaArchUnitSecurityTestCase {
      * @param builder Selects the supported architecture test case in the Java programming language
      */
     private JavaArchUnitSecurityTestCase(Builder builder) {
-        if (builder.javaArchitectureTestCaseSupported == null) {
-            throw new IllegalArgumentException("javaArchitectureTestCaseSupported must not be null");
-        }
         this.javaArchitectureTestCaseSupported = builder.javaArchitectureTestCaseSupported;
         this.allowedPackages = builder.allowedPackages;
-        this.longError = builder.longError;
     }
 
     //</editor-fold>
@@ -107,10 +99,10 @@ public class JavaArchUnitSecurityTestCase {
                 case SERIALIZATION ->
                         JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_SERIALIZE.check(javaClasses);
                 case CLASS_LOADING -> {}
-                default -> throw new UnsupportedOperationException("Not implemented yet");
+                default -> throw new SecurityException(localized("security.common.unsupported.operation", this.javaArchitectureTestCaseSupported));
             }
         } catch (AssertionError e) {
-            parseErrorMessage(e, longError);
+            parseErrorMessage(e);
         }
     }
     //</editor-fold>
@@ -126,7 +118,6 @@ public class JavaArchUnitSecurityTestCase {
     public static class Builder {
         private JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported;
         private Set<String> allowedPackages = new HashSet<>();
-        private boolean longError = false;
 
         public Builder javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported) {
             this.javaArchitectureTestCaseSupported = javaArchitectureTestCaseSupported;
@@ -139,11 +130,6 @@ public class JavaArchUnitSecurityTestCase {
                         .map(PackagePermission::importTheFollowingPackage)
                         .collect(Collectors.toSet());
             }
-            return this;
-        }
-
-        public Builder longError(boolean longError) {
-            this.longError = longError;
             return this;
         }
 
