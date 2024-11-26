@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.api.architecture.java.wala;
 
+//<editor-fold desc="Imports">
 import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.ibm.wala.shrike.shrikeCT.InvalidClassFileException;
@@ -13,6 +14,7 @@ import java.util.Set;
 
 import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
 import static de.tum.cit.ase.ares.api.util.FileTools.readMethodsFromGivenPath;
+//</editor-fold>
 
 /**
  * Collection of security test cases that analyze Java applications using WALA framework.
@@ -31,99 +33,13 @@ import static de.tum.cit.ase.ares.api.util.FileTools.readMethodsFromGivenPath;
  */
 public class JavaWalaSecurityTestCaseCollection {
 
-    /**
-     * No reflection test case.
-     */
-    public static void noReflection(CallGraph cg) {
-        createNoClassShouldHaveMethodRule(
-                localize("security.architecture.reflection.uses"),
-                FileHandlerConstants.WALA_REFLECTION_METHODS,
-                cg
-        );
+    //<editor-fold desc="Constructor">
+    private JavaWalaSecurityTestCaseCollection() {
+        throw new IllegalArgumentException("Ares Security Error (Reason: Ares-Code; Stage: Execution): JavaWalaSecurityTestCaseCollection is a utility class and should not be instantiated.");
     }
+    //</editor-fold>
 
-    /**
-     * No file system access test case.
-     */
-    public static void noFileSystemAccess(CallGraph cg) {
-        createNoClassShouldHaveMethodRule(
-                localize("security.architecture.file.system.access"),
-                FileHandlerConstants.WALA_FILESYSTEM_METHODS,
-                cg);
-    }
-
-    /**
-     * No network access test case.
-     */
-    public static void noNetworkAccess(CallGraph cg) {
-        createNoClassShouldHaveMethodRule(
-                localize("security.architecture.network.access"),
-                FileHandlerConstants.WALA_NETWORK_METHODS,
-                cg
-        );
-    }
-
-    /**
-     * No JVM termination test case.
-     */
-    public static void noJVMTermination(CallGraph cg) {
-        createNoClassShouldHaveMethodRule(
-                localize("security.architecture.terminate.jvm"),
-                FileHandlerConstants.WALA_JVM_METHODS,
-                cg
-        );
-    }
-
-    /**
-     * No command execution test case.
-     */
-    public static void noCommandExecution(CallGraph cg) {
-        createNoClassShouldHaveMethodRule(
-                localize("security.architecture.execute.command"),
-                FileHandlerConstants.WALA_COMMAND_EXECUTION_METHODS,
-                cg
-        );
-    }
-
-    /**
-     * No thread manipulation test case.
-     */
-    public static void noThreadManipulation(CallGraph cg) {
-        createNoClassShouldHaveMethodRule(
-                localize("security.architecture.manipulate.threads"),
-                FileHandlerConstants.WALA_THREAD_MANIPULATION_METHODS,
-                cg
-        );
-    }
-
-    /**
-     * No serialization test case.
-     */
-    public static void noSerialization(CallGraph callGraph) {
-        createNoClassShouldHaveMethodRule(
-                localize("security.architecture.serialize"),
-                FileHandlerConstants.WALA_SERIALIZATION_METHODS,
-                callGraph
-        );
-    }
-
-    /**
-     * No class loading test case.
-     */
-    public static void noClassLoading(CallGraph callGraph) {
-        createNoClassShouldHaveMethodRule(
-                localize("security.architecture.class.loading"),
-                FileHandlerConstants.WALA_CLASSLOADER_METHODS,
-                callGraph
-        );
-    }
-
-    public static void restrictPackageImport(JavaClasses javaClasses, Set<String> allowedPackages) {
-        JavaArchitectureTestCaseCollection
-                .noClassesShouldImportForbiddenPackages(allowedPackages)
-                .check(javaClasses);
-    }
-
+    //<editor-fold desc="Tool methods">
     /**
      * Creates a rule that checks if a class has a forbidden method.
      */
@@ -134,11 +50,11 @@ public class JavaWalaSecurityTestCaseCollection {
     ) {
         Set<String> forbiddenMethods = readMethodsFromGivenPath(methodsFilePath);
         List<CGNode> reachableNodes= ReachabilityChecker.findReachableMethods(cg, cg.getEntrypointNodes().iterator(),
-                        cgNode -> forbiddenMethods.stream()
-                                .anyMatch(method -> cgNode
-                                        .getMethod()
-                                        .getSignature()
-                                        .startsWith(method)));
+                cgNode -> forbiddenMethods.stream()
+                        .anyMatch(method -> cgNode
+                                .getMethod()
+                                .getSignature()
+                                .startsWith(method)));
         try {
             String sb = "'" + ruleName + "'\r\n" +
                     "Method <" +
@@ -154,4 +70,117 @@ public class JavaWalaSecurityTestCaseCollection {
             throw new SecurityException(localize("security.architecture.invalid.class.file"));
         }
     }
+    //</editor-fold>
+
+    //<editor-fold desc="File System related rule">
+    /**
+     * No file system access test case.
+     */
+    public static void noFileSystemAccess(CallGraph cg) {
+        createNoClassShouldHaveMethodRule(
+                localize("security.architecture.file.system.access"),
+                FileHandlerConstants.WALA_FILESYSTEM_METHODS,
+                cg);
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Network Connections related rule">
+    /**
+     * No network access test case.
+     */
+    public static void noNetworkAccess(CallGraph cg) {
+        createNoClassShouldHaveMethodRule(
+                localize("security.architecture.network.access"),
+                FileHandlerConstants.WALA_NETWORK_METHODS,
+                cg
+        );
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Thread Creation related rule">
+    /**
+     * No thread manipulation test case.
+     */
+    public static void noThreadManipulation(CallGraph cg) {
+        createNoClassShouldHaveMethodRule(
+                localize("security.architecture.manipulate.threads"),
+                FileHandlerConstants.WALA_THREAD_MANIPULATION_METHODS,
+                cg
+        );
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Command Execution related rule">
+    /**
+     * No command execution test case.
+     */
+    public static void noCommandExecution(CallGraph cg) {
+        createNoClassShouldHaveMethodRule(
+                localize("security.architecture.execute.command"),
+                FileHandlerConstants.WALA_COMMAND_EXECUTION_METHODS,
+                cg
+        );
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Package Import related rule">
+    public static void restrictPackageImport(JavaClasses javaClasses, Set<String> allowedPackages) {
+        JavaArchitectureTestCaseCollection
+                .noClassesShouldImportForbiddenPackages(allowedPackages)
+                .check(javaClasses);
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Reflection related rule">
+    /**
+     * No reflection test case.
+     */
+    public static void noReflection(CallGraph cg) {
+        createNoClassShouldHaveMethodRule(
+                localize("security.architecture.reflection.uses"),
+                FileHandlerConstants.WALA_REFLECTION_METHODS,
+                cg
+        );
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Termination related rule">
+    /**
+     * No JVM termination test case.
+     */
+    public static void noJVMTermination(CallGraph cg) {
+        createNoClassShouldHaveMethodRule(
+                localize("security.architecture.terminate.jvm"),
+                FileHandlerConstants.WALA_JVM_METHODS,
+                cg
+        );
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Serialization related rule">
+    /**
+     * No serialization test case.
+     */
+    public static void noSerialization(CallGraph callGraph) {
+        createNoClassShouldHaveMethodRule(
+                localize("security.architecture.serialize"),
+                FileHandlerConstants.WALA_SERIALIZATION_METHODS,
+                callGraph
+        );
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Class Loading related rule">
+    /**
+     * No class loading test case.
+     */
+    public static void noClassLoading(CallGraph callGraph) {
+        createNoClassShouldHaveMethodRule(
+                localize("security.architecture.class.loading"),
+                FileHandlerConstants.WALA_CLASSLOADER_METHODS,
+                callGraph
+        );
+    }
+    //</editor-fold>
+
 }

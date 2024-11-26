@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.api.architecture.java.archunit;
 
+//<editor-fold desc="Imports">
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaAccess;
 import com.tngtech.archunit.core.domain.JavaClass;
@@ -17,41 +18,12 @@ import java.util.Set;
 
 import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
 import static de.tum.cit.ase.ares.api.util.FileTools.readMethodsFromGivenPath;
+//</editor-fold>
 
 /**
  * This class runs the security rules on the architecture for the post-compile mode.
  */
 public class JavaArchitectureTestCaseCollection {
-    /**
-     * This method checks if any class in the given package accesses the file system.
-     */
-    public static final ArchRule NO_CLASS_SHOULD_ACCESS_FILE_SYSTEM = createNoClassShouldHaveMethodRule(
-            localize("security.architecture.file.system.access"),
-            FileHandlerConstants.JAVA_FILESYSTEM_INTERACTION_METHODS
-    );
-    //</editor-fold>
-
-    //<editor-fold desc="Network Connections related rule">
-    /**
-     * This method checks if any class in the given package accesses the network.
-     */
-    public static final ArchRule NO_CLASSES_SHOULD_ACCESS_NETWORK = createNoClassShouldHaveMethodRule(
-            localize("security.architecture.network.access"),
-            FileHandlerConstants.JAVA_NETWORK_ACCESS_METHODS
-    );
-    //</editor-fold>
-
-    //<editor-fold desc="Termination related rule">
-    /**
-     * This method checks if any class in the given package uses the command line.
-     */
-    public static final ArchRule NO_CLASSES_SHOULD_TERMINATE_JVM = createNoClassShouldHaveMethodRule(
-            localize("security.architecture.terminate.jvm"),
-            FileHandlerConstants.JAVA_JVM_TERMINATION_METHODS
-    );
-    //</editor-fold>
-    //</editor-fold>
-
     //<editor-fold desc="Constructor">
     private JavaArchitectureTestCaseCollection() {
         throw new IllegalArgumentException("Ares Security Error (Reason: Ares-Code; Stage: Execution): JavaArchitectureTestCaseCollection is a utility class and should not be instantiated.");
@@ -81,21 +53,6 @@ public class JavaArchitectureTestCaseCollection {
         }
     }
 
-    /**
-     * This method checks if any class in the given package imports forbidden packages.
-     */
-    public static ArchRule noClassesShouldImportForbiddenPackages(Set<String> allowedPackages) {
-        return ArchRuleDefinition.noClasses()
-                .should()
-                .dependOnClassesThat(new DescribedPredicate<>("imports a forbidden package package") {
-                    @Override
-                    public boolean test(JavaClass javaClass) {
-                        return allowedPackages.stream().noneMatch(allowedPackage -> javaClass.getPackageName().startsWith(allowedPackage));
-                    }
-                })
-                .as(localize("security.architecture.package.import"));
-    }
-
     private static ArchRule createNoClassShouldHaveMethodRule(
             String ruleName,
             Path methodsFilePath
@@ -123,13 +80,30 @@ public class JavaArchitectureTestCaseCollection {
     }
     //</editor-fold>
 
-    //<editor-fold desc="Reflection related rule">
+    //<editor-fold desc="File System related rule">
     /**
-     * This method checks if any class in the given package uses reflection.
+     * This method checks if any class in the given package accesses the file system.
      */
-    public static final ArchRule NO_CLASSES_SHOULD_USE_REFLECTION = createNoClassShouldHaveMethodRule(
-            localize("security.architecture.reflection.uses"),
-            FileHandlerConstants.JAVA_REFLECTION_METHODS
+    public static final ArchRule NO_CLASS_SHOULD_ACCESS_FILE_SYSTEM = createNoClassShouldHaveMethodRule(
+            localize("security.architecture.file.system.access"),
+            FileHandlerConstants.JAVA_FILESYSTEM_INTERACTION_METHODS
+    );
+    //</editor-fold>
+
+    //<editor-fold desc="Network Connections related rule">
+    /**
+     * This method checks if any class in the given package accesses the network.
+     */
+    public static final ArchRule NO_CLASSES_SHOULD_ACCESS_NETWORK = createNoClassShouldHaveMethodRule(
+            localize("security.architecture.network.access"),
+            FileHandlerConstants.JAVA_NETWORK_ACCESS_METHODS
+    );
+    //</editor-fold>
+
+    //<editor-fold desc="Thread Creation related rule">
+    public static final ArchRule NO_CLASSES_SHOULD_CREATE_THREADS = createNoClassShouldHaveMethodRule(
+            localize("security.architecture.manipulate.threads"),
+            FileHandlerConstants.JAVA_THREAD_MANIPULATION_METHODS
     );
     //</editor-fold>
 
@@ -140,10 +114,40 @@ public class JavaArchitectureTestCaseCollection {
     );
     //</editor-fold>
 
-    //<editor-fold desc="Thread Creation related rule">
-    public static final ArchRule NO_CLASSES_SHOULD_CREATE_THREADS = createNoClassShouldHaveMethodRule(
-            localize("security.architecture.manipulate.threads"),
-            FileHandlerConstants.JAVA_THREAD_MANIPULATION_METHODS
+    //<editor-fold desc="Package Import related rule">
+    /**
+     * This method checks if any class in the given package imports forbidden packages.
+     */
+    public static ArchRule noClassesShouldImportForbiddenPackages(Set<String> allowedPackages) {
+        return ArchRuleDefinition.noClasses()
+                .should()
+                .dependOnClassesThat(new DescribedPredicate<>("imports a forbidden package package") {
+                    @Override
+                    public boolean test(JavaClass javaClass) {
+                        return allowedPackages.stream().noneMatch(allowedPackage -> javaClass.getPackageName().startsWith(allowedPackage));
+                    }
+                })
+                .as(localize("security.architecture.package.import"));
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Reflection related rule">
+    /**
+     * This method checks if any class in the given package uses reflection.
+     */
+    public static final ArchRule NO_CLASSES_SHOULD_USE_REFLECTION = createNoClassShouldHaveMethodRule(
+            localize("security.architecture.reflection.uses"),
+            FileHandlerConstants.JAVA_REFLECTION_METHODS
+    );
+    //</editor-fold>
+
+    //<editor-fold desc="Termination related rule">
+    /**
+     * This method checks if any class in the given package uses the command line.
+     */
+    public static final ArchRule NO_CLASSES_SHOULD_TERMINATE_JVM = createNoClassShouldHaveMethodRule(
+            localize("security.architecture.terminate.jvm"),
+            FileHandlerConstants.JAVA_JVM_TERMINATION_METHODS
     );
     //</editor-fold>
 
