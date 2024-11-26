@@ -73,24 +73,33 @@ public class JavaWalaSecurityTestCase {
     public void executeArchitectureTestCase(CallGraph callGraph, JavaClasses javaClasses) {
         try {
             switch (this.javaArchitectureTestCaseSupported) {
-                case FILESYSTEM_INTERACTION -> JavaWalaSecurityTestCaseCollection
-                        .noFileSystemAccess(callGraph);
-                case NETWORK_CONNECTION -> JavaWalaSecurityTestCaseCollection
-                        .noNetworkAccess(callGraph);
-                case THREAD_CREATION -> JavaWalaSecurityTestCaseCollection
-                        .noThreadManipulation(callGraph);
-                case COMMAND_EXECUTION -> JavaWalaSecurityTestCaseCollection
-                        .noCommandExecution(callGraph);
-                case PACKAGE_IMPORT -> JavaWalaSecurityTestCaseCollection
-                        .restrictPackageImport(javaClasses, allowedPackages);
-                case REFLECTION -> JavaWalaSecurityTestCaseCollection
-                        .noReflection(callGraph);
-                case TERMINATE_JVM -> JavaWalaSecurityTestCaseCollection
-                        .noJVMTermination(callGraph);
-                case SERIALIZATION -> JavaWalaSecurityTestCaseCollection
-                        .noSerialization(callGraph);
-                case CLASS_LOADING -> JavaWalaSecurityTestCaseCollection
-                        .noClassLoading(callGraph);
+                case FILESYSTEM_INTERACTION ->
+                        JavaWalaSecurityTestCaseCollection
+                            .noFileSystemAccess(callGraph);
+                case NETWORK_CONNECTION ->
+                        JavaWalaSecurityTestCaseCollection
+                            .noNetworkAccess(callGraph);
+                case THREAD_CREATION ->
+                        JavaWalaSecurityTestCaseCollection
+                            .noThreadManipulation(callGraph);
+                case COMMAND_EXECUTION ->
+                        JavaWalaSecurityTestCaseCollection
+                            .noCommandExecution(callGraph);
+                case PACKAGE_IMPORT ->
+                        JavaWalaSecurityTestCaseCollection
+                            .restrictPackageImport(javaClasses, allowedPackages);
+                case REFLECTION ->
+                        JavaWalaSecurityTestCaseCollection
+                            .noReflection(callGraph);
+                case TERMINATE_JVM ->
+                        JavaWalaSecurityTestCaseCollection
+                            .noJVMTermination(callGraph);
+                case SERIALIZATION ->
+                        JavaWalaSecurityTestCaseCollection
+                            .noSerialization(callGraph);
+                case CLASS_LOADING ->
+                        JavaWalaSecurityTestCaseCollection
+                            .noClassLoading(callGraph);
                 default -> throw new SecurityException(localized("security.common.unsupported.operation", this.javaArchitectureTestCaseSupported));
             }
         } catch (AssertionError e) {
