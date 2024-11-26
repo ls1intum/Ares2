@@ -24,6 +24,7 @@ import static de.tum.cit.ase.ares.api.util.FileTools.readMethodsFromGivenPath;
  * This class runs the security rules on the architecture for the post-compile mode.
  */
 public class JavaArchitectureTestCaseCollection {
+
     //<editor-fold desc="Constructor">
     private JavaArchitectureTestCaseCollection() {
         throw new IllegalArgumentException("Ares Security Error (Reason: Ares-Code; Stage: Execution): JavaArchitectureTestCaseCollection is a utility class and should not be instantiated.");
