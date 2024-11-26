@@ -119,7 +119,7 @@ public class JavaWalaSecurityTestCase {
     // Static Builder class
     public static class Builder {
         private JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported;
-        private Set<String> allowedPackages = new HashSet<>();;
+        private Set<String> allowedPackages = new HashSet<>();
 
         public Builder javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported) {
             this.javaArchitectureTestCaseSupported = javaArchitectureTestCaseSupported;
