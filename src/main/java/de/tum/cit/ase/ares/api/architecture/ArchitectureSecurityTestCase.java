@@ -40,7 +40,7 @@ public interface ArchitectureSecurityTestCase {
      * to handle any language-specific execution details required to run the test case.
      * </p>
      *
-     * @param architectureMode a set of {@link JavaClasses} representing the codebase to which the test case will be applied.
+     * @param architectureMode the {@link JavaArchitectureMode} specifying the architecture testing mode to be used.
      */
     // TODO: Change this from JavaArchitectureMode architectureMode to @Nonnull String architectureMode
     void executeArchitectureTestCase(JavaArchitectureMode architectureMode);
