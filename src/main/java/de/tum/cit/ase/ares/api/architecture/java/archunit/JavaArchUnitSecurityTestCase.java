@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.architecture.java.archunit;
 
 //<editor-fold desc="Imports">
+
 import com.tngtech.archunit.core.domain.JavaClasses;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitecturalTestCaseSupported;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy.PackagePermission;
@@ -40,6 +41,7 @@ public class JavaArchUnitSecurityTestCase {
     //</editor-fold>
 
     //<editor-fold desc="Constructors">
+
     /**
      * Constructor for JavaArchUnitSecurityTestCase.
      *
@@ -57,6 +59,7 @@ public class JavaArchUnitSecurityTestCase {
     /**
      * Returns the content of the architecture test case file in the Java programming language.
      */
+    @Nonnull
     public String writeArchitectureTestCase() {
         try {
             return getArchitectureRuleFileContent(this.javaArchitectureTestCaseSupported.name());
@@ -67,24 +70,13 @@ public class JavaArchUnitSecurityTestCase {
     //</editor-fold>
 
     //<editor-fold desc="Execute security test case methods">
+
     /**
      * Runs the architecture test case in the Java programming language.
      */
     public void executeArchitectureTestCase(JavaClasses javaClasses) {
         try {
             switch (this.javaArchitectureTestCaseSupported) {
-                case PACKAGE_IMPORT ->
-                        JavaArchitectureTestCaseCollection
-                                .noClassesShouldImportForbiddenPackages(allowedPackages)
-                                .check(javaClasses);
-                case REFLECTION ->
-                        JavaArchitectureTestCaseCollection
-                                .NO_CLASSES_SHOULD_USE_REFLECTION
-                                .check(javaClasses);
-                case TERMINATE_JVM ->
-                        JavaArchitectureTestCaseCollection
-                                .NO_CLASSES_SHOULD_TERMINATE_JVM
-                                .check(javaClasses);
                 case FILESYSTEM_INTERACTION ->
                         JavaArchitectureTestCaseCollection
                                 .NO_CLASS_SHOULD_ACCESS_FILE_SYSTEM
@@ -101,8 +93,22 @@ public class JavaArchUnitSecurityTestCase {
                         JavaArchitectureTestCaseCollection
                                 .NO_CLASSES_SHOULD_EXECUTE_COMMANDS
                                 .check(javaClasses);
+                case PACKAGE_IMPORT ->
+                        JavaArchitectureTestCaseCollection
+                                .noClassesShouldImportForbiddenPackages(allowedPackages)
+                                .check(javaClasses);
+                case REFLECTION ->
+                        JavaArchitectureTestCaseCollection
+                                .NO_CLASSES_SHOULD_USE_REFLECTION
+                                .check(javaClasses);
+                case TERMINATE_JVM ->
+                        JavaArchitectureTestCaseCollection
+                                .NO_CLASSES_SHOULD_TERMINATE_JVM
+                                .check(javaClasses);
                 case SERIALIZATION ->
-                        JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_SERIALIZE.check(javaClasses);
+                        JavaArchitectureTestCaseCollection
+                                .NO_CLASSES_SHOULD_SERIALIZE
+                                .check(javaClasses);
                 // Classloading included in the Reflection test case
                 case CLASS_LOADING -> {}
                 default -> throw new SecurityException(localized("security.common.unsupported.operation", this.javaArchitectureTestCaseSupported));
@@ -113,7 +119,7 @@ public class JavaArchUnitSecurityTestCase {
     }
     //</editor-fold>
 
-
+    //<editor-fold desc="Builder">
     // Static method to start the builder
     public static Builder builder() {
         return new Builder();
@@ -143,4 +149,5 @@ public class JavaArchUnitSecurityTestCase {
             return new JavaArchUnitSecurityTestCase(this);
         }
     }
+    //</editor-fold>
 }
