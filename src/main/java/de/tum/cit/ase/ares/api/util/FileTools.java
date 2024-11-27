@@ -298,6 +298,6 @@ public class FileTools {
                 // Filter out comments
                 .filter(str -> str.startsWith("#"))
                 .toList();
-        return new HashSet<>(List.of(normalizedContent.split("\n")));
+        return new HashSet<>(methods);
     }
 }
