@@ -9,30 +9,7 @@ import de.tum.cit.ase.ares.api.localization.UseLocale;
 @StrictTimeout(5)
 public class ArchitectureSecurityUser {
 
-    @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/classloading")
-    void testArchUnitClassloading() {
-        // do nothing
-    }
-
-    @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicyWala.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/classloading")
-    void testWalaClassloading() {
-        // do nothing
-    }
-
-    @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/commandexecution")
-    void testArchUnitCommandExecution() {
-        // do nothing
-    }
-
-    @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicyWala.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/commandexecution")
-    void testWalaCommandExecution() {
-        // do nothing
-    }
-
+    // <editor-fold desc="File System Rules">
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
     void testArchUnitFileAccess() {
@@ -44,7 +21,9 @@ public class ArchitectureSecurityUser {
     void testWalaFileAccess() {
         // do nothing
     }
+    // </editor-fold>
 
+    // <editor-fold desc="Network Rules">
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/network")
     void testArchUnitNetworkAccess() {
@@ -56,43 +35,51 @@ public class ArchitectureSecurityUser {
     void testWalaNetworkAccess() {
         // do nothing
     }
+    // </editor-fold>
 
+    // <editor-fold desc="Command Execution Rules">
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/reflection")
-    void testArchUnitReflection() {
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/commandexecution")
+    void testArchUnitCommandExecution() {
         // do nothing
     }
 
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicyWala.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/reflection")
-    void testWalaReflection() {
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicyWala.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/commandexecution")
+    void testWalaCommandExecution() {
+        // do nothing
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="Thread Creation Rules">
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/thread_manipulation")
+    void testArchUnitThreadCreation() {
         // do nothing
     }
 
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/serialization")
-    void testArchUnitSerialization() {
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicyWala.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/thread_manipulation")
+    void testWalaThreadCreation() {
+        // do nothing
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="Package Import Rules">
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/packageImport")
+    void testArchUnitPackageImport() {
         // do nothing
     }
 
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicyWala.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/serialization")
-    void testWalaSerialization() {
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicyWala.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/packageImport")
+    void testWalaPackageImport() {
         // do nothing
     }
+    // </editor-fold>
 
-    @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/thirdpartypackage")
-    void testArchUnitThirdPartyPackageAccess() {
-        // do nothing
-    }
-
-    @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicyWala.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/thirdpartypackage")
-    void testWalaThirdPartyPackageAccess() {
-        // do nothing
-    }
-
+    // <editor-fold desc="JVMTermination Rules">
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/jvmTermination")
     void testArchUnitJVMTermination() {
@@ -104,5 +91,62 @@ public class ArchitectureSecurityUser {
     void testWalaJVMTermination() {
         // do nothing
     }
+    // </editor-fold>
+
+    // <editor-fold desc="Reflection Rules">
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/reflection")
+    void testArchUnitReflection() {
+        // do nothing
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicyWala.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/reflection")
+    void testWalaReflection() {
+        // do nothing
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="Serialization Rules">
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/serialization")
+    void testArchUnitSerialization() {
+        // do nothing
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicyWala.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/serialization")
+    void testWalaSerialization() {
+        // do nothing
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="Classloading Rules">
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/classloading")
+    void testArchUnitClassloading() {
+        // do nothing
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicyWala.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/classloading")
+    void testWalaClassloading() {
+        // do nothing
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="Third Party Package Access Rules">
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/thirdPartyAccess")
+    void testArchUnitThirdPartyPackageAccess() {
+        // do nothing
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicyWala.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/thirdPartyAccess")
+    void testWalaThirdPartyPackageAccess() {
+        // do nothing
+    }
+    // </editor-fold>
 
 }

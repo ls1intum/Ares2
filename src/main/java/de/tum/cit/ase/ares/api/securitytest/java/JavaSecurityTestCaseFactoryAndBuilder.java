@@ -47,6 +47,10 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
 
     //<editor-fold desc="Attributes">
     /**
+     * The package name where the main classes reside.
+     */
+    private static final String ARES_PACKAGE = "de.tum.cit.ase.ares";
+    /**
      * The build tool used in the project (e.g., Maven or Gradle).
      */
     @Nonnull
@@ -380,7 +384,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                 "allowedListedClasses",
                 Stream.concat(
                         Arrays.stream(testClasses),
-                        ("de.tum.cit.ase.ares").equals(packageName) ? Arrays.stream(functionClasses) : Stream.of("de.tum.cit.ase.ares")
+                        (ARES_PACKAGE).equals(packageName) ? Arrays.stream(functionClasses) : Stream.of(ARES_PACKAGE)
                 ).toArray(String[]::new),
                 javaAOPMode.toString());
         javaArchUnitTestCases.forEach(javaArchitectureTestCase -> javaArchitectureTestCase.executeArchitectureTestCase(javaArchitectureMode));
