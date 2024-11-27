@@ -294,6 +294,10 @@ public class FileTools {
     public static Set<String> readMethodsFromGivenPath(Path filePath) {
         String fileContent = FileTools.readFile(filePath);
         String normalizedContent = fileContent.replace("\r\n", "\n").replace("\r", "\n");
+        List<String> methods = Arrays.stream(normalizedContent.split("\n"))
+                // Filter out comments
+                .filter(str -> str.startsWith("#"))
+                .toList();
         return new HashSet<>(List.of(normalizedContent.split("\n")));
     }
 }
