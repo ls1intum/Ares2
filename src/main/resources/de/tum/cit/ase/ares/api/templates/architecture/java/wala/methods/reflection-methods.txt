@@ -2,6 +2,8 @@ java.lang.invoke.MethodHandles$Lookup.checkSecurityManager(Ljava/lang/Class;Ljav
 java.lang.Class.checkMemberAccess(Ljava/lang/SecurityManager;ILjava/lang/Class;Z)
 sun.reflect.misc.ReflectUtil.conservativeCheckMemberAccess(Ljava/lang/reflect/Member;)
 java.lang.reflect.AccessibleObject.checkPermission()
+java.lang.reflect.AccessibleObject.checkAccess(Ljava/lang/Class;Ljava/lang/Class;Ljava/lang/Class;I)
 java.lang.invoke.MethodHandles.privateLookupIn(Ljava/lang/Class;Ljava/lang/invoke/MethodHandles$Lookup;)
 java.lang.invoke.MethodHandles.reflectAs(Ljava/lang/Class;Ljava/lang/invoke/MethodHandle;)
 jdk.internal.reflect.ReflectionFactory.getReflectionFactory()
+java.lang.reflect.Method.invoke(Ljava/lang/Object;[Ljava/lang/Object;)

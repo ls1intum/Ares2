@@ -4,6 +4,9 @@ package de.tum.cit.ase.ares.api.architecture.java.wala;
 import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.ibm.wala.shrike.shrikeCT.InvalidClassFileException;
+import com.ibm.wala.ssa.IR;
+import com.ibm.wala.ssa.SSAInstruction;
+import com.ibm.wala.ssa.SymbolTable;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import de.tum.cit.ase.ares.api.architecture.java.FileHandlerConstants;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitTestCaseCollection;
@@ -12,6 +15,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 
+import static com.google.common.collect.Iterables.isEmpty;
 import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
 import static de.tum.cit.ase.ares.api.util.FileTools.readMethodsFromGivenPath;
 //</editor-fold>
@@ -55,6 +59,10 @@ public class JavaWalaSecurityTestCaseCollection {
                                 .getMethod()
                                 .getSignature()
                                 .startsWith(method)));
+
+        if (reachableNodes == null || isEmpty(reachableNodes)) {
+            return;
+        }
         try {
             String sb = "'" + ruleName + "'\r\n" +
                     "Method <" +

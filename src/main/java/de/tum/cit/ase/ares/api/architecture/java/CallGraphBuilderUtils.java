@@ -143,18 +143,13 @@ public class CallGraphBuilderUtils {
     public static CallGraph buildCallGraph(String classPathToAnalyze) {
         try {
             // Create a list to store entry points
-            // TODO: Explain what an entry point is
             List<DefaultEntrypoint> customEntryPoints = ReachabilityChecker.getEntryPointsFromStudentSubmission(classPathToAnalyze, classHierarchy);
 
             // Create AnalysisOptions for call graph
             AnalysisOptions options = new AnalysisOptions(scope, customEntryPoints);
-            // TODO: Write why they are important
-            options.setTraceStringConstants(false);
-            options.setHandleZeroLengthArray(false);
-            options.setReflectionOptions(AnalysisOptions.ReflectionOptions.NONE);
 
             // Create call graph builder (n-CFA, context-sensitive, etc.)
-            com.ibm.wala.ipa.callgraph.CallGraphBuilder<InstanceKey> builder = Util.makeZeroOneCFABuilder(Language.JAVA, options, new AnalysisCacheImpl(), classHierarchy);
+            CallGraphBuilder<InstanceKey> builder = Util.makeZeroCFABuilder(Language.JAVA, options, new AnalysisCacheImpl(), classHierarchy);
 
             // Generate the call graph
             return builder.makeCallGraph(options, null);

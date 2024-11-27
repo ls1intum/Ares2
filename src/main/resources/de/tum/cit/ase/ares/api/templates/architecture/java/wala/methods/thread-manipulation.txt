@@ -7,6 +7,7 @@ java.lang.Thread.setName(Ljava/lang/String;)
 java.lang.Thread.setPriority(I)
 java.lang.Thread.setUncaughtExceptionHandler(Ljava/lang/Thread$UncaughtExceptionHandler;)
 java.lang.VirtualThread.interrupt()
+java.util.concurrent.ThreadPoolExecutor
 java.util.concurrent.ThreadPoolExecutor.shutdown()
 java.util.concurrent.ThreadPoolExecutor.shutdownNow()
 sun.java2d.marlin.MarlinUtils.getRootThreadGroup()
@@ -30,3 +31,4 @@ java.lang.ThreadGroup.getParent()
 java.lang.ThreadGroup.interrupt()
 java.lang.ThreadGroup.setDaemon(Z)
 java.lang.ThreadGroup.setMaxPriority(I)
+java.util.concurrent.Executors

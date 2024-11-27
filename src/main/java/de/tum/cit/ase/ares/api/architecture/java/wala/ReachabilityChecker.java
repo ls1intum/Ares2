@@ -10,7 +10,6 @@ import com.ibm.wala.ipa.cha.ClassHierarchy;
 import com.ibm.wala.ipa.cha.ClassHierarchyException;
 import com.ibm.wala.ipa.cha.ClassHierarchyFactory;
 import com.ibm.wala.types.ClassLoaderReference;
-import com.ibm.wala.util.graph.traverse.DFSPathFinder;
 import de.tum.cit.ase.ares.api.architecture.java.FileHandlerConstants;
 
 import java.io.IOException;
@@ -49,7 +48,7 @@ public class ReachabilityChecker {
         if (targetNodeFilter == null) {
             throw new SecurityException(localize("security.common.not.null", "targetNodeFilter", ReachabilityChecker.class.getName()));
         }
-        return new DFSPathFinder<>(callGraph, startNodes, targetNodeFilter).find();
+        return new CustomDFSPathFinder(callGraph, startNodes, targetNodeFilter).find();
     }
 
     /**

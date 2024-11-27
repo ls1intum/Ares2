@@ -16,4 +16,5 @@ regardingTheSupervisedCode:
       - importTheFollowingPackage: "java.awt"
       - importTheFollowingPackage: "javax.swing"
       - importTheFollowingPackage: "javax.sound"
-      - importTheFollowingPackage: "de.tum.cit.ase.ares.integration.testuser.subject.thirdpartypackage"
+      - importTheFollowingPackage: "de.tum.cit.ase.ares"
+      - importTheFollowingPackage: "org.junit.platform"

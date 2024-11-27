@@ -21,7 +21,7 @@ import java.io.IOException;
 public class CommandExecutionUser {
 
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/commandexecution")
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicyWala.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/commandexecution")
     void testExecuteCommand() {
         // do nothing
     }

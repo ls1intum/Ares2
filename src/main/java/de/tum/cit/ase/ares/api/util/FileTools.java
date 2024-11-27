@@ -296,7 +296,7 @@ public class FileTools {
         String normalizedContent = fileContent.replace("\r\n", "\n").replace("\r", "\n");
         List<String> methods = Arrays.stream(normalizedContent.split("\n"))
                 // Filter out comments
-                .filter(str -> str.startsWith("#"))
+                .filter(str -> !str.startsWith("#"))
                 .toList();
         return new HashSet<>(methods);
     }

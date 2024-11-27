@@ -28,7 +28,7 @@ public class FileHandlerConstants {
     public static final Path WALA_FILESYSTEM_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "wala", "methods", "file-system-access-methods.txt");
     public static final Path WALA_NETWORK_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "wala", "methods", "network-access-methods.txt");
     public static final Path WALA_JVM_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "wala", "methods", "jvm-termination-methods.txt");
-    public static final Path WALA_REFLECTION_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "wala", "methods", "reflection.txt");
+    public static final Path WALA_REFLECTION_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "wala", "methods", "reflection-methods.txt");
     public static final Path WALA_COMMAND_EXECUTION_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "wala", "methods", "command-execution-methods.txt");
     public static final Path WALA_SERIALIZATION_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "wala", "methods", "serializable-methods.txt");
     public static final Path WALA_THREAD_MANIPULATION_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "wala", "methods", "thread-manipulation.txt");
