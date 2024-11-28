@@ -3,13 +3,26 @@ package de.tum.cit.ase.ares.api.architecture.java;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitSecurityTestCase;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
+import javax.annotation.Nonnull;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Stream;
 
-public enum JavaArchitectureMode {
-    ARCHUNIT;
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
 
+// TODO: Add documentation
+public enum JavaArchitectureMode {
+    /**
+     * The ArchUnit architecture mode.
+     */
+    ARCHUNIT,
+    /**
+     * The WALA architecture mode.
+     */
+    WALA;
+
+    //<editor-fold desc="Multi-file methods">
+    @Nonnull
     public List<Path> filesToCopy() {
         return (switch (this) {
             case ARCHUNIT -> Stream.of(
@@ -29,10 +42,13 @@ public enum JavaArchitectureMode {
                     new String[]{"templates", "architecture", "java", "archunit", "FileHandlerConstants.java"},
                     new String[]{"templates", "architecture", "java", "archunit", "JavaArchUnitTestCaseSupported.java"}
             );
+            // Todo: Add WALA and remove default
+            default -> throw new SecurityException(localize("security.common.unsupported.operation", this));
         }).map(FileTools::resolveOnResources).toList();
     }
 
-    public List<String[]> fileValues(String packageName) {
+    @Nonnull
+    public List<String[]> fileValues(@Nonnull String packageName) {
         return (switch (this) {
             case ARCHUNIT -> Stream.of(
                     new String[]{},
@@ -51,10 +67,13 @@ public enum JavaArchitectureMode {
                     FileTools.generatePackageNameArray(packageName, 1),
                     FileTools.generatePackageNameArray(packageName, 1)
             );
+            // Todo: Add WALA and remove default
+            default ->  throw new SecurityException(localize("security.common.unsupported.operation", this));
         }).toList();
     }
 
-    public List<Path> targetsToCopyTo(Path projectPath, String packageName) {
+    @Nonnull
+    public List<Path> targetsToCopyTo(@Nonnull Path projectPath, @Nonnull String packageName) {
         return (switch (this) {
             case ARCHUNIT -> Stream.of(
                     new String[]{"api", "architecture", "java", "archunit", "methods", "file-system-access-methods.txt"},
@@ -73,40 +92,64 @@ public enum JavaArchitectureMode {
                     new String[]{"api", "architecture", "java", "archunit", "FileHandlerConstants.java"},
                     new String[]{"api", "architecture", "java", "archunit", "JavaArchUnitTestCaseSupported.java"}
             );
+            // Todo: Add WALA and remove default
+            default ->  throw new SecurityException(localize("security.common.unsupported.operation", this));
         }).map(pathParticles -> FileTools.resolveOnTests(projectPath, packageName, pathParticles)).toList();
     }
+    //</editor-fold>
 
+    //<editor-fold desc="Single-file methods">
+    @Nonnull
     public Path threePartedFileHeader() {
         return FileTools.resolveOnResources(switch (this) {
             case ARCHUNIT ->
                     new String[]{"templates", "architecture", "java", "archunit", "JavaArchitectureTestCaseCollectionHeader.txt"};
+            // Todo: Add WALA and remove default
+            default ->  throw new SecurityException(localize("security.common.unsupported.operation", this));
         });
     }
 
+    // TODO: List<?> testCases should not be <?>
     @SuppressWarnings("unchecked")
+    @Nonnull
     public String threePartedFileBody(List<?> testCases) {
         return switch (this) {
             case ARCHUNIT ->
                     String.join("\n", ((List<JavaArchUnitSecurityTestCase>) testCases).stream().map(JavaArchUnitSecurityTestCase::writeArchitectureTestCase).toList());
+            // Todo: Add WALA and remove default
+            default ->  throw new SecurityException(localize("security.common.unsupported.operation", this));
         };
     }
 
+    @Nonnull
     public Path threePartedFileFooter() {
         return FileTools.resolveOnResources(switch (this) {
             case ARCHUNIT ->
                     new String[]{"templates", "architecture", "java", "archunit", "JavaArchitectureTestCaseCollectionFooter.txt"};
+            // Todo: Add WALA and remove default
+            default ->  throw new SecurityException(localize("security.common.unsupported.operation", this));
         });
     }
 
-    public String[] fileValue(String packageName) {
+    @Nonnull
+    public String[] fileValue(@Nonnull String packageName) {
         return switch (this) {
             case ARCHUNIT -> FileTools.generatePackageNameArray(packageName, 2);
+            // Todo: Add WALA and remove default
+            default ->  throw new SecurityException(localize("security.common.unsupported.operation", this));
         };
     }
 
-    public Path targetToCopyTo(Path projectPath, String packageName) {
+    @Nonnull
+    public Path targetToCopyTo(@Nonnull Path projectPath, @Nonnull String packageName) {
         return FileTools.resolveOnTests(projectPath, packageName, switch (this) {
             case ARCHUNIT -> new String[]{"api", "architecture", "java", "archunit", "JavaArchUnitTestCaseCollection.txt"};
+            // Todo: Add WALA and remove default
+            default ->  throw new SecurityException(localize("security.common.unsupported.operation", this));
         });
     }
+    //</editor-fold>
+
+    //<editor-fold desc="Reset methods">
+    //</editor-fold>
 }

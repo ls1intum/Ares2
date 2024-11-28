@@ -1,6 +1,7 @@
-package de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile;
+package de.tum.cit.ase.ares.api.architecture.java.archunit;
 
 //<editor-fold desc="Imports">
+
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaAccess;
@@ -9,16 +10,17 @@ import com.tngtech.archunit.lang.ConditionEvent;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 import com.tngtech.archunit.thirdparty.com.google.common.collect.ImmutableList;
+import de.tum.cit.ase.ares.api.architecture.java.CallGraphBuilderUtils;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.HashSet;
-import java.util.Collections;
 
 import static com.tngtech.archunit.lang.ConditionEvent.createMessage;
 import static com.tngtech.archunit.thirdparty.com.google.common.base.Preconditions.checkNotNull;
 import static com.tngtech.archunit.thirdparty.com.google.common.collect.Iterables.getLast;
+import static de.tum.cit.ase.ares.api.architecture.java.CallGraphBuilderUtils.getImmediateSubclasses;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toSet;
 //</editor-fold>
@@ -40,11 +42,12 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
     //</editor-fold>
 
     //<editor-fold desc="Constructor">
+
     /**
      * @param conditionPredicate Predicate to match the accessed methods
      */
     public TransitivelyAccessesMethodsCondition(DescribedPredicate<? super JavaAccess<?>> conditionPredicate) {
-        super("transitively depend on classes that " + conditionPredicate.getDescription());
+        super(conditionPredicate.getDescription());
         this.conditionPredicate = checkNotNull(conditionPredicate);
     }
     //</editor-fold>
@@ -54,16 +57,11 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
      */
     @Override
     public void check(JavaClass item, ConditionEvents events) {
-        boolean hastTransitiveAccess = false;
         for (JavaAccess<?> target : item.getAccessesFromSelf()) {
             List<JavaAccess<?>> dependencyPath = transitiveAccessPath.findPathTo(target);
             if (!dependencyPath.isEmpty()) {
                 events.add(newTransitiveAccessPathFoundEvent(target, dependencyPath));
-                hastTransitiveAccess = true;
             }
-        }
-        if (!hastTransitiveAccess) {
-            events.add(newNoTransitiveDependencyPathFoundEvent(item));
         }
     }
 
@@ -83,13 +81,6 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
         }
 
         return SimpleConditionEvent.satisfied(javaClass, createMessage(javaClass, message));
-    }
-
-    /**
-     * @return a violated event if no transitive dependency path was found
-     */
-    private static ConditionEvent newNoTransitiveDependencyPathFoundEvent(JavaClass javaClass) {
-        return SimpleConditionEvent.violated(javaClass, createMessage(javaClass, "does not transitively depend on any matching class"));
     }
 
     private class TransitiveAccessPath {
@@ -131,26 +122,23 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
 
         /**
          * We are currently using CHA, which resolves all the subclasses of a given class
+         *
          * @return all accesses to the same target as the supplied item that are not in the analyzed classes
          */
         private Set<JavaAccess<?>> getDirectAccessTargetsOutsideOfAnalyzedClasses(JavaAccess<?> item) {
             // Get all subclasses of the target owner including the target owner
             JavaClass resolvedTarget = resolveTargetOwner(item.getTargetOwner());
 
-            // Match the accesses to the target
-            Set<JavaClass> subclasses = resolvedTarget.getSubclasses().stream().map(this::resolveTargetOwner).collect(toSet());
-            subclasses.add(resolvedTarget);
-
             /**
-             * If the number of subclasses is more than 20, return an empty set.
-             * These classes are always generic interfaces or abstract classes
-             * TODO: Check if this is also the case for foreign packages
+             * We are currently using CHA, which resolves all the subclasses of a given class
+             * @return all accesses to the same target as the supplied item that are not in the analyzed classes
+             * Resolves immediate subclasses of the target class to find potential method implementations
+             * @param item The access to analyze + * @return all accesses to the same target as the supplied item from immediate subclasses
              */
-            if (subclasses.size() > 20 || isExceptionOrError(resolvedTarget)) {
-                return Collections.emptySet();
-            }
+            Set<JavaClass> directSubclasses = new HashSet<>(getImmediateSubclasses(item.getTargetOwner().getFullName()));
+            directSubclasses.add(resolvedTarget);
 
-            return subclasses.stream()
+            return directSubclasses.stream()
                     .map(javaClass ->
                             getAccessesFromClass(javaClass, item.getTarget().getFullName().substring(item.getTargetOwner().getFullName().length())))
                     .flatMap(Set::stream)
@@ -169,12 +157,8 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
         }
 
         private JavaClass resolveTargetOwner(JavaClass targetOwner) {
-            Optional<JavaClass> resolvedTarget = CustomClassResolver.tryResolve(targetOwner.getFullName());
+            Optional<JavaClass> resolvedTarget = CallGraphBuilderUtils.tryResolve(targetOwner.getFullName());
             return resolvedTarget.orElse(targetOwner);
-        }
-
-        private boolean isExceptionOrError(JavaClass javaClass) {
-            return javaClass.isAssignableTo(Exception.class) || javaClass.isAssignableTo(Error.class);
         }
     }
 }

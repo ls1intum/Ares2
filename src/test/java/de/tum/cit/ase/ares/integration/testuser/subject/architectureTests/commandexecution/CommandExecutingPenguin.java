@@ -1,8 +1,8 @@
-package de.tum.cit.ase.ares.integration.testuser.subject.commandexecution;
+package de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.commandexecution;
 
 import java.io.IOException;
 
-public class CommandExecutingStudent {
+public class CommandExecutingPenguin {
 
     public void processBuilder() throws IOException {
         ProcessBuilder processBuilder = new ProcessBuilder();

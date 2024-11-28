@@ -1,16 +1,18 @@
 package de.tum.cit.ase.ares.api.architecture.java.archunit;
 
 //<editor-fold desc="Imports">
+
 import com.tngtech.archunit.core.domain.JavaClasses;
-import de.tum.cit.ase.ares.api.architecture.ArchitectureSecurityTestCase;
-import de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile.JavaArchitectureTestCaseCollection;
+import de.tum.cit.ase.ares.api.architecture.java.JavaArchitecturalTestCaseSupported;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy.PackagePermission;
 
+import javax.annotation.Nonnull;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile.JavaArchitectureTestCaseCollection.getArchitectureRuleFileContent;
+import static de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase.parseErrorMessage;
+import static de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitTestCaseCollection.getArchitectureRuleFileContent;
 import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 //</editor-fold>
 
@@ -22,44 +24,42 @@ import static de.tum.cit.ase.ares.api.localization.Messages.localized;
  * @see <a href="https://refactoring.guru/design-patterns/abstract-factory">Abstract Factory Design Pattern</a>
  * @since 2.0.0
  */
-public class JavaArchUnitSecurityTestCase implements ArchitectureSecurityTestCase {
+public class JavaArchUnitSecurityTestCase {
 
     //<editor-fold desc="Attributes">
     /**
      * Selects the supported architecture test case in the Java programming language.
      */
-    private final JavaArchUnitTestCaseSupported javaArchitectureTestCaseSupported;
+    @Nonnull
+    private final JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported;
 
     /**
      * List of allowed packages to be imported.
      */
+    @Nonnull
     private final Set<String> allowedPackages;
     //</editor-fold>
 
     //<editor-fold desc="Constructors">
+
     /**
      * Constructor for JavaArchUnitSecurityTestCase.
      *
-     * @param javaArchitectureTestCaseSupported Selects the supported architecture test case in the Java programming language
+     * @param builder Selects the supported architecture test case in the Java programming language
      */
-    public JavaArchUnitSecurityTestCase(JavaArchUnitTestCaseSupported javaArchitectureTestCaseSupported) {
-        super();
-        this.javaArchitectureTestCaseSupported = javaArchitectureTestCaseSupported;
-        this.allowedPackages = new HashSet<>();
+    private JavaArchUnitSecurityTestCase(@Nonnull Builder builder) {
+        this.javaArchitectureTestCaseSupported = builder.javaArchitectureTestCaseSupported;
+        this.allowedPackages = builder.allowedPackages;
     }
 
-    public JavaArchUnitSecurityTestCase(JavaArchUnitTestCaseSupported javaArchitectureTestCaseSupported, Set<PackagePermission> packages) {
-        super();
-        this.javaArchitectureTestCaseSupported = javaArchitectureTestCaseSupported;
-        this.allowedPackages = packages.stream().map(PackagePermission::importTheFollowingPackage).collect(Collectors.toSet());
-    }
     //</editor-fold>
 
     //<editor-fold desc="Tool methods">
+
     /**
      * Returns the content of the architecture test case file in the Java programming language.
      */
-    @Override
+    @Nonnull
     public String writeArchitectureTestCase() {
         try {
             return getArchitectureRuleFileContent(this.javaArchitectureTestCaseSupported.name());
@@ -70,36 +70,83 @@ public class JavaArchUnitSecurityTestCase implements ArchitectureSecurityTestCas
     //</editor-fold>
 
     //<editor-fold desc="Execute security test case methods">
+
     /**
      * Runs the architecture test case in the Java programming language.
      */
-    @Override
-    public void executeArchitectureTestCase(JavaClasses classes) {
+    public void executeArchitectureTestCase(JavaClasses javaClasses) {
         try {
             switch (this.javaArchitectureTestCaseSupported) {
-                case PACKAGE_IMPORT ->
-                        JavaArchitectureTestCaseCollection
-                                .noClassesShouldImportForbiddenPackages(allowedPackages)
-                                .check(classes);
                 case FILESYSTEM_INTERACTION ->
-                        JavaArchitectureTestCaseCollection
+                        JavaArchUnitTestCaseCollection
                                 .NO_CLASS_SHOULD_ACCESS_FILE_SYSTEM
-                                .check(classes);
+                                .check(javaClasses);
                 case NETWORK_CONNECTION ->
-                        JavaArchitectureTestCaseCollection
+                        JavaArchUnitTestCaseCollection
                                 .NO_CLASSES_SHOULD_ACCESS_NETWORK
-                                .check(classes);
+                                .check(javaClasses);
                 case THREAD_CREATION ->
-                        JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_CREATE_THREADS.check(classes);
+                        JavaArchUnitTestCaseCollection
+                                .NO_CLASSES_SHOULD_CREATE_THREADS
+                                .check(javaClasses);
                 case COMMAND_EXECUTION ->
-                        JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_EXECUTE_COMMANDS.check(classes);
-                default -> throw new UnsupportedOperationException("Not implemented yet");
+                        JavaArchUnitTestCaseCollection
+                                .NO_CLASSES_SHOULD_EXECUTE_COMMANDS
+                                .check(javaClasses);
+                case PACKAGE_IMPORT ->
+                        JavaArchUnitTestCaseCollection
+                                .noClassesShouldImportForbiddenPackages(allowedPackages)
+                                .check(javaClasses);
+                case REFLECTION ->
+                        JavaArchUnitTestCaseCollection
+                                .NO_CLASSES_SHOULD_USE_REFLECTION
+                                .check(javaClasses);
+                case TERMINATE_JVM ->
+                        JavaArchUnitTestCaseCollection
+                                .NO_CLASSES_SHOULD_TERMINATE_JVM
+                                .check(javaClasses);
+                case SERIALIZATION ->
+                        JavaArchUnitTestCaseCollection
+                                .NO_CLASSES_SHOULD_SERIALIZE
+                                .check(javaClasses);
+                // Classloading included in the Reflection test case
+                case CLASS_LOADING -> {}
+                default -> throw new SecurityException(localized("security.common.unsupported.operation", this.javaArchitectureTestCaseSupported));
             }
         } catch (AssertionError e) {
-            if (e.getMessage() == null || e.getMessage().split("\n").length < 2) {
-                throw new SecurityException(localized("security.archunit.illegal.execution", e.getMessage()));
+            parseErrorMessage(e);
+        }
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Builder">
+    // Static method to start the builder
+    public static Builder builder() {
+        return new Builder();
+    }
+
+
+    // Static Builder class
+    public static class Builder {
+        private JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported;
+        private Set<String> allowedPackages = new HashSet<>();
+
+        public Builder javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported) {
+            this.javaArchitectureTestCaseSupported = javaArchitectureTestCaseSupported;
+            return this;
+        }
+
+        public Builder allowedPackages(Set<PackagePermission> packages) {
+            if (packages != null) {
+                this.allowedPackages = packages.stream()
+                        .map(PackagePermission::importTheFollowingPackage)
+                        .collect(Collectors.toSet());
             }
-            throw new SecurityException(localized("security.archunit.illegal.execution", e.getMessage().split("\n")[1]));
+            return this;
+        }
+
+        public JavaArchUnitSecurityTestCase build() {
+            return new JavaArchUnitSecurityTestCase(this);
         }
     }
     //</editor-fold>

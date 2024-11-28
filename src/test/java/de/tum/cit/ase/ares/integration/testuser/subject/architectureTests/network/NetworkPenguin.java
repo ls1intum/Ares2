@@ -1,5 +1,6 @@
-package de.tum.cit.ase.ares.integration.testuser.subject.network;
+package de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.network;
 
+import java.io.IOException;
 import java.net.*;
 import java.util.Scanner;
 import java.util.concurrent.Callable;
@@ -27,5 +28,12 @@ public final class NetworkPenguin {
 //				assertEquals(expectLine, in.nextLine());
 			}
 		}
+	}
+
+	public static int googleCode() throws IOException {
+		URL url = new URL("http://google.com");
+		HttpURLConnection con = (HttpURLConnection) url.openConnection();
+		con.setRequestMethod("GET");
+		return con.getResponseCode();
 	}
 }

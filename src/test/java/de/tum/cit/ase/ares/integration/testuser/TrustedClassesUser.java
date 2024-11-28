@@ -3,7 +3,7 @@ package de.tum.cit.ase.ares.integration.testuser;
 import java.io.IOException;
 import java.nio.file.Path;
 
-import de.tum.cit.ase.ares.integration.testuser.subject.fileSystem.FileSystemAccessPenguin;
+import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.fileSystem.FileSystemAccessPenguin;
 import org.junit.jupiter.api.Test;
 
 import de.tum.cit.ase.ares.api.*;

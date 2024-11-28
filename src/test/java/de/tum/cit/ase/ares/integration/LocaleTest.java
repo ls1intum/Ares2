@@ -12,6 +12,7 @@ import de.tum.cit.ase.ares.testutilities.*;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
 
@@ -58,9 +59,11 @@ class LocaleTest {
 	@TestTest
 	public void testTranslationsCompleteness() throws IOException {
 		Set<String> englishKeys = loadPropertiesKeys(ENGLISH_FILE_PATH);
-		Set<String> germanKeys = loadPropertiesKeys(GERMAN_FILE_PATH);
+		Set<String> germanKeys = new HashSet<>(loadPropertiesKeys(GERMAN_FILE_PATH));
 
-		assertThat(germanKeys).containsAll(englishKeys);
+		assertThat(germanKeys)
+				.containsExactlyInAnyOrderElementsOf(englishKeys)
+				.withFailMessage("Sets are not equal. Difference: %s", germanKeys.removeAll(englishKeys) ? germanKeys : englishKeys);
 	}
 
 	private Set<String> loadPropertiesKeys(String filePath) throws IOException {

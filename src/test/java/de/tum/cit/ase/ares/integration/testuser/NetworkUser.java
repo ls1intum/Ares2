@@ -17,7 +17,7 @@ import de.tum.cit.ase.ares.api.MirrorOutput.MirrorOutputPolicy;
 import de.tum.cit.ase.ares.api.jupiter.Public;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
 //REMOVED: Import of ArtemisSecurityManager
-import de.tum.cit.ase.ares.integration.testuser.subject.network.NetworkPenguin;
+import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.network.NetworkPenguin;
 
 @Public
 @UseLocale("en")
