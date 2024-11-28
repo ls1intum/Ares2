@@ -66,7 +66,7 @@ public class ArchitectureSecurityTest {
     @TestTest
     void testWalaThreadCreation() {
         tests.assertThatEvents().haveExactly(1,
-                testFailedWith("testWaLaThreadCreation", SecurityException.class));
+                testFailedWith("testWalaThreadCreation", SecurityException.class));
     }
     // </editor-fold>
 
