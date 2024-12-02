@@ -6,7 +6,9 @@ import com.ibm.wala.util.collections.Iterator2Iterable;
 import com.ibm.wala.util.collections.NonNullSingletonIterator;
 import com.ibm.wala.util.graph.Graph;
 
+import java.awt.*;
 import java.util.*;
+import java.util.List;
 import java.util.function.Predicate;
 
 import org.jspecify.annotations.Nullable;
@@ -55,7 +57,60 @@ public class CustomDFSPathFinder extends ArrayList<CGNode> {
             "java.util.Arrays.stream",
             "java.io.PrintStream.format",
             "java.lang.Throwable.printStackTrace()",
-            "java.lang.String"
+            "java.lang.String",
+            "org.aspectj.lang.reflect",
+            "java.awt.color",
+            "java.math.BigInteger",
+            "de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemAdviceDefinitions",
+            "java.lang.Long",
+            "sun.swing.SwingUtilities2",
+            "javax.swing.UIDefaults",
+            "java.nio.charset.CharsetDecoder",
+            "sun.nio.cs.StreamEncoder",
+            "sun.nio.ch.NativeThreadSet",
+            "java.io.PrintWriter.impl",
+            "java.util.Objects",
+            "java.nio.ByteBuffer",
+            "sun.reflect.generics.reflectiveObjects.TypeVariableImpl",
+            "java.util.regex.Pattern",
+            "java.io.BufferedReader",
+            "sun.nio.cs.StreamDecoder",
+            "sun.nio.cs.StandardCharsets",
+            "sun.awt.image.ImageFetcher",
+            "java.io.PrintStream.write",
+            "java.io.PrintStream.impl",
+            "java.text.NumberFormat",
+            "java.lang.ClassValue",
+            "java.io.FilterInputStream",
+            "java.io.DataOutputStream",
+            "java.util.Collections",
+            "java.util.HashSet",
+            "sun.reflect.generics.factory.CoreReflectionFactory",
+            "java.util.logging.Handler.initLocking",
+            "org.aspectj.runtime.reflect.Factory",
+            "java.awt.Component.checkCoalescing",
+            "java.util.KeyValueHolder",
+            "sun.security.action.GetPropertyAction",
+            "java.io.ObjectOutputStream.writeProxyDesc",
+            "java.io.DataInputStream",
+            "sun.util.locale.provider.LocaleProviderAdapter",
+            "java.lang.Enum",
+            "java.util.Hashtable",
+            "sun.font.FreetypeFontScaler",
+            "java.util.Arrays",
+            "java.io.ObjectInputStream.readObject0",
+            "java.io.ObjectOutputStream.writeObject0",
+            "java.awt.AWTKeyStroke",
+            "java.awt.Toolkit",
+            "java.util.concurrent.ThreadPoolExecutor.toString()",
+            "sun.java2d.loops.GraphicsPrimitive",
+            "java.util.AbstractSet",
+            "java.lang.invoke.LambdaForm$NamedFunction.equals",
+            "java.lang.invoke.LambdaForm$NamedFunction.hashCode",
+            "java.util.AbstractList",
+            "java.util.ImmutableCollections",
+            "java.lang.invoke.MemberName.hashCode()",
+            "java.lang.invoke.MemberName.equals"
     );
 
     /**

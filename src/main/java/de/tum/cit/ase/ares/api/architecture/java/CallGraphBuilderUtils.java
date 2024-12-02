@@ -149,7 +149,7 @@ public class CallGraphBuilderUtils {
             AnalysisOptions options = new AnalysisOptions(scope, customEntryPoints);
 
             // Create call graph builder (n-CFA, context-sensitive, etc.)
-            CallGraphBuilder<InstanceKey> builder = Util.makeZeroCFABuilder(Language.JAVA, options, new AnalysisCacheImpl(), classHierarchy);
+            CallGraphBuilder<InstanceKey> builder = Util.makeZeroOneCFABuilder(Language.JAVA, options, new AnalysisCacheImpl(), classHierarchy);
 
             // Generate the call graph
             return builder.makeCallGraph(options, null);
