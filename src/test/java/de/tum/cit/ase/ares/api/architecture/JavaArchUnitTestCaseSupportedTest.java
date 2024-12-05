@@ -28,5 +28,15 @@ class JavaArchUnitTestCaseSupportedTest {
         assertEquals(JavaArchitecturalTestCaseSupported.COMMAND_EXECUTION, JavaArchitecturalTestCaseSupported.valueOf("COMMAND_EXECUTION"));
         assertEquals(JavaArchitecturalTestCaseSupported.THREAD_CREATION, JavaArchitecturalTestCaseSupported.valueOf("THREAD_CREATION"));
         assertEquals(JavaArchitecturalTestCaseSupported.PACKAGE_IMPORT, JavaArchitecturalTestCaseSupported.valueOf("PACKAGE_IMPORT"));
+        assertEquals(JavaArchitecturalTestCaseSupported.TERMINATE_JVM, JavaArchitecturalTestCaseSupported.valueOf("TERMINATE_JVM"));
+        assertEquals(JavaArchitecturalTestCaseSupported.REFLECTION, JavaArchitecturalTestCaseSupported.valueOf("REFLECTION"));
+        assertEquals(JavaArchitecturalTestCaseSupported.SERIALIZATION, JavaArchitecturalTestCaseSupported.valueOf("SERIALIZATION"));
+        assertEquals(JavaArchitecturalTestCaseSupported.CLASS_LOADING, JavaArchitecturalTestCaseSupported.valueOf("CLASS_LOADING"));
+    }
+
+    @Test
+    void testEnumValueOfInvalid() {
+        assertThrows(IllegalArgumentException.class, 
+            () -> JavaArchitecturalTestCaseSupported.valueOf("INVALID_VALUE"));
     }
 }
