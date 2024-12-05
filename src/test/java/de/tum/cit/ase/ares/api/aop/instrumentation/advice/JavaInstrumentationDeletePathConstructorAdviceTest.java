@@ -18,8 +18,8 @@ class JavaInstrumentationDeletePathConstructorAdviceTest {
 
     @Test
     void testOnEnterVerifiesFileSystemInteractionForDelete() {
-        // Arrange
         try (MockedStatic<JavaInstrumentationAdviceToolbox> mockedToolbox = mockStatic(JavaInstrumentationAdviceToolbox.class)) {
+            // Arrange
             mockedToolbox.when(() -> JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
                     OPERATION,
                     CLASS_NAME,

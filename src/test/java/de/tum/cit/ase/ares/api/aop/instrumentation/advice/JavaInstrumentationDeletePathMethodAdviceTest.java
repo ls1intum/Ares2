@@ -18,9 +18,8 @@ class JavaInstrumentationDeletePathMethodAdviceTest {
 
     @Test
     void shouldCheckFileSystemInteraction_whenDeletingPath() {
-        // given
         try (MockedStatic<JavaInstrumentationAdviceToolbox> mockedToolbox = mockStatic(JavaInstrumentationAdviceToolbox.class)) {
-            // Expected result from the toolbox
+            // Arrange
             SecurityException expectedViolation = null;
             mockedToolbox.when(() -> JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
                     OPERATION,
@@ -31,7 +30,7 @@ class JavaInstrumentationDeletePathMethodAdviceTest {
                     PARAMETERS
             )).thenReturn(expectedViolation);
 
-            // when
+            // Act
             JavaInstrumentationDeletePathMethodAdvice.onEnter(
                     CLASS_NAME,
                     METHOD_NAME,
@@ -40,7 +39,7 @@ class JavaInstrumentationDeletePathMethodAdviceTest {
                     PARAMETERS
             );
 
-            // then
+            // Assert
             mockedToolbox.verify(() -> JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
                     eq(OPERATION),
                     eq(CLASS_NAME),

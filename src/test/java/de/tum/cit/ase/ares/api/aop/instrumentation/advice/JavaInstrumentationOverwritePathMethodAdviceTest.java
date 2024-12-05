@@ -34,6 +34,7 @@ class JavaInstrumentationOverwritePathMethodAdviceTest {
         }
 
         try (MockedStatic<JavaInstrumentationAdviceToolbox> mockedToolbox = mockStatic(JavaInstrumentationAdviceToolbox.class)) {
+            // Arrange
             mockedToolbox.when(() -> JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
                     eq(OPERATION),
                     eq(CLASS_NAME),
@@ -43,6 +44,7 @@ class JavaInstrumentationOverwritePathMethodAdviceTest {
                     aryEq(PARAMETERS)
             )).thenAnswer(invocation -> null);
 
+            // Act
             JavaInstrumentationOverwritePathMethodAdvice.onEnter(
                     CLASS_NAME,
                     METHOD_NAME,
@@ -51,6 +53,7 @@ class JavaInstrumentationOverwritePathMethodAdviceTest {
                     PARAMETERS
             );
 
+            // Assert
             mockedToolbox.verify(() -> JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
                     eq(OPERATION),
                     eq(CLASS_NAME),
