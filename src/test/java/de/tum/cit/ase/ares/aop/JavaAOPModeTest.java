@@ -8,12 +8,31 @@ import org.mockito.MockedStatic;
 
 import java.lang.reflect.Method;
 import java.nio.file.Path;
-import java.util.List;
+import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class JavaAOPModeTest {
+
+    private static final int SETUP_OPTIONS_COUNT = 2;
+    /**
+     * Expected number of files to copy for instrumentation mode.
+     * This includes:
+     * - [List the specific files or types of files expected]
+     */
+    private static final int INSTRUMENTATION_FILES_COUNT = 13;
+
+    /**
+     * Expected number of files to copy for AspectJ mode.
+     * This includes:
+     * - [List the specific files or types of files expected]
+     */
+    private static final int ASPECTJ_FILES_COUNT = 2;
+
+    private static String TEST_PACKAGE = "com.example";
+    private static String TEST_MAIN_CLASS = "MainClass";
+    private static String[] EXPECTED_ARRAY = {"mocked", "array"};
 
     private JavaAOPMode instrumentationMode;
     private JavaAOPMode aspectjMode;
@@ -27,7 +46,7 @@ class JavaAOPModeTest {
     @Test
     void testEnumValues() {
         JavaAOPMode[] modes = JavaAOPMode.values();
-        assertEquals(2, modes.length);
+        assertEquals(SETUP_OPTIONS_COUNT, modes.length);
         assertTrue(Arrays.asList(modes).contains(JavaAOPMode.INSTRUMENTATION));
         assertTrue(Arrays.asList(modes).contains(JavaAOPMode.ASPECTJ));
     }
@@ -35,30 +54,56 @@ class JavaAOPModeTest {
     @Test
     void testFilesToCopy_InstrumentationMode() {
         try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class)) {
-            mockedFileTools.when(() -> FileTools.resolveOnResources(any(String[].class)))
+            mockedFileTools
+                    .when(() -> FileTools.resolveOnResources(any(String[].class)))
                     .thenReturn(mock(Path.class));
             instrumentationMode.filesToCopy();
-            mockedFileTools.verify(() -> FileTools.resolveOnResources(any(String[].class)), times(13));
+            mockedFileTools
+                    .verify(() -> FileTools.resolveOnResources(any(String[].class)),
+                            times(INSTRUMENTATION_FILES_COUNT)
+                    );
         }
     }
 
     @Test
     void testFilesToCopy_AspectJMode() {
         try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class)) {
-            mockedFileTools.when(() -> FileTools.resolveOnResources(any(String[].class)))
+            mockedFileTools
+                    .when(() -> FileTools.resolveOnResources(any(String[].class)))
                     .thenReturn(mock(Path.class));
             aspectjMode.filesToCopy();
-            mockedFileTools.verify(() -> FileTools.resolveOnResources(any(String[].class)), times(2));
+            mockedFileTools
+                    .verify(() -> FileTools.resolveOnResources(any(String[].class)),
+                            times(ASPECTJ_FILES_COUNT)
+                    );
         }
     }
 
     @Test
     void testFileValues_InstrumentationMode() {
         try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class)) {
-            mockedFileTools.when(() -> FileTools.generatePackageNameArray(anyString(), anyInt()))
-                    .thenReturn(new String[]{"mocked", "array"});
-            instrumentationMode.fileValues("com.example", "MainClass");
-            mockedFileTools.verify(() -> FileTools.generatePackageNameArray(anyString(), anyInt()), times(12));
+            mockedFileTools
+                    .when(() -> FileTools.generatePackageNameArray(anyString(), anyInt()))
+                    .thenReturn(EXPECTED_ARRAY);
+            instrumentationMode.fileValues(TEST_PACKAGE, TEST_MAIN_CLASS);
+            mockedFileTools
+                    .verify(() -> FileTools.generatePackageNameArray(anyString(), anyInt()),
+                            times(INSTRUMENTATION_FILES_COUNT)
+                    );
+        }
+    }
+
+    @Test
+    void testFileValues_AspectJMode() {
+        try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class)) {
+            mockedFileTools
+                    .when(() -> FileTools.generatePackageNameArray(anyString(), anyInt()))
+                    .thenReturn(EXPECTED_ARRAY);
+            aspectjMode.fileValues(TEST_PACKAGE, TEST_MAIN_CLASS);
+            mockedFileTools
+                    .verify(() -> FileTools.generatePackageNameArray(anyString(), anyInt()),
+                            times(INSTRUMENTATION_FILES_COUNT)
+                    );
         }
     }
 
