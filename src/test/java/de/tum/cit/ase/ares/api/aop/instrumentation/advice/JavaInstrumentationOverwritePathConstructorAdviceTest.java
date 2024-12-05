@@ -19,6 +19,7 @@ class JavaInstrumentationOverwritePathConstructorAdviceTest {
     @Test
     void testOnEnter() {
         try (MockedStatic<JavaInstrumentationAdviceToolbox> mockedToolbox = mockStatic(JavaInstrumentationAdviceToolbox.class)) {
+            // Arrange
             mockedToolbox.when(() -> JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
                     OPERATION,
                     CLASS_NAME,
@@ -28,11 +29,13 @@ class JavaInstrumentationOverwritePathConstructorAdviceTest {
                     PARAMETERS
             )).thenAnswer(invocation -> null);
 
+            // Act
             JavaInstrumentationOverwritePathConstructorAdvice.onEnter(
                     CLASS_NAME,
                     PARAMETERS
             );
 
+            // Assert
             mockedToolbox.verify(() -> JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
                     OPERATION,
                     CLASS_NAME,

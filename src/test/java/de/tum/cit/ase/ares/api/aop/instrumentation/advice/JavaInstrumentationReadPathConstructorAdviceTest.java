@@ -20,6 +20,7 @@ class JavaInstrumentationReadPathConstructorAdviceTest {
     @Test
     void testOnEnter() {
         try (MockedStatic<JavaInstrumentationAdviceToolbox> mockedToolbox = mockStatic(JavaInstrumentationAdviceToolbox.class)) {
+            // Arrange
             mockedToolbox.when(() -> JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
                     eq(OPERATION),
                     eq(CLASS_NAME),
@@ -29,11 +30,13 @@ class JavaInstrumentationReadPathConstructorAdviceTest {
                     aryEq(PARAMETERS)
             )).thenAnswer(invocation -> null);
 
+            // Act
             JavaInstrumentationReadPathConstructorAdvice.onEnter(
                     CLASS_NAME,
                     PARAMETERS
             );
 
+            // Assert
             mockedToolbox.verify(() -> JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
                     eq(OPERATION),
                     eq(CLASS_NAME),
