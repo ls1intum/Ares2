@@ -13,14 +13,17 @@ class JavaInstrumentationDeletePathMethodAdviceTest {
     private static final String CLASS_NAME = "de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathMethodAdvice";
     private static final String METHOD_NAME = "methodName";
     private static final String METHOD_SIGNATURE = "methodSignature";
-    private static final Object[] ATTRIBUTES = new Object[]{"context"};
-    private static final Object[] PARAMETERS = new Object[]{"/test/file/path"};
+    private static final Object[] ATTRIBUTES = new Object[]{"attrib1", "attrib2"};
+    private static final Object[] PARAMETERS = new Object[]{"param1", "param2"};
+    private static final Object INSTANCE = new Object() {
+        public final String attrib1 = "attrib1";
+        public final String attrib2 = "attrib2";
+    };
 
     @Test
     void shouldCheckFileSystemInteraction_whenDeletingPath() {
         try (MockedStatic<JavaInstrumentationAdviceToolbox> mockedToolbox = mockStatic(JavaInstrumentationAdviceToolbox.class)) {
             // Arrange
-            SecurityException expectedViolation = null;
             mockedToolbox.when(() -> JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
                     OPERATION,
                     CLASS_NAME,
@@ -28,25 +31,25 @@ class JavaInstrumentationDeletePathMethodAdviceTest {
                     METHOD_SIGNATURE,
                     ATTRIBUTES,
                     PARAMETERS
-            )).thenReturn(expectedViolation);
+            )).thenAnswer(invocation -> null);
 
             // Act
             JavaInstrumentationDeletePathMethodAdvice.onEnter(
                     CLASS_NAME,
                     METHOD_NAME,
                     METHOD_SIGNATURE,
-                    ATTRIBUTES,
+                    INSTANCE,
                     PARAMETERS
             );
 
             // Assert
             mockedToolbox.verify(() -> JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
-                    eq(OPERATION),
-                    eq(CLASS_NAME),
-                    eq(METHOD_NAME),
-                    eq(METHOD_SIGNATURE),
-                    eq(ATTRIBUTES),
-                    eq(PARAMETERS)
+                    OPERATION,
+                    CLASS_NAME,
+                    METHOD_NAME,
+                    METHOD_SIGNATURE,
+                    ATTRIBUTES,
+                    PARAMETERS
             ));
         }
     }

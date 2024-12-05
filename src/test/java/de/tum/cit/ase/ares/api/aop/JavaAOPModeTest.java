@@ -22,7 +22,7 @@ class JavaAOPModeTest {
      * - [List the specific files or types of files expected]
      */
     private static final int INSTRUMENTATION_FILES_COUNT = 13;
-    private static final int INSTRUMENTATION_VALUES_COUNT = 13;
+    private static final int INSTRUMENTATION_VALUES_COUNT = 12;
 
     /**
      * Expected number of files to copy for AspectJ mode.

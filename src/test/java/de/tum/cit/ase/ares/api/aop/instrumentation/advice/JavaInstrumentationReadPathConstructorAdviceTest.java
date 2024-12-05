@@ -22,12 +22,12 @@ class JavaInstrumentationReadPathConstructorAdviceTest {
         try (MockedStatic<JavaInstrumentationAdviceToolbox> mockedToolbox = mockStatic(JavaInstrumentationAdviceToolbox.class)) {
             // Arrange
             mockedToolbox.when(() -> JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
-                    eq(OPERATION),
-                    eq(CLASS_NAME),
-                    eq(METHOD_NAME),
-                    eq(METHOD_SIGNATURE),
-                    aryEq(ATTRIBUTES),
-                    aryEq(PARAMETERS)
+                    OPERATION,
+                    CLASS_NAME,
+                    METHOD_NAME,
+                    METHOD_SIGNATURE,
+                    ATTRIBUTES,
+                    PARAMETERS
             )).thenAnswer(invocation -> null);
 
             // Act
@@ -38,12 +38,12 @@ class JavaInstrumentationReadPathConstructorAdviceTest {
 
             // Assert
             mockedToolbox.verify(() -> JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
-                    eq(OPERATION),
-                    eq(CLASS_NAME),
-                    eq(METHOD_NAME),
-                    eq(METHOD_SIGNATURE),
-                    aryEq(ATTRIBUTES),
-                    aryEq(PARAMETERS)
+                    OPERATION,
+                    CLASS_NAME,
+                    METHOD_NAME,
+                    METHOD_SIGNATURE,
+                    ATTRIBUTES,
+                    PARAMETERS
             ));
         }
     }

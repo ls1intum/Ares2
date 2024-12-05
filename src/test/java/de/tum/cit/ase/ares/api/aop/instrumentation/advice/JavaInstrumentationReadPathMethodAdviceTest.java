@@ -16,32 +16,25 @@ class JavaInstrumentationReadPathMethodAdviceTest {
     private static final String CLASS_NAME = "de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathMethodAdvice";
     private static final String METHOD_NAME = "methodName";
     private static final String METHOD_SIGNATURE = "methodSignature";
+    private static final Object[] ATTRIBUTES = new Object[]{"attrib1", "attrib2"};
     private static final Object[] PARAMETERS = new Object[]{"param1", "param2"};
+    private static final Object INSTANCE = new Object() {
+        public final String attrib1 = "attrib1";
+        public final String attrib2 = "attrib2";
+    };
 
     @Test
     void testOnEnter() throws Exception {
-        class MockClass {
-            private final String field1 = "value1";
-            private final int field2 = 42;
-        }
-
-        MockClass mockInstance = new MockClass();
-        Field[] fields = mockInstance.getClass().getDeclaredFields();
-        Object[] attributes = new Object[fields.length];
-        for (int i = 0; i < fields.length; i++) {
-            fields[i].setAccessible(true);
-            attributes[i] = fields[i].get(mockInstance);
-        }
 
         try (MockedStatic<JavaInstrumentationAdviceToolbox> mockedToolbox = mockStatic(JavaInstrumentationAdviceToolbox.class)) {
             // Arrange
             mockedToolbox.when(() -> JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
-                    eq(OPERATION),
-                    eq(CLASS_NAME),
-                    eq(METHOD_NAME),
-                    eq(METHOD_SIGNATURE),
-                    aryEq(attributes),
-                    aryEq(PARAMETERS)
+                    OPERATION,
+                    CLASS_NAME,
+                    METHOD_NAME,
+                    METHOD_SIGNATURE,
+                    ATTRIBUTES,
+                    PARAMETERS
             )).thenAnswer(invocation -> null);
 
             // Act
@@ -49,18 +42,18 @@ class JavaInstrumentationReadPathMethodAdviceTest {
                     CLASS_NAME,
                     METHOD_NAME,
                     METHOD_SIGNATURE,
-                    mockInstance,
+                    INSTANCE,
                     PARAMETERS
             );
 
             // Assert
             mockedToolbox.verify(() -> JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
-                    eq(OPERATION),
-                    eq(CLASS_NAME),
-                    eq(METHOD_NAME),
-                    eq(METHOD_SIGNATURE),
-                    aryEq(attributes),
-                    aryEq(PARAMETERS)
+                    OPERATION,
+                    CLASS_NAME,
+                    METHOD_NAME,
+                    METHOD_SIGNATURE,
+                    ATTRIBUTES,
+                    PARAMETERS
             ));
         }
     }
