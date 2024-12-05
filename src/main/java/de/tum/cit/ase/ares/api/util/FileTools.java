@@ -1,5 +1,7 @@
 package de.tum.cit.ase.ares.api.util;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -288,8 +290,8 @@ public class FileTools {
 
     /**
      * Reads the content of a file and returns it as a set of strings.
-     * @param filePath
-     * @return
+     * @param filePath The path to the file
+     * @return a set of strings representing the content of the file
      */
     public static Set<String> readMethodsFromGivenPath(Path filePath) {
         String fileContent = FileTools.readFile(filePath);
@@ -299,5 +301,32 @@ public class FileTools {
                 .filter(str -> !str.startsWith("#"))
                 .toList();
         return new HashSet<>(methods);
+    }
+
+    /**
+     * Reads the content of a resource file and returns a File
+     * @param resourcePath The path to the resource file
+     * @return The File object representing the resource file
+     */
+    public static File getResourceAsFile(String resourcePath) throws IOException {
+        InputStream inputStream = FileTools.class.getClassLoader().getResourceAsStream(resourcePath);
+        if (inputStream == null) {
+            throw new IllegalArgumentException("Resource not found: " + resourcePath);
+        }
+
+        // Create a temporary file
+        File tempFile = File.createTempFile("resource-", ".tmp");
+        tempFile.deleteOnExit();
+
+        // Write the content of the InputStream to the temp file
+        try (FileOutputStream outputStream = new FileOutputStream(tempFile)) {
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+        }
+
+        return tempFile;
     }
 }

@@ -60,17 +60,13 @@ public class CallGraphBuilderUtils {
             scope = Java9AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(
                     System.getProperty("java.class.path"),
                     // File translates the path name for Windows and Unix
-                    new File(
-                            CallGraphBuilderUtils.class.getClassLoader().getResource("de/tum/cit/ase/ares/api/templates/architecture/java/exclusions.txt").toURI()
-                    )
+                    FileTools.getResourceAsFile("de/tum/cit/ase/ares/api/templates/architecture/java/exclusions.txt")
             );
 
             // Build the class hierarchy
             classHierarchy = ClassHierarchyFactory.make(scope);
         } catch (ClassHierarchyException | IOException e) {
             throw new SecurityException(localize("security.architecture.class.hierarchy.error")); // $NON-NLS-1$
-        } catch (URISyntaxException e) {
-            throw new SecurityException(e); // $NON-NLS-1$
         }
     }
 
