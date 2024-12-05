@@ -162,7 +162,7 @@ public class JavaArchUnitTestCaseCollection {
     //<editor-fold desc="ClassLoader related rule">
     public static final ArchRule NO_CLASSES_SHOULD_USE_CLASSLOADERS = createNoClassShouldHaveMethodRule(
             "uses ClassLoaders",
-            FileHandlerConstants.JAVA_CLASSLOADER_METHODS
+            FileHandlerConstants.ARCHUNIT_CLASSLOADER_METHODS
     );
     //</editor-fold>
 }

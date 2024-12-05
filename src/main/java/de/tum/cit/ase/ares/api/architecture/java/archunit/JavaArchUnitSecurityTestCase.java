@@ -50,12 +50,6 @@ public class JavaArchUnitSecurityTestCase {
         this.javaArchitectureTestCaseSupported = builder.javaArchitectureTestCaseSupported;
         this.allowedPackages = builder.allowedPackages;
     }
-
-    public JavaArchUnitSecurityTestCase(JavaArchUnitTestCaseSupported javaArchitectureTestCaseSupported, Set<PackagePermission> packages) {
-        super();
-        this.javaArchitectureTestCaseSupported = javaArchitectureTestCaseSupported;
-        this.allowedPackages = packages.stream().map(PackagePermission::importTheFollowingPackage).collect(Collectors.toSet());
-    }
     //</editor-fold>
 
     //<editor-fold desc="Tool methods">
