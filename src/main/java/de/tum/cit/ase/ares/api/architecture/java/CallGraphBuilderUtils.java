@@ -18,14 +18,8 @@ import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import de.tum.cit.ase.ares.api.architecture.java.wala.ReachabilityChecker;
 import de.tum.cit.ase.ares.api.util.FileTools;
-import org.assertj.core.util.Files;
 
-import javax.print.URIException;
-import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 

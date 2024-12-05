@@ -34,6 +34,10 @@ public class FileHandlerConstants {
     public static final Path WALA_THREAD_MANIPULATION_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "wala", "methods", "thread-manipulation.txt");
     //</editor-fold>
 
+    //<editor-fold desc="Utility Methods">
+    public static final Path FALSE_POSITIVES_FILE_SYSTEM_INTERACTIONS = FileTools.resolveOnResources("templates", "architecture" , "java", "wala", "false-positives", "false-positives-file.txt");
+    //</editor-fold>
+
 
 
     private FileHandlerConstants() {

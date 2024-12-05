@@ -309,24 +309,31 @@ public class FileTools {
      * @return The File object representing the resource file
      */
     public static File getResourceAsFile(String resourcePath) throws IOException {
-        InputStream inputStream = FileTools.class.getClassLoader().getResourceAsStream(resourcePath);
-        if (inputStream == null) {
-            throw new IllegalArgumentException("Resource not found: " + resourcePath);
-        }
-
-        // Create a temporary file
-        File tempFile = File.createTempFile("resource-", ".tmp");
-        tempFile.deleteOnExit();
-
-        // Write the content of the InputStream to the temp file
-        try (FileOutputStream outputStream = new FileOutputStream(tempFile)) {
-            byte[] buffer = new byte[1024];
-            int bytesRead;
-            while ((bytesRead = inputStream.read(buffer)) != -1) {
-                outputStream.write(buffer, 0, bytesRead);
+        // Load the resource as an InputStream
+        try (InputStream inputStream = FileTools.class.getClassLoader().getResourceAsStream(resourcePath)) {
+            if (inputStream == null) {
+                throw new SecurityException(localize("file.tools.resource.not.found", resourcePath));
             }
-        }
 
-        return tempFile;
+            // Create a temporary file using modern NIO APIs
+            Path tempFilePath;
+            try {
+                tempFilePath = Files.createTempFile("resource-", ".txt");
+            } catch (IOException e) {
+                throw new SecurityException(localize("file.tools.create.temp.file.error", resourcePath));
+            }
+
+            // Write the content of the InputStream to the temp file
+            try {
+                Files.copy(inputStream, tempFilePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException e) {
+                throw new SecurityException(localize("file.tools.resource.not.writeable", tempFilePath.toAbsolutePath()), e);
+            }
+
+            // Return the temporary file
+            return tempFilePath.toFile();
+        } catch (IOException e) {
+            throw new SecurityException(localize("file.tools.io.error", resourcePath), e);
+        }
     }
 }
