@@ -1,5 +1,8 @@
 package de.tum.cit.ase.ares.integration.testuser;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
+
 import java.nio.file.Path;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -106,6 +109,14 @@ public class ThreadUser {
 		ThreadPenguin.tryThreadWhitelisting();
 	}
 
+
+
+	/**
+	 * This can be used to check for Threads that are not stoppable. This should
+	 * never happen, but it could. Note that this test beaks all further ones,
+	 * because the security manager will not be uninstalled and block everything. It
+	 * works by catching the {@link ThreadDeath}.
+	 */
 //	@PublicTest
 //	void zz_unstoppable() {
 //		long t = System.currentTimeMillis();

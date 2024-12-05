@@ -11,6 +11,7 @@ import javax.annotation.Nonnull;
  * </p>
  *
  * @version 2.0.0
+ * @author Markus Paulsen
  * @see <a href="https://refactoring.guru/design-patterns/abstract-factory">Abstract Factory Design Pattern</a>
  * @since 2.0.0
  */

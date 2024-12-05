@@ -1,0 +1,20 @@
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_WALA_AND_ASPECTJ
+  theProgrammingLanguageUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses: []
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions: []
+    regardingNetworkConnections: []
+    regardingCommandExecutions: []
+    regardingThreadCreations: []
+    regardingPackageImports:
+      - importTheFollowingPackage: "java.io"
+      - importTheFollowingPackage: "java.util"
+      - importTheFollowingPackage: "java.nio"
+      - importTheFollowingPackage: "java.net"
+      - importTheFollowingPackage: "java.awt"
+      - importTheFollowingPackage: "javax.swing"
+      - importTheFollowingPackage: "javax.sound"
+      - importTheFollowingPackage: "de.tum.cit.ase.ares"
+      - importTheFollowingPackage: "org.junit.platform"

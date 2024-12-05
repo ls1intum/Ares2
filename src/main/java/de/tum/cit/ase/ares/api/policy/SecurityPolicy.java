@@ -35,6 +35,8 @@ import java.util.List;
      * Supported programming language configurations for the policy.
      */
     @Nonnull public enum ProgrammingLanguageConfiguration {
+
+
         /**
          * Java using Maven build tool, ArchUnit for architecture tests and instrumentation-based aspect-oriented programming.
          */
@@ -53,7 +55,27 @@ import java.util.List;
         /**
          * Java using Gradle build tool, ArchUnit for architecture tests and AspectJ for aspect-oriented programming.
          */
-        JAVA_USING_GRADLE_ARCHUNIT_AND_ASPECTJ
+        JAVA_USING_GRADLE_ARCHUNIT_AND_ASPECTJ,
+
+        /**
+         * Java using Maven build tool, Wala for architecture tests and instrumentation-based aspect-oriented programming.
+         */
+        JAVA_USING_MAVEN_WALA_AND_INSTRUMENTATION,
+
+        /**
+         * Java using Maven build tool, Wala for architecture tests and AspectJ for aspect-oriented programming.
+         */
+        JAVA_USING_MAVEN_WALA_AND_ASPECTJ,
+
+        /**
+         * Java using Gradle build tool, Wala for architecture tests and instrumentation-based aspect-oriented programming.
+         */
+        JAVA_USING_GRADLE_WALA_AND_INSTRUMENTATION,
+
+        /**
+         * Java using Gradle build tool, Wala for architecture tests and AspectJ for aspect-oriented programming.
+         */
+        JAVA_USING_GRADLE_WALA_AND_ASPECTJ;
     }
 
 

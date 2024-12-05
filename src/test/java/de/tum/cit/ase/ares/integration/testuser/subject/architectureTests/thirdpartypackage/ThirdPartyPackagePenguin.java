@@ -1,6 +1,7 @@
-package de.tum.cit.ase.ares.integration.testuser.subject.thirdpartypackage;
+package de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdpartypackage;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -13,6 +14,6 @@ public class ThirdPartyPackagePenguin {
      * This method is used to emulate a third-party package that is not part of the test user's codebase accessing the file system.
      */
     public static void accessFileSystem() throws IOException {
-        Files.readString(Path.of("fileUsingFilesClass.txt"));
+        new PrintStream("file.txt").close();
     }
 }

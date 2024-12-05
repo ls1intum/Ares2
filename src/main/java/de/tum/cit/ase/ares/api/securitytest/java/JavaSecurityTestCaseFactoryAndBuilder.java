@@ -3,12 +3,15 @@ package de.tum.cit.ase.ares.api.securitytest.java;
 //<editor-fold desc="Imports">
 
 import com.google.common.collect.Streams;
+import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSupported;
+import de.tum.cit.ase.ares.api.architecture.ArchitectureSecurityTestCase;
+import de.tum.cit.ase.ares.api.architecture.java.CallGraphBuilderUtils;
+import de.tum.cit.ase.ares.api.architecture.java.JavaArchitecturalTestCaseSupported;
+import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitSecurityTestCase;
-import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitTestCaseSupported;
-import de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile.JavaArchitectureTestCaseCollection;
 import de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCase;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy.ResourceAccesses;
@@ -44,6 +47,10 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
 
     //<editor-fold desc="Attributes">
     /**
+     * The package name where the main classes reside.
+     */
+    private static final String ARES_PACKAGE = "de.tum.cit.ase.ares";
+    /**
      * The build tool used in the project (e.g., Maven or Gradle).
      */
     @Nonnull
@@ -65,7 +72,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      * List of architecture test cases to be generated based on the security policy.
      */
     @Nonnull
-    private final List<JavaArchUnitSecurityTestCase> javaArchUnitTestCases = new ArrayList<>();
+    private final List<JavaArchitectureTestCase> javaArchUnitTestCases = new ArrayList<>();
 
     /**
      * List of Instrumentation configurations to be generated based on the security policy.
@@ -106,6 +113,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
     /**
      * The path within the project where the test cases will be applied.
      */
+    @Nonnull
     private final Path projectPath;
     //</editor-fold>
 
@@ -160,6 +168,9 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         if (securityPolicy.regardingTheSupervisedCode().theFollowingClassesAreTestClasses() == null) {
             throw new SecurityException(localize("security.policy.java.not.correct.set"));
         }
+        if (securityPolicy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted().regardingFileSystemInteractions() == null) {
+            throw new SecurityException(localize("security.policy.java.not.correct.set", "regardingFileSystemInteractions"));
+        }
         this.testClasses = securityPolicy.regardingTheSupervisedCode().theFollowingClassesAreTestClasses();
         // TODO Markus: projectPath is configured wrongly, since for AOP and Architecture tests different paths are used (for Architectural path to bytecode, for AOP path to source code)
         this.projectPath = projectPath;
@@ -204,12 +215,6 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                 new SecurityPolicy.PackagePermission("org.java.aspectj"),
                 new SecurityPolicy.PackagePermission("org.aspectj"),
                 new SecurityPolicy.PackagePermission("de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut")));
-        javaArchUnitTestCases.add(
-                new JavaArchUnitSecurityTestCase(
-                        JavaArchUnitTestCaseSupported.PACKAGE_IMPORT,
-                        allowedPackages
-                )
-        );
         //</editor-fold>
 
         //<editor-fold desc="Create variable rules code">
@@ -219,18 +224,41 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                 (Supplier<List<?>>) resourceAccesses::regardingCommandExecutions,
                 (Supplier<List<?>>) resourceAccesses::regardingThreadCreations,
         };
+
+        String classPath = Paths.get(ProjectSourcesFinder.isGradleProject() ? "build" : "target", projectPath.toString()).toString();
+        //<editor-fold desc="Load classes code">
+        // Memoized suppliers for JavaClasses and CallGraph
+        Supplier<JavaClasses> classesSupplier = memoize(() -> new ClassFileImporter().importPath(classPath));
+
+        Supplier<CallGraph> callGraphSupplier = memoize(() -> {
+            if (javaArchitectureMode == JavaArchitectureMode.WALA) {
+                return CallGraphBuilderUtils.buildCallGraph(classPath);
+            }
+            return null;
+        });
+
+        // Access them without recomputation
+        JavaClasses classes = classesSupplier.get();
+        CallGraph callGraph = callGraphSupplier.get();
+        //</editor-fold>#
+
         IntStream
                 .range(0, methods.length)
                 .forEach(i -> {
                     //<editor-fold desc="Load supported checks code">
                     // TODO Markus: What if JavaArchUnitTestCaseSupported, JavaAspectJSecurityTestCaseSupported and JavaSecurityTestCaseSupported are not in the same order or smaller than methods?
-                    JavaArchUnitTestCaseSupported javaArchitectureTestCasesSupportedValue = JavaArchUnitTestCaseSupported.values()[i];
+                    JavaArchitecturalTestCaseSupported javaArchitectureTestCasesSupportedValue = JavaArchitecturalTestCaseSupported.values()[i];
                     JavaSecurityTestCaseSupported javaSecurityTestCaseSupportedValue = JavaSecurityTestCaseSupported.values()[i];
                     //</editor-fold>
 
                     if (isEmpty(methods[i].get())) {
                         //<editor-fold desc="Architecture test case code">
-                        javaArchUnitTestCases.add(new JavaArchUnitSecurityTestCase(javaArchitectureTestCasesSupportedValue));
+                        javaArchUnitTestCases.add(JavaArchitectureTestCase.builder()
+                                .javaArchitecturalTestCaseSupported(javaArchitectureTestCasesSupportedValue)
+                                .javaClasses(classes)
+                                .callGraph(callGraph)
+                                .allowedPackages(allowedPackages)
+                                .build());
                         //</editor-fold>
                     } else {
                         //<editor-fold desc="AOP code">
@@ -238,6 +266,39 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                         //</editor-fold>
                     }
                 });
+        //</editor-fold>
+
+        //<editor-fold desc="Create fixed rules code">
+        javaArchUnitTestCases.add(JavaArchitectureTestCase.builder()
+                .javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported.PACKAGE_IMPORT)
+                .javaClasses(classes)
+                .callGraph(callGraph)
+                .allowedPackages(allowedPackages)
+                .build());
+        javaArchUnitTestCases.add(JavaArchitectureTestCase.builder()
+                .javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported.REFLECTION)
+                .javaClasses(classes)
+                .callGraph(callGraph)
+                .allowedPackages(allowedPackages)
+                .build());
+        javaArchUnitTestCases.add(JavaArchitectureTestCase.builder()
+                .javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported.SERIALIZATION)
+                .javaClasses(classes)
+                .callGraph(callGraph)
+                .allowedPackages(allowedPackages)
+                .build());
+        javaArchUnitTestCases.add(JavaArchitectureTestCase.builder()
+                .javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported.CLASS_LOADING)
+                .javaClasses(classes)
+                .callGraph(callGraph)
+                .allowedPackages(allowedPackages)
+                .build());
+        javaArchUnitTestCases.add(JavaArchitectureTestCase.builder()
+                .javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported.TERMINATE_JVM)
+                .javaClasses(classes)
+                .callGraph(callGraph)
+                .allowedPackages(allowedPackages)
+                .build());
         //</editor-fold>
     }
     //</editor-fold>
@@ -316,16 +377,6 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      */
     @Override
     public void executeSecurityTestCases() {
-        //<editor-fold desc="Load classes code">
-        @Nonnull JavaClasses classes = new ClassFileImporter().importPath(Paths.get(ProjectSourcesFinder.isGradleProject() ? "build" : "target", projectPath.toString()).toString());
-        //</editor-fold>#
-
-        //<editor-fold desc="Enforce fixed rules code">
-        JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_USE_REFLECTION.check(classes);
-        JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_TERMINATE_JVM.check(classes);
-        JavaArchitectureTestCaseCollection.NO_CLASSES_SHOULD_USE_CLASSLOADERS.check(classes);
-        //</editor-fold>
-
         //<editor-fold desc="Enforce variable rules code">
         JavaSecurityTestCase.setJavaAdviceSettingValue("aopMode", javaAOPMode.toString(), javaAOPMode.toString());
         JavaSecurityTestCase.setJavaAdviceSettingValue("restrictedPackage", packageName, javaAOPMode.toString());
@@ -333,12 +384,20 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                 "allowedListedClasses",
                 Stream.concat(
                         Arrays.stream(testClasses),
-                        ("de.tum.cit.ase.ares").equals(packageName) ? Arrays.stream(functionClasses): Stream.of("de.tum.cit.ase.ares")
+                        (ARES_PACKAGE).equals(packageName) ? Arrays.stream(functionClasses) : Stream.of(ARES_PACKAGE)
                 ).toArray(String[]::new),
                 javaAOPMode.toString());
-        javaArchUnitTestCases.forEach(archTest -> archTest.executeArchitectureTestCase(classes));
+        javaArchUnitTestCases.forEach(javaArchitectureTestCase -> javaArchitectureTestCase.executeArchitectureTestCase(javaArchitectureMode));
         javaSecurityTestCases.forEach(javaSecurityTestCase -> javaSecurityTestCase.executeAOPSecurityTestCase(javaAOPMode.toString()));
         //</editor-fold>
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Tool methods">
+    @SuppressWarnings("unchecked")
+    public static <T> Supplier<T> memoize(Supplier<T> supplier) {
+        final Object[] cache = {null};
+        return () -> (T) (cache[0] == null ? (cache[0] = supplier.get()) : cache[0]);
     }
     //</editor-fold>
 }
