@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.aop.instrumentation.advice;
+package de.tum.cit.ase.ares.api.aop.instrumentation.advice;
 
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathConstructorAdvice;
@@ -12,29 +12,27 @@ class JavaInstrumentationDeletePathConstructorAdviceTest {
     private static final String OPERATION = "delete";
     private static final String CLASS_NAME = "de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathConstructorAdvice";
     private static final String METHOD_NAME = "<init>";
-    private static final Object[] EMPTY_ARGS = new Object[0];
+    private static final String METHOD_SIGNATURE = "";
+    private static final Object[] ATTRIBUTES = new Object[0];
+    private static final Object[] PARAMETERS = new Object[]{"param1", "param2"};
 
     @Test
     void testOnEnterVerifiesFileSystemInteractionForDelete() {
         // Arrange
-        String param1 = "param1";
-        String param2 = "param2";
-        Object[] params = new Object[]{param1, param2};
-
         try (MockedStatic<JavaInstrumentationAdviceToolbox> mockedToolbox = mockStatic(JavaInstrumentationAdviceToolbox.class)) {
             mockedToolbox.when(() -> JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
                     OPERATION,
                     CLASS_NAME,
                     METHOD_NAME,
-                    "",
-                    EMPTY_ARGS,
-                    params
+                    METHOD_SIGNATURE,
+                    ATTRIBUTES,
+                    PARAMETERS
             )).thenAnswer(invocation -> null);
 
             // Act
             JavaInstrumentationDeletePathConstructorAdvice.onEnter(
                     CLASS_NAME,
-                    param1, param2
+                    PARAMETERS
             );
 
             // Assert
@@ -42,20 +40,10 @@ class JavaInstrumentationDeletePathConstructorAdviceTest {
                     OPERATION,
                     CLASS_NAME,
                     METHOD_NAME,
-                    "",
-                    EMPTY_ARGS,
-                    params
+                    METHOD_SIGNATURE,
+                    ATTRIBUTES,
+                    PARAMETERS
             ));
         }
-    }
-
-    @Test
-    void testOnEnterWithNullParameters() {
-        // Add test case for null parameters
-    }
-
-    @Test
-    void testOnEnterWithEmptyParameters() {
-        // Add test case for empty parameters
     }
 }

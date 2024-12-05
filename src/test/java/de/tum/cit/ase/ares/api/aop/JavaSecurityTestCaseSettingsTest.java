@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.aop;
+package de.tum.cit.ase.ares.api.aop;
 
 import de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings;
 import org.junit.jupiter.api.Test;

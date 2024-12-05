@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.aop;
+package de.tum.cit.ase.ares.api.aop;
 
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPMode;
 import de.tum.cit.ase.ares.api.util.FileTools;
@@ -22,6 +22,7 @@ class JavaAOPModeTest {
      * - [List the specific files or types of files expected]
      */
     private static final int INSTRUMENTATION_FILES_COUNT = 13;
+    private static final int INSTRUMENTATION_VALUES_COUNT = 13;
 
     /**
      * Expected number of files to copy for AspectJ mode.
@@ -29,6 +30,7 @@ class JavaAOPModeTest {
      * - [List the specific files or types of files expected]
      */
     private static final int ASPECTJ_FILES_COUNT = 2;
+    private static final int ASPECTJ_VALUES_COUNT = 2;
 
     private static String TEST_PACKAGE = "com.example";
     private static String TEST_MAIN_CLASS = "MainClass";
@@ -88,7 +90,7 @@ class JavaAOPModeTest {
             instrumentationMode.fileValues(TEST_PACKAGE, TEST_MAIN_CLASS);
             mockedFileTools
                     .verify(() -> FileTools.generatePackageNameArray(anyString(), anyInt()),
-                            times(INSTRUMENTATION_FILES_COUNT)
+                            times(INSTRUMENTATION_VALUES_COUNT)
                     );
         }
     }
@@ -102,7 +104,7 @@ class JavaAOPModeTest {
             aspectjMode.fileValues(TEST_PACKAGE, TEST_MAIN_CLASS);
             mockedFileTools
                     .verify(() -> FileTools.generatePackageNameArray(anyString(), anyInt()),
-                            times(INSTRUMENTATION_FILES_COUNT)
+                            times(ASPECTJ_VALUES_COUNT)
                     );
         }
     }

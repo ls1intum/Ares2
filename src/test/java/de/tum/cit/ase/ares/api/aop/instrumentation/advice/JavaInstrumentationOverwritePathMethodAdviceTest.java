@@ -1,7 +1,7 @@
-package de.tum.cit.ase.ares.aop.instrumentation.advice;
+package de.tum.cit.ase.ares.api.aop.instrumentation.advice;
 
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathMethodAdvice;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathMethodAdvice;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
@@ -10,7 +10,13 @@ import java.lang.reflect.Field;
 import static org.mockito.AdditionalMatchers.aryEq;
 import static org.mockito.Mockito.*;
 
-class JavaInstrumentationReadPathMethodAdviceTest {
+class JavaInstrumentationOverwritePathMethodAdviceTest {
+
+    private static final String OPERATION = "overwrite";
+    private static final String CLASS_NAME = "de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathMethodAdvice";
+    private static final String METHOD_NAME = "methodName";
+    private static final String METHOD_SIGNATURE = "methodSignature";
+    private static final Object[] PARAMETERS = new Object[]{"param1", "param2"};
 
     @Test
     void testOnEnter() throws Exception {
@@ -29,29 +35,29 @@ class JavaInstrumentationReadPathMethodAdviceTest {
 
         try (MockedStatic<JavaInstrumentationAdviceToolbox> mockedToolbox = mockStatic(JavaInstrumentationAdviceToolbox.class)) {
             mockedToolbox.when(() -> JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
-                    eq("read"),
-                    eq("de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathMethodAdvice"),
-                    eq("methodName"),
+                    eq(OPERATION),
+                    eq(CLASS_NAME),
+                    eq(METHOD_NAME),
                     eq("methodSignature"),
                     aryEq(attributes),
-                    aryEq(new Object[]{"param1", "param2"})
+                    aryEq(PARAMETERS)
             )).thenAnswer(invocation -> null);
 
-            JavaInstrumentationReadPathMethodAdvice.onEnter(
-                    "de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathMethodAdvice",
-                    "methodName",
-                    "methodSignature",
+            JavaInstrumentationOverwritePathMethodAdvice.onEnter(
+                    CLASS_NAME,
+                    METHOD_NAME,
+                    METHOD_SIGNATURE,
                     mockInstance,
-                    "param1", "param2"
+                    PARAMETERS
             );
 
             mockedToolbox.verify(() -> JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
-                    eq("read"),
-                    eq("de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathMethodAdvice"),
-                    eq("methodName"),
-                    eq("methodSignature"),
+                    eq(OPERATION),
+                    eq(CLASS_NAME),
+                    eq(METHOD_NAME),
+                    eq(METHOD_SIGNATURE),
                     aryEq(attributes),
-                    aryEq(new Object[]{"param1", "param2"})
+                    aryEq(PARAMETERS)
             ));
         }
     }

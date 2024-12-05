@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.aop.instrumentation.advice;
+package de.tum.cit.ase.ares.api.aop.instrumentation.advice;
 
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathMethodAdvice;
@@ -9,29 +9,26 @@ import static org.mockito.Mockito.*;
 
 class JavaInstrumentationDeletePathMethodAdviceTest {
 
-    @Test
-    void testOnEnter() {
-class JavaInstrumentationDeletePathMethodAdviceTest {
+    private static final String OPERATION = "delete";
     private static final String CLASS_NAME = "de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathMethodAdvice";
     private static final String METHOD_NAME = "methodName";
     private static final String METHOD_SIGNATURE = "methodSignature";
-    private static final String OPERATION = "delete";
-    private static final String TEST_PATH = "/test/file/path";
-    private static final Object[] TEST_CONTEXT = new Object[]{"context"};
+    private static final Object[] ATTRIBUTES = new Object[]{"context"};
+    private static final Object[] PARAMETERS = new Object[]{"/test/file/path"};
 
     @Test
     void shouldCheckFileSystemInteraction_whenDeletingPath() {
         // given
         try (MockedStatic<JavaInstrumentationAdviceToolbox> mockedToolbox = mockStatic(JavaInstrumentationAdviceToolbox.class)) {
             // Expected result from the toolbox
-            SecurityViolation expectedViolation = null;
+            SecurityException expectedViolation = null;
             mockedToolbox.when(() -> JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
                     OPERATION,
                     CLASS_NAME,
                     METHOD_NAME,
                     METHOD_SIGNATURE,
-                    TEST_CONTEXT,
-                    new Object[]{TEST_PATH}
+                    ATTRIBUTES,
+                    PARAMETERS
             )).thenReturn(expectedViolation);
 
             // when
@@ -39,8 +36,8 @@ class JavaInstrumentationDeletePathMethodAdviceTest {
                     CLASS_NAME,
                     METHOD_NAME,
                     METHOD_SIGNATURE,
-                    TEST_CONTEXT,
-                    TEST_PATH
+                    ATTRIBUTES,
+                    PARAMETERS
             );
 
             // then
@@ -49,8 +46,8 @@ class JavaInstrumentationDeletePathMethodAdviceTest {
                     eq(CLASS_NAME),
                     eq(METHOD_NAME),
                     eq(METHOD_SIGNATURE),
-                    eq(TEST_CONTEXT),
-                    eq(new Object[]{TEST_PATH})
+                    eq(ATTRIBUTES),
+                    eq(PARAMETERS)
             ));
         }
     }

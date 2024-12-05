@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.aop.instrumentation.advice;
+package de.tum.cit.ase.ares.api.aop.instrumentation.advice;
 
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathMethodAdvice;
@@ -10,6 +10,12 @@ import java.lang.reflect.Field;
 import static org.mockito.Mockito.*;
 
 class JavaInstrumentationExecutePathMethodAdviceTest {
+
+    private static final String OPERATION = "execute";
+    private static final String CLASS_NAME = "de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathMethodAdvice";
+    private static final String METHOD_NAME = "methodName";
+    private static final String METHOD_SIGNATURE = "methodSignature";
+    private static final Object[] PARAMETERS = new Object[]{"param1", "param2"};
 
     @Test
     void testOnEnter() throws IllegalAccessException {
@@ -27,29 +33,29 @@ class JavaInstrumentationExecutePathMethodAdviceTest {
 
         try (MockedStatic<JavaInstrumentationAdviceToolbox> mockedToolbox = mockStatic(JavaInstrumentationAdviceToolbox.class)) {
             mockedToolbox.when(() -> JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
-                    "execute",
-                    "de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathMethodAdvice",
-                    "methodName",
-                    "methodSignature",
+                    OPERATION,
+                    CLASS_NAME,
+                    METHOD_NAME,
+                    METHOD_SIGNATURE,
                     attributes,
-                    new Object[]{"param1", "param2"}
+                    PARAMETERS
             )).thenAnswer(invocation -> null);
 
             JavaInstrumentationExecutePathMethodAdvice.onEnter(
-                    "de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathMethodAdvice",
-                    "methodName",
-                    "methodSignature",
+                    CLASS_NAME,
+                    METHOD_NAME,
+                    METHOD_SIGNATURE,
                     mockInstance,
-                    "param1", "param2"
+                    PARAMETERS
             );
 
             mockedToolbox.verify(() -> JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
-                    "execute",
-                    "de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathMethodAdvice",
-                    "methodName",
-                    "methodSignature",
+                    OPERATION,
+                    CLASS_NAME,
+                    METHOD_NAME,
+                    METHOD_SIGNATURE,
                     attributes,
-                    new Object[]{"param1", "param2"}
+                    PARAMETERS
             ));
         }
     }
