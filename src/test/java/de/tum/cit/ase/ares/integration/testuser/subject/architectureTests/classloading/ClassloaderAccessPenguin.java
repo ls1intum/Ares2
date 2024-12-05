@@ -7,4 +7,8 @@ public class ClassloaderAccessPenguin {
     public void accessPenguin2() {
         localized("Penguin");
     }
+
+    public void accessPenguin() {
+        ClassloaderAccessPenguin.class.getClassLoader().getName();
+    }
 }
