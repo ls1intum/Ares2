@@ -26,8 +26,10 @@ class JavaAOPModeTest {
 
     @Test
     void testEnumValues() {
-        assertNotNull(instrumentationMode);
-        assertNotNull(aspectjMode);
+        JavaAOPMode[] modes = JavaAOPMode.values();
+        assertEquals(2, modes.length);
+        assertTrue(Arrays.asList(modes).contains(JavaAOPMode.INSTRUMENTATION));
+        assertTrue(Arrays.asList(modes).contains(JavaAOPMode.ASPECTJ));
     }
 
     @Test
