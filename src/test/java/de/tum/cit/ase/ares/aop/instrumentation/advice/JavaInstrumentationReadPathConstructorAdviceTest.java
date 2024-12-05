@@ -12,29 +12,41 @@ class JavaInstrumentationReadPathConstructorAdviceTest {
 
     @Test
     void testOnEnter() {
-        try (MockedStatic<JavaInstrumentationAdviceToolbox> mockedToolbox = mockStatic(JavaInstrumentationAdviceToolbox.class)) {
-            mockedToolbox.when(() -> JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
-                    eq("read"),
-                    eq("de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathConstructorAdvice"),
-                    eq("<init>"),
-                    eq(""),
-                    aryEq(new Object[0]),
-                    aryEq(new Object[]{"param1", "param2"})
-            )).thenAnswer(invocation -> null);
+        class JavaInstrumentationReadPathConstructorAdviceTest {
+            private static final String OPERATION_TYPE = "read";
+            private static final String TEST_CLASS_NAME = 
+                    "de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathConstructorAdvice";
+            private static final String CONSTRUCTOR_NAME = "<init>";
+            private static final String EMPTY_METHOD_DESC = "";
+            private static final Object[] TEST_PARAMS = new Object[]{"param1", "param2"};
+            private static final Object[] EMPTY_ARGS = new Object[0];
 
-            JavaInstrumentationReadPathConstructorAdvice.onEnter(
-                    "de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathConstructorAdvice",
-                    "param1", "param2"
-            );
+            @Test
+            void testOnEnter() {
+                try (MockedStatic<JavaInstrumentationAdviceToolbox> mockedToolbox = mockStatic(JavaInstrumentationAdviceToolbox.class)) {
+                    mockedToolbox.when(() -> JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
+                            eq(OPERATION_TYPE),
+                            eq(TEST_CLASS_NAME),
+                            eq(CONSTRUCTOR_NAME),
+                            eq(EMPTY_METHOD_DESC),
+                            aryEq(EMPTY_ARGS),
+                            aryEq(TEST_PARAMS)
+                    )).thenAnswer(invocation -> null);
 
-            mockedToolbox.verify(() -> JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
-                    eq("read"),
-                    eq("de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathConstructorAdvice"),
-                    eq("<init>"),
-                    eq(""),
-                    aryEq(new Object[0]),
-                    aryEq(new Object[]{"param1", "param2"})
-            ));
+                    JavaInstrumentationReadPathConstructorAdvice.onEnter(
+                            TEST_CLASS_NAME,
+                            TEST_PARAMS[0].toString(), TEST_PARAMS[1].toString()
+                    );
+
+                    mockedToolbox.verify(() -> JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
+                            eq(OPERATION_TYPE),
+                            eq(TEST_CLASS_NAME),
+                            eq(CONSTRUCTOR_NAME),
+                            eq(EMPTY_METHOD_DESC),
+                            aryEq(EMPTY_ARGS),
+                            aryEq(TEST_PARAMS)
+                    ));
+                }
+            }
         }
-    }
 }
