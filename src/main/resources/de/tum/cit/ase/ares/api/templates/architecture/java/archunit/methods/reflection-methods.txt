@@ -194,3 +194,6 @@ sun.reflect.ReflectionFactory.newOptionalDataExceptionForSerialization(boolean)
 sun.reflect.ReflectionFactory.writeObjectForSerialization(java.lang.Class)
 sun.reflect.ReflectionFactory.newConstructorForSerialization(java.lang.Class)
 sun.reflect.ReflectionFactory.hasStaticInitializerForSerialization(java.lang.Class)
+java.lang.System.setErr
+java.lang.System.setIn
+java.lang.System.setOut
