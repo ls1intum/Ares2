@@ -9,12 +9,16 @@ class JavaArchUnitTestCaseSupportedTest {
     @Test
     void testEnumValues() {
         JavaArchitecturalTestCaseSupported[] values = JavaArchitecturalTestCaseSupported.values();
-        assertEquals(5, values.length);
+        assertEquals(9, values.length);
         assertEquals(JavaArchitecturalTestCaseSupported.FILESYSTEM_INTERACTION, values[0]);
         assertEquals(JavaArchitecturalTestCaseSupported.NETWORK_CONNECTION, values[1]);
         assertEquals(JavaArchitecturalTestCaseSupported.COMMAND_EXECUTION, values[2]);
         assertEquals(JavaArchitecturalTestCaseSupported.THREAD_CREATION, values[3]);
         assertEquals(JavaArchitecturalTestCaseSupported.PACKAGE_IMPORT, values[4]);
+        assertEquals(JavaArchitecturalTestCaseSupported.TERMINATE_JVM, values[5]);
+        assertEquals(JavaArchitecturalTestCaseSupported.REFLECTION, values[6]);
+        assertEquals(JavaArchitecturalTestCaseSupported.SERIALIZATION, values[7]);
+        assertEquals(JavaArchitecturalTestCaseSupported.CLASS_LOADING, values[8]);
     }
 
     @Test
