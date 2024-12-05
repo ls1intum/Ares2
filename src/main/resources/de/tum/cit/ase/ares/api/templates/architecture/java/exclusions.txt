@@ -1,0 +1,8 @@
+jdk/.*
+java/time/.*
+java/security/.*
+java/lang/ProcessImpl.*
+java/util/WeakHashMap.*
+java/io/BufferedWriter.*
+java/util/stream/.*
+java/util/concurrent/locks/.*

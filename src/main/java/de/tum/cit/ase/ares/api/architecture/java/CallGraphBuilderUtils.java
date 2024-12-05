@@ -18,9 +18,12 @@ import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import de.tum.cit.ase.ares.api.architecture.java.wala.ReachabilityChecker;
 import de.tum.cit.ase.ares.api.util.FileTools;
+import org.assertj.core.util.Files;
 
+import javax.print.URIException;
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.*;
@@ -57,13 +60,17 @@ public class CallGraphBuilderUtils {
             scope = Java9AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(
                     System.getProperty("java.class.path"),
                     // File translates the path name for Windows and Unix
-                    new File("src/main/java/de/tum/cit/ase/ares/api/architecture/java/wala/exclusions.txt")
+                    new File(
+                            CallGraphBuilderUtils.class.getClassLoader().getResource("de/tum/cit/ase/ares/api/templates/architecture/java/exclusions.txt").toURI()
+                    )
             );
 
             // Build the class hierarchy
             classHierarchy = ClassHierarchyFactory.make(scope);
         } catch (ClassHierarchyException | IOException e) {
             throw new SecurityException(localize("security.architecture.class.hierarchy.error")); // $NON-NLS-1$
+        } catch (URISyntaxException e) {
+            throw new SecurityException(e); // $NON-NLS-1$
         }
     }
 
