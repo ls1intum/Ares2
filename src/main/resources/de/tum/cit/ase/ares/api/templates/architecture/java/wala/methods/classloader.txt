@@ -28,3 +28,5 @@ java.util.ResourceBundle.getBundle
 java.lang.System.setErr
 java.lang.System.setIn
 java.lang.System.setOut
+java.lang.Runtime.loadLibrary0
+java.lang.Runtime.load0
