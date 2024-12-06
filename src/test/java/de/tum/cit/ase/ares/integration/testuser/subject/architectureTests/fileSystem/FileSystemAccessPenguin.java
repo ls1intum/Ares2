@@ -123,7 +123,7 @@ public final class FileSystemAccessPenguin {
      * Access the file system using the {@link FileChannel} class for reading.
      */
     public static void accessFileSystemViaFileChannelRead() throws IOException {
-        FileChannel fileChannel = FileChannel.open(Path.of("pom123.xml"));
+        FileChannel fileChannel = FileChannel.open(Path.of("pom123.xml"), StandardOpenOption.READ);
         fileChannel.read(ByteBuffer.allocate(10));
     }
 
