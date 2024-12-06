@@ -307,6 +307,7 @@ public class FileTools {
      * Reads the content of a resource file and returns a File
      * @param resourcePath The path to the resource file
      * @return The File object representing the resource file
+     * @implNote This method creates a temporary file that will be deleted when the JVM exits
      */
     public static File getResourceAsFile(String resourcePath) throws IOException {
         // Load the resource as an InputStream
@@ -319,6 +320,8 @@ public class FileTools {
             Path tempFilePath;
             try {
                 tempFilePath = Files.createTempFile("resource-", ".txt");
+                // Register for deletion on JVM exit
+                tempFilePath.toFile().deleteOnExit();
             } catch (IOException e) {
                 throw new SecurityException(localize("file.tools.create.temp.file.error", resourcePath));
             }
