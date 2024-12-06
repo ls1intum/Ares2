@@ -24,3 +24,7 @@ java.beans.PropertyEditorManager.registerEditor(Ljava/lang/Class;Ljava/lang/Clas
 java.beans.PropertyEditorManager.setEditorSearchPath([Ljava/lang/String;)
 java.lang.System.getProperties()
 java.lang.System.setProperties(Ljava/util/Properties;)
+java.util.ResourceBundle.getBundle
+java.lang.System.setErr
+java.lang.System.setIn
+java.lang.System.setOut

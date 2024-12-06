@@ -6,9 +6,13 @@ import com.ibm.wala.util.collections.Iterator2Iterable;
 import com.ibm.wala.util.collections.NonNullSingletonIterator;
 import com.ibm.wala.util.graph.Graph;
 
+import java.awt.*;
 import java.util.*;
+import java.util.List;
 import java.util.function.Predicate;
 
+import de.tum.cit.ase.ares.api.architecture.java.FileHandlerConstants;
+import de.tum.cit.ase.ares.api.util.FileTools;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -49,14 +53,7 @@ public class CustomDFSPathFinder extends ArrayList<CGNode> {
     /**
      * Set of methods to exclude from the path
      */
-    private static final Set<String> toExcludeMethodsFromPath = Set.of(
-            "java.io.PrintStream.println",
-            "sun.net.www.protocol.file.Handler.openConnection",
-            "java.util.Arrays.stream",
-            "java.io.PrintStream.format",
-            "java.lang.Throwable.printStackTrace()",
-            "java.lang.String"
-    );
+    private static final Set<String> toExcludeMethodsFromPath = FileTools.readMethodsFromGivenPath(FileHandlerConstants.FALSE_POSITIVES_FILE_SYSTEM_INTERACTIONS);
 
     /**
      * Construct a depth-first enumerator starting with a particular node in a directed graph.

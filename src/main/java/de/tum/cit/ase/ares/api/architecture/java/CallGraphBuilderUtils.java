@@ -19,10 +19,7 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
 import de.tum.cit.ase.ares.api.architecture.java.wala.ReachabilityChecker;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
-import java.io.File;
 import java.io.IOException;
-import java.net.URL;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -57,7 +54,7 @@ public class CallGraphBuilderUtils {
             scope = Java9AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(
                     System.getProperty("java.class.path"),
                     // File translates the path name for Windows and Unix
-                    new File("src/main/java/de/tum/cit/ase/ares/api/architecture/java/wala/exclusions.txt")
+                    FileTools.getResourceAsFile("de/tum/cit/ase/ares/api/templates/architecture/java/exclusions.txt")
             );
 
             // Build the class hierarchy
@@ -149,7 +146,7 @@ public class CallGraphBuilderUtils {
             AnalysisOptions options = new AnalysisOptions(scope, customEntryPoints);
 
             // Create call graph builder (n-CFA, context-sensitive, etc.)
-            CallGraphBuilder<InstanceKey> builder = Util.makeZeroCFABuilder(Language.JAVA, options, new AnalysisCacheImpl(), classHierarchy);
+            CallGraphBuilder<InstanceKey> builder = Util.makeZeroOneCFABuilder(Language.JAVA, options, new AnalysisCacheImpl(), classHierarchy);
 
             // Generate the call graph
             return builder.makeCallGraph(options, null);

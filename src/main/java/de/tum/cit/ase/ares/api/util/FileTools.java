@@ -1,5 +1,7 @@
 package de.tum.cit.ase.ares.api.util;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -288,8 +290,8 @@ public class FileTools {
 
     /**
      * Reads the content of a file and returns it as a set of strings.
-     * @param filePath
-     * @return
+     * @param filePath The path to the file
+     * @return a set of strings representing the content of the file
      */
     public static Set<String> readMethodsFromGivenPath(Path filePath) {
         String fileContent = FileTools.readFile(filePath);
@@ -299,5 +301,42 @@ public class FileTools {
                 .filter(str -> !str.startsWith("#"))
                 .toList();
         return new HashSet<>(methods);
+    }
+
+    /**
+     * Reads the content of a resource file and returns a File
+     * @param resourcePath The path to the resource file
+     * @return The File object representing the resource file
+     * @implNote This method creates a temporary file that will be deleted when the JVM exits
+     */
+    public static File getResourceAsFile(String resourcePath) throws IOException {
+        // Load the resource as an InputStream
+        try (InputStream inputStream = FileTools.class.getClassLoader().getResourceAsStream(resourcePath)) {
+            if (inputStream == null) {
+                throw new SecurityException(localize("file.tools.resource.not.found", resourcePath));
+            }
+
+            // Create a temporary file using modern NIO APIs
+            Path tempFilePath;
+            try {
+                tempFilePath = Files.createTempFile("resource-", ".txt");
+                // Register for deletion on JVM exit
+                tempFilePath.toFile().deleteOnExit();
+            } catch (IOException e) {
+                throw new SecurityException(localize("file.tools.create.temp.file.error", resourcePath));
+            }
+
+            // Write the content of the InputStream to the temp file
+            try {
+                Files.copy(inputStream, tempFilePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException e) {
+                throw new SecurityException(localize("file.tools.resource.not.writeable", tempFilePath.toAbsolutePath()), e);
+            }
+
+            // Return the temporary file
+            return tempFilePath.toFile();
+        } catch (IOException e) {
+            throw new SecurityException(localize("file.tools.io.error", resourcePath), e);
+        }
     }
 }
