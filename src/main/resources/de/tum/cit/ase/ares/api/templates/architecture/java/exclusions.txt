@@ -1,3 +1,4 @@
+# The following are excluded from the classpath to make the analysis faster, as they are not relevant for the analysis
 jdk/.*
 java/time/.*
 java/security/.*
