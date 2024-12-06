@@ -149,6 +149,7 @@ java.util.concurrent.DelayQueue.take()
 java.util.concurrent.ExecutorService.close()
 java.util.concurrent.ForkJoinPool.managedBlock(java.util.concurrent.ForkJoinPool$ManagedBlocker)
 java.util.concurrent.ForkJoinPool.close()
+java.util.concurrent.ForkJoinPool
 java.util.concurrent.ForkJoinTask.inForkJoinPool()
 java.util.concurrent.ForkJoinTask.fork()
 java.util.concurrent.ForkJoinTask.getPool()

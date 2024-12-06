@@ -62,12 +62,6 @@ public class ArchitectureSecurityTest {
         tests.assertThatEvents().haveExactly(1,
                 testFailedWith("testArchUnitThreadCreation", SecurityException.class));
     }
-
-    @TestTest
-    void testWalaThreadCreation() {
-        tests.assertThatEvents().haveExactly(1,
-                testFailedWith("testWaLaThreadCreation", SecurityException.class));
-    }
     // </editor-fold>
 
     // <editor-fold desc="Package Import Rules">

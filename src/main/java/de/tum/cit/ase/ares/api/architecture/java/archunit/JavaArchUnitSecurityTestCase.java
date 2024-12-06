@@ -1,7 +1,6 @@
 package de.tum.cit.ase.ares.api.architecture.java.archunit;
 
 //<editor-fold desc="Imports">
-
 import com.tngtech.archunit.core.domain.JavaClasses;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitecturalTestCaseSupported;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy.PackagePermission;
@@ -51,7 +50,6 @@ public class JavaArchUnitSecurityTestCase {
         this.javaArchitectureTestCaseSupported = builder.javaArchitectureTestCaseSupported;
         this.allowedPackages = builder.allowedPackages;
     }
-
     //</editor-fold>
 
     //<editor-fold desc="Tool methods">

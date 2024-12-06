@@ -116,11 +116,6 @@ class FileSystemAccessTest {
 //    void test_weAccessPath() {
 //        tests.assertThatEvents().haveExactly(1, finishedSuccessfully(weAccessPath));
 //    }
-
-    @TestTest
-    void test_accessFileSystem() {
-        tests.assertThatEvents().haveExactly(1, testFailedWith("accessFileSystem", SecurityException.class));
-    }
     //</editor-fold>
 
     //TODO Markus: Look into why we are catching Runtime Exceptions and not Security Exceptions

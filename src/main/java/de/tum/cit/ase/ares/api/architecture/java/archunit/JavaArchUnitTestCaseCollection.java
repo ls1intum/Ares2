@@ -158,4 +158,11 @@ public class JavaArchUnitTestCaseCollection {
             FileHandlerConstants.ARCHUNIT_SERIALIZATION_METHODS
     );
     //</editor-fold>
+
+    //<editor-fold desc="ClassLoader related rule">
+    public static final ArchRule NO_CLASSES_SHOULD_USE_CLASSLOADERS = createNoClassShouldHaveMethodRule(
+            "uses ClassLoaders",
+            FileHandlerConstants.ARCHUNIT_CLASSLOADER_METHODS
+    );
+    //</editor-fold>
 }
