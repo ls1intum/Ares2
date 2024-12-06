@@ -142,7 +142,9 @@ public class JavaInstrumentationPointcutDefinitions {
             "java.io.BufferedReader",
             List.of("lines"),
             "java.nio.channels.FileChannel",
-            List.of("open")
+            List.of("open"),
+            "java.nio.file.spi.FileSystemProvider",
+            List.of("newFileChannel")
     );
     //</editor-fold>
 
@@ -167,9 +169,7 @@ public class JavaInstrumentationPointcutDefinitions {
             "java.nio.file.Files",
             List.of("write", "writeString", "newOutputStream", "writeBytes", "writeAllBytes", "writeLines"),
             "java.io.File",
-            List.of("setWritable"),
-            "java.nio.channels.FileChannel",
-            List.of("open")
+            List.of("setWritable")
 
     );
     //</editor-fold>

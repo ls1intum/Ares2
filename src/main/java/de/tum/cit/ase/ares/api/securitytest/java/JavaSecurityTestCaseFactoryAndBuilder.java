@@ -7,11 +7,9 @@ import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSupported;
-import de.tum.cit.ase.ares.api.architecture.ArchitectureSecurityTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.CallGraphBuilderUtils;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitecturalTestCaseSupported;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
-import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitSecurityTestCase;
 import de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCase;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy.ResourceAccesses;
@@ -215,6 +213,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                 new SecurityPolicy.PackagePermission("org.java.aspectj"),
                 new SecurityPolicy.PackagePermission("org.aspectj"),
                 new SecurityPolicy.PackagePermission("de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut")));
+                new SecurityPolicy.PackagePermission(packageName);
         //</editor-fold>
 
         //<editor-fold desc="Create variable rules code">
