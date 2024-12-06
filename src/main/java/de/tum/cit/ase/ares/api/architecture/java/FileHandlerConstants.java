@@ -21,6 +21,7 @@ public class FileHandlerConstants {
     public static final Path ARCHUNIT_COMMAND_EXECUTION_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "archunit", "methods", "command-execution-methods.txt");
     public static final Path ARCHUNIT_THREAD_MANIPULATION_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "archunit", "methods", "thread-manipulation-methods.txt");
     public static final Path ARCHUNIT_SERIALIZATION_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "archunit", "methods", "serializable-methods.txt");
+    public static final Path ARCHUNIT_CLASSLOADER_METHODS = FileTools.resolveOnResources("templates", "architecture" , "java", "archunit", "methods", "classloader-methods.txt");
     //</editor-fold>
 
     //<editor-fold desc="WALA Methods">

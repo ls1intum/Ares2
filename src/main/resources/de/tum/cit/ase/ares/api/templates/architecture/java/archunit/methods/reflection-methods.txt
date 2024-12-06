@@ -74,6 +74,7 @@ java.lang.Class.getDeclaringClass()
 java.lang.ClassLoader.getParent()
 java.lang.ClassLoader.getSystemClassLoader()
 java.lang.ClassLoader.getPlatformClassLoader()
+java.lang.ClassLoader
 java.lang.Module.addReads(java.lang.Module)
 java.lang.Module.getResourceAsStream(java.lang.String)
 java.lang.Module.addExports(java.lang.String, java.lang.Module)
