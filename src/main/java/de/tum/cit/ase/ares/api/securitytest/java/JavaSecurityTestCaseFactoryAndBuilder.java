@@ -230,10 +230,10 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         Supplier<JavaClasses> classesSupplier = memoize(() -> new ClassFileImporter().importPath(classPath));
 
         Supplier<CallGraph> callGraphSupplier = memoize(() -> {
-            if (javaArchitectureMode == JavaArchitectureMode.WALA) {
-                return CallGraphBuilderUtils.buildCallGraph(classPath);
+            if ((CallGraphBuilderUtils.getCallGraph() == null || !classPath.equals(CallGraphBuilderUtils.getLastClassPathAnalyzed())) && javaArchitectureMode == JavaArchitectureMode.WALA) {
+                CallGraphBuilderUtils.setCallGraph(CallGraphBuilderUtils.buildCallGraph(classPath));
             }
-            return null;
+            return CallGraphBuilderUtils.getCallGraph();
         });
 
         // Access them without recomputation
