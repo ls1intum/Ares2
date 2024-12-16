@@ -212,8 +212,8 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                 new SecurityPolicy.PackagePermission("java"),
                 new SecurityPolicy.PackagePermission("org.java.aspectj"),
                 new SecurityPolicy.PackagePermission("org.aspectj"),
-                new SecurityPolicy.PackagePermission("de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut")));
-                new SecurityPolicy.PackagePermission(packageName);
+                new SecurityPolicy.PackagePermission("de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut"),
+                new SecurityPolicy.PackagePermission(packageName)));
         //</editor-fold>
 
         //<editor-fold desc="Create variable rules code">
