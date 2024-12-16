@@ -209,7 +209,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         Set<SecurityPolicy.PackagePermission> allowedPackages = new HashSet<>(resourceAccesses.regardingPackageImports());
         // Add default imports needed for the execution
         allowedPackages.addAll(Set.of(
-                new SecurityPolicy.PackagePermission("java.lang"),
+                new SecurityPolicy.PackagePermission("java"),
                 new SecurityPolicy.PackagePermission("org.java.aspectj"),
                 new SecurityPolicy.PackagePermission("org.aspectj"),
                 new SecurityPolicy.PackagePermission("de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut")));
