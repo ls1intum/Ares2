@@ -563,3 +563,149 @@ Ares was created by Christian Femers and is licensed under the
 https://github.com/ls1intum/Ares/blob/master/LICENSE[MIT License, see
 `LICENSE.md`].
 
+== Setting Up Exercises with Ares2.0 and Java 21
+1. Import an existing exercise
+2. Enable customize build script
+3. Insert as docker image the following: `sarpsahinalp/artemis-maven-template:latest`
+4. Update the build script and insert the following 
+```
+#!/usr/bin/env bash
+set -e
+
+gradle () {
+  echo '⚙️ executing gradle'
+  chmod +x ./gradlew
+  ./gradlew clean
+  ./gradlew build -x test
+  ./gradlew test
+}
+
+main () {
+  gradle
+}
+
+main "${@}"
+```
+5. Update the build.gradle file with the following:
+```
+plugins {
+    id 'io.freefair.aspectj.post-compile-weaving' version '8.10'
+    id "com.gradleup.shadow" version "8.3.2"
+}
+
+apply plugin: 'java'
+sourceCompatibility = 21
+version = '1.0.0'
+compileJava.options.encoding = 'UTF-8'
+compileTestJava.options.encoding = 'UTF-8'
+
+configurations {
+    aspectj
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+dependencies {
+    // Main project dependency
+    testImplementation 'de.tum.cit.ase:ares:2.0.0-Beta-4'
+    implementation 'org.apache.commons:commons-lang3:3.14.0'
+
+    implementation 'org.aspectj:aspectjtools:1.9.22' // AspectJ Tools dependency
+    aspectj "org.aspectj:aspectjrt:1.9.22" // AspectJ Runtime dependency
+    aspect 'de.tum.cit.ase:ares:2.0.0-Beta-4' // Aspect library (like in aspectLibraries)
+
+    // testImplementation(':ares-student-example-gradle')
+    // testImplementation(':ares-student-example-gradle-Solution')
+}
+
+def assignmentSrcDir = "assignment/src"
+def studentOutputDir = sourceSets.main.java.destinationDirectory.get()
+
+sourceSets {
+    test {
+        java {
+            srcDir 'test'
+        }
+        resources {
+            srcDir 'test'
+        }
+    }
+
+
+    main {
+        java {
+            srcDirs = [assignmentSrcDir]
+        }
+        resources {
+            srcDirs = [assignmentSrcDir]
+        }
+    }
+}
+
+def forbiddenPackageFolders = [ //(2)
+                                "$studentOutputDir/ch/qos/logback/",
+                                "$studentOutputDir/com/github/javaparser/",
+                                "$studentOutputDir/com/intellij/",
+                                "$studentOutputDir/com/sun/",
+                                "$studentOutputDir/de/tum/in/test/api/",
+                                "$studentOutputDir/java/",
+                                "$studentOutputDir/javax/",
+                                "$studentOutputDir/jdk/",
+                                "$studentOutputDir/net/jqwik/",
+                                "$studentOutputDir/org/assertj/",
+                                "$studentOutputDir/org/apache/",
+                                "$studentOutputDir/org/eclipse/",
+                                "$studentOutputDir/org/gradle/",
+                                "$studentOutputDir/org/jacoco/",
+                                "$studentOutputDir/org/json/",
+                                "$studentOutputDir/org/junit/",
+                                "$studentOutputDir/org/opentest4j/",
+                                "$studentOutputDir/sun/",
+                                "$studentOutputDir/worker/org/gradle/",
+                                "$studentOutputDir/de/tum/cit/ase/ares"
+]
+
+shadowJar {
+    // Attaching the shaded artifact with classifier "agent"
+    archiveClassifier.set('agent')
+
+    // Adding manifest entries for Premain-Class and other properties
+    manifest {
+        attributes(
+                'Premain-Class': 'de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent',
+                'Can-Redefine-Classes': 'true',
+                'Can-Retransform-Classes': 'true'
+        )
+    }
+
+    // Include only specific artifacts in the shading process
+    dependencies {
+        include(dependency('de.tum.cit.ase:ares'))
+    }
+}
+
+tasks.build {
+    dependsOn shadowJar
+}
+
+test {
+    doFirst { //(1)
+        for (String packageFolder in forbiddenPackageFolders) {
+            assert !file(packageFolder).exists(): "$packageFolder must not exist within the submission."
+        }
+    }
+    defaultCharacterEncoding = 'UTF-8'
+    testLogging.showStandardStreams = true
+    useJUnitPlatform()
+
+    jvmArgs = [
+            "-javaagent:${shadowJar.archiveFile.get().asFile}",
+            "-Xbootclasspath/a:${configurations.aspectj.singleFile}"
+    ]
+}
+```
+
+6. Add `@Policy` annotation to the test cases that you want to enable with the path to the policy
