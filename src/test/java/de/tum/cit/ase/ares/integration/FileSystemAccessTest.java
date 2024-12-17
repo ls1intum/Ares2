@@ -389,6 +389,7 @@ class FileSystemAccessTest {
                 fail(errorMessage);
             } catch (SecurityException e) {
                 // Expected exception
+                log.warn(e.getMessage());
             }
         }
         //</editor-fold>
