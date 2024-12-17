@@ -149,3 +149,4 @@ java/util/UnknownFormatFlagsException.*
 java/util/UUID.*
 java/util/Vector.*
 java/util/WeakHashMap.*
+java/lang/StringBuffer.*
