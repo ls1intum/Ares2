@@ -12,6 +12,8 @@ import org.junit.platform.testkit.engine.Events;
 
 import de.tum.cit.ase.ares.integration.testuser.FileSystemAccessUser;
 import de.tum.cit.ase.ares.testutilities.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.io.IOException;
@@ -19,6 +21,7 @@ import java.io.IOException;
 @UserBased(FileSystemAccessUser.class)
 class FileSystemAccessTest {
 
+    private static final Logger log = LoggerFactory.getLogger(FileSystemAccessTest.class);
     @UserTestResults
     private static Events tests;
 
@@ -851,6 +854,20 @@ class FileSystemAccessTest {
                 fail(errorMessage);
             } catch (SecurityException e) {
                 // Expected exception
+                log.warn(e.getMessage());
+            }
+        }
+
+        @TestTest
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+        void test_accessFileSystemViaFileDeleteInstrumentation() throws IOException {
+            try {
+                FileSystemAccessPenguin.accessFileSystemViaFileDelete();
+                fail(errorMessage);
+            } catch (SecurityException e) {
+                // Expected exception
+                log.warn(e.getMessage());
             }
         }
         //</editor-fold>

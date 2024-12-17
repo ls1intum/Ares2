@@ -21,7 +21,7 @@ regardingTheSupervisedCode:
         overwriteAllFiles: false
         executeAllFiles: false
         deleteAllFiles: true
-        onThisPathAndAllPathsBelow: "pom.xml"
+        onThisPathAndAllPathsBelow: "pom123.xml"
     regardingNetworkConnections: []
     regardingCommandExecutions: []
     regardingThreadCreations: []
