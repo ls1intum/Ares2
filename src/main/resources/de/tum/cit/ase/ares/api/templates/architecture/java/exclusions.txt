@@ -1,7 +1,6 @@
-# java/util/The following are excluded from the classpath to make the analysis faster, as they are not relevant for the analysis.*
+# The following are excluded from the classpath to make the analysis faster, as they are not relevant for the analysis.*
 jdk/.*
 java/time/.*
-java/security/.*
 sun/security/.*
 javax/security/.*
 javax/crypto/.*
@@ -9,6 +8,7 @@ sun/reflect/.*
 java/text/.*
 sun/util/.*
 java/math/.*
+java/util/function.*
 java/lang/ProcessImpl.*
 java/util/AbstractCollection.*
 java/util/AbstractList.*
