@@ -5,6 +5,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 
@@ -144,7 +145,11 @@ public class JavaInstrumentationAdviceToolbox {
             }
         } else if (variableValue instanceof String string) {
             try {
-                return Path.of(string).normalize().toAbsolutePath();
+                if(Files.exists(Path.of(string).normalize().toAbsolutePath())) {
+                    return Path.of(string).normalize().toAbsolutePath();
+                } else {
+                    throw new InvalidPathException(string, localize("security.advice.transform.path.exception"));
+                }
             } catch (InvalidPathException e) {
                 throw new InvalidPathException(string, localize("security.advice.transform.path.exception"));
             }

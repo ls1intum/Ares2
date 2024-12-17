@@ -200,11 +200,19 @@ public class JavaInstrumentationPointcutDefinitions {
      */
     public static final Map<String, List<String>> methodsWhichCanDeleteFiles = Map.of(
             "java.io.File",
-            List.of("delete", "deleteOnExit"),
+            List.of("deleteOnExit"),
             "java.nio.file.Files",
             List.of("delete", "deleteIfExists"),
             "sun.nio.fs.UnixFileSystemProvider",
-            List.of("implDelete")
+            List.of("implDelete"),
+            "sun.nio.fs.WindowsFileSystemProvider",
+            List.of("implDelete"),
+            "java.io.UnixFileSystem",
+            List.of("delete"),
+            "java.io.WinNTFileSystem",
+            List.of("delete"),
+            "java.io.Win32FileSystem",
+            List.of("delete")
     );
     //</editor-fold>
 
