@@ -141,7 +141,7 @@ public class JavaInstrumentationPointcutDefinitions {
             List.of("<init>", "read", "readLine"),
             "java.io.BufferedReader",
             List.of("lines"),
-            "java.nio.channels.FileChannel",
+            "sun.nio.ch.FileChannelImpl",
             List.of("open"),
             "java.nio.file.spi.FileSystemProvider",
             List.of("newFileChannel")

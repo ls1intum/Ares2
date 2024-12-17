@@ -7,6 +7,7 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
     pointcut fileReadMethods():
             (call(* java.io.File.canRead(..)) ||
                     call(java.io.File.new(..)) ||
+                    call(java.io.RandomAccessFile.new(..)) ||
                     call(* java.io.File.exists(..)) ||
                     call(* java.io.File.getFreeSpace(..)) ||
                     call(* java.io.File.getTotalSpace(..)) ||
@@ -21,6 +22,7 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
 
     pointcut fileWriteMethods():
             (call(* java.io.File.canWrite(..)) ||
+                    call(java.io.RandomAccessFile.new(..)) ||
                     call(* java.io.File.createNewFile(..)) ||
                     call(* java.io.File.createTempFile(..)) ||
                     call(* java.io.File.setExecutable(..)) ||
