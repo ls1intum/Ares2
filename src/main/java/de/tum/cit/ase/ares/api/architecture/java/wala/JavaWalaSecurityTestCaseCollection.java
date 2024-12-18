@@ -4,9 +4,6 @@ package de.tum.cit.ase.ares.api.architecture.java.wala;
 import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.ibm.wala.shrike.shrikeCT.InvalidClassFileException;
-import com.ibm.wala.ssa.IR;
-import com.ibm.wala.ssa.SSAInstruction;
-import com.ibm.wala.ssa.SymbolTable;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import de.tum.cit.ase.ares.api.architecture.java.FileHandlerConstants;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitTestCaseCollection;
@@ -64,16 +61,14 @@ public class JavaWalaSecurityTestCaseCollection {
             return;
         }
         try {
-            String sb = "'" + ruleName + "'\r\n" +
-                    "Method <" +
-                    reachableNodes.getLast().getMethod().getSignature() +
-                    "> calls method <" +
-                    reachableNodes.get(reachableNodes.size() - 2).getMethod().getSignature() +
-                    "> in (" + reachableNodes.getLast().getMethod().getDeclaringClass().getName().getClassName().toString() + ".java:" + reachableNodes.getLast().getMethod().getSourcePosition(0).getFirstLine() +
-                    ") accesses <" +
-                    reachableNodes.getFirst().getMethod().getSignature();
-
-            throw new AssertionError(sb);
+            throw new AssertionError(localize("security.architecture.method.call.message",
+                    ruleName,
+                    reachableNodes.getLast().getMethod().getSignature(),
+                    reachableNodes.get(reachableNodes.size() - 2).getMethod().getSignature(),
+                    reachableNodes.getLast().getMethod().getDeclaringClass().getName().getClassName().toString(),
+                    reachableNodes.getLast().getMethod().getSourcePosition(0).getFirstLine(),
+                    reachableNodes.getFirst().getMethod().getSignature()
+                    ));
         } catch (InvalidClassFileException e) {
             throw new SecurityException(localize("security.architecture.invalid.class.file"));
         }

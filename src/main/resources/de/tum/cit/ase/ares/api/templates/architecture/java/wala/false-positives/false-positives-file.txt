@@ -57,3 +57,5 @@ java.util.AbstractList
 java.util.ImmutableCollections
 java.lang.invoke.MemberName.hashCode()
 java.lang.invoke.MemberName.equals
+java.lang.String
+java.security

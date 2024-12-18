@@ -209,11 +209,11 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         Set<SecurityPolicy.PackagePermission> allowedPackages = new HashSet<>(resourceAccesses.regardingPackageImports());
         // Add default imports needed for the execution
         allowedPackages.addAll(Set.of(
-                new SecurityPolicy.PackagePermission("java.lang"),
+                new SecurityPolicy.PackagePermission("java"),
                 new SecurityPolicy.PackagePermission("org.java.aspectj"),
                 new SecurityPolicy.PackagePermission("org.aspectj"),
-                new SecurityPolicy.PackagePermission("de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut")));
-                new SecurityPolicy.PackagePermission(packageName);
+                new SecurityPolicy.PackagePermission("de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut"),
+                new SecurityPolicy.PackagePermission(packageName)));
         //</editor-fold>
 
         //<editor-fold desc="Create variable rules code">
@@ -230,10 +230,10 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         Supplier<JavaClasses> classesSupplier = memoize(() -> new ClassFileImporter().importPath(classPath));
 
         Supplier<CallGraph> callGraphSupplier = memoize(() -> {
-            if (javaArchitectureMode == JavaArchitectureMode.WALA) {
-                return CallGraphBuilderUtils.buildCallGraph(classPath);
+            if ((CallGraphBuilderUtils.getCallGraph() == null || !classPath.equals(CallGraphBuilderUtils.getLastClassPathAnalyzed())) && javaArchitectureMode == JavaArchitectureMode.WALA) {
+                CallGraphBuilderUtils.setCallGraph(CallGraphBuilderUtils.buildCallGraph(classPath));
             }
-            return null;
+            return CallGraphBuilderUtils.getCallGraph();
         });
 
         // Access them without recomputation

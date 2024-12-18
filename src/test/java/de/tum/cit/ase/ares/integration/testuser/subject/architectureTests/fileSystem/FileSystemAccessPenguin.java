@@ -282,6 +282,10 @@ public final class FileSystemAccessPenguin {
         Files.delete(Path.of("pom123.xml"));
     }
 
+    public static void accessFileSystemViaFileDelete() {
+        new File("pom123.xml").delete();
+    }
+
     /**
      * Access the file system using the {@link FileSystemProvider} class.
      */

@@ -21,7 +21,7 @@ regardingTheSupervisedCode:
         overwriteAllFiles: false
         executeAllFiles: true
         deleteAllFiles: false
-        onThisPathAndAllPathsBelow: "pom.xml"
+        onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/nottrusted.txt"
     regardingNetworkConnections: []
     regardingCommandExecutions: []
     regardingThreadCreations: []

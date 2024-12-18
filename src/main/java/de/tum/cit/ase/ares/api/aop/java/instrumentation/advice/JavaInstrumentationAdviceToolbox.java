@@ -5,8 +5,10 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.util.List;
 
 /**
  * Utility class for the Java instrumentation advice.
@@ -20,6 +22,9 @@ import java.nio.file.Path;
  * enforce security policies at runtime and block unauthorized file interactions.
  */
 public class JavaInstrumentationAdviceToolbox {
+    private static List<String> fileSystemIgnoreAttributes = List.of("java.io.File.delete");
+    private static List<String> fileSystemIgnoreParameter = List.of();
+
     //<editor-fold desc="Constructor">
 
     /**
@@ -144,7 +149,11 @@ public class JavaInstrumentationAdviceToolbox {
             }
         } else if (variableValue instanceof String string) {
             try {
-                return Path.of(string).normalize().toAbsolutePath();
+                if (Files.exists(Path.of(string).normalize().toAbsolutePath())) {
+                    return Path.of(string).normalize().toAbsolutePath();
+                } else {
+                    throw new InvalidPathException(string, localize("security.advice.transform.path.exception"));
+                }
             } catch (InvalidPathException e) {
                 throw new InvalidPathException(string, localize("security.advice.transform.path.exception"));
             }
@@ -242,8 +251,11 @@ public class JavaInstrumentationAdviceToolbox {
         final String fullMethodSignature = declaringTypeName + "." + methodName + methodSignature;
         String illegallyReadingMethod = allowedPaths == null ? null : checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses);
         if (illegallyReadingMethod != null) {
-            String illegallyReadPath = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, allowedPaths);
-            if (illegallyReadPath == null) {
+            String illegallyReadPath = null;
+            if (!fileSystemIgnoreParameter.contains(fullMethodSignature + "." + methodName)) {
+                illegallyReadPath = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, allowedPaths);
+            }
+            if (illegallyReadPath == null && !fileSystemIgnoreAttributes.contains(fullMethodSignature + "." + methodName)) {
                 illegallyReadPath = (attributes == null || attributes.length == 0) ? null : checkIfVariableCriteriaIsViolated(attributes, allowedPaths);
             }
             if (illegallyReadPath != null) {
@@ -264,7 +276,8 @@ public class JavaInstrumentationAdviceToolbox {
             } else {
                 throw new IllegalStateException("Method does not return a String");
             }
-        } catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
+        } catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException |
+                 IllegalAccessException e) {
             // Fallback: Return the key if localization fails
             return key;
         }

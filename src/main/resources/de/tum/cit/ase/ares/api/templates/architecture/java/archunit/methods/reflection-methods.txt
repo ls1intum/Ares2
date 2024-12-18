@@ -1,4 +1,5 @@
 sun.reflect.misc
+sun.misc.Unsafe
 java.lang.reflect
 java.lang.invoke
 jdk.internal.reflect.ReflectionFactory.newConstructorAccessor(java.lang.reflect.Constructor)

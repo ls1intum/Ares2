@@ -5,6 +5,7 @@ package de.tum.cit.ase.ares.api.architecture.java;
 import com.ibm.wala.classLoader.IClass;
 import com.ibm.wala.classLoader.Language;
 import com.ibm.wala.core.java11.Java9AnalysisScopeReader;
+import com.ibm.wala.core.util.config.AnalysisScopeReader;
 import com.ibm.wala.ipa.callgraph.*;
 import com.ibm.wala.ipa.callgraph.impl.DefaultEntrypoint;
 import com.ibm.wala.ipa.callgraph.impl.Util;
@@ -44,6 +45,10 @@ public class CallGraphBuilderUtils {
     private static final ClassHierarchy classHierarchy;
 
     private static final AnalysisScope scope;
+
+    private static CallGraph callGraph = null;
+
+    private static String lastClassPathAnalyzed = null;
 
     static {
         try {
@@ -153,5 +158,24 @@ public class CallGraphBuilderUtils {
         } catch (CallGraphBuilderCancelException e) {
             throw new SecurityException(localize("security.architecture.build.call.graph.error")); //$NON-NLS-1$
         }
+    }
+
+    /**
+     * Get the call graph
+     */
+    public static CallGraph getCallGraph() {
+        return callGraph;
+    }
+
+    public static void setCallGraph(CallGraph callGraph) {
+        CallGraphBuilderUtils.callGraph = callGraph;
+    }
+
+    public static String getLastClassPathAnalyzed() {
+        return lastClassPathAnalyzed;
+    }
+
+    public static void setLastClassPathAnalyzed(String lastClassPathAnalyzed) {
+        CallGraphBuilderUtils.lastClassPathAnalyzed = lastClassPathAnalyzed;
     }
 }
