@@ -77,7 +77,6 @@ public class JavaArchUnitSecurityTestCase {
      * Runs the architecture test case in the Java programming language.
      */
     public void executeArchitectureTestCase(JavaClasses javaClasses) {
-        long start = System.currentTimeMillis();
         try {
             switch (this.javaArchitectureTestCaseSupported) {
                 case FILESYSTEM_INTERACTION -> JavaArchUnitTestCaseCollection
@@ -110,7 +109,6 @@ public class JavaArchUnitSecurityTestCase {
                         throw new SecurityException(localized("security.common.unsupported.operation", this.javaArchitectureTestCaseSupported));
             }
         } catch (AssertionError e) {
-            log.info("Architecture Test Case: {}ms", System.currentTimeMillis() - start);
             parseErrorMessage(e);
         }
     }

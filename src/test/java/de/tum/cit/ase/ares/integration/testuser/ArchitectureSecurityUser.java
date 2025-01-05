@@ -2,11 +2,14 @@ package de.tum.cit.ase.ares.integration.testuser;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.StrictTimeout;
+import de.tum.cit.ase.ares.api.jupiter.BenchmarkExtension;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 @UseLocale("en")
 @StrictTimeout(5)
+@ExtendWith(BenchmarkExtension.class)
 public class ArchitectureSecurityUser {
 
     // <editor-fold desc="File System Rules">
