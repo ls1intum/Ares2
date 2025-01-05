@@ -22,7 +22,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @StrictTimeout(value = 300, unit = TimeUnit.MILLISECONDS)
 @TestMethodOrder(MethodName.class)
 @WhitelistPath(value = "target/**", type = PathType.GLOB)
-@ExtendWith(BenchmarkExtension.class)
 @SuppressWarnings("static-method")
 public class FileSystemAccessUser {
 
