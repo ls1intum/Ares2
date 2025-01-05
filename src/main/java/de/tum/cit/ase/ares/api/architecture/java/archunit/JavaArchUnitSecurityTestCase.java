@@ -1,9 +1,12 @@
 package de.tum.cit.ase.ares.api.architecture.java.archunit;
 
 //<editor-fold desc="Imports">
+
 import com.tngtech.archunit.core.domain.JavaClasses;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitecturalTestCaseSupported;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy.PackagePermission;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import java.util.HashSet;
@@ -24,6 +27,7 @@ import static de.tum.cit.ase.ares.api.localization.Messages.localized;
  * @since 2.0.0
  */
 public class JavaArchUnitSecurityTestCase {
+    private static final Logger log = LoggerFactory.getLogger(JavaArchUnitSecurityTestCase.class);
 
     //<editor-fold desc="Attributes">
     /**
@@ -73,45 +77,40 @@ public class JavaArchUnitSecurityTestCase {
      * Runs the architecture test case in the Java programming language.
      */
     public void executeArchitectureTestCase(JavaClasses javaClasses) {
+        long start = System.currentTimeMillis();
         try {
             switch (this.javaArchitectureTestCaseSupported) {
-                case FILESYSTEM_INTERACTION ->
-                        JavaArchUnitTestCaseCollection
-                                .NO_CLASS_SHOULD_ACCESS_FILE_SYSTEM
-                                .check(javaClasses);
-                case NETWORK_CONNECTION ->
-                        JavaArchUnitTestCaseCollection
-                                .NO_CLASSES_SHOULD_ACCESS_NETWORK
-                                .check(javaClasses);
-                case THREAD_CREATION ->
-                        JavaArchUnitTestCaseCollection
-                                .NO_CLASSES_SHOULD_CREATE_THREADS
-                                .check(javaClasses);
-                case COMMAND_EXECUTION ->
-                        JavaArchUnitTestCaseCollection
-                                .NO_CLASSES_SHOULD_EXECUTE_COMMANDS
-                                .check(javaClasses);
-                case PACKAGE_IMPORT ->
-                        JavaArchUnitTestCaseCollection
-                                .noClassesShouldImportForbiddenPackages(allowedPackages)
-                                .check(javaClasses);
-                case REFLECTION ->
-                        JavaArchUnitTestCaseCollection
-                                .NO_CLASSES_SHOULD_USE_REFLECTION
-                                .check(javaClasses);
-                case TERMINATE_JVM ->
-                        JavaArchUnitTestCaseCollection
-                                .NO_CLASSES_SHOULD_TERMINATE_JVM
-                                .check(javaClasses);
-                case SERIALIZATION ->
-                        JavaArchUnitTestCaseCollection
-                                .NO_CLASSES_SHOULD_SERIALIZE
-                                .check(javaClasses);
+                case FILESYSTEM_INTERACTION -> JavaArchUnitTestCaseCollection
+                        .NO_CLASS_SHOULD_ACCESS_FILE_SYSTEM
+                        .check(javaClasses);
+                case NETWORK_CONNECTION -> JavaArchUnitTestCaseCollection
+                        .NO_CLASSES_SHOULD_ACCESS_NETWORK
+                        .check(javaClasses);
+                case THREAD_CREATION -> JavaArchUnitTestCaseCollection
+                        .NO_CLASSES_SHOULD_CREATE_THREADS
+                        .check(javaClasses);
+                case COMMAND_EXECUTION -> JavaArchUnitTestCaseCollection
+                        .NO_CLASSES_SHOULD_EXECUTE_COMMANDS
+                        .check(javaClasses);
+                case PACKAGE_IMPORT -> JavaArchUnitTestCaseCollection
+                        .noClassesShouldImportForbiddenPackages(allowedPackages)
+                        .check(javaClasses);
+                case REFLECTION -> JavaArchUnitTestCaseCollection
+                        .NO_CLASSES_SHOULD_USE_REFLECTION
+                        .check(javaClasses);
+                case TERMINATE_JVM -> JavaArchUnitTestCaseCollection
+                        .NO_CLASSES_SHOULD_TERMINATE_JVM
+                        .check(javaClasses);
+                case SERIALIZATION -> JavaArchUnitTestCaseCollection
+                        .NO_CLASSES_SHOULD_SERIALIZE
+                        .check(javaClasses);
                 // Classloading included in the Reflection test case
                 case CLASS_LOADING -> {}
-                default -> throw new SecurityException(localized("security.common.unsupported.operation", this.javaArchitectureTestCaseSupported));
+                default ->
+                        throw new SecurityException(localized("security.common.unsupported.operation", this.javaArchitectureTestCaseSupported));
             }
         } catch (AssertionError e) {
+            log.info("Architecture Test Case: {}ms", System.currentTimeMillis() - start);
             parseErrorMessage(e);
         }
     }

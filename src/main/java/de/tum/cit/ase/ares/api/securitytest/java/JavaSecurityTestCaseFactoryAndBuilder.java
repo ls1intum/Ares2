@@ -7,7 +7,7 @@ import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSupported;
-import de.tum.cit.ase.ares.api.architecture.java.CallGraphBuilderUtils;
+import de.tum.cit.ase.ares.api.architecture.java.CustomCallgraphBuilder;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitecturalTestCaseSupported;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCase;
@@ -230,10 +230,10 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         Supplier<JavaClasses> classesSupplier = memoize(() -> new ClassFileImporter().importPath(classPath));
 
         Supplier<CallGraph> callGraphSupplier = memoize(() -> {
-            if ((CallGraphBuilderUtils.getCallGraph() == null || !classPath.equals(CallGraphBuilderUtils.getLastClassPathAnalyzed())) && javaArchitectureMode == JavaArchitectureMode.WALA) {
-                CallGraphBuilderUtils.setCallGraph(CallGraphBuilderUtils.buildCallGraph(classPath));
+            if (javaArchitectureMode == JavaArchitectureMode.WALA) {
+                return new CustomCallgraphBuilder().buildCallGraph(classPath);
             }
-            return CallGraphBuilderUtils.getCallGraph();
+            return null;
         });
 
         // Access them without recomputation

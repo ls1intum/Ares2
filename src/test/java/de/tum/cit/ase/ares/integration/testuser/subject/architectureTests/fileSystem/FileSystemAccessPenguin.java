@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.fileSystem;
 
+import de.tum.cit.ase.ares.api.util.ReflectionTestUtils;
 import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdpartypackage.ThirdPartyPackagePenguin;
 
 import javax.swing.*;
@@ -25,7 +26,7 @@ public final class FileSystemAccessPenguin {
 
     //<editor-fold desc="Other Methods">
     public static void accessPath(Path p) throws IOException {
-        Files.readString(p);
+        ThirdPartyPackagePenguin.accessFileSystem();
     }
 
     public static void askForFilePermission(String path) {
