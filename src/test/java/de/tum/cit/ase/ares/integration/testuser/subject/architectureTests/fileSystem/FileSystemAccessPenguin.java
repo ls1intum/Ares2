@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.fileSystem;
 
+import de.tum.cit.ase.ares.api.util.ReflectionTestUtils;
 import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdpartypackage.ThirdPartyPackagePenguin;
 
 import javax.swing.*;
@@ -25,7 +26,7 @@ public final class FileSystemAccessPenguin {
 
     //<editor-fold desc="Other Methods">
     public static void accessPath(Path p) throws IOException {
-        Files.readString(p);
+        ThirdPartyPackagePenguin.accessFileSystem();
     }
 
     public static void askForFilePermission(String path) {
@@ -282,13 +283,16 @@ public final class FileSystemAccessPenguin {
         Files.delete(Path.of("pom123.xml"));
     }
 
+    public static void accessFileSystemViaFileDelete() {
+        new File("pom123.xml").delete();
+    }
+
     /**
      * Access the file system using the {@link FileSystemProvider} class.
      */
     public static void accessFileSystemViaFileSystemProvider() throws IOException {
         FileSystemProvider provider = FileSystemProvider.installedProviders().getFirst();
-        provider.delete(Path.of("file.txt"));
-        provider.readAttributes(Path.of("pom123.xml"), "*");
+        provider.delete(Path.of("pom123.xml"));
     }
 
     /**

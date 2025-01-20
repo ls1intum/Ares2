@@ -127,8 +127,7 @@ public class JavaInstrumentationPointcutDefinitions {
             "java.io.FileInputStream",
             List.of("<init>", "read", "open"),
             "java.io.RandomAccessFile",
-            List.of("<init>", "read", "readFully", "readLine", "readBoolean", "readByte", "readChar", "readDouble",
-                    "readFloat", "readInt", "readLong", "readShort", "readUnsignedByte", "readUnsignedShort"),
+            List.of("<init>"),
             "java.io.UnixFileSystem",
             List.of("getBooleanAttributes0", "getSpace", "canonicalize0"),
             "java.io.WinNTFileSystem",
@@ -141,7 +140,7 @@ public class JavaInstrumentationPointcutDefinitions {
             List.of("<init>", "read", "readLine"),
             "java.io.BufferedReader",
             List.of("lines"),
-            "java.nio.channels.FileChannel",
+            "sun.nio.ch.FileChannelImpl",
             List.of("open"),
             "java.nio.file.spi.FileSystemProvider",
             List.of("newFileChannel")
@@ -200,11 +199,19 @@ public class JavaInstrumentationPointcutDefinitions {
      */
     public static final Map<String, List<String>> methodsWhichCanDeleteFiles = Map.of(
             "java.io.File",
-            List.of("delete", "deleteOnExit"),
+            List.of("deleteOnExit"),
             "java.nio.file.Files",
             List.of("delete", "deleteIfExists"),
             "sun.nio.fs.UnixFileSystemProvider",
-            List.of("implDelete")
+            List.of("implDelete"),
+            "sun.nio.fs.WindowsFileSystemProvider",
+            List.of("implDelete"),
+            "java.io.UnixFileSystem",
+            List.of("delete"),
+            "java.io.WinNTFileSystem",
+            List.of("delete"),
+            "java.io.Win32FileSystem",
+            List.of("delete")
     );
     //</editor-fold>
 

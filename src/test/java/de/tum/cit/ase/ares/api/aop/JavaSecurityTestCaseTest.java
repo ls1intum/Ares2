@@ -69,9 +69,9 @@ class JavaSecurityTestCaseTest {
         Method method = JavaSecurityTestCase.class.getDeclaredMethod("generateAdviceSettingValue", String.class, String.class, Object.class);
         method.setAccessible(true);
         String result = (String) method.invoke(null, "String", "testAdvice", "testValue");
-        assertEquals("private static String testAdvice = \"testValue\";\n", result);
+        assertEquals("private static String testAdvice = \"testValue\";" + System.lineSeparator(), result);
         result = (String) method.invoke(null, "String[]", "testAdviceArray", List.of("value1", "value2"));
-        assertEquals("private static String[] testAdviceArray = new String[] {\"value1\", \"value2\"};\n", result);
+        assertEquals("private static String[] testAdviceArray = new String[] {\"value1\", \"value2\"};" + System.lineSeparator(), result);
         InvocationTargetException thrown = assertThrows(InvocationTargetException.class, () -> {
             method.invoke(null, "UnknownType", "testAdvice", "value");
         });
