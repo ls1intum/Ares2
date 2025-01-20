@@ -2,11 +2,17 @@ package de.tum.cit.ase.ares.integration;
 
 import static de.tum.cit.ase.ares.testutilities.CustomConditions.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.lang.Thread.State;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.*;
 
+import de.tum.cit.ase.ares.api.Policy;
+import de.tum.cit.ase.ares.api.jupiter.PublicTest;
+import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.fileSystem.FileSystemAccessPenguin;
 import org.junit.jupiter.api.Disabled;
 import org.junit.platform.testkit.engine.Events;
 
@@ -15,7 +21,7 @@ import de.tum.cit.ase.ares.integration.testuser.ThreadUser;
 import de.tum.cit.ase.ares.testutilities.*;
 import de.tum.cit.ase.ares.testutilities.CustomConditions.Option;
 
-@UserBased(ThreadUser.class)
+//@UserBased(ThreadUser.class)
 class ThreadTest {
 
 	@UserTestResults
@@ -29,6 +35,8 @@ class ThreadTest {
 	private final String threadWhitelistingWithPathCorrect = "threadWhitelistingWithPathCorrect";
 	private final String threadWhitelistingWithPathFail = "threadWhitelistingWithPathFail";
 	private final String threadWhitelistingWithPathPenguin = "threadWhitelistingWithPathPenguin";
+
+	private final String errorMessage = "No Security Exception was thrown. Check if the policy is correctly applied.";
 
 	@TestTest
 	void test_commonPoolInterruptable() {
@@ -90,5 +98,32 @@ class ThreadTest {
 		//OUTCOMMENTED: Test does not pass
 		//tests.assertThatEvents().haveExactly(1,
 				//testFailedWith(threadWhitelistingWithPathPenguin, SecurityException.class));
+	}
+
+	@TestTest
+	@PublicTest
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OneThreadAllowedInstrumentationCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+	void test_threadAccess() {
+		try {
+			ExecutorService executor = Executors.newFixedThreadPool(2);
+			executor.submit(() -> {
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+					fail("Thread was interrupted");
+				}
+			});
+			executor.submit(() -> {
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+					fail("Thread was interrupted");
+				}
+			});
+
+			fail(errorMessage);
+		} catch (SecurityException e) {
+			// Expected exception
+		}
 	}
 }

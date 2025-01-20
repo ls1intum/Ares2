@@ -120,7 +120,8 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
                             .collect(Collectors.joining(", "));
                     yield String.format("private static int[] %s = new int[] {%s};%n", adviceSetting, intArrayValue);
                 }
-                default -> throw new SecurityException(localize("security.advice.settings.data.type.unknown", value, dataType, adviceSetting));
+                default ->
+                        throw new SecurityException(localize("security.advice.settings.data.type.unknown", value, dataType, adviceSetting));
             };
         } catch (IllegalFormatException e) {
             throw new SecurityException(localize("security.advice.invalid.format", value, dataType, adviceSetting));
@@ -503,20 +504,20 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
                     "pathsAllowedToBeDeleted", getPermittedFilePaths("delete").toArray(String[]::new)
             ).forEach((k, v) -> JavaSecurityTestCase.setJavaAdviceSettingValue(k, v, aopMode));
             case NETWORK_CONNECTION -> Map.of(
-                    "hostsAllowedToBeConnectedTo", getPermittedNetworkHosts("connect"),
-                    "portsAllowedToBeConnectedTo", getPermittedNetworkPorts("connect"),
-                    "hostsAllowedToBeSentTo", getPermittedNetworkHosts("send"),
-                    "portsAllowedToBeSentTo", getPermittedNetworkPorts("send"),
-                    "hostsAllowedToBeReceivedFrom", getPermittedNetworkHosts("receive"),
-                    "portsAllowedToBeReceivedFrom", getPermittedNetworkPorts("receive")
+                    "hostsAllowedToBeConnectedTo", getPermittedNetworkHosts("connect").toArray(String[]::new),
+                    "portsAllowedToBeConnectedTo", getPermittedNetworkPorts("connect").stream().mapToInt(Integer::intValue).toArray(),
+                    "hostsAllowedToBeSentTo", getPermittedNetworkHosts("send").toArray(String[]::new),
+                    "portsAllowedToBeSentTo", getPermittedNetworkPorts("send").stream().mapToInt(Integer::intValue).toArray(),
+                    "hostsAllowedToBeReceivedFrom", getPermittedNetworkHosts("receive").toArray(String[]::new),
+                    "portsAllowedToBeReceivedFrom", getPermittedNetworkPorts("receive").stream().mapToInt(Integer::intValue).toArray()
             ).forEach((k, v) -> JavaSecurityTestCase.setJavaAdviceSettingValue(k, v, aopMode));
             case COMMAND_EXECUTION -> Map.of(
-                    "commandsAllowedToBeExecuted", getPermittedCommands(),
-                    "argumentsAllowedToBePassed", getPermittedArguments()
+                    "commandsAllowedToBeExecuted", getPermittedCommands().toArray(String[]::new),
+                    "argumentsAllowedToBePassed", getPermittedArguments().stream().map(innerList -> innerList.toArray(new String[0])).toArray(String[][]::new)
             ).forEach((k, v) -> JavaSecurityTestCase.setJavaAdviceSettingValue(k, v, aopMode));
             case THREAD_CREATION -> Map.of(
-                    "threadNumberAllowedToBeCreated", getPermittedNumberOfThreads(),
-                    "threadClassAllowedToBeCreated", getPermittedThreadClasses()
+                    "threadNumberAllowedToBeCreated", getPermittedNumberOfThreads().stream().mapToInt(Integer::intValue).toArray(),
+                    "threadClassAllowedToBeCreated", getPermittedThreadClasses().toArray(String[]::new)
             ).forEach((k, v) -> JavaSecurityTestCase.setJavaAdviceSettingValue(k, v, aopMode));
         }
     }

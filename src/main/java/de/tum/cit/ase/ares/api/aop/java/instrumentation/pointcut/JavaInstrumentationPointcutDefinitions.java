@@ -208,5 +208,17 @@ public class JavaInstrumentationPointcutDefinitions {
     );
     //</editor-fold>
 
+    //<editor-fold desc="Create Thread">
+    /**
+     * This map contains the methods which can create threads. The map keys represent class names,
+     * and the values are lists of method names that are considered to be thread create operations.
+     */
+    public static final Map<String, List<String>> methodsWhichCanCreateThreads = Map.ofEntries(
+            Map.entry("java.util.concurrent.ExecutorService", List.of("submit")),
+            Map.entry("java.util.concurrent.AbstractExecutorService", List.of("submit")),
+            Map.entry("java.util.concurrent.ThreadPoolExecutor", List.of("submit"))
+    );
+    //</editor-fold>
+
 }
 

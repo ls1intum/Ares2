@@ -4,28 +4,25 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 
 import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
-import static net.bytebuddy.asm.Advice.OnMethodEnter;
-import static net.bytebuddy.asm.Advice.Origin;
-import static net.bytebuddy.asm.Advice.This;
-import static net.bytebuddy.asm.Advice.AllArguments;
+import static net.bytebuddy.asm.Advice.*;
 
 /**
- * This class provides advice for the execution of methods executing files.
- * It is responsible for verifying whether the method execution is allowed based on the file system
+ * This class provides advice for the execution of methods creating threads.
+ * It is responsible for verifying whether the method execution is allowed based on the thread system
  * security policies defined within the application.
  * <p>
  * If an execution attempt violates these policies, a SecurityException is thrown, preventing
- * unauthorized file executions. The class interacts with the JavaInstrumentationAdviceToolbox to
+ * unauthorized thread creation. The class interacts with the JavaInstrumentationAdviceToolbox to
  * perform these security checks.
  */
-public class JavaInstrumentationExecutePathMethodAdvice {
+public class JavaInstrumentationCreateThreadMethodAdvice {
     /**
-     * This method is called when a method executing files is entered.
+     * This method is called when a method annotated with the creating threads is entered.
      * It performs security checks to determine whether the method execution is allowed according
-     * to file system security policies. If the method execution is not permitted, a SecurityException
+     * to thread system security policies. If the method execution is not permitted, a SecurityException
      * is thrown, blocking the execution.
      * <p>
-     * The checkFileSystemInteraction method from JavaInstrumentationAdviceToolbox is called to
+     * The checkThreadSystemInteraction method from JavaInstrumentationAdviceThreadToolbox is called to
      * perform these checks, ensuring that both the method's parameters and the instance fields
      * adhere to the security restrictions.
      *
@@ -44,6 +41,7 @@ public class JavaInstrumentationExecutePathMethodAdvice {
             @This(optional = true) Object instance,
             @AllArguments Object... parameters
     ) {
+        System.out.println("Injected");
 
         //<editor-fold desc="Attributes">
         final Field[] fields = instance != null ? instance.getClass().getDeclaredFields() : new Field[0];
@@ -69,8 +67,8 @@ public class JavaInstrumentationExecutePathMethodAdvice {
         //</editor-fold>
 
         //<editor-fold desc="Check">
-        JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
-                "execute",
+        JavaInstrumentationAdviceThreadToolbox.checkThreadSystemInteraction(
+                "create",
                 declaringTypeName,
                 methodName,
                 methodSignature,

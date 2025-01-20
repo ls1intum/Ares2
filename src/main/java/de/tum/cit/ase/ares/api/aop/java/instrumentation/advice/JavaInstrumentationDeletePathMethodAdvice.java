@@ -7,17 +7,17 @@ import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstru
 import static net.bytebuddy.asm.Advice.*;
 
 /**
- * This class provides advice for the execution of methods annotated with the @ExecutePath annotation.
+ * This class provides advice for the execution of methods deleting files.
  * It is responsible for verifying whether the method execution is allowed based on the file system
  * security policies defined within the application.
  * <p>
  * If an execution attempt violates these policies, a SecurityException is thrown, preventing
- * unauthorized file executions. The class interacts with the JavaInstrumentationAdviceToolbox to
+ * unauthorized file deletions. The class interacts with the JavaInstrumentationAdviceToolbox to
  * perform these security checks.
  */
 public class JavaInstrumentationDeletePathMethodAdvice {
     /**
-     * This method is called when a method annotated with the @ExecutePath annotation is entered.
+     * This method is called when a method annotated with the deleting files is entered.
      * It performs security checks to determine whether the method execution is allowed according
      * to file system security policies. If the method execution is not permitted, a SecurityException
      * is thrown, blocking the execution.

@@ -102,14 +102,14 @@ public class JavaSecurityTestCaseSettings {
     private static String[][] argumentsAllowedToBePassed = null;
 
     /**
-     * Number of threads that are allowed to be created.
-     */
-    private static int[] threadNumberAllowedToBeCreated = null;
-
-    /**
      * Classes of threads that are allowed to be created.
      */
     private static String[] threadClassAllowedToBeCreated = null;
+
+    /**
+     * Number of threads that are allowed to be created.
+     */
+    private static int[] threadNumberAllowedToBeCreated = null;
 
     /**
      * Resets the configuration settings to their default values.
@@ -130,7 +130,7 @@ public class JavaSecurityTestCaseSettings {
         JavaSecurityTestCaseSettings.portsAllowedToBeReceivedFrom = null;
         JavaSecurityTestCaseSettings.commandsAllowedToBeExecuted = null;
         JavaSecurityTestCaseSettings.argumentsAllowedToBePassed = null;
-        JavaSecurityTestCaseSettings.threadNumberAllowedToBeCreated = null;
         JavaSecurityTestCaseSettings.threadClassAllowedToBeCreated = null;
+        JavaSecurityTestCaseSettings.threadNumberAllowedToBeCreated = null;
     }
 }

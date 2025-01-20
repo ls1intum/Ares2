@@ -10,17 +10,17 @@ import static net.bytebuddy.asm.Advice.This;
 import static net.bytebuddy.asm.Advice.AllArguments;
 
 /**
- * This class provides advice for the execution of methods annotated with the @ExecutePath annotation.
+ * This class provides advice for the execution of methods overwriting files.
  * It is responsible for verifying whether the method execution is allowed based on the file system
  * security policies defined within the application.
  * <p>
  * If an execution attempt violates these policies, a SecurityException is thrown, preventing
- * unauthorized file executions. The class interacts with the JavaInstrumentationAdviceToolbox to
+ * unauthorized file overwritings. The class interacts with the JavaInstrumentationAdviceToolbox to
  * perform these security checks.
  */
 public class JavaInstrumentationOverwritePathMethodAdvice {
     /**
-     * This method is called when a method annotated with the @ExecutePath annotation is entered.
+     * This method is called when a method overwriting files is entered.
      * It performs security checks to determine whether the method execution is allowed according
      * to file system security policies. If the method execution is not permitted, a SecurityException
      * is thrown, blocking the execution.
