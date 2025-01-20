@@ -22,6 +22,11 @@ regardingTheSupervisedCode:
         executeAllFiles: false
         deleteAllFiles: false
         onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/nottrusted.txt"
+      - readAllFiles: false
+        overwriteAllFiles: true
+        executeAllFiles: true
+        deleteAllFiles: true
+        onThisPathAndAllPathsBelow: "Ares2"
     regardingNetworkConnections: []
     regardingCommandExecutions: []
     regardingThreadCreations: []

@@ -292,8 +292,7 @@ public final class FileSystemAccessPenguin {
      */
     public static void accessFileSystemViaFileSystemProvider() throws IOException {
         FileSystemProvider provider = FileSystemProvider.installedProviders().getFirst();
-        provider.delete(Path.of("file.txt"));
-        provider.readAttributes(Path.of("pom123.xml"), "*");
+        provider.delete(Path.of("pom123.xml"));
     }
 
     /**
