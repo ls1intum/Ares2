@@ -2,14 +2,13 @@ package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 
 import java.io.File;
 import java.lang.reflect.Field;
-import java.lang.reflect.InaccessibleObjectException;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
-import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.List;
+import java.lang.reflect.InaccessibleObjectException;
+import java.lang.reflect.InvocationTargetException;
+import java.nio.file.InvalidPathException;
 
 /**
  * Utility class for the Java instrumentation advice.
@@ -23,9 +22,12 @@ import java.util.List;
  * enforce security policies at runtime and block unauthorized file interactions.
  */
 public class JavaInstrumentationAdviceToolbox {
-    private static List<String> fileSystemIgnoreCallstack = List.of("de.tum.cit.ase.ares.api.io.OutputTester", "de.tum.cit.ase.ares.api.io.InputTester", "sun.awt.X11FontManager", "de.tum.cit.ase.ares.api.localization.Messages");
-    private static List<String> fileSystemIgnoreAttributes = List.of("java.io.File.delete");
-    private static List<String> fileSystemIgnoreParameter = List.of();
+    // Skip the OutputTester and InputTester classes, as they intercept the output and input for System.out and System.in
+    // Therefore, they cause false positives.
+    // Also, X11FontManager needs to be set when using AWT therefore we have to allow it
+    private static final List<String> fileSystemIgnoreCallstack = List.of("de.tum.cit.ase.ares.api.io.OutputTester", "de.tum.cit.ase.ares.api.io.InputTester", "sun.awt.X11FontManager", "de.tum.cit.ase.ares.api.localization.Messages");
+    private static final List<String> fileSystemIgnoreAttributes = List.of("java.io.File.delete");
+    private static final List<String> fileSystemIgnoreParameter = List.of();
 
     //<editor-fold desc="Constructor">
 
@@ -40,24 +42,36 @@ public class JavaInstrumentationAdviceToolbox {
     //<editor-fold desc="Tool methods">
 
     /**
-     * Get the value of a field from the JavaSecurityTestCaseSettings class.
-     * This method dynamically accesses a field in the JavaSecurityTestCaseSettings class
-     * to retrieve security-related configuration values needed for file system interaction checks.
+     * Retrieves the value of a specified static field from the {@code JavaSecurityTestCaseSettings} class.
+     * <p>
+     * This method uses reflection to dynamically access a field in {@code JavaSecurityTestCaseSettings},
+     * allowing retrieval of security-related configuration values used for instrumentation and aspectJ tests.
+     * </p>
      *
-     * @param fieldName The name of the field to retrieve the value from.
-     * @return The value of the field.
-     * @throws SecurityException If the field cannot be accessed due to linkage errors, class not found,
-     *                           or illegal access issues.
+     * @param fieldName The name of the field to retrieve.
+     * @param <T>       The expected type of the field's value.
+     * @return The value of the specified field.
+     * @throws SecurityException If the field cannot be accessed due to various issues such as:
+     * <ul>
+     *   <li>Class not found</li>
+     *   <li>No such field</li>
+     *   <li>Illegal access</li>
+     *   <li>Linkage errors</li>
+     *   <li>Null pointer exceptions</li>
+     *   <li>Inaccessible object exceptions</li>
+     *   <li>Illegal argument exceptions</li>
+     * </ul>
      */
-    protected static Object getValueFromSettings(String fieldName) {
+    protected static <T> T getValueFromSettings(String fieldName) {
         try {
             // Take bootloader as class loader in order to get the JavaSecurityTestCaseSettings class at bootloader time for instrumentation
             Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, null);
             Field field = adviceSettingsClass.getDeclaredField(fieldName);
             field.setAccessible(true);
-            Object value = field.get(null);
+            T value = (T) field.get(null);
             field.setAccessible(false);
             return value;
+
         } catch (LinkageError e) {
             throw new SecurityException(localize("security.advice.linkage.exception", fieldName), e);
         } catch (ClassNotFoundException e) {
@@ -66,13 +80,36 @@ public class JavaInstrumentationAdviceToolbox {
             throw new SecurityException(localize("security.advice.no.such.field.exception", fieldName), e);
         } catch (NullPointerException e) {
             throw new SecurityException(localize("security.advice.null.pointer.exception", fieldName), e);
-        } catch (IllegalAccessException e) {
-            throw new SecurityException(localize("security.advice.illegal.access.exception", fieldName), e);
         } catch (InaccessibleObjectException e) {
             throw new SecurityException(localize("security.advice.inaccessible.object.exception", fieldName), e);
+        } catch (IllegalAccessException e) {
+            throw new SecurityException(localize("security.advice.illegal.access.exception", fieldName), e);
+        } catch (IllegalArgumentException e) {
+            throw new SecurityException(localize("security.advice.illegal.argument.exception", fieldName), e);
         }
     }
 
+    /**
+     * Sets the value of a specified static field in the {@code JavaSecurityTestCaseSettings} class.
+     * <p>
+     * This method uses reflection to dynamically modify a field in {@code JavaSecurityTestCaseSettings},
+     * allowing updates to security-related configuration values used for instrumentation and AspectJ tests.
+     * </p>
+     *
+     * @param fieldName The name of the field to modify.
+     * @param newValue  The new value to assign to the field.
+     * @param <T>       The expected type of the field's value.
+     * @throws SecurityException If the field cannot be accessed or modified due to:
+     * <ul>
+     *   <li>Class not found</li>
+     *   <li>No such field</li>
+     *   <li>Illegal access</li>
+     *   <li>Linkage errors</li>
+     *   <li>Null pointer exceptions</li>
+     *   <li>Inaccessible object exceptions</li>
+     *   <li>Illegal argument exceptions</li>
+     * </ul>
+     */
     protected static <T> void setValueToSettings(String fieldName, T newValue) {
         try {
             // Take bootloader as class loader in order to get the JavaSecurityTestCaseSettings class at bootloader time for instrumentation
@@ -89,20 +126,53 @@ public class JavaInstrumentationAdviceToolbox {
             throw new SecurityException(localize("security.advice.no.such.field.exception", fieldName), e);
         } catch (NullPointerException e) {
             throw new SecurityException(localize("security.advice.null.pointer.exception", fieldName), e);
-        } catch (IllegalAccessException e) {
-            throw new SecurityException(localize("security.advice.illegal.access.exception", fieldName), e);
         } catch (InaccessibleObjectException e) {
             throw new SecurityException(localize("security.advice.inaccessible.object.exception", fieldName), e);
+        } catch (IllegalAccessException e) {
+            throw new SecurityException(localize("security.advice.illegal.access.exception", fieldName), e);
+        } catch (IllegalArgumentException e) {
+            throw new SecurityException(localize("security.advice.illegal.argument.exception", fieldName), e);
         }
     }
 
+    /**
+     * Decrements the value at a specified position in a settings array stored in the {@code JavaSecurityTestCaseSettings} class.
+     * <p>
+     * This method retrieves an integer array from {@code JavaSecurityTestCaseSettings}, decrements the value at the given
+     * index, and updates the array back to the settings class.
+     * </p>
+     *
+     * @param settingsArray The name of the array field in {@code JavaSecurityTestCaseSettings}.
+     * @param position      The index position of the value to decrement.
+     * @throws SecurityException If retrieving or modifying the array fails due to:
+     * <ul>
+     *   <li>Class not found</li>
+     *   <li>No such field</li>
+     *   <li>Illegal access</li>
+     *   <li>Linkage errors</li>
+     *   <li>Null pointer exceptions</li>
+     *   <li>Inaccessible object exceptions</li>
+     *   <li>Illegal argument exceptions</li>
+     * </ul>
+     * @throws ArrayIndexOutOfBoundsException If the provided position is out of bounds.
+     */
     protected static void decrementSettingsArrayValue(String settingsArray, int position) {
-        Object currentSettingsArray = getValueFromSettings(settingsArray);
-        int[] newSettingsArray = Arrays.copyOf((int[]) currentSettingsArray, ((int[]) currentSettingsArray).length);
+        int[] newSettingsArray = ((int[]) getValueFromSettings(settingsArray)).clone();
         newSettingsArray[position]--;
         setValueToSettings(settingsArray, newSettingsArray);
     }
 
+    /**
+     * Retrieves a localized message based on a given key and optional arguments.
+     * <p>
+     * This method attempts to fetch a localized string from the {@code Messages} class using reflection.
+     * If localization fails due to missing classes or methods, it returns the provided key as a fallback.
+     * </p>
+     *
+     * @param key  The localization key identifying the message.
+     * @param args Optional arguments to format the localized message.
+     * @return The localized message string, or the key itself if localization fails.
+     */
     public static String localize(String key, Object... args) {
         try {
             Class<?> messagesClass = Class.forName("de.tum.cit.ase.ares.api.localization.Messages", true, Thread.currentThread().getContextClassLoader());
@@ -135,8 +205,9 @@ public class JavaInstrumentationAdviceToolbox {
      * @return True if the call stack element is allowed, false otherwise.
      */
     protected static boolean checkIfCallstackElementIsAllowed(String[] allowedClasses, StackTraceElement elementToCheck) {
+        String className = elementToCheck.getClassName();
         for (String allowedClass : allowedClasses) {
-            if (elementToCheck.getClassName().startsWith(allowedClass)) {
+            if (className.startsWith(allowedClass)) {
                 return true;
             }
         }
@@ -156,15 +227,13 @@ public class JavaInstrumentationAdviceToolbox {
     protected static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses) {
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
         for (StackTraceElement element : stackTrace) {
-            if (element.getClassName().startsWith(restrictedPackage)) {
-                // Skip the OutputTester and InputTester classes, as they intercept the output and input for System.out and System.in
-                // Therefore, they cause false positives.
-                // Also, X11FontManager needs to be set when using AWT therefore we have to allow it
-                if (fileSystemIgnoreCallstack.contains(element.getClassName())) {
+            String className = element.getClassName();
+            if (className.startsWith(restrictedPackage)) {
+                if (fileSystemIgnoreCallstack.contains(className)) {
                     return null;
                 }
                 if (!checkIfCallstackElementIsAllowed(allowedClasses, element)) {
-                    return element.getClassName();
+                    return className;
                 }
             }
         }
@@ -279,13 +348,13 @@ public class JavaInstrumentationAdviceToolbox {
             Object[] attributes,
             Object[] parameters
     ) {
-        String aopMode = (String) getValueFromSettings("aopMode");
+        String aopMode = getValueFromSettings("aopMode");
         if (aopMode == null || !aopMode.equals("INSTRUMENTATION")) {
             return;
         }
-        String restrictedPackage = (String) getValueFromSettings("restrictedPackage");
-        String[] allowedClasses = (String[]) getValueFromSettings("allowedListedClasses");
-        String[] allowedPaths = (String[]) getValueFromSettings(
+        String restrictedPackage = getValueFromSettings("restrictedPackage");
+        String[] allowedClasses = getValueFromSettings("allowedListedClasses");
+        String[] allowedPaths = getValueFromSettings(
                 switch (action) {
                     case "read" -> "pathsAllowedToBeRead";
                     case "overwrite" -> "pathsAllowedToBeOverwritten";
