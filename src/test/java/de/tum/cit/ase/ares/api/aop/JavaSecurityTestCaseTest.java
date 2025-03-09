@@ -1,8 +1,8 @@
 package de.tum.cit.ase.ares.api.aop;
 
-import de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCase;
-import de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSupported;
-import de.tum.cit.ase.ares.api.policy.SecurityPolicy.ResourceAccesses;
+import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
+import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSupported;
+import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -15,14 +15,14 @@ import static org.mockito.Mockito.*;
 
 class JavaSecurityTestCaseTest {
 
-    private JavaSecurityTestCase javaSecurityTestCase;
-    private ResourceAccesses resourceAccesses;
+    private JavaAOPTestCase javaSecurityTestCase;
+    private SecurityPolicy.SupervisedCode.ResourceAccesses resourceAccesses;
 
     @BeforeEach
     void setUp() {
-        JavaSecurityTestCaseSupported supported = JavaSecurityTestCaseSupported.FILESYSTEM_INTERACTION;
-        resourceAccesses = mock(ResourceAccesses.class);
-        javaSecurityTestCase = new JavaSecurityTestCase(supported, resourceAccesses);
+        JavaAOPTestCaseSupported supported = JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION;
+        resourceAccesses = mock(SecurityPolicy.SupervisedCode.ResourceAccesses.class);
+        javaSecurityTestCase = new JavaAOPTestCase(supported, resourceAccesses);
     }
 
     @Test
@@ -34,9 +34,9 @@ class JavaSecurityTestCaseTest {
     @Test
     void testWriteAOPSecurityTestCaseFile() {
         List<String> allowedListedClasses = List.of("TestClass");
-        List<JavaSecurityTestCase> javaSecurityTestCases = List.of(javaSecurityTestCase);
+        List<JavaAOPTestCase> javaSecurityTestCases = List.of(javaSecurityTestCase);
 
-        String result = JavaSecurityTestCase.writeAOPSecurityTestCaseFile(
+        String result = JavaAOPTestCase.writeAOPSecurityTestCaseFile(
                 "INSTRUMENTATION",
                 "de.tum.cit",
                 allowedListedClasses,
@@ -50,15 +50,15 @@ class JavaSecurityTestCaseTest {
 
     @Test
     void testExecuteAOPSecurityTestCase() {
-        try (MockedStatic<JavaSecurityTestCase> mockedStatic = mockStatic(JavaSecurityTestCase.class)) {
-            javaSecurityTestCase.executeAOPSecurityTestCase("INSTRUMENTATION");
-            mockedStatic.verify(() -> JavaSecurityTestCase.setJavaAdviceSettingValue(anyString(), any(), eq("INSTRUMENTATION")), atLeastOnce());
+        try (MockedStatic<JavaAOPTestCase> mockedStatic = mockStatic(JavaAOPTestCase.class)) {
+            javaSecurityTestCase.executeAOPSecurityTestCase("WALA", "INSTRUMENTATION");
+            mockedStatic.verify(() -> JavaAOPTestCase.setJavaAdviceSettingValue(anyString(), any(), any(), eq("INSTRUMENTATION")), atLeastOnce());
         }
     }
 
     @Test
     void testGetPermittedFilePaths() throws Exception {
-        Method method = JavaSecurityTestCase.class.getDeclaredMethod("getPermittedFilePaths", String.class);
+        Method method = JavaAOPTestCase.class.getDeclaredMethod("getPermittedFilePaths", String.class);
         method.setAccessible(true);
         List<String> filePaths = (List<String>) method.invoke(javaSecurityTestCase, "read");
         assertEquals(filePaths.size(), 0);
@@ -66,7 +66,7 @@ class JavaSecurityTestCaseTest {
 
     @Test
     void testGenerateAdviceSettingValue() throws Exception {
-        Method method = JavaSecurityTestCase.class.getDeclaredMethod("generateAdviceSettingValue", String.class, String.class, Object.class);
+        Method method = JavaAOPTestCase.class.getDeclaredMethod("generateAdviceSettingValue", String.class, String.class, Object.class);
         method.setAccessible(true);
         String result = (String) method.invoke(null, "String", "testAdvice", "testValue");
         assertEquals("private static String testAdvice = \"testValue\";" + System.lineSeparator(), result);

@@ -3,11 +3,7 @@ package de.tum.cit.ase.ares.api.aop.java;
 //<editor-fold desc="Imports">
 
 import de.tum.cit.ase.ares.api.aop.AOPSecurityTestCase;
-import de.tum.cit.ase.ares.api.policy.SecurityPolicy.ResourceAccesses;
-import de.tum.cit.ase.ares.api.policy.SecurityPolicy.FilePermission;
-import de.tum.cit.ase.ares.api.policy.SecurityPolicy.NetworkPermission;
-import de.tum.cit.ase.ares.api.policy.SecurityPolicy.CommandPermission;
-import de.tum.cit.ase.ares.api.policy.SecurityPolicy.ThreadPermission;
+import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -26,20 +22,20 @@ import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstru
  * Configures Java instrumentation based on a security policy.
  * Implements the AOPSecurityTestCase interface for managing aspect configurations.
  */
-public class JavaSecurityTestCase implements AOPSecurityTestCase {
+public class JavaAOPTestCase implements AOPSecurityTestCase {
 
     //<editor-fold desc="Attributes">
     /**
      * The type of security test case supported by this class (e.g., file system, network, etc.).
      */
     @Nonnull
-    private final JavaSecurityTestCaseSupported javaSecurityTestCaseSupported;
+    private final JavaAOPTestCaseSupported javaSecurityTestCaseSupported;
 
     /**
      * The resource accesses permitted as defined in the security policy.
      */
     @Nonnull
-    private final ResourceAccesses resourceAccesses;
+    private final SecurityPolicy.SupervisedCode.ResourceAccesses resourceAccesses;
     //</editor-fold>
 
     //<editor-fold desc="Constructor">
@@ -50,7 +46,7 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
      * @param javaSecurityTestCaseSupported the type of security test case being supported, must not be null.
      * @param resourceAccesses              the resource accesses permitted by the security policy, must not be null.
      */
-    public JavaSecurityTestCase(@Nonnull JavaSecurityTestCaseSupported javaSecurityTestCaseSupported, @Nonnull ResourceAccesses resourceAccesses) {
+    public JavaAOPTestCase(@Nonnull JavaAOPTestCaseSupported javaSecurityTestCaseSupported, @Nonnull SecurityPolicy.SupervisedCode.ResourceAccesses resourceAccesses) {
         this.javaSecurityTestCaseSupported = javaSecurityTestCaseSupported;
         this.resourceAccesses = resourceAccesses;
     }
@@ -139,10 +135,10 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
      * @param value         the value to assign to the advice setting, can be null.
      * @throws SecurityException if there is any error during field access or value assignment.
      */
-    public static void setJavaAdviceSettingValue(@Nonnull String adviceSetting, @Nullable Object value, @Nonnull String aopMode) {
+    public static void setJavaAdviceSettingValue(@Nonnull String adviceSetting, @Nullable Object value, @Nonnull String architectureMode, @Nonnull String aopMode) {
         try {
             @Nullable ClassLoader customClassLoader = Thread.currentThread().getContextClassLoader();
-            @Nonnull Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, aopMode.equals("INSTRUMENTATION") ? null : customClassLoader);
+            @Nonnull Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, aopMode.equals("INSTRUMENTATION") ? null : customClassLoader);
             @Nonnull Field field = adviceSettingsClass.getDeclaredField(adviceSetting);
             field.setAccessible(true);
             field.set(null, value);
@@ -189,13 +185,13 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
      * @return a list of permitted paths.
      */
     @Nonnull
-    private static List<String> extractPaths(@Nonnull List<JavaSecurityTestCase> configs, @Nonnull Predicate<FilePermission> predicate) {
+    private static List<String> extractPaths(@Nonnull List<JavaAOPTestCase> configs, @Nonnull Predicate<SecurityPolicy.SupervisedCode.FilePermission> predicate) {
         return configs.stream()
-                .filter(config -> config.javaSecurityTestCaseSupported == JavaSecurityTestCaseSupported.FILESYSTEM_INTERACTION)
+                .filter(config -> config.javaSecurityTestCaseSupported == JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION)
                 .map(config -> config.resourceAccesses.regardingFileSystemInteractions())
                 .flatMap(List::stream)
                 .filter(predicate)
-                .map(FilePermission::onThisPathAndAllPathsBelow)
+                .map(SecurityPolicy.SupervisedCode.FilePermission::onThisPathAndAllPathsBelow)
                 .toList();
     }
 
@@ -207,18 +203,18 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
      */
     @Nonnull
     private List<String> getPermittedFilePaths(@Nonnull String filePermission) {
-        @Nonnull Predicate<FilePermission> filter = switch (filePermission) {
-            case "read" -> FilePermission::readAllFiles;
-            case "overwrite" -> FilePermission::overwriteAllFiles;
-            case "execute" -> FilePermission::executeAllFiles;
-            case "delete" -> FilePermission::deleteAllFiles;
+        @Nonnull Predicate<SecurityPolicy.SupervisedCode.FilePermission> filter = switch (filePermission) {
+            case "read" -> SecurityPolicy.SupervisedCode.FilePermission::readAllFiles;
+            case "overwrite" -> SecurityPolicy.SupervisedCode.FilePermission::overwriteAllFiles;
+            case "execute" -> SecurityPolicy.SupervisedCode.FilePermission::executeAllFiles;
+            case "delete" -> SecurityPolicy.SupervisedCode.FilePermission::deleteAllFiles;
             default ->
                     throw new IllegalArgumentException(localize("security.advice.settings.invalid.file.permission", filePermission));
         };
         return resourceAccesses.regardingFileSystemInteractions()
                 .stream()
                 .filter(filter)
-                .map(FilePermission::onThisPathAndAllPathsBelow)
+                .map(SecurityPolicy.SupervisedCode.FilePermission::onThisPathAndAllPathsBelow)
                 .toList();
     }
 
@@ -234,13 +230,13 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
      * @return a list of permitted hosts.
      */
     @Nonnull
-    private static List<String> extractHosts(@Nonnull List<JavaSecurityTestCase> configs, @Nonnull Predicate<NetworkPermission> predicate) {
+    private static List<String> extractHosts(@Nonnull List<JavaAOPTestCase> configs, @Nonnull Predicate<SecurityPolicy.SupervisedCode.NetworkPermission> predicate) {
         return configs.stream()
-                .filter(config -> config.javaSecurityTestCaseSupported == JavaSecurityTestCaseSupported.NETWORK_CONNECTION)
+                .filter(config -> config.javaSecurityTestCaseSupported == JavaAOPTestCaseSupported.NETWORK_CONNECTION)
                 .map(config -> config.resourceAccesses.regardingNetworkConnections())
                 .flatMap(List::stream)
                 .filter(predicate)
-                .map(NetworkPermission::onTheHost)
+                .map(SecurityPolicy.SupervisedCode.NetworkPermission::onTheHost)
                 .toList();
     }
 
@@ -252,13 +248,13 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
      * @return a list of permitted ports.
      */
     @Nonnull
-    private static List<String> extractPorts(@Nonnull List<JavaSecurityTestCase> configs, @Nonnull Predicate<NetworkPermission> predicate) {
+    private static List<String> extractPorts(@Nonnull List<JavaAOPTestCase> configs, @Nonnull Predicate<SecurityPolicy.SupervisedCode.NetworkPermission> predicate) {
         return configs.stream()
-                .filter(config -> config.javaSecurityTestCaseSupported == JavaSecurityTestCaseSupported.NETWORK_CONNECTION)
+                .filter(config -> config.javaSecurityTestCaseSupported == JavaAOPTestCaseSupported.NETWORK_CONNECTION)
                 .map(config -> config.resourceAccesses.regardingNetworkConnections())
                 .flatMap(List::stream)
                 .filter(predicate)
-                .map(NetworkPermission::onThePort)
+                .map(SecurityPolicy.SupervisedCode.NetworkPermission::onThePort)
                 .map(String::valueOf)
                 .toList();
     }
@@ -271,17 +267,17 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
      */
     @Nonnull
     private List<String> getPermittedNetworkHosts(@Nonnull String networkPermission) {
-        @Nonnull Predicate<NetworkPermission> filter = switch (networkPermission) {
-            case "connect" -> NetworkPermission::openConnections;
-            case "send" -> NetworkPermission::sendData;
-            case "receive" -> NetworkPermission::receiveData;
+        @Nonnull Predicate<SecurityPolicy.SupervisedCode.NetworkPermission> filter = switch (networkPermission) {
+            case "connect" -> SecurityPolicy.SupervisedCode.NetworkPermission::openConnections;
+            case "send" -> SecurityPolicy.SupervisedCode.NetworkPermission::sendData;
+            case "receive" -> SecurityPolicy.SupervisedCode.NetworkPermission::receiveData;
             default ->
                     throw new IllegalArgumentException(localize("security.advice.settings.invalid.network.permission", networkPermission));
         };
         return resourceAccesses.regardingNetworkConnections()
                 .stream()
                 .filter(filter)
-                .map(NetworkPermission::onTheHost)
+                .map(SecurityPolicy.SupervisedCode.NetworkPermission::onTheHost)
                 .toList();
     }
 
@@ -293,17 +289,17 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
      */
     @Nonnull
     private List<Integer> getPermittedNetworkPorts(@Nonnull String networkPermission) {
-        @Nonnull Predicate<NetworkPermission> filter = switch (networkPermission) {
-            case "connect" -> NetworkPermission::openConnections;
-            case "send" -> NetworkPermission::sendData;
-            case "receive" -> NetworkPermission::receiveData;
+        @Nonnull Predicate<SecurityPolicy.SupervisedCode.NetworkPermission> filter = switch (networkPermission) {
+            case "connect" -> SecurityPolicy.SupervisedCode.NetworkPermission::openConnections;
+            case "send" -> SecurityPolicy.SupervisedCode.NetworkPermission::sendData;
+            case "receive" -> SecurityPolicy.SupervisedCode.NetworkPermission::receiveData;
             default ->
                     throw new IllegalArgumentException(localize("security.advice.settings.invalid.network.permission", networkPermission));
         };
         return resourceAccesses.regardingNetworkConnections()
                 .stream()
                 .filter(filter)
-                .map(NetworkPermission::onThePort)
+                .map(SecurityPolicy.SupervisedCode.NetworkPermission::onThePort)
                 .toList();
     }
     //</editor-fold>
@@ -317,12 +313,12 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
      * @return a list of permitted commands.
      */
     @Nonnull
-    private static List<String> extractCommands(@Nonnull List<JavaSecurityTestCase> configs) {
+    private static List<String> extractCommands(@Nonnull List<JavaAOPTestCase> configs) {
         return configs.stream()
-                .filter(config -> config.javaSecurityTestCaseSupported == JavaSecurityTestCaseSupported.COMMAND_EXECUTION)
+                .filter(config -> config.javaSecurityTestCaseSupported == JavaAOPTestCaseSupported.COMMAND_EXECUTION)
                 .map(config -> config.resourceAccesses.regardingCommandExecutions())
                 .flatMap(List::stream)
-                .map(CommandPermission::executeTheCommand)
+                .map(SecurityPolicy.SupervisedCode.CommandPermission::executeTheCommand)
                 .toList();
     }
 
@@ -333,12 +329,12 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
      * @return a list of permitted command arguments.
      */
     @Nonnull
-    private static List<String> extractArguments(@Nonnull List<JavaSecurityTestCase> configs) {
+    private static List<String> extractArguments(@Nonnull List<JavaAOPTestCase> configs) {
         return configs.stream()
-                .filter(config -> config.javaSecurityTestCaseSupported == JavaSecurityTestCaseSupported.COMMAND_EXECUTION)
+                .filter(config -> config.javaSecurityTestCaseSupported == JavaAOPTestCaseSupported.COMMAND_EXECUTION)
                 .map(config -> config.resourceAccesses.regardingCommandExecutions())
                 .flatMap(List::stream)
-                .map(CommandPermission::withTheseArguments)
+                .map(SecurityPolicy.SupervisedCode.CommandPermission::withTheseArguments)
                 .map(arguments -> "new String[] {" + String.join(",", arguments) + "}")
                 .toList();
     }
@@ -352,7 +348,7 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
     private List<String> getPermittedCommands() {
         return resourceAccesses.regardingCommandExecutions()
                 .stream()
-                .map(CommandPermission::executeTheCommand)
+                .map(SecurityPolicy.SupervisedCode.CommandPermission::executeTheCommand)
                 .toList();
     }
 
@@ -365,7 +361,7 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
     private List<List<String>> getPermittedArguments() {
         return resourceAccesses.regardingCommandExecutions()
                 .stream()
-                .map(CommandPermission::withTheseArguments)
+                .map(SecurityPolicy.SupervisedCode.CommandPermission::withTheseArguments)
                 .toList();
     }
     //</editor-fold>
@@ -379,12 +375,12 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
      * @return a list of permitted thread numbers.
      */
     @Nonnull
-    private static List<String> extractThreadNumbers(@Nonnull List<JavaSecurityTestCase> configs) {
+    private static List<String> extractThreadNumbers(@Nonnull List<JavaAOPTestCase> configs) {
         return configs.stream()
-                .filter(config -> config.javaSecurityTestCaseSupported == JavaSecurityTestCaseSupported.THREAD_CREATION)
+                .filter(config -> config.javaSecurityTestCaseSupported == JavaAOPTestCaseSupported.THREAD_CREATION)
                 .map(config -> config.resourceAccesses.regardingThreadCreations())
                 .flatMap(List::stream)
-                .map(ThreadPermission::createTheFollowingNumberOfThreads)
+                .map(SecurityPolicy.SupervisedCode.ThreadPermission::createTheFollowingNumberOfThreads)
                 .map(String::valueOf)
                 .toList();
     }
@@ -396,12 +392,12 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
      * @return a list of permitted thread classes.
      */
     @Nonnull
-    private static List<String> extractThreadClasses(@Nonnull List<JavaSecurityTestCase> configs) {
+    private static List<String> extractThreadClasses(@Nonnull List<JavaAOPTestCase> configs) {
         return configs.stream()
-                .filter(config -> config.javaSecurityTestCaseSupported == JavaSecurityTestCaseSupported.THREAD_CREATION)
+                .filter(config -> config.javaSecurityTestCaseSupported == JavaAOPTestCaseSupported.THREAD_CREATION)
                 .map(config -> config.resourceAccesses.regardingThreadCreations())
                 .flatMap(List::stream)
-                .map(ThreadPermission::ofThisClass)
+                .map(SecurityPolicy.SupervisedCode.ThreadPermission::ofThisClass)
                 .toList();
     }
 
@@ -414,7 +410,7 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
     private List<Integer> getPermittedNumberOfThreads() {
         return resourceAccesses.regardingThreadCreations()
                 .stream()
-                .map(ThreadPermission::createTheFollowingNumberOfThreads)
+                .map(SecurityPolicy.SupervisedCode.ThreadPermission::createTheFollowingNumberOfThreads)
                 .toList();
     }
 
@@ -427,7 +423,7 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
     private List<String> getPermittedThreadClasses() {
         return resourceAccesses.regardingThreadCreations()
                 .stream()
-                .map(ThreadPermission::ofThisClass)
+                .map(SecurityPolicy.SupervisedCode.ThreadPermission::ofThisClass)
                 .toList();
     }
     //</editor-fold>
@@ -465,22 +461,22 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
             @Nonnull String aopMode,
             @Nonnull String restrictedPackage,
             @Nonnull List<String> allowedListedClasses,
-            @Nonnull List<JavaSecurityTestCase> javaSecurityTestCases
+            @Nonnull List<JavaAOPTestCase> javaSecurityTestCases
     ) {
         @Nonnull StringBuilder fileContentBuilder = new StringBuilder();
         fileContentBuilder.append(generateAdviceSettingValue("String", "aopMode", aopMode));
         fileContentBuilder.append(generateAdviceSettingValue("String", "restrictedPackage", restrictedPackage));
         fileContentBuilder.append(generateAdviceSettingValue("String[]", "allowedListedClasses", allowedListedClasses));
-        fileContentBuilder.append(generateAdviceSettingValue("String[]", "pathsAllowedToBeRead", extractPaths(javaSecurityTestCases, FilePermission::readAllFiles)));
-        fileContentBuilder.append(generateAdviceSettingValue("String[]", " pathsAllowedToBeOverwritten", extractPaths(javaSecurityTestCases, FilePermission::overwriteAllFiles)));
-        fileContentBuilder.append(generateAdviceSettingValue("String[]", " pathsAllowedToBeExecuted", extractPaths(javaSecurityTestCases, FilePermission::executeAllFiles)));
-        fileContentBuilder.append(generateAdviceSettingValue("String[]", " pathsAllowedToBeDeleted", extractPaths(javaSecurityTestCases, FilePermission::deleteAllFiles)));
-        fileContentBuilder.append(generateAdviceSettingValue("String[]", " hostsAllowedToBeConnectedTo", extractHosts(javaSecurityTestCases, NetworkPermission::openConnections)));
-        fileContentBuilder.append(generateAdviceSettingValue("int[]", " portsAllowedToBeConnectedTo", extractPorts(javaSecurityTestCases, NetworkPermission::openConnections)));
-        fileContentBuilder.append(generateAdviceSettingValue("String[]", " hostsAllowedToBeSentTo", extractHosts(javaSecurityTestCases, NetworkPermission::sendData)));
-        fileContentBuilder.append(generateAdviceSettingValue("int[]", " portsAllowedToBeSentTo", extractPorts(javaSecurityTestCases, NetworkPermission::sendData)));
-        fileContentBuilder.append(generateAdviceSettingValue("String[]", " hostsAllowedToBeReceivedFrom", extractHosts(javaSecurityTestCases, NetworkPermission::receiveData)));
-        fileContentBuilder.append(generateAdviceSettingValue("int[]", " portsAllowedToBeReceivedFrom", extractPorts(javaSecurityTestCases, NetworkPermission::receiveData)));
+        fileContentBuilder.append(generateAdviceSettingValue("String[]", "pathsAllowedToBeRead", extractPaths(javaSecurityTestCases, SecurityPolicy.SupervisedCode.FilePermission::readAllFiles)));
+        fileContentBuilder.append(generateAdviceSettingValue("String[]", " pathsAllowedToBeOverwritten", extractPaths(javaSecurityTestCases, SecurityPolicy.SupervisedCode.FilePermission::overwriteAllFiles)));
+        fileContentBuilder.append(generateAdviceSettingValue("String[]", " pathsAllowedToBeExecuted", extractPaths(javaSecurityTestCases, SecurityPolicy.SupervisedCode.FilePermission::executeAllFiles)));
+        fileContentBuilder.append(generateAdviceSettingValue("String[]", " pathsAllowedToBeDeleted", extractPaths(javaSecurityTestCases, SecurityPolicy.SupervisedCode.FilePermission::deleteAllFiles)));
+        fileContentBuilder.append(generateAdviceSettingValue("String[]", " hostsAllowedToBeConnectedTo", extractHosts(javaSecurityTestCases, SecurityPolicy.SupervisedCode.NetworkPermission::openConnections)));
+        fileContentBuilder.append(generateAdviceSettingValue("int[]", " portsAllowedToBeConnectedTo", extractPorts(javaSecurityTestCases, SecurityPolicy.SupervisedCode.NetworkPermission::openConnections)));
+        fileContentBuilder.append(generateAdviceSettingValue("String[]", " hostsAllowedToBeSentTo", extractHosts(javaSecurityTestCases, SecurityPolicy.SupervisedCode.NetworkPermission::sendData)));
+        fileContentBuilder.append(generateAdviceSettingValue("int[]", " portsAllowedToBeSentTo", extractPorts(javaSecurityTestCases, SecurityPolicy.SupervisedCode.NetworkPermission::sendData)));
+        fileContentBuilder.append(generateAdviceSettingValue("String[]", " hostsAllowedToBeReceivedFrom", extractHosts(javaSecurityTestCases, SecurityPolicy.SupervisedCode.NetworkPermission::receiveData)));
+        fileContentBuilder.append(generateAdviceSettingValue("int[]", " portsAllowedToBeReceivedFrom", extractPorts(javaSecurityTestCases, SecurityPolicy.SupervisedCode.NetworkPermission::receiveData)));
         fileContentBuilder.append(generateAdviceSettingValue("String[]", " commandsAllowedToBeExecuted", extractCommands(javaSecurityTestCases)));
         fileContentBuilder.append(generateAdviceSettingValue("String[][]", " argumentsAllowedToBePassed", extractArguments(javaSecurityTestCases)));
         fileContentBuilder.append(generateAdviceSettingValue("int[]", " threadNumberAllowedToBeCreated", extractThreadNumbers(javaSecurityTestCases)));
@@ -495,14 +491,14 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
      * Executes the AOP security test case by setting Java advice settings.
      */
     @Override
-    public void executeAOPSecurityTestCase(@Nonnull String aopMode) {
+    public void executeAOPSecurityTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
         switch (javaSecurityTestCaseSupported) {
             case FILESYSTEM_INTERACTION -> Map.of(
                     "pathsAllowedToBeRead", getPermittedFilePaths("read").toArray(String[]::new),
                     "pathsAllowedToBeOverwritten", getPermittedFilePaths("overwrite").toArray(String[]::new),
                     "pathsAllowedToBeExecuted", getPermittedFilePaths("execute").toArray(String[]::new),
                     "pathsAllowedToBeDeleted", getPermittedFilePaths("delete").toArray(String[]::new)
-            ).forEach((k, v) -> JavaSecurityTestCase.setJavaAdviceSettingValue(k, v, aopMode));
+            ).forEach((k, v) -> JavaAOPTestCase.setJavaAdviceSettingValue(k, v, architectureMode, aopMode));
             case NETWORK_CONNECTION -> Map.of(
                     "hostsAllowedToBeConnectedTo", getPermittedNetworkHosts("connect").toArray(String[]::new),
                     "portsAllowedToBeConnectedTo", getPermittedNetworkPorts("connect").stream().mapToInt(Integer::intValue).toArray(),
@@ -510,15 +506,15 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
                     "portsAllowedToBeSentTo", getPermittedNetworkPorts("send").stream().mapToInt(Integer::intValue).toArray(),
                     "hostsAllowedToBeReceivedFrom", getPermittedNetworkHosts("receive").toArray(String[]::new),
                     "portsAllowedToBeReceivedFrom", getPermittedNetworkPorts("receive").stream().mapToInt(Integer::intValue).toArray()
-            ).forEach((k, v) -> JavaSecurityTestCase.setJavaAdviceSettingValue(k, v, aopMode));
+            ).forEach((k, v) -> JavaAOPTestCase.setJavaAdviceSettingValue(k, v, architectureMode, aopMode));
             case COMMAND_EXECUTION -> Map.of(
                     "commandsAllowedToBeExecuted", getPermittedCommands().toArray(String[]::new),
                     "argumentsAllowedToBePassed", getPermittedArguments().stream().map(innerList -> innerList.toArray(new String[0])).toArray(String[][]::new)
-            ).forEach((k, v) -> JavaSecurityTestCase.setJavaAdviceSettingValue(k, v, aopMode));
+            ).forEach((k, v) -> JavaAOPTestCase.setJavaAdviceSettingValue(k, v, architectureMode, aopMode));
             case THREAD_CREATION -> Map.of(
                     "threadNumberAllowedToBeCreated", getPermittedNumberOfThreads().stream().mapToInt(Integer::intValue).toArray(),
                     "threadClassAllowedToBeCreated", getPermittedThreadClasses().toArray(String[]::new)
-            ).forEach((k, v) -> JavaSecurityTestCase.setJavaAdviceSettingValue(k, v, aopMode));
+            ).forEach((k, v) -> JavaAOPTestCase.setJavaAdviceSettingValue(k, v, architectureMode, aopMode));
         }
     }
     //</editor-fold>

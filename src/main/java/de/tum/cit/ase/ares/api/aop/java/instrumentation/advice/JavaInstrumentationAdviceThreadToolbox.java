@@ -5,7 +5,7 @@ import java.nio.file.InvalidPathException;
 
 public class JavaInstrumentationAdviceThreadToolbox extends JavaInstrumentationAdviceToolbox {
     private final static List<String> threadSystemIgnoreCallstack = List.of();
-    private final static List<String> threadSystemIgnoreAttributes = List.of();
+    private final static List<String> threadSystemIgnoreClasses = List.of();
     private final static List<String> threadSystemIgnoreParameter = List.of();
 
     //<editor-fold desc="Constructor">
@@ -41,7 +41,7 @@ public class JavaInstrumentationAdviceThreadToolbox extends JavaInstrumentationA
         if (variableClass.isSynthetic() && variableClass.getName().contains("$$Lambda$")) {
             return "Lambda-Expression";
         } else {
-            return variableClass.getCanonicalName();
+            return variableClass.getName();
         }
     }
 
@@ -167,11 +167,11 @@ public class JavaInstrumentationAdviceThreadToolbox extends JavaInstrumentationA
         String illegallyCreatingMethod = threadClassAllowedToBeCreated == null ? null : checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses);
         if (illegallyCreatingMethod != null) {
             String illegallyCreatedThread = null;
-            if (!threadSystemIgnoreParameter.contains(fullMethodSignature + "." + methodName)) {
+            if (!threadSystemIgnoreParameter.contains(declaringTypeName + "." + methodName)) {
                 illegallyCreatedThread = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated);
             }
-            if (illegallyCreatedThread == null && !threadSystemIgnoreAttributes.contains(fullMethodSignature + "." + methodName)) {
-                illegallyCreatedThread = (attributes == null || attributes.length == 0) ? null : checkIfVariableCriteriaIsViolated(new String[]{declaringTypeName}, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated);
+            if (illegallyCreatedThread == null && !threadSystemIgnoreClasses.contains(declaringTypeName + "." + methodName)) {
+                illegallyCreatedThread = checkIfVariableCriteriaIsViolated(new String[]{declaringTypeName}, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated);
             }
             if (illegallyCreatedThread != null) {
                 throw new SecurityException(localize("security.advice.illegal.method.execution", illegallyCreatingMethod, action, illegallyCreatedThread, fullMethodSignature));

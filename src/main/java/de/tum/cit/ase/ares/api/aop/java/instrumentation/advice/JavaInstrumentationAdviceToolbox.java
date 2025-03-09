@@ -65,7 +65,7 @@ public class JavaInstrumentationAdviceToolbox {
     protected static <T> T getValueFromSettings(String fieldName) {
         try {
             // Take bootloader as class loader in order to get the JavaSecurityTestCaseSettings class at bootloader time for instrumentation
-            Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, null);
+            Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, null);
             Field field = adviceSettingsClass.getDeclaredField(fieldName);
             field.setAccessible(true);
             T value = (T) field.get(null);
@@ -113,7 +113,7 @@ public class JavaInstrumentationAdviceToolbox {
     protected static <T> void setValueToSettings(String fieldName, T newValue) {
         try {
             // Take bootloader as class loader in order to get the JavaSecurityTestCaseSettings class at bootloader time for instrumentation
-            Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, null);
+            Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, null);
             Field field = adviceSettingsClass.getDeclaredField(fieldName);
             field.setAccessible(true);
             field.set(null, newValue);
@@ -367,10 +367,10 @@ public class JavaInstrumentationAdviceToolbox {
         String illegallyReadingMethod = allowedPaths == null ? null : checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses);
         if (illegallyReadingMethod != null) {
             String illegallyReadPath = null;
-            if (!fileSystemIgnoreParameter.contains(fullMethodSignature + "." + methodName)) {
+            if (!fileSystemIgnoreParameter.contains(declaringTypeName + "." + methodName)) {
                 illegallyReadPath = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, allowedPaths);
             }
-            if (illegallyReadPath == null && !fileSystemIgnoreAttributes.contains(fullMethodSignature + "." + methodName)) {
+            if (illegallyReadPath == null && !fileSystemIgnoreAttributes.contains(declaringTypeName + "." + methodName)) {
                 illegallyReadPath = (attributes == null || attributes.length == 0) ? null : checkIfVariableCriteriaIsViolated(attributes, allowedPaths);
             }
             if (illegallyReadPath != null) {

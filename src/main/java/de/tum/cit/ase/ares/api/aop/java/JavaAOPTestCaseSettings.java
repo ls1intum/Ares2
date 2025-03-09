@@ -14,7 +14,7 @@ package de.tum.cit.ase.ares.api.aop.java;
  * @version 2.0.0
  * @since 2.0.0
  */
-public class JavaSecurityTestCaseSettings {
+public class JavaAOPTestCaseSettings {
 
     /**
      * Private constructor to prevent instantiation of this utility class.
@@ -22,13 +22,12 @@ public class JavaSecurityTestCaseSettings {
      * The constructor throws an {@link SecurityException} to enforce the utility class pattern.
      * </p>
      */
-    private JavaSecurityTestCaseSettings() {
+    private JavaAOPTestCaseSettings() {
         throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): JavaSecurityTestCaseSettings is a utility class and should not be instantiated.");
     }
 
-    /**
-     * Resets the configuration settings to their default values.
-     */
+    private static String architectureMode = null;
+
     private static String aopMode = null;
 
     /**
@@ -115,22 +114,23 @@ public class JavaSecurityTestCaseSettings {
      * Resets the configuration settings to their default values.
      */
     private static void reset() {
-        JavaSecurityTestCaseSettings.aopMode = null;
-        JavaSecurityTestCaseSettings.restrictedPackage = null;
-        JavaSecurityTestCaseSettings.allowedListedClasses = null;
-        JavaSecurityTestCaseSettings.pathsAllowedToBeRead = null;
-        JavaSecurityTestCaseSettings.pathsAllowedToBeOverwritten = null;
-        JavaSecurityTestCaseSettings.pathsAllowedToBeExecuted = null;
-        JavaSecurityTestCaseSettings.pathsAllowedToBeDeleted = null;
-        JavaSecurityTestCaseSettings.hostsAllowedToBeConnectedTo = null;
-        JavaSecurityTestCaseSettings.portsAllowedToBeConnectedTo = null;
-        JavaSecurityTestCaseSettings.hostsAllowedToBeSentTo = null;
-        JavaSecurityTestCaseSettings.portsAllowedToBeSentTo = null;
-        JavaSecurityTestCaseSettings.hostsAllowedToBeReceivedFrom = null;
-        JavaSecurityTestCaseSettings.portsAllowedToBeReceivedFrom = null;
-        JavaSecurityTestCaseSettings.commandsAllowedToBeExecuted = null;
-        JavaSecurityTestCaseSettings.argumentsAllowedToBePassed = null;
-        JavaSecurityTestCaseSettings.threadClassAllowedToBeCreated = null;
-        JavaSecurityTestCaseSettings.threadNumberAllowedToBeCreated = null;
+        JavaAOPTestCaseSettings.architectureMode = null;
+        JavaAOPTestCaseSettings.aopMode = null;
+        JavaAOPTestCaseSettings.restrictedPackage = null;
+        JavaAOPTestCaseSettings.allowedListedClasses = null;
+        JavaAOPTestCaseSettings.pathsAllowedToBeRead = null;
+        JavaAOPTestCaseSettings.pathsAllowedToBeOverwritten = null;
+        JavaAOPTestCaseSettings.pathsAllowedToBeExecuted = null;
+        JavaAOPTestCaseSettings.pathsAllowedToBeDeleted = null;
+        JavaAOPTestCaseSettings.hostsAllowedToBeConnectedTo = null;
+        JavaAOPTestCaseSettings.portsAllowedToBeConnectedTo = null;
+        JavaAOPTestCaseSettings.hostsAllowedToBeSentTo = null;
+        JavaAOPTestCaseSettings.portsAllowedToBeSentTo = null;
+        JavaAOPTestCaseSettings.hostsAllowedToBeReceivedFrom = null;
+        JavaAOPTestCaseSettings.portsAllowedToBeReceivedFrom = null;
+        JavaAOPTestCaseSettings.commandsAllowedToBeExecuted = null;
+        JavaAOPTestCaseSettings.argumentsAllowedToBePassed = null;
+        JavaAOPTestCaseSettings.threadClassAllowedToBeCreated = null;
+        JavaAOPTestCaseSettings.threadNumberAllowedToBeCreated = null;
     }
 }

@@ -3,8 +3,8 @@ package de.tum.cit.ase.ares.api.architecture;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitSecurityTestCase;
-import de.tum.cit.ase.ares.api.architecture.java.JavaArchitecturalTestCaseSupported;
-import de.tum.cit.ase.ares.api.policy.SecurityPolicy.PackagePermission;
+import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
+import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -26,17 +26,17 @@ class JavaArchUnitSecurityTestCaseTest {
     void testConstructorWithSingleParameter() {
         testCase = JavaArchUnitSecurityTestCase
                 .builder()
-                .javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported.FILESYSTEM_INTERACTION)
+                .javaArchitecturalTestCaseSupported(JavaArchitectureTestCaseSupported.FILESYSTEM_INTERACTION)
                 .build();
         assertNotNull(testCase);
     }
 
     @Test
     void testConstructorWithTwoParameters() {
-        Set<PackagePermission> packagePermissions = Set.of(new PackagePermission("com.example"));
+        Set<SecurityPolicy.SupervisedCode.PackagePermission> packagePermissions = Set.of(new SecurityPolicy.SupervisedCode.PackagePermission("com.example"));
         testCase = JavaArchUnitSecurityTestCase
                         .builder()
-                        .javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported.PACKAGE_IMPORT)
+                        .javaArchitecturalTestCaseSupported(JavaArchitectureTestCaseSupported.PACKAGE_IMPORT)
                         .allowedPackages(packagePermissions)
                         .build();
         assertNotNull(testCase);
@@ -46,7 +46,7 @@ class JavaArchUnitSecurityTestCaseTest {
     void testWriteArchitectureTestCase() {
         testCase = JavaArchUnitSecurityTestCase
                 .builder()
-                .javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported.FILESYSTEM_INTERACTION)
+                .javaArchitecturalTestCaseSupported(JavaArchitectureTestCaseSupported.FILESYSTEM_INTERACTION)
                 .build();
         String content = testCase.writeArchitectureTestCase();
         assertNotNull(content);
@@ -56,7 +56,7 @@ class JavaArchUnitSecurityTestCaseTest {
     void testExecuteArchitectureTestCaseFilesystemInteraction() {
         testCase = JavaArchUnitSecurityTestCase
                 .builder()
-                .javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported.FILESYSTEM_INTERACTION)
+                .javaArchitecturalTestCaseSupported(JavaArchitectureTestCaseSupported.FILESYSTEM_INTERACTION)
                 .build();
         assertDoesNotThrow(() -> testCase.executeArchitectureTestCase(classes));
     }
@@ -65,7 +65,7 @@ class JavaArchUnitSecurityTestCaseTest {
     void testExecuteArchitectureTestCaseNetworkConnection() {
         testCase = JavaArchUnitSecurityTestCase
                 .builder()
-                .javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported.NETWORK_CONNECTION)
+                .javaArchitecturalTestCaseSupported(JavaArchitectureTestCaseSupported.NETWORK_CONNECTION)
                 .build();
         assertDoesNotThrow(() -> testCase.executeArchitectureTestCase(classes));
     }
@@ -74,7 +74,7 @@ class JavaArchUnitSecurityTestCaseTest {
     void testExecuteArchitectureTestCaseThreadCreation() {
         testCase = JavaArchUnitSecurityTestCase
                 .builder()
-                .javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported.THREAD_CREATION)
+                .javaArchitecturalTestCaseSupported(JavaArchitectureTestCaseSupported.THREAD_CREATION)
                 .build();
         assertDoesNotThrow(() -> testCase.executeArchitectureTestCase(classes));
     }
@@ -83,17 +83,17 @@ class JavaArchUnitSecurityTestCaseTest {
     void testExecuteArchitectureTestCaseCommandExecution() {
         testCase = JavaArchUnitSecurityTestCase
                 .builder()
-                .javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported.COMMAND_EXECUTION)
+                .javaArchitecturalTestCaseSupported(JavaArchitectureTestCaseSupported.COMMAND_EXECUTION)
                 .build();
         assertDoesNotThrow(() -> testCase.executeArchitectureTestCase(classes));
     }
 
     @Test
     void testExecuteArchitectureTestCasePackageImport() {
-        Set<PackagePermission> packagePermissions = Set.of(new PackagePermission("com.example"));
+        Set<SecurityPolicy.SupervisedCode.PackagePermission> packagePermissions = Set.of(new SecurityPolicy.SupervisedCode.PackagePermission("com.example"));
         testCase = JavaArchUnitSecurityTestCase
                 .builder()
-                .javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported.PACKAGE_IMPORT)
+                .javaArchitecturalTestCaseSupported(JavaArchitectureTestCaseSupported.PACKAGE_IMPORT)
                 .allowedPackages(packagePermissions)
                 .build();
         assertDoesNotThrow(() -> testCase.executeArchitectureTestCase(classes));

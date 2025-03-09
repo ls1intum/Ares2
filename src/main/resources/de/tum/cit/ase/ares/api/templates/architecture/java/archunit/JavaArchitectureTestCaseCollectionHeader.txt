@@ -9,7 +9,7 @@ import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition;
 import de.tum.cit.ase.ares.api.architecture.java.ArchitectureTestCaseStorage;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitecturalTestCaseSupported;
-import de.tum.cit.ase.ares.api.securitytest.java.PathLocationProvider;
+import de.tum.cit.ase.ares.api.securitytest.java.specific.PathLocationProvider;
 import de.tum.cit.ase.ares.api.securitytest.java.StudentCompiledClassesPath;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.postcompile.TransitivelyAccessesMethodsCondition;
 

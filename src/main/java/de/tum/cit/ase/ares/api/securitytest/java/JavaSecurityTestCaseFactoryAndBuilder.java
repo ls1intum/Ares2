@@ -2,60 +2,70 @@ package de.tum.cit.ase.ares.api.securitytest.java;
 
 //<editor-fold desc="Imports">
 
-import com.google.common.collect.Streams;
-import com.ibm.wala.ipa.callgraph.CallGraph;
-import com.tngtech.archunit.core.domain.JavaClasses;
-import com.tngtech.archunit.core.importer.ClassFileImporter;
-import de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSupported;
-import de.tum.cit.ase.ares.api.architecture.java.CustomCallgraphBuilder;
-import de.tum.cit.ase.ares.api.architecture.java.JavaArchitecturalTestCaseSupported;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
-import de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCase;
-import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
-import de.tum.cit.ase.ares.api.policy.SecurityPolicy.ResourceAccesses;
-import de.tum.cit.ase.ares.api.securitytest.SecurityTestCaseAbstractFactoryAndBuilder;
-import de.tum.cit.ase.ares.api.aop.java.JavaAOPMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureMode;
+import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
+import de.tum.cit.ase.ares.api.aop.java.JavaAOPMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.java.JavaBuildMode;
+import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
+import de.tum.cit.ase.ares.api.securitytest.SecurityTestCaseAbstractFactoryAndBuilder;
+import de.tum.cit.ase.ares.api.securitytest.java.creator.JavaCreator;
+import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialReader;
+import de.tum.cit.ase.ares.api.securitytest.java.scanner.JavaScanner;
 import de.tum.cit.ase.ares.api.util.FileTools;
-import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.*;
-import java.util.function.Supplier;
-import java.util.stream.IntStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Stream;
-
-import static com.google.common.collect.Iterables.isEmpty;
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
 //</editor-fold>
 
 /**
- * Factory and builder class for creating and running Java security test cases.
+ * Factory and builder class for creating and executing Java security test cases.
  * <p>
- * This class is responsible for generating the necessary security test cases based on the
- * provided build tool, AOP mode, and security policy. It also facilitates the writing of
- * these test cases to files and their execution.
+ * This class generates the necessary security test cases based on the provided build tool, architecture mode,
+ * AOP mode, and security policy. It writes the generated test cases to files and executes them.
+ * <p>
+ * Following the Abstract Factory and Builder design patterns, this class delegates the creation
+ * of test cases to specialised helper classes while ensuring clear configuration and robust error handling.
  * </p>
+ *
+ * <p>
+ * <strong>Design Patterns:</strong> Abstract Factory, Builder, and Strategy (for test case execution).
+ * </p>
+ *
+ * @author Markus Paulsen
+ * @version 3.0.0
+ * @since 2.0.0
  */
+@SuppressWarnings("FieldCanBeLocal")
 public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAbstractFactoryAndBuilder {
 
     //<editor-fold desc="Attributes">
+
+    //<editor-fold desc="Constants">
     /**
      * The package name where the main classes reside.
      */
+    @Nonnull
     private static final String ARES_PACKAGE = "de.tum.cit.ase.ares";
+    //</editor-fold>
+
+    //<editor-fold desc="Modes and Project Paths">
+
     /**
-     * The build tool used in the project (e.g., Maven or Gradle).
+     * The build mode used in the project (e.g., Maven or Gradle).
      */
     @Nonnull
     private final JavaBuildMode javaBuildMode;
 
     /**
-     * The architecture mode used in the project (e.g., ArchUnit).
+     * The architecture mode used in the project (e.g., ArchUnit or Wala).
      */
     @Nonnull
     private final JavaArchitectureMode javaArchitectureMode;
@@ -67,240 +77,163 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
     private final JavaAOPMode javaAOPMode;
 
     /**
-     * List of architecture test cases to be generated based on the security policy.
+     * The effective project path where test cases will be generated.
      */
     @Nonnull
-    private final List<JavaArchitectureTestCase> javaArchUnitTestCases = new ArrayList<>();
+    private final Path testPath;
+    //</editor-fold>
+
+    //<editor-fold desc="File Based Configuration">
 
     /**
-     * List of Instrumentation configurations to be generated based on the security policy.
+     * These packages are essential for the execution of the security test cases and are therefore not subject to the security policy.
      */
     @Nonnull
-    private final List<JavaSecurityTestCase> javaSecurityTestCases = new ArrayList<>();
+    private final List<String> essentialPackages;
 
     /**
-     * The package name where the main classes reside.
+     * These classes are essential for the execution of the security test cases and are therefore not subject to the security policy.
      */
     @Nonnull
-    private final String packageName;
+    private final List<String> essentialClasses;
+    //</editor-fold>
+
+    //<editor-fold desc="Tested-Domain">
 
     /**
-     * The main class inside the package.
-     */
-    @Nonnull
-    private final String mainClassInPackageName;
-
-    /**
-     * The test classes that will be considered in security tests.
+     * These classes are part of the unrestricted test code and are therefore not subject to the security policy.
      */
     @Nonnull
     private final String[] testClasses;
 
     /**
-     * The functional classes that define behavior and pointcuts.
+     * This package is part of the restricted student code and are therefore subject to the security policy.
      */
     @Nonnull
-    private final String[] functionClasses;
+    private final String packageName;
 
     /**
-     * The resource accesses permitted as defined in the security policy.
+     * This main class is part of the restricted student code and are therefore subject to the security policy.
      */
     @Nonnull
-    private final ResourceAccesses resourceAccesses;
+    private final String mainClassInPackageName;
 
     /**
-     * The path within the project where the test cases will be applied.
+     * The resource accesses permitted as defined by the security policy.
      */
     @Nonnull
-    private final Path projectPath;
+    private final SecurityPolicy.SupervisedCode.ResourceAccesses resourceAccesses;
+    //</editor-fold>
+
+    //<editor-fold desc="Generated Test Cases">
+    /**
+     * List of architecture test cases generated based on the security policy.
+     */
+    @Nonnull
+    private final List<JavaArchitectureTestCase> javaArchitectureTestCases = new ArrayList<>();
+
+    /**
+     * List of AOP test cases generated based on the security policy.
+     */
+    @Nonnull
+    private final List<JavaAOPTestCase> javaAOPTestCases = new ArrayList<>();
+    //</editor-fold>
+
     //</editor-fold>
 
     //<editor-fold desc="Constructor">
 
     /**
-     * Constructs a new {@link JavaSecurityTestCaseFactoryAndBuilder} with the specified build tool, AOP mode,
-     * security policy, and within path.
+     * Constructs a new JavaSecurityTestCaseFactoryAndBuilder with the provided configuration.
+     * <p>
+     * This constructor initialises the factory and builder by setting the build mode, architecture mode,
+     * AOP mode, essential configurations, and security policy. If the testPath is null, a default path is used.
+     * </p>
      *
-     * @param javaBuildMode  the build tool used in the project.
-     * @param javaAOPMode    the AOP mode used in the project.
-     * @param securityPolicy the security policy to be enforced.
-     * @param projectPath    the path within the project where the test cases will be applied.
+     * @param javaBuildMode
+     *          the build tool used in the project; must not be null.
+     * @param javaArchitectureMode
+     *          the architecture mode used in the project; must not be null.
+     * @param javaAOPMode
+     *          the AOP mode used in the project; must not be null.
+     * @param essentialReader
+     *          the reader for essential configuration; must not be null.
+     * @param essentialPackagesPath
+     *          the path to the essential packages configuration; must not be null.
+     * @param essentialClassesPath
+     *          the path to the essential classes configuration; must not be null.
+     * @param testPath
+     *          the project path where test cases will be generated; if null, a default is used.
+     * @param securityPolicy
+     *          the security policy to enforce; may be null.
      */
     public JavaSecurityTestCaseFactoryAndBuilder(
+            @Nonnull EssentialReader essentialReader,
+            @Nonnull Path essentialPackagesPath,
+            @Nonnull Path essentialClassesPath,
+            @Nonnull JavaScanner javaScanner,
             @Nullable JavaBuildMode javaBuildMode,
             @Nullable JavaArchitectureMode javaArchitectureMode,
             @Nullable JavaAOPMode javaAOPMode,
-            @Nonnull SecurityPolicy securityPolicy,
-            @Nonnull Path projectPath
+            @Nullable Path testPath,
+            @Nullable SecurityPolicy securityPolicy
     ) {
-        if (securityPolicy.regardingTheSupervisedCode().theProgrammingLanguageUsesTheFollowingPackage() == null) {
-            throw new IllegalArgumentException(localize("security.policy.restricted.package.null"));
-        } else if (securityPolicy.regardingTheSupervisedCode().theMainClassInsideThisPackageIs() == null) {
-            throw new IllegalArgumentException(localize("security.policy.package.main.class.null"));
-        }
 
-        if (javaBuildMode == null) {
-            throw new SecurityException(localize("security.policy.java.build.mode.null"));
-        }
-        this.javaBuildMode = javaBuildMode;
-        if (javaArchitectureMode == null) {
-            throw new SecurityException(localize("security.policy.java.architecture.mode.null"));
-        }
-        this.javaArchitectureMode = javaArchitectureMode;
-        if (javaAOPMode == null) {
-            throw new SecurityException(localize("security.policy.java.aop.mode.null"));
-        }
-        this.javaAOPMode = javaAOPMode;
-        if (securityPolicy.regardingTheSupervisedCode().theProgrammingLanguageUsesTheFollowingPackage() == null) {
-            throw new SecurityException(localize("security.policy.java.not.correct.set"));
-        }
-        this.packageName = securityPolicy.regardingTheSupervisedCode().theProgrammingLanguageUsesTheFollowingPackage();
-        if (securityPolicy.regardingTheSupervisedCode().theMainClassInsideThisPackageIs() == null) {
-            throw new SecurityException(localize("security.policy.java.not.correct.set"));
-        }
-        this.mainClassInPackageName = securityPolicy.regardingTheSupervisedCode().theMainClassInsideThisPackageIs();
-        if (securityPolicy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted() == null) {
-            throw new SecurityException(localize("security.policy.java.not.correct.set"));
-        }
-        this.resourceAccesses = securityPolicy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted();
-        if (securityPolicy.regardingTheSupervisedCode().theFollowingClassesAreTestClasses() == null) {
-            throw new SecurityException(localize("security.policy.java.not.correct.set"));
-        }
-        if (securityPolicy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted().regardingFileSystemInteractions() == null) {
-            throw new SecurityException(localize("security.policy.java.not.correct.set", "regardingFileSystemInteractions"));
-        }
-        this.testClasses = securityPolicy.regardingTheSupervisedCode().theFollowingClassesAreTestClasses();
-        // TODO Markus: projectPath is configured wrongly, since for AOP and Architecture tests different paths are used (for Architectural path to bytecode, for AOP path to source code)
-        this.projectPath = projectPath;
-
-        this.functionClasses = new String[]{
-                packageName + ".api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemAdviceDefinitions",
-                packageName + ".api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions",
-                packageName + ".api.aop.java.JavaSecurityTestCaseSettings",
-                packageName + ".api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox",
-                packageName + ".api.aop.java.instrumentation.advice.JavaInstrumentationAdviceThreadToolbox",
-                packageName + ".api.aop.java.instrumentation.advice.JavaInstrumentationCreateThreadMethodAdvice",
-                packageName + ".api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathMethodAdvice",
-                packageName + ".api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathMethodAdvice",
-                packageName + ".api.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathMethodAdvice",
-                packageName + ".api.aop.java.instrumentation.advice.JavaInstrumentationReadPathMethodAdvice",
-                packageName + ".api.aop.java.instrumentation.advice.JavaInstrumentationCreateThreadConstructorAdvice",
-                packageName + ".api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathConstructorAdvice",
-                packageName + ".api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathConstructorAdvice",
-                packageName + ".api.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathConstructorAdvice",
-                packageName + ".api.aop.java.instrumentation.advice.JavaInstrumentationReadPathConstructorAdvice",
-                packageName + ".api.aop.java.pointcut.instrumentation.JavaInstrumentationPointcutDefinitions",
-                packageName + ".api.aop.java.pointcut.instrumentation.JavaInstrumentationBindingDefinitions",
-                packageName + ".api.aop.java.instrumentation.JavaInstrumentationAgent"
-        };
-        this.createSecurityTestCases();
-    }
-    //</editor-fold>
-
-    //<editor-fold desc="Create security test cases methods">
-
-    /**
-     * Parses the security policy to determine which test cases and configurations need to be created.
-     * <p>
-     * This method checks the security policy for specific permissions and based on the results,
-     * generates the appropriate architecture test cases or AspectJ/Instrumentation configurations.
-     * The `methods` array contains suppliers for resource access lists, such as file system interactions and network connections.
-     * </p>
-     */
-    private void createSecurityTestCases() {
-        //<editor-fold desc="Create fixed rules code">
-        Set<SecurityPolicy.PackagePermission> allowedPackages = new HashSet<>(resourceAccesses.regardingPackageImports());
-        // Add default imports needed for the execution
-        allowedPackages.addAll(Set.of(
-                new SecurityPolicy.PackagePermission("java"),
-                new SecurityPolicy.PackagePermission("org.java.aspectj"),
-                new SecurityPolicy.PackagePermission("org.aspectj"),
-                new SecurityPolicy.PackagePermission("de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut"),
-                new SecurityPolicy.PackagePermission(packageName)));
+        //<editor-fold desc="Modes and Project Paths">
+        this.javaBuildMode = javaBuildMode == null
+                ? javaScanner.scanForBuildMode()
+                : javaBuildMode;
+        this.javaArchitectureMode = javaArchitectureMode == null
+                ? JavaArchitectureMode.WALA
+                : javaArchitectureMode;
+        this.javaAOPMode = javaAOPMode == null
+                ? JavaAOPMode.INSTRUMENTATION
+                : javaAOPMode;
+        this.testPath = testPath == null
+                ? javaScanner.scanForTestPath()
+                : testPath;
         //</editor-fold>
 
-        //<editor-fold desc="Create variable rules code">
-        @Nonnull Supplier<List<?>>[] methods = new Supplier[]{
-                (Supplier<List<?>>) resourceAccesses::regardingFileSystemInteractions,
-                (Supplier<List<?>>) resourceAccesses::regardingNetworkConnections,
-                (Supplier<List<?>>) resourceAccesses::regardingCommandExecutions,
-                (Supplier<List<?>>) resourceAccesses::regardingThreadCreations,
-        };
-
-        String classPath = Paths.get(ProjectSourcesFinder.isGradleProject() ? "build" : "target", projectPath.toString()).toString();
-        //<editor-fold desc="Load classes code">
-        // Memoized suppliers for JavaClasses and CallGraph
-        Supplier<JavaClasses> classesSupplier = memoize(() -> new ClassFileImporter().importPath(classPath));
-
-        Supplier<CallGraph> callGraphSupplier = memoize(() -> {
-            if (javaArchitectureMode == JavaArchitectureMode.WALA) {
-                return new CustomCallgraphBuilder().buildCallGraph(classPath);
-            }
-            return null;
-        });
-
-        // Access them without recomputation
-        JavaClasses classes = classesSupplier.get();
-        CallGraph callGraph = callGraphSupplier.get();
-        //</editor-fold>#
-
-        IntStream
-                .range(0, methods.length)
-                .forEach(i -> {
-                    //<editor-fold desc="Load supported checks code">
-                    // TODO Markus: What if JavaArchUnitTestCaseSupported, JavaAspectJSecurityTestCaseSupported and JavaSecurityTestCaseSupported are not in the same order or smaller than methods?
-                    JavaArchitecturalTestCaseSupported javaArchitectureTestCasesSupportedValue = JavaArchitecturalTestCaseSupported.values()[i];
-                    JavaSecurityTestCaseSupported javaSecurityTestCaseSupportedValue = JavaSecurityTestCaseSupported.values()[i];
-                    //</editor-fold>
-
-                    if (isEmpty(methods[i].get())) {
-                        //<editor-fold desc="Architecture test case code">
-                        javaArchUnitTestCases.add(JavaArchitectureTestCase.builder()
-                                .javaArchitecturalTestCaseSupported(javaArchitectureTestCasesSupportedValue)
-                                .javaClasses(classes)
-                                .callGraph(callGraph)
-                                .allowedPackages(allowedPackages)
-                                .build());
-                        //</editor-fold>
-                    } else {
-                        //<editor-fold desc="AOP code">
-                        javaSecurityTestCases.add(new JavaSecurityTestCase(javaSecurityTestCaseSupportedValue, resourceAccesses));
-                        //</editor-fold>
-                    }
-                });
+        //<editor-fold desc="File Based Configuration">
+        this.essentialPackages = (Objects.requireNonNull(essentialReader, "essentialPackagesReader must not be null"))
+                .readEssentialPackagesFrom(Objects.requireNonNull(essentialPackagesPath, "essentialPackagesPath must not be null"))
+                .getEssentialPackages();
+        this.essentialClasses = (Objects.requireNonNull(essentialReader, "essentialClassesReader must not be null"))
+                .readEssentialClassesFrom(Objects.requireNonNull(essentialClassesPath, "essentialClassesPath must not be null"))
+                .getEssentialClasses();
         //</editor-fold>
 
-        //<editor-fold desc="Create fixed rules code">
-        javaArchUnitTestCases.add(JavaArchitectureTestCase.builder()
-                .javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported.PACKAGE_IMPORT)
-                .javaClasses(classes)
-                .callGraph(callGraph)
-                .allowedPackages(allowedPackages)
-                .build());
-        javaArchUnitTestCases.add(JavaArchitectureTestCase.builder()
-                .javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported.REFLECTION)
-                .javaClasses(classes)
-                .callGraph(callGraph)
-                .allowedPackages(allowedPackages)
-                .build());
-        javaArchUnitTestCases.add(JavaArchitectureTestCase.builder()
-                .javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported.SERIALIZATION)
-                .javaClasses(classes)
-                .callGraph(callGraph)
-                .allowedPackages(allowedPackages)
-                .build());
-        javaArchUnitTestCases.add(JavaArchitectureTestCase.builder()
-                .javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported.CLASS_LOADING)
-                .javaClasses(classes)
-                .callGraph(callGraph)
-                .allowedPackages(allowedPackages)
-                .build());
-        javaArchUnitTestCases.add(JavaArchitectureTestCase.builder()
-                .javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported.TERMINATE_JVM)
-                .javaClasses(classes)
-                .callGraph(callGraph)
-                .allowedPackages(allowedPackages)
-                .build());
+        //<editor-fold desc="Policy Based Configuration">
+        SecurityPolicy.SupervisedCode supervisedCode = securityPolicy == null
+                ? null
+                : securityPolicy.regardingTheSupervisedCode();
+        this.testClasses = supervisedCode == null
+                ? javaScanner.scanForTestClasses() :
+                supervisedCode.theFollowingClassesAreTestClasses();
+        this.packageName = supervisedCode == null || supervisedCode.theProgrammingLanguageUsesTheFollowingPackage() == null
+                ? javaScanner.scanForPackageName()
+                : supervisedCode.theProgrammingLanguageUsesTheFollowingPackage();
+        this.mainClassInPackageName = supervisedCode == null || supervisedCode.theMainClassInsideThisPackageIs() == null
+                ? javaScanner.scanForMainClassInPackage()
+                : supervisedCode.theMainClassInsideThisPackageIs();
+        this.resourceAccesses = supervisedCode == null
+                ? SecurityPolicy.SupervisedCode.ResourceAccesses.createRestrictive()
+                : supervisedCode.theFollowingResourceAccessesArePermitted();
+        //</editor-fold>
+
+        //<editor-fold desc="Test Case Creation">
+        (new JavaCreator(
+                this.javaBuildMode,
+                this.javaArchitectureMode,
+                this.javaAOPMode,
+                this.essentialPackages,
+                this.essentialClasses,
+                this.testClasses,
+                this.packageName,
+                this.mainClassInPackageName,
+                this.resourceAccesses,
+                this.testPath
+        )).createSecurityTestCases();
         //</editor-fold>
     }
     //</editor-fold>
@@ -308,61 +241,52 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
     //<editor-fold desc="Write security test cases methods">
 
     /**
-     * Writes the generated test cases and configurations to files in the specified path.
+     * Writes the generated security test cases to files.
      * <p>
-     * This method copies the relevant files based on the AOP mode, creates the necessary
-     * architecture test case files, and combines them with the configuration files.
+     * This method creates files for both architecture and AOP test cases by utilising specialised file tools.
+     * It returns a list of file paths to the generated files.
      * </p>
      *
-     * @param projectDirectory the path where the test cases and configurations will be written.
-     * @return a list of paths representing the files that were created.
+     * @param projectDirectory
+     *          the directory where test case files will be written; may be null.
+     * @return a non-null list of {@link Path} objects representing the generated files.
      */
     @Override
     @Nonnull
-    public List<Path> writeSecurityTestCases(@Nonnull Path projectDirectory) {
+    public List<Path> writeSecurityTestCases(@Nullable Path projectDirectory) {
         //<editor-fold desc="Create architecture test case files code">
         @Nonnull ArrayList<Path> javaCopiedArchitectureFiles = new ArrayList<>(FileTools.copyJavaFiles(
                 javaArchitectureMode.filesToCopy(),
-                javaArchitectureMode.targetsToCopyTo(projectPath, packageName),
+                javaArchitectureMode.targetsToCopyTo(testPath, packageName),
                 javaArchitectureMode.fileValues(packageName)
         ));
         @Nonnull Path javaArchitectureTestCaseCollectionFile = FileTools.createThreePartedJavaFile(
                 javaArchitectureMode.threePartedFileHeader(),
-                javaArchitectureMode.threePartedFileBody(javaArchUnitTestCases),
+                javaArchitectureMode.threePartedFileBody(javaArchitectureTestCases),
                 javaArchitectureMode.threePartedFileFooter(),
-                javaArchitectureMode.targetToCopyTo(projectPath, packageName),
+                javaArchitectureMode.targetToCopyTo(testPath, packageName),
                 javaArchitectureMode.fileValue(packageName)
         );
         javaCopiedArchitectureFiles.add(javaArchitectureTestCaseCollectionFile);
         //</editor-fold>
-
         //<editor-fold desc="Create aspect configuration files code">
         @Nonnull ArrayList<Path> javaCopiedAspectFiles = new ArrayList<>(FileTools.copyJavaFiles(
                 javaAOPMode.filesToCopy(),
-                javaAOPMode.targetsToCopyTo(projectPath, packageName),
+                javaAOPMode.targetsToCopyTo(testPath, packageName),
                 javaAOPMode.fileValues(packageName, mainClassInPackageName)
         ));
+        @Nonnull ArrayList<String> allowedListedClasses = new ArrayList<>(Stream.concat(Arrays.stream(testClasses), essentialClasses.stream()).toList());
         @Nonnull Path javaAspectConfigurationCollectionFile = FileTools.createThreePartedJavaFile(
                 javaAOPMode.threePartedFileHeader(),
-                javaAOPMode.threePartedFileBody(
-                        switch (javaAOPMode) {
-                            case ASPECTJ -> "AspectJ";
-                            case INSTRUMENTATION -> "Instrumentation";
-                        }, packageName
-                        , Stream.concat(
-                                Arrays.stream(testClasses),
-                                Arrays.stream(functionClasses)
-                        ).toList(),
-                        this.javaSecurityTestCases
-                ),
+                javaAOPMode.threePartedFileBody(javaAOPMode.toString(), packageName, allowedListedClasses, javaAOPTestCases),
                 javaAOPMode.threePartedFileFooter(),
-                javaAOPMode.targetToCopyTo(projectPath, packageName),
+                javaAOPMode.targetToCopyTo(testPath, packageName),
                 javaAOPMode.fileValue(packageName)
         );
         javaCopiedAspectFiles.add(javaAspectConfigurationCollectionFile);
         //</editor-fold>
         //<editor-fold desc="Combine files code">
-        return new ArrayList<>(Streams.concat(javaCopiedArchitectureFiles.stream(), javaCopiedAspectFiles.stream()).toList());
+        return new ArrayList<>(Stream.concat(javaCopiedArchitectureFiles.stream(), javaCopiedAspectFiles.stream()).toList());
         //</editor-fold>
     }
     //</editor-fold>
@@ -370,36 +294,60 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
     //<editor-fold desc="Execute security test cases methods">
 
     /**
+     * Sets the value of a Java advice setting.
+     * <p>
+     * This method sets the value of a Java advice setting based on the provided key and value.
+     * </p>
+     *
+     * @param key
+     *          the key of the setting to set; must not be null.
+     * @param value
+     *          the value to set for the setting; may be null.
+     */
+    private void setJavaAdviceSettingValue(String key, Object value) {
+        JavaAOPTestCase.setJavaAdviceSettingValue(
+                key, value,
+                javaArchitectureMode.toString(), javaAOPMode.toString()
+        );
+    }
+
+    /**
      * Executes the generated security test cases.
      * <p>
-     * This method imports the classes from the specified path and runs the security test cases
-     * defined in the architecture test cases and aspect configurations. It checks for certain
-     * architecture violations and applies aspect-oriented configurations if needed.
+     * This method sets up the necessary test configurations and then sequentially executes the architecture
+     * and AOP test cases.
      * </p>
      */
     @Override
     public void executeSecurityTestCases() {
-        //<editor-fold desc="Enforce variable rules code">
-        JavaSecurityTestCase.setJavaAdviceSettingValue("aopMode", javaAOPMode.toString(), javaAOPMode.toString());
-        JavaSecurityTestCase.setJavaAdviceSettingValue("restrictedPackage", packageName, javaAOPMode.toString());
-        JavaSecurityTestCase.setJavaAdviceSettingValue(
-                "allowedListedClasses",
-                Stream.concat(
-                        Arrays.stream(testClasses),
-                        (ARES_PACKAGE).equals(packageName) ? Arrays.stream(functionClasses) : Stream.of(ARES_PACKAGE)
-                ).toArray(String[]::new),
-                javaAOPMode.toString());
-        javaArchUnitTestCases.forEach(javaArchitectureTestCase -> javaArchitectureTestCase.executeArchitectureTestCase(javaArchitectureMode));
-        javaSecurityTestCases.forEach(javaSecurityTestCase -> javaSecurityTestCase.executeAOPSecurityTestCase(javaAOPMode.toString()));
+        //<editor-fold desc="Generate Values">
+        String javaArchitectureModeString = javaArchitectureMode.toString();
+        String javaAOPModeString = javaAOPMode.toString();
+        String[] allowdListedClassesString = Stream.concat(
+                Arrays.stream(testClasses),
+                ARES_PACKAGE.equals(packageName)
+                        ? essentialClasses.stream()
+                        : Stream.of(ARES_PACKAGE)
+        ).toArray(String[]::new);
         //</editor-fold>
-    }
-    //</editor-fold>
-
-    //<editor-fold desc="Tool methods">
-    @SuppressWarnings("unchecked")
-    public static <T> Supplier<T> memoize(Supplier<T> supplier) {
-        final Object[] cache = {null};
-        return () -> (T) (cache[0] == null ? (cache[0] = supplier.get()) : cache[0]);
+        //<editor-fold desc="Set Values">
+        Map.of(
+                "architectureMode", javaArchitectureModeString,
+                "aopMode", javaAOPModeString,
+                "restrictedPackage", packageName,
+                "allowedListedClasses", allowdListedClassesString
+        ).forEach(this::setJavaAdviceSettingValue);
+        //</editor-fold>
+        //<editor-fold desc="Execute architecture test cases">
+        javaArchitectureTestCases.forEach(
+                javaArchitectureTestCase -> javaArchitectureTestCase.executeArchitectureTestCase(javaArchitectureModeString, javaAOPModeString)
+        );
+        //</editor-fold>
+        //<editor-fold desc="Execute AOP test cases">
+        javaAOPTestCases.forEach(
+                javaSecurityTestCase -> javaSecurityTestCase.executeAOPSecurityTestCase(javaArchitectureModeString, javaAOPModeString)
+        );
+        //</editor-fold>
     }
     //</editor-fold>
 }

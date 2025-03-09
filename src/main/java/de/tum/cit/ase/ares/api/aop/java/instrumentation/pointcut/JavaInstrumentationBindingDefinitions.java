@@ -1,6 +1,6 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut;
 
-import de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings;
+import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceThreadToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationCreateThreadConstructorAdvice;
@@ -104,8 +104,8 @@ public class JavaInstrumentationBindingDefinitions {
                             ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceToolbox.class),
                             new TypeDescription.ForLoadedType(JavaInstrumentationAdviceThreadToolbox.class),
                             ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceThreadToolbox.class),
-                            new TypeDescription.ForLoadedType(JavaSecurityTestCaseSettings.class),
-                            ClassFileLocator.ForClassLoader.read(JavaSecurityTestCaseSettings.class)
+                            new TypeDescription.ForLoadedType(JavaAOPTestCaseSettings.class),
+                            ClassFileLocator.ForClassLoader.read(JavaAOPTestCaseSettings.class)
                     ));
         }
         catch (Exception e) {

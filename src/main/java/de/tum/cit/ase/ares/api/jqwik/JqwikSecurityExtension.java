@@ -6,6 +6,10 @@ import java.util.Optional;
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
+import de.tum.cit.ase.ares.api.policy.director.SecurityPolicyDirector;
+import de.tum.cit.ase.ares.api.policy.director.java.SecurityPolicyJavaDirector;
+import de.tum.cit.ase.ares.api.policy.reader.SecurityPolicyReader;
+import de.tum.cit.ase.ares.api.policy.reader.yaml.SecurityPolicyYAMLReader;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 
@@ -41,19 +45,21 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
 		if (hasAnnotation(testContext, Policy.class)) {
 			Optional<Policy> policyAnnotation = findAnnotation(testContext.testMethod(), Policy.class);
 			if (policyAnnotation.isPresent()) {
+				SecurityPolicyReader securityPolicyReader = new SecurityPolicyYAMLReader();
+				SecurityPolicyDirector securityPolicyDirector = new SecurityPolicyJavaDirector();
 				Path policyPath = JupiterSecurityExtension.testAndGetPolicyValue(policyAnnotation.get());
 				if (!policyAnnotation.get().withinPath().isBlank()) {
 					Path withinPath = JupiterSecurityExtension.testAndGetPolicyWithinPath(policyAnnotation.get());
-					new SecurityPolicyReaderAndDirector(policyPath, withinPath).executeSecurityTestCases();
+					new SecurityPolicyReaderAndDirector(securityPolicyReader, securityPolicyDirector, policyPath, withinPath).executeSecurityTestCases();
 				} else {
-					new SecurityPolicyReaderAndDirector(policyPath, Path.of("classes")).executeSecurityTestCases();
+					new SecurityPolicyReaderAndDirector(securityPolicyReader, securityPolicyDirector, policyPath, Path.of("classes")).executeSecurityTestCases();
 				}
 			}
 		} else {
 			try {
-				Class<?> javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings");
+				Class<?> javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings");
 				resetSettings(javaSecurityTestCaseSettingsClass);
-				javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, null);
+				javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, null);
 				resetSettings(javaSecurityTestCaseSettingsClass);
 			} catch (ClassNotFoundException e) {
 				throw new SecurityException("Security configuration error: The class for the specific security test case settings could not be found. Ensure the class name is correct and the class is available at runtime.", e);

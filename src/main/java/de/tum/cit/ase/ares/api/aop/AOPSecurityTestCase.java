@@ -39,5 +39,5 @@ public interface AOPSecurityTestCase {
      * with the security configurations in place.
      * </p>
      */
-    void executeAOPSecurityTestCase(@Nonnull String aopMode);
+    void executeAOPSecurityTestCase(@Nonnull String architectureMode, @Nonnull String aopMode);
 }

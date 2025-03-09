@@ -8,6 +8,10 @@ import java.util.Optional;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
+import de.tum.cit.ase.ares.api.policy.director.SecurityPolicyDirector;
+import de.tum.cit.ase.ares.api.policy.director.java.SecurityPolicyJavaDirector;
+import de.tum.cit.ase.ares.api.policy.reader.SecurityPolicyReader;
+import de.tum.cit.ase.ares.api.policy.reader.yaml.SecurityPolicyYAMLReader;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 import org.junit.jupiter.api.extension.*;
@@ -32,20 +36,22 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
         if (hasAnnotation(testContext, Policy.class)) {
             Optional<Policy> policyAnnotation = findAnnotation(testContext.testMethod(), Policy.class);
             if (policyAnnotation.isPresent()) {
+                SecurityPolicyReader securityPolicyReader = new SecurityPolicyYAMLReader();
+                SecurityPolicyDirector securityPolicyDirector = new SecurityPolicyJavaDirector();
                 Path policyPath = JupiterSecurityExtension.testAndGetPolicyValue(policyAnnotation.get());
                 if (!policyAnnotation.get().withinPath().isBlank()) {
                     Path withinPath = JupiterSecurityExtension.testAndGetPolicyWithinPath(policyAnnotation.get());
-                    new SecurityPolicyReaderAndDirector(policyPath, withinPath).executeSecurityTestCases();
+                    new SecurityPolicyReaderAndDirector(securityPolicyReader, securityPolicyDirector, policyPath, withinPath).executeSecurityTestCases();
                 } else {
-                    new SecurityPolicyReaderAndDirector(policyPath, Path.of("classes")).executeSecurityTestCases();
+                    new SecurityPolicyReaderAndDirector(securityPolicyReader, securityPolicyDirector, policyPath, Path.of("classes")).executeSecurityTestCases();
                 }
             }
         } else {
             try {
                 // We have to reset both the settings classes in the runtime and the bootstrap class loader to be able to run multiple tests in the same JVM instance.
-                Class<?> javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings");
+                Class<?> javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings");
                 resetSettings(javaSecurityTestCaseSettingsClass);
-                javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, null);
+                javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, null);
                 resetSettings(javaSecurityTestCaseSettingsClass);
             } catch (ClassNotFoundException e) {
                 throw new SecurityException(localize("security.settings.error"), e);

@@ -159,9 +159,9 @@ public enum JavaAOPMode {
             @Nonnull String aopMode,
             @Nonnull String restrictedPackage,
             @Nonnull List<String> allowedListedClasses,
-            @Nonnull List<JavaSecurityTestCase> javaSecurityTestCases
+            @Nonnull List<JavaAOPTestCase> javaSecurityTestCases
     ) {
-        return JavaSecurityTestCase.writeAOPSecurityTestCaseFile(aopMode, restrictedPackage, allowedListedClasses, javaSecurityTestCases);
+        return JavaAOPTestCase.writeAOPSecurityTestCaseFile(aopMode, restrictedPackage, allowedListedClasses, javaSecurityTestCases);
     }
 
     /**
@@ -207,7 +207,7 @@ public enum JavaAOPMode {
     public void reset() {
         try {
             ClassLoader customClassLoader = Thread.currentThread().getContextClassLoader();
-            Class<?> settingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, customClassLoader);
+            Class<?> settingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, customClassLoader);
             Method method = settingsClass.getDeclaredMethod("reset");
             method.setAccessible(true);
             method.invoke(null);

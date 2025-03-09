@@ -1,0 +1,11 @@
+essentialJavaPackages:
+  - java
+essentialArchUnitPackages: []
+essentialWalaPackages: []
+essentialAspectJPackages:
+  - org.aspectj
+  - org.java.aspectj
+essentialInstrumentationPackages:
+  - de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut
+essentialAresPackages: []
+essentialJUnitPackages: []

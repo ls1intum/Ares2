@@ -18,7 +18,7 @@ import javax.annotation.Nonnull;
  * @see <a href="https://refactoring.guru/design-patterns/abstract-factory">Abstract Factory Design Pattern</a>
  * @since 2.0.0
  */
-public interface ArchitectureSecurityTestCase {
+public interface ArchitectureTestCase {
 
     /**
      * Generates the content of the architecture test case file in any programming language.
@@ -43,5 +43,5 @@ public interface ArchitectureSecurityTestCase {
      * @param architectureMode the {@link JavaArchitectureMode} specifying the architecture testing mode to be used.
      */
     // TODO: Change this from JavaArchitectureMode architectureMode to @Nonnull String architectureMode
-    void executeArchitectureTestCase(JavaArchitectureMode architectureMode);
+    void executeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode);
 }

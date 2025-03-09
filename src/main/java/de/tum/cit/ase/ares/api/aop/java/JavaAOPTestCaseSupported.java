@@ -1,5 +1,9 @@
 package de.tum.cit.ase.ares.api.aop.java;
 
+import de.tum.cit.ase.ares.api.aop.AOPTestCaseSupported;
+
+import java.util.List;
+
 /**
  * Enum representing the supported aspect configurations in the Java programming language.
  * <p>
@@ -12,7 +16,7 @@ package de.tum.cit.ase.ares.api.aop.java;
  * @version 2.0.0
  * @since 2.0.0
  */
-public enum JavaSecurityTestCaseSupported {
+public enum JavaAOPTestCaseSupported implements AOPTestCaseSupported {
 
     /**
      * Aspect configuration for managing file system interactions.
@@ -48,5 +52,14 @@ public enum JavaSecurityTestCaseSupported {
      * threads within the application.
      * </p>
      */
-    THREAD_CREATION
+    THREAD_CREATION;
+
+    public List<AOPTestCaseSupported> getDynamic() {
+        return List.of(
+                JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION,
+                JavaAOPTestCaseSupported.NETWORK_CONNECTION,
+                JavaAOPTestCaseSupported.COMMAND_EXECUTION,
+                JavaAOPTestCaseSupported.THREAD_CREATION
+        );
+    }
 }

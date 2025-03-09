@@ -1,0 +1,27 @@
+essentialJavaClasses: []
+essentialArchUnitClasses: []
+essentialWalaClasses: []
+essentialAspectJClasses:
+  - api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemAdviceDefinitions
+  - api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions
+essentialInstrumentationClasses:
+  - api.aop.java.instrumentation.JavaInstrumentationAgent
+  - api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox
+  - api.aop.java.instrumentation.advice.JavaInstrumentationAdviceThreadToolbox
+  - api.aop.java.instrumentation.advice.JavaInstrumentationCreateThreadMethodAdvice
+  - api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathMethodAdvice
+  - api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathMethodAdvice
+  - api.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathMethodAdvice
+  - api.aop.java.instrumentation.advice.JavaInstrumentationReadPathMethodAdvice
+  - api.aop.java.instrumentation.advice.JavaInstrumentationCreateThreadConstructorAdvice
+  - api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathConstructorAdvice
+  - api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathConstructorAdvice
+  - api.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathConstructorAdvice
+  - api.aop.java.instrumentation.advice.JavaInstrumentationReadPathConstructorAdvice
+  - api.aop.java.instrumentation.pointcut.JavaInstrumentationPointcutDefinitions
+  - api.aop.java.instrumentation.pointcut.JavaInstrumentationBindingDefinitions
+essentialAresClasses:
+  - api.internal.TimeoutUtils
+  - api.aop.java.JavaSecurityTestCaseSettings
+essentialJUnitClasses:
+  - api.jupiter.JupiterStrictTimeoutExtension

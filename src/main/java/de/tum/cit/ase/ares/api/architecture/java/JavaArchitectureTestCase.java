@@ -2,7 +2,7 @@ package de.tum.cit.ase.ares.api.architecture.java;
 
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.core.domain.JavaClasses;
-import de.tum.cit.ase.ares.api.architecture.ArchitectureSecurityTestCase;
+import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitSecurityTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.wala.JavaWalaSecurityTestCase;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
@@ -18,19 +18,19 @@ import static de.tum.cit.ase.ares.api.localization.Messages.localized;
  * This class provides methods to write and execute the architecture test cases.
  * The architecture test cases are used to verify that the analyzed code does not violate the security policies.
  */
-public class JavaArchitectureTestCase implements ArchitectureSecurityTestCase {
+public class JavaArchitectureTestCase implements ArchitectureTestCase {
 
     //<editor-fold desc="Attributes">
     /**
      * Selects the supported architecture test case in the Java programming language.
      */
     @Nonnull
-    private final JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported;
+    private final JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported;
     /**
      * List of allowed packages to be imported.
      */
     @Nullable
-    private final Set<SecurityPolicy.PackagePermission> allowedPackages;
+    private final Set<SecurityPolicy.SupervisedCode.PackagePermission> allowedPackages;
 
     // The following attributes are used for caching
     // TODO Sarp: Explain what are the javaclasses and the call graph with a comment
@@ -61,7 +61,7 @@ public class JavaArchitectureTestCase implements ArchitectureSecurityTestCase {
     //</editor-fold>
 
     //<editor-fold desc="Constructor">
-    public JavaArchitectureTestCase(@Nonnull JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported, @Nonnull JavaClasses javaClasses, @Nullable CallGraph callGraph, @Nullable Set<SecurityPolicy.PackagePermission> allowedPackages) {
+    public JavaArchitectureTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported, @Nonnull JavaClasses javaClasses, @Nullable CallGraph callGraph, @Nullable Set<SecurityPolicy.SupervisedCode.PackagePermission> allowedPackages) {
         this.javaArchitectureTestCaseSupported = javaArchitectureTestCaseSupported;
         this.javaClasses = javaClasses;
         this.callGraph = callGraph;
@@ -79,15 +79,15 @@ public class JavaArchitectureTestCase implements ArchitectureSecurityTestCase {
 
     //<editor-fold desc="Execute architecture test case methods">
     @Override
-    public void executeArchitectureTestCase(@Nonnull JavaArchitectureMode architectureMode) {
+    public void executeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
         // TODO: Add some checks for the modes and the needs e.g. (CallGraph not null for WALA)
         switch (architectureMode) {
-            case WALA -> JavaWalaSecurityTestCase.builder()
+            case "WALA" -> JavaWalaSecurityTestCase.builder()
                     .javaArchitecturalTestCaseSupported(javaArchitectureTestCaseSupported)
                     .allowedPackages(allowedPackages)
                     .build()
                     .executeArchitectureTestCase(callGraph, javaClasses);
-            case ARCHUNIT -> JavaArchUnitSecurityTestCase.builder()
+            case "ARCHUNIT" -> JavaArchUnitSecurityTestCase.builder()
                     .javaArchitecturalTestCaseSupported(javaArchitectureTestCaseSupported)
                     .allowedPackages(allowedPackages)
                     .build()
@@ -109,12 +109,12 @@ public class JavaArchitectureTestCase implements ArchitectureSecurityTestCase {
      */
     //<editor-fold desc="Builder">
     public static class Builder {
-        private JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported;
+        private JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported;
         private JavaClasses javaClasses;
         private CallGraph callGraph;
-        private Set<SecurityPolicy.PackagePermission> allowedPackages;
+        private Set<SecurityPolicy.SupervisedCode.PackagePermission> allowedPackages;
 
-        public Builder javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported) {
+        public Builder javaArchitecturalTestCaseSupported(JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported) {
             if (javaArchitectureTestCaseSupported == null) {
                 throw new SecurityException(localized("security.common.not.null", "javaArchitectureTestCaseSupported"));
             }
@@ -132,7 +132,7 @@ public class JavaArchitectureTestCase implements ArchitectureSecurityTestCase {
             return this;
         }
 
-        public Builder allowedPackages(Set<SecurityPolicy.PackagePermission> allowedPackages) {
+        public Builder allowedPackages(Set<SecurityPolicy.SupervisedCode.PackagePermission> allowedPackages) {
             this.allowedPackages = allowedPackages;
             return this;
         }

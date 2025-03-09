@@ -13,8 +13,7 @@ import java.util.concurrent.Executors;
 import java.util.stream.*;
 
 import de.tum.cit.ase.ares.api.Policy;
-import de.tum.cit.ase.ares.api.jupiter.PublicTest;
-import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.fileSystem.FileSystemAccessPenguin;
+import de.tum.cit.ase.ares.api.StrictTimeout;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.integration.testuser.subject.threads.ThreadPenguin;
 import org.junit.jupiter.api.Disabled;
@@ -22,9 +21,7 @@ import org.junit.jupiter.api.function.Executable;
 import org.junit.platform.testkit.engine.Events;
 
 import de.tum.cit.ase.ares.api.TestUtils;
-import de.tum.cit.ase.ares.integration.testuser.ThreadUser;
 import de.tum.cit.ase.ares.testutilities.*;
-import de.tum.cit.ase.ares.testutilities.CustomConditions.Option;
 
 //@UserBased(ThreadUser.class)
 class ThreadTest {
@@ -138,6 +135,7 @@ class ThreadTest {
 
 	@TestTest
 	@PublicTest
+	@StrictTimeout(1000000)
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OneThreadAllowedInstrumentationCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
 	void test_threadAccess() {
 		try {

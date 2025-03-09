@@ -3,8 +3,8 @@ package de.tum.cit.ase.ares.api.architecture.java.archunit;
 //<editor-fold desc="Imports">
 
 import com.tngtech.archunit.core.domain.JavaClasses;
-import de.tum.cit.ase.ares.api.architecture.java.JavaArchitecturalTestCaseSupported;
-import de.tum.cit.ase.ares.api.policy.SecurityPolicy.PackagePermission;
+import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
+import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +34,7 @@ public class JavaArchUnitSecurityTestCase {
      * Selects the supported architecture test case in the Java programming language.
      */
     @Nonnull
-    private final JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported;
+    private final JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported;
 
     /**
      * List of allowed packages to be imported.
@@ -123,18 +123,18 @@ public class JavaArchUnitSecurityTestCase {
 
     // Static Builder class
     public static class Builder {
-        private JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported;
+        private JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported;
         private Set<String> allowedPackages = new HashSet<>();
 
-        public Builder javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported) {
+        public Builder javaArchitecturalTestCaseSupported(JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported) {
             this.javaArchitectureTestCaseSupported = javaArchitectureTestCaseSupported;
             return this;
         }
 
-        public Builder allowedPackages(Set<PackagePermission> packages) {
+        public Builder allowedPackages(Set<SecurityPolicy.SupervisedCode.PackagePermission> packages) {
             if (packages != null) {
                 this.allowedPackages = packages.stream()
-                        .map(PackagePermission::importTheFollowingPackage)
+                        .map(SecurityPolicy.SupervisedCode.PackagePermission::importTheFollowingPackage)
                         .collect(Collectors.toSet());
             }
             return this;
