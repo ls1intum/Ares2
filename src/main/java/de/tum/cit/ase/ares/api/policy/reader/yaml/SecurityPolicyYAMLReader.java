@@ -53,8 +53,23 @@ public class SecurityPolicyYAMLReader implements SecurityPolicyReader {
      * @author Markus Paulsen
      */
     public SecurityPolicyYAMLReader() {
-        this.yamlFactory = new YAMLFactory();
-        this.yamlMapper = new ObjectMapper(yamlFactory);
+        this(
+                new YAMLFactory(),
+                new ObjectMapper(new YAMLFactory())
+        );
+    }
+
+    /**
+     * Constructs a new SecurityPolicyYAMLReader with the specified YAML factory and object mapper.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @param yamlFactory the non-null YAML factory for parsing YAML files.
+     * @param yamlMapper the non-null YAML object mapper for reading YAML files.
+     */
+    public SecurityPolicyYAMLReader(@Nonnull YAMLFactory yamlFactory, @Nonnull ObjectMapper yamlMapper) {
+        this.yamlFactory = yamlFactory;
+        this.yamlMapper = yamlMapper;
     }
 
     /**

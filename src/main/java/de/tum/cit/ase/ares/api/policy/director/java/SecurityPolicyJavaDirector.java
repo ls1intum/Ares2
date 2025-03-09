@@ -14,6 +14,7 @@ import de.tum.cit.ase.ares.api.securitytest.java.scanner.JavaScanner;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.nio.file.Path;
+import java.util.Objects;
 
 /**
  * Java security policy director.
@@ -32,6 +33,18 @@ import java.nio.file.Path;
  * @version 2.0.0
  */
 public class SecurityPolicyJavaDirector implements SecurityPolicyDirector {
+
+    /**
+     * Default path to the essential packages YAML file.
+     */
+    @Nonnull
+    private static final String DEFAULT_ESSENTIAL_PACKAGES_PATH = "src/main/java/de/tum/cit/ase/ares/api/securitytest/java/essentialModel/EssentialPackages.yaml";
+
+    /**
+     * Default path to the essential classes YAML file.
+     */
+    @Nonnull
+    private static final String DEFAULT_ESSENTIAL_CLASSES_PATH = "src/main/java/de/tum/cit/ase/ares/api/securitytest/java/essentialModel/EssentialClasses.yaml";
 
     /**
      * Reader for essential classes YAML files.
@@ -64,10 +77,29 @@ public class SecurityPolicyJavaDirector implements SecurityPolicyDirector {
      * @author Markus Paulsen
      */
     public SecurityPolicyJavaDirector() {
-        this.essentialYAMLReader = new EssentialYAMLReader();
-        this.javaScanner = new JavaProgrammingExerciseScanner();
-        this.essentialPackagesPath = Path.of("src/main/java/de/tum/cit/ase/ares/api/securitytest/java/essentialModel/EssentialPackages.yaml");
-        this.essentialClassesPath = Path.of("src/main/java/de/tum/cit/ase/ares/api/securitytest/java/essentialModel/EssentialClasses.yaml");
+        this(
+                new EssentialYAMLReader(),
+                new JavaProgrammingExerciseScanner(),
+                Path.of(DEFAULT_ESSENTIAL_PACKAGES_PATH),
+                Path.of(DEFAULT_ESSENTIAL_CLASSES_PATH)
+        );
+    }
+
+    /**
+     * Constructs a new SecurityPolicyJavaDirector with provided dependencies.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     */
+    public SecurityPolicyJavaDirector(
+            @Nonnull EssentialYAMLReader essentialYAMLReader,
+            @Nonnull JavaScanner javaScanner,
+            @Nonnull Path essentialPackagesPath,
+            @Nonnull Path essentialClassesPath) {
+        this.essentialYAMLReader = Objects.requireNonNull(essentialYAMLReader, "Essential YAML reader must not be null");
+        this.javaScanner = Objects.requireNonNull(javaScanner, "Java scanner must not be null");
+        this.essentialPackagesPath = Objects.requireNonNull(essentialPackagesPath, "Essential packages path must not be null");
+        this.essentialClassesPath = Objects.requireNonNull(essentialClassesPath, "Essential classes path must not be null");
     }
 
     /**
