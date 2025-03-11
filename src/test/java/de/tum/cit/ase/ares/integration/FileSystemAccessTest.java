@@ -345,7 +345,7 @@ class FileSystemAccessTest {
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
         void test_accessFileSystemViaFileChannelReadAspectJ() throws IOException {
-            assertAresSecurityExceptionRead(FileSystemAccessPenguin::accessFileSystemViaFileChannelRead);
+            assertAresSecurityExceptionExecution(FileSystemAccessPenguin::accessFileSystemViaFileChannelRead);
         }
 
         @TestTest
@@ -386,7 +386,7 @@ class FileSystemAccessTest {
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
         void test_accessFileSystemViaRandomAccessFileWriteAspectJ() throws IOException {
-            assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaRandomAccessFileWrite);
+            assertAresSecurityExceptionRead(FileSystemAccessPenguin::accessFileSystemViaRandomAccessFileWrite);
         }
 
         @TestTest
@@ -402,7 +402,7 @@ class FileSystemAccessTest {
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
         void test_accessFileSystemViaFileWriteAspectJ() throws IOException {
-            assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaFileWrite);
+            assertAresSecurityExceptionRead(FileSystemAccessPenguin::accessFileSystemViaFileWrite);
         }
 
         @TestTest
@@ -546,7 +546,7 @@ class FileSystemAccessTest {
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
         void test_accessFileSystemViaFileChannelWriteAspectJ() throws IOException {
-            assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaFileChannelWrite);
+            assertAresSecurityExceptionExecution(FileSystemAccessPenguin::accessFileSystemViaFileChannelWrite);
         }
 
         @TestTest
@@ -601,7 +601,7 @@ class FileSystemAccessTest {
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
         void test_accessFileSystemViaFileExecuteAspectJ() {
-            assertAresSecurityExceptionExecution(FileSystemAccessPenguin::accessFileSystemViaFileExecute);
+            assertAresSecurityExceptionRead(FileSystemAccessPenguin::accessFileSystemViaFileExecute);
         }
 
         @TestTest
@@ -618,7 +618,7 @@ class FileSystemAccessTest {
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedAspectJExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
         void test_accessFileSystemViaDesktopAspectJ() throws IOException {
             Assumptions.assumeFalse(GraphicsEnvironment.isHeadless(), "Skipping test in headless environment");
-            assertAresSecurityExceptionExecution(FileSystemAccessPenguin::accessFileSystemViaDesktop);
+            assertAresSecurityExceptionRead(FileSystemAccessPenguin::accessFileSystemViaDesktop);
         }
 
         @TestTest

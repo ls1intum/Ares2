@@ -307,10 +307,4 @@ public final class FileSystemAccessPenguin {
     public void accessPathThroughThirdPartyPackage() throws IOException {
         ThirdPartyPackagePenguin.accessFileSystem();
     }
-
-    public static void main(String[] args) throws ClassNotFoundException {
-        // get method names as a list and print them out in single lines in this class
-        Arrays.stream(Class.forName(FileSystemAccessPenguin.class.getName()).getDeclaredMethods())
-                .forEachOrdered(method -> System.out.println(method.getName()));
-    }
 }
