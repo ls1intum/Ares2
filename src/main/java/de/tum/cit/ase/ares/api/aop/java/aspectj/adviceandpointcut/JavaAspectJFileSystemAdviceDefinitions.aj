@@ -123,11 +123,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
         } else if (variableValue instanceof String) {
             String string = (String) variableValue;
             try {
-                if(Files.exists(Path.of(string).normalize().toAbsolutePath())) {
-                    return Path.of(string).normalize().toAbsolutePath();
-                } else {
-                    throw new InvalidPathException(string, localized("security.advice.transform.path.exception"));
-                }
+                return Path.of(string).normalize().toAbsolutePath();
             } catch (InvalidPathException e) {
                 throw new InvalidPathException(string, localized("security.advice.transform.path.exception"));
             }
