@@ -7,7 +7,7 @@ import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSupported;
-import de.tum.cit.ase.ares.api.architecture.java.CallGraphBuilderUtils;
+import de.tum.cit.ase.ares.api.architecture.java.CustomCallgraphBuilder;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitecturalTestCaseSupported;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCase;
@@ -209,11 +209,11 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         Set<SecurityPolicy.PackagePermission> allowedPackages = new HashSet<>(resourceAccesses.regardingPackageImports());
         // Add default imports needed for the execution
         allowedPackages.addAll(Set.of(
-                new SecurityPolicy.PackagePermission("java.lang"),
+                new SecurityPolicy.PackagePermission("java"),
                 new SecurityPolicy.PackagePermission("org.java.aspectj"),
                 new SecurityPolicy.PackagePermission("org.aspectj"),
-                new SecurityPolicy.PackagePermission("de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut")));
-                new SecurityPolicy.PackagePermission(packageName);
+                new SecurityPolicy.PackagePermission("de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut"),
+                new SecurityPolicy.PackagePermission(packageName)));
         //</editor-fold>
 
         //<editor-fold desc="Create variable rules code">
@@ -231,7 +231,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
 
         Supplier<CallGraph> callGraphSupplier = memoize(() -> {
             if (javaArchitectureMode == JavaArchitectureMode.WALA) {
-                return CallGraphBuilderUtils.buildCallGraph(classPath);
+                return new CustomCallgraphBuilder().buildCallGraph(classPath);
             }
             return null;
         });

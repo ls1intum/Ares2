@@ -18,6 +18,8 @@ import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import de.tum.cit.ase.ares.api.architecture.java.wala.ReachabilityChecker;
 import de.tum.cit.ase.ares.api.util.FileTools;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
@@ -29,51 +31,46 @@ import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstru
 /**
  * Utility class to build a call graph from a class path.
  */
-public class CallGraphBuilderUtils {
+public class CustomCallgraphBuilder {
 
-    private CallGraphBuilderUtils() {
-        throw new SecurityException(localize("security.general.utility.initialization", CallGraphBuilderUtils.class.getName()));
-    }
+    private static final Logger log = LoggerFactory.getLogger(CustomCallgraphBuilder.class);
 
     /**
      * Class file importer to import the class files.
      * This is used to import the class files from the URL.
      */
-    private static final ClassFileImporter classFileImporter;
+    private final ClassFileImporter classFileImporter;
 
-    private static final ClassHierarchy classHierarchy;
+    private final ClassHierarchy classHierarchy;
 
-    private static final AnalysisScope scope;
+    private final AnalysisScope scope;
 
-    static {
+    private CallGraph callGraph = null;
+
+    public CustomCallgraphBuilder() {
+        classFileImporter = new ClassFileImporter();
         try {
-            // Create a class file importer
-            classFileImporter = new ClassFileImporter();
-
-            // Create an analysis scope
             scope = Java9AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(
                     System.getProperty("java.class.path"),
-                    // File translates the path name for Windows and Unix
                     FileTools.getResourceAsFile("de/tum/cit/ase/ares/api/templates/architecture/java/exclusions.txt")
             );
-
-            // Build the class hierarchy
             classHierarchy = ClassHierarchyFactory.make(scope);
         } catch (ClassHierarchyException | IOException e) {
-            throw new SecurityException(localize("security.architecture.class.hierarchy.error")); // $NON-NLS-1$
+            throw new SecurityException(localize("security.architecture.class.hierarchy.error"));
         }
     }
 
 
     /**
      * Try to resolve the class by the given type name.
-     *
+     * <p>
      * Ignore jrt URLs as they cause infinite loops and are not needed for the analysis for ArchUnit
      *
      * @param typeName The type name of the class to resolve.
      * @return The resolved class if it exists.
      */
-    public static Optional<JavaClass> tryResolve(String typeName) {
+    @SuppressWarnings("unused")
+    public Optional<JavaClass> tryResolve(String typeName) {
         List<String> ignoredTypeNames = List.of(
                 // Advice definition uses Reflection and therefor should not be resolved
                 "de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemAdviceDefinitions"
@@ -83,7 +80,7 @@ public class CallGraphBuilderUtils {
             return Optional.empty();
         }
         // TODO: Check if FileTools supports this approach
-        return Optional.ofNullable(CallGraphBuilderUtils.class.getResource("/" + typeName.replace(".", "/") + ".class"))
+        return Optional.ofNullable(CustomCallgraphBuilder.class.getResource("/" + typeName.replace(".", "/") + ".class"))
                 .map(location -> classFileImporter
                         .withImportOption(loc -> !loc.contains("jrt"))
                         .importUrl(location))
@@ -102,7 +99,8 @@ public class CallGraphBuilderUtils {
      * @param typeName The type name of the class to get the immediate subclasses.
      * @return The immediate subclasses of the given type name.
      */
-    public static Set<JavaClass> getImmediateSubclasses(String typeName) {
+    @SuppressWarnings("unused")
+    public Set<JavaClass> getImmediateSubclasses(String typeName) {
         TypeReference reference = TypeReference.find(ClassLoaderReference.Application, convertTypeName(typeName));
         if (reference == null) {
             return Collections.emptySet();
@@ -116,7 +114,7 @@ public class CallGraphBuilderUtils {
                 .stream()
                 .map(IClass::getName)
                 .map(Object::toString)
-                .map(CallGraphBuilderUtils::tryResolve)
+                .map(this::tryResolve)
                 .filter(Optional::isPresent)
                 .map(Optional::get).collect(Collectors.toSet());
     }
@@ -137,8 +135,11 @@ public class CallGraphBuilderUtils {
     /**
      * Build a call graph from a class path and the passed in predicate
      */
-    public static CallGraph buildCallGraph(String classPathToAnalyze) {
+    public CallGraph buildCallGraph(String classPathToAnalyze) {
         try {
+            if (callGraph != null) {
+                return callGraph;
+            }
             // Create a list to store entry points
             List<DefaultEntrypoint> customEntryPoints = ReachabilityChecker.getEntryPointsFromStudentSubmission(classPathToAnalyze, classHierarchy);
 
@@ -149,9 +150,17 @@ public class CallGraphBuilderUtils {
             CallGraphBuilder<InstanceKey> builder = Util.makeZeroOneCFABuilder(Language.JAVA, options, new AnalysisCacheImpl(), classHierarchy);
 
             // Generate the call graph
-            return builder.makeCallGraph(options, null);
+            callGraph = builder.makeCallGraph(options, null);
+            return callGraph;
         } catch (CallGraphBuilderCancelException e) {
             throw new SecurityException(localize("security.architecture.build.call.graph.error")); //$NON-NLS-1$
         }
+    }
+
+    /**
+     * Get the call graph
+     */
+    public CallGraph getCallGraph() {
+        return callGraph;
     }
 }

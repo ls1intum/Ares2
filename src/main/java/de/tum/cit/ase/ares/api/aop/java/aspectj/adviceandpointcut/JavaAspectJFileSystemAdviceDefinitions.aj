@@ -5,6 +5,7 @@ import org.aspectj.lang.JoinPoint;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
+import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 
@@ -204,7 +205,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
         String[] allowedPaths = (String[]) getValueFromSettings(
                 switch (action) {
                     case "read" -> "pathsAllowedToBeRead";
-                    case "write" -> "pathsAllowedToBeOverwritten";
+                    case "overwrite" -> "pathsAllowedToBeOverwritten";
                     case "execute" -> "pathsAllowedToBeExecuted";
                     case "delete" -> "pathsAllowedToBeDeleted";
                     default -> throw new IllegalArgumentException("Unknown action: " + action);
@@ -249,7 +250,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderWriteMethods() ||
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.printWriterInitMethods() ||
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.desktopExecuteMethods() {
-        checkFileSystemInteraction("write", thisJoinPoint);
+        checkFileSystemInteraction("overwrite", thisJoinPoint);
     }
 
     before():

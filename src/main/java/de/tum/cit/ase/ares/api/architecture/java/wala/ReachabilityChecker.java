@@ -54,7 +54,6 @@ public class ReachabilityChecker {
     /**
      * Get entry points from a student submission.
      *
-     * @param classPath      The class path of the student submission.
      * @param applicationCha The class hierarchy of the application.
      * @return A list of entry points from the student submission.
      */

@@ -141,11 +141,15 @@ public class ArchitectureSecurityTest {
     // </editor-fold>
 
     // <editor-fold desc="Third Party Package Access Rules">
-    @TestTest
-    void testArchUnitThirdPartyPackageAccess() {
-        tests.assertThatEvents().haveExactly(1,
-                testFailedWith("testArchUnitThirdPartyPackageAccess", SecurityException.class));
-    }
+
+    /**
+     * This test is disabled because it is not possible to test the access to third-party packages with ArchUnit
+     */
+//    @TestTest
+//    void testArchUnitThirdPartyPackageAccess() {
+//        tests.assertThatEvents().haveExactly(1,
+//                testFailedWith("testArchUnitThirdPartyPackageAccess", SecurityException.class));
+//    }
 
     @TestTest
     void testWalaThirdPartyPackageAccess() {
