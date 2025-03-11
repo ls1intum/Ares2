@@ -9,7 +9,7 @@ public class JavaInstrumentationDeletePathConstructorAdvice {
             @Advice.Origin("#t") String declaringTypeName,
             @Advice.AllArguments Object... parameters
     ) {
-        JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
+        JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction(
                 "delete",
                 declaringTypeName,
                 "<init>",

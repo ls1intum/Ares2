@@ -167,73 +167,30 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      * @param securityPolicy
      *          the security policy to enforce; may be null.
      */
-    public JavaSecurityTestCaseFactoryAndBuilder(
-            @Nonnull EssentialReader essentialReader,
-            @Nonnull Path essentialPackagesPath,
-            @Nonnull Path essentialClassesPath,
-            @Nonnull JavaScanner javaScanner,
-            @Nullable JavaBuildMode javaBuildMode,
-            @Nullable JavaArchitectureMode javaArchitectureMode,
-            @Nullable JavaAOPMode javaAOPMode,
-            @Nullable Path testPath,
-            @Nullable SecurityPolicy securityPolicy
-    ) {
+    public JavaSecurityTestCaseFactoryAndBuilder(@Nonnull EssentialReader essentialReader, @Nonnull Path essentialPackagesPath, @Nonnull Path essentialClassesPath, @Nonnull JavaScanner javaScanner, @Nullable JavaBuildMode javaBuildMode, @Nullable JavaArchitectureMode javaArchitectureMode, @Nullable JavaAOPMode javaAOPMode, @Nullable Path testPath, @Nullable SecurityPolicy securityPolicy) {
 
         //<editor-fold desc="Modes and Project Paths">
-        this.javaBuildMode = javaBuildMode == null
-                ? javaScanner.scanForBuildMode()
-                : javaBuildMode;
-        this.javaArchitectureMode = javaArchitectureMode == null
-                ? JavaArchitectureMode.WALA
-                : javaArchitectureMode;
-        this.javaAOPMode = javaAOPMode == null
-                ? JavaAOPMode.INSTRUMENTATION
-                : javaAOPMode;
-        this.testPath = testPath == null
-                ? javaScanner.scanForTestPath()
-                : testPath;
+        this.javaBuildMode = javaBuildMode == null ? javaScanner.scanForBuildMode() : javaBuildMode;
+        this.javaArchitectureMode = javaArchitectureMode == null ? JavaArchitectureMode.WALA : javaArchitectureMode;
+        this.javaAOPMode = javaAOPMode == null ? JavaAOPMode.INSTRUMENTATION : javaAOPMode;
+        this.testPath = testPath == null ? javaScanner.scanForTestPath() : testPath;
         //</editor-fold>
 
         //<editor-fold desc="File Based Configuration">
-        this.essentialPackages = (Objects.requireNonNull(essentialReader, "essentialPackagesReader must not be null"))
-                .readEssentialPackagesFrom(Objects.requireNonNull(essentialPackagesPath, "essentialPackagesPath must not be null"))
-                .getEssentialPackages();
-        this.essentialClasses = (Objects.requireNonNull(essentialReader, "essentialClassesReader must not be null"))
-                .readEssentialClassesFrom(Objects.requireNonNull(essentialClassesPath, "essentialClassesPath must not be null"))
-                .getEssentialClasses();
+        this.essentialPackages = (Objects.requireNonNull(essentialReader, "essentialPackagesReader must not be null")).readEssentialPackagesFrom(Objects.requireNonNull(essentialPackagesPath, "essentialPackagesPath must not be null")).getEssentialPackages();
+        this.essentialClasses = (Objects.requireNonNull(essentialReader, "essentialClassesReader must not be null")).readEssentialClassesFrom(Objects.requireNonNull(essentialClassesPath, "essentialClassesPath must not be null")).getEssentialClasses();
         //</editor-fold>
 
         //<editor-fold desc="Policy Based Configuration">
-        SecurityPolicy.SupervisedCode supervisedCode = securityPolicy == null
-                ? null
-                : securityPolicy.regardingTheSupervisedCode();
-        this.testClasses = supervisedCode == null
-                ? javaScanner.scanForTestClasses() :
-                supervisedCode.theFollowingClassesAreTestClasses();
-        this.packageName = supervisedCode == null || supervisedCode.theProgrammingLanguageUsesTheFollowingPackage() == null
-                ? javaScanner.scanForPackageName()
-                : supervisedCode.theProgrammingLanguageUsesTheFollowingPackage();
-        this.mainClassInPackageName = supervisedCode == null || supervisedCode.theMainClassInsideThisPackageIs() == null
-                ? javaScanner.scanForMainClassInPackage()
-                : supervisedCode.theMainClassInsideThisPackageIs();
-        this.resourceAccesses = supervisedCode == null
-                ? SecurityPolicy.SupervisedCode.ResourceAccesses.createRestrictive()
-                : supervisedCode.theFollowingResourceAccessesArePermitted();
+        SecurityPolicy.SupervisedCode supervisedCode = securityPolicy == null ? null : securityPolicy.regardingTheSupervisedCode();
+        this.testClasses = supervisedCode == null ? javaScanner.scanForTestClasses() : supervisedCode.theFollowingClassesAreTestClasses();
+        this.packageName = supervisedCode == null || supervisedCode.theProgrammingLanguageUsesTheFollowingPackage() == null ? javaScanner.scanForPackageName() : supervisedCode.theProgrammingLanguageUsesTheFollowingPackage();
+        this.mainClassInPackageName = supervisedCode == null || supervisedCode.theMainClassInsideThisPackageIs() == null ? javaScanner.scanForMainClassInPackage() : supervisedCode.theMainClassInsideThisPackageIs();
+        this.resourceAccesses = supervisedCode == null ? SecurityPolicy.SupervisedCode.ResourceAccesses.createRestrictive() : supervisedCode.theFollowingResourceAccessesArePermitted();
         //</editor-fold>
 
         //<editor-fold desc="Test Case Creation">
-        (new JavaCreator(
-                this.javaBuildMode,
-                this.javaArchitectureMode,
-                this.javaAOPMode,
-                this.essentialPackages,
-                this.essentialClasses,
-                this.testClasses,
-                this.packageName,
-                this.mainClassInPackageName,
-                this.resourceAccesses,
-                this.testPath
-        )).createSecurityTestCases();
+        (new JavaCreator(this.javaBuildMode, this.javaArchitectureMode, this.javaAOPMode, this.essentialPackages, this.essentialClasses, this.testClasses, this.packageName, this.mainClassInPackageName, this.resourceAccesses, this.testPath)).createSecurityTestCases();
         //</editor-fold>
     }
     //</editor-fold>
@@ -255,34 +212,14 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
     @Nonnull
     public List<Path> writeSecurityTestCases(@Nullable Path projectDirectory) {
         //<editor-fold desc="Create architecture test case files code">
-        @Nonnull ArrayList<Path> javaCopiedArchitectureFiles = new ArrayList<>(FileTools.copyJavaFiles(
-                javaArchitectureMode.filesToCopy(),
-                javaArchitectureMode.targetsToCopyTo(testPath, packageName),
-                javaArchitectureMode.fileValues(packageName)
-        ));
-        @Nonnull Path javaArchitectureTestCaseCollectionFile = FileTools.createThreePartedJavaFile(
-                javaArchitectureMode.threePartedFileHeader(),
-                javaArchitectureMode.threePartedFileBody(javaArchitectureTestCases),
-                javaArchitectureMode.threePartedFileFooter(),
-                javaArchitectureMode.targetToCopyTo(testPath, packageName),
-                javaArchitectureMode.fileValue(packageName)
-        );
+        @Nonnull ArrayList<Path> javaCopiedArchitectureFiles = new ArrayList<>(FileTools.copyJavaFiles(javaArchitectureMode.filesToCopy(), javaArchitectureMode.targetsToCopyTo(testPath, packageName), javaArchitectureMode.fileValues(packageName)));
+        @Nonnull Path javaArchitectureTestCaseCollectionFile = FileTools.createThreePartedJavaFile(javaArchitectureMode.threePartedFileHeader(), javaArchitectureMode.threePartedFileBody(javaArchitectureTestCases), javaArchitectureMode.threePartedFileFooter(), javaArchitectureMode.targetToCopyTo(testPath, packageName), javaArchitectureMode.fileValue(packageName));
         javaCopiedArchitectureFiles.add(javaArchitectureTestCaseCollectionFile);
         //</editor-fold>
         //<editor-fold desc="Create aspect configuration files code">
-        @Nonnull ArrayList<Path> javaCopiedAspectFiles = new ArrayList<>(FileTools.copyJavaFiles(
-                javaAOPMode.filesToCopy(),
-                javaAOPMode.targetsToCopyTo(testPath, packageName),
-                javaAOPMode.fileValues(packageName, mainClassInPackageName)
-        ));
+        @Nonnull ArrayList<Path> javaCopiedAspectFiles = new ArrayList<>(FileTools.copyJavaFiles(javaAOPMode.filesToCopy(), javaAOPMode.targetsToCopyTo(testPath, packageName), javaAOPMode.fileValues(packageName, mainClassInPackageName)));
         @Nonnull ArrayList<String> allowedListedClasses = new ArrayList<>(Stream.concat(Arrays.stream(testClasses), essentialClasses.stream()).toList());
-        @Nonnull Path javaAspectConfigurationCollectionFile = FileTools.createThreePartedJavaFile(
-                javaAOPMode.threePartedFileHeader(),
-                javaAOPMode.threePartedFileBody(javaAOPMode.toString(), packageName, allowedListedClasses, javaAOPTestCases),
-                javaAOPMode.threePartedFileFooter(),
-                javaAOPMode.targetToCopyTo(testPath, packageName),
-                javaAOPMode.fileValue(packageName)
-        );
+        @Nonnull Path javaAspectConfigurationCollectionFile = FileTools.createThreePartedJavaFile(javaAOPMode.threePartedFileHeader(), javaAOPMode.threePartedFileBody(javaAOPMode.toString(), packageName, allowedListedClasses, javaAOPTestCases), javaAOPMode.threePartedFileFooter(), javaAOPMode.targetToCopyTo(testPath, packageName), javaAOPMode.fileValue(packageName));
         javaCopiedAspectFiles.add(javaAspectConfigurationCollectionFile);
         //</editor-fold>
         //<editor-fold desc="Combine files code">
@@ -305,10 +242,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      *          the value to set for the setting; may be null.
      */
     private void setJavaAdviceSettingValue(String key, Object value) {
-        JavaAOPTestCase.setJavaAdviceSettingValue(
-                key, value,
-                javaArchitectureMode.toString(), javaAOPMode.toString()
-        );
+        JavaAOPTestCase.setJavaAdviceSettingValue(key, value, javaArchitectureMode.toString(), javaAOPMode.toString());
     }
 
     /**
@@ -323,30 +257,16 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         //<editor-fold desc="Generate Values">
         String javaArchitectureModeString = javaArchitectureMode.toString();
         String javaAOPModeString = javaAOPMode.toString();
-        String[] allowdListedClassesString = Stream.concat(
-                Arrays.stream(testClasses),
-                ARES_PACKAGE.equals(packageName)
-                        ? essentialClasses.stream()
-                        : Stream.of(ARES_PACKAGE)
-        ).toArray(String[]::new);
+        String[] allowdListedClassesString = Stream.concat(Arrays.stream(testClasses), ARES_PACKAGE.equals(packageName) ? essentialClasses.stream() : Stream.of(ARES_PACKAGE)).toArray(String[]::new);
         //</editor-fold>
         //<editor-fold desc="Set Values">
-        Map.of(
-                "architectureMode", javaArchitectureModeString,
-                "aopMode", javaAOPModeString,
-                "restrictedPackage", packageName,
-                "allowedListedClasses", allowdListedClassesString
-        ).forEach(this::setJavaAdviceSettingValue);
+        Map.of("architectureMode", javaArchitectureModeString, "aopMode", javaAOPModeString, "restrictedPackage", packageName, "allowedListedClasses", allowdListedClassesString).forEach(this::setJavaAdviceSettingValue);
         //</editor-fold>
         //<editor-fold desc="Execute architecture test cases">
-        javaArchitectureTestCases.forEach(
-                javaArchitectureTestCase -> javaArchitectureTestCase.executeArchitectureTestCase(javaArchitectureModeString, javaAOPModeString)
-        );
+        javaArchitectureTestCases.forEach(javaArchitectureTestCase -> javaArchitectureTestCase.executeArchitectureTestCase(javaArchitectureModeString, javaAOPModeString));
         //</editor-fold>
         //<editor-fold desc="Execute AOP test cases">
-        javaAOPTestCases.forEach(
-                javaSecurityTestCase -> javaSecurityTestCase.executeAOPSecurityTestCase(javaArchitectureModeString, javaAOPModeString)
-        );
+        javaAOPTestCases.forEach(javaSecurityTestCase -> javaSecurityTestCase.executeAOPSecurityTestCase(javaArchitectureModeString, javaAOPModeString));
         //</editor-fold>
     }
     //</editor-fold>

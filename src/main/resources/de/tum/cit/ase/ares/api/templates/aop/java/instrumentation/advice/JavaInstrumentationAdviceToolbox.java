@@ -17,13 +17,13 @@ import java.nio.file.Path;
  * variable criteria, and determine whether certain file system operations are permitted. This helps
  * enforce security policies at runtime and block unauthorized file interactions.
  */
-public class JavaInstrumentationAdviceToolbox {
+public class JavaInstrumentationAdviceFileSystemToolbox {
     //<editor-fold desc="Constructor">
     /**
      * Private constructor to prevent instantiation of this utility class.
      */
-    private JavaInstrumentationAdviceToolbox() {
-        throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): JavaInstrumentationAdviceToolbox is a utility class and should not be instantiated.");
+    private JavaInstrumentationAdviceFileSystemToolbox() {
+        throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): JavaInstrumentationAdviceFileSystemToolbox is a utility class and should not be instantiated.");
     }
     //</editor-fold>
 

@@ -3,7 +3,7 @@ package de.tum.cit.ase.ares.api.securitytest.java.essentialModel;
 import javax.annotation.Nonnull;
 import java.nio.file.Path;
 
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
 
 /**
  * Interface for reading essential configurations from YAML files.

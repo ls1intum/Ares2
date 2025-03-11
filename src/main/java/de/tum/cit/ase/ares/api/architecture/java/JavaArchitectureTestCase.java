@@ -46,6 +46,24 @@ public class JavaArchitectureTestCase implements ArchitectureTestCase {
     private final CallGraph callGraph;
     //</editor-fold>
 
+    //<editor-fold desc="Constructor">
+
+    /**
+     * Constructor for the Java architecture test case.
+     *
+     * @param javaArchitectureTestCaseSupported Selects the supported architecture test case in the Java programming language.
+     * @param javaClasses                      List of Java classes to be analyzed.
+     * @param callGraph                        Call graph of the analyzed Java classes.
+     * @param allowedPackages                  List of allowed packages to be imported.
+     */
+    public JavaArchitectureTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported, @Nonnull JavaClasses javaClasses, @Nullable CallGraph callGraph, @Nullable Set<SecurityPolicy.SupervisedCode.PackagePermission> allowedPackages) {
+        this.javaArchitectureTestCaseSupported = javaArchitectureTestCaseSupported;
+        this.javaClasses = javaClasses;
+        this.callGraph = callGraph;
+        this.allowedPackages = allowedPackages;
+    }
+    //</editor-fold>
+
     //<editor-fold desc="Tool methods">
     /**
      * Parses the error message of an assertion error.
@@ -60,19 +78,10 @@ public class JavaArchitectureTestCase implements ArchitectureTestCase {
     }
     //</editor-fold>
 
-    //<editor-fold desc="Constructor">
-    public JavaArchitectureTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported, @Nonnull JavaClasses javaClasses, @Nullable CallGraph callGraph, @Nullable Set<SecurityPolicy.SupervisedCode.PackagePermission> allowedPackages) {
-        this.javaArchitectureTestCaseSupported = javaArchitectureTestCaseSupported;
-        this.javaClasses = javaClasses;
-        this.callGraph = callGraph;
-        this.allowedPackages = allowedPackages;
-    }
-    //</editor-fold>
-
     //<editor-fold desc="Write architecture test case methods">
     @Nonnull
     @Override
-    public String writeArchitectureTestCase(@Nonnull String architectureMode) {
+    public String writeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
         return "";
     }
     //</editor-fold>
@@ -96,7 +105,8 @@ public class JavaArchitectureTestCase implements ArchitectureTestCase {
     }
     //</editor-fold>
 
-    // TODO Sarp: Outsource this to a new class
+    //<editor-fold desc="Builder">
+
     /**
      * Starts the builder for the Java architecture test case.
      */
@@ -107,7 +117,6 @@ public class JavaArchitectureTestCase implements ArchitectureTestCase {
     /**
      * Builder for the Java architecture test case.
      */
-    //<editor-fold desc="Builder">
     public static class Builder {
         private JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported;
         private JavaClasses javaClasses;

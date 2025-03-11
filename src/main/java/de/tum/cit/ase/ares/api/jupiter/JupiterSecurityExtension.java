@@ -16,7 +16,7 @@ import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 import org.junit.jupiter.api.extension.*;
 
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
 import static de.tum.cit.ase.ares.api.internal.TestGuardUtils.hasAnnotation;
 import static org.junit.platform.commons.support.AnnotationSupport.findAnnotation;
 //REMOVED: Import of ArtemisSecurityManager

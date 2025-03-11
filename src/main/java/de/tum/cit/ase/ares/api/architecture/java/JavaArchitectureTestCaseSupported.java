@@ -1,54 +1,73 @@
 package de.tum.cit.ase.ares.api.architecture.java;
 
 import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCaseSupported;
-
 import java.util.List;
 
 /**
- * Supported architecture test cases in Java programming language.
+ * Enum of supported architecture test cases for Java.
  *
+ * <p>Description: This enum defines the different types of architecture test cases available for static and dynamic code analysis in Java applications.
+ *
+ * <p>Design Rationale: Using an enum simplifies management of test cases and facilitates clear separation between static and dynamic analysis categories.
+ *
+ * @since 2.0.0
  * @author Markus Paulsen
  * @version 2.0.0
- * @since 2.0.0
  */
 public enum JavaArchitectureTestCaseSupported implements ArchitectureTestCaseSupported {
+
     /**
-     * Architecture test case for the file system interaction.
+     * Test case for file system interaction.
      */
     FILESYSTEM_INTERACTION,
+
     /**
-     * Architecture test case for the network connection.
+     * Test case for network connection.
      */
     NETWORK_CONNECTION,
+
     /**
-     * Architecture test case for the command execution.
+     * Test case for command execution.
      */
     COMMAND_EXECUTION,
+
     /**
-     * Architecture test case for the thread creation.
+     * Test case for thread creation.
      */
     THREAD_CREATION,
+
     /**
-     * Architecture test case for the package import.
+     * Test case for package import.
      */
     PACKAGE_IMPORT,
+
     /**
-     * Architecture test case for the premature jvm termination.
+     * Test case for premature JVM termination.
      */
     TERMINATE_JVM,
+
     /**
-     * Architecture test case for the reflection.
+     * Test case for reflection usage.
      */
     REFLECTION,
+
     /**
-     * Architecture test case for the serialization.
+     * Test case for serialization.
      */
     SERIALIZATION,
+
     /**
-     * Architecture test case for the class loading.
+     * Test case for class loading.
      */
     CLASS_LOADING;
 
+    /**
+     * Retrieves the static architecture test cases.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @return a list of static architecture test cases.
+     */
     public List<ArchitectureTestCaseSupported> getStatic() {
         return List.of(
                 JavaArchitectureTestCaseSupported.PACKAGE_IMPORT,
@@ -59,6 +78,13 @@ public enum JavaArchitectureTestCaseSupported implements ArchitectureTestCaseSup
         );
     }
 
+    /**
+     * Retrieves the dynamic architecture test cases.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @return a list of dynamic architecture test cases.
+     */
     public List<ArchitectureTestCaseSupported> getDynamic() {
         return List.of(
                 JavaArchitectureTestCaseSupported.FILESYSTEM_INTERACTION,
@@ -67,5 +93,4 @@ public enum JavaArchitectureTestCaseSupported implements ArchitectureTestCaseSup
                 JavaArchitectureTestCaseSupported.THREAD_CREATION
         );
     }
-
 }

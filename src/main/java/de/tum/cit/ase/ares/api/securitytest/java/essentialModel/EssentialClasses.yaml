@@ -6,7 +6,7 @@ essentialAspectJClasses:
   - api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions
 essentialInstrumentationClasses:
   - api.aop.java.instrumentation.JavaInstrumentationAgent
-  - api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox
+  - api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox
   - api.aop.java.instrumentation.advice.JavaInstrumentationAdviceThreadToolbox
   - api.aop.java.instrumentation.advice.JavaInstrumentationCreateThreadMethodAdvice
   - api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathMethodAdvice

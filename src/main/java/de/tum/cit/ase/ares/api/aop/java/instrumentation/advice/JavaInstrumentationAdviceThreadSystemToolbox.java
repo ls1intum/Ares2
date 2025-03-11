@@ -3,7 +3,7 @@ package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 import java.util.List;
 import java.nio.file.InvalidPathException;
 
-public class JavaInstrumentationAdviceThreadToolbox extends JavaInstrumentationAdviceToolbox {
+public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrumentationAdviceFileSystemToolbox {
     private final static List<String> threadSystemIgnoreCallstack = List.of();
     private final static List<String> threadSystemIgnoreClasses = List.of();
     private final static List<String> threadSystemIgnoreParameter = List.of();
@@ -13,8 +13,8 @@ public class JavaInstrumentationAdviceThreadToolbox extends JavaInstrumentationA
     /**
      * Private constructor to prevent instantiation of this utility class.
      */
-    private JavaInstrumentationAdviceThreadToolbox() {
-        throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): JavaInstrumentationAdviceToolbox is a utility class and should not be instantiated.");
+    private JavaInstrumentationAdviceThreadSystemToolbox() {
+        throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): JavaInstrumentationAdviceFileSystemToolbox is a utility class and should not be instantiated.");
     }
     //</editor-fold>
 

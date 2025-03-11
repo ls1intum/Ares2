@@ -1,47 +1,38 @@
 package de.tum.cit.ase.ares.api.architecture;
 
 import com.tngtech.archunit.core.domain.JavaClasses;
-import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureMode;
-
 import javax.annotation.Nonnull;
 
 /**
- * Interface for architecture security test case configurations across various programming languages.
- * <p>
- * This interface serves as the abstract product in the Abstract Factory Design Pattern,
- * requiring the implementation of methods for generating and executing architecture test case
- * files tailored to any programming languages.
- * </p>
+ * Interface for architecture test case configurations.
  *
- * @version 2.0.0
- * @author Markus Paulsen
- * @see <a href="https://refactoring.guru/design-patterns/abstract-factory">Abstract Factory Design Pattern</a>
+ * <p>Description: Defines methods to generate and execute architecture test cases that validate architectural constraints across various programming languages.</p>
+ *
+ * <p>Design Rationale: By applying the Abstract Factory Design Pattern, this interface enables language-specific implementations while maintaining a consistent interface for test case generation and execution.</p>
+ *
  * @since 2.0.0
+ * @author Markus Paulsen
+ * @version 2.0.0
  */
 public interface ArchitectureTestCase {
 
     /**
-     * Generates the content of the architecture test case file in any programming language.
-     * <p>
-     * This method is responsible for creating the necessary content for testing the architecture
-     * of an application. The content should be tailored to the target programming language and
-     * should include all necessary details to enforce the architectural constraints.
-     * </p>
+     * Generates the content of the architecture test case file for the specified architecture mode.
      *
-     * @return a {@link String} representing the content of the architecture test case file.
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @param architectureMode the architecture mode identifier.
+     * @return the architecture test case file content as a string.
      */
-    @Nonnull String writeArchitectureTestCase(@Nonnull String architectureMode);
+    @Nonnull String writeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode);
 
     /**
-     * Executes the architecture test case using the provided set of Java classes.
-     * <p>
-     * This method applies the architecture test case to the given {@link JavaClasses}, ensuring
-     * that the architectural constraints are validated within the specified codebase. It is expected
-     * to handle any language-specific execution details required to run the test case.
-     * </p>
+     * Executes the architecture test case using the provided architecture mode and AOP mode.
      *
-     * @param architectureMode the {@link JavaArchitectureMode} specifying the architecture testing mode to be used.
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @param architectureMode the identifier for the architecture testing mode.
+     * @param aopMode the identifier for the AOP mode.
      */
-    // TODO: Change this from JavaArchitectureMode architectureMode to @Nonnull String architectureMode
     void executeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode);
 }

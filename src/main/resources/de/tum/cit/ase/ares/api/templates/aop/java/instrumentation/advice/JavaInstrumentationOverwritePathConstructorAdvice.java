@@ -9,7 +9,7 @@ public class JavaInstrumentationOverwritePathConstructorAdvice {
             @Advice.Origin("#t") String declaringTypeName,
             @Advice.AllArguments Object... parameters
     ) {
-        JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
+        JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction(
                 "overwrite",
                 declaringTypeName,
                 "<init>",

@@ -1,59 +1,48 @@
 package de.tum.cit.ase.ares.api.aop.java;
 
 import de.tum.cit.ase.ares.api.aop.AOPTestCaseSupported;
-
 import java.util.List;
 
 /**
- * Enum representing the supported aspect configurations in the Java programming language.
- * <p>
- * This enum defines the different types of aspect configurations that are supported for
- * instrumentation in Java. These configurations are used to control and manage different
- * types of interactions and behaviors within a Java application, such as file system interactions,
- * network connections, command executions, and thread creations.
- * </p>
+ * Enum of supported AOP test cases for Java.
  *
- * @version 2.0.0
+ * <p>Description: This enum defines the different types of aspect configurations supported for dynamic code analysis in Java applications.
+ *
+ * <p>Design Rationale: Organising AOP test cases as an enum centralises aspect configuration management and supports consistency in dynamic analysis.
+ *
  * @since 2.0.0
+ * @author Markus Paulsen
+ * @version 2.0.0
  */
 public enum JavaAOPTestCaseSupported implements AOPTestCaseSupported {
 
     /**
      * Aspect configuration for managing file system interactions.
-     * <p>
-     * This configuration is used to control permissions and behaviors related to reading, writing,
-     * and executing files within the file system.
-     * </p>
      */
     FILESYSTEM_INTERACTION,
 
     /**
      * Aspect configuration for managing network connections.
-     * <p>
-     * This configuration is used to control permissions and behaviors related to opening connections,
-     * sending data, and receiving data over the network.
-     * </p>
      */
     NETWORK_CONNECTION,
 
     /**
      * Aspect configuration for managing command executions.
-     * <p>
-     * This configuration is used to control permissions and behaviors related to executing system commands
-     * and managing the arguments passed to those commands.
-     * </p>
      */
     COMMAND_EXECUTION,
 
     /**
      * Aspect configuration for managing thread creation.
-     * <p>
-     * This configuration is used to control permissions and behaviors related to creating and managing
-     * threads within the application.
-     * </p>
      */
     THREAD_CREATION;
 
+    /**
+     * Retrieves the dynamic AOP test cases.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @return a list of dynamic AOP test cases.
+     */
     public List<AOPTestCaseSupported> getDynamic() {
         return List.of(
                 JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION,

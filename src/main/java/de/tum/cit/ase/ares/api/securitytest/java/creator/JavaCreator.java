@@ -117,18 +117,7 @@ public class JavaCreator implements SecurityTestCaseCreator {
     //</editor-fold>
 
     //<editor-fold desc="Constructor">
-    public JavaCreator(
-            @Nonnull JavaBuildMode javaBuildMode,
-            @Nonnull JavaArchitectureMode javaArchitectureMode,
-            @Nonnull JavaAOPMode javaAOPMode,
-            @Nonnull List<String> essentialPackages,
-            @Nonnull List<String> essentialClasses,
-            @Nonnull String[] testClasses,
-            @Nonnull String packageName,
-            @Nonnull String mainClassInPackageName,
-            @Nonnull SecurityPolicy.SupervisedCode.ResourceAccesses resourceAccesses,
-            @Nonnull Path projectPath
-    ) {
+    public JavaCreator(@Nonnull JavaBuildMode javaBuildMode, @Nonnull JavaArchitectureMode javaArchitectureMode, @Nonnull JavaAOPMode javaAOPMode, @Nonnull List<String> essentialPackages, @Nonnull List<String> essentialClasses, @Nonnull String[] testClasses, @Nonnull String packageName, @Nonnull String mainClassInPackageName, @Nonnull SecurityPolicy.SupervisedCode.ResourceAccesses resourceAccesses, @Nonnull Path projectPath) {
         this.essentialPackages = essentialPackages;
         this.essentialClasses = essentialClasses;
         this.testClasses = testClasses;
@@ -158,14 +147,15 @@ public class JavaCreator implements SecurityTestCaseCreator {
         JavaClasses classes = cacheResult(() -> new ClassFileImporter().importPath(classPath)).get();
         CallGraph callGraph = cacheResult(() -> javaArchitectureMode == JavaArchitectureMode.WALA ? new CustomCallgraphBuilder().buildCallGraph(classPath) : null).get();
         Set<SecurityPolicy.SupervisedCode.PackagePermission> allowedPackages = prepareAllowedPackages();
+        Set<String> allowedClasses = prepareAllowedClasses();
         //</editor-fold>
 
         //<editor-fold desc="Create variable rules code">
-        addVariableTestCases(classes, callGraph, allowedPackages);
+        addVariableTestCases(classes, callGraph, allowedPackages, allowedClasses);
         //</editor-fold>
 
         //<editor-fold desc="Create fixed rules code">
-        addFixedTestCases(classes, callGraph, allowedPackages);
+        addFixedTestCases(classes, callGraph, allowedPackages, allowedClasses);
         //</editor-fold>
     }
     //</editor-fold>
@@ -191,18 +181,16 @@ public class JavaCreator implements SecurityTestCaseCreator {
     @Nonnull
     private Set<SecurityPolicy.SupervisedCode.PackagePermission> prepareAllowedPackages() {
         return Stream.of(
-                        // Essential packages are allowed to do anything
-                        essentialPackages.stream().map(SecurityPolicy.SupervisedCode.PackagePermission::new),
-                        // The permitted packages are allowed
-                        resourceAccesses.regardingPackageImports().stream(),
-                        /* The package of the restricted student code is allowed
-                         * (else the student would not be able to use his/her own code)
-                         */
-                        Stream.of(new SecurityPolicy.SupervisedCode.PackagePermission(packageName))
+                // Essential packages are allowed to do anything
+                essentialPackages.stream().map(SecurityPolicy.SupervisedCode.PackagePermission::new),
+                // The permitted packages are allowed
+                resourceAccesses.regardingPackageImports().stream(),
+                /* The package of the restricted student code is allowed
+                 * (else the student would not be able to use his/her own code)
+                 */
+                Stream.of(new SecurityPolicy.SupervisedCode.PackagePermission(packageName))
 
-                )
-                .flatMap(Function.identity())
-                .collect(Collectors.toSet());
+        ).flatMap(Function.identity()).collect(Collectors.toSet());
     }
 
     /**
@@ -211,13 +199,10 @@ public class JavaCreator implements SecurityTestCaseCreator {
     @Nonnull
     private Set<String> prepareAllowedClasses() {
         return Stream.of(
-                        // Essential classes are allowed to do anything
-                        essentialClasses.stream(),
-                        // Test classes are allowed to do anything
-                        Arrays.stream(testClasses)
-                )
-                .flatMap(Function.identity())
-                .collect(Collectors.toSet());
+                // Essential classes are allowed to do anything
+                essentialClasses.stream(),
+                // Test classes are allowed to do anything
+                Arrays.stream(testClasses)).flatMap(Function.identity()).collect(Collectors.toSet());
     }
     //</editor-fold>
 
@@ -227,10 +212,7 @@ public class JavaCreator implements SecurityTestCaseCreator {
      * Creates a JavaArchitectureTestCase with the given parameters.
      */
     @Nonnull
-    private JavaArchitectureTestCase createArchitectureTestCase(JavaArchitectureTestCaseSupported supported,
-                                                                JavaClasses classes,
-                                                                CallGraph callGraph,
-                                                                Set<SecurityPolicy.SupervisedCode.PackagePermission> allowedPackages) {
+    private JavaArchitectureTestCase createArchitectureTestCase(JavaArchitectureTestCaseSupported supported, JavaClasses classes, CallGraph callGraph, Set<SecurityPolicy.SupervisedCode.PackagePermission> allowedPackages, Set<String> allowedClasses) {
         return JavaArchitectureTestCase.builder()
                 // The architecture test case checks for the following aspect
                 .javaArchitecturalTestCaseSupported(supported)
@@ -248,33 +230,21 @@ public class JavaCreator implements SecurityTestCaseCreator {
      * Creates a JavaAOPTestCase with the given parameters.
      */
     @Nonnull
-    private JavaAOPTestCase createAOPTestCase(JavaAOPTestCaseSupported supported,
-                                              JavaClasses classes,
-                                              CallGraph callGraph,
-                                              Set<SecurityPolicy.SupervisedCode.PackagePermission> allowedPackages) {
+    private JavaAOPTestCase createAOPTestCase(JavaAOPTestCaseSupported supported, JavaClasses classes, CallGraph callGraph, Set<SecurityPolicy.SupervisedCode.PackagePermission> allowedPackages, Set<String> allowedClasses) {
 
-        Supplier<List<?>> resourceAccessSupplier = List.of(
-                (Supplier<List<?>>) resourceAccesses::regardingFileSystemInteractions,
-                resourceAccesses::regardingNetworkConnections,
-                resourceAccesses::regardingCommandExecutions,
-                resourceAccesses::regardingThreadCreations
-        ).get(supported.ordinal());
+        Supplier<List<?>> resourceAccessSupplier = List.of((Supplier<List<?>>) resourceAccesses::regardingFileSystemInteractions, resourceAccesses::regardingNetworkConnections, resourceAccesses::regardingCommandExecutions, resourceAccesses::regardingThreadCreations).get(supported.ordinal());
 
         if (resourceAccessSupplier.get().isEmpty()) {
-            javaArchitectureTestCases.add(
-                    JavaArchitectureTestCase.builder()
-                            .javaArchitecturalTestCaseSupported(JavaArchitectureTestCaseSupported.valueOf(supported.name()))
-                            .javaClasses(classes)
-                            .callGraph(callGraph)
-                            .allowedPackages(allowedPackages)
-                            .build()
-            );
+            javaArchitectureTestCases.add(JavaArchitectureTestCase.builder().javaArchitecturalTestCaseSupported(JavaArchitectureTestCaseSupported.valueOf(supported.name())).javaClasses(classes).callGraph(callGraph).allowedPackages(allowedPackages).build());
         }
 
         return JavaAOPTestCase.builder()
+                // The AOP test case checks for the following aspect
                 .javaAOPTestCaseSupported(supported)
                 .resourceAccessSupplier(resourceAccessSupplier)
+                // The following classes are allowed
                 .allowedClasses(allowedClasses)
+                // Build the AOP test case
                 .build();
     }
     //</editor-fold>
@@ -284,35 +254,19 @@ public class JavaCreator implements SecurityTestCaseCreator {
     /**
      * Adds fixed architecture test cases that are always required.
      */
-    private void addFixedTestCases(JavaClasses classes,
-                                   CallGraph callGraph,
-                                   Set<SecurityPolicy.SupervisedCode.PackagePermission> allowedPackages) {
-        javaArchitectureTestCases.addAll(
-                JavaArchitectureTestCaseSupported
-                        // The choice of using TERMINATE_JVM was taken randomly for getting an instance of JavaArchitectureTestCaseSupported (otherwise we cannot operate over an interface)
-                        .TERMINATE_JVM
-                        .getStatic()
-                        .stream()
-                        .map(fixedCase -> createArchitectureTestCase((JavaArchitectureTestCaseSupported) fixedCase, classes, callGraph, allowedPackages))
-                        .toList()
-        );
+    private void addFixedTestCases(JavaClasses classes, CallGraph callGraph, Set<SecurityPolicy.SupervisedCode.PackagePermission> allowedPackages, Set<String> allowedClasses) {
+        javaArchitectureTestCases.addAll(JavaArchitectureTestCaseSupported
+                // The choice of using TERMINATE_JVM was taken randomly for getting an instance of JavaArchitectureTestCaseSupported (otherwise we cannot operate over an interface)
+                .TERMINATE_JVM.getStatic().stream().map(fixedCase -> createArchitectureTestCase((JavaArchitectureTestCaseSupported) fixedCase, classes, callGraph, allowedPackages, allowedClasses)).toList());
     }
 
     /**
      * Adds variable architecture test cases that are generated based on the security policy.
      */
-    private void addVariableTestCases(JavaClasses classes,
-                                      CallGraph callGraph,
-                                      Set<SecurityPolicy.SupervisedCode.PackagePermission> allowedPackages) {
-        javaAOPTestCases.addAll(
-                JavaAOPTestCaseSupported
-                        // The choice of using TERMINATE_JVM was taken randomly for getting an instance of JavaAOPTestCaseSupported (otherwise we cannot operate over an interface)
-                        .FILESYSTEM_INTERACTION
-                        .getDynamic()
-                        .stream()
-                        .map(fixedCase -> createAOPTestCase((JavaAOPTestCaseSupported) fixedCase, classes, callGraph, allowedPackages))
-                        .toList()
-        );
+    private void addVariableTestCases(JavaClasses classes, CallGraph callGraph, Set<SecurityPolicy.SupervisedCode.PackagePermission> allowedPackages, Set<String> allowedClasses) {
+        javaAOPTestCases.addAll(JavaAOPTestCaseSupported
+                // The choice of using TERMINATE_JVM was taken randomly for getting an instance of JavaAOPTestCaseSupported (otherwise we cannot operate over an interface)
+                .FILESYSTEM_INTERACTION.getDynamic().stream().map(fixedCase -> createAOPTestCase((JavaAOPTestCaseSupported) fixedCase, classes, callGraph, allowedPackages, allowedClasses)).toList());
     }
     //</editor-fold>
     //</editor-fold>

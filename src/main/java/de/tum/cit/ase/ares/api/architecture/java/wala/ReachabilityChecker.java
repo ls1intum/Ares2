@@ -18,7 +18,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.Predicate;
 
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
 import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 
 /**

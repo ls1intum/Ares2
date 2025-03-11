@@ -8,7 +8,7 @@ import net.bytebuddy.asm.Advice;
  * security policies defined within the application.
  * <p>
  * If an execution attempt violates these policies, a SecurityException is thrown, preventing
- * unauthorized thread creation. The class interacts with the JavaInstrumentationAdviceToolbox to
+ * unauthorized thread creation. The class interacts with the JavaInstrumentationAdviceFileSystemToolbox to
  * perform these security checks.
  */
 public class JavaInstrumentationCreateThreadConstructorAdvice {
@@ -18,7 +18,7 @@ public class JavaInstrumentationCreateThreadConstructorAdvice {
      * to thread system security policies. If the constructor execution is not permitted, a SecurityException
      * is thrown, blocking the execution.
      * <p>
-     * The checkThreadSystemInteraction method from JavaInstrumentationAdviceThreadToolbox is called to
+     * The checkThreadSystemInteraction method from JavaInstrumentationAdviceThreadSystemToolbox is called to
      * perform these checks, ensuring that the constructor's parameters
      * adhere to the security restrictions.
      *
@@ -32,7 +32,7 @@ public class JavaInstrumentationCreateThreadConstructorAdvice {
     ) {
         System.out.println("Injected");
 
-        JavaInstrumentationAdviceThreadToolbox.checkThreadSystemInteraction(
+        JavaInstrumentationAdviceThreadSystemToolbox.checkThreadSystemInteraction(
                 "create",
                 declaringTypeName,
                 "<init>",

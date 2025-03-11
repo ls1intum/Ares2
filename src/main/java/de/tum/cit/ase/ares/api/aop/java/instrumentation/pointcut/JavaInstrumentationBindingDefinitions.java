@@ -1,8 +1,8 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut;
 
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceThreadToolbox;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceThreadSystemToolbox;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationCreateThreadConstructorAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationCreateThreadMethodAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathConstructorAdvice;
@@ -24,7 +24,7 @@ import java.security.ProtectionDomain;
 import java.util.List;
 import java.util.Map;
 
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
 
 /**
  * This class provides the definitions for the bindings of the Java instrumentation.
@@ -100,10 +100,10 @@ public class JavaInstrumentationBindingDefinitions {
             new ClassInjector
                     .UsingUnsafe(classLoader)
                     .inject(Map.of(
-                            new TypeDescription.ForLoadedType(JavaInstrumentationAdviceToolbox.class),
-                            ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceToolbox.class),
-                            new TypeDescription.ForLoadedType(JavaInstrumentationAdviceThreadToolbox.class),
-                            ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceThreadToolbox.class),
+                            new TypeDescription.ForLoadedType(JavaInstrumentationAdviceFileSystemToolbox.class),
+                            ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceFileSystemToolbox.class),
+                            new TypeDescription.ForLoadedType(JavaInstrumentationAdviceThreadSystemToolbox.class),
+                            ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceThreadSystemToolbox.class),
                             new TypeDescription.ForLoadedType(JavaAOPTestCaseSettings.class),
                             ClassFileLocator.ForClassLoader.read(JavaAOPTestCaseSettings.class)
                     ));

@@ -9,7 +9,7 @@ public class JavaInstrumentationReadPathConstructorAdvice {
             @Advice.Origin("#t") String declaringTypeName,
             @Advice.AllArguments Object... parameters
     ) {
-        JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
+        JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction(
                 "read",
                 declaringTypeName,
                 "<init>",

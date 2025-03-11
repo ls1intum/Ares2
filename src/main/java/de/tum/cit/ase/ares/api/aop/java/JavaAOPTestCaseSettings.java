@@ -26,8 +26,14 @@ public class JavaAOPTestCaseSettings {
         throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): JavaSecurityTestCaseSettings is a utility class and should not be instantiated.");
     }
 
+    /**
+     * The mode of the architecture tests.
+     */
     private static String architectureMode = null;
 
+    /**
+     * The mode of the aspect-oriented programming (AOP) configuration.
+     */
     private static String aopMode = null;
 
     /**

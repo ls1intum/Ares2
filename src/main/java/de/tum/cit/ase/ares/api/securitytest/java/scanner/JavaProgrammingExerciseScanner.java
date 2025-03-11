@@ -45,26 +45,22 @@ public class JavaProgrammingExerciseScanner implements JavaScanner {
     /**
      * Regex pattern to match public class declarations.
      */
-    private static final Pattern CLASS_PATTERN =
-            Pattern.compile("public\\s+class\\s+([A-Za-z0-9_]+)");
+    private static final Pattern CLASS_PATTERN = Pattern.compile("public\\s+class\\s+([A-Za-z0-9_]+)");
 
     /**
      * Regex pattern to match package declarations.
      */
-    private static final Pattern PACKAGE_PATTERN =
-            Pattern.compile("package\\s+([a-zA-Z_][a-zA-Z0-9_]*(\\.[a-zA-Z_][a-zA-Z0-9_]*)*)");
+    private static final Pattern PACKAGE_PATTERN = Pattern.compile("package\\s+([a-zA-Z_][a-zA-Z0-9_]*(\\.[a-zA-Z_][a-zA-Z0-9_]*)*)");
 
     /**
      * Regex pattern to detect the main method in source files.
      */
-    private static final Pattern MAIN_METHOD_PATTERN =
-            Pattern.compile("public\\s+static\\s+void\\s+main\\s*\\(\\s*String\\s*\\[");
+    private static final Pattern MAIN_METHOD_PATTERN = Pattern.compile("public\\s+static\\s+void\\s+main\\s*\\(\\s*String\\s*\\[");
 
     /**
      * Regex pattern to identify test annotations.
      */
-    private static final Pattern TEST_ANNOTATION_PATTERN =
-            Pattern.compile("@Test\\b");
+    private static final Pattern TEST_ANNOTATION_PATTERN = Pattern.compile("@Test\\b");
 
     /**
      * Determines the build mode of the Java project.
@@ -87,9 +83,7 @@ public class JavaProgrammingExerciseScanner implements JavaScanner {
      */
     @Nonnull
     public String[] scanForTestClasses() {
-        return scanJavaFiles(this::extractTestClass)
-                .filter(Objects::nonNull)
-                .toArray(String[]::new);
+        return scanJavaFiles(this::extractTestClass).filter(Objects::nonNull).toArray(String[]::new);
     }
 
     /**
@@ -101,14 +95,9 @@ public class JavaProgrammingExerciseScanner implements JavaScanner {
      */
     @Nonnull
     public String scanForPackageName() {
-        Map<String, Long> packageCounts = scanJavaFiles(this::extractPackageName)
-                .filter(Objects::nonNull)
-                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+        Map<String, Long> packageCounts = scanJavaFiles(this::extractPackageName).filter(Objects::nonNull).collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
 
-        return packageCounts.entrySet().stream()
-                .max(Map.Entry.comparingByValue())
-                .map(Map.Entry::getKey)
-                .orElse(DEFAULT_PACKAGE);
+        return packageCounts.entrySet().stream().max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElse(DEFAULT_PACKAGE);
     }
 
     /**
@@ -120,15 +109,10 @@ public class JavaProgrammingExerciseScanner implements JavaScanner {
      */
     @Nonnull
     public String scanForMainClassInPackage() {
-        List<String> mainClasses = scanJavaFiles(this::extractMainClass)
-                .filter(Objects::nonNull)
-                .toList();
+        List<String> mainClasses = scanJavaFiles(this::extractMainClass).filter(Objects::nonNull).toList();
 
         // Prioritise classes named "Main" or "Application"
-        return mainClasses.stream()
-                .filter(name -> "Main".equals(name) || "Application".equals(name))
-                .findFirst()
-                .orElse(!mainClasses.isEmpty() ? mainClasses.getFirst() : DEFAULT_MAIN_CLASS);
+        return mainClasses.stream().filter(name -> "Main".equals(name) || "Application".equals(name)).findFirst().orElse(!mainClasses.isEmpty() ? mainClasses.getFirst() : DEFAULT_MAIN_CLASS);
     }
 
     /**
@@ -184,16 +168,15 @@ public class JavaProgrammingExerciseScanner implements JavaScanner {
      * @return a stream of extracted values
      */
     private <T> Stream<T> scanJavaFiles(Function<String, T> extractor) {
-        return getJavaFiles().stream()
-                .flatMap(file -> {
-                    try {
-                        String content = Files.readString(file);
-                        T result = extractor.apply(content);
-                        return result != null ? Stream.of(result) : Stream.empty();
-                    } catch (IOException e) {
-                        return Stream.empty();
-                    }
-                });
+        return getJavaFiles().stream().flatMap(file -> {
+            try {
+                String content = Files.readString(file);
+                T result = extractor.apply(content);
+                return result != null ? Stream.of(result) : Stream.empty();
+            } catch (IOException e) {
+                return Stream.empty();
+            }
+        });
     }
 
     /**
@@ -204,18 +187,13 @@ public class JavaProgrammingExerciseScanner implements JavaScanner {
      * @return a list of paths to Java files
      */
     private List<Path> getJavaFiles() {
-        return ProjectSourcesFinder.findProjectSourcesPath()
-                .map(sourcePath -> {
-                    try (Stream<Path> stream = Files.find(
-                            sourcePath,
-                            Integer.MAX_VALUE,
-                            this::fileIsJavaFile)) {
-                        return stream.collect(Collectors.toList());
-                    } catch (IOException e) {
-                        return Collections.<Path>emptyList();
-                    }
-                })
-                .orElse(Collections.emptyList());
+        return ProjectSourcesFinder.findProjectSourcesPath().map(sourcePath -> {
+            try (Stream<Path> stream = Files.find(sourcePath, Integer.MAX_VALUE, this::fileIsJavaFile)) {
+                return stream.collect(Collectors.toList());
+            } catch (IOException e) {
+                return Collections.<Path>emptyList();
+            }
+        }).orElse(Collections.emptyList());
     }
 
     /**
@@ -281,8 +259,7 @@ public class JavaProgrammingExerciseScanner implements JavaScanner {
      * @return the fully qualified name of the test class if the file is a test class, otherwise null
      */
     private String extractTestClass(String content) {
-        boolean isTest = TEST_ANNOTATION_PATTERN.matcher(content).find() ||
-                content.contains("extends TestCase");
+        boolean isTest = TEST_ANNOTATION_PATTERN.matcher(content).find() || content.contains("extends TestCase");
 
         if (isTest) {
             String packageName = extractPackageName(content);

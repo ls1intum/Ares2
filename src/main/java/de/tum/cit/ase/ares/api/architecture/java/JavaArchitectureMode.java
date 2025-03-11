@@ -8,20 +8,42 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
 
-// TODO: Add documentation
+/**
+ * Enum representing the architecture modes for Java security test cases.
+ *
+ * <p>Description: Provides different modes for architecture test case generation and execution in Java.
+ * The modes determine how files and settings are copied and resolved based on the underlying architecture analysis tool.</p>
+ *
+ * <p>Design Rationale: Using an enum to represent architecture modes centralises configuration and enables future extensions
+ * (e.g. supporting WALA) while ensuring that file handling and resource resolution are consistently applied.</p>
+ *
+ * @since 2.0.0
+ * @author Markus Paulsen
+ * @version 2.0.0
+ */
 public enum JavaArchitectureMode {
+
     /**
-     * The ArchUnit architecture mode.
+     * ArchUnit mode for analysing Java code with ArchUnit.
      */
     ARCHUNIT,
+
     /**
-     * The WALA architecture mode.
+     * WALA mode for analysing Java code with WALA.
      */
     WALA;
 
     //<editor-fold desc="Multi-file methods">
+
+    /**
+     * Retrieves the list of resource file paths to copy for the current architecture mode.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @return a list of paths representing the resource files to copy.
+     */
     @Nonnull
     public List<Path> filesToCopy() {
         return (switch (this) {
@@ -47,6 +69,14 @@ public enum JavaArchitectureMode {
         }).map(FileTools::resolveOnResources).toList();
     }
 
+    /**
+     * Retrieves the file value arrays based on the provided package name.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @param packageName the base package name.
+     * @return a list of string arrays representing file values.
+     */
     @Nonnull
     public List<String[]> fileValues(@Nonnull String packageName) {
         return (switch (this) {
@@ -68,10 +98,19 @@ public enum JavaArchitectureMode {
                     FileTools.generatePackageNameArray(packageName, 1)
             );
             // Todo: Add WALA and remove default
-            default ->  throw new SecurityException(localize("security.common.unsupported.operation", this));
+            default -> throw new SecurityException(localize("security.common.unsupported.operation", this));
         }).toList();
     }
 
+    /**
+     * Determines the target paths for copying resource files based on the project path and package name.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @param projectPath the project path.
+     * @param packageName the base package name.
+     * @return a list of paths representing the target locations.
+     */
     @Nonnull
     public List<Path> targetsToCopyTo(@Nonnull Path projectPath, @Nonnull String packageName) {
         return (switch (this) {
@@ -93,23 +132,38 @@ public enum JavaArchitectureMode {
                     new String[]{"api", "architecture", "java", "archunit", "JavaArchUnitTestCaseSupported.java"}
             );
             // Todo: Add WALA and remove default
-            default ->  throw new SecurityException(localize("security.common.unsupported.operation", this));
+            default -> throw new SecurityException(localize("security.common.unsupported.operation", this));
         }).map(pathParticles -> FileTools.resolveOnTests(projectPath, packageName, pathParticles)).toList();
     }
     //</editor-fold>
 
     //<editor-fold desc="Single-file methods">
+
+    /**
+     * Retrieves the path to the file header template for the three-parted file.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @return the path to the file header template.
+     */
     @Nonnull
     public Path threePartedFileHeader() {
         return FileTools.resolveOnResources(switch (this) {
             case ARCHUNIT ->
                     new String[]{"templates", "architecture", "java", "archunit", "JavaArchitectureTestCaseCollectionHeader.txt"};
             // Todo: Add WALA and remove default
-            default ->  throw new SecurityException(localize("security.common.unsupported.operation", this));
+            default -> throw new SecurityException(localize("security.common.unsupported.operation", this));
         });
     }
 
-    // TODO: List<?> testCases should not be <?>
+    /**
+     * Generates the body content for the three-parted file by concatenating the architecture test case definitions.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @param testCases the list of test cases.
+     * @return a string representing the body content.
+     */
     @SuppressWarnings("unchecked")
     @Nonnull
     public String threePartedFileBody(List<?> testCases) {
@@ -117,39 +171,64 @@ public enum JavaArchitectureMode {
             case ARCHUNIT ->
                     String.join("\n", ((List<JavaArchUnitSecurityTestCase>) testCases).stream().map(JavaArchUnitSecurityTestCase::writeArchitectureTestCase).toList());
             // Todo: Add WALA and remove default
-            default ->  throw new SecurityException(localize("security.common.unsupported.operation", this));
+            default -> throw new SecurityException(localize("security.common.unsupported.operation", this));
         };
     }
 
+    /**
+     * Retrieves the path to the file footer template for the three-parted file.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @return the path to the file footer template.
+     */
     @Nonnull
     public Path threePartedFileFooter() {
         return FileTools.resolveOnResources(switch (this) {
             case ARCHUNIT ->
                     new String[]{"templates", "architecture", "java", "archunit", "JavaArchitectureTestCaseCollectionFooter.txt"};
             // Todo: Add WALA and remove default
-            default ->  throw new SecurityException(localize("security.common.unsupported.operation", this));
+            default -> throw new SecurityException(localize("security.common.unsupported.operation", this));
         });
     }
 
+    /**
+     * Generates the file value array based on the provided package name.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @param packageName the base package name.
+     * @return an array of strings representing the file value.
+     */
     @Nonnull
     public String[] fileValue(@Nonnull String packageName) {
         return switch (this) {
             case ARCHUNIT -> FileTools.generatePackageNameArray(packageName, 2);
             // Todo: Add WALA and remove default
-            default ->  throw new SecurityException(localize("security.common.unsupported.operation", this));
+            default -> throw new SecurityException(localize("security.common.unsupported.operation", this));
         };
     }
 
+    /**
+     * Determines the target path for copying the main architecture test case file based on the project path and package name.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @param projectPath the project path.
+     * @param packageName the base package name.
+     * @return the target path for the main file.
+     */
     @Nonnull
     public Path targetToCopyTo(@Nonnull Path projectPath, @Nonnull String packageName) {
         return FileTools.resolveOnTests(projectPath, packageName, switch (this) {
             case ARCHUNIT -> new String[]{"api", "architecture", "java", "archunit", "JavaArchUnitTestCaseCollection.txt"};
             // Todo: Add WALA and remove default
-            default ->  throw new SecurityException(localize("security.common.unsupported.operation", this));
+            default -> throw new SecurityException(localize("security.common.unsupported.operation", this));
         });
     }
     //</editor-fold>
 
     //<editor-fold desc="Reset methods">
+    // (No reset methods defined for JavaArchitectureMode)
     //</editor-fold>
 }

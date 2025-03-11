@@ -1,7 +1,7 @@
 package %s.api.aop.java.instrumentation.pointcut;
 
 import %s.api.aop.java.JavaSecurityTestCaseSettings;
-import %s.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox;
+import %s.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
 import %s.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathConstructorAdvice;
 import %s.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathMethodAdvice;
 import %s.api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathConstructorAdvice;
@@ -95,8 +95,8 @@ public class JavaInstrumentationBindingDefinitions {
             new ClassInjector
                     .UsingUnsafe(classLoader)
                     .inject(Map.of(
-                            new TypeDescription.ForLoadedType(JavaInstrumentationAdviceToolbox.class),
-                            ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceToolbox.class),
+                            new TypeDescription.ForLoadedType(JavaInstrumentationAdviceFileSystemToolbox.class),
+                            ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceFileSystemToolbox.class),
                             new TypeDescription.ForLoadedType(JavaSecurityTestCaseSettings.class),
                             ClassFileLocator.ForClassLoader.read(JavaSecurityTestCaseSettings.class)
                     ));

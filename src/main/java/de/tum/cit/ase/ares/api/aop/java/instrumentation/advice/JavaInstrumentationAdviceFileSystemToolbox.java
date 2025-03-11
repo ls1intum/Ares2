@@ -21,7 +21,7 @@ import java.nio.file.InvalidPathException;
  * variable criteria, and determine whether certain file system operations are permitted. This helps
  * enforce security policies at runtime and block unauthorized file interactions.
  */
-public class JavaInstrumentationAdviceToolbox {
+public class JavaInstrumentationAdviceFileSystemToolbox {
     // Skip the OutputTester and InputTester classes, as they intercept the output and input for System.out and System.in
     // Therefore, they cause false positives.
     // Also, X11FontManager needs to be set when using AWT therefore we have to allow it
@@ -34,8 +34,8 @@ public class JavaInstrumentationAdviceToolbox {
     /**
      * Private constructor to prevent instantiation of this utility class.
      */
-    protected JavaInstrumentationAdviceToolbox() {
-        throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): JavaInstrumentationAdviceToolbox is a utility class and should not be instantiated.");
+    protected JavaInstrumentationAdviceFileSystemToolbox() {
+        throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): JavaInstrumentationAdviceFileSystemToolbox is a utility class and should not be instantiated.");
     }
     //</editor-fold>
 

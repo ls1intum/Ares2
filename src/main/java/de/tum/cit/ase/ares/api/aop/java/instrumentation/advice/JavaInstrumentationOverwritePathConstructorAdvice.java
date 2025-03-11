@@ -8,7 +8,7 @@ import net.bytebuddy.asm.Advice;
  * security policies defined within the application.
  * <p>
  * If an execution attempt violates these policies, a SecurityException is thrown, preventing
- * unauthorized file overwritings. The class interacts with the JavaInstrumentationAdviceToolbox to
+ * unauthorized file overwritings. The class interacts with the JavaInstrumentationAdviceFileSystemToolbox to
  * perform these security checks.
  */
 public class JavaInstrumentationOverwritePathConstructorAdvice {
@@ -18,7 +18,7 @@ public class JavaInstrumentationOverwritePathConstructorAdvice {
      * to file system security policies. If the constructor execution is not permitted, a SecurityException
      * is thrown, blocking the execution.
      * <p>
-     * The checkFileSystemInteraction method from JavaInstrumentationAdviceToolbox is called to
+     * The checkFileSystemInteraction method from JavaInstrumentationAdviceFileSystemToolbox is called to
      * perform these checks, ensuring that the constructor's parameters
      * adhere to the security restrictions.
      *
@@ -30,7 +30,7 @@ public class JavaInstrumentationOverwritePathConstructorAdvice {
             @Advice.Origin("#t") String declaringTypeName,
             @Advice.AllArguments Object... parameters
     ) {
-        JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
+        JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction(
                 "overwrite",
                 declaringTypeName,
                 "<init>",

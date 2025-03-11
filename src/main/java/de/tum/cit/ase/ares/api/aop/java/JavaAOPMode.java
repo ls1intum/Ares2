@@ -1,184 +1,206 @@
 package de.tum.cit.ase.ares.api.aop.java;
 
+import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaCSVFileLoader;
+import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaFileLoader;
+import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
 import javax.annotation.Nonnull;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.List;
-import java.util.stream.Stream;
+import java.util.function.Supplier;
 
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
 
 /**
- * Enum representing the different modes of Aspect-Oriented Programming (AOP)
- * available for Java in Ares.
+ * Enum representing the AOP modes for Java security test case configuration.
  *
- * <p>This enum provides two modes:</p>
- * <ul>
- *   <li>{@link #INSTRUMENTATION} - A mode using Java Instrumentation for weaving aspects into the code.</li>
- *   <li>{@link #ASPECTJ} - A mode using AspectJ for weaving aspects into the code.</li>
- * </ul>
+ * <p>Description: Defines the different modes of aspect-oriented programming available for Java.
+ * The modes determine whether Java Instrumentation or AspectJ is used for weaving aspects into the code.</p>
+ *
+ * <p>Design Rationale: By abstracting AOP mode selection into an enum, the implementation details are hidden,
+ * enabling flexible integration of either instrumentation-based or AspectJ-based approaches with a consistent interface.</p>
+ *
+ * @since 2.0.0
+ * @author Markus Paulsen
+ * @version 2.0.0
  */
 public enum JavaAOPMode {
 
     /**
-     * Instrumentation mode.
-     *
-     * <p>In this mode, Java Instrumentation is used to weave aspects into the code at load-time.</p>
+     * Instrumentation mode using Java Instrumentation for load-time weaving.
      */
     INSTRUMENTATION,
 
     /**
-     * AspectJ mode.
-     *
-     * <p>In this mode, AspectJ is used to weave aspects into the code at compile-time.</p>
+     * AspectJ mode using AspectJ for compile-time weaving.
      */
     ASPECTJ;
 
+    private final List<List<String>> copyConfigurationEntries;
+    private final List<List<String>> editConfigurationEntries;
+
+    JavaAOPMode() {
+        JavaFileLoader loader = new JavaCSVFileLoader();
+        copyConfigurationEntries = loader.loadCopyData(this);
+        editConfigurationEntries = loader.loadEditData(this);
+    }
+
     //<editor-fold desc="Multi-file methods">
+
     /**
-     * Retrieves a list of file paths to copy for the specific AOP mode.
+     * Retrieves the list of resource file paths to copy for the selected AOP mode.
      *
-     * @return a list of file paths for the selected AOP mode (AspectJ or Instrumentation).
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @return a list of paths representing the resource files to copy.
      */
     @Nonnull
     public List<Path> filesToCopy() {
-        return (switch (this) {
-            case ASPECTJ -> Stream.of(
-                    new String[]{"templates", "aop", "java", "aspectj", "adviceandpointcut", "JavaAspectJFileSystemAdviceDefinitions.aj"},
-                    new String[]{"templates", "aop", "java", "aspectj", "adviceandpointcut", "JavaAspectJFileSystemPointcutDefinitions.aj"}
-            );
-            case INSTRUMENTATION -> Stream.of(
-                    new String[]{"templates", "aop", "java", "instrumentation", "advice", "JavaInstrumentationAdviceToolbox.java"},
-                    new String[]{"templates", "aop", "java", "instrumentation", "advice", "JavaInstrumentationDeletePathMethodAdvice.java"},
-                    new String[]{"templates", "aop", "java", "instrumentation", "advice", "JavaInstrumentationExecutePathMethodAdvice.java"},
-                    new String[]{"templates", "aop", "java", "instrumentation", "advice", "JavaInstrumentationOverwritePathMethodAdvice.java"},
-                    new String[]{"templates", "aop", "java", "instrumentation", "advice", "JavaInstrumentationReadPathMethodAdvice.java"},
-                    new String[]{"templates", "aop", "java", "instrumentation", "advice", "JavaInstrumentationDeletePathConstructorAdvice.java"},
-                    new String[]{"templates", "aop", "java", "instrumentation", "advice", "JavaInstrumentationExecutePathConstructorAdvice.java"},
-                    new String[]{"templates", "aop", "java", "instrumentation", "advice", "JavaInstrumentationOverwritePathConstructorAdvice.java"},
-                    new String[]{"templates", "aop", "java", "instrumentation", "advice", "JavaInstrumentationReadPathConstructorAdvice.java"},
-                    new String[]{"templates", "aop", "java", "instrumentation", "pointcut", "JavaInstrumentationBindingDefinitions.java"},
-                    new String[]{"templates", "aop", "java", "instrumentation", "pointcut", "JavaInstrumentationPointcutDefinitions.java"},
-                    new String[]{"templates", "aop", "java", "instrumentation", "JavaInstrumentationAgent.java"},
-                    new String[]{"templates", "META-INF", "MANIFEST.MF"}
-            );
-        }).map(FileTools::resolveOnResources).toList();
+        return copyConfigurationEntries.stream()
+                .map(entry -> entry.getFirst().split("/"))
+                .map(FileTools::resolveOnResources)
+                .toList();
     }
 
     /**
-     * Retrieves the values for file templates to copy based on the AOP mode.
+     * Retrieves the file value arrays based on the provided package name and main class name.
      *
-     * @param packageName            the base package name for the Java files.
-     * @param mainClassInPackageName the main class inside the package.
-     * @return a list of arrays representing the file values to be copied.
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @param packageName the base package name.
+     * @param mainClassInPackageName the name of the main class within the package.
+     * @return a list of string arrays representing the file values.
      */
     @Nonnull
     public List<String[]> fileValues(@Nonnull String packageName, @Nonnull String mainClassInPackageName) {
-        return switch (this) {
-            case ASPECTJ -> Stream.of(
-                            FileTools.generatePackageNameArray(packageName, 28),
-                            FileTools.generatePackageNameArray(packageName, 1))
-                    .toList();
-            case INSTRUMENTATION -> Stream.of(
-                            FileTools.generatePackageNameArray(packageName, 2),
-                            FileTools.generatePackageNameArray(packageName, 1),
-                            FileTools.generatePackageNameArray(packageName, 1),
-                            FileTools.generatePackageNameArray(packageName, 1),
-                            FileTools.generatePackageNameArray(packageName, 1),
-                            FileTools.generatePackageNameArray(packageName, 1),
-                            FileTools.generatePackageNameArray(packageName, 1),
-                            FileTools.generatePackageNameArray(packageName, 1),
-                            FileTools.generatePackageNameArray(packageName, 1),
-                            FileTools.generatePackageNameArray(packageName, 11),
-                            FileTools.generatePackageNameArray(packageName, 1),
-                            FileTools.generatePackageNameArray(packageName, 3),
-                            new String[]{packageName, packageName, mainClassInPackageName}
-                    )
-                    .toList();
-        };
+        return copyConfigurationEntries.stream()
+                .map(entry -> entry.get(1))
+                .map(Integer::parseInt)
+                .map(entry -> switch (entry){
+                    case 0 -> new String[]{packageName, packageName, mainClassInPackageName};
+                    default -> FileTools.generatePackageNameArray(packageName, entry);
+                })
+                .toList();
     }
 
     /**
-     * Determines the target locations where the files should be copied for the selected AOP mode.
+     * Determines the target paths where resource files should be copied for the selected AOP mode.
      *
-     * @param projectPath the path to the project where files should be copied.
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @param projectPath the project path.
      * @param packageName the base package name.
-     * @return a list of paths representing the copy targets.
+     * @return a list of paths representing the target locations.
      */
     @Nonnull
     public List<Path> targetsToCopyTo(@Nonnull Path projectPath, @Nonnull String packageName) {
-        return (switch (this) {
-            case ASPECTJ -> Stream.of(
-                    new String[]{"aop", "java", "aspectj", "adviceandpointcut", "JavaAspectJFileSystemAdviceDefinitions.aj"},
-                    new String[]{"aop", "java", "aspectj", "adviceandpointcut", "JavaAspectJFileSystemPointcutDefinitions.aj"}
-            );
-            case INSTRUMENTATION -> Stream.of(
-                    new String[]{"api", "aop", "java", "instrumentation", "advice", "JavaInstrumentationAdviceToolbox.java"},
-                    new String[]{"api", "aop", "java", "instrumentation", "advice", "JavaInstrumentationDeletePathMethodAdvice.java"},
-                    new String[]{"api", "aop", "java", "instrumentation", "advice", "JavaInstrumentationExecutePathMethodAdvice.java"},
-                    new String[]{"api", "aop", "java", "instrumentation", "advice", "JavaInstrumentationOverwritePathMethodAdvice.java"},
-                    new String[]{"api", "aop", "java", "instrumentation", "advice", "JavaInstrumentationReadPathMethodAdvice.java"},
-                    new String[]{"api", "aop", "java", "instrumentation", "advice", "JavaInstrumentationDeletePathConstructorAdvice.java"},
-                    new String[]{"api", "aop", "java", "instrumentation", "advice", "JavaInstrumentationExecutePathConstructorAdvice.java"},
-                    new String[]{"api", "aop", "java", "instrumentation", "advice", "JavaInstrumentationOverwritePathConstructorAdvice.java"},
-                    new String[]{"api", "aop", "java", "instrumentation", "advice", "JavaInstrumentationReadPathConstructorAdvice.java"},
-                    new String[]{"api", "aop", "java", "instrumentation", "pointcut", "JavaInstrumentationBindingDefinitions.java"},
-                    new String[]{"api", "aop", "java", "instrumentation", "pointcut", "JavaInstrumentationPointcutDefinitions.java"},
-                    new String[]{"api", "aop", "java", "instrumentation", "JavaInstrumentationAgent.java"},
-                    new String[]{"META-INF", "MANIFEST.MF"}
-            );
-        }).map(pathParticles -> FileTools.resolveOnTests(projectPath, packageName, pathParticles)).toList();
+        return copyConfigurationEntries.stream()
+                .map(entry -> entry.get(2).split("/"))
+                .map(FileTools::resolveOnResources)
+                .toList();
     }
     //</editor-fold>
 
     //<editor-fold desc="Single-file methods">
+
     /**
-     * Retrieves the file header for the three-parted security test case file.
+     * Retrieves the path to the header template for the three-parted security test case file.
      *
-     * @return the path to the file header template.
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @return the path to the header template.
      */
     @Nonnull
     public Path threePartedFileHeader() {
-        return FileTools.resolveOnResources("templates", "aop", "java", "JavaSecurityTestCaseSettingsHeader.txt");
+        return editConfigurationEntries.stream()
+                .map(entry -> entry.getFirst().split("/"))
+                .map(FileTools::resolveOnResources)
+                .toList().getFirst();
     }
 
     /**
-     * Generates the body for the three-parted security test case file based on the provided mode and classes.
+     * Generates the body content for the three-parted security test case file.
      *
-     * @param aopMode               the AOP mode (AspectJ or Instrumentation).
-     * @param restrictedPackage     the package being restricted by the security test cases.
-     * @param allowedListedClasses  the list of allowed classes in the restricted package.
-     * @param javaSecurityTestCases the list of security test cases.
-     * @return the body of the three-parted security test case file.
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @param aopMode the AOP mode identifier.
+     * @param restrictedPackage the package being restricted.
+     * @param allowedListedClasses the list of allowed classes.
+     * @param javaAOPTestCases the list of security test cases.
+     * @return a string representing the body content.
      */
     @Nonnull
     public String threePartedFileBody(
             @Nonnull String aopMode,
             @Nonnull String restrictedPackage,
             @Nonnull List<String> allowedListedClasses,
-            @Nonnull List<JavaAOPTestCase> javaSecurityTestCases
+            @Nonnull List<JavaAOPTestCase> javaAOPTestCases
     ) {
-        return JavaAOPTestCase.writeAOPSecurityTestCaseFile(aopMode, restrictedPackage, allowedListedClasses, javaSecurityTestCases);
+        List<SecurityPolicy.SupervisedCode.FilePermission> filePermissions =
+                extractPermissions(javaAOPTestCases, JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION);
+        List<SecurityPolicy.SupervisedCode.NetworkPermission> networkPermissions =
+                extractPermissions(javaAOPTestCases, JavaAOPTestCaseSupported.NETWORK_CONNECTION);
+        List<SecurityPolicy.SupervisedCode.CommandPermission> commandPermissions =
+                extractPermissions(javaAOPTestCases, JavaAOPTestCaseSupported.COMMAND_EXECUTION);
+        List<SecurityPolicy.SupervisedCode.ThreadPermission> threadPermissions =
+                extractPermissions(javaAOPTestCases, JavaAOPTestCaseSupported.THREAD_CREATION);
+
+        return JavaAOPTestCase.writeAOPSecurityTestCaseFile(
+                aopMode,
+                restrictedPackage,
+                allowedListedClasses,
+                filePermissions,
+                networkPermissions,
+                commandPermissions,
+                threadPermissions
+        );
     }
 
     /**
-     * Retrieves the file footer for the three-parted security test case file.
+     * Extracts and flattens the permission lists for the given supported type.
      *
-     * @return the path to the file footer template.
+     * @param <T> the type of permission.
+     * @param testCases the list of JavaAOPTestCase.
+     * @param supported the JavaAOPTestCaseSupported filter.
+     * @return a flattened list of permissions of type T.
+     */
+    @SuppressWarnings("unchecked")
+    private <T> List<T> extractPermissions(List<JavaAOPTestCase> testCases, JavaAOPTestCaseSupported supported) {
+        return testCases.stream()
+                .filter(testCase -> testCase.getJavaAOPTestCaseSupported() == supported)
+                .map(JavaAOPTestCase::getResourceAccessSupplier)
+                .map(Supplier::get)
+                .map(permissions -> (List<T>) permissions)
+                .flatMap(Collection::stream)
+                .toList();
+    }
+
+    /**
+     * Retrieves the path to the footer template for the three-parted security test case file.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @return the path to the footer template.
      */
     @Nonnull
     public Path threePartedFileFooter() {
-        return FileTools.resolveOnResources("templates", "aop", "java", "JavaSecurityTestCaseSettingsFooter.txt");
+        return editConfigurationEntries.stream()
+                .map(entry -> entry.get(1).split("/"))
+                .map(FileTools::resolveOnResources)
+                .toList().getFirst();
     }
 
     /**
-     * Generates the file value array based on the package name.
+     * Generates the file value array based on the provided package name.
      *
+     * @since 2.0.0
+     * @author Markus Paulsen
      * @param packageName the base package name.
-     * @return an array representing the file value.
+     * @return an array of strings representing the file value.
      */
     @Nonnull
     public String[] fileValue(@Nonnull String packageName) {
@@ -186,23 +208,30 @@ public enum JavaAOPMode {
     }
 
     /**
-     * Determines the target path for the main configuration file.
+     * Determines the target path for the main AOP configuration file based on the project path and package name.
      *
-     * @param projectPath the path to the project.
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @param projectPath the project path.
      * @param packageName the base package name.
-     * @return the target path for the main configuration file.
+     * @return the target path for the AOP configuration file.
      */
     @Nonnull
     public Path targetToCopyTo(@Nonnull Path projectPath, @Nonnull String packageName) {
-        return FileTools.resolveOnTests(projectPath, packageName, "api", "aop", "java", "JavaSecurityTestCaseSettings.java");
+        return editConfigurationEntries.stream()
+                .map(entry -> entry.get(2).split("/"))
+                .map(FileTools::resolveOnResources)
+                .toList().getFirst();
     }
     //</editor-fold>
 
     //<editor-fold desc="Reset methods">
+
     /**
-     * Resets the security test case settings.
+     * Resets the AOP test case settings by invoking the reset method using reflection.
      *
-     * <p>This method invokes the reset method in the settings class using reflection.</p>
+     * @since 2.0.0
+     * @author Markus Paulsen
      */
     public void reset() {
         try {
@@ -212,16 +241,12 @@ public enum JavaAOPMode {
             method.setAccessible(true);
             method.invoke(null);
             method.setAccessible(false);
-
         } catch (ClassNotFoundException e) {
             throw new SecurityException(localize("security.creation.reset.class.not.found.exception"), e);
-
         } catch (NoSuchMethodException e) {
             throw new SecurityException(localize("security.creation.reset.no.method.exception"), e);
-
         } catch (IllegalAccessException e) {
             throw new SecurityException(localize("security.creation.reset.illegal.access.exception"), e);
-
         } catch (InvocationTargetException e) {
             throw new SecurityException(localize("security.creation.reset.invocation.target.exception"), e);
         }

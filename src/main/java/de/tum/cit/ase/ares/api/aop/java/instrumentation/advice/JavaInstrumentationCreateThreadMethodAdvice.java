@@ -3,7 +3,7 @@ package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
 import static net.bytebuddy.asm.Advice.*;
 
 /**
@@ -12,7 +12,7 @@ import static net.bytebuddy.asm.Advice.*;
  * security policies defined within the application.
  * <p>
  * If an execution attempt violates these policies, a SecurityException is thrown, preventing
- * unauthorized thread creation. The class interacts with the JavaInstrumentationAdviceToolbox to
+ * unauthorized thread creation. The class interacts with the JavaInstrumentationAdviceFileSystemToolbox to
  * perform these security checks.
  */
 public class JavaInstrumentationCreateThreadMethodAdvice {
@@ -22,7 +22,7 @@ public class JavaInstrumentationCreateThreadMethodAdvice {
      * to thread system security policies. If the method execution is not permitted, a SecurityException
      * is thrown, blocking the execution.
      * <p>
-     * The checkThreadSystemInteraction method from JavaInstrumentationAdviceThreadToolbox is called to
+     * The checkThreadSystemInteraction method from JavaInstrumentationAdviceThreadSystemToolbox is called to
      * perform these checks, ensuring that both the method's parameters and the instance fields
      * adhere to the security restrictions.
      *
@@ -67,7 +67,7 @@ public class JavaInstrumentationCreateThreadMethodAdvice {
         //</editor-fold>
 
         //<editor-fold desc="Check">
-        JavaInstrumentationAdviceThreadToolbox.checkThreadSystemInteraction(
+        JavaInstrumentationAdviceThreadSystemToolbox.checkThreadSystemInteraction(
                 "create",
                 declaringTypeName,
                 methodName,
