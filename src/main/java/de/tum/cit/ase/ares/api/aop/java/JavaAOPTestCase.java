@@ -6,6 +6,10 @@ import de.tum.cit.ase.ares.api.aop.AOPTestCase;
 import de.tum.cit.ase.ares.api.aop.java.javaAOPTestCaseToolbox.JavaAOPAdviceSettingTriple;
 import de.tum.cit.ase.ares.api.aop.java.javaAOPTestCaseToolbox.JavaAOPTestCaseToolbox;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.CommandPermission;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.NetworkPermission;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ThreadPermission;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -198,10 +202,10 @@ public class JavaAOPTestCase implements AOPTestCase {
      * @return a list of permitted paths.
      */
     @Nonnull
-    private static List<String> extractPaths(@Nonnull List<SecurityPolicy.SupervisedCode.FilePermission> configs, @Nonnull Predicate<SecurityPolicy.SupervisedCode.FilePermission> predicate) {
+    private static List<String> extractPaths(@Nonnull List<FilePermission> configs, @Nonnull Predicate<FilePermission> predicate) {
         return configs.stream()
                 .filter(predicate)
-                .map(SecurityPolicy.SupervisedCode.FilePermission::onThisPathAndAllPathsBelow)
+                .map(FilePermission::onThisPathAndAllPathsBelow)
                 .toList();
     }
 
@@ -213,18 +217,18 @@ public class JavaAOPTestCase implements AOPTestCase {
      */
     @Nonnull
     private List<String> getPermittedFilePaths(@Nonnull String filePermission) {
-        @Nonnull Predicate<SecurityPolicy.SupervisedCode.FilePermission> filter = switch (filePermission) {
-            case "read" -> SecurityPolicy.SupervisedCode.FilePermission::readAllFiles;
-            case "overwrite" -> SecurityPolicy.SupervisedCode.FilePermission::overwriteAllFiles;
-            case "execute" -> SecurityPolicy.SupervisedCode.FilePermission::executeAllFiles;
-            case "delete" -> SecurityPolicy.SupervisedCode.FilePermission::deleteAllFiles;
+        @Nonnull Predicate<FilePermission> filter = switch (filePermission) {
+            case "read" -> FilePermission::readAllFiles;
+            case "overwrite" -> FilePermission::overwriteAllFiles;
+            case "execute" -> FilePermission::executeAllFiles;
+            case "delete" -> FilePermission::deleteAllFiles;
             default ->
                     throw new IllegalArgumentException(localize("security.advice.settings.invalid.file.permission", filePermission));
         };
-        return ((List<SecurityPolicy.SupervisedCode.FilePermission>) resourceAccessSupplier.get())
+        return ((List<FilePermission>) resourceAccessSupplier.get())
                 .stream()
                 .filter(filter)
-                .map(SecurityPolicy.SupervisedCode.FilePermission::onThisPathAndAllPathsBelow)
+                .map(FilePermission::onThisPathAndAllPathsBelow)
                 .toList();
     }
 
@@ -240,10 +244,10 @@ public class JavaAOPTestCase implements AOPTestCase {
      * @return a list of permitted hosts.
      */
     @Nonnull
-    private static List<String> extractHosts(@Nonnull List<SecurityPolicy.SupervisedCode.NetworkPermission> configs, @Nonnull Predicate<SecurityPolicy.SupervisedCode.NetworkPermission> predicate) {
+    private static List<String> extractHosts(@Nonnull List<NetworkPermission> configs, @Nonnull Predicate<NetworkPermission> predicate) {
         return configs.stream()
                 .filter(predicate)
-                .map(SecurityPolicy.SupervisedCode.NetworkPermission::onTheHost)
+                .map(NetworkPermission::onTheHost)
                 .toList();
     }
 
@@ -255,10 +259,10 @@ public class JavaAOPTestCase implements AOPTestCase {
      * @return a list of permitted ports.
      */
     @Nonnull
-    private static List<String> extractPorts(@Nonnull List<SecurityPolicy.SupervisedCode.NetworkPermission> configs, @Nonnull Predicate<SecurityPolicy.SupervisedCode.NetworkPermission> predicate) {
+    private static List<String> extractPorts(@Nonnull List<NetworkPermission> configs, @Nonnull Predicate<NetworkPermission> predicate) {
         return configs.stream()
                 .filter(predicate)
-                .map(SecurityPolicy.SupervisedCode.NetworkPermission::onThePort)
+                .map(NetworkPermission::onThePort)
                 .map(String::valueOf)
                 .toList();
     }
@@ -271,17 +275,17 @@ public class JavaAOPTestCase implements AOPTestCase {
      */
     @Nonnull
     private List<String> getPermittedNetworkHosts(@Nonnull String networkPermission) {
-        @Nonnull Predicate<SecurityPolicy.SupervisedCode.NetworkPermission> filter = switch (networkPermission) {
-            case "connect" -> SecurityPolicy.SupervisedCode.NetworkPermission::openConnections;
-            case "send" -> SecurityPolicy.SupervisedCode.NetworkPermission::sendData;
-            case "receive" -> SecurityPolicy.SupervisedCode.NetworkPermission::receiveData;
+        @Nonnull Predicate<NetworkPermission> filter = switch (networkPermission) {
+            case "connect" -> NetworkPermission::openConnections;
+            case "send" -> NetworkPermission::sendData;
+            case "receive" -> NetworkPermission::receiveData;
             default ->
                     throw new IllegalArgumentException(localize("security.advice.settings.invalid.network.permission", networkPermission));
         };
-        return ((List<SecurityPolicy.SupervisedCode.NetworkPermission>) resourceAccessSupplier.get())
+        return ((List<NetworkPermission>) resourceAccessSupplier.get())
                 .stream()
                 .filter(filter)
-                .map(SecurityPolicy.SupervisedCode.NetworkPermission::onTheHost)
+                .map(NetworkPermission::onTheHost)
                 .toList();
     }
 
@@ -293,17 +297,17 @@ public class JavaAOPTestCase implements AOPTestCase {
      */
     @Nonnull
     private List<Integer> getPermittedNetworkPorts(@Nonnull String networkPermission) {
-        @Nonnull Predicate<SecurityPolicy.SupervisedCode.NetworkPermission> filter = switch (networkPermission) {
-            case "connect" -> SecurityPolicy.SupervisedCode.NetworkPermission::openConnections;
-            case "send" -> SecurityPolicy.SupervisedCode.NetworkPermission::sendData;
-            case "receive" -> SecurityPolicy.SupervisedCode.NetworkPermission::receiveData;
+        @Nonnull Predicate<NetworkPermission> filter = switch (networkPermission) {
+            case "connect" -> NetworkPermission::openConnections;
+            case "send" -> NetworkPermission::sendData;
+            case "receive" -> NetworkPermission::receiveData;
             default ->
                     throw new IllegalArgumentException(localize("security.advice.settings.invalid.network.permission", networkPermission));
         };
-        return ((List<SecurityPolicy.SupervisedCode.NetworkPermission>) resourceAccessSupplier.get())
+        return ((List<NetworkPermission>) resourceAccessSupplier.get())
                 .stream()
                 .filter(filter)
-                .map(SecurityPolicy.SupervisedCode.NetworkPermission::onThePort)
+                .map(NetworkPermission::onThePort)
                 .toList();
     }
     //</editor-fold>
@@ -317,9 +321,9 @@ public class JavaAOPTestCase implements AOPTestCase {
      * @return a list of permitted commands.
      */
     @Nonnull
-    private static List<String> extractCommands(@Nonnull List<SecurityPolicy.SupervisedCode.CommandPermission> configs) {
+    private static List<String> extractCommands(@Nonnull List<CommandPermission> configs) {
         return configs.stream()
-                .map(SecurityPolicy.SupervisedCode.CommandPermission::executeTheCommand)
+                .map(CommandPermission::executeTheCommand)
                 .toList();
     }
 
@@ -330,9 +334,9 @@ public class JavaAOPTestCase implements AOPTestCase {
      * @return a list of permitted command arguments.
      */
     @Nonnull
-    private static List<String> extractArguments(@Nonnull List<SecurityPolicy.SupervisedCode.CommandPermission> configs) {
+    private static List<String> extractArguments(@Nonnull List<CommandPermission> configs) {
         return configs.stream()
-                .map(SecurityPolicy.SupervisedCode.CommandPermission::withTheseArguments)
+                .map(CommandPermission::withTheseArguments)
                 .map(arguments -> "new String[] {" + String.join(",", arguments) + "}")
                 .toList();
     }
@@ -344,9 +348,9 @@ public class JavaAOPTestCase implements AOPTestCase {
      */
     @Nonnull
     private List<String> getPermittedCommands() {
-        return ((List<SecurityPolicy.SupervisedCode.CommandPermission>) resourceAccessSupplier.get())
+        return ((List<CommandPermission>) resourceAccessSupplier.get())
                 .stream()
-                .map(SecurityPolicy.SupervisedCode.CommandPermission::executeTheCommand)
+                .map(CommandPermission::executeTheCommand)
                 .toList();
     }
 
@@ -357,9 +361,9 @@ public class JavaAOPTestCase implements AOPTestCase {
      */
     @Nonnull
     private List<List<String>> getPermittedArguments() {
-        return ((List<SecurityPolicy.SupervisedCode.CommandPermission>) resourceAccessSupplier.get())
+        return ((List<CommandPermission>) resourceAccessSupplier.get())
                 .stream()
-                .map(SecurityPolicy.SupervisedCode.CommandPermission::withTheseArguments)
+                .map(CommandPermission::withTheseArguments)
                 .toList();
     }
     //</editor-fold>
@@ -373,9 +377,9 @@ public class JavaAOPTestCase implements AOPTestCase {
      * @return a list of permitted thread numbers.
      */
     @Nonnull
-    private static List<String> extractThreadNumbers(@Nonnull List<SecurityPolicy.SupervisedCode.ThreadPermission> configs) {
+    private static List<String> extractThreadNumbers(@Nonnull List<ThreadPermission> configs) {
         return configs.stream()
-                .map(SecurityPolicy.SupervisedCode.ThreadPermission::createTheFollowingNumberOfThreads)
+                .map(ThreadPermission::createTheFollowingNumberOfThreads)
                 .map(String::valueOf)
                 .toList();
     }
@@ -387,9 +391,9 @@ public class JavaAOPTestCase implements AOPTestCase {
      * @return a list of permitted thread classes.
      */
     @Nonnull
-    private static List<String> extractThreadClasses(@Nonnull List<SecurityPolicy.SupervisedCode.ThreadPermission> configs) {
+    private static List<String> extractThreadClasses(@Nonnull List<ThreadPermission> configs) {
         return configs.stream()
-                .map(SecurityPolicy.SupervisedCode.ThreadPermission::ofThisClass)
+                .map(ThreadPermission::ofThisClass)
                 .toList();
     }
 
@@ -400,9 +404,9 @@ public class JavaAOPTestCase implements AOPTestCase {
      */
     @Nonnull
     private List<Integer> getPermittedNumberOfThreads() {
-        return ((List<SecurityPolicy.SupervisedCode.ThreadPermission>) resourceAccessSupplier.get())
+        return ((List<ThreadPermission>) resourceAccessSupplier.get())
                 .stream()
-                .map(SecurityPolicy.SupervisedCode.ThreadPermission::createTheFollowingNumberOfThreads)
+                .map(ThreadPermission::createTheFollowingNumberOfThreads)
                 .toList();
     }
 
@@ -413,9 +417,9 @@ public class JavaAOPTestCase implements AOPTestCase {
      */
     @Nonnull
     private List<String> getPermittedThreadClasses() {
-        return ((List<SecurityPolicy.SupervisedCode.ThreadPermission>) resourceAccessSupplier.get())
+        return ((List<ThreadPermission>) resourceAccessSupplier.get())
                 .stream()
-                .map(SecurityPolicy.SupervisedCode.ThreadPermission::ofThisClass)
+                .map(ThreadPermission::ofThisClass)
                 .toList();
     }
     //</editor-fold>
@@ -455,26 +459,26 @@ public class JavaAOPTestCase implements AOPTestCase {
             @Nonnull String aopMode,
             @Nonnull String restrictedPackage,
             @Nonnull List<String> allowedListedClasses,
-            @Nonnull List<SecurityPolicy.SupervisedCode.FilePermission> filePermissions,
-            @Nonnull List<SecurityPolicy.SupervisedCode.NetworkPermission> networkPermissions,
-            @Nonnull List<SecurityPolicy.SupervisedCode.CommandPermission> commandPermissions,
-            @Nonnull List<SecurityPolicy.SupervisedCode.ThreadPermission> threadPermissions
+            @Nonnull List<FilePermission> filePermissions,
+            @Nonnull List<NetworkPermission> networkPermissions,
+            @Nonnull List<CommandPermission> commandPermissions,
+            @Nonnull List<ThreadPermission> threadPermissions
     ) {
         @Nonnull StringBuilder fileContentBuilder = new StringBuilder();
         Stream.of(
                         new JavaAOPAdviceSettingTriple("String", " aopMode", aopMode),
                         new JavaAOPAdviceSettingTriple("String", " restrictedPackage", restrictedPackage),
                         new JavaAOPAdviceSettingTriple("String[]", " allowedListedClasses", allowedListedClasses),
-                        new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeRead", extractPaths(filePermissions, SecurityPolicy.SupervisedCode.FilePermission::readAllFiles)),
-                        new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeOverwritten", extractPaths(filePermissions, SecurityPolicy.SupervisedCode.FilePermission::overwriteAllFiles)),
-                        new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeExecuted", extractPaths(filePermissions, SecurityPolicy.SupervisedCode.FilePermission::executeAllFiles)),
-                        new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeDeleted", extractPaths(filePermissions, SecurityPolicy.SupervisedCode.FilePermission::deleteAllFiles)),
-                        new JavaAOPAdviceSettingTriple("String[]", " hostsAllowedToBeConnectedTo", extractHosts(networkPermissions, SecurityPolicy.SupervisedCode.NetworkPermission::openConnections)),
-                        new JavaAOPAdviceSettingTriple("int[]", " portsAllowedToBeConnectedTo", extractPorts(networkPermissions, SecurityPolicy.SupervisedCode.NetworkPermission::openConnections)),
-                        new JavaAOPAdviceSettingTriple("String[]", " hostsAllowedToBeSentTo", extractHosts(networkPermissions, SecurityPolicy.SupervisedCode.NetworkPermission::sendData)),
-                        new JavaAOPAdviceSettingTriple("int[]", " portsAllowedToBeSentTo", extractPorts(networkPermissions, SecurityPolicy.SupervisedCode.NetworkPermission::sendData)),
-                        new JavaAOPAdviceSettingTriple("String[]", " hostsAllowedToBeReceivedFrom", extractHosts(networkPermissions, SecurityPolicy.SupervisedCode.NetworkPermission::receiveData)),
-                        new JavaAOPAdviceSettingTriple("int[]", " portsAllowedToBeReceivedFrom", extractPorts(networkPermissions, SecurityPolicy.SupervisedCode.NetworkPermission::receiveData)),
+                        new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeRead", extractPaths(filePermissions, FilePermission::readAllFiles)),
+                        new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeOverwritten", extractPaths(filePermissions, FilePermission::overwriteAllFiles)),
+                        new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeExecuted", extractPaths(filePermissions, FilePermission::executeAllFiles)),
+                        new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeDeleted", extractPaths(filePermissions, FilePermission::deleteAllFiles)),
+                        new JavaAOPAdviceSettingTriple("String[]", " hostsAllowedToBeConnectedTo", extractHosts(networkPermissions, NetworkPermission::openConnections)),
+                        new JavaAOPAdviceSettingTriple("int[]", " portsAllowedToBeConnectedTo", extractPorts(networkPermissions, NetworkPermission::openConnections)),
+                        new JavaAOPAdviceSettingTriple("String[]", " hostsAllowedToBeSentTo", extractHosts(networkPermissions, NetworkPermission::sendData)),
+                        new JavaAOPAdviceSettingTriple("int[]", " portsAllowedToBeSentTo", extractPorts(networkPermissions, NetworkPermission::sendData)),
+                        new JavaAOPAdviceSettingTriple("String[]", " hostsAllowedToBeReceivedFrom", extractHosts(networkPermissions, NetworkPermission::receiveData)),
+                        new JavaAOPAdviceSettingTriple("int[]", " portsAllowedToBeReceivedFrom", extractPorts(networkPermissions, NetworkPermission::receiveData)),
                         new JavaAOPAdviceSettingTriple("String[]", " commandsAllowedToBeExecuted", extractCommands(commandPermissions)),
                         new JavaAOPAdviceSettingTriple("String[][]", " argumentsAllowedToBePassed", extractArguments(commandPermissions)),
                         new JavaAOPAdviceSettingTriple("int[]", " threadNumberAllowedToBeCreated", extractThreadNumbers(threadPermissions)),

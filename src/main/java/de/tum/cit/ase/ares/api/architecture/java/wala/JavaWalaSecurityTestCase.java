@@ -6,6 +6,7 @@ import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 
 import javax.annotation.Nonnull;
 import java.util.HashSet;
@@ -126,10 +127,10 @@ public class JavaWalaSecurityTestCase {
             return this;
         }
 
-        public Builder allowedPackages(Set<SecurityPolicy.SupervisedCode.PackagePermission> packages) {
+        public Builder allowedPackages(Set<PackagePermission> packages) {
             if (packages != null) {
                 this.allowedPackages = packages.stream()
-                        .map(SecurityPolicy.SupervisedCode.PackagePermission::importTheFollowingPackage)
+                        .map(PackagePermission::importTheFollowingPackage)
                         .collect(Collectors.toSet());
             }
             return this;

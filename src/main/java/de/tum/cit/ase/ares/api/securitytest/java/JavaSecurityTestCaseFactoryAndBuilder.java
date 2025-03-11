@@ -8,6 +8,8 @@ import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.java.JavaBuildMode;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.SupervisedCode;
 import de.tum.cit.ase.ares.api.securitytest.SecurityTestCaseAbstractFactoryAndBuilder;
 import de.tum.cit.ase.ares.api.securitytest.java.creator.JavaCreator;
 import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialReader;
@@ -122,7 +124,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      * The resource accesses permitted as defined by the security policy.
      */
     @Nonnull
-    private final SecurityPolicy.SupervisedCode.ResourceAccesses resourceAccesses;
+    private final ResourceAccesses resourceAccesses;
     //</editor-fold>
 
     //<editor-fold desc="Generated Test Cases">
@@ -182,11 +184,11 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         //</editor-fold>
 
         //<editor-fold desc="Policy Based Configuration">
-        SecurityPolicy.SupervisedCode supervisedCode = securityPolicy == null ? null : securityPolicy.regardingTheSupervisedCode();
+        SupervisedCode supervisedCode = securityPolicy == null ? null : securityPolicy.regardingTheSupervisedCode();
         this.testClasses = supervisedCode == null ? javaScanner.scanForTestClasses() : supervisedCode.theFollowingClassesAreTestClasses();
-        this.packageName = supervisedCode == null || supervisedCode.theProgrammingLanguageUsesTheFollowingPackage() == null ? javaScanner.scanForPackageName() : supervisedCode.theProgrammingLanguageUsesTheFollowingPackage();
+        this.packageName = supervisedCode == null || supervisedCode.theSupervisedCodeUsesTheFollowingPackage() == null ? javaScanner.scanForPackageName() : supervisedCode.theSupervisedCodeUsesTheFollowingPackage();
         this.mainClassInPackageName = supervisedCode == null || supervisedCode.theMainClassInsideThisPackageIs() == null ? javaScanner.scanForMainClassInPackage() : supervisedCode.theMainClassInsideThisPackageIs();
-        this.resourceAccesses = supervisedCode == null ? SecurityPolicy.SupervisedCode.ResourceAccesses.createRestrictive() : supervisedCode.theFollowingResourceAccessesArePermitted();
+        this.resourceAccesses = supervisedCode == null ? ResourceAccesses.createRestrictive() : supervisedCode.theFollowingResourceAccessesArePermitted();
         //</editor-fold>
 
         //<editor-fold desc="Test Case Creation">

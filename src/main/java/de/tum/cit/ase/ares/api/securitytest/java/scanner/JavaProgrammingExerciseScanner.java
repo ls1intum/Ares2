@@ -128,7 +128,6 @@ public class JavaProgrammingExerciseScanner implements JavaScanner {
         if (projectRoot.isPresent()) {
             JavaBuildMode buildMode = scanForBuildMode();
             Path testPath;
-
             if (buildMode == JavaBuildMode.GRADLE) {// Check for custom test directory in Gradle projects
                 Path buildGradle = projectRoot.get().resolve("build.gradle");
                 if (Files.exists(buildGradle)) {
@@ -145,10 +144,8 @@ public class JavaProgrammingExerciseScanner implements JavaScanner {
                     }
                 }
                 // Default Gradle test path
-                testPath = projectRoot.get().resolve("src/test/java");
-            } else {
-                testPath = projectRoot.get().resolve("src/test/java");
             }
+            testPath = projectRoot.get().resolve("src/test/java");
 
             if (Files.exists(testPath)) {
                 return testPath;

@@ -3,6 +3,10 @@ package de.tum.cit.ase.ares.api.aop.java;
 import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaCSVFileLoader;
 import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaFileLoader;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.CommandPermission;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.NetworkPermission;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ThreadPermission;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
 import javax.annotation.Nonnull;
@@ -140,13 +144,13 @@ public enum JavaAOPMode {
             @Nonnull List<String> allowedListedClasses,
             @Nonnull List<JavaAOPTestCase> javaAOPTestCases
     ) {
-        List<SecurityPolicy.SupervisedCode.FilePermission> filePermissions =
+        List<FilePermission> filePermissions =
                 extractPermissions(javaAOPTestCases, JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION);
-        List<SecurityPolicy.SupervisedCode.NetworkPermission> networkPermissions =
+        List<NetworkPermission> networkPermissions =
                 extractPermissions(javaAOPTestCases, JavaAOPTestCaseSupported.NETWORK_CONNECTION);
-        List<SecurityPolicy.SupervisedCode.CommandPermission> commandPermissions =
+        List<CommandPermission> commandPermissions =
                 extractPermissions(javaAOPTestCases, JavaAOPTestCaseSupported.COMMAND_EXECUTION);
-        List<SecurityPolicy.SupervisedCode.ThreadPermission> threadPermissions =
+        List<ThreadPermission> threadPermissions =
                 extractPermissions(javaAOPTestCases, JavaAOPTestCaseSupported.THREAD_CREATION);
 
         return JavaAOPTestCase.writeAOPSecurityTestCaseFile(

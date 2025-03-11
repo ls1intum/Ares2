@@ -3,6 +3,7 @@ package de.tum.cit.ase.ares.api.aop;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSupported;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -16,12 +17,12 @@ import static org.mockito.Mockito.*;
 class JavaSecurityTestCaseTest {
 
     private JavaAOPTestCase javaSecurityTestCase;
-    private SecurityPolicy.SupervisedCode.ResourceAccesses resourceAccesses;
+    private ResourceAccesses resourceAccesses;
 
     @BeforeEach
     void setUp() {
         JavaAOPTestCaseSupported supported = JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION;
-        resourceAccesses = mock(SecurityPolicy.SupervisedCode.ResourceAccesses.class);
+        resourceAccesses = mock(ResourceAccesses.class);
         javaSecurityTestCase = new JavaAOPTestCase(supported, resourceAccesses);
     }
 

@@ -5,6 +5,7 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitSecurityTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -33,7 +34,7 @@ class JavaArchUnitSecurityTestCaseTest {
 
     @Test
     void testConstructorWithTwoParameters() {
-        Set<SecurityPolicy.SupervisedCode.PackagePermission> packagePermissions = Set.of(new SecurityPolicy.SupervisedCode.PackagePermission("com.example"));
+        Set<PackagePermission> packagePermissions = Set.of(new PackagePermission("com.example"));
         testCase = JavaArchUnitSecurityTestCase
                         .builder()
                         .javaArchitecturalTestCaseSupported(JavaArchitectureTestCaseSupported.PACKAGE_IMPORT)
@@ -90,7 +91,7 @@ class JavaArchUnitSecurityTestCaseTest {
 
     @Test
     void testExecuteArchitectureTestCasePackageImport() {
-        Set<SecurityPolicy.SupervisedCode.PackagePermission> packagePermissions = Set.of(new SecurityPolicy.SupervisedCode.PackagePermission("com.example"));
+        Set<PackagePermission> packagePermissions = Set.of(new PackagePermission("com.example"));
         testCase = JavaArchUnitSecurityTestCase
                 .builder()
                 .javaArchitecturalTestCaseSupported(JavaArchitectureTestCaseSupported.PACKAGE_IMPORT)
