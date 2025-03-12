@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -51,8 +52,15 @@ public record ResourceAccesses(
      * @author Markus Paulsen
      * @return a new ResourceAccesses instance with empty permissions lists.
      */
+    @Nonnull
     public static ResourceAccesses createRestrictive() {
-        return new ResourceAccesses(new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
+        return builder()
+                .regardingFileSystemInteractions(new ArrayList<>())
+                .regardingNetworkConnections(new ArrayList<>())
+                .regardingCommandExecutions(new ArrayList<>())
+                .regardingThreadCreations(new ArrayList<>())
+                .regardingPackageImports(new ArrayList<>())
+                .build();
     }
 
     /**
@@ -62,6 +70,7 @@ public record ResourceAccesses(
      * @author Markus Paulsen
      * @return a new ResourceAccesses.Builder instance.
      */
+    @Nonnull
     public static Builder builder() {
         return new Builder();
     }
@@ -79,35 +88,47 @@ public record ResourceAccesses(
      */
     public static class Builder {
 
-        private List<FilePermission> filePermissions = new ArrayList<>();
-        private List<NetworkPermission> networkPermissions = new ArrayList<>();
-        private List<CommandPermission> commandPermissions = new ArrayList<>();
-        private List<ThreadPermission> threadPermissions = new ArrayList<>();
-        private List<PackagePermission> packagePermissions = new ArrayList<>();
+        /**
+         * The file system permissions.
+         */
+        @Nullable
+        private List<FilePermission> regardingFileSystemInteractions = new ArrayList<>();
+
+        /**
+         * The network permissions.
+         */
+        @Nullable
+        private List<NetworkPermission> regardingNetworkConnections = new ArrayList<>();
+
+        /**
+         * The command permissions.
+         */
+        @Nullable
+        private List<CommandPermission> regardingCommandExecutions = new ArrayList<>();
+
+        /**
+         * The thread permissions.
+         */
+        @Nullable
+        private List<ThreadPermission> regardingThreadCreations = new ArrayList<>();
+
+        /**
+         * The package permissions.
+         */
+        @Nullable
+        private List<PackagePermission> regardingPackageImports = new ArrayList<>();
 
         /**
          * Sets the file system permissions.
          *
          * @since 2.0.0
          * @author Markus Paulsen
-         * @param permissions the list of file permissions.
+         * @param regardingFileSystemInteractions the list of file permissions.
          * @return the updated Builder.
          */
-        public Builder filePermissions(List<FilePermission> permissions) {
-            this.filePermissions = new ArrayList<>(permissions);
-            return this;
-        }
-
-        /**
-         * Adds a file permission.
-         *
-         * @since 2.0.0
-         * @author Markus Paulsen
-         * @param permission the file permission to add.
-         * @return the updated Builder.
-         */
-        public Builder addFilePermission(FilePermission permission) {
-            this.filePermissions.add(permission);
+        @Nonnull
+        public Builder regardingFileSystemInteractions(@Nonnull List<FilePermission> regardingFileSystemInteractions) {
+            this.regardingFileSystemInteractions = new ArrayList<>(Objects.requireNonNull(regardingFileSystemInteractions,"File system interactions list must not be null"));
             return this;
         }
 
@@ -116,24 +137,12 @@ public record ResourceAccesses(
          *
          * @since 2.0.0
          * @author Markus Paulsen
-         * @param permissions the list of network permissions.
+         * @param regardingNetworkConnections the list of network permissions.
          * @return the updated Builder.
          */
-        public Builder networkPermissions(List<NetworkPermission> permissions) {
-            this.networkPermissions = new ArrayList<>(permissions);
-            return this;
-        }
-
-        /**
-         * Adds a network permission.
-         *
-         * @since 2.0.0
-         * @author Markus Paulsen
-         * @param permission the network permission to add.
-         * @return the updated Builder.
-         */
-        public Builder addNetworkPermission(NetworkPermission permission) {
-            this.networkPermissions.add(permission);
+        @Nonnull
+        public Builder regardingNetworkConnections(@Nonnull List<NetworkPermission> regardingNetworkConnections) {
+            this.regardingNetworkConnections = new ArrayList<>(Objects.requireNonNull(regardingNetworkConnections,"Network connections list must not be null"));
             return this;
         }
 
@@ -142,24 +151,12 @@ public record ResourceAccesses(
          *
          * @since 2.0.0
          * @author Markus Paulsen
-         * @param permissions the list of command permissions.
+         * @param regardingCommandExecutions the list of command permissions.
          * @return the updated Builder.
          */
-        public Builder commandPermissions(List<CommandPermission> permissions) {
-            this.commandPermissions = new ArrayList<>(permissions);
-            return this;
-        }
-
-        /**
-         * Adds a command permission.
-         *
-         * @since 2.0.0
-         * @author Markus Paulsen
-         * @param permission the command permission to add.
-         * @return the updated Builder.
-         */
-        public Builder addCommandPermission(CommandPermission permission) {
-            this.commandPermissions.add(permission);
+        @Nonnull
+        public Builder regardingCommandExecutions(@Nonnull List<CommandPermission> regardingCommandExecutions) {
+            this.regardingCommandExecutions = new ArrayList<>(Objects.requireNonNull(regardingCommandExecutions,"Command executions list must not be null"));
             return this;
         }
 
@@ -168,24 +165,12 @@ public record ResourceAccesses(
          *
          * @since 2.0.0
          * @author Markus Paulsen
-         * @param permissions the list of thread permissions.
+         * @param regardingThreadCreations the list of thread permissions.
          * @return the updated Builder.
          */
-        public Builder threadPermissions(List<ThreadPermission> permissions) {
-            this.threadPermissions = new ArrayList<>(permissions);
-            return this;
-        }
-
-        /**
-         * Adds a thread permission.
-         *
-         * @since 2.0.0
-         * @author Markus Paulsen
-         * @param permission the thread permission to add.
-         * @return the updated Builder.
-         */
-        public Builder addThreadPermission(ThreadPermission permission) {
-            this.threadPermissions.add(permission);
+        @Nonnull
+        public Builder regardingThreadCreations(@Nonnull List<ThreadPermission> regardingThreadCreations) {
+            this.regardingThreadCreations = new ArrayList<>(Objects.requireNonNull(regardingThreadCreations,"Thread creations list must not be null"));
             return this;
         }
 
@@ -194,24 +179,12 @@ public record ResourceAccesses(
          *
          * @since 2.0.0
          * @author Markus Paulsen
-         * @param permissions the list of package permissions.
+         * @param regardingPackageImports the list of package permissions.
          * @return the updated Builder.
          */
-        public Builder packagePermissions(List<PackagePermission> permissions) {
-            this.packagePermissions = new ArrayList<>(permissions);
-            return this;
-        }
-
-        /**
-         * Adds a package permission.
-         *
-         * @since 2.0.0
-         * @author Markus Paulsen
-         * @param permission the package permission to add.
-         * @return the updated Builder.
-         */
-        public Builder addPackagePermission(PackagePermission permission) {
-            this.packagePermissions.add(permission);
+        @Nonnull
+        public Builder regardingPackageImports(@Nonnull List<PackagePermission> regardingPackageImports) {
+            this.regardingPackageImports = new ArrayList<>(Objects.requireNonNull(regardingPackageImports,"Package imports list must not be null"));
             return this;
         }
 
@@ -222,8 +195,15 @@ public record ResourceAccesses(
          * @author Markus Paulsen
          * @return a new ResourceAccesses instance.
          */
+        @Nonnull
         public ResourceAccesses build() {
-            return new ResourceAccesses(filePermissions, networkPermissions, commandPermissions, threadPermissions, packagePermissions);
+            return new ResourceAccesses(
+                    Objects.requireNonNull(regardingFileSystemInteractions, "File system interactions list must not be null"),
+                    Objects.requireNonNull(regardingNetworkConnections, "Network connections list must not be null"),
+                    Objects.requireNonNull(regardingCommandExecutions, "Command executions list must not be null"),
+                    Objects.requireNonNull(regardingThreadCreations, "Thread creations list must not be null"),
+                    Objects.requireNonNull(regardingPackageImports, "Package imports list must not be null")
+            );
         }
     }
 }

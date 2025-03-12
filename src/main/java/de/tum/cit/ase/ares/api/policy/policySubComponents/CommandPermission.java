@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -28,11 +29,11 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
      * @author Markus Paulsen
      */
     public CommandPermission {
-        Objects.requireNonNull(executeTheCommand, "Command must not be null");
-        Objects.requireNonNull(withTheseArguments, "Arguments list must not be null");
+        Objects.requireNonNull(executeTheCommand, "executeTheCommand must not be null");
         if (executeTheCommand.isBlank()) {
             throw new IllegalArgumentException("executeTheCommand must not be blank");
         }
+        Objects.requireNonNull(withTheseArguments, "withTheseArguments must not be null");
     }
 
     /**
@@ -40,11 +41,12 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
      *
      * @since 2.0.0
      * @author Markus Paulsen
-     * @param command the command to restrict.
+     * @param executeTheCommand the command to restrict.
      * @return a new CommandPermission instance with empty arguments.
      */
-    public static CommandPermission createRestrictive(String command) {
-        return new CommandPermission(command, new ArrayList<>());
+    @Nonnull
+    public static CommandPermission createRestrictive(@Nonnull String executeTheCommand) {
+        return builder().executeTheCommand(Objects.requireNonNull(executeTheCommand, "executeTheCommand must not be null")).withTheseArguments(new ArrayList<>()).build();
     }
 
     /**
@@ -54,6 +56,7 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
      * @author Markus Paulsen
      * @return a new CommandPermission.Builder instance.
      */
+    @Nonnull
     public static Builder builder() {
         return new Builder();
     }
@@ -70,19 +73,28 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
      */
     public static class Builder {
 
-        private String command;
-        private List<String> arguments = new ArrayList<>();
+        /**
+         * The command to execute.
+         */
+        @Nullable
+        private String executeTheCommand;
+        /**
+         * The list of arguments for the command.
+         */
+        @Nullable
+        private List<String> withTheseArguments;
 
         /**
          * Sets the command.
          *
          * @since 2.0.0
          * @author Markus Paulsen
-         * @param command the command to execute.
+         * @param executeTheCommand the command to execute.
          * @return the updated Builder.
          */
-        public Builder command(String command) {
-            this.command = command;
+        @Nonnull
+        public Builder executeTheCommand(@Nonnull String executeTheCommand) {
+            this.executeTheCommand = Objects.requireNonNull(executeTheCommand, "executeTheCommand must not be null");
             return this;
         }
 
@@ -91,24 +103,12 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
          *
          * @since 2.0.0
          * @author Markus Paulsen
-         * @param arguments the list of arguments.
+         * @param withTheseArguments the list of arguments.
          * @return the updated Builder.
          */
-        public Builder arguments(List<String> arguments) {
-            this.arguments = new ArrayList<>(arguments);
-            return this;
-        }
-
-        /**
-         * Adds a command argument.
-         *
-         * @since 2.0.0
-         * @author Markus Paulsen
-         * @param argument the argument to add.
-         * @return the updated Builder.
-         */
-        public Builder addArgument(String argument) {
-            this.arguments.add(argument);
+        @Nonnull
+        public Builder withTheseArguments(@Nonnull List<String> withTheseArguments) {
+            this.withTheseArguments = new ArrayList<>(Objects.requireNonNull(withTheseArguments, "withTheseArguments must not be null"));
             return this;
         }
 
@@ -119,8 +119,12 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
          * @author Markus Paulsen
          * @return a new CommandPermission instance.
          */
+        @Nonnull
         public CommandPermission build() {
-            return new CommandPermission(command, arguments);
+            return new CommandPermission(
+                    Objects.requireNonNull(executeTheCommand, "executeTheCommand must not be null"),
+                    Objects.requireNonNull(withTheseArguments, "withTheseArguments must not be null")
+            );
         }
     }
 }

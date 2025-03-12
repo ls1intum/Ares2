@@ -27,7 +27,8 @@ public record SupervisedCode(
         @Nullable String theSupervisedCodeUsesTheFollowingPackage,
         @Nullable String theMainClassInsideThisPackageIs,
         @Nonnull String[] theFollowingClassesAreTestClasses,
-        @Nonnull ResourceAccesses theFollowingResourceAccessesArePermitted) {
+        @Nonnull ResourceAccesses theFollowingResourceAccessesArePermitted
+) {
 
     /**
      * Constructs a SupervisedCode instance with the provided details.
@@ -47,8 +48,15 @@ public record SupervisedCode(
      * @author Markus Paulsen         * @param config the programming language configuration for the restrictive code.
      * @return a new SupervisedCode instance with restrictive settings.
      */
-    public static SupervisedCode createRestrictive(@Nonnull ProgrammingLanguageConfiguration config) {
-        return new SupervisedCode(config, null, null, new String[0], ResourceAccesses.createRestrictive());
+    @Nonnull
+    public static SupervisedCode createRestrictive(@Nonnull ProgrammingLanguageConfiguration theFollowingProgrammingLanguageConfigurationIsUsed) {
+        return builder()
+                .theFollowingProgrammingLanguageConfigurationIsUsed(Objects.requireNonNull(theFollowingProgrammingLanguageConfigurationIsUsed, "theFollowingProgrammingLanguageConfigurationIsUsed must not be null"))
+                .theSupervisedCodeUsesTheFollowingPackage(null)
+                .theMainClassInsideThisPackageIs(null)
+                .theFollowingClassesAreTestClasses(new String[0])
+                .theFollowingResourceAccessesArePermitted(ResourceAccesses.createRestrictive())
+                .build();
     }
 
     /**
@@ -57,6 +65,7 @@ public record SupervisedCode(
      * @since 2.0.0
      * @author Markus Paulsen         * @return a new SupervisedCode.Builder instance.
      */
+    @Nonnull
     public static Builder builder() {
         return new Builder();
     }
@@ -73,22 +82,59 @@ public record SupervisedCode(
      */
     public static class Builder {
 
-        private ProgrammingLanguageConfiguration configuration;
-        private String packageName;
-        private String mainClass;
-        private String[] testClasses = new String[0];
-        private ResourceAccesses resourceAccesses;
+        /**
+         * Constructs a new Builder instance.
+         *
+         * @since 2.0.0
+         * @author Markus Paulsen
+         */
+        @Nullable
+        private ProgrammingLanguageConfiguration theFollowingProgrammingLanguageConfigurationIsUsed;
+
+        /**
+         * Constructs a new Builder instance.
+         *
+         * @since 2.0.0
+         * @author Markus Paulsen
+         */
+        @Nullable
+        private String theSupervisedCodeUsesTheFollowingPackage;
+
+        /* Constructs a new Builder instance.
+         *
+         * @since 2.0.0
+         * @author Markus Paulsen
+         */
+        @Nullable
+        private String theMainClassInsideThisPackageIs;
+
+        /* Constructs a new Builder instance.
+         *
+         * @since 2.0.0
+         * @author Markus Paulsen
+         */
+        @Nullable
+        private String[] theFollowingClassesAreTestClasses = new String[0];
+
+        /* Constructs a new Builder instance.
+         *
+         * @since 2.0.0
+         * @author Markus Paulsen
+         */
+        @Nullable
+        private ResourceAccesses theFollowingResourceAccessesArePermitted;
 
         /**
          * Sets the programming language configuration.
          *
          * @since 2.0.0
          * @author Markus Paulsen
-         * @param configuration the programming language configuration.
+         * @param theFollowingProgrammingLanguageConfigurationIsUsed the programming language configuration.
          * @return the updated Builder.
          */
-        public Builder configuration(ProgrammingLanguageConfiguration configuration) {
-            this.configuration = configuration;
+        @Nonnull
+        public Builder theFollowingProgrammingLanguageConfigurationIsUsed(@Nonnull ProgrammingLanguageConfiguration theFollowingProgrammingLanguageConfigurationIsUsed) {
+            this.theFollowingProgrammingLanguageConfigurationIsUsed = theFollowingProgrammingLanguageConfigurationIsUsed;
             return this;
         }
 
@@ -97,11 +143,12 @@ public record SupervisedCode(
          *
          * @since 2.0.0
          * @author Markus Paulsen
-         * @param packageName the base package name.
+         * @param theSupervisedCodeUsesTheFollowingPackage the base package name.
          * @return the updated Builder.
          */
-        public Builder packageName(String packageName) {
-            this.packageName = packageName;
+        @Nonnull
+        public Builder theSupervisedCodeUsesTheFollowingPackage(@Nonnull String theSupervisedCodeUsesTheFollowingPackage) {
+            this.theSupervisedCodeUsesTheFollowingPackage = Objects.requireNonNull(theSupervisedCodeUsesTheFollowingPackage, "theSupervisedCodeUsesTheFollowingPackage must not be null");
             return this;
         }
 
@@ -110,11 +157,12 @@ public record SupervisedCode(
          *
          * @since 2.0.0
          * @author Markus Paulsen
-         * @param mainClass the main class name.
+         * @param theMainClassInsideThisPackageIs the main class name.
          * @return the updated Builder.
          */
-        public Builder mainClass(String mainClass) {
-            this.mainClass = mainClass;
+        @Nonnull
+        public Builder theMainClassInsideThisPackageIs(@Nonnull String theMainClassInsideThisPackageIs) {
+            this.theMainClassInsideThisPackageIs = Objects.requireNonNull(theMainClassInsideThisPackageIs, "theMainClassInsideThisPackageIs must not be null");
             return this;
         }
 
@@ -123,11 +171,12 @@ public record SupervisedCode(
          *
          * @since 2.0.0
          * @author Markus Paulsen
-         * @param testClasses an array of test class names.
+         * @param theFollowingClassesAreTestClasses an array of test class names.
          * @return the updated Builder.
          */
-        public Builder testClasses(String[] testClasses) {
-            this.testClasses = testClasses;
+        @Nonnull
+        public Builder theFollowingClassesAreTestClasses(@Nonnull String[] theFollowingClassesAreTestClasses) {
+            this.theFollowingClassesAreTestClasses = Objects.requireNonNull(theFollowingClassesAreTestClasses, "theFollowingClassesAreTestClasses must not be null");
             return this;
         }
 
@@ -136,11 +185,12 @@ public record SupervisedCode(
          *
          * @since 2.0.0
          * @author Markus Paulsen
-         * @param resourceAccesses the permitted resource accesses.
+         * @param theFollowingResourceAccessesArePermitted the permitted resource accesses.
          * @return the updated Builder.
          */
-        public Builder resourceAccesses(ResourceAccesses resourceAccesses) {
-            this.resourceAccesses = resourceAccesses;
+        @Nonnull
+        public Builder theFollowingResourceAccessesArePermitted(@Nonnull ResourceAccesses theFollowingResourceAccessesArePermitted) {
+            this.theFollowingResourceAccessesArePermitted = Objects.requireNonNull(theFollowingResourceAccessesArePermitted, "theFollowingResourceAccessesArePermitted must not be null");
             return this;
         }
 
@@ -151,8 +201,15 @@ public record SupervisedCode(
          * @author Markus Paulsen
          * @return a new SupervisedCode instance.
          */
+        @Nonnull
         public SupervisedCode build() {
-            return new SupervisedCode(configuration, packageName, mainClass, testClasses, resourceAccesses);
+            return new SupervisedCode(
+                    theFollowingProgrammingLanguageConfigurationIsUsed,
+                    theSupervisedCodeUsesTheFollowingPackage,
+                    theMainClassInsideThisPackageIs,
+                    Objects.requireNonNull(theFollowingClassesAreTestClasses, "theFollowingClassesAreTestClasses must not be null"),
+                    Objects.requireNonNull(theFollowingResourceAccessesArePermitted, "theFollowingResourceAccessesArePermitted must not be null")
+            );
         }
     }
 }

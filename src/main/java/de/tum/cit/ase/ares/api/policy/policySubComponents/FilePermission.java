@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Objects;
 
 /**
@@ -35,7 +36,7 @@ public record FilePermission(
      * @author Markus Paulsen
      */
     public FilePermission {
-        Objects.requireNonNull(onThisPathAndAllPathsBelow, "Path must not be null");
+        Objects.requireNonNull(onThisPathAndAllPathsBelow, "onThisPathAndAllPathsBelow must not be null");
         if (onThisPathAndAllPathsBelow.isBlank()) {
             throw new IllegalArgumentException("onThisPathAndAllPathsBelow must not be blank");
         }
@@ -49,8 +50,9 @@ public record FilePermission(
      * @param path the path where the restrictions apply.
      * @return a new FilePermission instance with all operations denied.
      */
+    @Nonnull
     public static FilePermission createRestrictive(String path) {
-        return new FilePermission(path, false, false, false, false);
+        return builder().onThisPathAndAllPathsBelow(Objects.requireNonNull(path, "path must not be null")).readAllFiles(false).overwriteAllFiles(false).executeAllFiles(false).deleteAllFiles(false).build();
     }
 
     /**
@@ -76,22 +78,53 @@ public record FilePermission(
      */
     public static class Builder {
 
-        private boolean read;
-        private boolean overwrite;
-        private boolean execute;
-        private boolean delete;
-        private String path;
+        /**
+         * The path where these permissions apply.
+         */
+        @Nullable
+        private String onThisPathAndAllPathsBelow;
+        /**
+         * Whether reading files is permitted.
+         */
+        private boolean readAllFiles;
+        /**
+         * Whether overwriting files is permitted.
+         */
+        private boolean overwriteAllFiles;
+        /**
+         * Whether executing files is permitted.
+         */
+        private boolean executeAllFiles;
+        /**
+         * Whether deleting files is permitted.
+         */
+        private boolean deleteAllFiles;
+
+        /**
+         * Sets the path where these permissions apply.
+         *
+         * @since 2.0.0
+         * @author Markus Paulsen
+         * @param onThisPathAndAllPathsBelow the file path.
+         * @return the updated Builder.
+         */
+        @Nonnull
+        public Builder onThisPathAndAllPathsBelow(@Nonnull String onThisPathAndAllPathsBelow) {
+            this.onThisPathAndAllPathsBelow = Objects.requireNonNull(onThisPathAndAllPathsBelow, "onThisPathAndAllPathsBelow must not be null");
+            return this;
+        }
 
         /**
          * Sets whether reading files is permitted.
          *
          * @since 2.0.0
          * @author Markus Paulsen
-         * @param read whether reading is permitted.
+         * @param readAllFiles whether reading is permitted.
          * @return the updated Builder.
          */
-        public Builder read(boolean read) {
-            this.read = read;
+        @Nonnull
+        public Builder readAllFiles(boolean readAllFiles) {
+            this.readAllFiles = readAllFiles;
             return this;
         }
 
@@ -100,11 +133,12 @@ public record FilePermission(
          *
          * @since 2.0.0
          * @author Markus Paulsen
-         * @param overwrite whether overwriting is permitted.
+         * @param overwriteAllFiles whether overwriting is permitted.
          * @return the updated Builder.
          */
-        public Builder overwrite(boolean overwrite) {
-            this.overwrite = overwrite;
+        @Nonnull
+        public Builder overwriteAllFiles(boolean overwriteAllFiles) {
+            this.overwriteAllFiles = overwriteAllFiles;
             return this;
         }
 
@@ -113,11 +147,12 @@ public record FilePermission(
          *
          * @since 2.0.0
          * @author Markus Paulsen
-         * @param execute whether executing is permitted.
+         * @param executeAllFiles whether executing is permitted.
          * @return the updated Builder.
          */
-        public Builder execute(boolean execute) {
-            this.execute = execute;
+        @Nonnull
+        public Builder executeAllFiles(boolean executeAllFiles) {
+            this.executeAllFiles = executeAllFiles;
             return this;
         }
 
@@ -126,24 +161,12 @@ public record FilePermission(
          *
          * @since 2.0.0
          * @author Markus Paulsen
-         * @param delete whether deleting is permitted.
+         * @param deleteAllFiles whether deleting is permitted.
          * @return the updated Builder.
          */
-        public Builder delete(boolean delete) {
-            this.delete = delete;
-            return this;
-        }
-
-        /**
-         * Sets the path where these permissions apply.
-         *
-         * @since 2.0.0
-         * @author Markus Paulsen
-         * @param path the file path.
-         * @return the updated Builder.
-         */
-        public Builder path(String path) {
-            this.path = path;
+        @Nonnull
+        public Builder deleteAllFiles(boolean deleteAllFiles) {
+            this.deleteAllFiles = deleteAllFiles;
             return this;
         }
 
@@ -154,8 +177,9 @@ public record FilePermission(
          * @author Markus Paulsen
          * @return a new FilePermission instance.
          */
+        @Nonnull
         public FilePermission build() {
-            return new FilePermission(path, read, overwrite, execute, delete);
+            return new FilePermission(Objects.requireNonNull(onThisPathAndAllPathsBelow, "path must not be null"), readAllFiles, overwriteAllFiles, executeAllFiles, deleteAllFiles);
         }
     }
 }

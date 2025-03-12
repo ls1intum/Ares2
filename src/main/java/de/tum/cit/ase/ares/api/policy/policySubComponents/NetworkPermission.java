@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Objects;
 
 /**
@@ -35,7 +36,7 @@ public record NetworkPermission(
      * @author Markus Paulsen
      */
     public NetworkPermission {
-        Objects.requireNonNull(onTheHost, "Host must not be null");
+        Objects.requireNonNull(onTheHost, "onTheHost must not be null");
         if (onTheHost.isBlank()) {
             throw new IllegalArgumentException("onTheHost must not be blank");
         }
@@ -49,12 +50,13 @@ public record NetworkPermission(
      *
      * @since 2.0.0
      * @author Markus Paulsen
-     * @param host the host where the restriction applies.
-     * @param port the port number where the restriction applies.
+     * @param onTheHost the host where the restriction applies.
+     * @param onThePort the port number where the restriction applies.
      * @return a new NetworkPermission instance with all operations denied.
      */
-    public static NetworkPermission createRestrictive(String host, int port) {
-        return new NetworkPermission(host, port, false, false, false);
+    @Nonnull
+    public static NetworkPermission createRestrictive(@Nonnull String onTheHost, int onThePort) {
+        return builder().onTheHost(Objects.requireNonNull(onTheHost, "onTheHost must not be null")).onThePort(onThePort).openConnections(false).receiveData(false).sendData(false).build();
     }
 
     /**
@@ -80,11 +82,53 @@ public record NetworkPermission(
      */
     public static class Builder {
 
+        /**
+         * The host where these operations are permitted.
+         */
+        @Nullable
+        private String onTheHost;
+        /**
+         * The port number where these operations are permitted.
+         */
+        private int onThePort;
+        /**
+         * Whether opening connections is permitted.
+         */
         private boolean openConnections;
+        /**
+         * Whether sending data is permitted.
+         */
         private boolean sendData;
+        /**
+         * Whether receiving data is permitted.
+         */
         private boolean receiveData;
-        private String host;
-        private int port;
+
+        /**
+         * Sets the host where these operations are permitted.
+         *
+         * @since 2.0.0
+         * @author Markus Paulsen
+         * @param onTheHost the host.
+         * @return the updated Builder.
+         */
+        public Builder onTheHost(String onTheHost) {
+            this.onTheHost = onTheHost;
+            return this;
+        }
+
+        /**
+         * Sets the port number where these operations are permitted.
+         *
+         * @since 2.0.0
+         * @author Markus Paulsen
+         * @param onThePort the port number.
+         * @return the updated Builder.
+         */
+        public Builder onThePort(int onThePort) {
+            this.onThePort = onThePort;
+            return this;
+        }
 
         /**
          * Sets whether opening connections is permitted.
@@ -126,32 +170,6 @@ public record NetworkPermission(
         }
 
         /**
-         * Sets the host where these operations are permitted.
-         *
-         * @since 2.0.0
-         * @author Markus Paulsen
-         * @param host the host.
-         * @return the updated Builder.
-         */
-        public Builder host(String host) {
-            this.host = host;
-            return this;
-        }
-
-        /**
-         * Sets the port number where these operations are permitted.
-         *
-         * @since 2.0.0
-         * @author Markus Paulsen
-         * @param port the port number.
-         * @return the updated Builder.
-         */
-        public Builder port(int port) {
-            this.port = port;
-            return this;
-        }
-
-        /**
          * Builds a new NetworkPermission instance.
          *
          * @since 2.0.0
@@ -159,7 +177,7 @@ public record NetworkPermission(
          * @return a new NetworkPermission instance.
          */
         public NetworkPermission build() {
-            return new NetworkPermission(host, port, openConnections, sendData, receiveData);
+            return new NetworkPermission(Objects.requireNonNull(onTheHost, "onTheHost must not be null"), onThePort, openConnections, sendData, receiveData);
         }
     }
 }

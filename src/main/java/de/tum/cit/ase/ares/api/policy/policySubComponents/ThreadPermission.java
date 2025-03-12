@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Objects;
 
 /**
@@ -43,8 +44,9 @@ public record ThreadPermission(int createTheFollowingNumberOfThreads, @Nonnull S
      * @param threadClass the thread class for which no threads are permitted.
      * @return a new ThreadPermission instance with zero threads allowed.
      */
-    public static ThreadPermission createRestrictive(String threadClass) {
-        return new ThreadPermission(0, threadClass);
+    @Nonnull
+    public static ThreadPermission createRestrictive(@Nonnull String threadClass) {
+        return builder().createTheFollowingNumberOfThreads(0).ofThisClass(Objects.requireNonNull(threadClass, "threadClass must not be null")).build();
     }
 
     /**
@@ -54,6 +56,7 @@ public record ThreadPermission(int createTheFollowingNumberOfThreads, @Nonnull S
      * @author Markus Paulsen
      * @return a new ThreadPermission.Builder instance.
      */
+    @Nonnull
     public static Builder builder() {
         return new Builder();
     }
@@ -70,7 +73,15 @@ public record ThreadPermission(int createTheFollowingNumberOfThreads, @Nonnull S
      */
     public static class Builder {
 
-        private int numberOfThreads;
+        /**
+         * The number of threads permitted.
+         */
+        private int createTheFollowingNumberOfThreads;
+
+        /**
+         * The thread class allowed.
+         */
+        @Nullable
         private String threadClass;
 
         /**
@@ -78,11 +89,12 @@ public record ThreadPermission(int createTheFollowingNumberOfThreads, @Nonnull S
          *
          * @since 2.0.0
          * @author Markus Paulsen
-         * @param numberOfThreads the number of threads.
+         * @param createTheFollowingNumberOfThreads the number of threads.
          * @return the updated Builder.
          */
-        public Builder numberOfThreads(int numberOfThreads) {
-            this.numberOfThreads = numberOfThreads;
+        @Nonnull
+        public Builder createTheFollowingNumberOfThreads(int createTheFollowingNumberOfThreads) {
+            this.createTheFollowingNumberOfThreads = createTheFollowingNumberOfThreads;
             return this;
         }
 
@@ -91,11 +103,12 @@ public record ThreadPermission(int createTheFollowingNumberOfThreads, @Nonnull S
          *
          * @since 2.0.0
          * @author Markus Paulsen
-         * @param threadClass the fully qualified thread class name.
+         * @param ofThisClass the fully qualified thread class name.
          * @return the updated Builder.
          */
-        public Builder threadClass(String threadClass) {
-            this.threadClass = threadClass;
+        @Nonnull
+        public Builder ofThisClass(@Nonnull String ofThisClass) {
+            this.threadClass = Objects.requireNonNull(ofThisClass, "ofThisClass must not be null");
             return this;
         }
 
@@ -106,8 +119,9 @@ public record ThreadPermission(int createTheFollowingNumberOfThreads, @Nonnull S
          * @author Markus Paulsen
          * @return a new ThreadPermission instance.
          */
+        @Nonnull
         public ThreadPermission build() {
-            return new ThreadPermission(numberOfThreads, threadClass);
+            return new ThreadPermission(createTheFollowingNumberOfThreads, Objects.requireNonNull(threadClass, "threadClass must not be null"));
         }
     }
 }

@@ -4,6 +4,7 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageCon
 import de.tum.cit.ase.ares.api.policy.policySubComponents.SupervisedCode;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Objects;
 
 /**
@@ -23,7 +24,6 @@ import java.util.Objects;
  * @param regardingTheSupervisedCode the details of the supervised code; must not be null.
  */
 @SuppressWarnings("unused")
-@Nonnull
 public record SecurityPolicy(@Nonnull SupervisedCode regardingTheSupervisedCode) {
 
     /**
@@ -33,7 +33,7 @@ public record SecurityPolicy(@Nonnull SupervisedCode regardingTheSupervisedCode)
      * @author Markus Paulsen
      */
     public SecurityPolicy {
-        Objects.requireNonNull(regardingTheSupervisedCode, "Supervised code must not be null");
+        Objects.requireNonNull(regardingTheSupervisedCode, "regardingTheSupervisedCode must not be null");
     }
 
     /**
@@ -44,8 +44,9 @@ public record SecurityPolicy(@Nonnull SupervisedCode regardingTheSupervisedCode)
      * @param programmingLanguageConfiguration the programming language configuration for the restrictive policy.
      * @return a new SecurityPolicy instance.
      */
-    public static SecurityPolicy createRestrictive(ProgrammingLanguageConfiguration programmingLanguageConfiguration) {
-        return new SecurityPolicy(SupervisedCode.createRestrictive(programmingLanguageConfiguration));
+    @Nonnull
+    public static SecurityPolicy createRestrictive(@Nonnull ProgrammingLanguageConfiguration programmingLanguageConfiguration) {
+        return builder().regardingTheSupervisedCode(SupervisedCode.createRestrictive(Objects.requireNonNull(programmingLanguageConfiguration, "programmingLanguageConfiguration must not be null"))).build();
     }
 
     /**
@@ -55,6 +56,7 @@ public record SecurityPolicy(@Nonnull SupervisedCode regardingTheSupervisedCode)
      * @author Markus Paulsen
      * @return a new SecurityPolicy.Builder instance.
      */
+    @Nonnull
     public static Builder builder() {
         return new Builder();
     }
@@ -72,18 +74,23 @@ public record SecurityPolicy(@Nonnull SupervisedCode regardingTheSupervisedCode)
      */
     public static class Builder {
 
-        private SupervisedCode supervisedCode;
+        /**
+         * The supervised code for the SecurityPolicy.
+         */
+        @Nullable
+        private SupervisedCode regardingTheSupervisedCode;
 
         /**
          * Sets the supervised code for the SecurityPolicy.
          *
          * @since 2.0.0
          * @author Markus Paulsen
-         * @param supervisedCode the supervised code instance.
+         * @param regardingTheSupervisedCode the supervised code instance.
          * @return the updated Builder.
          */
-        public Builder supervisedCode(SupervisedCode supervisedCode) {
-            this.supervisedCode = supervisedCode;
+        @Nonnull
+        public Builder regardingTheSupervisedCode(@Nonnull SupervisedCode regardingTheSupervisedCode) {
+            this.regardingTheSupervisedCode = Objects.requireNonNull(regardingTheSupervisedCode, "regardingTheSupervisedCode must not be null");
             return this;
         }
 
@@ -94,11 +101,9 @@ public record SecurityPolicy(@Nonnull SupervisedCode regardingTheSupervisedCode)
          * @author Markus Paulsen
          * @return a new SecurityPolicy instance.
          */
+        @Nonnull
         public SecurityPolicy build() {
-            if (supervisedCode == null) {
-                throw new IllegalStateException("Supervised code must be set");
-            }
-            return new SecurityPolicy(supervisedCode);
+            return new SecurityPolicy(Objects.requireNonNull(regardingTheSupervisedCode, "regardingTheSupervisedCode must not be null"));
         }
     }
 }
