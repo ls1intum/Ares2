@@ -29,5 +29,6 @@ public interface SecurityPolicyReader {
      * @return a non-null SecurityPolicy instance created from the file content.
      * @throws SecurityException if an error occurs during reading or parsing the file.
      */
+    @Nonnull
     SecurityPolicy readSecurityPolicyFrom(@Nonnull Path securityPolicyPath);
 }

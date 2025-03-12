@@ -112,6 +112,7 @@ public class JavaWalaSecurityTestCase {
 
     //<editor-fold desc="Builder">
     // Static method to start the builder
+    @Nonnull
     public static Builder builder() {
         return new Builder();
     }

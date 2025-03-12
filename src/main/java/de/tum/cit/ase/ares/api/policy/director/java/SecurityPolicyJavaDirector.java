@@ -8,7 +8,7 @@ import de.tum.cit.ase.ares.api.policy.director.SecurityPolicyDirector;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
 import de.tum.cit.ase.ares.api.securitytest.SecurityTestCaseAbstractFactoryAndBuilder;
 import de.tum.cit.ase.ares.api.securitytest.java.JavaSecurityTestCaseFactoryAndBuilder;
-import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialYAMLReader;
+import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.yaml.EssentialDataYAMLReader;
 import de.tum.cit.ase.ares.api.securitytest.java.scanner.JavaProgrammingExerciseScanner;
 import de.tum.cit.ase.ares.api.securitytest.java.scanner.JavaScanner;
 
@@ -51,7 +51,7 @@ public class SecurityPolicyJavaDirector implements SecurityPolicyDirector {
      * Reader for essential classes YAML files.
      */
     @Nonnull
-    private final EssentialYAMLReader essentialYAMLReader;
+    private final EssentialDataYAMLReader essentialYAMLReader;
 
     /**
      * Scanner for Java programming exercises.
@@ -78,7 +78,7 @@ public class SecurityPolicyJavaDirector implements SecurityPolicyDirector {
      * @author Markus Paulsen
      */
     public SecurityPolicyJavaDirector() {
-        this(new EssentialYAMLReader(), new JavaProgrammingExerciseScanner(), Path.of(DEFAULT_ESSENTIAL_PACKAGES_PATH), Path.of(DEFAULT_ESSENTIAL_CLASSES_PATH));
+        this(new EssentialDataYAMLReader(), new JavaProgrammingExerciseScanner(), Path.of(DEFAULT_ESSENTIAL_PACKAGES_PATH), Path.of(DEFAULT_ESSENTIAL_CLASSES_PATH));
     }
 
     /**
@@ -91,7 +91,7 @@ public class SecurityPolicyJavaDirector implements SecurityPolicyDirector {
      * @param essentialPackagesPath the path to the essential packages YAML file; must not be null.
      * @param essentialClassesPath the path to the essential classes YAML file; must not be null.
      */
-    public SecurityPolicyJavaDirector(@Nonnull EssentialYAMLReader essentialYAMLReader, @Nonnull JavaScanner javaScanner, @Nonnull Path essentialPackagesPath, @Nonnull Path essentialClassesPath) {
+    public SecurityPolicyJavaDirector(@Nonnull EssentialDataYAMLReader essentialYAMLReader, @Nonnull JavaScanner javaScanner, @Nonnull Path essentialPackagesPath, @Nonnull Path essentialClassesPath) {
         this.essentialYAMLReader = Objects.requireNonNull(essentialYAMLReader, "Essential YAML reader must not be null");
         this.javaScanner = Objects.requireNonNull(javaScanner, "Java scanner must not be null");
         this.essentialPackagesPath = Objects.requireNonNull(essentialPackagesPath, "Essential packages path must not be null");
@@ -110,7 +110,8 @@ public class SecurityPolicyJavaDirector implements SecurityPolicyDirector {
      * @param securityPolicy the security policy to base test case creation on; may be null.
      * @return a non-null instance of JavaSecurityTestCaseFactoryAndBuilder configured according to the provided parameters.
      */
-    private SecurityTestCaseAbstractFactoryAndBuilder generateJavaSecurityTestCaseFactoryAndBuilder(@Nullable JavaBuildMode javaBuildMode, @Nullable JavaArchitectureMode javaArchitectureMode, @Nullable JavaAOPMode javaAOPMode, @Nullable Path projectPath, SecurityPolicy securityPolicy) {
+    @Nonnull
+    private SecurityTestCaseAbstractFactoryAndBuilder generateJavaSecurityTestCaseFactoryAndBuilder(@Nullable JavaBuildMode javaBuildMode, @Nullable JavaArchitectureMode javaArchitectureMode, @Nullable JavaAOPMode javaAOPMode, @Nullable Path projectPath, @Nullable SecurityPolicy securityPolicy) {
         return new JavaSecurityTestCaseFactoryAndBuilder(essentialYAMLReader, essentialPackagesPath, essentialClassesPath, javaScanner, javaBuildMode, javaArchitectureMode, javaAOPMode, projectPath, securityPolicy);
 
     }
@@ -130,7 +131,7 @@ public class SecurityPolicyJavaDirector implements SecurityPolicyDirector {
         if (securityPolicy == null) {
             return generateJavaSecurityTestCaseFactoryAndBuilder(null, null, null, null, null);
         }
-        ProgrammingLanguageConfiguration config = securityPolicy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed();
+        @Nonnull ProgrammingLanguageConfiguration config = securityPolicy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed();
 
         return switch (config) {
             case ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ ->

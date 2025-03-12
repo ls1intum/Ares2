@@ -90,8 +90,8 @@ public class SecurityPolicyYAMLReader implements SecurityPolicyReader {
         if (!Files.isReadable(securityPolicyPath)) {
             throw new SecurityException(localize("security.policy.file.not.readable", securityPolicyPath));
         }
-        File yamlFile = Objects.requireNonNull(securityPolicyPath.toFile(), "The security policy file must not be null.");
-        Class<SecurityPolicy> yamlClass = Objects.requireNonNull(SecurityPolicy.class, "The security policy class must not be null.");
+        @Nonnull File yamlFile = Objects.requireNonNull(securityPolicyPath.toFile(), "The security policy file must not be null.");
+        @Nonnull Class<SecurityPolicy> yamlClass = Objects.requireNonNull(SecurityPolicy.class, "The security policy class must not be null.");
         try {
             return yamlMapper.readValue(yamlFile, yamlClass);
         } catch (StreamReadException e) {

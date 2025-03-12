@@ -12,7 +12,7 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.SupervisedCode;
 import de.tum.cit.ase.ares.api.securitytest.SecurityTestCaseAbstractFactoryAndBuilder;
 import de.tum.cit.ase.ares.api.securitytest.java.creator.JavaCreator;
-import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialReader;
+import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialDataReader;
 import de.tum.cit.ase.ares.api.securitytest.java.scanner.JavaScanner;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
@@ -169,7 +169,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      * @param securityPolicy
      *          the security policy to enforce; may be null.
      */
-    public JavaSecurityTestCaseFactoryAndBuilder(@Nonnull EssentialReader essentialReader, @Nonnull Path essentialPackagesPath, @Nonnull Path essentialClassesPath, @Nonnull JavaScanner javaScanner, @Nullable JavaBuildMode javaBuildMode, @Nullable JavaArchitectureMode javaArchitectureMode, @Nullable JavaAOPMode javaAOPMode, @Nullable Path testPath, @Nullable SecurityPolicy securityPolicy) {
+    public JavaSecurityTestCaseFactoryAndBuilder(@Nonnull EssentialDataReader essentialReader, @Nonnull Path essentialPackagesPath, @Nonnull Path essentialClassesPath, @Nonnull JavaScanner javaScanner, @Nullable JavaBuildMode javaBuildMode, @Nullable JavaArchitectureMode javaArchitectureMode, @Nullable JavaAOPMode javaAOPMode, @Nullable Path testPath, @Nullable SecurityPolicy securityPolicy) {
 
         //<editor-fold desc="Modes and Project Paths">
         this.javaBuildMode = javaBuildMode == null ? javaScanner.scanForBuildMode() : javaBuildMode;

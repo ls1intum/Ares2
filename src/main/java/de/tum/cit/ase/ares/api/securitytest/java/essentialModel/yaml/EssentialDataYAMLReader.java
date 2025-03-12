@@ -1,9 +1,12 @@
-package de.tum.cit.ase.ares.api.securitytest.java.essentialModel;
+package de.tum.cit.ase.ares.api.securitytest.java.essentialModel.yaml;
 
 import com.fasterxml.jackson.core.exc.StreamReadException;
 import com.fasterxml.jackson.databind.DatabindException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialClasses;
+import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialDataReader;
+import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialPackages;
 
 import javax.annotation.Nonnull;
 import java.io.File;
@@ -22,7 +25,7 @@ import java.nio.file.Path;
  * @author Markus Paulsen
  * @version 2.0.0
  */
-public class EssentialYAMLReader implements EssentialReader {
+public class EssentialDataYAMLReader implements EssentialDataReader {
 
     /**
      * YAMLFactory instance used to create a YAML parser.
@@ -40,7 +43,7 @@ public class EssentialYAMLReader implements EssentialReader {
      * @since 2.0.0
      * @author Markus Paulsen
      */
-    public EssentialYAMLReader() {
+    public EssentialDataYAMLReader() {
     }
 
     /**

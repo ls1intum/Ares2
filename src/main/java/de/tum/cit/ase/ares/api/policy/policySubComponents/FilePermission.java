@@ -62,6 +62,7 @@ public record FilePermission(
      * @author Markus Paulsen
      * @return a new FilePermission.Builder instance.
      */
+    @Nonnull
     public static Builder builder() {
         return new Builder();
     }

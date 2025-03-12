@@ -17,7 +17,7 @@ import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstru
  * @author Markus Paulsen
  * @version 2.0.0
  */
-public interface EssentialReader {
+public interface EssentialDataReader {
 
     /**
      * Reads essential classes from the specified YAML file.

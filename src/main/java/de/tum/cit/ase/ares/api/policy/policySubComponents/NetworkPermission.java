@@ -66,6 +66,7 @@ public record NetworkPermission(
      * @author Markus Paulsen
      * @return a new NetworkPermission.Builder instance.
      */
+    @Nonnull
     public static Builder builder() {
         return new Builder();
     }

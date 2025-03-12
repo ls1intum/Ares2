@@ -84,7 +84,7 @@ public class SecurityPolicyReaderAndDirector {
      */
     public void processSecurityPolicy() {
         Objects.requireNonNull(securityPolicyReader, "securityPolicyReader must not be null");
-        SecurityPolicy securityPolicy = this.securityPolicyFilePath != null ? this.securityPolicyReader.readSecurityPolicyFrom(this.securityPolicyFilePath) : null;
+        @Nullable SecurityPolicy securityPolicy = this.securityPolicyFilePath != null ? this.securityPolicyReader.readSecurityPolicyFrom(this.securityPolicyFilePath) : null;
         Objects.requireNonNull(this.securityPolicyDirector, "securityPolicyDirector must not be null");
         this.testCaseManager = this.securityPolicyDirector.createSecurityTestCases(securityPolicy, this.projectFolderPath);
     }

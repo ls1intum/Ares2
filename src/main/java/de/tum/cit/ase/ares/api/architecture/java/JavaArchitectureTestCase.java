@@ -111,6 +111,7 @@ public class JavaArchitectureTestCase implements ArchitectureTestCase {
     /**
      * Starts the builder for the Java architecture test case.
      */
+    @Nonnull
     public static Builder builder() {
         return new Builder();
     }
