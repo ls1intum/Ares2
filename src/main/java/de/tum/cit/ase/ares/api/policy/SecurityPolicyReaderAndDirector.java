@@ -13,9 +13,8 @@ import java.util.Objects;
 /**
  * Security policy file reader and test case director.
  *
- * <p>Description: Handles reading of security policy files and manages creation and execution of security test cases.
- * Acts as a client of the Abstract Factory Design Pattern and a director in the Builder Design Pattern. It reads a security policy
- * from a file, configures the appropriate test case factory and builder, and manages the writing and execution of security test cases.
+ * <p>Description: Handles the reading of a security policy from a security policy file and manages the respective creation, the writing and the execution of security test cases.
+ * Acts as a client of the Abstract Factory Design Pattern and a director in the Builder Design Pattern.
  *
  * <p>Design Rationale: By separating the responsibilities of file reading and test case management, this class adheres to the
  * Single Responsibility Principle, ensuring that each component handles its specific functionality.
@@ -29,13 +28,13 @@ import java.util.Objects;
 public class SecurityPolicyReaderAndDirector {
 
     /**
-     * The reader for the security policy file.
+     * The reader for the security policy file (first dependency injection).
      */
     @Nonnull
     private final SecurityPolicyReader securityPolicyReader;
 
     /**
-     * The director for creating security test cases based on the security policy.
+     * The director for creating security test cases based on the security policy (second dependency injection).
      */
     @Nonnull
     private final SecurityPolicyDirector securityPolicyDirector;
@@ -44,13 +43,13 @@ public class SecurityPolicyReaderAndDirector {
      * The path to the security policy file.
      */
     @Nullable
-    private final Path securityPolicyPath;
+    private final Path securityPolicyFilePath;
 
     /**
-     * The path within the project where the policy is applied.
+     * The path to the project folder.
      */
     @Nullable
-    private final Path projectPath;
+    private final Path projectFolderPath;
 
     /**
      * The manager for creating and handling security test cases.
@@ -67,33 +66,31 @@ public class SecurityPolicyReaderAndDirector {
     public SecurityPolicyReaderAndDirector(
             @Nonnull SecurityPolicyReader securityPolicyReader,
             @Nonnull SecurityPolicyDirector securityPolicyDirector,
-            @Nullable Path securityPolicyPath,
-            @Nullable Path projectPath
+            @Nullable Path securityPolicyFilePath,
+            @Nullable Path projectFolderPath
     ) {
         this.securityPolicyReader = Objects.requireNonNull(securityPolicyReader, "securityPolicyReader must not be null");
         this.securityPolicyDirector = Objects.requireNonNull(securityPolicyDirector, "securityPolicyDirector must not be null");
-        this.securityPolicyPath = securityPolicyPath;
-        this.projectPath = projectPath;
+        this.securityPolicyFilePath = securityPolicyFilePath;
+        this.projectFolderPath = projectFolderPath;
         processSecurityPolicy();
     }
 
     /**
-     * Processes the security policy file.
+     * Creates the security test cases.
      *
      * @since 2.0.0
      * @author Markus Paulsen
      */
     public void processSecurityPolicy() {
         Objects.requireNonNull(securityPolicyReader, "securityPolicyReader must not be null");
-        SecurityPolicy securityPolicy = this.securityPolicyPath != null
-                ? this.securityPolicyReader.readSecurityPolicyFrom(this.securityPolicyPath)
-                : null;
+        SecurityPolicy securityPolicy = this.securityPolicyFilePath != null ? this.securityPolicyReader.readSecurityPolicyFrom(this.securityPolicyFilePath) : null;
         Objects.requireNonNull(this.securityPolicyDirector, "securityPolicyDirector must not be null");
-        this.testCaseManager = this.securityPolicyDirector.createSecurityTestCases(securityPolicy, this.projectPath);
+        this.testCaseManager = this.securityPolicyDirector.createSecurityTestCases(securityPolicy, this.projectFolderPath);
     }
 
     /**
-     * Writes the security test cases to the project.
+     * Writes the security test cases to the project folder.
      *
      * @since 2.0.0
      * @author Markus Paulsen
@@ -102,7 +99,7 @@ public class SecurityPolicyReaderAndDirector {
     @Nonnull
     public List<Path> writeSecurityTestCases() {
         Objects.requireNonNull(this.testCaseManager, "testCaseManager must not be null");
-        return this.testCaseManager.writeSecurityTestCases(this.projectPath);
+        return this.testCaseManager.writeSecurityTestCases(this.projectFolderPath);
     }
 
     /**
@@ -112,7 +109,7 @@ public class SecurityPolicyReaderAndDirector {
      * @author Markus Paulsen
      */
     public void executeSecurityTestCases() {
-        Objects.requireNonNull(this.securityPolicyPath, "securityPolicyPath must not be null");
+        Objects.requireNonNull(this.securityPolicyFilePath, "securityPolicyPath must not be null");
         this.testCaseManager.executeSecurityTestCases();
     }
 }
