@@ -1,5 +1,7 @@
 package de.tum.cit.ase.ares.api.policy;
 
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import de.tum.cit.ase.ares.api.policy.director.SecurityPolicyDirector;
 import de.tum.cit.ase.ares.api.policy.reader.SecurityPolicyReader;
 import de.tum.cit.ase.ares.api.securitytest.SecurityTestCaseAbstractFactoryAndBuilder;
@@ -8,7 +10,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Security policy file reader and test case director.
@@ -69,8 +70,8 @@ public class SecurityPolicyReaderAndDirector {
             @Nullable Path securityPolicyFilePath,
             @Nullable Path projectFolderPath
     ) {
-        this.securityPolicyReader = Objects.requireNonNull(securityPolicyReader, "securityPolicyReader must not be null");
-        this.securityPolicyDirector = Objects.requireNonNull(securityPolicyDirector, "securityPolicyDirector must not be null");
+        this.securityPolicyReader = Preconditions.checkNotNull(securityPolicyReader, "securityPolicyReader must not be null");
+        this.securityPolicyDirector = Preconditions.checkNotNull(securityPolicyDirector, "securityPolicyDirector must not be null");
         this.securityPolicyFilePath = securityPolicyFilePath;
         this.projectFolderPath = projectFolderPath;
         processSecurityPolicy();
@@ -83,10 +84,9 @@ public class SecurityPolicyReaderAndDirector {
      * @author Markus Paulsen
      */
     public void processSecurityPolicy() {
-        Objects.requireNonNull(securityPolicyReader, "securityPolicyReader must not be null");
-        @Nullable SecurityPolicy securityPolicy = this.securityPolicyFilePath != null ? this.securityPolicyReader.readSecurityPolicyFrom(this.securityPolicyFilePath) : null;
-        Objects.requireNonNull(this.securityPolicyDirector, "securityPolicyDirector must not be null");
-        this.testCaseManager = this.securityPolicyDirector.createSecurityTestCases(securityPolicy, this.projectFolderPath);
+        this.testCaseManager = securityPolicyDirector.createSecurityTestCases(
+                Optional.fromNullable(securityPolicyFilePath).transform(securityPolicyReader::readSecurityPolicyFrom).orNull(),
+                projectFolderPath);
     }
 
     /**
@@ -98,8 +98,7 @@ public class SecurityPolicyReaderAndDirector {
      */
     @Nonnull
     public List<Path> writeSecurityTestCases() {
-        Objects.requireNonNull(this.testCaseManager, "testCaseManager must not be null");
-        return this.testCaseManager.writeSecurityTestCases(this.projectFolderPath);
+        return Preconditions.checkNotNull(this.testCaseManager, "testCaseManager must not be null").writeSecurityTestCases(this.projectFolderPath);
     }
 
     /**
@@ -109,7 +108,6 @@ public class SecurityPolicyReaderAndDirector {
      * @author Markus Paulsen
      */
     public void executeSecurityTestCases() {
-        Objects.requireNonNull(this.securityPolicyFilePath, "securityPolicyPath must not be null");
-        this.testCaseManager.executeSecurityTestCases();
+        Preconditions.checkNotNull(this.testCaseManager, "testCaseManager must not be null").executeSecurityTestCases();
     }
 }

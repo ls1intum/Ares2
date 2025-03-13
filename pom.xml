@@ -31,6 +31,17 @@
         </aspectj-path>
     </properties>
     <dependencies>
+        <!-- Large Tooling Libraries -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>33.4.0-jre</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.18.0</version>
+        </dependency>
         <!-- Junit frameworks -->
         <dependency>
             <groupId>org.junit-pioneer</groupId>

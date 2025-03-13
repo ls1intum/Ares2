@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.api.policy.director.java;
 
+import com.google.common.base.Preconditions;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.java.JavaBuildMode;
@@ -15,7 +16,6 @@ import de.tum.cit.ase.ares.api.securitytest.java.scanner.JavaScanner;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.nio.file.Path;
-import java.util.Objects;
 
 /**
  * Java security policy director.
@@ -92,10 +92,10 @@ public class SecurityPolicyJavaDirector implements SecurityPolicyDirector {
      * @param essentialClassesPath the path to the essential classes YAML file; must not be null.
      */
     public SecurityPolicyJavaDirector(@Nonnull EssentialDataYAMLReader essentialYAMLReader, @Nonnull JavaScanner javaScanner, @Nonnull Path essentialPackagesPath, @Nonnull Path essentialClassesPath) {
-        this.essentialYAMLReader = Objects.requireNonNull(essentialYAMLReader, "Essential YAML reader must not be null");
-        this.javaScanner = Objects.requireNonNull(javaScanner, "Java scanner must not be null");
-        this.essentialPackagesPath = Objects.requireNonNull(essentialPackagesPath, "Essential packages path must not be null");
-        this.essentialClassesPath = Objects.requireNonNull(essentialClassesPath, "Essential classes path must not be null");
+        this.essentialYAMLReader = Preconditions.checkNotNull(essentialYAMLReader, "Essential YAML reader must not be null");
+        this.javaScanner = Preconditions.checkNotNull(javaScanner, "Java scanner must not be null");
+        this.essentialPackagesPath = Preconditions.checkNotNull(essentialPackagesPath, "Essential packages path must not be null");
+        this.essentialClassesPath = Preconditions.checkNotNull(essentialClassesPath, "Essential classes path must not be null");
     }
 
     /**
@@ -111,7 +111,7 @@ public class SecurityPolicyJavaDirector implements SecurityPolicyDirector {
      * @return a non-null instance of JavaSecurityTestCaseFactoryAndBuilder configured according to the provided parameters.
      */
     @Nonnull
-    private SecurityTestCaseAbstractFactoryAndBuilder generateJavaSecurityTestCaseFactoryAndBuilder(@Nullable JavaBuildMode javaBuildMode, @Nullable JavaArchitectureMode javaArchitectureMode, @Nullable JavaAOPMode javaAOPMode, @Nullable Path projectPath, @Nullable SecurityPolicy securityPolicy) {
+    private SecurityTestCaseAbstractFactoryAndBuilder generateFactoryAndBuilder(@Nullable JavaBuildMode javaBuildMode, @Nullable JavaArchitectureMode javaArchitectureMode, @Nullable JavaAOPMode javaAOPMode, @Nullable Path projectPath, @Nullable SecurityPolicy securityPolicy) {
         return new JavaSecurityTestCaseFactoryAndBuilder(essentialYAMLReader, essentialPackagesPath, essentialClassesPath, javaScanner, javaBuildMode, javaArchitectureMode, javaAOPMode, projectPath, securityPolicy);
 
     }
@@ -129,27 +129,26 @@ public class SecurityPolicyJavaDirector implements SecurityPolicyDirector {
     @Override
     public SecurityTestCaseAbstractFactoryAndBuilder createSecurityTestCases(@Nullable SecurityPolicy securityPolicy, @Nullable Path projectPath) {
         if (securityPolicy == null) {
-            return generateJavaSecurityTestCaseFactoryAndBuilder(null, null, null, null, null);
+            return generateFactoryAndBuilder(null, null, null, null, null);
         }
         @Nonnull ProgrammingLanguageConfiguration config = securityPolicy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed();
-
         return switch (config) {
             case ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ ->
-                    generateJavaSecurityTestCaseFactoryAndBuilder(JavaBuildMode.MAVEN, JavaArchitectureMode.ARCHUNIT, JavaAOPMode.ASPECTJ, projectPath, securityPolicy);
+                    generateFactoryAndBuilder(JavaBuildMode.MAVEN, JavaArchitectureMode.ARCHUNIT, JavaAOPMode.ASPECTJ, projectPath, securityPolicy);
             case ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION ->
-                    generateJavaSecurityTestCaseFactoryAndBuilder(JavaBuildMode.MAVEN, JavaArchitectureMode.ARCHUNIT, JavaAOPMode.INSTRUMENTATION, projectPath, securityPolicy);
+                    generateFactoryAndBuilder(JavaBuildMode.MAVEN, JavaArchitectureMode.ARCHUNIT, JavaAOPMode.INSTRUMENTATION, projectPath, securityPolicy);
             case ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_WALA_AND_ASPECTJ ->
-                    generateJavaSecurityTestCaseFactoryAndBuilder(JavaBuildMode.MAVEN, JavaArchitectureMode.WALA, JavaAOPMode.ASPECTJ, projectPath, securityPolicy);
+                    generateFactoryAndBuilder(JavaBuildMode.MAVEN, JavaArchitectureMode.WALA, JavaAOPMode.ASPECTJ, projectPath, securityPolicy);
             case ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_WALA_AND_INSTRUMENTATION ->
-                    generateJavaSecurityTestCaseFactoryAndBuilder(JavaBuildMode.MAVEN, JavaArchitectureMode.WALA, JavaAOPMode.INSTRUMENTATION, projectPath, securityPolicy);
+                    generateFactoryAndBuilder(JavaBuildMode.MAVEN, JavaArchitectureMode.WALA, JavaAOPMode.INSTRUMENTATION, projectPath, securityPolicy);
             case ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_ARCHUNIT_AND_ASPECTJ ->
-                    generateJavaSecurityTestCaseFactoryAndBuilder(JavaBuildMode.GRADLE, JavaArchitectureMode.ARCHUNIT, JavaAOPMode.ASPECTJ, projectPath, securityPolicy);
+                    generateFactoryAndBuilder(JavaBuildMode.GRADLE, JavaArchitectureMode.ARCHUNIT, JavaAOPMode.ASPECTJ, projectPath, securityPolicy);
             case ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION ->
-                    generateJavaSecurityTestCaseFactoryAndBuilder(JavaBuildMode.GRADLE, JavaArchitectureMode.ARCHUNIT, JavaAOPMode.INSTRUMENTATION, projectPath, securityPolicy);
+                    generateFactoryAndBuilder(JavaBuildMode.GRADLE, JavaArchitectureMode.ARCHUNIT, JavaAOPMode.INSTRUMENTATION, projectPath, securityPolicy);
             case ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_WALA_AND_ASPECTJ ->
-                    generateJavaSecurityTestCaseFactoryAndBuilder(JavaBuildMode.GRADLE, JavaArchitectureMode.WALA, JavaAOPMode.ASPECTJ, projectPath, securityPolicy);
+                    generateFactoryAndBuilder(JavaBuildMode.GRADLE, JavaArchitectureMode.WALA, JavaAOPMode.ASPECTJ, projectPath, securityPolicy);
             case ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_WALA_AND_INSTRUMENTATION ->
-                    generateJavaSecurityTestCaseFactoryAndBuilder(JavaBuildMode.GRADLE, JavaArchitectureMode.WALA, JavaAOPMode.INSTRUMENTATION, projectPath, securityPolicy);
+                    generateFactoryAndBuilder(JavaBuildMode.GRADLE, JavaArchitectureMode.WALA, JavaAOPMode.INSTRUMENTATION, projectPath, securityPolicy);
         };
     }
 }

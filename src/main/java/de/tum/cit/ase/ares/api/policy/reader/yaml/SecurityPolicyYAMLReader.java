@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.exc.StreamReadException;
 import com.fasterxml.jackson.databind.DatabindException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.google.common.base.Preconditions;
+import org.apache.commons.io.FileUtils;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.reader.SecurityPolicyReader;
 
@@ -12,7 +14,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Objects;
 
 import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
 
@@ -83,15 +84,11 @@ public class SecurityPolicyYAMLReader implements SecurityPolicyReader {
     @Override
     @Nonnull
     public SecurityPolicy readSecurityPolicyFrom(@Nonnull Path securityPolicyPath) {
-        Objects.requireNonNull(securityPolicyPath, "Security policy path must not be null");
-        if (!Files.exists(securityPolicyPath)) {
-            throw new SecurityException(localize("security.policy.file.not.found", securityPolicyPath));
-        }
-        if (!Files.isReadable(securityPolicyPath)) {
-            throw new SecurityException(localize("security.policy.file.not.readable", securityPolicyPath));
-        }
-        @Nonnull File yamlFile = Objects.requireNonNull(securityPolicyPath.toFile(), "The security policy file must not be null.");
-        @Nonnull Class<SecurityPolicy> yamlClass = Objects.requireNonNull(SecurityPolicy.class, "The security policy class must not be null.");
+        Preconditions.checkNotNull(securityPolicyPath, "Security policy path must not be null");
+        Preconditions.checkArgument(FileUtils.isFileNewer(securityPolicyPath.toFile(), 0), localize("security.policy.file.not.found", securityPolicyPath));
+        Preconditions.checkArgument(Files.isReadable(securityPolicyPath), localize("security.policy.file.not.readable", securityPolicyPath));
+        @Nonnull File yamlFile = Preconditions.checkNotNull(securityPolicyPath.toFile(), "The security policy file must not be null.");
+        @Nonnull Class<SecurityPolicy> yamlClass = Preconditions.checkNotNull(SecurityPolicy.class, "The security policy class must not be null.");
         try {
             return yamlMapper.readValue(yamlFile, yamlClass);
         } catch (StreamReadException e) {
