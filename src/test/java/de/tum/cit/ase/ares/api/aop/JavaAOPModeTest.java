@@ -113,7 +113,7 @@ class JavaAOPModeTest {
     void testReset() {
         try {
             ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-            Class<?> settingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, classLoader);
+            Class<?> settingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, classLoader);
             Method resetMethod = settingsClass.getDeclaredMethod("reset");
             resetMethod.setAccessible(true);
             resetMethod.invoke(null);

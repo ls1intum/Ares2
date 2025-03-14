@@ -1,9 +1,12 @@
 package de.tum.cit.ase.ares.api.util;
 
+//<editor-fold desc="Import">
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
@@ -16,7 +19,8 @@ import java.util.*;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
+//</editor-fold>
 
 /**
  * Utility class providing file-related operations such as copying files, reading file content,
@@ -25,7 +29,7 @@ import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstru
  */
 public class FileTools {
 
-    // TODO: This is only needed for the pre-compile mode, translation not that necessary
+    //<editor-fold desc="Constructor">
     /**
      * Private constructor to prevent instantiation of this utility class.
      * <p>
@@ -36,6 +40,7 @@ public class FileTools {
     private FileTools() {
         throw new UnsupportedOperationException("FileTools is a utility class and should not be instantiated");
     }
+    //</editor-fold>
 
     //<editor-fold desc="Copy">
     /**
@@ -149,6 +154,15 @@ public class FileTools {
             throw new SecurityException("Ares Security Error (Stage: Creation): Illegal format in content.", e);
         }
     }
+
+    /**
+     * Loads data from the corresponding CSV file.
+     */
+    public static List<List<String>> readCSVFile(Path sourceCSVPath) {
+        return Arrays.stream(readFile(sourceCSVPath).split("\n"))
+                .map(line -> Arrays.asList(line.split(",")))
+                .toList();
+    }
     //</editor-fold>
 
     //<editor-fold desc="Write">
@@ -194,6 +208,7 @@ public class FileTools {
     }
     //</editor-fold>
 
+    //<editor-fold desc="Resolve">
     /**
      * Resolves a path based on the target and additional path parts.
      *
@@ -231,7 +246,9 @@ public class FileTools {
         String[] newFurtherPathParts = Stream.concat(Arrays.stream(newPrefix), Arrays.stream(furtherPathParts)).toArray(String[]::new);
         return resolveOnTarget(projectPath, newFurtherPathParts);
     }
+    //</editor-fold>
 
+    //<editor-fold desc="Three Parted Java File">
     /**
      * Creates a new file by combining the content of a header file, a body string, and a footer file.
      * <p>
@@ -272,7 +289,9 @@ public class FileTools {
         }
         return createdFile;
     }
+    //</editor-fold>
 
+    //<editor-fold desc="Rest">
     /**
      * Generates an array of package name strings.
      * <p>
@@ -339,4 +358,5 @@ public class FileTools {
             throw new SecurityException(localize("file.tools.io.error", resourcePath), e);
         }
     }
+    //</editor-fold>
 }

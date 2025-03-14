@@ -1,6 +1,6 @@
 package de.tum.cit.ase.ares.api.aop.instrumentation.advice;
 
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathMethodAdvice;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -26,9 +26,9 @@ class JavaInstrumentationReadPathMethodAdviceTest {
     @Test
     void testOnEnter() throws Exception {
 
-        try (MockedStatic<JavaInstrumentationAdviceToolbox> mockedToolbox = mockStatic(JavaInstrumentationAdviceToolbox.class)) {
+        try (MockedStatic<JavaInstrumentationAdviceFileSystemToolbox> mockedToolbox = mockStatic(JavaInstrumentationAdviceFileSystemToolbox.class)) {
             // Arrange
-            mockedToolbox.when(() -> JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
+            mockedToolbox.when(() -> JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction(
                     OPERATION,
                     CLASS_NAME,
                     METHOD_NAME,
@@ -47,7 +47,7 @@ class JavaInstrumentationReadPathMethodAdviceTest {
             );
 
             // Assert
-            mockedToolbox.verify(() -> JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
+            mockedToolbox.verify(() -> JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction(
                     OPERATION,
                     CLASS_NAME,
                     METHOD_NAME,

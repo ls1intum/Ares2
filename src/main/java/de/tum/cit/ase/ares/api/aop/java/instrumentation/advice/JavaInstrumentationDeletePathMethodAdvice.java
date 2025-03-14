@@ -3,26 +3,26 @@ package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
 import static net.bytebuddy.asm.Advice.*;
 
 /**
- * This class provides advice for the execution of methods annotated with the @ExecutePath annotation.
+ * This class provides advice for the execution of methods deleting files.
  * It is responsible for verifying whether the method execution is allowed based on the file system
  * security policies defined within the application.
  * <p>
  * If an execution attempt violates these policies, a SecurityException is thrown, preventing
- * unauthorized file executions. The class interacts with the JavaInstrumentationAdviceToolbox to
+ * unauthorized file deletions. The class interacts with the JavaInstrumentationAdviceFileSystemToolbox to
  * perform these security checks.
  */
 public class JavaInstrumentationDeletePathMethodAdvice {
     /**
-     * This method is called when a method annotated with the @ExecutePath annotation is entered.
+     * This method is called when a method annotated with the deleting files is entered.
      * It performs security checks to determine whether the method execution is allowed according
      * to file system security policies. If the method execution is not permitted, a SecurityException
      * is thrown, blocking the execution.
      * <p>
-     * The checkFileSystemInteraction method from JavaInstrumentationAdviceToolbox is called to
+     * The checkFileSystemInteraction method from JavaInstrumentationAdviceFileSystemToolbox is called to
      * perform these checks, ensuring that both the method's parameters and the instance fields
      * adhere to the security restrictions.
      *
@@ -66,7 +66,7 @@ public class JavaInstrumentationDeletePathMethodAdvice {
         //</editor-fold>
 
         //<editor-fold desc="Check">
-        JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
+        JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction(
                 "delete",
                 declaringTypeName,
                 methodName,

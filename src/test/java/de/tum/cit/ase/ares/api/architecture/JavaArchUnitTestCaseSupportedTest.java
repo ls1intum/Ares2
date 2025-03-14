@@ -1,6 +1,6 @@
 package de.tum.cit.ase.ares.api.architecture;
 
-import de.tum.cit.ase.ares.api.architecture.java.JavaArchitecturalTestCaseSupported;
+import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -8,35 +8,35 @@ class JavaArchUnitTestCaseSupportedTest {
 
     @Test
     void testEnumValues() {
-        JavaArchitecturalTestCaseSupported[] values = JavaArchitecturalTestCaseSupported.values();
+        JavaArchitectureTestCaseSupported[] values = JavaArchitectureTestCaseSupported.values();
         assertEquals(9, values.length);
-        assertEquals(JavaArchitecturalTestCaseSupported.FILESYSTEM_INTERACTION, values[0]);
-        assertEquals(JavaArchitecturalTestCaseSupported.NETWORK_CONNECTION, values[1]);
-        assertEquals(JavaArchitecturalTestCaseSupported.COMMAND_EXECUTION, values[2]);
-        assertEquals(JavaArchitecturalTestCaseSupported.THREAD_CREATION, values[3]);
-        assertEquals(JavaArchitecturalTestCaseSupported.PACKAGE_IMPORT, values[4]);
-        assertEquals(JavaArchitecturalTestCaseSupported.TERMINATE_JVM, values[5]);
-        assertEquals(JavaArchitecturalTestCaseSupported.REFLECTION, values[6]);
-        assertEquals(JavaArchitecturalTestCaseSupported.SERIALIZATION, values[7]);
-        assertEquals(JavaArchitecturalTestCaseSupported.CLASS_LOADING, values[8]);
+        assertEquals(JavaArchitectureTestCaseSupported.FILESYSTEM_INTERACTION, values[0]);
+        assertEquals(JavaArchitectureTestCaseSupported.NETWORK_CONNECTION, values[1]);
+        assertEquals(JavaArchitectureTestCaseSupported.COMMAND_EXECUTION, values[2]);
+        assertEquals(JavaArchitectureTestCaseSupported.THREAD_CREATION, values[3]);
+        assertEquals(JavaArchitectureTestCaseSupported.PACKAGE_IMPORT, values[4]);
+        assertEquals(JavaArchitectureTestCaseSupported.TERMINATE_JVM, values[5]);
+        assertEquals(JavaArchitectureTestCaseSupported.REFLECTION, values[6]);
+        assertEquals(JavaArchitectureTestCaseSupported.SERIALIZATION, values[7]);
+        assertEquals(JavaArchitectureTestCaseSupported.CLASS_LOADING, values[8]);
     }
 
     @Test
     void testEnumValueOf() {
-        assertEquals(JavaArchitecturalTestCaseSupported.FILESYSTEM_INTERACTION, JavaArchitecturalTestCaseSupported.valueOf("FILESYSTEM_INTERACTION"));
-        assertEquals(JavaArchitecturalTestCaseSupported.NETWORK_CONNECTION, JavaArchitecturalTestCaseSupported.valueOf("NETWORK_CONNECTION"));
-        assertEquals(JavaArchitecturalTestCaseSupported.COMMAND_EXECUTION, JavaArchitecturalTestCaseSupported.valueOf("COMMAND_EXECUTION"));
-        assertEquals(JavaArchitecturalTestCaseSupported.THREAD_CREATION, JavaArchitecturalTestCaseSupported.valueOf("THREAD_CREATION"));
-        assertEquals(JavaArchitecturalTestCaseSupported.PACKAGE_IMPORT, JavaArchitecturalTestCaseSupported.valueOf("PACKAGE_IMPORT"));
-        assertEquals(JavaArchitecturalTestCaseSupported.TERMINATE_JVM, JavaArchitecturalTestCaseSupported.valueOf("TERMINATE_JVM"));
-        assertEquals(JavaArchitecturalTestCaseSupported.REFLECTION, JavaArchitecturalTestCaseSupported.valueOf("REFLECTION"));
-        assertEquals(JavaArchitecturalTestCaseSupported.SERIALIZATION, JavaArchitecturalTestCaseSupported.valueOf("SERIALIZATION"));
-        assertEquals(JavaArchitecturalTestCaseSupported.CLASS_LOADING, JavaArchitecturalTestCaseSupported.valueOf("CLASS_LOADING"));
+        assertEquals(JavaArchitectureTestCaseSupported.FILESYSTEM_INTERACTION, JavaArchitectureTestCaseSupported.valueOf("FILESYSTEM_INTERACTION"));
+        assertEquals(JavaArchitectureTestCaseSupported.NETWORK_CONNECTION, JavaArchitectureTestCaseSupported.valueOf("NETWORK_CONNECTION"));
+        assertEquals(JavaArchitectureTestCaseSupported.COMMAND_EXECUTION, JavaArchitectureTestCaseSupported.valueOf("COMMAND_EXECUTION"));
+        assertEquals(JavaArchitectureTestCaseSupported.THREAD_CREATION, JavaArchitectureTestCaseSupported.valueOf("THREAD_CREATION"));
+        assertEquals(JavaArchitectureTestCaseSupported.PACKAGE_IMPORT, JavaArchitectureTestCaseSupported.valueOf("PACKAGE_IMPORT"));
+        assertEquals(JavaArchitectureTestCaseSupported.TERMINATE_JVM, JavaArchitectureTestCaseSupported.valueOf("TERMINATE_JVM"));
+        assertEquals(JavaArchitectureTestCaseSupported.REFLECTION, JavaArchitectureTestCaseSupported.valueOf("REFLECTION"));
+        assertEquals(JavaArchitectureTestCaseSupported.SERIALIZATION, JavaArchitectureTestCaseSupported.valueOf("SERIALIZATION"));
+        assertEquals(JavaArchitectureTestCaseSupported.CLASS_LOADING, JavaArchitectureTestCaseSupported.valueOf("CLASS_LOADING"));
     }
 
     @Test
     void testEnumValueOfInvalid() {
         assertThrows(IllegalArgumentException.class, 
-            () -> JavaArchitecturalTestCaseSupported.valueOf("INVALID_VALUE"));
+            () -> JavaArchitectureTestCaseSupported.valueOf("INVALID_VALUE"));
     }
 }

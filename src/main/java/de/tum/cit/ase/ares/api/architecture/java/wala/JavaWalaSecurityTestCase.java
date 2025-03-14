@@ -4,8 +4,9 @@ package de.tum.cit.ase.ares.api.architecture.java.wala;
 
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.core.domain.JavaClasses;
-import de.tum.cit.ase.ares.api.architecture.java.JavaArchitecturalTestCaseSupported;
-import de.tum.cit.ase.ares.api.policy.SecurityPolicy.PackagePermission;
+import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
+import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 
 import javax.annotation.Nonnull;
 import java.util.HashSet;
@@ -30,7 +31,7 @@ public class JavaWalaSecurityTestCase {
      * Selects the supported architecture test case in the Java programming language.
      */
     @Nonnull
-    private final JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported;
+    private final JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported;
 
     /**
      * List of allowed packages to be imported.
@@ -111,6 +112,7 @@ public class JavaWalaSecurityTestCase {
 
     //<editor-fold desc="Builder">
     // Static method to start the builder
+    @Nonnull
     public static Builder builder() {
         return new Builder();
     }
@@ -118,10 +120,10 @@ public class JavaWalaSecurityTestCase {
 
     // Static Builder class
     public static class Builder {
-        private JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported;
+        private JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported;
         private Set<String> allowedPackages = new HashSet<>();
 
-        public Builder javaArchitecturalTestCaseSupported(JavaArchitecturalTestCaseSupported javaArchitectureTestCaseSupported) {
+        public Builder javaArchitecturalTestCaseSupported(JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported) {
             this.javaArchitectureTestCaseSupported = javaArchitectureTestCaseSupported;
             return this;
         }

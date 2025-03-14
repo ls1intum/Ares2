@@ -1,0 +1,3 @@
+Source,Value,Target
+templates/aop/java/aspectj/adviceandpointcut/JavaAspectJFileSystemAdviceDefinitions.aj,28,aop/java/aspectj/adviceandpointcut/JavaAspectJFileSystemAdviceDefinitions.aj
+templates/aop/java/aspectj/adviceandpointcut/JavaAspectJFileSystemPointcutDefinitions.aj,1,aop/java/aspectj/adviceandpointcut/JavaAspectJFileSystemPointcutDefinitions.aj

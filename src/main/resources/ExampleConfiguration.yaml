@@ -1,21 +1,22 @@
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION
-  theProgrammingLanguageUsesTheFollowingPackage: "de.tum.cit.ase"
+  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase"
+  theMainClassInsideThisPackageIs: "Main"
   theFollowingClassesAreTestClasses:
     - "de.tum.cit.ase.example.ExampleTest"
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions:
-      - readAllFiles: true
+      - onThisPathAndAllPathsBelow: "pom.xml"
+        readAllFiles: true
         overwriteAllFiles: true
         executeAllFiles: true
         deleteAllFiles: false
-        onThisPathAndAllPathsBelow: "pom.xml"
     regardingNetworkConnections:
-      - openConnections: true
+      - onTheHost: "www.example.com"
+        onThePort: 80
+        openConnections: true
         sendData: true
         receiveData: true
-        onTheHost: "www.example.com"
-        onThePort: 80
     regardingCommandExecutions:
       - executeTheCommand: "ls"
         withTheseArguments:

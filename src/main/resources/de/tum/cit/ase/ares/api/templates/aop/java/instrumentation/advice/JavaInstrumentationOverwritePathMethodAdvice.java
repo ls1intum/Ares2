@@ -11,7 +11,7 @@ import static net.bytebuddy.asm.Advice.*;
  * security policies defined within the application.
  * <p>
  * If an execution attempt violates these policies, a SecurityException is thrown, preventing
- * unauthorized file executions. The class interacts with the JavaInstrumentationAdviceToolbox to
+ * unauthorized file executions. The class interacts with the JavaInstrumentationAdviceFileSystemToolbox to
  * perform these security checks.
  */
 public class JavaInstrumentationOverwritePathMethodAdvice {
@@ -21,7 +21,7 @@ public class JavaInstrumentationOverwritePathMethodAdvice {
      * to file system security policies. If the method execution is not permitted, a SecurityException
      * is thrown, blocking the execution.
      * <p>
-     * The checkFileSystemInteraction method from JavaInstrumentationAdviceToolbox is called to
+     * The checkFileSystemInteraction method from JavaInstrumentationAdviceFileSystemToolbox is called to
      * perform these checks, ensuring that both the method's parameters and the instance fields
      * adhere to the security restrictions.
      *
@@ -71,7 +71,7 @@ public class JavaInstrumentationOverwritePathMethodAdvice {
         //</editor-fold>
 
         //<editor-fold desc="Check">
-        JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
+        JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction(
                 "overwrite",
                 declaringTypeName,
                 methodName,

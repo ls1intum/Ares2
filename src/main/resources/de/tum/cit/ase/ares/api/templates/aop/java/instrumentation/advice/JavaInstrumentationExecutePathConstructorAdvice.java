@@ -9,7 +9,7 @@ public class JavaInstrumentationExecutePathConstructorAdvice {
             @Advice.Origin("#t") String declaringTypeName,
             @Advice.AllArguments Object... parameters
     ) {
-        JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
+        JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction(
                 "execute",
                 declaringTypeName,
                 "<init>",

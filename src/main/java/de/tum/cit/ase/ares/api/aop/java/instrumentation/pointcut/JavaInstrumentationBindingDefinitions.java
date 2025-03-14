@@ -1,7 +1,10 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut;
 
-import de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox;
+import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceThreadSystemToolbox;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationCreateThreadConstructorAdvice;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationCreateThreadMethodAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathConstructorAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathMethodAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathConstructorAdvice;
@@ -21,7 +24,7 @@ import java.security.ProtectionDomain;
 import java.util.List;
 import java.util.Map;
 
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
 
 /**
  * This class provides the definitions for the bindings of the Java instrumentation.
@@ -97,10 +100,12 @@ public class JavaInstrumentationBindingDefinitions {
             new ClassInjector
                     .UsingUnsafe(classLoader)
                     .inject(Map.of(
-                            new TypeDescription.ForLoadedType(JavaInstrumentationAdviceToolbox.class),
-                            ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceToolbox.class),
-                            new TypeDescription.ForLoadedType(JavaSecurityTestCaseSettings.class),
-                            ClassFileLocator.ForClassLoader.read(JavaSecurityTestCaseSettings.class)
+                            new TypeDescription.ForLoadedType(JavaInstrumentationAdviceFileSystemToolbox.class),
+                            ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceFileSystemToolbox.class),
+                            new TypeDescription.ForLoadedType(JavaInstrumentationAdviceThreadSystemToolbox.class),
+                            ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceThreadSystemToolbox.class),
+                            new TypeDescription.ForLoadedType(JavaAOPTestCaseSettings.class),
+                            ClassFileLocator.ForClassLoader.read(JavaAOPTestCaseSettings.class)
                     ));
         }
         catch (Exception e) {
@@ -292,6 +297,52 @@ public class JavaInstrumentationBindingDefinitions {
             );
         } catch (Exception e) {
             throw new SecurityException(localize("security.instrumentation.delete.constructor.binding.error"), e);
+        }
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Create Thread">
+    /**
+     * This method creates a binding for the create thread pointcut. It applies the instrumentation advice
+     * for file deletion operations defined in the corresponding pointcuts, ensuring that security-related
+     * advice is applied when methods that create threads are invoked. This safeguards against unauthorized
+     * or harmful file deletion operations.
+     *
+     * @param builder                 The builder used to create the binding.
+     * @param typeDescription         The description of the class whose methods are being instrumented.
+     * @param classLoader             The class loader responsible for loading the class.
+     * @param ignoredJavaModule       The Java module being ignored (for compatibility reasons).
+     * @param ignoredProtectionDomain The protection domain being ignored (for compatibility reasons).
+     * @return The builder with the binding applied for file deletion operations.
+     * @throws SecurityException If the binding could not be created for the create thread, preventing the enforcement of security policies for file deletion operations.
+     */
+    public static DynamicType.Builder<?> createCreateThreadMethodBinding(
+            DynamicType.Builder<?> builder, TypeDescription typeDescription,
+            ClassLoader classLoader, JavaModule ignoredJavaModule,
+            ProtectionDomain ignoredProtectionDomain
+    ) {
+        try {
+            return createMethodBinding(
+                    builder, typeDescription, classLoader,
+                    JavaInstrumentationPointcutDefinitions.methodsWhichCanCreateThreads, JavaInstrumentationCreateThreadMethodAdvice.class
+            );
+        } catch (Exception e) {
+            throw new SecurityException(localize("security.instrumentation.create.thread.method.binding.error"), e);
+        }
+    }
+
+    public static DynamicType.Builder<?> createCreateThreadConstructorBinding(
+            DynamicType.Builder<?> builder, TypeDescription typeDescription,
+            ClassLoader classLoader, JavaModule ignoredJavaModule,
+            ProtectionDomain ignoredProtectionDomain
+    ) {
+        try {
+            return createConstructorBinding(
+                    builder, typeDescription, classLoader,
+                    JavaInstrumentationPointcutDefinitions.methodsWhichCanCreateThreads, JavaInstrumentationCreateThreadConstructorAdvice.class
+            );
+        } catch (Exception e) {
+            throw new SecurityException(localize("security.instrumentation.create.thread.constructor.binding.error"), e);
         }
     }
     //</editor-fold>

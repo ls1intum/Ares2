@@ -26,7 +26,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
     private static Object getValueFromSettings(String fieldName) {
         try {
             // Take standard class loader as class loader in order to get the JavaSecurityTestCaseSettings class at compile time for aspectj
-            Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings");
+            Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings");
             Field field = adviceSettingsClass.getDeclaredField(fieldName);
             field.setAccessible(true);
             Object value = field.get(null);

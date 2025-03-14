@@ -1,6 +1,6 @@
 package de.tum.cit.ase.ares.api.aop;
 
-import de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings;
+import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Constructor;
@@ -15,7 +15,7 @@ class JavaSecurityTestCaseSettingsTest {
     @Test
     void testConstructorThrowsException() {
         try {
-            Constructor<JavaSecurityTestCaseSettings> constructor = JavaSecurityTestCaseSettings.class.getDeclaredConstructor();
+            Constructor<JavaAOPTestCaseSettings> constructor = JavaAOPTestCaseSettings.class.getDeclaredConstructor();
             constructor.setAccessible(true);
             constructor.newInstance();
             fail("Expected SecurityException to be thrown");
@@ -30,9 +30,9 @@ class JavaSecurityTestCaseSettingsTest {
     @Test
     void testResetMethod() {
         try {
-            Field aopModeField = JavaSecurityTestCaseSettings.class.getDeclaredField("aopMode");
-            Field allowedListedClassesField = JavaSecurityTestCaseSettings.class.getDeclaredField("allowedListedClasses");
-            Field portsAllowedToBeConnectedToField = JavaSecurityTestCaseSettings.class.getDeclaredField("portsAllowedToBeConnectedTo");
+            Field aopModeField = JavaAOPTestCaseSettings.class.getDeclaredField("aopMode");
+            Field allowedListedClassesField = JavaAOPTestCaseSettings.class.getDeclaredField("allowedListedClasses");
+            Field portsAllowedToBeConnectedToField = JavaAOPTestCaseSettings.class.getDeclaredField("portsAllowedToBeConnectedTo");
 
             aopModeField.setAccessible(true);
             allowedListedClassesField.setAccessible(true);
@@ -42,7 +42,7 @@ class JavaSecurityTestCaseSettingsTest {
             allowedListedClassesField.set(null, new String[]{"testClass"});
             portsAllowedToBeConnectedToField.set(null, new int[]{8080});
 
-            Method resetMethod = JavaSecurityTestCaseSettings.class.getDeclaredMethod("reset");
+            Method resetMethod = JavaAOPTestCaseSettings.class.getDeclaredMethod("reset");
             resetMethod.setAccessible(true);
             resetMethod.invoke(null);
 
@@ -50,11 +50,11 @@ class JavaSecurityTestCaseSettingsTest {
             assertNull(allowedListedClassesField.get(null));
             assertNull(portsAllowedToBeConnectedToField.get(null));
 
-            Field pathsAllowedToBeReadField = JavaSecurityTestCaseSettings.class.getDeclaredField("pathsAllowedToBeRead");
+            Field pathsAllowedToBeReadField = JavaAOPTestCaseSettings.class.getDeclaredField("pathsAllowedToBeRead");
             pathsAllowedToBeReadField.setAccessible(true);
             assertNull(pathsAllowedToBeReadField.get(null));
 
-            Field pathsAllowedToBeOverwrittenField = JavaSecurityTestCaseSettings.class.getDeclaredField("pathsAllowedToBeOverwritten");
+            Field pathsAllowedToBeOverwrittenField = JavaAOPTestCaseSettings.class.getDeclaredField("pathsAllowedToBeOverwritten");
             pathsAllowedToBeOverwrittenField.setAccessible(true);
             assertNull(pathsAllowedToBeOverwrittenField.get(null));
 

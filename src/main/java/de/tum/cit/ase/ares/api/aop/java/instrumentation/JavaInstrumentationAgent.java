@@ -9,7 +9,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumenta
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.matcher.ElementMatchers;
 
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
 
 /**
  * This class is the entry point for the Java instrumentation agent.
@@ -29,11 +29,13 @@ public class JavaInstrumentationAgent {
         installAgentBuilder(inst, JavaInstrumentationPointcutDefinitions.methodsWhichCanOverwriteFiles, JavaInstrumentationBindingDefinitions::createOverwritePathMethodBinding);
         installAgentBuilder(inst, JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteFiles, JavaInstrumentationBindingDefinitions::createExecutePathMethodBinding);
         installAgentBuilder(inst, JavaInstrumentationPointcutDefinitions.methodsWhichCanDeleteFiles, JavaInstrumentationBindingDefinitions::createDeletePathMethodBinding);
+        installAgentBuilder(inst, JavaInstrumentationPointcutDefinitions.methodsWhichCanCreateThreads, JavaInstrumentationBindingDefinitions::createCreateThreadMethodBinding);
 
         installAgentBuilder(inst, JavaInstrumentationPointcutDefinitions.methodsWhichCanReadFiles, JavaInstrumentationBindingDefinitions::createReadPathConstructorBinding);
         installAgentBuilder(inst, JavaInstrumentationPointcutDefinitions.methodsWhichCanOverwriteFiles, JavaInstrumentationBindingDefinitions::createOverwritePathConstructorBinding);
         installAgentBuilder(inst, JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteFiles, JavaInstrumentationBindingDefinitions::createExecutePathConstructorBinding);
         installAgentBuilder(inst, JavaInstrumentationPointcutDefinitions.methodsWhichCanDeleteFiles, JavaInstrumentationBindingDefinitions::createDeletePathConstructorBinding);
+        installAgentBuilder(inst, JavaInstrumentationPointcutDefinitions.methodsWhichCanCreateThreads, JavaInstrumentationBindingDefinitions::createCreateThreadConstructorBinding);
     }
 
     /**

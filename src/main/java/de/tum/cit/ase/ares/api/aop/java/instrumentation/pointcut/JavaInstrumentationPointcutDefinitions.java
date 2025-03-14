@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
 
 /**
  * This class contains the pointcut definitions for the Java instrumentation agent.
@@ -214,6 +214,18 @@ public class JavaInstrumentationPointcutDefinitions {
             List.of("delete"),
             "java.io.Win32FileSystem",
             List.of("delete")
+    );
+    //</editor-fold>
+
+    //<editor-fold desc="Create Thread">
+    /**
+     * This map contains the methods which can create threads. The map keys represent class names,
+     * and the values are lists of method names that are considered to be thread create operations.
+     */
+    public static final Map<String, List<String>> methodsWhichCanCreateThreads = Map.ofEntries(
+            Map.entry("java.util.concurrent.ExecutorService", List.of("submit")),
+            Map.entry("java.util.concurrent.AbstractExecutorService", List.of("submit")),
+            Map.entry("java.util.concurrent.ThreadPoolExecutor", List.of("submit"))
     );
     //</editor-fold>
 
