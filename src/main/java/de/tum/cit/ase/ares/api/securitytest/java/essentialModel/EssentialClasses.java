@@ -1,7 +1,6 @@
 package de.tum.cit.ase.ares.api.securitytest.java.essentialModel;
 
 import com.google.common.collect.Streams;
-import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -11,10 +10,10 @@ import java.util.Objects;
 /**
  * Represents the essential classes required for the security test.
  *
- * <p>Description: This record encapsulates lists of essential classes for Java, ArchUnit, Wala, AspectJ, Instrumentation, Ares and JUnit.
+ * <p>Description: This record encapsulates lists of essential class names for Java, ArchUnit, Wala, AspectJ, Instrumentation, Ares and JUnit.
  * It provides a method to aggregate all these classes into a single list.</p>
  *
- * <p>Design Rationale: Grouping essential classes in a record leverages immutability and clear data encapsulation,
+ * <p>Design Rationale: Grouping essential class lists into a record leverages immutability and clear data encapsulation,
  * facilitating streamlined configuration and security testing.</p>
  *
  * @since 2.0.0
@@ -37,6 +36,22 @@ public record EssentialClasses(
         @Nonnull List<String> essentialAresClasses,
         @Nonnull List<String> essentialJUnitClasses
 ) {
+    /**
+     * Canonical constructor for EssentialClasses.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     */
+    public EssentialClasses {
+        Objects.requireNonNull(essentialJavaClasses, "essentialJavaClasses must not be null");
+        Objects.requireNonNull(essentialArchUnitClasses, "essentialArchUnitClasses must not be null");
+        Objects.requireNonNull(essentialWalaClasses, "essentialWalaClasses must not be null");
+        Objects.requireNonNull(essentialAspectJClasses, "essentialAspectJClasses must not be null");
+        Objects.requireNonNull(essentialInstrumentationClasses, "essentialInstrumentationClasses must not be null");
+        Objects.requireNonNull(essentialAresClasses, "essentialAresClasses must not be null");
+        Objects.requireNonNull(essentialJUnitClasses, "essentialJUnitClasses must not be null");
+    }
+
     /**
      * Retrieves the aggregated list of essential classes.
      *
@@ -113,6 +128,9 @@ public record EssentialClasses(
 
         /**
          * Configures the essential Java classes.
+         *
+         * @param essentialJavaClasses the essential Java classes
+         * @return the builder instance
          */
         @Nonnull
         public Builder essentialJavaClasses(@Nonnull List<String> essentialJavaClasses) {
@@ -122,6 +140,9 @@ public record EssentialClasses(
 
         /**
          * Configures the essential ArchUnit classes.
+         *
+         * @param essentialArchUnitClasses the essential ArchUnit classes
+         * @return the builder instance
          */
         @Nonnull
         public Builder essentialArchUnitClasses(@Nonnull List<String> essentialArchUnitClasses) {
@@ -131,6 +152,9 @@ public record EssentialClasses(
 
         /**
          * Configures the essential Wala classes.
+         *
+         * @param essentialWalaClasses the essential Wala classes
+         * @return the builder instance
          */
         @Nonnull
         public Builder essentialWalaClasses(@Nonnull List<String> essentialWalaClasses) {
@@ -140,6 +164,9 @@ public record EssentialClasses(
 
         /**
          * Configures the essential AspectJ classes.
+         *
+         * @param essentialAspectJClasses the essential AspectJ classes
+         * @return the builder instance
          */
         @Nonnull
         public Builder essentialAspectJClasses(@Nonnull List<String> essentialAspectJClasses) {
@@ -149,6 +176,9 @@ public record EssentialClasses(
 
         /**
          * Configures the essential Instrumentation classes.
+         *
+         * @param essentialInstrumentationClasses the essential Instrumentation classes
+         * @return the builder instance
          */
         @Nonnull
         public Builder essentialInstrumentationClasses(@Nonnull List<String> essentialInstrumentationClasses) {
@@ -158,6 +188,9 @@ public record EssentialClasses(
 
         /**
          * Configures the essential Ares classes.
+         *
+         * @param essentialAresClasses the essential Ares classes
+         * @return the builder instance
          */
         @Nonnull
         public Builder essentialAresClasses(@Nonnull List<String> essentialAresClasses) {
@@ -167,6 +200,9 @@ public record EssentialClasses(
 
         /**
          * Configures the essential JUnit classes.
+         *
+         * @param essentialJUnitClasses the essential JUnit classes
+         * @return the builder instance
          */
         @Nonnull
         public Builder essentialJUnitClasses(@Nonnull List<String> essentialJUnitClasses) {
@@ -176,6 +212,8 @@ public record EssentialClasses(
 
         /**
          * Builds the EssentialClasses instance.
+         *
+         * @return the EssentialClasses instance
          */
         @Nonnull
         public EssentialClasses build() {

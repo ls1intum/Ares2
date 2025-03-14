@@ -8,7 +8,10 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 /**
  * Specifies the path of the compiled student classes.
  *
- * <p>Description: This annotation is used to mark a field or method with the file system path where the compiled student classes are located.</p>
+ * <p>Description:
+ * Exercise Instructors use this annotation
+ * to mark a field or method with the file system path
+ * where the respective Learning Management Systems locates compiled student classes.</p>
  *
  * <p>Design Rationale: This annotation facilitates the automated detection and utilisation of compiled student classes, supporting efficient class loading and evaluation processes.</p>
  *
@@ -26,5 +29,6 @@ public @interface StudentCompiledClassesPath {
      * @author Sarp Sahinalp
      * @return the path of the compiled student classes as a {@link String}
      */
-    @Nonnull String value();
+    @Nonnull
+    String value();
 }

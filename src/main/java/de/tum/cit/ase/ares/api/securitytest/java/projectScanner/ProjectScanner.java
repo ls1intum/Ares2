@@ -1,6 +1,8 @@
-package de.tum.cit.ase.ares.api.securitytest.java.scanner;
+package de.tum.cit.ase.ares.api.securitytest.java.projectScanner;
 
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.java.JavaBuildMode;
+
+import javax.annotation.Nonnull;
 import java.nio.file.Path;
 
 /**
@@ -16,7 +18,7 @@ import java.nio.file.Path;
  * @author Markus Paulsen
  * @version 2.0.0
  */
-public interface JavaScanner {
+public interface ProjectScanner {
 
     /**
      * Retrieves the build mode for the Java project.
@@ -25,6 +27,7 @@ public interface JavaScanner {
      * @author Markus Paulsen
      * @return the Java build mode for the project
      */
+    @Nonnull
     JavaBuildMode scanForBuildMode();
 
     /**
@@ -34,6 +37,7 @@ public interface JavaScanner {
      * @author Markus Paulsen
      * @return an array of fully qualified test class names
      */
+    @Nonnull
     String[] scanForTestClasses();
 
     /**
@@ -43,6 +47,7 @@ public interface JavaScanner {
      * @author Markus Paulsen
      * @return the detected package name or a default value if none is found
      */
+    @Nonnull
     String scanForPackageName();
 
     /**
@@ -52,6 +57,7 @@ public interface JavaScanner {
      * @author Markus Paulsen
      * @return the fully qualified main class name or a default value if none is found
      */
+    @Nonnull
     String scanForMainClassInPackage();
 
     /**
@@ -61,5 +67,6 @@ public interface JavaScanner {
      * @author Markus Paulsen
      * @return the path to the test directory
      */
+    @Nonnull
     Path scanForTestPath();
 }

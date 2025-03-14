@@ -12,6 +12,7 @@ import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Objects;
 
 /**
  * Reads essential configurations from YAML files.
@@ -30,24 +31,18 @@ public class EssentialDataYAMLReader implements EssentialDataReader {
     /**
      * YAMLFactory instance used to create a YAML parser.
      */
+    @Nonnull
     private final YAMLFactory yamlFactory = new YAMLFactory();
 
     /**
      * ObjectMapper instance configured with YAMLFactory for parsing YAML files.
      */
+    @Nonnull
     private final ObjectMapper yamlMapper = new ObjectMapper(yamlFactory);
 
     /**
-     * Default constructor for EssentialYAMLReader.
-     *
-     * @since 2.0.0
-     * @author Markus Paulsen
-     */
-    public EssentialDataYAMLReader() {
-    }
-
-    /**
      * Reads a YAML file and maps its content to the specified type.
+     * This method never returns null and throws an exception if mapping fails.
      *
      * @since 2.0.0
      * @author Markus Paulsen
@@ -55,12 +50,15 @@ public class EssentialDataYAMLReader implements EssentialDataReader {
      * @param valueType the target class type for mapping
      * @param errorMessagePrefix prefix for error messages in case of failure
      * @param <T> the type parameter for the mapped object
-     * @return the mapped object of type T, or null if an error occurs
+     * @return the mapped object of type T
+     * @throws IllegalStateException if mapping fails due to any exception
      */
-    private <T> T readYamlFile(Path path, Class<T> valueType, String errorMessagePrefix) {
+    @Nonnull
+    private <T> T readYamlFile(@Nonnull Path path, @Nonnull Class<T> valueType, @Nonnull String errorMessagePrefix) {
         try {
             File yamlFile = path.toFile();
-            return yamlMapper.readValue(yamlFile, valueType);
+            return Objects.requireNonNull(yamlMapper.readValue(yamlFile, valueType),
+                    () -> errorMessagePrefix + ".mapping.result.null");
         } catch (StreamReadException e) {
             throwReaderErrorMessage(errorMessagePrefix + ".read.failed", path.toString(), e);
         } catch (DatabindException e) {
@@ -69,8 +67,10 @@ public class EssentialDataYAMLReader implements EssentialDataReader {
             throwReaderErrorMessage(errorMessagePrefix + ".unsupported.operation", path.toString(), e);
         } catch (IOException e) {
             throwReaderErrorMessage(errorMessagePrefix + ".io.exception", path.toString(), e);
+        } catch (Exception e) {
+            throwReaderErrorMessage(errorMessagePrefix + ".unknown.exception", path.toString(), e);
         }
-        return null;
+        throw new IllegalStateException(errorMessagePrefix + ".unexpected.error");
     }
 
     /**
@@ -82,6 +82,7 @@ public class EssentialDataYAMLReader implements EssentialDataReader {
      * @return an EssentialClasses instance parsed from the YAML file
      */
     @Override
+    @Nonnull
     public EssentialClasses readEssentialClassesFrom(@Nonnull Path essentialClassesPath) {
         return readYamlFile(essentialClassesPath, EssentialClasses.class, "essential.classes");
     }
@@ -95,6 +96,7 @@ public class EssentialDataYAMLReader implements EssentialDataReader {
      * @return an EssentialPackages instance parsed from the YAML file
      */
     @Override
+    @Nonnull
     public EssentialPackages readEssentialPackagesFrom(@Nonnull Path essentialPackagesPath) {
         return readYamlFile(essentialPackagesPath, EssentialPackages.class, "essential.packages");
     }

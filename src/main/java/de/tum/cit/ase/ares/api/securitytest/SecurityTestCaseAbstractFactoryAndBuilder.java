@@ -26,7 +26,7 @@ public interface SecurityTestCaseAbstractFactoryAndBuilder {
      *
      * @since 2.0.0
      * @author Markus Paulsen
-     * @param projectDirectory the target directory where test case files will be saved; may be null.
+     * @param projectDirectory the target directory where Ares 2 saves test case files. It may be null.
      * @return a non-null list of Path objects representing the generated test case files.
      */
     @Nonnull
