@@ -10,6 +10,8 @@ import org.mockito.MockedStatic;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Set;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -23,12 +25,12 @@ class JavaSecurityTestCaseTest {
     void setUp() {
         JavaAOPTestCaseSupported supported = JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION;
         resourceAccesses = mock(ResourceAccesses.class);
-        javaSecurityTestCase = new JavaAOPTestCase(supported, resourceAccesses);
+        javaSecurityTestCase = new JavaAOPTestCase(supported, () -> resourceAccesses.regardingFileSystemInteractions(), Set.of());
     }
 
     @Test
     void testWriteAOPSecurityTestCase() {
-        String result = javaSecurityTestCase.writeAOPSecurityTestCase("INSTRUMENTATION");
+        String result = javaSecurityTestCase.writeAOPSecurityTestCase("ARCHUNIT", "INSTRUMENTATION");
         assertEquals("", result);
     }
 
@@ -41,7 +43,10 @@ class JavaSecurityTestCaseTest {
                 "INSTRUMENTATION",
                 "de.tum.cit",
                 allowedListedClasses,
-                javaSecurityTestCases
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of()
         );
 
         assertTrue(result.contains("private static String aopMode"));

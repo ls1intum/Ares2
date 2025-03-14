@@ -1,6 +1,6 @@
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_WALA_AND_ASPECTJ
-  theProgrammingLanguageUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
   theMainClassInsideThisPackageIs: "Main"
   theFollowingClassesAreTestClasses: []
   theFollowingResourceAccessesArePermitted:
