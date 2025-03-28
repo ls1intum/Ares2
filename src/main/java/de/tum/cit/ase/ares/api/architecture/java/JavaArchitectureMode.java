@@ -1,5 +1,9 @@
 package de.tum.cit.ase.ares.api.architecture.java;
 
+import com.ibm.wala.ipa.callgraph.CallGraph;
+import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.importer.ClassFileImporter;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitSecurityTestCase;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
@@ -230,5 +234,18 @@ public enum JavaArchitectureMode {
 
     //<editor-fold desc="Reset methods">
     // (No reset methods defined for JavaArchitectureMode)
+    //</editor-fold>
+
+    //<editor-fold desc="Other methods">
+    public JavaClasses getJavaClasses(String classPath) {
+        return new ClassFileImporter().importPath(classPath);
+    }
+
+    public CallGraph getCallGraph(String classPath) {
+        return switch (this) {
+            case ARCHUNIT -> null;
+            case WALA -> new CustomCallgraphBuilder().buildCallGraph(classPath);
+        };
+    }
     //</editor-fold>
 }

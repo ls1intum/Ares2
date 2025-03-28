@@ -18,6 +18,9 @@ import org.slf4j.LoggerFactory;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * This test class tests the file system access of the test user.
@@ -367,7 +370,20 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-        void test_accessFileSystemViaFilesReadInstrumentation() throws IOException {
+        void test_accessFileSystemViaFilesReadInstrumentation() throws IOException, ClassNotFoundException, IllegalAccessException {
+            Class<?> adviceSettingsClassClassloader = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, Thread.currentThread().getContextClassLoader());
+            Class<?> adviceSettingsClassBootloader = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, null);
+            Map<String, Object> settingsClassloader = new HashMap<>();
+            Map<String, Object> settingsBootloader = new HashMap<>();
+            for (Field field : adviceSettingsClassClassloader.getDeclaredFields()) {
+                field.setAccessible(true);
+                settingsClassloader.put(field.getName(), field.get(null));
+            }
+            for (Field field : adviceSettingsClassBootloader.getDeclaredFields()) {
+                field.setAccessible(true);
+                settingsBootloader.put(field.getName(), field.get(null));
+            }
+            var y = 0;
             assertAresSecurityExceptionRead(FileSystemAccessPenguin::accessFileSystemViaFilesRead);
         }
         //</editor-fold>

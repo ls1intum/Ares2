@@ -158,8 +158,9 @@ public class FileTools {
     /**
      * Loads data from the corresponding CSV file.
      */
-    public static List<List<String>> readCSVFile(Path sourceCSVPath) {
-        return Arrays.stream(readFile(sourceCSVPath).split("\n"))
+    public static List<List<String>> readCSVFile(Path sourceCSVPath) throws IOException {
+        return Files.readAllLines(getResourceAsFile(sourceCSVPath.toString()).toPath())
+                .stream()
                 .map(line -> Arrays.asList(line.split(",")))
                 .toList();
     }

@@ -21,8 +21,8 @@ public class JavaCSVFileLoader implements JavaFileLoader {
      */
     public Path getCopyPaths(JavaAOPMode mode) {
         return switch (mode) {
-            case INSTRUMENTATION -> FileTools.resolveOnResources("InstrumentationCopyFiles.csv");
-            case ASPECTJ -> FileTools.resolveOnResources("AspectJCopyFiles.csv");
+            case INSTRUMENTATION -> FileTools.resolveOnResources("configuration/InstrumentationCopyFiles.csv");
+            case ASPECTJ -> FileTools.resolveOnResources("configuration/AspectJCopyFiles.csv");
         };
     }
 
@@ -43,7 +43,7 @@ public class JavaCSVFileLoader implements JavaFileLoader {
      * @return the copy configuration.
      */
     @Override
-    public List<List<String>> loadCopyData(JavaAOPMode mode) {
+    public List<List<String>> loadCopyData(JavaAOPMode mode) throws IOException {
         return FileTools.readCSVFile(getCopyPaths(mode));
     }
 
@@ -54,7 +54,7 @@ public class JavaCSVFileLoader implements JavaFileLoader {
      * @return the edit configuration.
      */
     @Override
-    public List<List<String>> loadEditData(JavaAOPMode mode) {
+    public List<List<String>> loadEditData(JavaAOPMode mode) throws IOException {
         return FileTools.readCSVFile(getEditPaths(mode));
     }
 }

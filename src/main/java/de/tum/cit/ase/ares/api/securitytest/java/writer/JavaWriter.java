@@ -4,25 +4,54 @@ import de.tum.cit.ase.ares.api.aop.java.JavaAOPMode;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.java.JavaBuildMode;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
+/**
+ * Writes security test cases in Java programming language.
+ *
+ * <p>Description: This class is responsible for creating and writing security test files
+ * for Java projects, including both architecture test files and AOP test files.
+ *
+ * <p>Design Rationale: The JavaWriter implements the Writer interface following the
+ * Strategy design pattern to allow for different implementation strategies for writing
+ * security test cases for different programming languages and frameworks.
+ *
+ * @since 2.0.0
+ * @author Markus Paulsen
+ * @version 2.0.0
+ */
 public class JavaWriter implements Writer {
 
     //<editor-fold desc="Helper methods">
+    /**
+     * Creates Java architecture test files.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @param javaArchitectureMode the Java architecture mode to use; must not be null
+     * @param essentialPackages the list of essential packages; must not be null
+     * @param packageName the name of the package containing the main class; must not be null
+     * @param mainClassInPackageName the name of the main class; must not be null
+     * @param javaArchitectureTestCases the list of architecture test cases; must not be null
+     * @param projectDirectory the directory of the project; may be null
+     * @return a list of paths to the created files
+     */
     @Nonnull
     private List<Path> createJavaArchitectureFiles(
             @Nonnull JavaArchitectureMode javaArchitectureMode,
-            @Nullable Path projectDirectory,
+            @Nonnull List<String> essentialPackages,
             @Nonnull String packageName,
-            @Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases
+            @Nonnull String mainClassInPackageName,
+            @Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
+            @Nullable Path projectDirectory
     ) {
         return Stream.concat(
                 FileTools.copyJavaFiles(
@@ -40,19 +69,33 @@ public class JavaWriter implements Writer {
         ).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
     }
 
+    /**
+     * Creates Java AOP test files.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @param javaAOPMode the Java AOP mode to use; must not be null
+     * @param essentialClasses the list of essential classes; must not be null
+     * @param testClasses the list of test classes; must not be null
+     * @param packageName the name of the package containing the main class; must not be null
+     * @param mainClassInPackageName the name of the main class; must not be null
+     * @param javaAOPTestCases the list of AOP test cases; must not be null
+     * @param projectDirectory the directory of the project; may be null
+     * @return a list of paths to the created files
+     */
     @Nonnull
     private List<Path> createJavaAOPFiles(
             @Nonnull JavaAOPMode javaAOPMode,
-            @Nullable Path projectDirectory,
+            @Nonnull List<String> essentialClasses,
+            @Nonnull List<String> testClasses,
             @Nonnull String packageName,
             @Nonnull String mainClassInPackageName,
-            @Nonnull String[] testClasses,
-            @Nonnull List<String> essentialClasses,
-            @Nonnull List<JavaAOPTestCase> javaAOPTestCases
+            @Nonnull List<JavaAOPTestCase> javaAOPTestCases,
+            @Nullable Path projectDirectory
     ) {
-        ArrayList<String> allowedClasses = Stream.concat(
-                Arrays.stream(testClasses),
-                essentialClasses.stream()
+        @Nonnull ArrayList<String> allowedClasses = Stream.concat(
+                essentialClasses.stream(),
+                testClasses.stream()
         ).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
         return Stream.concat(
                 FileTools.copyJavaFiles(
@@ -72,34 +115,56 @@ public class JavaWriter implements Writer {
     //</editor-fold>
 
     //<editor-fold desc="Write security test cases methods">
+    /**
+     * Writes security test cases to files.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @param javaBuildMode the Java build mode to use; must not be null
+     * @param javaArchitectureMode the Java architecture mode to use; must not be null
+     * @param javaAOPMode the Java AOP mode to use; must not be null
+     * @param essentialPackages the list of essential packages; must not be null
+     * @param essentialClasses the list of essential classes; must not be null
+     * @param testClasses the list of test classes; must not be null
+     * @param packageName the name of the package containing the main class; must not be null
+     * @param mainClassInPackageName the name of the main class; must not be null
+     * @param javaArchitectureTestCases the list of architecture test cases; must not be null
+     * @param javaAOPTestCases the list of AOP test cases; must not be null
+     * @param projectDirectory the directory of the project; may be null
+     * @return a list of paths to the created files
+     */
     @Override
     @Nonnull
     public List<Path> writeSecurityTestCases(
-            @Nullable Path projectDirectory,
+            @Nonnull JavaBuildMode javaBuildMode,
             @Nonnull JavaArchitectureMode javaArchitectureMode,
             @Nonnull JavaAOPMode javaAOPMode,
+            @Nonnull List<String> essentialPackages,
+            @Nonnull List<String> essentialClasses,
+            @Nonnull List<String> testClasses,
             @Nonnull String packageName,
             @Nonnull String mainClassInPackageName,
-            @Nonnull String[] testClasses,
-            @Nonnull List<String> essentialClasses,
             @Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
-            @Nonnull List<JavaAOPTestCase> javaAOPTestCases
+            @Nonnull List<JavaAOPTestCase> javaAOPTestCases,
+            @Nullable Path projectDirectory
     ) {
         return Stream.concat(
                 createJavaArchitectureFiles(
                         javaArchitectureMode,
-                        projectDirectory,
+                        essentialPackages,
                         packageName,
-                        javaArchitectureTestCases
+                        mainClassInPackageName,
+                        javaArchitectureTestCases,
+                        projectDirectory
                 ).stream(),
                 createJavaAOPFiles(
                         javaAOPMode,
-                        projectDirectory,
+                        essentialClasses,
+                        testClasses,
                         packageName,
                         mainClassInPackageName,
-                        testClasses,
-                        essentialClasses,
-                        javaAOPTestCases
+                        javaAOPTestCases,
+                        projectDirectory
                 ).stream()
         ).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
     }

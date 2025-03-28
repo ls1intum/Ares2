@@ -213,6 +213,9 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
         );
         Object[] parameters = thisJoinPoint.getArgs();
         final String fullMethodSignature = thisJoinPoint.getSignature().toLongString();
+        if(thisJoinPoint.getSourceLocation().getWithinType().getName().equals("de.tum.cit.ase.ares.integration.FileSystemAccessTest")) {
+            var x = 0;
+        }
         String illegallyReadingMethod = allowedPaths == null ? null : checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses, thisJoinPoint.getSourceLocation().getWithinType().getName());
         if (illegallyReadingMethod != null) {
             String illegallyReadPath = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, allowedPaths);

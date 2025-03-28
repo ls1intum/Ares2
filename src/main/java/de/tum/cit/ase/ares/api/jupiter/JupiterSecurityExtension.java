@@ -1,9 +1,12 @@
 package de.tum.cit.ase.ares.api.jupiter;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import de.tum.cit.ase.ares.api.Policy;
@@ -15,6 +18,9 @@ import de.tum.cit.ase.ares.api.policy.reader.yaml.SecurityPolicyYAMLReader;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 import org.junit.jupiter.api.extension.*;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
 import static de.tum.cit.ase.ares.api.internal.TestGuardUtils.hasAnnotation;
@@ -41,9 +47,11 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
                 Path policyPath = JupiterSecurityExtension.testAndGetPolicyValue(policyAnnotation.get());
                 if (!policyAnnotation.get().withinPath().isBlank()) {
                     Path withinPath = JupiterSecurityExtension.testAndGetPolicyWithinPath(policyAnnotation.get());
-                    new SecurityPolicyReaderAndDirector(securityPolicyReader, securityPolicyDirector, policyPath, withinPath).executeSecurityTestCases();
+                    SecurityPolicyReaderAndDirector securityPolicyReaderAndDirector = new SecurityPolicyReaderAndDirector(securityPolicyReader, securityPolicyDirector, policyPath, withinPath);
+                    securityPolicyReaderAndDirector.executeSecurityTestCases();
                 } else {
-                    new SecurityPolicyReaderAndDirector(securityPolicyReader, securityPolicyDirector, policyPath, Path.of("classes")).executeSecurityTestCases();
+                    SecurityPolicyReaderAndDirector securityPolicyReaderAndDirector = new SecurityPolicyReaderAndDirector(securityPolicyReader, securityPolicyDirector, policyPath, Path.of("classes"));
+                    securityPolicyReaderAndDirector.executeSecurityTestCases();
                 }
             }
         } else {

@@ -12,25 +12,51 @@ import java.nio.file.Path;
 import java.util.List;
 
 /**
- * Interface for creating security test cases.
+ * Creates security test cases based on security policies.
+ *
+ * <p>Description: This interface defines the contract for creating security test cases
+ * for different programming languages and frameworks.
+ *
+ * <p>Design Rationale: The Creator interface follows the Strategy design pattern to allow
+ * for different implementation strategies for creating security test cases for different
+ * programming languages and frameworks.
+ *
+ * @since 2.0.0
+ * @author Markus Paulsen
+ * @version 2.0.0
  */
 public interface Creator {
 
     /**
-     * Creates security test cases.
+     * Creates the security test cases based on the security policy.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @param javaBuildMode the Java build mode to use; must not be null
+     * @param javaArchitectureMode the Java architecture mode to use; must not be null
+     * @param javaAOPMode the Java AOP mode to use; must not be null
+     * @param essentialPackages the list of essential packages; must not be null
+     * @param essentialClasses the list of essential classes; must not be null
+     * @param testClasses the list of test classes; must not be null
+     * @param packageName the name of the package containing the main class; must not be null
+     * @param mainClassInPackageName the name of the main class; must not be null
+     * @param javaArchitectureTestCases the list to populate with architecture test cases; must not be null
+     * @param javaAOPTestCases the list to populate with AOP test cases; must not be null
+     * @param resourceAccesses the resource accesses permitted by the security policy; must not be null
+     * @param projectPath the path to the project; must not be null
      */
     void createSecurityTestCases(
-            JavaBuildMode javaBuildMode,
-            JavaArchitectureMode javaArchitectureMode,
-            JavaAOPMode javaAOPMode,
-            List<String> essentialPackages,
-            List<String> essentialClasses,
-            String[] testClasses,
-            String packageName,
-            String mainClassInPackageName,
-            ResourceAccesses resourceAccesses,
-            Path projectPath,
+            @Nonnull JavaBuildMode javaBuildMode,
+            @Nonnull JavaArchitectureMode javaArchitectureMode,
+            @Nonnull JavaAOPMode javaAOPMode,
+            @Nonnull List<String> essentialPackages,
+            @Nonnull List<String> essentialClasses,
+            @Nonnull List<String> testClasses,
+            @Nonnull String packageName,
+            @Nonnull String mainClassInPackageName,
             @Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
-            @Nonnull List<JavaAOPTestCase> javaAOPTestCases
+            @Nonnull List<JavaAOPTestCase> javaAOPTestCases,
+            @Nonnull ResourceAccesses resourceAccesses,
+            @Nonnull Path projectPath
     );
 }

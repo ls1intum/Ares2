@@ -1,5 +1,8 @@
 package de.tum.cit.ase.ares.api.buildtoolconfiguration.java;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 /**
  * Enum representing the Java build tools supported by Ares.
  *
@@ -47,4 +50,17 @@ public enum JavaBuildMode {
             case GRADLE -> new String[]{"build.gradle"};
         };
     }
+
+    //<editor-fold desc="Other methods">
+    public String getBuildDirectory() {
+        return switch (this) {
+            case MAVEN -> "target";
+            case GRADLE -> "build";
+        };
+    }
+
+    public String getClasspath(Path projectPath) {
+        return Paths.get(getBuildDirectory(), projectPath != null ? projectPath.toString() : null).toString();
+    }
+    //</editor-fold>
 }

@@ -27,6 +27,11 @@ public class JavaAOPTestCaseSettings {
     }
 
     /**
+     * The mode of the build.
+     */
+    private static String buildMode = null;
+
+    /**
      * The mode of the architecture tests.
      */
     private static String architectureMode = null;
@@ -40,6 +45,16 @@ public class JavaAOPTestCaseSettings {
      * The package that is restricted from certain operations.
      */
     private static String restrictedPackage = null;
+
+    /**
+     * The main class.
+     */
+    private static String mainClass = null;
+
+    /**
+     * List of packages that are allowed to be instrumented.
+     */
+    private static String[] allowedListedPackages = null;
 
     /**
      * List of classes that are allowed to be instrumented.
@@ -120,9 +135,12 @@ public class JavaAOPTestCaseSettings {
      * Resets the configuration settings to their default values.
      */
     private static void reset() {
+        JavaAOPTestCaseSettings.buildMode = null;
         JavaAOPTestCaseSettings.architectureMode = null;
         JavaAOPTestCaseSettings.aopMode = null;
         JavaAOPTestCaseSettings.restrictedPackage = null;
+        JavaAOPTestCaseSettings.mainClass = null;
+        JavaAOPTestCaseSettings.allowedListedPackages = null;
         JavaAOPTestCaseSettings.allowedListedClasses = null;
         JavaAOPTestCaseSettings.pathsAllowedToBeRead = null;
         JavaAOPTestCaseSettings.pathsAllowedToBeOverwritten = null;

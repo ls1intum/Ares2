@@ -56,7 +56,7 @@ public class SecurityPolicyReaderAndDirector {
      * The manager for creating and handling security test cases.
      */
     @Nonnull
-    private SecurityTestCaseAbstractFactoryAndBuilder testCaseManager;
+    private SecurityTestCaseAbstractFactoryAndBuilder securityTestCaseFactoryAndBuilder;
 
     /**
      * Constructs a SecurityPolicyReaderAndDirector instance.
@@ -84,9 +84,11 @@ public class SecurityPolicyReaderAndDirector {
      * @author Markus Paulsen
      */
     public void processSecurityPolicy() {
-        this.testCaseManager = securityPolicyDirector.createSecurityTestCases(
-                Optional.fromNullable(securityPolicyFilePath).transform(securityPolicyReader::readSecurityPolicyFrom).orNull(),
-                projectFolderPath);
+        @Nullable SecurityPolicy securityPolicy = Optional.fromNullable(securityPolicyFilePath).transform(securityPolicyReader::readSecurityPolicyFrom).orNull();
+        this.securityTestCaseFactoryAndBuilder = securityPolicyDirector.createSecurityTestCases(
+                securityPolicy,
+                projectFolderPath
+        );
     }
 
     /**
@@ -98,7 +100,7 @@ public class SecurityPolicyReaderAndDirector {
      */
     @Nonnull
     public List<Path> writeSecurityTestCases() {
-        return Preconditions.checkNotNull(this.testCaseManager, "testCaseManager must not be null").writeSecurityTestCases(this.projectFolderPath);
+        return Preconditions.checkNotNull(this.securityTestCaseFactoryAndBuilder, "testCaseManager must not be null").writeSecurityTestCases(this.projectFolderPath);
     }
 
     /**
@@ -108,6 +110,6 @@ public class SecurityPolicyReaderAndDirector {
      * @author Markus Paulsen
      */
     public void executeSecurityTestCases() {
-        Preconditions.checkNotNull(this.testCaseManager, "testCaseManager must not be null").executeSecurityTestCases();
+        Preconditions.checkNotNull(this.securityTestCaseFactoryAndBuilder, "testCaseManager must not be null").executeSecurityTestCases();
     }
 }

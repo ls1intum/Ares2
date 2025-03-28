@@ -23,6 +23,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 //</editor-fold>
@@ -90,8 +91,8 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
     /**
      * The effective project path where test cases will be generated.
      */
-    @Nonnull
-    private final Path testPath;
+    @Nullable
+    private final Path projectPath;
     //</editor-fold>
 
     //<editor-fold desc="File Based Configuration">
@@ -127,7 +128,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      * These classes are part of the unrestricted test code and are therefore not subject to the security policy.
      */
     @Nonnull
-    private final String[] testClasses;
+    private final List<String> testClasses;
 
     /**
      * This package is part of the restricted student code and are therefore subject to the security policy.
@@ -185,7 +186,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      *          the path to the essential packages configuration; must not be null.
      * @param essentialClassesPath
      *          the path to the essential classes configuration; must not be null.
-     * @param testPath
+     * @param projectPath
      *          the project path where test cases will be generated; if null, a default is used.
      * @param securityPolicy
      *          the security policy to enforce; may be null.
@@ -194,8 +195,8 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
             @Nonnull Creator creator, @Nonnull Writer writer, @Nonnull Executer executer, @Nonnull EssentialDataReader essentialDataReader, @Nonnull ProjectScanner javaScanner,
             @Nonnull Path essentialPackagesPath, @Nonnull Path essentialClassesPath,
             @Nullable JavaBuildMode javaBuildMode, @Nullable JavaArchitectureMode javaArchitectureMode, @Nullable JavaAOPMode javaAOPMode,
-            @Nullable Path testPath, @Nullable SecurityPolicy securityPolicy
-    ) {
+            @Nullable SecurityPolicy securityPolicy, @Nullable Path projectPath
+            ) {
 
         //<editor-fold desc="Tools">
         this.creator = creator;
@@ -206,7 +207,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         //</editor-fold>
 
         //<editor-fold desc="Modes and Project Paths">
-        this.testPath = MoreObjects.firstNonNull(testPath, javaScanner.scanForTestPath());
+        this.projectPath = projectPath;
         this.javaBuildMode = MoreObjects.firstNonNull(javaBuildMode, javaScanner.scanForBuildMode());
         this.javaArchitectureMode = MoreObjects.firstNonNull(javaArchitectureMode, JavaArchitectureMode.WALA);
         this.javaAOPMode = MoreObjects.firstNonNull(javaAOPMode, JavaAOPMode.INSTRUMENTATION);
@@ -227,9 +228,9 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
         final SupervisedCode supervisedCode = Optional.ofNullable(securityPolicy)
                 .map(SecurityPolicy::regardingTheSupervisedCode)
                 .orElse(null);
-        this.testClasses = Optional.ofNullable(supervisedCode)
+        this.testClasses = new ArrayList<>(Arrays.asList(Optional.ofNullable(supervisedCode)
                 .map(SupervisedCode::theFollowingClassesAreTestClasses)
-                .orElseGet(javaScanner::scanForTestClasses);
+                .orElseGet(javaScanner::scanForTestClasses)));
         this.packageName = Optional.ofNullable(supervisedCode)
                 .map(SupervisedCode::theSupervisedCodeUsesTheFollowingPackage)
                 .orElseGet(javaScanner::scanForPackageName);
@@ -251,10 +252,10 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                 this.testClasses,
                 this.packageName,
                 this.mainClassInPackageName,
-                this.resourceAccesses,
-                this.testPath,
                 this.javaArchitectureTestCases,
-                this.javaAOPTestCases
+                this.javaAOPTestCases,
+                this.resourceAccesses,
+                this.projectPath
         );
         //</editor-fold>
     }
@@ -277,15 +278,17 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
     @Nonnull
     public List<Path> writeSecurityTestCases(@Nullable Path projectDirectory) {
         return writer.writeSecurityTestCases(
-                projectDirectory,
+                javaBuildMode,
                 javaArchitectureMode,
                 javaAOPMode,
+                essentialPackages,
+                essentialClasses,
+                testClasses,
                 packageName,
                 mainClassInPackageName,
-                testClasses,
-                essentialClasses,
                 javaArchitectureTestCases,
-                javaAOPTestCases
+                javaAOPTestCases,
+                projectDirectory
         );
     }
     //</editor-fold>
@@ -302,12 +305,14 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
     @Override
     public void executeSecurityTestCases() {
         executer.executeSecurityTestCases(
+                javaBuildMode,
                 javaArchitectureMode,
                 javaAOPMode,
+                essentialPackages,
+                essentialClasses,
+                testClasses,
                 packageName,
                 mainClassInPackageName,
-                testClasses,
-                essentialClasses,
                 javaArchitectureTestCases,
                 javaAOPTestCases
         );

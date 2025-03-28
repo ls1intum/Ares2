@@ -1,8 +1,6 @@
 package de.tum.cit.ase.ares.api.aop.java;
 
 import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaCSVFileLoader;
-import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaFileLoader;
-import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.CommandPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.NetworkPermission;
@@ -10,6 +8,7 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.ThreadPermission;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
 import javax.annotation.Nonnull;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
@@ -44,13 +43,20 @@ public enum JavaAOPMode {
      */
     ASPECTJ;
 
-    private final List<List<String>> copyConfigurationEntries;
-    private final List<List<String>> editConfigurationEntries;
+    public List<List<String>> getCopyConfigurationEntries() {
+        try {
+            return (new JavaCSVFileLoader()).loadCopyData(this);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-    JavaAOPMode() {
-        JavaFileLoader loader = new JavaCSVFileLoader();
-        copyConfigurationEntries = loader.loadCopyData(this);
-        editConfigurationEntries = loader.loadEditData(this);
+    public List<List<String>> getEditConfigurationEntries() {
+        try {
+            return (new JavaCSVFileLoader()).loadEditData(this);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     //<editor-fold desc="Multi-file methods">
@@ -64,7 +70,7 @@ public enum JavaAOPMode {
      */
     @Nonnull
     public List<Path> filesToCopy() {
-        return copyConfigurationEntries.stream()
+        return getCopyConfigurationEntries().stream()
                 .map(entry -> entry.getFirst().split("/"))
                 .map(FileTools::resolveOnResources)
                 .toList();
@@ -81,7 +87,7 @@ public enum JavaAOPMode {
      */
     @Nonnull
     public List<String[]> fileValues(@Nonnull String packageName, @Nonnull String mainClassInPackageName) {
-        return copyConfigurationEntries.stream()
+        return getCopyConfigurationEntries().stream()
                 .map(entry -> entry.get(1))
                 .map(Integer::parseInt)
                 .map(entry -> switch (entry){
@@ -102,7 +108,7 @@ public enum JavaAOPMode {
      */
     @Nonnull
     public List<Path> targetsToCopyTo(@Nonnull Path projectPath, @Nonnull String packageName) {
-        return copyConfigurationEntries.stream()
+        return getCopyConfigurationEntries().stream()
                 .map(entry -> entry.get(2).split("/"))
                 .map(FileTools::resolveOnResources)
                 .toList();
@@ -120,7 +126,7 @@ public enum JavaAOPMode {
      */
     @Nonnull
     public Path threePartedFileHeader() {
-        return editConfigurationEntries.stream()
+        return getEditConfigurationEntries().stream()
                 .map(entry -> entry.getFirst().split("/"))
                 .map(FileTools::resolveOnResources)
                 .toList().getFirst();
@@ -192,7 +198,7 @@ public enum JavaAOPMode {
      */
     @Nonnull
     public Path threePartedFileFooter() {
-        return editConfigurationEntries.stream()
+        return getEditConfigurationEntries().stream()
                 .map(entry -> entry.get(1).split("/"))
                 .map(FileTools::resolveOnResources)
                 .toList().getFirst();
@@ -222,7 +228,7 @@ public enum JavaAOPMode {
      */
     @Nonnull
     public Path targetToCopyTo(@Nonnull Path projectPath, @Nonnull String packageName) {
-        return editConfigurationEntries.stream()
+        return getEditConfigurationEntries().stream()
                 .map(entry -> entry.get(2).split("/"))
                 .map(FileTools::resolveOnResources)
                 .toList().getFirst();

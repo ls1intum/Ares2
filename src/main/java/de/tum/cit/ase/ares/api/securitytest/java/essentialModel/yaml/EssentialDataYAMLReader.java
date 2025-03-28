@@ -7,6 +7,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialClasses;
 import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialDataReader;
 import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialPackages;
+import de.tum.cit.ase.ares.api.util.FileTools;
 
 import javax.annotation.Nonnull;
 import java.io.File;
@@ -56,7 +57,7 @@ public class EssentialDataYAMLReader implements EssentialDataReader {
     @Nonnull
     private <T> T readYamlFile(@Nonnull Path path, @Nonnull Class<T> valueType, @Nonnull String errorMessagePrefix) {
         try {
-            File yamlFile = path.toFile();
+            File yamlFile = FileTools.getResourceAsFile(path.toString());
             return Objects.requireNonNull(yamlMapper.readValue(yamlFile, valueType),
                     () -> errorMessagePrefix + ".mapping.result.null");
         } catch (StreamReadException e) {
