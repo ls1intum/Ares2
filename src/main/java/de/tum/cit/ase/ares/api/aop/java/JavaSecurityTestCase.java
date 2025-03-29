@@ -79,6 +79,8 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
                 return String.format("private static %s %s = null;%n", dataType, adviceSetting);
             }
 
+            // TODO Ajay: Joining logic can be optimised to remove duplicate code
+            // (e.g. joining of comma separated values seems to be common all across)
             return switch (dataType) {
                 case "String" -> {
                     if (!(value instanceof String)) {
@@ -141,10 +143,12 @@ public class JavaSecurityTestCase implements AOPSecurityTestCase {
     public static void setJavaAdviceSettingValue(@Nonnull String adviceSetting, @Nullable Object value, @Nonnull String aopMode) {
         try {
             @Nullable ClassLoader customClassLoader = Thread.currentThread().getContextClassLoader();
+            // TODO Ajay: consider using API to form base link ("de.tum.cit.ase.ares.api")
             @Nonnull Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, aopMode.equals("INSTRUMENTATION") ? null : customClassLoader);
             @Nonnull Field field = adviceSettingsClass.getDeclaredField(adviceSetting);
             field.setAccessible(true);
             field.set(null, value);
+            // TODO Ajay: maybe setAccessible should be set to false in a finally block
             field.setAccessible(false);
         } catch (LinkageError e) {
             throw new SecurityException(

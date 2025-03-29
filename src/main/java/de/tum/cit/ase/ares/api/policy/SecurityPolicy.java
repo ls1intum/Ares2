@@ -6,6 +6,7 @@ import java.util.List;
 
 /**
  * Defines the security policy for supervised code execution.
+ * TODO Ajay: for clarity mention how all Policy aspects (language config, permissions, allowed classes) are encapsulated in one single record
  *
  * @param regardingTheSupervisedCode the supervised code details, including its programming language configuration and permitted resource accesses.
  */
@@ -13,6 +14,9 @@ import java.util.List;
         @Nonnull SupervisedCode regardingTheSupervisedCode
 ) {
 
+    //TODO Ajay: Names could be shortened for ease of reading:
+    // e.g.: (theFollowingProgrammingLanguageConfigurationIsUsed -> programmingLanguageConfiguration
+    // theFollowingClassesAreTestClasses -> testClasses
     /**
      * Specifies details about the supervised code, including programming language configuration and permitted resource accesses.
      *
