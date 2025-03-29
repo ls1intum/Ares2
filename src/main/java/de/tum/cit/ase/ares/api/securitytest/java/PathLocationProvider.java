@@ -36,6 +36,8 @@ public class PathLocationProvider implements LocationProvider {
     @Nonnull
     public Set<Location> get(@Nonnull Class<?> testClass) {
         if (!testClass.isAnnotationPresent(StudentCompiledClassesPath.class)) {
+
+            //TODO Ajay: An IllegalArgumentException should be thrown here instead of SecurityException
             throw new SecurityException(
                     String.format("Ares Security Error (Reason: Ares-Code; Stage: Creation): %s can only be used on classes annotated with @%s",
                             getClass().getSimpleName(), StudentCompiledClassesPath.class.getSimpleName()));

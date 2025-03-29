@@ -52,7 +52,7 @@ public class SecurityPolicyReaderAndDirector {
 
     /**
      * Constructs a new {@link SecurityPolicyReaderAndDirector} to read the security policy and configure the test case manager.
-     *
+     * //TODO Ajay: Add exception doc
      * @param securityPolicyPath the path to the security policy file.
      * @param projectPath        the path within the project where the policy is applied.
      */

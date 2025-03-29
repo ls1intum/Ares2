@@ -133,6 +133,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
             @Nonnull SecurityPolicy securityPolicy,
             @Nonnull Path projectPath
     ) {
+        //TODO Ajay: This constructor body could benefit from modularization to increase readability
         if (securityPolicy.regardingTheSupervisedCode().theProgrammingLanguageUsesTheFollowingPackage() == null) {
             throw new IllegalArgumentException(localize("security.policy.restricted.package.null"));
         } else if (securityPolicy.regardingTheSupervisedCode().theMainClassInsideThisPackageIs() == null) {
@@ -151,6 +152,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
             throw new SecurityException(localize("security.policy.java.aop.mode.null"));
         }
         this.javaAOPMode = javaAOPMode;
+        //TODO Ajay: the following two if checks are already done in the beginning and a different exception is thrown
         if (securityPolicy.regardingTheSupervisedCode().theProgrammingLanguageUsesTheFollowingPackage() == null) {
             throw new SecurityException(localize("security.policy.java.not.correct.set"));
         }
@@ -392,6 +394,8 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
     }
     //</editor-fold>
 
+
+    //TODO Ajay: this could benefit from documentation (is thread safety necessary?)
     //<editor-fold desc="Tool methods">
     @SuppressWarnings("unchecked")
     public static <T> Supplier<T> memoize(Supplier<T> supplier) {

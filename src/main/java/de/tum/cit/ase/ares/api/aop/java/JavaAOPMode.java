@@ -40,7 +40,7 @@ public enum JavaAOPMode {
     //<editor-fold desc="Multi-file methods">
     /**
      * Retrieves a list of file paths to copy for the specific AOP mode.
-     *
+     * TODO Ajay: a bit more context with an example on what these files contain since they are hardcoded
      * @return a list of file paths for the selected AOP mode (AspectJ or Instrumentation).
      */
     @Nonnull
@@ -70,7 +70,7 @@ public enum JavaAOPMode {
 
     /**
      * Retrieves the values for file templates to copy based on the AOP mode.
-     *
+     * TODO Ajay: not clear on how the fileValues differ between different AOP modes
      * @param packageName            the base package name for the Java files.
      * @param mainClassInPackageName the main class inside the package.
      * @return a list of arrays representing the file values to be copied.
@@ -212,7 +212,6 @@ public enum JavaAOPMode {
             method.setAccessible(true);
             method.invoke(null);
             method.setAccessible(false);
-
         } catch (ClassNotFoundException e) {
             throw new SecurityException(localize("security.creation.reset.class.not.found.exception"), e);
 
