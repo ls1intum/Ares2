@@ -1,6 +1,8 @@
 package de.tum.cit.ase.ares.api.architecture.java;
 
 import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCaseSupported;
+
+import javax.annotation.Nonnull;
 import java.util.List;
 
 /**
@@ -68,6 +70,7 @@ public enum JavaArchitectureTestCaseSupported implements ArchitectureTestCaseSup
      * @author Markus Paulsen
      * @return a list of static architecture test cases.
      */
+    @Nonnull
     public List<ArchitectureTestCaseSupported> getStatic() {
         return List.of(
                 JavaArchitectureTestCaseSupported.PACKAGE_IMPORT,
@@ -85,6 +88,7 @@ public enum JavaArchitectureTestCaseSupported implements ArchitectureTestCaseSup
      * @author Markus Paulsen
      * @return a list of dynamic architecture test cases.
      */
+    @Nonnull
     public List<ArchitectureTestCaseSupported> getDynamic() {
         return List.of(
                 JavaArchitectureTestCaseSupported.FILESYSTEM_INTERACTION,

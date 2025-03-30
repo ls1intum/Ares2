@@ -22,6 +22,7 @@ public class ArchitectureSecurityUser {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicyWala.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
     void testWalaFileAccess() {
+        var x = 0;
         // do nothing
     }
     // </editor-fold>
@@ -36,6 +37,7 @@ public class ArchitectureSecurityUser {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicyWala.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/network")
     void testWalaNetworkAccess() {
+        var x = 0;
         // do nothing
     }
     // </editor-fold>
@@ -50,6 +52,7 @@ public class ArchitectureSecurityUser {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicyWala.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/commandexecution")
     void testWalaCommandExecution() {
+        var x = 0;
         // do nothing
     }
     // </editor-fold>
@@ -64,6 +67,7 @@ public class ArchitectureSecurityUser {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicyWala.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/thread_manipulation")
     void testWalaThreadCreation() {
+        var x = 0;
         // do nothing
     }
     // </editor-fold>
@@ -78,6 +82,7 @@ public class ArchitectureSecurityUser {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicyWala.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/packageImport")
     void testWalaPackageImport() {
+        var x = 0;
         // do nothing
     }
     // </editor-fold>
@@ -92,6 +97,7 @@ public class ArchitectureSecurityUser {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicyWala.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/jvmTermination")
     void testWalaJVMTermination() {
+        var x = 0;
         // do nothing
     }
     // </editor-fold>
@@ -106,6 +112,7 @@ public class ArchitectureSecurityUser {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicyWala.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/reflection")
     void testWalaReflection() {
+        var x = 0;
         // do nothing
     }
     // </editor-fold>
@@ -120,6 +127,7 @@ public class ArchitectureSecurityUser {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicyWala.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/serialization")
     void testWalaSerialization() {
+        var x = 0;
         // do nothing
     }
     // </editor-fold>
@@ -134,6 +142,7 @@ public class ArchitectureSecurityUser {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicyWala.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/classloading")
     void testWalaClassloading() {
+        var x = 0;
         // do nothing
     }
     // </editor-fold>
@@ -152,6 +161,7 @@ public class ArchitectureSecurityUser {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicyWala.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/thirdPartyAccess")
     void testWalaThirdPartyPackageAccess() {
+        var x = 0;
         // do nothing
     }
     // </editor-fold>

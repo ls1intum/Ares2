@@ -23,6 +23,15 @@ public class JavaProgrammingExerciseProjectScanner extends JavaProjectScanner {
         return "Main";
     }
 
+    /**
+     * Regex pattern to identify test annotations.
+     * This pattern matches the following annotations:
+     * - @Test
+     * - @Property
+     * - @PublicTest
+     * - @PrivateTest
+     */
+    @Nonnull
     private static final Pattern TEST_ANNOTATION_PATTERN = Pattern.compile("@(?:Test|Property|PublicTest|PrivateTest)\\b");
 
     /**

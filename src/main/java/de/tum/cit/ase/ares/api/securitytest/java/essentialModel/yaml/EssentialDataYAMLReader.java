@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.exc.StreamReadException;
 import com.fasterxml.jackson.databind.DatabindException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.google.common.base.Preconditions;
 import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialClasses;
 import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialDataReader;
 import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialPackages;
@@ -56,22 +57,25 @@ public class EssentialDataYAMLReader implements EssentialDataReader {
      */
     @Nonnull
     private <T> T readYamlFile(@Nonnull Path path, @Nonnull Class<T> valueType, @Nonnull String errorMessagePrefix) {
+        Path protectedPath = Preconditions.checkNotNull(path, "path cannot be null");
+        Class<T> protectedValueType = Preconditions.checkNotNull(valueType, "valueType cannot be null");
+        String protectedErrorMessagePrefix = Preconditions.checkNotNull(errorMessagePrefix, "errorMessagePrefix cannot be null");
         try {
-            File yamlFile = FileTools.getResourceAsFile(path.toString());
-            return Objects.requireNonNull(yamlMapper.readValue(yamlFile, valueType),
-                    () -> errorMessagePrefix + ".mapping.result.null");
+            File yamlFile = FileTools.getResourceAsFile(protectedPath.toString());
+            return Objects.requireNonNull(yamlMapper.readValue(yamlFile, protectedValueType),
+                    () -> protectedErrorMessagePrefix + ".mapping.result.null");
         } catch (StreamReadException e) {
-            throwReaderErrorMessage(errorMessagePrefix + ".read.failed", path.toString(), e);
+            throwReaderErrorMessage(protectedErrorMessagePrefix + ".read.failed", protectedPath.toString(), e);
         } catch (DatabindException e) {
-            throwReaderErrorMessage(errorMessagePrefix + ".data.bind.failed", path.toString(), e);
+            throwReaderErrorMessage(protectedErrorMessagePrefix + ".data.bind.failed", protectedPath.toString(), e);
         } catch (UnsupportedOperationException e) {
-            throwReaderErrorMessage(errorMessagePrefix + ".unsupported.operation", path.toString(), e);
+            throwReaderErrorMessage(protectedErrorMessagePrefix + ".unsupported.operation", protectedPath.toString(), e);
         } catch (IOException e) {
-            throwReaderErrorMessage(errorMessagePrefix + ".io.exception", path.toString(), e);
+            throwReaderErrorMessage(protectedErrorMessagePrefix + ".io.exception", protectedPath.toString(), e);
         } catch (Exception e) {
-            throwReaderErrorMessage(errorMessagePrefix + ".unknown.exception", path.toString(), e);
+            throwReaderErrorMessage(protectedErrorMessagePrefix + ".unknown.exception", protectedPath.toString(), e);
         }
-        throw new IllegalStateException(errorMessagePrefix + ".unexpected.error");
+        throw new IllegalStateException(protectedErrorMessagePrefix + ".unexpected.error");
     }
 
     /**
@@ -85,7 +89,11 @@ public class EssentialDataYAMLReader implements EssentialDataReader {
     @Override
     @Nonnull
     public EssentialClasses readEssentialClassesFrom(@Nonnull Path essentialClassesPath) {
-        return readYamlFile(essentialClassesPath, EssentialClasses.class, "essential.classes");
+        return readYamlFile(
+                Preconditions.checkNotNull(essentialClassesPath, "essentialClassesPath cannot be null"),
+                EssentialClasses.class,
+                "essential.classes"
+        );
     }
 
     /**
@@ -99,6 +107,10 @@ public class EssentialDataYAMLReader implements EssentialDataReader {
     @Override
     @Nonnull
     public EssentialPackages readEssentialPackagesFrom(@Nonnull Path essentialPackagesPath) {
-        return readYamlFile(essentialPackagesPath, EssentialPackages.class, "essential.packages");
+        return readYamlFile(
+                Preconditions.checkNotNull(essentialPackagesPath, "essentialPackagesPath cannot be null"),
+                EssentialPackages.class,
+                "essential.packages"
+        );
     }
 }

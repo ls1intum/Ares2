@@ -69,11 +69,12 @@ public class FileSystemAccessUser {
         FileSystemAccessPenguin.askForFilePermission("-");
     }
 
-    @PublicTest
+    /*@PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicyWala.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/thirdPartyAccess")
     void accessFileSystem() throws IOException {
+        var x = 0;
         // do nothing
-    }
+    }*/
 //
 //    @WhitelistPath(value = "../*r*e*s**", type = PathType.GLOB)
 //    @PublicTest

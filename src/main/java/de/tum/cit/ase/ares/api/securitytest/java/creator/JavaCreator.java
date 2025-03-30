@@ -68,8 +68,8 @@ public class JavaCreator implements Creator {
      */
     @Nonnull
     private Set<PackagePermission> prepareAllowedPackages(
-            @Nonnull ResourceAccesses resourceAccesses,
             @Nonnull List<String> essentialPackages,
+            @Nonnull ResourceAccesses resourceAccesses,
             @Nonnull String packageName
     ) {
         return Stream.of(
@@ -95,7 +95,10 @@ public class JavaCreator implements Creator {
      * @return a set of allowed class names; never null
      */
     @Nonnull
-    private Set<String> prepareAllowedClasses(@Nonnull List<String> essentialClasses, @Nonnull List<String> testClasses) {
+    private Set<String> prepareAllowedClasses(
+            @Nonnull List<String> essentialClasses,
+            @Nonnull List<String> testClasses
+    ) {
         return Stream.of(
                 // Essential classes are allowed to do anything
                 essentialClasses.stream(),
@@ -163,7 +166,14 @@ public class JavaCreator implements Creator {
     ) {
         @Nonnull Supplier<List<?>> resourceAccessSupplier = List.of((Supplier<List<?>>) resourceAccesses::regardingFileSystemInteractions, resourceAccesses::regardingNetworkConnections, resourceAccesses::regardingCommandExecutions, resourceAccesses::regardingThreadCreations).get(supported.ordinal());
         if (resourceAccessSupplier.get().isEmpty()) {
-            javaArchitectureTestCases.add(JavaArchitectureTestCase.builder().javaArchitecturalTestCaseSupported(JavaArchitectureTestCaseSupported.valueOf(supported.name())).javaClasses(classes).callGraph(callGraph).allowedPackages(allowedPackages).build());
+            javaArchitectureTestCases.add(
+                    JavaArchitectureTestCase.builder()
+                            .javaArchitecturalTestCaseSupported(JavaArchitectureTestCaseSupported.valueOf(supported.name()))
+                            .javaClasses(classes)
+                            .callGraph(callGraph)
+                            .allowedPackages(allowedPackages)
+                            .build()
+            );
         }
         return JavaAOPTestCase.builder()
                 // The AOP test case checks for the following aspect
@@ -267,7 +277,7 @@ public class JavaCreator implements Creator {
         //</editor-fold>
 
         //<editor-fold desc="Preparation">
-        @Nonnull Set<PackagePermission> allowedPackages = prepareAllowedPackages(resourceAccesses, essentialPackages, packageName);
+        @Nonnull Set<PackagePermission> allowedPackages = prepareAllowedPackages(essentialPackages, resourceAccesses, packageName);
         @Nonnull Set<String> allowedClasses = prepareAllowedClasses(essentialClasses, testClasses);
         //</editor-fold>
 

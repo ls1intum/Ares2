@@ -42,6 +42,11 @@
             <artifactId>commons-io</artifactId>
             <version>2.18.0</version>
         </dependency>
+        <dependency>
+            <groupId>io.vavr</groupId>
+            <artifactId>vavr</artifactId>
+            <version>0.10.6</version>
+        </dependency>
         <!-- Junit frameworks -->
         <dependency>
             <groupId>org.junit-pioneer</groupId>

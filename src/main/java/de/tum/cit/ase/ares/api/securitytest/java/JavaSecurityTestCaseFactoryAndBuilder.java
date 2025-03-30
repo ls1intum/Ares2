@@ -199,11 +199,11 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
             ) {
 
         //<editor-fold desc="Tools">
-        this.creator = creator;
-        this.writer = writer;
-        this.executer = executer;
-        this.essentialDataReader = essentialDataReader;
-        this.javaScanner = javaScanner;
+        this.creator = Preconditions.checkNotNull(creator);
+        this.writer = Preconditions.checkNotNull(writer);
+        this.executer = Preconditions.checkNotNull(executer);
+        this.essentialDataReader = Preconditions.checkNotNull(essentialDataReader);
+        this.javaScanner = Preconditions.checkNotNull(javaScanner);
         //</editor-fold>
 
         //<editor-fold desc="Modes and Project Paths">

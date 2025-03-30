@@ -18,9 +18,7 @@ import de.tum.cit.ase.ares.api.policy.reader.yaml.SecurityPolicyYAMLReader;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 import org.junit.jupiter.api.extension.*;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.junit.platform.commons.function.Try;
 
 import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
 import static de.tum.cit.ase.ares.api.internal.TestGuardUtils.hasAnnotation;
@@ -55,15 +53,13 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
                 }
             }
         } else {
-            try {
-                // We have to reset both the settings classes in the runtime and the bootstrap class loader to be able to run multiple tests in the same JVM instance.
-                Class<?> javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings");
-                resetSettings(javaSecurityTestCaseSettingsClass);
-                javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, null);
-                resetSettings(javaSecurityTestCaseSettingsClass);
-            } catch (ClassNotFoundException e) {
-                throw new SecurityException(localize("security.settings.error"), e);
-            }
+            // We have to reset both the settings classes in the runtime and the bootstrap class loader to be able to run multiple tests in the same JVM instance.
+            String className = "de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings";
+            Try.call(() -> Class.forName(className, true, Thread.currentThread().getContextClassLoader()))
+                    .ifSuccess(JupiterSecurityExtension::resetSettings);
+
+            Try.call(() -> Class.forName(className, true, null))
+                    .ifSuccess(JupiterSecurityExtension::resetSettings);
         }
         //REMOVED: Installing of ArtemisSecurityManager
         Throwable failure = null;

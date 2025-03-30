@@ -3,7 +3,9 @@ package de.tum.cit.ase.ares.api.policy;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import de.tum.cit.ase.ares.api.policy.director.SecurityPolicyDirector;
+import de.tum.cit.ase.ares.api.policy.director.java.SecurityPolicyJavaDirector;
 import de.tum.cit.ase.ares.api.policy.reader.SecurityPolicyReader;
+import de.tum.cit.ase.ares.api.policy.reader.yaml.SecurityPolicyYAMLReader;
 import de.tum.cit.ase.ares.api.securitytest.SecurityTestCaseAbstractFactoryAndBuilder;
 
 import javax.annotation.Nonnull;
@@ -63,6 +65,10 @@ public class SecurityPolicyReaderAndDirector {
      *
      * @since 2.0.0
      * @author Markus Paulsen
+     * @param securityPolicyReader the non-null reader for the security policy file.
+     * @param securityPolicyDirector the non-null director for creating security test cases.
+     * @param securityPolicyFilePath the path to the security policy file.
+     * @param projectFolderPath the path to the project folder.
      */
     public SecurityPolicyReaderAndDirector(
             @Nonnull SecurityPolicyReader securityPolicyReader,
@@ -78,13 +84,36 @@ public class SecurityPolicyReaderAndDirector {
     }
 
     /**
+     * Constructs a SecurityPolicyReaderAndDirector instance with default settings.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @param securityPolicyFilePath the path to the security policy file.
+     * @param projectFolderPath the path to the project folder.
+     */
+    public SecurityPolicyReaderAndDirector(
+            @Nullable Path securityPolicyFilePath,
+            @Nullable Path projectFolderPath
+    ) {
+        this(
+                new SecurityPolicyYAMLReader(),
+                new SecurityPolicyJavaDirector(),
+                securityPolicyFilePath,
+                projectFolderPath
+        );
+    }
+
+    /**
      * Creates the security test cases.
      *
      * @since 2.0.0
      * @author Markus Paulsen
      */
     public void processSecurityPolicy() {
-        @Nullable SecurityPolicy securityPolicy = Optional.fromNullable(securityPolicyFilePath).transform(securityPolicyReader::readSecurityPolicyFrom).orNull();
+        @Nullable SecurityPolicy securityPolicy = Optional
+                .fromNullable(securityPolicyFilePath)
+                .transform(securityPolicyReader::readSecurityPolicyFrom)
+                .orNull();
         this.securityTestCaseFactoryAndBuilder = securityPolicyDirector.createSecurityTestCases(
                 securityPolicy,
                 projectFolderPath
@@ -100,7 +129,8 @@ public class SecurityPolicyReaderAndDirector {
      */
     @Nonnull
     public List<Path> writeSecurityTestCases() {
-        return Preconditions.checkNotNull(this.securityTestCaseFactoryAndBuilder, "testCaseManager must not be null").writeSecurityTestCases(this.projectFolderPath);
+        return Preconditions.checkNotNull(this.securityTestCaseFactoryAndBuilder, "testCaseManager must not be null")
+                .writeSecurityTestCases(this.projectFolderPath);
     }
 
     /**
@@ -110,6 +140,7 @@ public class SecurityPolicyReaderAndDirector {
      * @author Markus Paulsen
      */
     public void executeSecurityTestCases() {
-        Preconditions.checkNotNull(this.securityTestCaseFactoryAndBuilder, "testCaseManager must not be null").executeSecurityTestCases();
+        Preconditions.checkNotNull(this.securityTestCaseFactoryAndBuilder, "testCaseManager must not be null")
+                .executeSecurityTestCases();
     }
 }

@@ -1,13 +1,13 @@
 package de.tum.cit.ase.ares.api.architecture.java;
 
 import com.ibm.wala.ipa.callgraph.CallGraph;
-import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitSecurityTestCase;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Stream;
@@ -30,12 +30,12 @@ import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstru
 public enum JavaArchitectureMode {
 
     /**
-     * ArchUnit mode for analysing Java code with ArchUnit.
+     * ArchUnit mode for analysing Java code with TNGs ArchUnit.
      */
     ARCHUNIT,
 
     /**
-     * WALA mode for analysing Java code with WALA.
+     * WALA mode for analysing Java code with IBMs WALA.
      */
     WALA;
 
@@ -237,10 +237,31 @@ public enum JavaArchitectureMode {
     //</editor-fold>
 
     //<editor-fold desc="Other methods">
+    /**
+     * Imports and analyzes Java classes from the specified class path using ArchUnit's ClassFileImporter.
+     * This method enables static code analysis by creating a collection of Java class metadata.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @param classPath the file system path containing Java classes to import
+     * @return a JavaClasses object containing all imported classes for analysis
+     */
+    @Nonnull
     public JavaClasses getJavaClasses(String classPath) {
         return new ClassFileImporter().importPath(classPath);
     }
 
+    /**
+     * Builds a call graph based on the current architecture mode. Returns null for ARCHUNIT mode
+     * as it employs non-call-graph analysis, while in WALA mode it constructs a proper call graph
+     * representing method caller-callee relationships.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @param classPath the file system path containing Java classes to analyze
+     * @return a CallGraph object for WALA mode, or null for ARCHUNIT mode
+     */
+    @Nullable
     public CallGraph getCallGraph(String classPath) {
         return switch (this) {
             case ARCHUNIT -> null;

@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.api.securitytest.java.specific;
 
+import com.google.common.base.Preconditions;
 import com.tngtech.archunit.core.importer.Location;
 import com.tngtech.archunit.junit.LocationProvider;
 import de.tum.cit.ase.ares.api.securitytest.java.StudentCompiledClassesPath;
@@ -37,13 +38,14 @@ public class PathLocationProvider implements LocationProvider {
     @Override
     @Nonnull
     public Set<Location> get(@Nonnull Class<?> testClass) {
-        if (!testClass.isAnnotationPresent(StudentCompiledClassesPath.class)) {
+        @Nonnull Class<?> protectedTestClass = Preconditions.checkNotNull(testClass, "testClass must not be null");
+        if (!protectedTestClass.isAnnotationPresent(StudentCompiledClassesPath.class)) {
             throw new SecurityException(
                     String.format("Ares Security Error (Reason: Ares-Code; Stage: Creation): %s can only be used on classes annotated with @%s",
                             getClass().getSimpleName(), StudentCompiledClassesPath.class.getSimpleName()));
         }
 
-        @Nonnull String path = testClass.getAnnotation(StudentCompiledClassesPath.class).value();
+        @Nonnull String path = protectedTestClass.getAnnotation(StudentCompiledClassesPath.class).value();
         return Collections.singleton(Location.of(Paths.get(path)));
     }
 }

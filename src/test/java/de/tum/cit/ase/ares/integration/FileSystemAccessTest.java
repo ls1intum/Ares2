@@ -369,7 +369,7 @@ class FileSystemAccessTest {
 
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/OnePathAllowedInstrumentationRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser")
         void test_accessFileSystemViaFilesReadInstrumentation() throws IOException, ClassNotFoundException, IllegalAccessException {
             Class<?> adviceSettingsClassClassloader = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, Thread.currentThread().getContextClassLoader());
             Class<?> adviceSettingsClassBootloader = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, null);

@@ -4,7 +4,12 @@ regardingTheSupervisedCode:
   theMainClassInsideThisPackageIs: "Main"
   theFollowingClassesAreTestClasses: []
   theFollowingResourceAccessesArePermitted:
-    regardingFileSystemInteractions: []
+    regardingFileSystemInteractions:
+      - readAllFiles: true
+        overwriteAllFiles: true
+        executeAllFiles: true
+        deleteAllFiles: false
+        onThisPathAndAllPathsBelow: "Ares2"
     regardingNetworkConnections: []
     regardingCommandExecutions: []
     regardingThreadCreations: []

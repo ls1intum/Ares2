@@ -48,6 +48,19 @@ public class SecurityPolicyYAMLReader implements SecurityPolicyReader {
     private final ObjectMapper yamlMapper;
 
     /**
+     * Constructs a new SecurityPolicyYAMLReader with the specified YAML factory and object mapper.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @param yamlFactory the non-null YAML factory for parsing YAML files.
+     * @param yamlMapper the non-null YAML object mapper for reading YAML files.
+     */
+    public SecurityPolicyYAMLReader(@Nonnull YAMLFactory yamlFactory, @Nonnull ObjectMapper yamlMapper) {
+        this.yamlFactory = Preconditions.checkNotNull(yamlFactory, "yamlFactory must not be null");
+        this.yamlMapper = Preconditions.checkNotNull(yamlMapper, "yamlMapper must not be null");
+    }
+
+    /**
      * Constructs a new SecurityPolicyYAMLReader with default YAML parsing settings.
      *
      * @since 2.0.0
@@ -58,19 +71,6 @@ public class SecurityPolicyYAMLReader implements SecurityPolicyReader {
                 new YAMLFactory(),
                 new ObjectMapper(new YAMLFactory())
         );
-    }
-
-    /**
-     * Constructs a new SecurityPolicyYAMLReader with the specified YAML factory and object mapper.
-     *
-     * @since 2.0.0
-     * @author Markus Paulsen
-     * @param yamlFactory the non-null YAML factory for parsing YAML files.
-     * @param yamlMapper the non-null YAML object mapper for reading YAML files.
-     */
-    public SecurityPolicyYAMLReader(@Nonnull YAMLFactory yamlFactory, @Nonnull ObjectMapper yamlMapper) {
-        this.yamlFactory = yamlFactory;
-        this.yamlMapper = yamlMapper;
     }
 
     /**

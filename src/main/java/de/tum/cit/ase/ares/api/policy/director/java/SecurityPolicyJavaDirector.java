@@ -46,21 +46,33 @@ public class SecurityPolicyJavaDirector implements SecurityPolicyDirector {
      * Default path to the essential packages YAML file.
      */
     @Nonnull
-    private static final Path DEFAULT_ESSENTIAL_PACKAGES_PATH = FileTools.resolveOnResources("configuration/EssentialPackages.yaml");
+    private static final Path DEFAULT_ESSENTIAL_PACKAGES_PATH = Preconditions.checkNotNull(
+            FileTools.resolveOnResources("configuration/EssentialPackages.yaml")
+    );
 
     /**
      * Default path to the essential classes YAML file.
      */
     @Nonnull
-    private static final Path DEFAULT_ESSENTIAL_CLASSES_PATH = FileTools.resolveOnResources("configuration/EssentialClasses.yaml");
+    private static final Path DEFAULT_ESSENTIAL_CLASSES_PATH = Preconditions.checkNotNull(
+            FileTools.resolveOnResources("configuration/EssentialClasses.yaml")
+    );
 
-
+    /**
+     * Creator for Java security test cases.
+     */
     @Nonnull
     private final Creator creator;
 
+    /**
+     * Writer for Java security test cases.
+     */
     @Nonnull
     private final Writer writer;
 
+    /**
+     * Executer for Java security test cases.
+     */
     @Nonnull
     private final Executer executer;
 
@@ -89,6 +101,29 @@ public class SecurityPolicyJavaDirector implements SecurityPolicyDirector {
     private final Path essentialClassesPath;
 
     /**
+     * Constructs a new SecurityPolicyJavaDirector with provided dependencies.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @param creator the creator for Java security test cases; must not be null.
+     * @param writer the writer for Java security test cases; must not be null.
+     * @param executer the executer for Java security test cases; must not be null.
+     * @param essentialDataReader the reader for essential data files; must not be null.
+     * @param javaScanner the scanner for Java programming exercises; must not be null.
+     * @param essentialPackagesPath the path to the essential packages YAML file; must not be null.
+     * @param essentialClassesPath the path to the essential classes YAML file; must not be null.
+     */
+    public SecurityPolicyJavaDirector(@Nonnull Creator creator, @Nonnull Writer writer, @Nonnull Executer executer, @Nonnull EssentialDataYAMLReader essentialDataReader, @Nonnull ProjectScanner javaScanner, @Nonnull Path essentialPackagesPath, @Nonnull Path essentialClassesPath) {
+        this.creator = Preconditions.checkNotNull(creator, "creator must not be null");
+        this.writer = Preconditions.checkNotNull(writer, "writer must not be null");
+        this.executer = Preconditions.checkNotNull(executer, "executer must not be null");
+        this.essentialDataReader = Preconditions.checkNotNull(essentialDataReader, "essentialDataReader must not be null");
+        this.javaScanner = Preconditions.checkNotNull(javaScanner, "javaScanner must not be null");
+        this.essentialPackagesPath = Preconditions.checkNotNull(essentialPackagesPath, "essentialPackagesPath must not be null");
+        this.essentialClassesPath = Preconditions.checkNotNull(essentialClassesPath, "essentialClassesPath must not be null");
+    }
+
+    /**
      * Constructs a new SecurityPolicyJavaDirector with default settings.
      *
      * @since 2.0.0
@@ -107,29 +142,6 @@ public class SecurityPolicyJavaDirector implements SecurityPolicyDirector {
     }
 
     /**
-     * Constructs a new SecurityPolicyJavaDirector with provided dependencies.
-     *
-     * @since 2.0.0
-     * @author Markus Paulsen
-     * @param creator
-     * @param writer
-     * @param executer
-     * @param essentialDataReader the reader for essential data files; must not be null.
-     * @param javaScanner the scanner for Java programming exercises; must not be null.
-     * @param essentialPackagesPath the path to the essential packages YAML file; must not be null.
-     * @param essentialClassesPath the path to the essential classes YAML file; must not be null.
-     */
-    public SecurityPolicyJavaDirector(@Nonnull Creator creator, @Nonnull Writer writer, @Nonnull Executer executer, @Nonnull EssentialDataYAMLReader essentialDataReader, @Nonnull ProjectScanner javaScanner, @Nonnull Path essentialPackagesPath, @Nonnull Path essentialClassesPath) {
-        this.creator = Preconditions.checkNotNull(creator, "creator must not be null");
-        this.writer = Preconditions.checkNotNull(writer, "writer must not be null");
-        this.executer = Preconditions.checkNotNull(executer, "executer must not be null");
-        this.essentialDataReader = Preconditions.checkNotNull(essentialDataReader, "essentialDataReader must not be null");
-        this.javaScanner = Preconditions.checkNotNull(javaScanner, "javaScanner must not be null");
-        this.essentialPackagesPath = Preconditions.checkNotNull(essentialPackagesPath, "essentialPackagesPath must not be null");
-        this.essentialClassesPath = Preconditions.checkNotNull(essentialClassesPath, "essentialClassesPath must not be null");
-    }
-
-    /**
      * Generates a JavaSecurityTestCaseFactoryAndBuilder with the provided configuration.
      *
      * @since 2.0.0
@@ -142,7 +154,13 @@ public class SecurityPolicyJavaDirector implements SecurityPolicyDirector {
      * @return a non-null instance of JavaSecurityTestCaseFactoryAndBuilder configured according to the provided parameters.
      */
     @Nonnull
-    private SecurityTestCaseAbstractFactoryAndBuilder generateJavaFactoryAndBuilder(@Nullable JavaBuildMode javaBuildMode, @Nullable JavaArchitectureMode javaArchitectureMode, @Nullable JavaAOPMode javaAOPMode, @Nullable SecurityPolicy securityPolicy, @Nullable Path projectPath) {
+    private SecurityTestCaseAbstractFactoryAndBuilder generateJavaFactoryAndBuilder(
+            @Nullable JavaBuildMode javaBuildMode,
+            @Nullable JavaArchitectureMode javaArchitectureMode,
+            @Nullable JavaAOPMode javaAOPMode,
+            @Nullable SecurityPolicy securityPolicy,
+            @Nullable Path projectPath
+    ) {
         return new JavaSecurityTestCaseFactoryAndBuilder(
                 creator, writer, executer, essentialDataReader, javaScanner,
                 essentialPackagesPath,essentialClassesPath,
@@ -167,7 +185,7 @@ public class SecurityPolicyJavaDirector implements SecurityPolicyDirector {
         if (securityPolicy == null) {
             return generateJavaFactoryAndBuilder(null, null, null, null, null);
         }
-        @Nonnull ProgrammingLanguageConfiguration config = securityPolicy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed();
+        @Nonnull ProgrammingLanguageConfiguration config = Preconditions.checkNotNull(securityPolicy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed());
         return switch (config) {
             case ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ ->
                     generateJavaFactoryAndBuilder(JavaBuildMode.MAVEN, JavaArchitectureMode.ARCHUNIT, JavaAOPMode.ASPECTJ, securityPolicy, projectPath);

@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.api.securitytest.java.projectScanner;
 
+import com.google.common.base.Preconditions;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.java.JavaBuildMode;
 import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 
@@ -38,19 +39,37 @@ public class JavaProjectScanner implements ProjectScanner {
      * Regex pattern to match public class declarations in Java files.
      */
     @Nonnull
-    private static final Pattern CLASS_PATTERN = Pattern.compile("\\bpublic\\s+(?:final\\s+|abstract\\s+|strictfp\\s+)*class\\s+([A-Za-z_$][A-Za-z0-9_$]*)\\b");
+    private static final Pattern CLASS_PATTERN = Preconditions.checkNotNull(
+            Pattern.compile("\\bpublic\\s+(?:final\\s+|abstract\\s+|strictfp\\s+)*class\\s+([A-Za-z_$][A-Za-z0-9_$]*)\\b"),
+            "CLASS_PATTERN must not be null"
+    );
 
     /**
      * Regex pattern to match package declarations in Java files.
      */
     @Nonnull
-    private static final Pattern PACKAGE_PATTERN = Pattern.compile("\\bpackage\\s+([A-Za-z_$][A-Za-z0-9_$]*(?:\\.[A-Za-z_$][A-Za-z0-9_$]*)*)\\s*;");
+    private static final Pattern PACKAGE_PATTERN = Preconditions.checkNotNull(
+            Pattern.compile("\\bpackage\\s+([A-Za-z_$][A-Za-z0-9_$]*(?:\\.[A-Za-z_$][A-Za-z0-9_$]*)*)\\s*;"),
+            "PACKAGE_PATTERN must not be null"
+    );
 
     /**
      * Regex pattern to detect the main method in Java files.
      */
     @Nonnull
-    private static final Pattern MAIN_METHOD_PATTERN = Pattern.compile("\\bpublic\\s+static\\s+void\\s+main\\s*\\(\\s*String\\s*(?:\\[\\s*]|\\.\\.\\.)\\s*[A-Za-z_$][A-Za-z0-9_$]*\\s*\\)");
+    private static final Pattern MAIN_METHOD_PATTERN = Preconditions.checkNotNull(
+            Pattern.compile("\\bpublic\\s+static\\s+void\\s+main\\s*\\(\\s*String\\s*(?:\\[\\s*]|\\.\\.\\.)\\s*[A-Za-z_$][A-Za-z0-9_$]*\\s*\\)"),
+            "MAIN_METHOD_PATTERN must not be null"
+    );
+
+    /**
+     * Regex pattern to identify test annotations in Java files.
+     */
+    @Nonnull
+    private static final Pattern TEST_ANNOTATION_PATTERN = Preconditions.checkNotNull(
+            Pattern.compile("@(?:Test|Property)\\b"),
+            "TEST_ANNOTATION_PATTERN must not be null"
+    );
     //</editor-fold>
 
     //<editor-fold desc="Variable Regex Patterns (defined by project)">
@@ -70,8 +89,6 @@ public class JavaProjectScanner implements ProjectScanner {
     private String getDefaultMainClass() {
         return "Main";
     }
-
-    private static final Pattern TEST_ANNOTATION_PATTERN = Pattern.compile("@(?:Test|Property)\\b");
 
     /**
      * Regex pattern to identify test annotations.
@@ -111,8 +128,9 @@ public class JavaProjectScanner implements ProjectScanner {
      * @author Markus Paulsen
      * @return true if the file is a regular Java file, false otherwise
      */
-    private boolean fileIsJavaFile(Path path, BasicFileAttributes attributes) {
-        return attributes.isRegularFile() && path.toString().endsWith(".java");
+    private boolean fileIsJavaFile(@Nonnull Path path, @Nonnull BasicFileAttributes attributes) {
+        return Preconditions.checkNotNull(attributes, "attributes must not be null").isRegularFile()
+                && Preconditions.checkNotNull(path, "path must not be null").toString().endsWith(".java");
     }
 
     /**
