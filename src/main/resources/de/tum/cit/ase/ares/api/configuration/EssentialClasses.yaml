@@ -1,27 +1,14 @@
 essentialJavaClasses: []
-essentialArchUnitClasses: []
-essentialWalaClasses: []
+essentialArchUnitClasses:
+  - de.tum.cit.ase.ares.api.architecture.java.archunit
+essentialWalaClasses:
+  - de.tum.cit.ase.ares.api.aop.java.aspectj.wala
 essentialAspectJClasses:
-  - de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemAdviceDefinitions
-  - de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions
+  - de.tum.cit.ase.ares.api.aop.java.aspectj
 essentialInstrumentationClasses:
-  - de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent
-  - de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox
-  - de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceThreadToolbox
-  - de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationCreateThreadMethodAdvice
-  - de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathMethodAdvice
-  - de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathMethodAdvice
-  - de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathMethodAdvice
-  - de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathMethodAdvice
-  - de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationCreateThreadConstructorAdvice
-  - de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathConstructorAdvice
-  - de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathConstructorAdvice
-  - de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathConstructorAdvice
-  - de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathConstructorAdvice
-  - de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationPointcutDefinitions
-  - de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationBindingDefinitions
+  - de.tum.cit.ase.ares.api.aop.java.instrumentation
 essentialAresClasses:
-  - de.tum.cit.ase.ares.api.internal.TimeoutUtils
+  - de.tum.cit.ase.ares.api.internal
   - de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings
 essentialJUnitClasses:
-  - de.tum.cit.ase.ares.api.jupiter.JupiterStrictTimeoutExtension
+  - de.tum.cit.ase.ares.api.jupiter

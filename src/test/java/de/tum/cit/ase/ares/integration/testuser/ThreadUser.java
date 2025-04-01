@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 public class ThreadUser {
 
 	@PublicTest
-	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/EverythingForbiddenPolicy.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/threads")
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/threads")
 	void threadAccessTest() {}
 
 	@PublicTest

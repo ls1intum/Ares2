@@ -76,7 +76,7 @@ public enum JavaArchitectureTestCaseSupported implements ArchitectureTestCaseSup
                 JavaArchitectureTestCaseSupported.PACKAGE_IMPORT,
                 JavaArchitectureTestCaseSupported.TERMINATE_JVM,
                 JavaArchitectureTestCaseSupported.REFLECTION,
-                JavaArchitectureTestCaseSupported.SERIALIZATION,
+                //JavaArchitectureTestCaseSupported.SERIALIZATION,
                 JavaArchitectureTestCaseSupported.CLASS_LOADING
         );
     }
@@ -93,8 +93,8 @@ public enum JavaArchitectureTestCaseSupported implements ArchitectureTestCaseSup
         return List.of(
                 JavaArchitectureTestCaseSupported.FILESYSTEM_INTERACTION,
                 JavaArchitectureTestCaseSupported.NETWORK_CONNECTION,
-                JavaArchitectureTestCaseSupported.COMMAND_EXECUTION,
-                JavaArchitectureTestCaseSupported.THREAD_CREATION
+                JavaArchitectureTestCaseSupported.COMMAND_EXECUTION
+                //JavaArchitectureTestCaseSupported.THREAD_CREATION
         );
     }
 }
