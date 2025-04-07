@@ -72,7 +72,7 @@ public enum JavaAOPMode {
     public List<Path> filesToCopy() {
         return getCopyConfigurationEntries().stream()
                 .map(entry -> entry.getFirst().split("/"))
-                .map(FileTools::resolveOnResources)
+                .map(FileTools::resolveOnPackage)
                 .toList();
     }
 
@@ -110,7 +110,7 @@ public enum JavaAOPMode {
     public List<Path> targetsToCopyTo(@Nonnull Path projectPath, @Nonnull String packageName) {
         return getCopyConfigurationEntries().stream()
                 .map(entry -> entry.get(2).split("/"))
-                .map(FileTools::resolveOnResources)
+                .map(FileTools::resolveOnPackage)
                 .toList();
     }
     //</editor-fold>
@@ -128,7 +128,7 @@ public enum JavaAOPMode {
     public Path threePartedFileHeader() {
         return getEditConfigurationEntries().stream()
                 .map(entry -> entry.getFirst().split("/"))
-                .map(FileTools::resolveOnResources)
+                .map(FileTools::resolveOnPackage)
                 .toList().getFirst();
     }
 
@@ -200,7 +200,7 @@ public enum JavaAOPMode {
     public Path threePartedFileFooter() {
         return getEditConfigurationEntries().stream()
                 .map(entry -> entry.get(1).split("/"))
-                .map(FileTools::resolveOnResources)
+                .map(FileTools::resolveOnPackage)
                 .toList().getFirst();
     }
 
@@ -230,7 +230,7 @@ public enum JavaAOPMode {
     public Path targetToCopyTo(@Nonnull Path projectPath, @Nonnull String packageName) {
         return getEditConfigurationEntries().stream()
                 .map(entry -> entry.get(2).split("/"))
-                .map(FileTools::resolveOnResources)
+                .map(FileTools::resolveOnPackage)
                 .toList().getFirst();
     }
     //</editor-fold>

@@ -42,6 +42,7 @@ public class JavaCreator implements Creator {
 
     //<editor-fold desc="Helper methods">
 
+    // TODO Markus: Move to a better place
     /**
      * Caches the result of a supplier to avoid recomputation.
      *

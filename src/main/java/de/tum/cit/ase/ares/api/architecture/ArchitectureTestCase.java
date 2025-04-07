@@ -1,7 +1,14 @@
 package de.tum.cit.ase.ares.api.architecture;
 
+import com.google.common.base.Preconditions;
+import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.core.domain.JavaClasses;
+import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
+
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.Set;
 
 /**
  * Interface for architecture test case configurations.
@@ -14,7 +21,29 @@ import javax.annotation.Nonnull;
  * @author Markus Paulsen
  * @version 2.0.0
  */
-public interface ArchitectureTestCase {
+public abstract class ArchitectureTestCase {
+
+    //<editor-fold desc="Attributes">
+    /**
+     * Defines the type of architecture test case used in this test case.
+     * Determines which architectural rules and validations will be applied during analysis of this test case.
+     */
+    @Nonnull
+    protected final ArchitectureTestCaseSupported architectureTestCaseSupported;
+    //</editor-fold>
+
+    /**
+     * Constructs a new abstract architecture test case with the specified parameters.
+     *
+     * @since 2.0.0
+     * @author Sarp Sahinalp
+     * @param architectureTestCaseSupported The type of architecture test case supported, determining which rules to apply
+     */
+    protected ArchitectureTestCase(
+            @Nonnull ArchitectureTestCaseSupported architectureTestCaseSupported
+    ) {
+        this.architectureTestCaseSupported = Preconditions.checkNotNull(architectureTestCaseSupported, "javaArchitecturalTestCaseSupported must not be null");
+    }
 
     /**
      * Generates the content of the architecture test case file for the specified architecture mode.
@@ -24,7 +53,8 @@ public interface ArchitectureTestCase {
      * @param architectureMode the architecture mode identifier.
      * @return the architecture test case file content as a string.
      */
-    @Nonnull String writeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode);
+    @Nonnull
+    public abstract String writeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode);
 
     /**
      * Executes the architecture test case using the provided architecture mode and AOP mode.
@@ -34,5 +64,5 @@ public interface ArchitectureTestCase {
      * @param architectureMode the identifier for the architecture testing mode.
      * @param aopMode the identifier for the AOP mode.
      */
-    void executeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode);
+    public abstract void executeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode);
 }

@@ -47,7 +47,7 @@ public class SecurityPolicyJavaDirector implements SecurityPolicyDirector {
      */
     @Nonnull
     private static final Path DEFAULT_ESSENTIAL_PACKAGES_PATH = Preconditions.checkNotNull(
-            FileTools.resolveOnResources("configuration/EssentialPackages.yaml")
+            FileTools.resolveOnPackage("configuration/EssentialPackages.yaml")
     );
 
     /**
@@ -55,7 +55,7 @@ public class SecurityPolicyJavaDirector implements SecurityPolicyDirector {
      */
     @Nonnull
     private static final Path DEFAULT_ESSENTIAL_CLASSES_PATH = Preconditions.checkNotNull(
-            FileTools.resolveOnResources("configuration/EssentialClasses.yaml")
+            FileTools.resolveOnPackage("configuration/EssentialClasses.yaml")
     );
 
     /**

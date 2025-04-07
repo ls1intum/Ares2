@@ -1,12 +1,9 @@
 package de.tum.cit.ase.ares.api.util;
 
 //<editor-fold desc="Import">
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
@@ -164,6 +161,13 @@ public class FileTools {
                 .map(line -> Arrays.asList(line.split(",")))
                 .toList();
     }
+
+    /**
+     * Loads data from the corresponding Rule file.
+     */
+    public static List<String> readRuleFile(Path sourceRulePath) throws IOException {
+        return Files.readAllLines(getResourceAsFile(sourceRulePath.toString()).toPath());
+    }
     //</editor-fold>
 
     //<editor-fold desc="Write">
@@ -224,18 +228,32 @@ public class FileTools {
     }
 
     /**
-     * Resolves a path based on the target and additional path parts.
+     * Resolves a path based on "de/tum/cit/ase/ares/api" and additional path parts.
      *
      * @param furtherPathParts additional path parts.
      * @return the resolved path.
      */
-    public static Path resolveOnResources(String... furtherPathParts) {
+    public static Path resolveOnPackage(String... furtherPathParts) {
         Path target = Paths.get("de","tum","cit","ase","ares","api");
         return resolveOnTarget(target, furtherPathParts);
     }
 
     /**
-     * Resolves a path based on the target and additional path parts.
+     * Resolves a path based on "src/main/java/[package]" and additional path parts.
+     *
+     * @param furtherPathParts additional path parts.
+     * @return the resolved path.
+     */
+    public static Path resolveOnSource(Path projectPath, String packageName, String... furtherPathParts) {
+        String[] prefix = new String[]{"src", "main", "java"};
+        String[] infix = packageName.split("\\.");
+        String[] newPrefix = Stream.concat(Arrays.stream(prefix), Arrays.stream(infix)).toArray(String[]::new);
+        String[] newFurtherPathParts = Stream.concat(Arrays.stream(newPrefix), Arrays.stream(furtherPathParts)).toArray(String[]::new);
+        return resolveOnTarget(projectPath, newFurtherPathParts);
+    }
+
+    /**
+     * Resolves a path based on "src/test/java/[package]" and additional path parts.
      *
      * @param furtherPathParts additional path parts.
      * @return the resolved path.

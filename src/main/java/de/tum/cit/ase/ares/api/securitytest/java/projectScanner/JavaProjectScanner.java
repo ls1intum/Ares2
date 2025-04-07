@@ -234,6 +234,7 @@ public class JavaProjectScanner implements ProjectScanner {
      * @author Markus Paulsen
      * @return the JavaBuildMode for the project
      */
+    @Override
     @Nonnull
     public JavaBuildMode scanForBuildMode() {
         return ProjectSourcesFinder.isGradleProject() ? JavaBuildMode.GRADLE : JavaBuildMode.MAVEN;
@@ -246,6 +247,7 @@ public class JavaProjectScanner implements ProjectScanner {
      * @author Markus Paulsen
      * @return an array of fully qualified class names identified as test classes
      */
+    @Override
     @Nonnull
     public String[] scanForTestClasses() {
         return scanJavaFiles(this::extractTestClass).filter(Objects::nonNull).toArray(String[]::new);
@@ -258,6 +260,7 @@ public class JavaProjectScanner implements ProjectScanner {
      * @author Markus Paulsen
      * @return the most frequent package name or a default if none is found
      */
+    @Override
     @Nonnull
     public String scanForPackageName() {
         Map<String, Long> packageCounts = scanJavaFiles(this::extractPackageName).filter(Objects::nonNull).collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
@@ -271,6 +274,7 @@ public class JavaProjectScanner implements ProjectScanner {
      * @author Markus Paulsen
      * @return the name of the class containing the main method or a default value if none is found
      */
+    @Override
     @Nonnull
     public String scanForMainClassInPackage() {
         List<String> mainClasses = scanJavaFiles(this::extractMainClass).filter(Objects::nonNull).toList();
@@ -284,6 +288,7 @@ public class JavaProjectScanner implements ProjectScanner {
      * @author Markus Paulsen
      * @return the path to the test directory as a string, or a default path if not found
      */
+    @Override
     @Nonnull
     public Path scanForTestPath() {
         Optional<Path> projectRoot = ProjectSourcesFinder.findProjectSourcesPath();

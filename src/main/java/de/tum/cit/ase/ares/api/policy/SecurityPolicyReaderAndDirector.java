@@ -30,6 +30,7 @@ import java.util.List;
  */
 public class SecurityPolicyReaderAndDirector {
 
+    //<editor-fold desc="Attributes">
     /**
      * The reader for the security policy file (first dependency injection).
      */
@@ -59,7 +60,9 @@ public class SecurityPolicyReaderAndDirector {
      */
     @Nonnull
     private SecurityTestCaseAbstractFactoryAndBuilder securityTestCaseFactoryAndBuilder;
+    //</editor-fold>
 
+    //<editor-fold desc="Constructors">
     /**
      * Constructs a SecurityPolicyReaderAndDirector instance.
      *
@@ -80,7 +83,7 @@ public class SecurityPolicyReaderAndDirector {
         this.securityPolicyDirector = Preconditions.checkNotNull(securityPolicyDirector, "securityPolicyDirector must not be null");
         this.securityPolicyFilePath = securityPolicyFilePath;
         this.projectFolderPath = projectFolderPath;
-        processSecurityPolicy();
+        createSecurityTestCases();
     }
 
     /**
@@ -102,14 +105,16 @@ public class SecurityPolicyReaderAndDirector {
                 projectFolderPath
         );
     }
+    //</editor-fold>
 
+    //<editor-fold desc="Create method">
     /**
      * Creates the security test cases.
      *
      * @since 2.0.0
      * @author Markus Paulsen
      */
-    public void processSecurityPolicy() {
+    public void createSecurityTestCases() {
         @Nullable SecurityPolicy securityPolicy = Optional
                 .fromNullable(securityPolicyFilePath)
                 .transform(securityPolicyReader::readSecurityPolicyFrom)
@@ -119,7 +124,9 @@ public class SecurityPolicyReaderAndDirector {
                 projectFolderPath
         );
     }
+    //</editor-fold>
 
+    //<editor-fold desc="Write method">
     /**
      * Writes the security test cases to the project folder.
      *
@@ -132,7 +139,9 @@ public class SecurityPolicyReaderAndDirector {
         return Preconditions.checkNotNull(this.securityTestCaseFactoryAndBuilder, "testCaseManager must not be null")
                 .writeSecurityTestCases(this.projectFolderPath);
     }
+    //</editor-fold>
 
+    //<editor-fold desc="Execute method">
     /**
      * Executes the security test cases.
      *
@@ -143,4 +152,5 @@ public class SecurityPolicyReaderAndDirector {
         Preconditions.checkNotNull(this.securityTestCaseFactoryAndBuilder, "testCaseManager must not be null")
                 .executeSecurityTestCases();
     }
+    //</editor-fold>
 }

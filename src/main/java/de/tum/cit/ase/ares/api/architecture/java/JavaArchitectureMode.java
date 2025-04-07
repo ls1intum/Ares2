@@ -70,7 +70,7 @@ public enum JavaArchitectureMode {
             );
             // Todo: Add WALA and remove default
             default -> throw new SecurityException(localize("security.common.unsupported.operation", this));
-        }).map(FileTools::resolveOnResources).toList();
+        }).map(FileTools::resolveOnPackage).toList();
     }
 
     /**
@@ -152,7 +152,7 @@ public enum JavaArchitectureMode {
      */
     @Nonnull
     public Path threePartedFileHeader() {
-        return FileTools.resolveOnResources(switch (this) {
+        return FileTools.resolveOnPackage(switch (this) {
             case ARCHUNIT ->
                     new String[]{"templates", "architecture", "java", "archunit", "JavaArchitectureTestCaseCollectionHeader.txt"};
             // Todo: Add WALA and remove default
@@ -188,7 +188,7 @@ public enum JavaArchitectureMode {
      */
     @Nonnull
     public Path threePartedFileFooter() {
-        return FileTools.resolveOnResources(switch (this) {
+        return FileTools.resolveOnPackage(switch (this) {
             case ARCHUNIT ->
                     new String[]{"templates", "architecture", "java", "archunit", "JavaArchitectureTestCaseCollectionFooter.txt"};
             // Todo: Add WALA and remove default

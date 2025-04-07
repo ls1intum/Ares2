@@ -3,12 +3,8 @@ package de.tum.cit.ase.ares.api.aop.java.javaAOPModeData;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPMode;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 
 public class JavaCSVFileLoader implements JavaFileLoader {
@@ -21,8 +17,8 @@ public class JavaCSVFileLoader implements JavaFileLoader {
      */
     public Path getCopyPaths(JavaAOPMode mode) {
         return switch (mode) {
-            case INSTRUMENTATION -> FileTools.resolveOnResources("configuration/InstrumentationCopyFiles.csv");
-            case ASPECTJ -> FileTools.resolveOnResources("configuration/AspectJCopyFiles.csv");
+            case INSTRUMENTATION -> FileTools.resolveOnPackage("configuration/InstrumentationCopyFiles.csv");
+            case ASPECTJ -> FileTools.resolveOnPackage("configuration/AspectJCopyFiles.csv");
         };
     }
 
@@ -33,7 +29,7 @@ public class JavaCSVFileLoader implements JavaFileLoader {
      * @return the path to the CSV file containing the edit configuration.
      */
     public Path getEditPaths(JavaAOPMode mode) {
-        return FileTools.resolveOnResources("EditFiles.csv");
+        return FileTools.resolveOnPackage("EditFiles.csv");
     }
 
     /**

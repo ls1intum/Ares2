@@ -26,9 +26,11 @@ import static de.tum.cit.ase.ares.api.localization.Messages.localized;
  */
 public class ReachabilityChecker {
 
+    //<editor-fold desc="Constructor">
     private ReachabilityChecker() {
         throw new SecurityException(localized("security.general.utility.initialization", FileHandlerConstants.class.getName()));
     }
+    //</editor-fold>
 
     /**
      * Checks if a target node is reachable from a set of start nodes in a call graph.

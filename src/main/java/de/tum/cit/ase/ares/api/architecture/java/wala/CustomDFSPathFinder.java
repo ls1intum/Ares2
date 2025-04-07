@@ -25,6 +25,7 @@ import org.jspecify.annotations.Nullable;
  * @see com.ibm.wala.util.graph.traverse.DFSPathFinder
  */
 public class CustomDFSPathFinder extends ArrayList<CGNode> {
+    //<editor-fold desc="Attributes">
     /**
      * The graph to search
      */
@@ -54,7 +55,9 @@ public class CustomDFSPathFinder extends ArrayList<CGNode> {
      * Set of methods to exclude from the path
      */
     private static final Set<String> toExcludeMethodsFromPath = FileTools.readMethodsFromGivenPath(FileHandlerConstants.FALSE_POSITIVES_FILE_SYSTEM_INTERACTIONS);
+    //</editor-fold>
 
+    //<editor-fold desc="Constructors">
     /**
      * Construct a depth-first enumerator starting with a particular node in a directed graph.
      *
@@ -93,6 +96,7 @@ public class CustomDFSPathFinder extends ArrayList<CGNode> {
             throw new IllegalArgumentException("filter is null");
         }
     }
+    //</editor-fold>
 
     private void init() {
         initialized = true;

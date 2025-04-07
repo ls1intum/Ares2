@@ -57,11 +57,11 @@ class JavaAOPModeTest {
     void testFilesToCopy_InstrumentationMode() {
         try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class)) {
             mockedFileTools
-                    .when(() -> FileTools.resolveOnResources(any(String[].class)))
+                    .when(() -> FileTools.resolveOnPackage(any(String[].class)))
                     .thenReturn(mock(Path.class));
             instrumentationMode.filesToCopy();
             mockedFileTools
-                    .verify(() -> FileTools.resolveOnResources(any(String[].class)),
+                    .verify(() -> FileTools.resolveOnPackage(any(String[].class)),
                             times(INSTRUMENTATION_FILES_COUNT)
                     );
         }
@@ -71,11 +71,11 @@ class JavaAOPModeTest {
     void testFilesToCopy_AspectJMode() {
         try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class)) {
             mockedFileTools
-                    .when(() -> FileTools.resolveOnResources(any(String[].class)))
+                    .when(() -> FileTools.resolveOnPackage(any(String[].class)))
                     .thenReturn(mock(Path.class));
             aspectjMode.filesToCopy();
             mockedFileTools
-                    .verify(() -> FileTools.resolveOnResources(any(String[].class)),
+                    .verify(() -> FileTools.resolveOnPackage(any(String[].class)),
                             times(ASPECTJ_FILES_COUNT)
                     );
         }

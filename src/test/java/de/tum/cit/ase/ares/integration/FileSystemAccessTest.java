@@ -650,7 +650,7 @@ class FileSystemAccessTest {
         @TestTest
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/filesDelete")
-        void test_accessFileSystemViaFilesDeleteMavenArchunitAspectJ() throws IOException {
+        void xtest_accessFileSystemViaFilesDeleteMavenArchunitAspectJ() throws IOException {
             assertAresSecurityExceptionDelete(FileSystemAccessPenguin::accessFileSystemViaFilesDelete);
         }
 

@@ -2,22 +2,24 @@ package de.tum.cit.ase.ares.api.architecture.java.wala;
 
 //<editor-fold desc="Imports">
 
+import com.google.common.base.Preconditions;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.core.domain.JavaClasses;
+import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
-import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
+import de.tum.cit.ase.ares.api.util.FileTools;
 
 import javax.annotation.Nonnull;
-import java.util.HashSet;
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.Set;
-import java.util.stream.Collectors;
-import static de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase.parseErrorMessage;
-import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 //</editor-fold>
 
 /**
- * Security test case for the Java programming language using WALA.
+ * Architecture test case for the Java programming language using WALA and concrete product of the abstract factory design pattern.
  *
  * @author Sarp Sahinalp
  * @version 2.0.0
@@ -37,75 +39,89 @@ public class JavaWalaSecurityTestCase {
      * List of allowed packages to be imported.
      */
     @Nonnull
-    private final Set<String> allowedPackages;
+    private final Set<PackagePermission> allowedPackages;
+
+    @Nonnull
+    private final JavaClasses javaClasses;
+
+    @Nonnull
+    private final CallGraph callGraph;
     //</editor-fold>
 
     //<editor-fold desc="Constructors">
 
-    /**
-     * Constructor for JavaWalaSecurityTestCase.
-     *
-     * @param builder Selects the supported architecture test case in the Java programming language
-     */
-    public JavaWalaSecurityTestCase(@Nonnull Builder builder) {
-        this.javaArchitectureTestCaseSupported = builder.javaArchitectureTestCaseSupported;
-        this.allowedPackages = builder.allowedPackages;
+    public JavaWalaSecurityTestCase(
+            @Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
+            @Nonnull Set<PackagePermission> allowedPackages,
+            @Nonnull JavaClasses javaClasses,
+            @Nonnull CallGraph callGraph
+    ) {
+        this.javaArchitectureTestCaseSupported = javaArchitectureTestCaseSupported;
+        this.allowedPackages = allowedPackages;
+        this.javaClasses = javaClasses;
+        this.callGraph = callGraph;
     }
+
+
     //</editor-fold>
 
-    //<editor-fold desc="Tool methods">
+    //<editor-fold desc="Write security test case methods">
+
     /**
      * Returns the content of the architecture test case file in the Java programming language.
      */
-    @SuppressWarnings("unused")
     @Nonnull
     public String writeArchitectureTestCase() {
-        // TODO: For further releases
-        return "";
+        try {
+            return FileTools.readRuleFile(
+                    Paths.get("de", "tum", "cit", "ase", "ares", "api",
+                            "templates", "architecture", "java", "wala", "rules", this.javaArchitectureTestCaseSupported.name() + ".txt")
+            ).stream().reduce("", (acc, line) -> acc + line + "\n");
+        } catch (AssertionError | IOException e) {
+            throw new SecurityException("Ares Security Error (Reason: Student-Code; Stage: Execution): Illegal Statement found: " + e.getMessage());
+        }
     }
     //</editor-fold>
 
     //<editor-fold desc="Execute security test case methods">
 
     /**
-     * Execute the architecture test case.
-     * @param callGraph The call graph to check
-     * @param javaClasses The Java classes to check
+     * Executes the architecture test case.
      */
-    public void executeArchitectureTestCase(CallGraph callGraph, JavaClasses javaClasses) {
+    public void executeArchitectureTestCase() {
         try {
             switch (this.javaArchitectureTestCaseSupported) {
-                case FILESYSTEM_INTERACTION ->
-                        JavaWalaSecurityTestCaseCollection
-                            .noFileSystemAccess(callGraph);
-                case NETWORK_CONNECTION ->
-                        JavaWalaSecurityTestCaseCollection
-                            .noNetworkAccess(callGraph);
-                case THREAD_CREATION ->
-                        JavaWalaSecurityTestCaseCollection
-                            .noThreadManipulation(callGraph);
-                case COMMAND_EXECUTION ->
-                        JavaWalaSecurityTestCaseCollection
-                            .noCommandExecution(callGraph);
-                case PACKAGE_IMPORT ->
-                        JavaWalaSecurityTestCaseCollection
-                            .restrictPackageImport(javaClasses, allowedPackages);
-                case REFLECTION ->
-                        JavaWalaSecurityTestCaseCollection
-                            .noReflection(callGraph);
-                case TERMINATE_JVM ->
-                        JavaWalaSecurityTestCaseCollection
-                            .noJVMTermination(callGraph);
-                case SERIALIZATION ->
-                        JavaWalaSecurityTestCaseCollection
-                            .noSerialization(callGraph);
-                case CLASS_LOADING ->
-                        JavaWalaSecurityTestCaseCollection
-                            .noClassLoading(callGraph);
-                default -> throw new SecurityException(localized("security.common.unsupported.operation", this.javaArchitectureTestCaseSupported));
+                case FILESYSTEM_INTERACTION -> JavaWalaSecurityTestCaseCollection
+                        .NO_CLASS_MUST_ACCESS_FILE_SYSTEM
+                        .check(callGraph);
+                case NETWORK_CONNECTION -> JavaWalaSecurityTestCaseCollection
+                        .NO_CLASS_MUST_ACCESS_NETWORK
+                        .check(callGraph);
+                case THREAD_CREATION -> JavaWalaSecurityTestCaseCollection
+                        .NO_CLASS_MUST_CREATE_THREADS
+                        .check(callGraph);
+                case COMMAND_EXECUTION -> JavaWalaSecurityTestCaseCollection
+                        .NO_CLASS_MUST_EXECUTE_COMMANDS
+                        .check(callGraph);
+                case PACKAGE_IMPORT -> JavaWalaSecurityTestCaseCollection
+                        .noClassMustImportForbiddenPackages(javaClasses, allowedPackages);
+                case REFLECTION -> JavaWalaSecurityTestCaseCollection
+                        .NO_CLASS_MUST_USE_REFLECTION
+                        .check(callGraph);
+                case TERMINATE_JVM -> JavaWalaSecurityTestCaseCollection
+                        .NO_CLASS_MUST_TERMINATE_JVM
+                        .check(callGraph);
+                case SERIALIZATION -> JavaWalaSecurityTestCaseCollection
+                        .NO_CLASS_MUST_SERIALIZE
+                        .check(callGraph);
+                case CLASS_LOADING -> JavaWalaSecurityTestCaseCollection
+                        .NO_CLASS_MUST_USE_CLASSLOADERS
+                        .check(callGraph);
+                default ->
+                        throw new SecurityException(Messages.localized("security.common.unsupported.operation", this.javaArchitectureTestCaseSupported));
             }
         } catch (AssertionError e) {
-            parseErrorMessage(e);
+            JavaArchitectureTestCase.parseErrorMessage(e);
         }
     }
     //</editor-fold>
@@ -120,25 +136,41 @@ public class JavaWalaSecurityTestCase {
 
     // Static Builder class
     public static class Builder {
+        @Nullable
         private JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported;
-        private Set<String> allowedPackages = new HashSet<>();
+        @Nullable
+        private Set<PackagePermission> allowedPackages;
+        @Nullable
+        private JavaClasses javaClasses;
+        @Nullable
+        private CallGraph callGraph;
 
-        public Builder javaArchitecturalTestCaseSupported(JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported) {
-            this.javaArchitectureTestCaseSupported = javaArchitectureTestCaseSupported;
+        public JavaWalaSecurityTestCase.Builder javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported) {
+            this.javaArchitectureTestCaseSupported = Preconditions.checkNotNull(javaArchitectureTestCaseSupported, "javaArchitectureTestCaseSupported must not be null");
             return this;
         }
 
-        public Builder allowedPackages(Set<PackagePermission> packages) {
-            if (packages != null) {
-                this.allowedPackages = packages.stream()
-                        .map(PackagePermission::importTheFollowingPackage)
-                        .collect(Collectors.toSet());
-            }
+        public JavaWalaSecurityTestCase.Builder allowedPackages(Set<PackagePermission> allowedPackages) {
+            this.allowedPackages = Preconditions.checkNotNull(allowedPackages, "allowedPackages must not be null");
+            return this;
+        }
+
+        public JavaWalaSecurityTestCase.Builder javaClasses(JavaClasses javaClasses) {
+            this.javaClasses = Preconditions.checkNotNull(javaClasses, "javaClasses must not be null");
+            return this;
+        }
+
+        public JavaWalaSecurityTestCase.Builder callGraph(CallGraph callGraph) {
+            this.callGraph = Preconditions.checkNotNull(callGraph, "callGraph must not be null");
             return this;
         }
 
         public JavaWalaSecurityTestCase build() {
-            return new JavaWalaSecurityTestCase(this);
+            Preconditions.checkState(javaArchitectureTestCaseSupported != null, "javaArchitectureTestCaseSupported must not be null");
+            Preconditions.checkState(allowedPackages != null, "allowedPackages must not be null");
+            Preconditions.checkState(javaClasses != null, "javaClasses must not be null");
+            Preconditions.checkState(callGraph != null, "callGraph must not be null");
+            return new JavaWalaSecurityTestCase(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, callGraph);
         }
     }
     //</editor-fold>

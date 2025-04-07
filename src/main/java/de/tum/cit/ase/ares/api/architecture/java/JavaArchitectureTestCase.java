@@ -2,12 +2,11 @@ package de.tum.cit.ase.ares.api.architecture.java;
 
 import com.google.common.base.Preconditions;
 import com.ibm.wala.ipa.callgraph.CallGraph;
-import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCase;
+import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCaseSupported;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitSecurityTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.wala.JavaWalaSecurityTestCase;
-import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 
 import javax.annotation.Nonnull;
@@ -30,15 +29,9 @@ import static de.tum.cit.ase.ares.api.localization.Messages.localized;
  * @author Sarp Sahinalp
  * @version 2.0.0
  */
-public class JavaArchitectureTestCase implements ArchitectureTestCase {
+public class JavaArchitectureTestCase extends ArchitectureTestCase {
 
     //<editor-fold desc="Attributes">
-    /**
-     * Defines the type of architecture test case used in this test case.
-     * Determines which architectural rules and validations will be applied during analysis of this test case.
-     */
-    @Nonnull
-    private final JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported;
     /**
      * Set of package permissions that are allowed to be imported or accessed by the code under test in this test case.
      * When empty, no package restrictions are enforced.
@@ -83,7 +76,7 @@ public class JavaArchitectureTestCase implements ArchitectureTestCase {
             @Nullable CallGraph callGraph,
             @Nonnull Set<PackagePermission> allowedPackages
     ) {
-        this.javaArchitectureTestCaseSupported = Preconditions.checkNotNull(javaArchitectureTestCaseSupported, "javaArchitecturalTestCaseSupported must not be null");
+        super(javaArchitectureTestCaseSupported);
         this.javaClasses = Preconditions.checkNotNull(javaClasses, "javaClasses must not be null");
         this.callGraph = callGraph;
         this.allowedPackages = Preconditions.checkNotNull(allowedPackages, "allowedPackages must not be null");
@@ -91,6 +84,7 @@ public class JavaArchitectureTestCase implements ArchitectureTestCase {
     //</editor-fold>
 
     //<editor-fold desc="Tool methods">
+    // TODO Markus: Move to better fitting class
     /**
      * Parses the error message of an assertion error to provide more descriptive security violation messages.
      * Extracts relevant information from ArchUnit's error messages and creates a standardized security exception.
@@ -146,20 +140,25 @@ public class JavaArchitectureTestCase implements ArchitectureTestCase {
      */
     @Override
     public void executeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
-        JavaArchitectureTestCaseSupported protectedJavaArchitectureTestCaseSupported = Preconditions.checkNotNull(javaArchitectureTestCaseSupported, "javaArchitecturalTestCaseSupported must not be null");
+        ArchitectureTestCaseSupported protectedArchitectureTestCaseSupported = Preconditions.checkNotNull(architectureTestCaseSupported, "javaArchitecturalTestCaseSupported must not be null");
+        Preconditions.checkArgument(architectureTestCaseSupported instanceof JavaArchitectureTestCaseSupported, "javaArchitecturalTestCaseSupported must be an instance of JavaArchitectureTestCaseSupported");
+        JavaArchitectureTestCaseSupported protectedJavaArchitectureTestCaseSupported = (JavaArchitectureTestCaseSupported) protectedArchitectureTestCaseSupported;
         Set<PackagePermission> protectedAllowedPackages = Preconditions.checkNotNull(allowedPackages, "allowedPackages must not be null");
         JavaClasses protectedJavaClasses = Preconditions.checkNotNull(javaClasses, "javaClasses must not be null");
         switch (architectureMode) {
             case "WALA" -> JavaWalaSecurityTestCase.builder()
-                    .javaArchitecturalTestCaseSupported(protectedJavaArchitectureTestCaseSupported)
+                    .javaArchitectureTestCaseSupported(protectedJavaArchitectureTestCaseSupported)
                     .allowedPackages(protectedAllowedPackages)
+                    .javaClasses(protectedJavaClasses)
+                    .callGraph(callGraph)
                     .build()
-                    .executeArchitectureTestCase(Preconditions.checkNotNull(callGraph, "callGraph must not be null"), protectedJavaClasses);
+                    .executeArchitectureTestCase();
             case "ARCHUNIT" -> JavaArchUnitSecurityTestCase.builder()
-                    .javaArchitecturalTestCaseSupported(protectedJavaArchitectureTestCaseSupported)
+                    .javaArchitectureTestCaseSupported(protectedJavaArchitectureTestCaseSupported)
                     .allowedPackages(protectedAllowedPackages)
+                    .javaClasses(protectedJavaClasses)
                     .build()
-                    .executeArchitectureTestCase(protectedJavaClasses);
+                    .executeArchitectureTestCase();
         }
     }
     //</editor-fold>

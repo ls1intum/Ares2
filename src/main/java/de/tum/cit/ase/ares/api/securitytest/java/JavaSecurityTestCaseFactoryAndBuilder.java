@@ -3,7 +3,6 @@ package de.tum.cit.ase.ares.api.securitytest.java;
 //<editor-fold desc="Imports">
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Preconditions;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureMode;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
@@ -47,26 +46,9 @@ import java.util.Optional;
  * @since 2.0.0
  */
 @SuppressWarnings("FieldCanBeLocal")
-public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAbstractFactoryAndBuilder {
+public class JavaSecurityTestCaseFactoryAndBuilder extends SecurityTestCaseAbstractFactoryAndBuilder {
 
     //<editor-fold desc="Attributes">
-
-    //<editor-fold desc="Tools">
-    @Nonnull
-    private final Creator creator;
-
-    @Nonnull
-    private final Writer writer;
-
-    @Nonnull
-    private final Executer executer;
-
-    @Nonnull
-    EssentialDataReader essentialDataReader;
-
-    @Nonnull
-    ProjectScanner javaScanner;
-    //</editor-fold>
 
     //<editor-fold desc="Modes and Project Paths">
 
@@ -87,39 +69,6 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      */
     @Nonnull
     private final JavaAOPMode javaAOPMode;
-
-    /**
-     * The effective project path where test cases will be generated.
-     */
-    @Nullable
-    private final Path projectPath;
-    //</editor-fold>
-
-    //<editor-fold desc="File Based Configuration">
-
-    /**
-     * Path to the essential packages' configuration.
-     */
-    @Nonnull
-    private final Path essentialPackagesPath;
-
-    /**
-     * These packages are essential for the execution of the security test cases and are therefore not subject to the security policy.
-     */
-    @Nonnull
-    private final List<String> essentialPackages;
-
-    /**
-     * Path to the essential classes' configuration.
-     */
-    @Nonnull
-    private final Path essentialClassesPath;
-
-    /**
-     * These classes are essential for the execution of the security test cases and are therefore not subject to the security policy.
-     */
-    @Nonnull
-    private final List<String> essentialClasses;
     //</editor-fold>
 
     //<editor-fold desc="Tested-Domain">
@@ -192,36 +141,23 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
      *          the security policy to enforce; may be null.
      */
     public JavaSecurityTestCaseFactoryAndBuilder(
-            @Nonnull Creator creator, @Nonnull Writer writer, @Nonnull Executer executer, @Nonnull EssentialDataReader essentialDataReader, @Nonnull ProjectScanner javaScanner,
+            @Nonnull Creator creator, @Nonnull Writer writer, @Nonnull Executer executer, @Nonnull EssentialDataReader essentialDataReader, @Nonnull ProjectScanner projectScanner,
             @Nonnull Path essentialPackagesPath, @Nonnull Path essentialClassesPath,
             @Nullable JavaBuildMode javaBuildMode, @Nullable JavaArchitectureMode javaArchitectureMode, @Nullable JavaAOPMode javaAOPMode,
             @Nullable SecurityPolicy securityPolicy, @Nullable Path projectPath
             ) {
 
-        //<editor-fold desc="Tools">
-        this.creator = Preconditions.checkNotNull(creator);
-        this.writer = Preconditions.checkNotNull(writer);
-        this.executer = Preconditions.checkNotNull(executer);
-        this.essentialDataReader = Preconditions.checkNotNull(essentialDataReader);
-        this.javaScanner = Preconditions.checkNotNull(javaScanner);
-        //</editor-fold>
+        super(
+                creator, writer, executer,
+                essentialDataReader, projectScanner,
+                essentialPackagesPath, essentialClassesPath,
+                securityPolicy, projectPath
+        );
 
         //<editor-fold desc="Modes and Project Paths">
-        this.projectPath = projectPath;
-        this.javaBuildMode = MoreObjects.firstNonNull(javaBuildMode, javaScanner.scanForBuildMode());
+        this.javaBuildMode = MoreObjects.firstNonNull(javaBuildMode, projectScanner.scanForBuildMode());
         this.javaArchitectureMode = MoreObjects.firstNonNull(javaArchitectureMode, JavaArchitectureMode.WALA);
         this.javaAOPMode = MoreObjects.firstNonNull(javaAOPMode, JavaAOPMode.INSTRUMENTATION);
-        //</editor-fold>
-
-        //<editor-fold desc="File Based Configuration">
-        this.essentialPackagesPath = Preconditions.checkNotNull(essentialPackagesPath, "essentialPackagesPath must not be null");
-        this.essentialPackages = Preconditions.checkNotNull(essentialDataReader, "essentialPackagesReader must not be null")
-                .readEssentialPackagesFrom(this.essentialPackagesPath)
-                .getEssentialPackages();
-        this.essentialClassesPath = Preconditions.checkNotNull(essentialClassesPath, "essentialClassesPath must not be null");
-        this.essentialClasses = Preconditions.checkNotNull(essentialDataReader, "essentialClassesReader must not be null")
-                .readEssentialClassesFrom(this.essentialClassesPath)
-                .getEssentialClasses();
         //</editor-fold>
 
         //<editor-fold desc="Policy Based Configuration">
@@ -230,13 +166,13 @@ public class JavaSecurityTestCaseFactoryAndBuilder implements SecurityTestCaseAb
                 .orElse(null);
         this.testClasses = new ArrayList<>(Arrays.asList(Optional.ofNullable(supervisedCode)
                 .map(SupervisedCode::theFollowingClassesAreTestClasses)
-                .orElseGet(javaScanner::scanForTestClasses)));
+                .orElseGet(projectScanner::scanForTestClasses)));
         this.packageName = Optional.ofNullable(supervisedCode)
                 .map(SupervisedCode::theSupervisedCodeUsesTheFollowingPackage)
-                .orElseGet(javaScanner::scanForPackageName);
+                .orElseGet(projectScanner::scanForPackageName);
         this.mainClassInPackageName = Optional.ofNullable(supervisedCode)
                 .map(SupervisedCode::theMainClassInsideThisPackageIs)
-                .orElseGet(javaScanner::scanForMainClassInPackage);
+                .orElseGet(projectScanner::scanForMainClassInPackage);
         this.resourceAccesses = Optional.ofNullable(supervisedCode)
                 .map(SupervisedCode::theFollowingResourceAccessesArePermitted)
                 .orElseGet(ResourceAccesses::createRestrictive);
