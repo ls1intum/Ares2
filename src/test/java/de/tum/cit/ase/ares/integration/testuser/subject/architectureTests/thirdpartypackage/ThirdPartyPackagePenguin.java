@@ -16,4 +16,8 @@ public class ThirdPartyPackagePenguin {
     public static void accessFileSystem() throws IOException {
         new PrintStream("file.txt").close();
     }
+
+    public static void deleteFile() throws IOException {
+        Files.delete(Path.of("file.txt"));
+    }
 }

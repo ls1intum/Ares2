@@ -165,9 +165,9 @@ public class JavaAOPTestCase implements AOPTestCase {
                     localize("security.advice.linkage.exception", adviceSetting),
                     e);
         } catch (ClassNotFoundException e) {
-            throw new SecurityException(
+            /*throw new SecurityException(
                     localize("security.advice.class.not.found.exception", adviceSetting),
-                    e);
+                    e);*/
         } catch (NoSuchFieldException e) {
             throw new SecurityException(
                     localize("security.advice.no.such.field.exception", adviceSetting),

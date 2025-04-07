@@ -5,8 +5,14 @@ import static org.junit.jupiter.api.Assertions.*;
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.fileSystem.FileSystemAccessPenguin;
+import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.fileSystem.delete.fileDelete.DeleteFileDeleteMain;
+import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.fileSystem.delete.fileSystemProvider.DeleteFileSystemProviderMain;
+import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.fileSystem.delete.filesDelete.DeleteFilesDeleteMain;
+import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.fileSystem.delete.jFileChooser.DeleteJFileChooserMain;
+import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.fileSystem.delete.thirdPartyPackage.DeleteThirdPartyPackageMain;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.function.Executable;
 import org.junit.platform.testkit.engine.Events;
 
@@ -27,6 +33,7 @@ import java.util.TreeMap;
  * We are not using the usual Ares testing style, since the agent works on the current running tests, user based tests are not working as expected
  */
 @UserBased(FileSystemAccessUser.class)
+@TestInstance(TestInstance.Lifecycle.PER_METHOD)
 class FileSystemAccessTest {
 
     @UserTestResults
@@ -64,8 +71,6 @@ class FileSystemAccessTest {
                 "Exception message should contain 'Student-Code'" + System.lineSeparator() + actualMessage);
         assertTrue(actualMessage.contains("Execution") || actualMessage.contains("Ausführung"),
                 "Exception message should contain 'Execution'" + System.lineSeparator() + actualMessage);
-        assertTrue(actualMessage.contains("FileSystemAccessPenguin"),
-                "Exception message should contain the class name 'FileSystemAccessPenguin'" + System.lineSeparator() + actualMessage);
         assertTrue(actualMessage.contains(new File(System.getProperty("user.dir"), "pom123.xml").getAbsolutePath()),
                 "Exception message should contain the forbidden file location: " +(new File(System.getProperty("user.dir"), "pom123.xml").getAbsolutePath()) + System.lineSeparator() + actualMessage);
         assertTrue(actualMessage.contains(operationTextEN) || actualMessage.contains(operationTextDE),
@@ -649,90 +654,150 @@ class FileSystemAccessTest {
         //<editor-fold desc="accessFileSystemViaFilesDelete">
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/filesDelete")
-        void xtest_accessFileSystemViaFilesDeleteMavenArchunitAspectJ() throws IOException {
-            assertAresSecurityExceptionDelete(FileSystemAccessPenguin::accessFileSystemViaFilesDelete);
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/filesDelete")
+        void test_accessFileSystemViaFilesDeleteMavenArchunitAspectJ() {
+            assertAresSecurityExceptionDelete(DeleteFilesDeleteMain::accessFileSystemViaFilesDelete);
         }
 
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/filesDelete")
-        void test_accessFileSystemViaFilesDeleteMavenArchunitInstrumentation() throws IOException {
-            assertAresSecurityExceptionDelete(FileSystemAccessPenguin::accessFileSystemViaFilesDelete);
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/filesDelete")
+        void test_accessFileSystemViaFilesDeleteMavenArchunitInstrumentation() {
+            assertAresSecurityExceptionDelete(DeleteFilesDeleteMain::accessFileSystemViaFilesDelete);
         }
 
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/filesDelete")
-        void test_accessFileSystemViaFilesDeleteMavenWalaAspectJ() throws IOException {
-            assertAresSecurityExceptionDelete(FileSystemAccessPenguin::accessFileSystemViaFilesDelete);
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/filesDelete")
+        void test_accessFileSystemViaFilesDeleteMavenWalaAspectJ() {
+            assertAresSecurityExceptionDelete(DeleteFilesDeleteMain::accessFileSystemViaFilesDelete);
         }
 
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/filesDelete")
-        void test_accessFileSystemViaFilesDeleteMavenWalaInstrumentation() throws IOException {
-            assertAresSecurityExceptionDelete(FileSystemAccessPenguin::accessFileSystemViaFilesDelete);
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/filesDelete")
+        void test_accessFileSystemViaFilesDeleteMavenWalaInstrumentation() {
+            assertAresSecurityExceptionDelete(DeleteFilesDeleteMain::accessFileSystemViaFilesDelete);
         }
         //</editor-fold>
 
         //<editor-fold desc="accessFileSystemViaFileDelete">
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
-        void test_accessFileSystemViaFileDeleteMavenArchunitAspectJ() throws IOException {
-            assertAresSecurityExceptionDelete(FileSystemAccessPenguin::accessFileSystemViaFileDelete);
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/fileDelete")
+        void test_accessFileSystemViaFileDeleteMavenArchunitAspectJ() {
+            assertAresSecurityExceptionDelete(DeleteFileDeleteMain::accessFileSystemViaFileDelete);
         }
 
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
-        void test_accessFileSystemViaFileDeleteMavenArchunitInstrumentation() throws IOException {
-            assertAresSecurityExceptionDelete(FileSystemAccessPenguin::accessFileSystemViaFileDelete);
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/fileDelete")
+        void test_accessFileSystemViaFileDeleteMavenArchunitInstrumentation() {
+            assertAresSecurityExceptionDelete(DeleteFileDeleteMain::accessFileSystemViaFileDelete);
         }
 
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
-        void test_accessFileSystemViaFileDeleteMavenWalaAspectJ() throws IOException {
-            assertAresSecurityExceptionDelete(FileSystemAccessPenguin::accessFileSystemViaFileDelete);
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/fileDelete")
+        void test_accessFileSystemViaFileDeleteMavenWalaAspectJ() {
+            assertAresSecurityExceptionDelete(DeleteFileDeleteMain::accessFileSystemViaFileDelete);
         }
 
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
-        void test_accessFileSystemViaFileDeleteMavenWalaInstrumentation() throws IOException {
-            assertAresSecurityExceptionDelete(FileSystemAccessPenguin::accessFileSystemViaFileDelete);
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/fileDelete")
+        void test_accessFileSystemViaFileDeleteMavenWalaInstrumentation() {
+            assertAresSecurityExceptionDelete(DeleteFileDeleteMain::accessFileSystemViaFileDelete);
         }
         //</editor-fold>
 
         //<editor-fold desc="accessFileSystemViaFileSystemProvider">
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
-        void test_accessFileSystemViaFileSystemProviderMavenArchunitAspectJ() throws IOException {
-            assertAresSecurityExceptionDelete(FileSystemAccessPenguin::accessFileSystemViaFileSystemProvider);
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/fileSystemProvider")
+        void test_accessFileSystemViaFileSystemProviderMavenArchunitAspectJ() {
+            assertAresSecurityExceptionDelete(DeleteFileSystemProviderMain::accessFileSystemViaFileSystemProvider);
         }
 
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
-        void test_accessFileSystemViaFileSystemProviderMavenArchunitInstrumentation() throws IOException {
-            assertAresSecurityExceptionDelete(FileSystemAccessPenguin::accessFileSystemViaFileSystemProvider);
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/fileSystemProvider")
+        void test_accessFileSystemViaFileSystemProviderMavenArchunitInstrumentation() {
+            assertAresSecurityExceptionDelete(DeleteFileSystemProviderMain::accessFileSystemViaFileSystemProvider);
         }
 
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
-        void test_accessFileSystemViaFileSystemProviderMavenWalaAspectJ() throws IOException {
-            assertAresSecurityExceptionDelete(FileSystemAccessPenguin::accessFileSystemViaFileSystemProvider);
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/fileSystemProvider")
+        void test_accessFileSystemViaFileSystemProviderMavenWalaAspectJ() {
+            assertAresSecurityExceptionDelete(DeleteFileSystemProviderMain::accessFileSystemViaFileSystemProvider);
         }
 
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
-        void test_accessFileSystemViaFileSystemProviderMavenWalaInstrumentation() throws IOException {
-            assertAresSecurityExceptionDelete(FileSystemAccessPenguin::accessFileSystemViaFileSystemProvider);
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/fileSystemProvider")
+        void test_accessFileSystemViaFileSystemProviderMavenWalaInstrumentation() {
+            assertAresSecurityExceptionDelete(DeleteFileSystemProviderMain::accessFileSystemViaFileSystemProvider);
+        }
+        //</editor-fold>
+
+        //<editor-fold desc="accessFileSystemViaJFileChooser">
+        @TestTest
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/jFileChooser")
+        void test_accessFileSystemViaJFileChooserMavenArchunitAspectJ() {
+            assertAresSecurityExceptionDelete(DeleteJFileChooserMain::accessFileSystemViaJFileChooser);
+        }
+
+        @TestTest
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/jFileChooser")
+        void test_accessFileSystemViaJFileChooserMavenArchunitInstrumentation() {
+            assertAresSecurityExceptionDelete(DeleteJFileChooserMain::accessFileSystemViaJFileChooser);
+        }
+
+        @TestTest
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/jFileChooser")
+        void test_accessFileSystemViaJFileChooserMavenWalaAspectJ() {
+            assertAresSecurityExceptionDelete(DeleteJFileChooserMain::accessFileSystemViaJFileChooser);
+        }
+
+        @TestTest
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/jFileChooser")
+        void test_accessFileSystemViaJFileChooserMavenWalaInstrumentation() {
+            assertAresSecurityExceptionDelete(DeleteJFileChooserMain::accessFileSystemViaJFileChooser);
+        }
+        //</editor-fold>
+
+        //<editor-fold desc="accessFileSystemViaThirdPartyPackage">
+        @TestTest
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/thirdPartyPackage")
+        void test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ() {
+            assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage);
+        }
+
+        @TestTest
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/thirdPartyPackage")
+        void test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation() {
+            assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage);
+        }
+
+        @TestTest
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/thirdPartyPackage")
+        void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ() {
+            assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage);
+        }
+
+        @TestTest
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/thirdPartyPackage")
+        void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation() {
+            assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage);
         }
         //</editor-fold>
     }

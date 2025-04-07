@@ -272,38 +272,5 @@ public final class FileSystemAccessPenguin {
     }
     //</editor-fold>
 
-    //<editor-fold desc="Delete Methods">
-    // --- Delete Methods ---
 
-    /**
-     * Access the file system using various methods from the {@link Files} class for deletion.
-     */
-    public static void accessFileSystemViaFilesDelete() throws IOException {
-        Files.delete(Path.of("pom123.xml"));
-    }
-
-    public static void accessFileSystemViaFileDelete() {
-        new File("pom123.xml").delete();
-    }
-
-    /**
-     * Access the file system using the {@link FileSystemProvider} class.
-     */
-    public static void accessFileSystemViaFileSystemProvider() throws IOException {
-        FileSystemProvider provider = FileSystemProvider.installedProviders().getFirst();
-        provider.delete(Path.of("pom123.xml"));
-    }
-
-    /**
-     * Access the file system using the {@link JFileChooser} class.
-     */
-    public static void accessFileSystemViaJFileChooser() {
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.showOpenDialog(null);
-    }
-    //</editor-fold>
-
-    public void accessPathThroughThirdPartyPackage() throws IOException {
-        ThirdPartyPackagePenguin.accessFileSystem();
-    }
 }
