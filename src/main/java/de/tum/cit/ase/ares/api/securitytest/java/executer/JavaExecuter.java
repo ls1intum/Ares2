@@ -28,6 +28,7 @@ import java.util.stream.Stream;
 public class JavaExecuter implements Executer {
 
     //<editor-fold desc="Helper methods">
+
     /**
      * Sets the value of a Java advice setting.
      *
@@ -49,6 +50,7 @@ public class JavaExecuter implements Executer {
     //</editor-fold>
 
     //<editor-fold desc="Execute test cases methods">
+
     /**
      * Executes the generated security test cases.
      *

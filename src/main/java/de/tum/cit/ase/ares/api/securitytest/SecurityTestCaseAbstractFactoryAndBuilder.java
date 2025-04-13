@@ -1,17 +1,12 @@
 package de.tum.cit.ase.ares.api.securitytest;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Preconditions;
-import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
-import de.tum.cit.ase.ares.api.securitytest.java.creator.Creator;
-import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialDataReader;
-import de.tum.cit.ase.ares.api.securitytest.java.executer.Executer;
-import de.tum.cit.ase.ares.api.securitytest.java.projectScanner.ProjectScanner;
-import de.tum.cit.ase.ares.api.securitytest.java.writer.Writer;
+import de.tum.cit.ase.ares.api.aop.AOPTestCase;
+import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCase;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -31,107 +26,17 @@ import java.util.List;
 public abstract class SecurityTestCaseAbstractFactoryAndBuilder {
 
     //<editor-fold desc="Attributes">
-
-    //<editor-fold desc="Tools">
-    @Nonnull
-    protected final Creator creator;
-
-    @Nonnull
-    protected final Writer writer;
-
-    @Nonnull
-    protected final Executer executer;
-
-    @Nonnull
-    protected final EssentialDataReader essentialDataReader;
-
-    @Nonnull
-    protected final ProjectScanner projectScanner;
-    //</editor-fold>
-
-    //<editor-fold desc="File Based Configuration">
-
     /**
-     * Path to the essential packages' configuration.
+     * List of architecture test cases generated based on the security policy.
      */
     @Nonnull
-    protected final Path essentialPackagesPath;
+    protected final List<ArchitectureTestCase> architectureTestCases = new ArrayList<>();
 
     /**
-     * These packages are essential for the execution of the security test cases and are therefore not subject to the security policy.
+     * List of AOP test cases generated based on the security policy.
      */
     @Nonnull
-    protected final List<String> essentialPackages;
-
-    /**
-     * Path to the essential classes' configuration.
-     */
-    @Nonnull
-    protected final Path essentialClassesPath;
-
-    /**
-     * These classes are essential for the execution of the security test cases and are therefore not subject to the security policy.
-     */
-    @Nonnull
-    protected final List<String> essentialClasses;
-    //</editor-fold>
-
-    /**
-     * The effective project path where test cases will be generated.
-     */
-    @Nullable
-    protected final Path projectPath;
-
-    //</editor-fold>
-
-    //<editor-fold desc="Constructor">
-
-    /**
-     * Constructs a new JavaSecurityTestCaseFactoryAndBuilder with the provided configuration.
-     * <p>
-     * This constructor initialises the factory and builder by setting the build mode, architecture mode,
-     * AOP mode, essential configurations, and security policy. If the testPath is null, a default path is used.
-     * </p>
-     *
-     * @param essentialDataReader
-     *          the reader for essential configuration; must not be null.
-     * @param essentialPackagesPath
-     *          the path to the essential packages configuration; must not be null.
-     * @param essentialClassesPath
-     *          the path to the essential classes configuration; must not be null.
-     * @param projectPath
-     *          the project path where test cases will be generated; if null, a default is used.
-     * @param securityPolicy
-     *          the security policy to enforce; may be null.
-     */
-    public SecurityTestCaseAbstractFactoryAndBuilder(
-            @Nonnull Creator creator, @Nonnull Writer writer, @Nonnull Executer executer,
-            @Nonnull EssentialDataReader essentialDataReader, @Nonnull ProjectScanner projectScanner,
-            @Nonnull Path essentialPackagesPath, @Nonnull Path essentialClassesPath,
-            @Nullable SecurityPolicy securityPolicy, @Nullable Path projectPath
-    ) {
-
-        //<editor-fold desc="Tools">
-        this.creator = Preconditions.checkNotNull(creator);
-        this.writer = Preconditions.checkNotNull(writer);
-        this.executer = Preconditions.checkNotNull(executer);
-        this.essentialDataReader = Preconditions.checkNotNull(essentialDataReader);
-        this.projectScanner = Preconditions.checkNotNull(projectScanner);
-        //</editor-fold>
-
-        //<editor-fold desc="File Based Configuration">
-        this.essentialPackagesPath = Preconditions.checkNotNull(essentialPackagesPath, "essentialPackagesPath must not be null");
-        this.essentialPackages = Preconditions.checkNotNull(essentialDataReader, "essentialPackagesReader must not be null")
-                .readEssentialPackagesFrom(this.essentialPackagesPath)
-                .getEssentialPackages();
-        this.essentialClassesPath = Preconditions.checkNotNull(essentialClassesPath, "essentialClassesPath must not be null");
-        this.essentialClasses = Preconditions.checkNotNull(essentialDataReader, "essentialClassesReader must not be null")
-                .readEssentialClassesFrom(this.essentialClassesPath)
-                .getEssentialClasses();
-        //</editor-fold>
-
-        this.projectPath = projectPath;
-    }
+    protected final List<AOPTestCase> aopTestCases = new ArrayList<>();
     //</editor-fold>
 
     //<editor-fold desc="Abstract Methods">

@@ -24,20 +24,20 @@ public interface EssentialDataReader {
      *
      * @since 2.0.0
      * @author Markus Paulsen
-     * @param securityPolicyPath the path to the YAML file containing essential classes
+     * @param essentialClassesPath the path to the YAML file containing essential classes
      * @return an EssentialClasses instance parsed from the YAML file
      */
-    EssentialClasses readEssentialClassesFrom(@Nonnull Path securityPolicyPath);
+    EssentialClasses readEssentialClassesFrom(@Nonnull Path essentialClassesPath);
 
     /**
      * Reads essential packages from the specified YAML file.
      *
      * @since 2.0.0
      * @author Markus Paulsen
-     * @param securityPolicyPath the path to the YAML file containing essential packages
+     * @param essentialPackagesPath the path to the YAML file containing essential packages
      * @return an EssentialPackages instance parsed from the YAML file
      */
-    EssentialPackages readEssentialPackagesFrom(@Nonnull Path securityPolicyPath);
+    EssentialPackages readEssentialPackagesFrom(@Nonnull Path essentialPackagesPath);
 
     /**
      * Throws a SecurityException with a localized error message.

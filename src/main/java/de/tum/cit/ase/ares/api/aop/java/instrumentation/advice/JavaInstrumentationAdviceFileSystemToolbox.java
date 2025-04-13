@@ -62,6 +62,7 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
      *   <li>Illegal argument exceptions</li>
      * </ul>
      */
+    @SuppressWarnings("unchecked")
     protected static <T> T getValueFromSettings(String fieldName) {
         try {
             // Take bootloader as class loader in order to get the JavaSecurityTestCaseSettings class at bootloader time for instrumentation

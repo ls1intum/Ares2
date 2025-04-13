@@ -3,10 +3,11 @@ package de.tum.cit.ase.ares.api.securitytest.java;
 //<editor-fold desc="Imports">
 
 import com.google.common.base.MoreObjects;
-import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
-import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureMode;
+import com.google.common.base.Preconditions;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
+import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureMode;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPMode;
+import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.java.JavaBuildMode;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
@@ -50,6 +51,23 @@ public class JavaSecurityTestCaseFactoryAndBuilder extends SecurityTestCaseAbstr
 
     //<editor-fold desc="Attributes">
 
+    //<editor-fold desc="Tools">
+    @Nonnull
+    protected final Creator creator;
+
+    @Nonnull
+    protected final Writer writer;
+
+    @Nonnull
+    protected final Executer executer;
+
+    @Nonnull
+    protected final EssentialDataReader essentialDataReader;
+
+    @Nonnull
+    protected final ProjectScanner projectScanner;
+    //</editor-fold>
+
     //<editor-fold desc="Modes and Project Paths">
 
     /**
@@ -69,15 +87,52 @@ public class JavaSecurityTestCaseFactoryAndBuilder extends SecurityTestCaseAbstr
      */
     @Nonnull
     private final JavaAOPMode javaAOPMode;
+
+    /**
+     * The effective project path where test cases will be generated.
+     */
+    @Nullable
+    protected final Path projectPath;
     //</editor-fold>
 
-    //<editor-fold desc="Tested-Domain">
+    //<editor-fold desc="Essential Data">
+    /**
+     * Path to the essential packages' configuration.
+     */
+    @Nonnull
+    protected final Path essentialPackagesPath;
 
+    /**
+     * Path to the essential classes' configuration.
+     */
+    @Nonnull
+    protected final Path essentialClassesPath;
+
+    /**
+     * These packages are essential for the execution of the security test cases and are therefore not subject to the security policy.
+     */
+    @Nonnull
+    protected final List<String> essentialPackages;
+
+    /**
+     * These classes are essential for the execution of the security test cases and are therefore not subject to the security policy.
+     */
+    @Nonnull
+    protected final List<String> essentialClasses;
+    //</editor-fold>
+
+    //<editor-fold desc="Configuration">
     /**
      * These classes are part of the unrestricted test code and are therefore not subject to the security policy.
      */
     @Nonnull
-    private final List<String> testClasses;
+    protected final List<String> testClasses;
+
+    /**
+     * The resource accesses permitted as defined by the security policy.
+     */
+    @Nonnull
+    protected final ResourceAccesses resourceAccesses;
 
     /**
      * This package is part of the restricted student code and are therefore subject to the security policy.
@@ -90,26 +145,6 @@ public class JavaSecurityTestCaseFactoryAndBuilder extends SecurityTestCaseAbstr
      */
     @Nonnull
     private final String mainClassInPackageName;
-
-    /**
-     * The resource accesses permitted as defined by the security policy.
-     */
-    @Nonnull
-    private final ResourceAccesses resourceAccesses;
-    //</editor-fold>
-
-    //<editor-fold desc="Generated Test Cases">
-    /**
-     * List of architecture test cases generated based on the security policy.
-     */
-    @Nonnull
-    private final List<JavaArchitectureTestCase> javaArchitectureTestCases = new ArrayList<>();
-
-    /**
-     * List of AOP test cases generated based on the security policy.
-     */
-    @Nonnull
-    private final List<JavaAOPTestCase> javaAOPTestCases = new ArrayList<>();
     //</editor-fold>
 
     //</editor-fold>
@@ -145,37 +180,50 @@ public class JavaSecurityTestCaseFactoryAndBuilder extends SecurityTestCaseAbstr
             @Nonnull Path essentialPackagesPath, @Nonnull Path essentialClassesPath,
             @Nullable JavaBuildMode javaBuildMode, @Nullable JavaArchitectureMode javaArchitectureMode, @Nullable JavaAOPMode javaAOPMode,
             @Nullable SecurityPolicy securityPolicy, @Nullable Path projectPath
-            ) {
+    ) {
 
-        super(
-                creator, writer, executer,
-                essentialDataReader, projectScanner,
-                essentialPackagesPath, essentialClassesPath,
-                securityPolicy, projectPath
-        );
+        //<editor-fold desc="Tools">
+        this.creator = Preconditions.checkNotNull(creator);
+        this.writer = Preconditions.checkNotNull(writer);
+        this.executer = Preconditions.checkNotNull(executer);
+        this.essentialDataReader = Preconditions.checkNotNull(essentialDataReader);
+        this.projectScanner = Preconditions.checkNotNull(projectScanner);
+        //</editor-fold>
 
         //<editor-fold desc="Modes and Project Paths">
         this.javaBuildMode = MoreObjects.firstNonNull(javaBuildMode, projectScanner.scanForBuildMode());
         this.javaArchitectureMode = MoreObjects.firstNonNull(javaArchitectureMode, JavaArchitectureMode.WALA);
         this.javaAOPMode = MoreObjects.firstNonNull(javaAOPMode, JavaAOPMode.INSTRUMENTATION);
+        this.projectPath = projectPath;
         //</editor-fold>
 
-        //<editor-fold desc="Policy Based Configuration">
+        //<editor-fold desc="Essential Data">
+        this.essentialPackagesPath = Preconditions.checkNotNull(essentialPackagesPath, "essentialPackagesPath must not be null");
+        this.essentialClassesPath = Preconditions.checkNotNull(essentialClassesPath, "essentialClassesPath must not be null");
+        this.essentialPackages = Preconditions.checkNotNull(essentialDataReader, "essentialPackagesReader must not be null")
+                .readEssentialPackagesFrom(this.essentialPackagesPath)
+                .getEssentialPackages();
+        this.essentialClasses = Preconditions.checkNotNull(essentialDataReader, "essentialClassesReader must not be null")
+                .readEssentialClassesFrom(this.essentialClassesPath)
+                .getEssentialClasses();
+        //</editor-fold>
+
+        //<editor-fold desc="Configuration">
         final SupervisedCode supervisedCode = Optional.ofNullable(securityPolicy)
                 .map(SecurityPolicy::regardingTheSupervisedCode)
                 .orElse(null);
         this.testClasses = new ArrayList<>(Arrays.asList(Optional.ofNullable(supervisedCode)
                 .map(SupervisedCode::theFollowingClassesAreTestClasses)
                 .orElseGet(projectScanner::scanForTestClasses)));
+        this.resourceAccesses = Optional.ofNullable(supervisedCode)
+                .map(SupervisedCode::theFollowingResourceAccessesArePermitted)
+                .orElseGet(ResourceAccesses::createRestrictive);
         this.packageName = Optional.ofNullable(supervisedCode)
                 .map(SupervisedCode::theSupervisedCodeUsesTheFollowingPackage)
                 .orElseGet(projectScanner::scanForPackageName);
         this.mainClassInPackageName = Optional.ofNullable(supervisedCode)
                 .map(SupervisedCode::theMainClassInsideThisPackageIs)
                 .orElseGet(projectScanner::scanForMainClassInPackage);
-        this.resourceAccesses = Optional.ofNullable(supervisedCode)
-                .map(SupervisedCode::theFollowingResourceAccessesArePermitted)
-                .orElseGet(ResourceAccesses::createRestrictive);
         //</editor-fold>
 
         //<editor-fold desc="Test Case Creation">
@@ -188,8 +236,8 @@ public class JavaSecurityTestCaseFactoryAndBuilder extends SecurityTestCaseAbstr
                 this.testClasses,
                 this.packageName,
                 this.mainClassInPackageName,
-                this.javaArchitectureTestCases,
-                this.javaAOPTestCases,
+                this.architectureTestCases.stream().map(architectureTestCase -> (JavaArchitectureTestCase) architectureTestCase).toList(),
+                this.aopTestCases.stream().map(aopTestCase -> (JavaAOPTestCase) aopTestCase).toList(),
                 this.resourceAccesses,
                 this.projectPath
         );
@@ -222,8 +270,8 @@ public class JavaSecurityTestCaseFactoryAndBuilder extends SecurityTestCaseAbstr
                 testClasses,
                 packageName,
                 mainClassInPackageName,
-                javaArchitectureTestCases,
-                javaAOPTestCases,
+                this.architectureTestCases.stream().map(architectureTestCase -> (JavaArchitectureTestCase) architectureTestCase).toList(),
+                this.aopTestCases.stream().map(aopTestCase -> (JavaAOPTestCase) aopTestCase).toList(),
                 projectDirectory
         );
     }
@@ -249,8 +297,8 @@ public class JavaSecurityTestCaseFactoryAndBuilder extends SecurityTestCaseAbstr
                 testClasses,
                 packageName,
                 mainClassInPackageName,
-                javaArchitectureTestCases,
-                javaAOPTestCases
+                this.architectureTestCases.stream().map(architectureTestCase -> (JavaArchitectureTestCase) architectureTestCase).toList(),
+                this.aopTestCases.stream().map(aopTestCase -> (JavaAOPTestCase) aopTestCase).toList()
         );
     }
     //</editor-fold>

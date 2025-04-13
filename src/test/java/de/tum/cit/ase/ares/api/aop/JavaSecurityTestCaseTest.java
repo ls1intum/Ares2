@@ -2,7 +2,6 @@ package de.tum.cit.ase.ares.api.aop;
 
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSupported;
-import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,7 +10,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -62,6 +60,7 @@ class JavaSecurityTestCaseTest {
         }
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     void testGetPermittedFilePaths() throws Exception {
         Method method = JavaAOPTestCase.class.getDeclaredMethod("getPermittedFilePaths", String.class);
@@ -78,9 +77,9 @@ class JavaSecurityTestCaseTest {
         assertEquals("private static String testAdvice = \"testValue\";" + System.lineSeparator(), result);
         result = (String) method.invoke(null, "String[]", "testAdviceArray", List.of("value1", "value2"));
         assertEquals("private static String[] testAdviceArray = new String[] {\"value1\", \"value2\"};" + System.lineSeparator(), result);
-        InvocationTargetException thrown = assertThrows(InvocationTargetException.class, () -> {
-            method.invoke(null, "UnknownType", "testAdvice", "value");
-        });
+        InvocationTargetException thrown = assertThrows(InvocationTargetException.class, () ->
+            method.invoke(null, "UnknownType", "testAdvice", "value")
+        );
         assertEquals(SecurityException.class, thrown.getCause().getClass());
     }
 }

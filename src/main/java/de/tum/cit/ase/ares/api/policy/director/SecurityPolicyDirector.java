@@ -29,10 +29,10 @@ public interface SecurityPolicyDirector {
      * @since 2.0.0
      * @author Markus Paulsen
      * @param securityPolicy the SecurityPolicy driving the test case creation; may be null if no policy is provided.
-     * @param projectPath the project directory path where test cases should be applied; may be null.
+     * @param projectFolderPath the project directory path where test cases should be applied; may be null.
      * @return a non-null instance of SecurityTestCaseAbstractFactoryAndBuilder configured according to the security policy.
      */
     @Nonnull
     SecurityTestCaseAbstractFactoryAndBuilder createSecurityTestCases(@Nullable SecurityPolicy securityPolicy,
-                                                                      @Nullable Path projectPath);
+                                                                      @Nullable Path projectFolderPath);
 }

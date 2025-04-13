@@ -6,7 +6,6 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 
-import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -124,26 +123,20 @@ public class JavaInstrumentationPointcutDefinitions {
      * and the values are lists of method names that are considered to be file read operations.
      */
     public static final Map<String, List<String>> methodsWhichCanReadFiles = Map.ofEntries(
-            new AbstractMap.SimpleEntry<>("java.io.FileInputStream",
-                    List.of("<init>", "read", "open")),
-            new AbstractMap.SimpleEntry<>("java.io.RandomAccessFile",
-                    List.of("<init>")),
-            new AbstractMap.SimpleEntry<>("java.io.UnixFileSystem",
-                    List.of("getBooleanAttributes0", "getSpace", "canonicalize0")),
-            new AbstractMap.SimpleEntry<>("java.io.WinNTFileSystem",
-                    List.of("getBooleanAttributes", "canonicalize", "getLastModifiedTime", "getSpace")),
-            new AbstractMap.SimpleEntry<>("java.io.Win32FileSystem",
-                    List.of("getBooleanAttributes", "canonicalize", "getLastModifiedTime", "getSpace")),
-            new AbstractMap.SimpleEntry<>("java.nio.file.Files",
-                    List.of("readAttributes", "readAllBytes", "readAllLines", "readString", "read", "newInputStream", "lines")),
-            new AbstractMap.SimpleEntry<>("java.io.FileReader",
-                    List.of("<init>", "read", "readLine")),
-            new AbstractMap.SimpleEntry<>("java.io.BufferedReader",
-                    List.of("lines")),
-            new AbstractMap.SimpleEntry<>("sun.nio.ch.FileChannelImpl",
-                    List.of("open", "read", "readFully", "readDirect", "readIntoNativeBuffer")),
-            new AbstractMap.SimpleEntry<>("java.nio.file.spi.FileSystemProvider",
-                    List.of("newFileChannel"))
+            // java.io
+            Map.entry("java.io.FileInputStream", List.of("read")),
+            Map.entry("java.io.FileReader", List.of("read", "readLine")),
+            Map.entry("java.io.RandomAccessFile", List.of("read", "readFully", "readBoolean", "readByte", "readChar", "readChars", "readDouble", "readFloat", "readInt", "readLong", "readShort")),
+            // java.nio
+            Map.entry("java.nio.file.Files", List.of("readAllBytes", "readAllLines", "readString", "lines", "newBufferedReader", "newInputStream", "newByteChannel")),
+
+
+            Map.entry("java.io.UnixFileSystem", List.of("getBooleanAttributes0", "getSpace", "canonicalize0")),
+            Map.entry("java.io.WinNTFileSystem", List.of("getBooleanAttributes", "canonicalize", "getLastModifiedTime", "getSpace")),
+            Map.entry("java.io.Win32FileSystem", List.of("getBooleanAttributes", "canonicalize", "getLastModifiedTime", "getSpace")),
+            Map.entry("java.io.BufferedReader", List.of("lines")),
+            Map.entry("sun.nio.ch.FileChannelImpl", List.of("open", "read", "readFully", "readDirect", "readIntoNativeBuffer")),
+            Map.entry("java.nio.file.spi.FileSystemProvider", List.of("newFileChannel"))
     );
     //</editor-fold>
 
@@ -153,25 +146,21 @@ public class JavaInstrumentationPointcutDefinitions {
      * and the values are lists of method names that are considered to be file overwrite operations.
      */
     public static final Map<String, List<String>> methodsWhichCanOverwriteFiles = Map.ofEntries(
-            new AbstractMap.SimpleEntry<>("java.io.FileOutputStream",
-                    List.of("<init>")),
-            new AbstractMap.SimpleEntry<>("java.io.RandomAccessFile",
-                    List.of("write", "writeBoolean", "writeByte", "writeBytes", "writeChar", "writeChars",
-                            "writeDouble", "writeFloat", "writeInt", "writeLong", "writeShort")),
-            new AbstractMap.SimpleEntry<>("java.io.UnixFileSystem",
-                    List.of("setLastModifiedTime", "createFileExclusively", "delete0", "createDirectory")),
-            new AbstractMap.SimpleEntry<>("java.io.WinNTFileSystem",
-                    List.of("createFileExclusively", "delete", "setLastModifiedTime", "createDirectory")),
-            new AbstractMap.SimpleEntry<>("java.io.Win32FileSystem",
-                    List.of("createFileExclusively", "delete", "setLastModifiedTime", "createDirectory")),
-            new AbstractMap.SimpleEntry<>("java.util.prefs.FileSystemPreferences",
-                    List.of("lockFile0", "unlockFile0")),
-            new AbstractMap.SimpleEntry<>("java.nio.file.Files",
-                    List.of("write", "writeString", "newOutputStream", "writeBytes", "writeAllBytes", "writeLines")),
-            new AbstractMap.SimpleEntry<>("java.io.File",
-                    List.of("setWritable")),
-            new AbstractMap.SimpleEntry<>("sun.nio.ch.FileChannelImpl",
-                    List.of("write", "writeFully", "writeDirect", "writeFromNativeBuffer"))
+            // java.io
+            Map.entry("java.io.FileOutputStream", List.of("write")),
+            Map.entry("java.io.FileWriter", List.of("write")),
+            Map.entry("java.io.PrintWriter", List.of("write")),
+            Map.entry("java.io.RandomAccessFile", List.of("write", "writeBoolean", "writeByte", "writeBytes", "writeChar", "writeChars", "writeDouble", "writeFloat", "writeInt", "writeLong", "writeShort", "writeUTF")),
+            Map.entry("java.io.DataOutputStream", List.of("write", "writeBoolean", "writeByte", "writeBytes", "writeChar", "writeChars", "writeDouble", "writeFloat", "writeInt", "writeLong", "writeShort", "writeUTF")),
+            Map.entry("java.print.PrintStream", List.of("write")),
+
+            Map.entry("java.io.UnixFileSystem", List.of("setLastModifiedTime", "createFileExclusively", "delete0", "createDirectory")),
+            Map.entry("java.io.WinNTFileSystem", List.of("createFileExclusively", "delete", "setLastModifiedTime", "createDirectory")),
+            Map.entry("java.io.Win32FileSystem", List.of("createFileExclusively", "delete", "setLastModifiedTime", "createDirectory")),
+            Map.entry("java.util.prefs.FileSystemPreferences", List.of("lockFile0", "unlockFile0")),
+            Map.entry("java.nio.file.Files", List.of("write", "writeString", "newOutputStream", "writeBytes", "writeAllBytes", "writeLines")),
+            Map.entry("java.io.File", List.of("setWritable")),
+            Map.entry("sun.nio.ch.FileChannelImpl", List.of("write", "writeFully", "writeDirect", "writeFromNativeBuffer"))
     );
     //</editor-fold>
 
@@ -199,21 +188,20 @@ public class JavaInstrumentationPointcutDefinitions {
      * This map contains the methods which can delete files. The map keys represent class names,
      * and the values are lists of method names that are considered to be file delete operations.
      */
-    public static final Map<String, List<String>> methodsWhichCanDeleteFiles = Map.of(
-            "java.io.File",
-            List.of("deleteOnExit"),
-            "java.nio.file.Files",
-            List.of("delete", "deleteIfExists"),
-            "sun.nio.fs.UnixFileSystemProvider",
-            List.of("implDelete"),
-            "sun.nio.fs.WindowsFileSystemProvider",
-            List.of("implDelete"),
-            "java.io.UnixFileSystem",
-            List.of("delete"),
-            "java.io.WinNTFileSystem",
-            List.of("delete"),
-            "java.io.Win32FileSystem",
-            List.of("delete")
+    public static final Map<String, List<String>> methodsWhichCanDeleteFiles = Map.ofEntries(
+            // java.io
+            Map.entry("java.io.File", List.of("delete", "deleteOnExit")),
+            // java.nio
+            Map.entry("java.nio.file.Files", List.of("delete", "deleteIfExists")),
+
+
+            Map.entry("sun.nio.fs.UnixFileSystemProvider", List.of("implDelete")),
+            Map.entry("sun.nio.fs.WindowsFileSystemProvider", List.of("implDelete")),
+            Map.entry("jdk.internal.jrtfs.JrtFileSystemProvider", List.of("delete")),
+            Map.entry("jdk.nio.zipfs.ZipFileSystemProvider", List.of("delete")),
+            Map.entry("java.io.UnixFileSystem", List.of("delete")),
+            Map.entry("java.io.WinNTFileSystem", List.of("delete")),
+            Map.entry("java.io.Win32FileSystem", List.of("delete"))
     );
     //</editor-fold>
 

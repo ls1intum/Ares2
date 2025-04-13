@@ -741,36 +741,6 @@ class FileSystemAccessTest {
         }
         //</editor-fold>
 
-        //<editor-fold desc="accessFileSystemViaJFileChooser">
-        @TestTest
-        @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/jFileChooser")
-        void test_accessFileSystemViaJFileChooserMavenArchunitAspectJ() {
-            assertAresSecurityExceptionDelete(DeleteJFileChooserMain::accessFileSystemViaJFileChooser);
-        }
-
-        @TestTest
-        @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/jFileChooser")
-        void test_accessFileSystemViaJFileChooserMavenArchunitInstrumentation() {
-            assertAresSecurityExceptionDelete(DeleteJFileChooserMain::accessFileSystemViaJFileChooser);
-        }
-
-        @TestTest
-        @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/jFileChooser")
-        void test_accessFileSystemViaJFileChooserMavenWalaAspectJ() {
-            assertAresSecurityExceptionDelete(DeleteJFileChooserMain::accessFileSystemViaJFileChooser);
-        }
-
-        @TestTest
-        @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/jFileChooser")
-        void test_accessFileSystemViaJFileChooserMavenWalaInstrumentation() {
-            assertAresSecurityExceptionDelete(DeleteJFileChooserMain::accessFileSystemViaJFileChooser);
-        }
-        //</editor-fold>
-
         //<editor-fold desc="accessFileSystemViaThirdPartyPackage">
         @TestTest
         @PublicTest

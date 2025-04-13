@@ -115,6 +115,7 @@ public class JavaWriter implements Writer {
     //</editor-fold>
 
     //<editor-fold desc="Write security test cases methods">
+
     /**
      * Writes security test cases to files.
      *
@@ -133,7 +134,6 @@ public class JavaWriter implements Writer {
      * @param projectDirectory the directory of the project; may be null
      * @return a list of paths to the created files
      */
-    @Override
     @Nonnull
     public List<Path> writeSecurityTestCases(
             @Nonnull JavaBuildMode javaBuildMode,

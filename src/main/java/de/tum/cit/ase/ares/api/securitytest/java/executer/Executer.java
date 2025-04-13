@@ -29,14 +29,8 @@ public interface Executer {
      *
      * @since 2.0.0
      * @author Markus Paulsen
-     * @param javaBuildMode the Java build mode to use; must not be null
-     * @param javaArchitectureMode the Java architecture mode to use; must not be null
-     * @param javaAOPMode the Java AOP mode to use; must not be null
-     * @param essentialPackages the list of essential packages; must not be null
      * @param essentialClasses the list of essential classes; must not be null
      * @param testClasses the list of test classes; must not be null
-     * @param packageName the name of the package containing the main class; must not be null
-     * @param mainClassInPackageName the name of the main class; must not be null
      * @param javaArchitectureTestCases the list of architecture test cases; must not be null
      * @param javaAOPTestCases the list of AOP test cases; must not be null
      */

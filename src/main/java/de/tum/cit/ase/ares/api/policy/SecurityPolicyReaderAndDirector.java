@@ -135,9 +135,9 @@ public class SecurityPolicyReaderAndDirector {
      * @return a list of Paths where the security test cases were written.
      */
     @Nonnull
-    public List<Path> writeSecurityTestCases() {
+    public List<Path> writeSecurityTestCases(Path targetFolderPath) {
         return Preconditions.checkNotNull(this.securityTestCaseFactoryAndBuilder, "testCaseManager must not be null")
-                .writeSecurityTestCases(this.projectFolderPath);
+                .writeSecurityTestCases(targetFolderPath);
     }
     //</editor-fold>
 

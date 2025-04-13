@@ -32,6 +32,7 @@ public abstract class ArchitectureTestCase {
     protected final ArchitectureTestCaseSupported architectureTestCaseSupported;
     //</editor-fold>
 
+    //<editor-fold desc="Constructor">
     /**
      * Constructs a new abstract architecture test case with the specified parameters.
      *
@@ -42,9 +43,11 @@ public abstract class ArchitectureTestCase {
     protected ArchitectureTestCase(
             @Nonnull ArchitectureTestCaseSupported architectureTestCaseSupported
     ) {
-        this.architectureTestCaseSupported = Preconditions.checkNotNull(architectureTestCaseSupported, "javaArchitecturalTestCaseSupported must not be null");
+        this.architectureTestCaseSupported = Preconditions.checkNotNull(architectureTestCaseSupported, "architecturalTestCaseSupported must not be null");
     }
+    //</editor-fold>
 
+    //<editor-fold desc="Abstract Methods">
     /**
      * Generates the content of the architecture test case file for the specified architecture mode.
      *
@@ -65,4 +68,5 @@ public abstract class ArchitectureTestCase {
      * @param aopMode the identifier for the AOP mode.
      */
     public abstract void executeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode);
+    //</editor-fold>
 }

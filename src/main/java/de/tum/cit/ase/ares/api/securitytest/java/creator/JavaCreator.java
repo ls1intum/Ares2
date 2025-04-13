@@ -271,6 +271,7 @@ public class JavaCreator implements Creator {
             @Nonnull ResourceAccesses resourceAccesses,
             @Nonnull Path projectPath
     ) {
+
         //<editor-fold desc="Extraction">
         @Nonnull String classPath = javaBuildMode.getClasspath(projectPath);
         @Nonnull JavaClasses javaClasses = cacheResult(() -> javaArchitectureMode.getJavaClasses(classPath)).get();
