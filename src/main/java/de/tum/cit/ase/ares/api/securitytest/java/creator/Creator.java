@@ -1,7 +1,9 @@
 package de.tum.cit.ase.ares.api.securitytest.java.creator;
 
+import de.tum.cit.ase.ares.api.aop.AOPTestCase;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPMode;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
+import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.java.JavaBuildMode;
@@ -48,8 +50,8 @@ public interface Creator {
             @Nonnull List<String> testClasses,
             @Nonnull String packageName,
             @Nonnull String mainClassInPackageName,
-            @Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
-            @Nonnull List<JavaAOPTestCase> javaAOPTestCases,
+            @Nonnull List<ArchitectureTestCase> javaArchitectureTestCases,
+            @Nonnull List<AOPTestCase> javaAOPTestCases,
             @Nonnull ResourceAccesses resourceAccesses,
             @Nonnull Path projectPath
     );

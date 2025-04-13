@@ -55,7 +55,8 @@ class FileSystemAccessTest {
     private final String accessPathTest = "accessPathTest";
     private final String weAccessPath = "weAccessPath";
 
-    private final String errorMessage = "No Security Exception was thrown. Check if the policy is correctly applied.";;
+    private final String errorMessage = "No Security Exception was thrown. Check if the policy is correctly applied.";
+    ;
 
     /**
      * Common helper that verifies the expected general parts of the error message.
@@ -66,13 +67,13 @@ class FileSystemAccessTest {
      */
     private void assertGeneralErrorMessage(String actualMessage, String operationTextEN, String operationTextDE) {
         assertTrue(actualMessage.contains("Ares Security Error") || actualMessage.contains("Ares Sicherheitsfehler"),
-                "Exception message should contain 'Ares Security Error'" + System.lineSeparator() + actualMessage + "or 'Ares Sicherheitsfehler'"  + System.lineSeparator() + actualMessage);
+                "Exception message should contain 'Ares Security Error'" + System.lineSeparator() + actualMessage + "or 'Ares Sicherheitsfehler'" + System.lineSeparator() + actualMessage);
         assertTrue(actualMessage.contains("Student-Code"),
                 "Exception message should contain 'Student-Code'" + System.lineSeparator() + actualMessage);
         assertTrue(actualMessage.contains("Execution") || actualMessage.contains("Ausführung"),
                 "Exception message should contain 'Execution'" + System.lineSeparator() + actualMessage);
         assertTrue(actualMessage.contains(new File(System.getProperty("user.dir"), "pom123.xml").getAbsolutePath()),
-                "Exception message should contain the forbidden file location: " +(new File(System.getProperty("user.dir"), "pom123.xml").getAbsolutePath()) + System.lineSeparator() + actualMessage);
+                "Exception message should contain the forbidden file location: " + (new File(System.getProperty("user.dir"), "pom123.xml").getAbsolutePath()) + System.lineSeparator() + actualMessage);
         assertTrue(actualMessage.contains(operationTextEN) || actualMessage.contains(operationTextDE),
                 "Exception message should indicate the expected operation by containing '" + operationTextEN + "'" + System.lineSeparator() + actualMessage + "or '" + operationTextDE + "'" + System.lineSeparator() + actualMessage);
     }

@@ -236,8 +236,8 @@ public class JavaSecurityTestCaseFactoryAndBuilder extends SecurityTestCaseAbstr
                 this.testClasses,
                 this.packageName,
                 this.mainClassInPackageName,
-                this.architectureTestCases.stream().map(architectureTestCase -> (JavaArchitectureTestCase) architectureTestCase).toList(),
-                this.aopTestCases.stream().map(aopTestCase -> (JavaAOPTestCase) aopTestCase).toList(),
+                this.architectureTestCases,
+                this.aopTestCases,
                 this.resourceAccesses,
                 this.projectPath
         );

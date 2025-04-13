@@ -66,6 +66,12 @@ public abstract class AOPTestCase {
     }
     //</editor-fold>
 
+    @Nonnull
+    public AOPTestCaseSupported getAopTestCaseSupported() {
+        return aopTestCaseSupported;
+    }
+
+
     //<editor-fold desc="Abstract Methods">
     /**
      * Writes the content of the AOP test case configuration for the specified AOP mode.

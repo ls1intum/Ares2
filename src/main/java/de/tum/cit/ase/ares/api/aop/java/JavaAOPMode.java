@@ -181,7 +181,7 @@ public enum JavaAOPMode {
     @SuppressWarnings("unchecked")
     private <T> List<T> extractPermissions(List<JavaAOPTestCase> testCases, JavaAOPTestCaseSupported supported) {
         return testCases.stream()
-                .filter(testCase -> testCase.getJavaAOPTestCaseSupported() == supported)
+                .filter(testCase -> testCase.getAopTestCaseSupported() == supported)
                 .map(JavaAOPTestCase::getResourceAccessSupplier)
                 .map(Supplier::get)
                 .map(permissions -> (List<T>) permissions)

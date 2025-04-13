@@ -13,7 +13,5 @@ regardingTheSupervisedCode:
         onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/nottrusted.txt"
     regardingNetworkConnections: [ ]
     regardingCommandExecutions: [ ]
-    regardingThreadCreations:
-      - createTheFollowingNumberOfThreads: 1
-        ofThisClass: "java.io.PrintStream"
+    regardingThreadCreations: [ ]
     regardingPackageImports: [ ]

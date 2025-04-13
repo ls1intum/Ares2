@@ -2,9 +2,11 @@ package de.tum.cit.ase.ares.api.securitytest.java.creator;
 
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.core.domain.JavaClasses;
+import de.tum.cit.ase.ares.api.aop.AOPTestCase;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPMode;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSupported;
+import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
@@ -159,7 +161,7 @@ public class JavaCreator implements Creator {
     @Nonnull
     private JavaAOPTestCase createAOPTestCase(
             @Nonnull ResourceAccesses resourceAccesses,
-            @Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
+            @Nonnull List<ArchitectureTestCase> javaArchitectureTestCases,
             @Nonnull JavaAOPTestCaseSupported supported,
             @Nonnull JavaClasses classes,
             @Nonnull CallGraph callGraph,
@@ -199,7 +201,7 @@ public class JavaCreator implements Creator {
      * @param allowedClasses the set of allowed class names; must not be null
      */
     private void addFixedTestCases(
-            @Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
+            @Nonnull List<ArchitectureTestCase> javaArchitectureTestCases,
             @Nonnull JavaClasses classes,
             @Nonnull CallGraph callGraph,
             @Nonnull Set<PackagePermission> allowedPackages,
@@ -224,8 +226,8 @@ public class JavaCreator implements Creator {
      * @param allowedClasses the set of allowed class names; must not be null
      */
     private void addVariableTestCases(
-            @Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
-            @Nonnull List<JavaAOPTestCase> javaAOPTestCases,
+            @Nonnull List<ArchitectureTestCase> javaArchitectureTestCases,
+            @Nonnull List<AOPTestCase> javaAOPTestCases,
             @Nonnull JavaClasses classes,
             @Nonnull CallGraph callGraph,
             @Nonnull Set<PackagePermission> allowedPackages,
@@ -267,8 +269,8 @@ public class JavaCreator implements Creator {
             @Nonnull List<String> testClasses,
             @Nonnull String packageName,
             @Nonnull String mainClassInPackageName,
-            @Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
-            @Nonnull List<JavaAOPTestCase> javaAOPTestCases,
+            @Nonnull List<ArchitectureTestCase> javaArchitectureTestCases,
+            @Nonnull List<AOPTestCase> javaAOPTestCases,
             @Nonnull ResourceAccesses resourceAccesses,
             @Nonnull Path projectPath
     ) {
