@@ -9,6 +9,7 @@ import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupport
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.java.JavaBuildMode;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
 
@@ -96,15 +97,15 @@ public class JavaCreator implements Creator {
      * @return a set of allowed class names; never null
      */
     @Nonnull
-    private Set<String> prepareAllowedClasses(
+    private Set<ClassPermission> prepareAllowedClasses(
             @Nonnull List<String> essentialClasses,
             @Nonnull List<String> testClasses
     ) {
         return Stream.of(
                 // Essential classes are allowed to do anything
-                essentialClasses.stream(),
+                essentialClasses.stream().map(ClassPermission::new),
                 // Test classes are allowed to do anything
-                testClasses.stream()
+                testClasses.stream().map(ClassPermission::new)
         ).flatMap(Function.identity()).collect(Collectors.toSet());
     }
 
@@ -126,7 +127,7 @@ public class JavaCreator implements Creator {
             @Nonnull JavaClasses classes,
             @Nonnull CallGraph callGraph,
             @Nonnull Set<PackagePermission> allowedPackages,
-            @Nonnull Set<String> allowedClasses
+            @Nonnull Set<ClassPermission> allowedClasses
     ) {
         return JavaArchitectureTestCase.builder()
                 // The architecture test case checks for the following aspect
@@ -163,7 +164,7 @@ public class JavaCreator implements Creator {
             @Nonnull JavaClasses classes,
             @Nonnull CallGraph callGraph,
             @Nonnull Set<PackagePermission> allowedPackages,
-            @Nonnull Set<String> allowedClasses
+            @Nonnull Set<ClassPermission> allowedClasses
     ) {
         @Nonnull Supplier<List<?>> resourceAccessSupplier = List.of((Supplier<List<?>>) resourceAccesses::regardingFileSystemInteractions, resourceAccesses::regardingNetworkConnections, resourceAccesses::regardingCommandExecutions, resourceAccesses::regardingThreadCreations).get(supported.ordinal());
         if (resourceAccessSupplier.get().isEmpty()) {
@@ -202,7 +203,7 @@ public class JavaCreator implements Creator {
             @Nonnull JavaClasses classes,
             @Nonnull CallGraph callGraph,
             @Nonnull Set<PackagePermission> allowedPackages,
-            @Nonnull Set<String> allowedClasses
+            @Nonnull Set<ClassPermission> allowedClasses
     ) {
         javaArchitectureTestCases.addAll(JavaArchitectureTestCaseSupported
                 // The choice of using TERMINATE_JVM was taken randomly for getting an instance of JavaArchitectureTestCaseSupported (otherwise we cannot operate over an interface)
@@ -228,7 +229,7 @@ public class JavaCreator implements Creator {
             @Nonnull JavaClasses classes,
             @Nonnull CallGraph callGraph,
             @Nonnull Set<PackagePermission> allowedPackages,
-            @Nonnull Set<String> allowedClasses,
+            @Nonnull Set<ClassPermission> allowedClasses,
             @Nonnull ResourceAccesses resourceAccesses
     ) {
         javaAOPTestCases.addAll(JavaAOPTestCaseSupported
@@ -280,7 +281,7 @@ public class JavaCreator implements Creator {
 
         //<editor-fold desc="Preparation">
         @Nonnull Set<PackagePermission> allowedPackages = prepareAllowedPackages(essentialPackages, resourceAccesses, packageName);
-        @Nonnull Set<String> allowedClasses = prepareAllowedClasses(essentialClasses, testClasses);
+        @Nonnull Set<ClassPermission> allowedClasses = prepareAllowedClasses(essentialClasses, testClasses);
         //</editor-fold>
 
         //<editor-fold desc="Create variable rules code">
