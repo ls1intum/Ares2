@@ -9,6 +9,7 @@ import java.util.List;
 import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.InvalidPathException;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Utility class for the Java instrumentation advice.
@@ -349,6 +350,9 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
             Object[] attributes,
             Object[] parameters
     ) {
+        try {
+            TimeUnit.NANOSECONDS.sleep(100);
+        } catch (InterruptedException ignored) {}
         String aopMode = getValueFromSettings("aopMode");
         if (aopMode == null || !aopMode.equals("INSTRUMENTATION")) {
             return;

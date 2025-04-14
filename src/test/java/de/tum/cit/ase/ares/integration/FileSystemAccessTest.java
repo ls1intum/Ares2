@@ -687,7 +687,8 @@ class FileSystemAccessTest {
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/fileDelete")
         void test_accessFileSystemViaFileDeleteMavenArchunitAspectJ() {
-            assertAresSecurityExceptionDelete(DeleteFileDeleteMain::accessFileSystemViaFileDelete);
+            // Read, as File.new has the parameter
+            assertAresSecurityExceptionRead(DeleteFileDeleteMain::accessFileSystemViaFileDelete);
         }
 
         @TestTest
@@ -701,7 +702,8 @@ class FileSystemAccessTest {
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/fileDelete")
         void test_accessFileSystemViaFileDeleteMavenWalaAspectJ() {
-            assertAresSecurityExceptionDelete(DeleteFileDeleteMain::accessFileSystemViaFileDelete);
+            // Read, as File.new has the parameter
+            assertAresSecurityExceptionRead(DeleteFileDeleteMain::accessFileSystemViaFileDelete);
         }
 
         @TestTest

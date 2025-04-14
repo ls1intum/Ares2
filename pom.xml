@@ -439,7 +439,7 @@
                     <formats>
                         <format>
                             <includes>
-                                <inculde>*.xml</inculde>
+                                <include>*.xml</include>
                                 <include>*.java</include>
                                 <include>.gitignore</include>
                             </includes>
@@ -467,27 +467,33 @@
             <plugin>
                 <groupId>dev.aspectj</groupId>
                 <artifactId>aspectj-maven-plugin</artifactId>
-                <version>1.14</version>
+                <version>1.14.1</version>
                 <dependencies>
                     <dependency>
                         <groupId>org.aspectj</groupId>
                         <artifactId>aspectjtools</artifactId>
-                        <version>${aspectj.version}</version>
+                        <version>1.9.24</version>
                     </dependency>
                 </dependencies>
                 <configuration>
+                    <forceAjcCompile>true</forceAjcCompile>
                     <complianceLevel>21</complianceLevel>
+                    <source>21</source>
+                    <target>21</target>
+                    <showWeaveInfo>true</showWeaveInfo>
+                    <weaveTest>true</weaveTest>
                 </configuration>
                 <executions>
                     <execution>
+                        <id>weave-test-classes</id>
+                        <phase>process-test-classes</phase>
                         <goals>
-                            <goal>compile</goal>
                             <goal>test-compile</goal>
                         </goals>
                     </execution>
                     <execution>
-                        <id>process-integration-test-classes</id>
-                        <phase>process-test-classes</phase>
+                        <id>weave-main-classes</id>
+                        <phase>process-classes</phase>
                         <goals>
                             <goal>compile</goal>
                         </goals>
