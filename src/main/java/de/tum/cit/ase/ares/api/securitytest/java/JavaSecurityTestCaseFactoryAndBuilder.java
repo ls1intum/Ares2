@@ -25,6 +25,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 //</editor-fold>
 
@@ -300,6 +301,95 @@ public class JavaSecurityTestCaseFactoryAndBuilder extends SecurityTestCaseAbstr
                 this.architectureTestCases.stream().map(architectureTestCase -> (JavaArchitectureTestCase) architectureTestCase).toList(),
                 this.aopTestCases.stream().map(aopTestCase -> (JavaAOPTestCase) aopTestCase).toList()
         );
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Builder">
+    @Nonnull
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        @Nullable private Creator creator;
+        @Nullable private Writer writer;
+        @Nullable private Executer executer;
+        @Nullable private EssentialDataReader essentialDataReader;
+        @Nullable private ProjectScanner projectScanner;
+        @Nullable private Path essentialPackagesPath;
+        @Nullable private Path essentialClassesPath;
+        @Nullable private JavaBuildMode javaBuildMode;
+        @Nullable private JavaArchitectureMode javaArchitectureMode;
+        @Nullable private JavaAOPMode javaAOPMode;
+        @Nullable private SecurityPolicy securityPolicy;
+        @Nullable private Path projectPath;
+
+        public Builder creator(@Nonnull Creator creator) {
+            this.creator = Objects.requireNonNull(creator, "creator must not be null");
+            return this;
+        }
+        public Builder writer(@Nonnull Writer writer) {
+            this.writer = Objects.requireNonNull(writer, "writer must not be null");
+            return this;
+        }
+        public Builder executer(@Nonnull Executer executer) {
+            this.executer = Objects.requireNonNull(executer, "executer must not be null");
+            return this;
+        }
+        public Builder essentialDataReader(@Nonnull EssentialDataReader essentialDataReader) {
+            this.essentialDataReader = Objects.requireNonNull(essentialDataReader, "essentialDataReader must not be null");
+            return this;
+        }
+        public Builder projectScanner(@Nonnull ProjectScanner projectScanner) {
+            this.projectScanner = Objects.requireNonNull(projectScanner, "projectScanner must not be null");
+            return this;
+        }
+        public Builder essentialPackagesPath(@Nonnull Path essentialPackagesPath) {
+            this.essentialPackagesPath = Objects.requireNonNull(essentialPackagesPath, "essentialPackagesPath must not be null");
+            return this;
+        }
+        public Builder essentialClassesPath(@Nonnull Path essentialClassesPath) {
+            this.essentialClassesPath = Objects.requireNonNull(essentialClassesPath, "essentialClassesPath must not be null");
+            return this;
+        }
+        public Builder javaBuildMode(@Nullable JavaBuildMode javaBuildMode) {
+            this.javaBuildMode = javaBuildMode;
+            return this;
+        }
+        public Builder javaArchitectureMode(@Nullable JavaArchitectureMode javaArchitectureMode) {
+            this.javaArchitectureMode = javaArchitectureMode;
+            return this;
+        }
+        public Builder javaAOPMode(@Nullable JavaAOPMode javaAOPMode) {
+            this.javaAOPMode = javaAOPMode;
+            return this;
+        }
+        public Builder securityPolicy(@Nullable SecurityPolicy securityPolicy) {
+            this.securityPolicy = securityPolicy;
+            return this;
+        }
+        public Builder projectPath(@Nullable Path projectPath) {
+            this.projectPath = projectPath;
+            return this;
+        }
+
+        @Nonnull
+        public JavaSecurityTestCaseFactoryAndBuilder build() {
+            return new JavaSecurityTestCaseFactoryAndBuilder(
+                    java.util.Objects.requireNonNull(creator, "creator must not be null"),
+                    java.util.Objects.requireNonNull(writer, "writer must not be null"),
+                    java.util.Objects.requireNonNull(executer, "executer must not be null"),
+                    java.util.Objects.requireNonNull(essentialDataReader, "essentialDataReader must not be null"),
+                    java.util.Objects.requireNonNull(projectScanner, "projectScanner must not be null"),
+                    java.util.Objects.requireNonNull(essentialPackagesPath, "essentialPackagesPath must not be null"),
+                    java.util.Objects.requireNonNull(essentialClassesPath, "essentialClassesPath must not be null"),
+                    javaBuildMode,
+                    javaArchitectureMode,
+                    javaAOPMode,
+                    securityPolicy,
+                    projectPath
+            );
+        }
     }
     //</editor-fold>
 }

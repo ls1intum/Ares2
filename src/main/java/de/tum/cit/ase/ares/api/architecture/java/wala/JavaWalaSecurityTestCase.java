@@ -145,22 +145,22 @@ public class JavaWalaSecurityTestCase {
         @Nullable
         private CallGraph callGraph;
 
-        public JavaWalaSecurityTestCase.Builder javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported) {
+        public Builder javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported) {
             this.javaArchitectureTestCaseSupported = Preconditions.checkNotNull(javaArchitectureTestCaseSupported, "javaArchitectureTestCaseSupported must not be null");
             return this;
         }
 
-        public JavaWalaSecurityTestCase.Builder allowedPackages(Set<PackagePermission> allowedPackages) {
+        public Builder allowedPackages(Set<PackagePermission> allowedPackages) {
             this.allowedPackages = Preconditions.checkNotNull(allowedPackages, "allowedPackages must not be null");
             return this;
         }
 
-        public JavaWalaSecurityTestCase.Builder javaClasses(JavaClasses javaClasses) {
+        public Builder javaClasses(JavaClasses javaClasses) {
             this.javaClasses = Preconditions.checkNotNull(javaClasses, "javaClasses must not be null");
             return this;
         }
 
-        public JavaWalaSecurityTestCase.Builder callGraph(CallGraph callGraph) {
+        public Builder callGraph(CallGraph callGraph) {
             this.callGraph = Preconditions.checkNotNull(callGraph, "callGraph must not be null");
             return this;
         }

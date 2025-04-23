@@ -10,19 +10,15 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageCon
 import de.tum.cit.ase.ares.api.securitytest.SecurityTestCaseAbstractFactoryAndBuilder;
 import de.tum.cit.ase.ares.api.securitytest.java.JavaSecurityTestCaseFactoryAndBuilder;
 import de.tum.cit.ase.ares.api.securitytest.java.creator.Creator;
-import de.tum.cit.ase.ares.api.securitytest.java.creator.JavaCreator;
 import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.yaml.EssentialDataYAMLReader;
 import de.tum.cit.ase.ares.api.securitytest.java.executer.Executer;
-import de.tum.cit.ase.ares.api.securitytest.java.executer.JavaExecuter;
-import de.tum.cit.ase.ares.api.securitytest.java.projectScanner.JavaProjectScanner;
 import de.tum.cit.ase.ares.api.securitytest.java.projectScanner.ProjectScanner;
-import de.tum.cit.ase.ares.api.securitytest.java.writer.JavaWriter;
 import de.tum.cit.ase.ares.api.securitytest.java.writer.Writer;
-import de.tum.cit.ase.ares.api.util.FileTools;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.nio.file.Path;
+import java.util.Objects;
 
 /**
  * Java security policy director.
@@ -33,7 +29,7 @@ import java.nio.file.Path;
  *
  * <p>Design Rationale: This class encapsulates the logic required to select the appropriate Java build mode, architecture mode,
  * and AOP mode based on the security policy. It utilises a switch expression to map each ProgrammingLanguageConfiguration to a
- * corresponding test case factory configuration, and the use of an essential classes YAML reader abstracts the details of reading
+ * corresponding test case factory configuration, and the use of the essential classes YAML reader abstracts the details of reading
  * supporting metadata, adhering to the Single Responsibility Principle.
  *
  * @since 2.0.0
@@ -41,22 +37,6 @@ import java.nio.file.Path;
  * @version 2.0.0
  */
 public class SecurityPolicyJavaDirector implements SecurityPolicyDirector {
-
-    /**
-     * Default path to the essential packages YAML file.
-     */
-    @Nonnull
-    private static final Path DEFAULT_ESSENTIAL_PACKAGES_PATH = Preconditions.checkNotNull(
-            FileTools.resolveOnPackage("configuration/EssentialPackages.yaml")
-    );
-
-    /**
-     * Default path to the essential classes YAML file.
-     */
-    @Nonnull
-    private static final Path DEFAULT_ESSENTIAL_CLASSES_PATH = Preconditions.checkNotNull(
-            FileTools.resolveOnPackage("configuration/EssentialClasses.yaml")
-    );
 
     /**
      * Creator for Java security test cases.
@@ -124,24 +104,6 @@ public class SecurityPolicyJavaDirector implements SecurityPolicyDirector {
     }
 
     /**
-     * Constructs a new SecurityPolicyJavaDirector with default settings.
-     *
-     * @since 2.0.0
-     * @author Markus Paulsen
-     */
-    public SecurityPolicyJavaDirector() {
-        this(
-                new JavaCreator(),
-                new JavaWriter(),
-                new JavaExecuter(),
-                new EssentialDataYAMLReader(),
-                new JavaProjectScanner(),
-                DEFAULT_ESSENTIAL_PACKAGES_PATH,
-                DEFAULT_ESSENTIAL_CLASSES_PATH
-        );
-    }
-
-    /**
      * Generates a JavaSecurityTestCaseFactoryAndBuilder with the provided configuration.
      *
      * @since 2.0.0
@@ -161,13 +123,20 @@ public class SecurityPolicyJavaDirector implements SecurityPolicyDirector {
             @Nullable SecurityPolicy securityPolicy,
             @Nullable Path projectPath
     ) {
-        return new JavaSecurityTestCaseFactoryAndBuilder(
-                creator, writer, executer, essentialDataReader, javaScanner,
-                essentialPackagesPath,essentialClassesPath,
-                javaBuildMode, javaArchitectureMode, javaAOPMode,
-                securityPolicy, projectPath
-        );
-
+        return JavaSecurityTestCaseFactoryAndBuilder.builder()
+                .creator(creator)
+                .writer(writer)
+                .executer(executer)
+                .essentialDataReader(essentialDataReader)
+                .projectScanner(javaScanner)
+                .essentialPackagesPath(essentialPackagesPath)
+                .essentialClassesPath(essentialClassesPath)
+                .javaBuildMode(javaBuildMode)
+                .javaArchitectureMode(javaArchitectureMode)
+                .javaAOPMode(javaAOPMode)
+                .securityPolicy(securityPolicy)
+                .projectPath(projectPath)
+                .build();
     }
 
     /**
@@ -205,4 +174,82 @@ public class SecurityPolicyJavaDirector implements SecurityPolicyDirector {
                     generateJavaFactoryAndBuilder(JavaBuildMode.GRADLE, JavaArchitectureMode.WALA, JavaAOPMode.INSTRUMENTATION, securityPolicy, projectFolderPath);
         };
     }
+
+    //<editor-fold desc="Builder">
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        @Nullable
+        private Creator creator;
+        @Nullable
+        private Writer writer;
+        @Nullable
+        private Executer executer;
+        @Nullable
+        private EssentialDataYAMLReader essentialDataReader;
+        @Nullable
+        private ProjectScanner javaScanner;
+        @Nullable
+        private Path essentialPackagesPath;
+        @Nullable
+        private Path essentialClassesPath;
+
+        @Nonnull
+        public Builder creator(@Nonnull Creator creator) {
+            this.creator = Objects.requireNonNull(creator, "creator must not be null");
+            return this;
+        }
+
+        @Nonnull
+        public Builder writer(@Nonnull Writer writer) {
+            this.writer = Objects.requireNonNull(writer, "writer must not be null");
+            return this;
+        }
+
+        @Nonnull
+        public Builder executer(@Nonnull Executer executer) {
+            this.executer = Objects.requireNonNull(executer, "executer must not be null");
+            return this;
+        }
+
+        @Nonnull
+        public Builder essentialDataReader(@Nonnull EssentialDataYAMLReader essentialDataReader) {
+            this.essentialDataReader = Objects.requireNonNull(essentialDataReader, "essentialDataReader must not be null");
+            return this;
+        }
+
+        @Nonnull
+        public Builder javaScanner(@Nonnull ProjectScanner javaScanner) {
+            this.javaScanner = Objects.requireNonNull(javaScanner, "javaScanner must not be null");
+            return this;
+        }
+
+        @Nonnull
+        public Builder essentialPackagesPath(@Nonnull Path essentialPackagesPath) {
+            this.essentialPackagesPath = Objects.requireNonNull(essentialPackagesPath, "essentialPackagesPath must not be null");
+            return this;
+        }
+
+        @Nonnull
+        public Builder essentialClassesPath(@Nonnull Path essentialClassesPath) {
+            this.essentialClassesPath = Objects.requireNonNull(essentialClassesPath, "essentialClassesPath must not be null");
+            return this;
+        }
+
+        @Nonnull
+        public SecurityPolicyJavaDirector build() {
+            return new SecurityPolicyJavaDirector(
+                    Objects.requireNonNull(creator, "creator must not be null"),
+                    Objects.requireNonNull(writer, "writer must not be null"),
+                    Objects.requireNonNull(executer, "executer must not be null"),
+                    Objects.requireNonNull(essentialDataReader, "essentialDataReader must not be null"),
+                    Objects.requireNonNull(javaScanner, "javaScanner must not be null"),
+                    Objects.requireNonNull(essentialPackagesPath, "essentialPackagesPath must not be null"),
+                    Objects.requireNonNull(essentialClassesPath, "essentialClassesPath must not be null")
+            );
+        }
+    }
+    //</editor-fold>
 }

@@ -1,24 +1,32 @@
 package de.tum.cit.ase.ares.api.jupiter;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.google.common.base.Preconditions;
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 import de.tum.cit.ase.ares.api.policy.director.SecurityPolicyDirector;
 import de.tum.cit.ase.ares.api.policy.director.java.SecurityPolicyJavaDirector;
 import de.tum.cit.ase.ares.api.policy.reader.SecurityPolicyReader;
 import de.tum.cit.ase.ares.api.policy.reader.yaml.SecurityPolicyYAMLReader;
+import de.tum.cit.ase.ares.api.securitytest.java.creator.JavaCreator;
+import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.yaml.EssentialDataYAMLReader;
+import de.tum.cit.ase.ares.api.securitytest.java.executer.JavaExecuter;
+import de.tum.cit.ase.ares.api.securitytest.java.projectScanner.JavaProjectScanner;
+import de.tum.cit.ase.ares.api.securitytest.java.writer.JavaWriter;
+import de.tum.cit.ase.ares.api.util.FileTools;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 import org.junit.jupiter.api.extension.*;
 import org.junit.platform.commons.function.Try;
+
+import javax.annotation.Nonnull;
 
 import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
 import static de.tum.cit.ase.ares.api.internal.TestGuardUtils.hasAnnotation;
@@ -27,6 +35,22 @@ import static org.junit.platform.commons.support.AnnotationSupport.findAnnotatio
 
 @API(status = Status.INTERNAL)
 public final class JupiterSecurityExtension implements UnifiedInvocationInterceptor {
+
+    /**
+     * Default path to the essential packages YAML file.
+     */
+    @Nonnull
+    private static final Path DEFAULT_ESSENTIAL_PACKAGES_PATH = Preconditions.checkNotNull(
+            FileTools.resolveOnPackage("configuration/EssentialPackages.yaml")
+    );
+
+    /**
+     * Default path to the essential classes YAML file.
+     */
+    @Nonnull
+    private static final Path DEFAULT_ESSENTIAL_CLASSES_PATH = Preconditions.checkNotNull(
+            FileTools.resolveOnPackage("configuration/EssentialClasses.yaml")
+    );
 
     @Override
     public <T> T interceptGenericInvocation(Invocation<T> invocation, ExtensionContext extensionContext,
@@ -40,15 +64,36 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
         if (hasAnnotation(testContext, Policy.class)) {
             Optional<Policy> policyAnnotation = findAnnotation(testContext.testMethod(), Policy.class);
             if (policyAnnotation.isPresent()) {
-                SecurityPolicyReader securityPolicyReader = new SecurityPolicyYAMLReader();
-                SecurityPolicyDirector securityPolicyDirector = new SecurityPolicyJavaDirector();
-                Path policyPath = JupiterSecurityExtension.testAndGetPolicyValue(policyAnnotation.get());
+                SecurityPolicyReader securityPolicyReader = SecurityPolicyYAMLReader.builder()
+                        .yamlFactory(new YAMLFactory())
+                        .yamlMapper(new ObjectMapper(new YAMLFactory()))
+                        .build();
+                SecurityPolicyDirector securityPolicyDirector = SecurityPolicyJavaDirector.builder()
+                        .creator(new JavaCreator())
+                        .writer(new JavaWriter())
+                        .executer(new JavaExecuter())
+                        .essentialDataReader(new EssentialDataYAMLReader())
+                        .javaScanner(new JavaProjectScanner())
+                        .essentialPackagesPath(DEFAULT_ESSENTIAL_PACKAGES_PATH)
+                        .essentialClassesPath(DEFAULT_ESSENTIAL_CLASSES_PATH)
+                        .build();
+                Path securityPolicyFilePath = JupiterSecurityExtension.testAndGetPolicyValue(policyAnnotation.get());
                 if (!policyAnnotation.get().withinPath().isBlank()) {
-                    Path withinPath = JupiterSecurityExtension.testAndGetPolicyWithinPath(policyAnnotation.get());
-                    SecurityPolicyReaderAndDirector securityPolicyReaderAndDirector = new SecurityPolicyReaderAndDirector(securityPolicyReader, securityPolicyDirector, policyPath, withinPath);
+                    Path projectFolderPath = JupiterSecurityExtension.testAndGetPolicyWithinPath(policyAnnotation.get());
+                    SecurityPolicyReaderAndDirector securityPolicyReaderAndDirector = SecurityPolicyReaderAndDirector.builder()
+                            .securityPolicyReader(securityPolicyReader)
+                            .securityPolicyDirector(securityPolicyDirector)
+                            .securityPolicyFilePath(securityPolicyFilePath)
+                            .projectFolderPath(projectFolderPath)
+                            .build();
                     securityPolicyReaderAndDirector.executeSecurityTestCases();
                 } else {
-                    SecurityPolicyReaderAndDirector securityPolicyReaderAndDirector = new SecurityPolicyReaderAndDirector(securityPolicyReader, securityPolicyDirector, policyPath, Path.of("classes"));
+                    SecurityPolicyReaderAndDirector securityPolicyReaderAndDirector = SecurityPolicyReaderAndDirector.builder()
+                            .securityPolicyReader(securityPolicyReader)
+                            .securityPolicyDirector(securityPolicyDirector)
+                            .securityPolicyFilePath(securityPolicyFilePath)
+                            .projectFolderPath(Path.of("classes"))
+                            .build();
                     securityPolicyReaderAndDirector.executeSecurityTestCases();
                 }
             }

@@ -10,10 +10,12 @@ import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.reader.SecurityPolicyReader;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Objects;
 
 import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
 
@@ -61,19 +63,6 @@ public class SecurityPolicyYAMLReader implements SecurityPolicyReader {
     }
 
     /**
-     * Constructs a new SecurityPolicyYAMLReader with default YAML parsing settings.
-     *
-     * @since 2.0.0
-     * @author Markus Paulsen
-     */
-    public SecurityPolicyYAMLReader() {
-        this(
-                new YAMLFactory(),
-                new ObjectMapper(new YAMLFactory())
-        );
-    }
-
-    /**
      * Reads a SecurityPolicy from the specified YAML file path.
      *
      * @since 2.0.0
@@ -101,4 +90,37 @@ public class SecurityPolicyYAMLReader implements SecurityPolicyReader {
             throw new SecurityException(localize("security.policy.io.exception", securityPolicyPath.toString()), e);
         }
     }
+
+    //<editor-fold desc="Builder">
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        @Nullable
+        private YAMLFactory yamlFactory;
+        @Nullable
+        private ObjectMapper yamlMapper;
+
+        @Nonnull
+        public Builder yamlFactory(@Nullable YAMLFactory yamlFactory) {
+            this.yamlFactory = Objects.requireNonNull(yamlFactory, "yamlFactory must not be null");
+            return this;
+        }
+
+        @Nonnull
+        public Builder yamlMapper(@Nullable ObjectMapper yamlMapper) {
+            this.yamlMapper = Objects.requireNonNull(yamlMapper, "yamlMapper must not be null");
+            return this;
+        }
+
+        @Nonnull
+        public SecurityPolicyYAMLReader build() {
+            return new SecurityPolicyYAMLReader(
+                    Objects.requireNonNull(yamlFactory, "yamlFactory must not be null"),
+                    Objects.requireNonNull(yamlMapper, "yamlMapper must not be null")
+            );
+        }
+    }
+    //</editor-fold>
 }

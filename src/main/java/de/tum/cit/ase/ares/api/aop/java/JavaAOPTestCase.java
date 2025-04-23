@@ -9,7 +9,6 @@ import de.tum.cit.ase.ares.api.aop.java.javaAOPTestCaseToolbox.JavaAOPAdviceSett
 import de.tum.cit.ase.ares.api.aop.java.javaAOPTestCaseToolbox.JavaAOPTestCaseToolbox;
 import de.tum.cit.ase.ares.api.aop.networkConnection.java.JavaNetworkConnectionExtractor;
 import de.tum.cit.ase.ares.api.aop.threadCreation.java.JavaThreadCreationExtractor;
-import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.CommandPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
