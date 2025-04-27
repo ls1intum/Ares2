@@ -3,15 +3,14 @@ regardingTheSupervisedCode:
   theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
   theMainClassInsideThisPackageIs: "Main"
   theFollowingClassesAreTestClasses:
-    - "de.tum.cit.ase.ares.integration.aop.forbidden.FileSystemAccessInstrumentationTest"
+    - "de.tum.cit.ase.ares.integration.aop.allowed.FileSystemAccessAllowedTest"
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions:
-      - readAllFiles: false
-        overwriteAllFiles: false
+      - onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"
+        readAllFiles:    false
         executeAllFiles: false
-        deleteAllFiles: true
-        onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"
-    regardingNetworkConnections: [ ]
-    regardingCommandExecutions: [ ]
-    regardingThreadCreations: [ ]
-    regardingPackageImports: [ ]
+        deleteAllFiles:  true
+    regardingNetworkConnections: []
+    regardingCommandExecutions: []
+    regardingThreadCreations:    []
+    regardingPackageImports:      []
