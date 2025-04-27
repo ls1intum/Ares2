@@ -167,11 +167,11 @@ public class JavaAOPTestCase extends AOPTestCase {
      * @throws SecurityException if there is any error during field access or value assignment.
      */
     public static void setJavaAdviceSettingValue(@Nonnull String adviceSetting, @Nullable Object value, @Nonnull String architectureMode, @Nonnull String aopMode) {
-        while (!settingsExist()) {
+        /*while (!settingsExist()) {
             try {
                 TimeUnit.MILLISECONDS.sleep(100);
             } catch (InterruptedException ignored) {}
-        }
+        }*/
         try {
             @Nullable ClassLoader customClassLoader = Thread.currentThread().getContextClassLoader();
             @Nonnull Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, aopMode.equals("INSTRUMENTATION") ? null : customClassLoader);

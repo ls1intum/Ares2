@@ -1,12 +1,21 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation;
 
+import java.io.File;
+import java.io.IOException;
 import java.lang.instrument.Instrumentation;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
 
+import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceThreadSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationBindingDefinitions;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationPointcutDefinitions;
 import net.bytebuddy.agent.builder.AgentBuilder;
+import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.dynamic.ClassFileLocator;
+import net.bytebuddy.dynamic.loading.ClassInjector;
 import net.bytebuddy.matcher.ElementMatchers;
 
 import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
@@ -25,6 +34,24 @@ public class JavaInstrumentationAgent {
      * @param inst      The instrumentation instance.
      */
     public static void premain(String agentArgs, Instrumentation inst) {
+        File tempDir = null;
+        try {
+            tempDir = Files.createTempDirectory("bb-bootstrap").toFile();
+        } catch (IOException e) {
+            throw new SecurityException(e);
+        }
+        ClassInjector
+                .UsingInstrumentation
+                .of(tempDir, ClassInjector.UsingInstrumentation.Target.BOOTSTRAP, inst)
+                .inject(Map.of(
+                        new TypeDescription.ForLoadedType(JavaInstrumentationAdviceFileSystemToolbox.class),
+                        ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceFileSystemToolbox.class),
+                        new TypeDescription.ForLoadedType(JavaInstrumentationAdviceThreadSystemToolbox.class),
+                        ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceThreadSystemToolbox.class),
+                        new TypeDescription.ForLoadedType(JavaAOPTestCaseSettings.class),
+                        ClassFileLocator.ForClassLoader.read(JavaAOPTestCaseSettings.class)
+                ));
+
         installAgentBuilder(inst, JavaInstrumentationPointcutDefinitions.methodsWhichCanReadFiles, JavaInstrumentationBindingDefinitions::createReadPathMethodBinding);
         installAgentBuilder(inst, JavaInstrumentationPointcutDefinitions.methodsWhichCanOverwriteFiles, JavaInstrumentationBindingDefinitions::createOverwritePathMethodBinding);
         installAgentBuilder(inst, JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteFiles, JavaInstrumentationBindingDefinitions::createExecutePathMethodBinding);

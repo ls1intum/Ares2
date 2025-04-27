@@ -65,7 +65,7 @@ public class JavaInstrumentationBindingDefinitions {
             Map<String, List<String>> pointcuts, Class<?> advice
     ) {
         try {
-            loadToolbox(classLoader);
+            //loadToolbox(classLoader);
             return builder.visit(Advice.to(advice).on(JavaInstrumentationPointcutDefinitions.getMethodsMatcher(typeDescription, pointcuts)));
         } catch (Exception e) {
             throw new SecurityException(localize("security.instrumentation.binding.error"), e);
@@ -77,7 +77,7 @@ public class JavaInstrumentationBindingDefinitions {
             Map<String, List<String>> pointcuts, Class<?> advice
     ) {
         try {
-            loadToolbox(classLoader);
+            //loadToolbox(classLoader);
             return builder.visit(Advice.to(advice).on(JavaInstrumentationPointcutDefinitions.getConstructorsMatcher(typeDescription, pointcuts)));
         } catch (Exception e) {
             throw new SecurityException(localize("security.instrumentation.binding.error"), e);

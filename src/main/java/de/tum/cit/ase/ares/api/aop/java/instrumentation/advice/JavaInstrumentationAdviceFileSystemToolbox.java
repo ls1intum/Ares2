@@ -360,11 +360,11 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
             Object[] attributes,
             Object[] parameters
     ) {
-        while (!settingsExist()) {
+        /*while (!settingsExist()) {
             try {
                 TimeUnit.MILLISECONDS.sleep(100);
             } catch (InterruptedException ignored) {}
-        }
+        }*/
         String aopMode = getValueFromSettings("aopMode");
         if (aopMode == null || !aopMode.equals("INSTRUMENTATION")) {
             return;
