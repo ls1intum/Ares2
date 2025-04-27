@@ -20,6 +20,7 @@ import java.util.Objects;
  * @param deleteAllFiles whether deleting all files is permitted.
  * @param onThisPathAndAllPathsBelow the path where these permissions apply; must not be null.
  */
+@SuppressWarnings("unused")
 @Nonnull
 public record FilePermission(
         @Nonnull String onThisPathAndAllPathsBelow,

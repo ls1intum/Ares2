@@ -39,6 +39,17 @@ public class JavaInstrumentationAgent {
     }
 
     /**
+     * This method is called when the agent is attached to a running JVM.
+     * It installs the agent builder for the different types of file operations.
+     *
+     * @param agentArgs The agent arguments.
+     * @param inst      The instrumentation instance.
+     */
+    public static void agentmain(String agentArgs, Instrumentation inst) {
+        premain(agentArgs, inst);
+    }
+
+    /**
      * This method installs an agent builder for the provided methods map.
      * It applies a pointcut to match the methods and installs the transformer for bytecode modification.
      *
@@ -63,7 +74,6 @@ public class JavaInstrumentationAgent {
                     .installOn(inst);
         } catch (Exception e) {
             throw new SecurityException(localize("security.instrumentation.agent.installation.error", String.join(", ", methodsMap.keySet())), e);
-
         }
     }
 }

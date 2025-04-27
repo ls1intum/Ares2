@@ -97,8 +97,11 @@ public class JavaInstrumentationBindingDefinitions {
      */
     private static void loadToolbox(ClassLoader classLoader) {
         try {
-            new ClassInjector
-                    .UsingUnsafe(classLoader)
+            //new
+            ClassInjector
+                    .UsingUnsafe
+                    .ofBootLoader()
+                    //.UsingUnsafe(classLoader)
                     .inject(Map.of(
                             new TypeDescription.ForLoadedType(JavaInstrumentationAdviceFileSystemToolbox.class),
                             ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceFileSystemToolbox.class),

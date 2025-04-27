@@ -5,6 +5,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
 import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.InvocationTargetException;
@@ -41,6 +42,15 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
     //</editor-fold>
 
     //<editor-fold desc="Tool methods">
+
+    protected static boolean settingsExist() {
+        try {
+            Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, null);
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
+    }
 
     /**
      * Retrieves the value of a specified static field from the {@code JavaSecurityTestCaseSettings} class.
@@ -350,9 +360,11 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
             Object[] attributes,
             Object[] parameters
     ) {
-        try {
-            TimeUnit.NANOSECONDS.sleep(100);
-        } catch (InterruptedException ignored) {}
+        while (!settingsExist()) {
+            try {
+                TimeUnit.MILLISECONDS.sleep(100);
+            } catch (InterruptedException ignored) {}
+        }
         String aopMode = getValueFromSettings("aopMode");
         if (aopMode == null || !aopMode.equals("INSTRUMENTATION")) {
             return;

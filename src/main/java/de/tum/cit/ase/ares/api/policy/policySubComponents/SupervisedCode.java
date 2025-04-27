@@ -45,7 +45,7 @@ public record SupervisedCode(
      * Creates a restrictive supervised code configuration.
      *
      * @since 2.0.0
-     * @author Markus Paulsen         * @param config the programming language configuration for the restrictive code.
+     * @author Markus Paulsen * @param config the programming language configuration for the restrictive code.
      * @return a new SupervisedCode instance with restrictive settings.
      */
     @Nonnull
@@ -63,7 +63,7 @@ public record SupervisedCode(
      * Returns a builder for creating a SupervisedCode instance.
      *
      * @since 2.0.0
-     * @author Markus Paulsen         * @return a new SupervisedCode.Builder instance.
+     * @author Markus Paulsen * @return a new SupervisedCode.Builder instance.
      */
     @Nonnull
     public static Builder builder() {
@@ -86,7 +86,6 @@ public record SupervisedCode(
          * Constructs a new Builder instance.
          *
          * @since 2.0.0
-         * @author Markus Paulsen
          */
         @Nullable
         private ProgrammingLanguageConfiguration theFollowingProgrammingLanguageConfigurationIsUsed;
@@ -95,7 +94,6 @@ public record SupervisedCode(
          * Constructs a new Builder instance.
          *
          * @since 2.0.0
-         * @author Markus Paulsen
          */
         @Nullable
         private String theSupervisedCodeUsesTheFollowingPackage;
@@ -103,7 +101,6 @@ public record SupervisedCode(
         /* Constructs a new Builder instance.
          *
          * @since 2.0.0
-         * @author Markus Paulsen
          */
         @Nullable
         private String theMainClassInsideThisPackageIs;
@@ -111,7 +108,6 @@ public record SupervisedCode(
         /* Constructs a new Builder instance.
          *
          * @since 2.0.0
-         * @author Markus Paulsen
          */
         @Nullable
         private String[] theFollowingClassesAreTestClasses = new String[0];
@@ -119,7 +115,6 @@ public record SupervisedCode(
         /* Constructs a new Builder instance.
          *
          * @since 2.0.0
-         * @author Markus Paulsen
          */
         @Nullable
         private ResourceAccesses theFollowingResourceAccessesArePermitted;
@@ -147,7 +142,7 @@ public record SupervisedCode(
          * @return the updated Builder.
          */
         @Nonnull
-        public Builder theSupervisedCodeUsesTheFollowingPackage(@Nonnull String theSupervisedCodeUsesTheFollowingPackage) {
+        public Builder theSupervisedCodeUsesTheFollowingPackage(@Nullable String theSupervisedCodeUsesTheFollowingPackage) {
             this.theSupervisedCodeUsesTheFollowingPackage = Objects.requireNonNull(theSupervisedCodeUsesTheFollowingPackage, "theSupervisedCodeUsesTheFollowingPackage must not be null");
             return this;
         }
@@ -161,7 +156,7 @@ public record SupervisedCode(
          * @return the updated Builder.
          */
         @Nonnull
-        public Builder theMainClassInsideThisPackageIs(@Nonnull String theMainClassInsideThisPackageIs) {
+        public Builder theMainClassInsideThisPackageIs(@Nullable String theMainClassInsideThisPackageIs) {
             this.theMainClassInsideThisPackageIs = Objects.requireNonNull(theMainClassInsideThisPackageIs, "theMainClassInsideThisPackageIs must not be null");
             return this;
         }
@@ -204,7 +199,7 @@ public record SupervisedCode(
         @Nonnull
         public SupervisedCode build() {
             return new SupervisedCode(
-                    theFollowingProgrammingLanguageConfigurationIsUsed,
+                    Objects.requireNonNull(theFollowingProgrammingLanguageConfigurationIsUsed, "theFollowingProgrammingLanguageConfigurationIsUsed must not be null"),
                     theSupervisedCodeUsesTheFollowingPackage,
                     theMainClassInsideThisPackageIs,
                     Objects.requireNonNull(theFollowingClassesAreTestClasses, "theFollowingClassesAreTestClasses must not be null"),

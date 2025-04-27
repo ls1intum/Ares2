@@ -16,6 +16,7 @@ import java.util.Objects;
  * @since 2.0.0
  * @param importTheFollowingPackage the package that is permitted to be imported; must not be null.
  */
+@SuppressWarnings("unused")
 @Nonnull
 public record PackagePermission(@Nonnull String importTheFollowingPackage) {
 

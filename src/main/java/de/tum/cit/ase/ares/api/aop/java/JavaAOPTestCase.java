@@ -23,6 +23,7 @@ import java.util.IllegalFormatException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -93,6 +94,15 @@ public class JavaAOPTestCase extends AOPTestCase {
 
     //<editor-fold desc="Tool methods">
 
+    protected static boolean settingsExist() {
+        try {
+            Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, null);
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
+    }
+
     /**
      * Generates a formatted advice setting string with its corresponding values.
      * <p>
@@ -157,6 +167,11 @@ public class JavaAOPTestCase extends AOPTestCase {
      * @throws SecurityException if there is any error during field access or value assignment.
      */
     public static void setJavaAdviceSettingValue(@Nonnull String adviceSetting, @Nullable Object value, @Nonnull String architectureMode, @Nonnull String aopMode) {
+        while (!settingsExist()) {
+            try {
+                TimeUnit.MILLISECONDS.sleep(100);
+            } catch (InterruptedException ignored) {}
+        }
         try {
             @Nullable ClassLoader customClassLoader = Thread.currentThread().getContextClassLoader();
             @Nonnull Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, aopMode.equals("INSTRUMENTATION") ? null : customClassLoader);
@@ -169,9 +184,9 @@ public class JavaAOPTestCase extends AOPTestCase {
                     localize("security.advice.linkage.exception", adviceSetting),
                     e);
         } catch (ClassNotFoundException e) {
-            /*throw new SecurityException(
+            throw new SecurityException(
                     localize("security.advice.class.not.found.exception", adviceSetting),
-                    e);*/
+                    e);
         } catch (NoSuchFieldException e) {
             throw new SecurityException(
                     localize("security.advice.no.such.field.exception", adviceSetting),

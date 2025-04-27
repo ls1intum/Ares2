@@ -14,10 +14,10 @@ public class ThirdPartyPackagePenguin {
      * This method is used to emulate a third-party package that is not part of the test user's codebase accessing the file system.
      */
     public static void accessFileSystem() throws IOException {
-        new PrintStream("pom123.xml").close();
+        new PrintStream("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/nottrusted.txt").close();
     }
 
     public static void deleteFile() throws IOException {
-        Files.delete(Path.of("pom123.xml"));
+        Files.delete(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/nottrusted.txt"));
     }
 }

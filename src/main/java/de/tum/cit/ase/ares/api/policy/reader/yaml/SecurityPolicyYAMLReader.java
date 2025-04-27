@@ -3,7 +3,6 @@ package de.tum.cit.ase.ares.api.policy.reader.yaml;
 import com.fasterxml.jackson.core.exc.StreamReadException;
 import com.fasterxml.jackson.databind.DatabindException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.base.Preconditions;
 import org.apache.commons.io.FileUtils;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
@@ -34,14 +33,7 @@ import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstru
  * @author Markus Paulsen
  * @version 2.0.0
  */
-@SuppressWarnings("FieldCanBeLocal")
 public class SecurityPolicyYAMLReader implements SecurityPolicyReader {
-
-    /**
-     * YAML factory for parsing YAML files.
-     */
-    @Nonnull
-    private final YAMLFactory yamlFactory;
 
     /**
      * YAML object mapper for reading YAML files.
@@ -54,11 +46,9 @@ public class SecurityPolicyYAMLReader implements SecurityPolicyReader {
      *
      * @since 2.0.0
      * @author Markus Paulsen
-     * @param yamlFactory the non-null YAML factory for parsing YAML files.
      * @param yamlMapper the non-null YAML object mapper for reading YAML files.
      */
-    public SecurityPolicyYAMLReader(@Nonnull YAMLFactory yamlFactory, @Nonnull ObjectMapper yamlMapper) {
-        this.yamlFactory = Preconditions.checkNotNull(yamlFactory, "yamlFactory must not be null");
+    public SecurityPolicyYAMLReader(@Nonnull ObjectMapper yamlMapper) {
         this.yamlMapper = Preconditions.checkNotNull(yamlMapper, "yamlMapper must not be null");
     }
 
@@ -98,15 +88,7 @@ public class SecurityPolicyYAMLReader implements SecurityPolicyReader {
 
     public static class Builder {
         @Nullable
-        private YAMLFactory yamlFactory;
-        @Nullable
         private ObjectMapper yamlMapper;
-
-        @Nonnull
-        public Builder yamlFactory(@Nullable YAMLFactory yamlFactory) {
-            this.yamlFactory = Objects.requireNonNull(yamlFactory, "yamlFactory must not be null");
-            return this;
-        }
 
         @Nonnull
         public Builder yamlMapper(@Nullable ObjectMapper yamlMapper) {
@@ -117,7 +99,6 @@ public class SecurityPolicyYAMLReader implements SecurityPolicyReader {
         @Nonnull
         public SecurityPolicyYAMLReader build() {
             return new SecurityPolicyYAMLReader(
-                    Objects.requireNonNull(yamlFactory, "yamlFactory must not be null"),
                     Objects.requireNonNull(yamlMapper, "yamlMapper must not be null")
             );
         }

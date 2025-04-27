@@ -19,6 +19,7 @@ import java.util.Objects;
  * @param executeTheCommand the command that is permitted to be executed; must not be null.
  * @param withTheseArguments the predefined arguments for the command; must not be null.
  */
+@SuppressWarnings("unused")
 @Nonnull
 public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List<String> withTheseArguments) {
 

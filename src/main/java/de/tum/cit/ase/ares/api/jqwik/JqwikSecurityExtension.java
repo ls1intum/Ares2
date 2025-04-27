@@ -72,7 +72,6 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
 			Optional<Policy> policyAnnotation = findAnnotation(testContext.testMethod(), Policy.class);
 			if (policyAnnotation.isPresent()) {
 				SecurityPolicyReader securityPolicyReader = SecurityPolicyYAMLReader.builder()
-						.yamlFactory(new YAMLFactory())
 						.yamlMapper(new ObjectMapper(new YAMLFactory()))
 						.build();
 				SecurityPolicyDirector securityPolicyDirector = SecurityPolicyJavaDirector.builder()

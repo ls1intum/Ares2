@@ -20,6 +20,7 @@ import java.util.Objects;
  * @param onTheHost the host where these operations are permitted; must not be null.
  * @param onThePort the port number where these operations are permitted.
  */
+@SuppressWarnings("unused")
 @Nonnull
 public record NetworkPermission(
         @Nonnull String onTheHost,
