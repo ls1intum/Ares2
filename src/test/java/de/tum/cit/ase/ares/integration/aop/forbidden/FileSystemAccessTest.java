@@ -6,6 +6,20 @@ import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.f
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.fileSystemProvider.DeleteFileSystemProviderMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.filesDelete.DeleteFilesDeleteMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.thirdPartyPackage.DeleteThirdPartyPackageMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.execute.desktop.ExecuteDesktopMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.execute.jFileChooser.ExecuteJFileChooserMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.execute.nativeCommand.ExecuteNativeCommandMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.execute.processBuilder.ExecuteProcessBuilderMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.execute.runtime.ExecuteRuntimeMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.execute.thirdPartyPackage.ExecuteThirdPartyPackageMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.bufferedReader.ReadBufferedReaderMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.fileRead.ReadFileReadMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.filesRead.ReadFilesReadMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.thirdPartyPackage.ReadThirdPartyPackageMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.write.bufferedWriter.WriteBufferedWriterMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.write.fileWrite.WriteFileWriteMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.write.filesWrite.WriteFilesWriteMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.write.thirdPartyPackage.WriteThirdPartyPackageMain;
 import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdpartypackage.ThirdPartyPackagePenguin;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Nested;
@@ -75,7 +89,333 @@ class FileSystemAccessTest {
         SecurityException se = Assertions.assertThrows(SecurityException.class, executable, errorMessage);
         assertGeneralErrorMessage(se.getMessage(), "illegally delete from", "illegal delete von", clazz);
     }
-    //</editor-fold>
+
+    // --- Read Operations ---
+    @Nested
+    class ReadOperations {
+
+        //<editor-fold desc="accessFileSystemViaFilesRead">
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
+        void test_accessFileSystemViaFilesReadMavenArchunitAspectJ() {
+            assertAresSecurityExceptionRead(ReadFilesReadMain::accessFileSystemViaFilesRead, ReadFilesReadMain.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
+        void test_accessFileSystemViaFilesReadMavenArchunitInstrumentation() {
+            assertAresSecurityExceptionRead(ReadFilesReadMain::accessFileSystemViaFilesRead, ReadFilesReadMain.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
+        void test_accessFileSystemViaFilesReadMavenWalaAspectJ() {
+            assertAresSecurityExceptionRead(ReadFilesReadMain::accessFileSystemViaFilesRead, ReadFilesReadMain.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
+        void test_accessFileSystemViaFilesReadMavenWalaInstrumentation() {
+            assertAresSecurityExceptionRead(ReadFilesReadMain::accessFileSystemViaFilesRead, ReadFilesReadMain.class);
+        }
+        //</editor-fold>
+
+        //<editor-fold desc="accessFileSystemViaFileRead">
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileRead")
+        void test_accessFileSystemViaFileReadMavenArchunitAspectJ() {
+            assertAresSecurityExceptionRead(ReadFileReadMain::accessFileSystemViaFileRead, ReadFileReadMain.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileRead")
+        void test_accessFileSystemViaFileReadMavenArchunitInstrumentation() {
+            assertAresSecurityExceptionRead(ReadFileReadMain::accessFileSystemViaFileRead, ReadFileReadMain.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileRead")
+        void test_accessFileSystemViaFileReadMavenWalaAspectJ() {
+            assertAresSecurityExceptionRead(ReadFileReadMain::accessFileSystemViaFileRead, ReadFileReadMain.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileRead")
+        void test_accessFileSystemViaFileReadMavenWalaInstrumentation() {
+            assertAresSecurityExceptionRead(ReadFileReadMain::accessFileSystemViaFileRead, ReadFileReadMain.class);
+        }
+        //</editor-fold>
+
+        //<editor-fold desc="accessFileSystemViaBufferedReader">
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/bufferedReader")
+        void test_accessFileSystemViaBufferedReaderMavenArchunitAspectJ() {
+            assertAresSecurityExceptionRead(ReadBufferedReaderMain::accessFileSystemViaBufferedReader, ReadBufferedReaderMain.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/bufferedReader")
+        void test_accessFileSystemViaBufferedReaderMavenArchunitInstrumentation() {
+            assertAresSecurityExceptionRead(ReadBufferedReaderMain::accessFileSystemViaBufferedReader, ReadBufferedReaderMain.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/bufferedReader")
+        void test_accessFileSystemViaBufferedReaderMavenWalaAspectJ() {
+            assertAresSecurityExceptionRead(ReadBufferedReaderMain::accessFileSystemViaBufferedReader, ReadBufferedReaderMain.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/bufferedReader")
+        void test_accessFileSystemViaBufferedReaderMavenWalaInstrumentation() {
+            assertAresSecurityExceptionRead(ReadBufferedReaderMain::accessFileSystemViaBufferedReader, ReadBufferedReaderMain.class);
+        }
+        //</editor-fold>
+
+        //<editor-fold desc="accessFileSystemViaThirdPartyPackage">
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/thirdPartyPackage")
+        void test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ() {
+            assertAresSecurityExceptionRead(ReadThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ThirdPartyPackagePenguin.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/thirdPartyPackage")
+        void test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation() {
+            assertAresSecurityExceptionRead(ReadThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ThirdPartyPackagePenguin.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/thirdPartyPackage")
+        void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ() {
+            assertAresSecurityExceptionRead(ReadThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ThirdPartyPackagePenguin.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/thirdPartyPackage")
+        void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation() {
+            assertAresSecurityExceptionRead(ReadThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ThirdPartyPackagePenguin.class);
+        }
+        //</editor-fold>
+    }
+
+    // --- Write Operations ---
+    @Nested
+    class WriteOperations {
+
+        //<editor-fold desc="accessFileSystemViaFilesWrite">
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/write/filesWrite")
+        void test_accessFileSystemViaFilesWriteMavenArchunitAspectJ() {
+            assertAresSecurityExceptionWrite(WriteFilesWriteMain::accessFileSystemViaFilesWrite, WriteFilesWriteMain.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/write/filesWrite")
+        void test_accessFileSystemViaFilesWriteMavenArchunitInstrumentation() {
+            assertAresSecurityExceptionWrite(WriteFilesWriteMain::accessFileSystemViaFilesWrite, WriteFilesWriteMain.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/write/filesWrite")
+        void test_accessFileSystemViaFilesWriteMavenWalaAspectJ() {
+            assertAresSecurityExceptionWrite(WriteFilesWriteMain::accessFileSystemViaFilesWrite, WriteFilesWriteMain.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/write/filesWrite")
+        void test_accessFileSystemViaFilesWriteMavenWalaInstrumentation() {
+            assertAresSecurityExceptionWrite(WriteFilesWriteMain::accessFileSystemViaFilesWrite, WriteFilesWriteMain.class);
+        }
+        //</editor-fold>
+
+        //<editor-fold desc="accessFileSystemViaFileWrite">
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/write/fileWrite")
+        void test_accessFileSystemViaFileWriteMavenArchunitAspectJ() {
+            assertAresSecurityExceptionWrite(WriteFileWriteMain::accessFileSystemViaFileWrite, WriteFileWriteMain.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/write/fileWrite")
+        void test_accessFileSystemViaFileWriteMavenArchunitInstrumentation() {
+            assertAresSecurityExceptionWrite(WriteFileWriteMain::accessFileSystemViaFileWrite, WriteFileWriteMain.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/write/fileWrite")
+        void test_accessFileSystemViaFileWriteMavenWalaAspectJ() {
+            assertAresSecurityExceptionWrite(WriteFileWriteMain::accessFileSystemViaFileWrite, WriteFileWriteMain.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/write/fileWrite")
+        void test_accessFileSystemViaFileWriteMavenWalaInstrumentation() {
+            assertAresSecurityExceptionWrite(WriteFileWriteMain::accessFileSystemViaFileWrite, WriteFileWriteMain.class);
+        }
+        //</editor-fold>
+
+        //<editor-fold desc="accessFileSystemViaBufferedWriter">
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/write/bufferedWriter")
+        void test_accessFileSystemViaBufferedWriterMavenArchunitAspectJ() {
+            assertAresSecurityExceptionWrite(WriteBufferedWriterMain::accessFileSystemViaBufferedWriter, WriteBufferedWriterMain.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/write/bufferedWriter")
+        void test_accessFileSystemViaBufferedWriterMavenArchunitInstrumentation() {
+            assertAresSecurityExceptionWrite(WriteBufferedWriterMain::accessFileSystemViaBufferedWriter, WriteBufferedWriterMain.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/write/bufferedWriter")
+        void test_accessFileSystemViaBufferedWriterMavenWalaAspectJ() {
+            assertAresSecurityExceptionWrite(WriteBufferedWriterMain::accessFileSystemViaBufferedWriter, WriteBufferedWriterMain.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/write/bufferedWriter")
+        void test_accessFileSystemViaBufferedWriterMavenWalaInstrumentation() {
+            assertAresSecurityExceptionWrite(WriteBufferedWriterMain::accessFileSystemViaBufferedWriter, WriteBufferedWriterMain.class);
+        }
+        //</editor-fold>
+
+        //<editor-fold desc="accessFileSystemViaThirdPartyPackage">
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/write/thirdPartyPackage")
+        void test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ() {
+            assertAresSecurityExceptionWrite(WriteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ThirdPartyPackagePenguin.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/write/thirdPartyPackage")
+        void test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation() {
+            assertAresSecurityExceptionWrite(WriteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ThirdPartyPackagePenguin.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/write/thirdPartyPackage")
+        void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ() {
+            assertAresSecurityExceptionWrite(WriteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ThirdPartyPackagePenguin.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/write/thirdPartyPackage")
+        void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation() {
+            assertAresSecurityExceptionWrite(WriteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ThirdPartyPackagePenguin.class);
+        }
+        //</editor-fold>
+    }
+
+    // --- Execute Operations ---
+    @Nested
+    class ExecuteOperations {
+
+        //<editor-fold desc="accessFileSystemViaRuntime">
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/runtime")
+        void test_accessFileSystemViaRuntimeMavenArchunitAspectJ() {
+            assertAresSecurityExceptionExecution(ExecuteRuntimeMain::accessFileSystemViaRuntime, ExecuteRuntimeMain.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/runtime")
+        void test_accessFileSystemViaRuntimeMavenArchunitInstrumentation() {
+            assertAresSecurityExceptionExecution(ExecuteRuntimeMain::accessFileSystemViaRuntime, ExecuteRuntimeMain.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/runtime")
+        void test_accessFileSystemViaRuntimeMavenWalaAspectJ() {
+            assertAresSecurityExceptionExecution(ExecuteRuntimeMain::accessFileSystemViaRuntime, ExecuteRuntimeMain.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/runtime")
+        void test_accessFileSystemViaRuntimeMavenWalaInstrumentation() {
+            assertAresSecurityExceptionExecution(ExecuteRuntimeMain::accessFileSystemViaRuntime, ExecuteRuntimeMain.class);
+        }
+        //</editor-fold>
+
+        //<editor-fold desc="accessFileSystemViaProcessBuilder">
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/processBuilder")
+        void test_accessFileSystemViaProcessBuilderMavenArchunitAspectJ() {
+            assertAresSecurityExceptionExecution(ExecuteProcessBuilderMain::accessFileSystemViaProcessBuilder, ExecuteProcessBuilderMain.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/processBuilder")
+        void test_accessFileSystemViaProcessBuilderMavenArchunitInstrumentation() {
+            assertAresSecurityExceptionExecution(ExecuteProcessBuilderMain::accessFileSystemViaProcessBuilder, ExecuteProcessBuilderMain.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/processBuilder")
+        void test_accessFileSystemViaProcessBuilderMavenWalaAspectJ() {
+            assertAresSecurityExceptionExecution(ExecuteProcessBuilderMain::accessFileSystemViaProcessBuilder, ExecuteProcessBuilderMain.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/processBuilder")
+        void test_accessFileSystemViaProcessBuilderMavenWalaInstrumentation() {
+            assertAresSecurityExceptionExecution(ExecuteProcessBuilderMain::accessFileSystemViaProcessBuilder, ExecuteProcessBuilderMain.class);
+        }
+        //</editor-fold>
+
+        //<editor-fold desc="accessFileSystemViaNativeCommand">
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/nativeCommand")
+        void test_accessFileSystemViaNativeCommandMavenArchunitAspectJ() {
+            assertAresSecurityExceptionExecution(ExecuteNativeCommandMain::accessFileSystemViaNativeCommand, ExecuteNativeCommandMain.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/nativeCommand")
+        void test_accessFileSystemViaNativeCommandMavenArchunitInstrumentation() {
+            assertAresSecurityExceptionExecution(ExecuteNativeCommandMain::accessFileSystemViaNativeCommand, ExecuteNativeCommandMain.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/nativeCommand")
+        void test_accessFileSystemViaNativeCommandMavenWalaAspectJ() {
+            assertAresSecurityExceptionExecution(ExecuteNativeCommandMain::accessFileSystemViaNativeCommand, ExecuteNativeCommandMain.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/nativeCommand")
+        void test_accessFileSystemViaNativeCommandMavenWalaInstrumentation() {
+            assertAresSecurityExceptionExecution(ExecuteNativeCommandMain::accessFileSystemViaNativeCommand, ExecuteNativeCommandMain.class);
+        }
+        //</editor-fold>
+
+        //<editor-fold desc="accessFileSystemViaThirdPartyPackage">
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/thirdPartyPackage")
+        void test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ() {
+            assertAresSecurityExceptionExecution(ExecuteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ThirdPartyPackagePenguin.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/thirdPartyPackage")
+        void test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation() {
+            assertAresSecurityExceptionExecution(ExecuteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ThirdPartyPackagePenguin.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/thirdPartyPackage")
+        void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ() {
+            assertAresSecurityExceptionExecution(ExecuteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ThirdPartyPackagePenguin.class);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/thirdPartyPackage")
+        void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation() {
+            assertAresSecurityExceptionExecution(ExecuteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ThirdPartyPackagePenguin.class);
+        }
+        //</editor-fold>
+    }
 
     //<editor-fold desc="Delete Operations">
     // --- Delete Operations ---
