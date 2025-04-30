@@ -245,12 +245,18 @@ public enum JavaAOPMode {
      */
     public void reset() {
         try {
+            Class<?> settingsBootstrapClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, null);
+            Method bootstrapMethod = settingsBootstrapClass.getDeclaredMethod("reset");
+            bootstrapMethod.setAccessible(true);
+            bootstrapMethod.invoke(null);
+            bootstrapMethod.setAccessible(false);
+
             ClassLoader customClassLoader = Thread.currentThread().getContextClassLoader();
-            Class<?> settingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, customClassLoader);
-            Method method = settingsClass.getDeclaredMethod("reset");
-            method.setAccessible(true);
-            method.invoke(null);
-            method.setAccessible(false);
+            Class<?> settingsClassloaderClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, customClassLoader);
+            Method classloaderMethod = settingsClassloaderClass.getDeclaredMethod("reset");
+            classloaderMethod.setAccessible(true);
+            classloaderMethod.invoke(null);
+            classloaderMethod.setAccessible(false);
         } catch (ClassNotFoundException e) {
             throw new SecurityException(localize("security.creation.reset.class.not.found.exception"), e);
         } catch (NoSuchMethodException e) {

@@ -41,7 +41,6 @@ public class JavaInstrumentationCreateThreadMethodAdvice {
             @This(optional = true) Object instance,
             @AllArguments Object... parameters
     ) {
-        System.out.println("Injected");
 
         //<editor-fold desc="Attributes">
         final Field[] fields = instance != null ? instance.getClass().getDeclaredFields() : new Field[0];

@@ -94,15 +94,6 @@ public class JavaAOPTestCase extends AOPTestCase {
 
     //<editor-fold desc="Tool methods">
 
-    protected static boolean settingsExist() {
-        try {
-            Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, null);
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
-    }
-
     /**
      * Generates a formatted advice setting string with its corresponding values.
      * <p>

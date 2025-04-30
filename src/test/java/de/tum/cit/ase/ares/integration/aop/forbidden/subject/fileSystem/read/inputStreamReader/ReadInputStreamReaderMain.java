@@ -14,7 +14,7 @@ public class ReadInputStreamReaderMain {
      * Access the file system using {@link InputStreamReader} for reading.
      */
     public static void accessFileSystemViaInputStreamReader() throws IOException {
-        try (InputStreamReader reader = new InputStreamReader(new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/trusted.txt"))) {
+        try (InputStreamReader reader = new InputStreamReader(new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"))) {
             char[] buffer = new char[1024];
             StringBuilder content = new StringBuilder();
             int charsRead;

@@ -19,7 +19,7 @@ public class ExecuteScriptEngineMain {
         ScriptEngineManager manager = new ScriptEngineManager();
         ScriptEngine engine = manager.getEngineByName("JavaScript");
         
-        try (FileReader reader = new FileReader("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/script.js")) {
+        try (FileReader reader = new FileReader("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt")) {
             engine.eval(reader);
         }
     }

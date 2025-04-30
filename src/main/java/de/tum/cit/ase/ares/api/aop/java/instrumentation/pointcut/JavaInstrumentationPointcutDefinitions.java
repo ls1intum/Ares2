@@ -124,19 +124,18 @@ public class JavaInstrumentationPointcutDefinitions {
      */
     public static final Map<String, List<String>> methodsWhichCanReadFiles = Map.ofEntries(
             // java.io
+            Map.entry("java.io.BufferedReader", List.of("lines")),
             Map.entry("java.io.FileInputStream", List.of("read")),
             Map.entry("java.io.FileReader", List.of("read", "readLine")),
-            Map.entry("java.io.RandomAccessFile", List.of("read", "readFully", "readBoolean", "readByte", "readChar", "readChars", "readDouble", "readFloat", "readInt", "readLong", "readShort")),
+            Map.entry("java.io.RandomAccessFile", List.of("read", "readBoolean", "readByte", "readChar", "readChars", "readDouble", "readFloat", "readFully", "readInt", "readLong", "readShort")),
+            Map.entry("java.io.UnixFileSystem", List.of("canonicalize0", "getBooleanAttributes0", "getSpace")),
+            Map.entry("java.io.Win32FileSystem", List.of("canonicalize", "getBooleanAttributes", "getLastModifiedTime", "getSpace")),
+            Map.entry("java.io.WinNTFileSystem", List.of("canonicalize", "getBooleanAttributes", "getLastModifiedTime", "getSpace")),
             // java.nio
-            Map.entry("java.nio.file.Files", List.of("readAllBytes", "readAllLines", "readString", "lines", "newBufferedReader", "newInputStream", "newByteChannel")),
-
-
-            Map.entry("java.io.UnixFileSystem", List.of("getBooleanAttributes0", "getSpace", "canonicalize0")),
-            Map.entry("java.io.WinNTFileSystem", List.of("getBooleanAttributes", "canonicalize", "getLastModifiedTime", "getSpace")),
-            Map.entry("java.io.Win32FileSystem", List.of("getBooleanAttributes", "canonicalize", "getLastModifiedTime", "getSpace")),
-            Map.entry("java.io.BufferedReader", List.of("lines")),
-            Map.entry("sun.nio.ch.FileChannelImpl", List.of("open", "read", "readFully", "readDirect", "readIntoNativeBuffer")),
-            Map.entry("java.nio.file.spi.FileSystemProvider", List.of("newFileChannel"))
+            Map.entry("java.nio.file.Files", List.of("lines", "newBufferedReader", "newByteChannel", "newInputStream", "readAllBytes", "readAllLines", "readString")),
+            Map.entry("java.nio.file.spi.FileSystemProvider", List.of("newFileChannel")),
+            // sun.nio
+            Map.entry("sun.nio.ch.FileChannelImpl", List.of("open", "read", "readDirect", "readFully", "readIntoNativeBuffer"))
     );
     //</editor-fold>
 
@@ -147,20 +146,23 @@ public class JavaInstrumentationPointcutDefinitions {
      */
     public static final Map<String, List<String>> methodsWhichCanOverwriteFiles = Map.ofEntries(
             // java.io
+            Map.entry("java.io.DataOutputStream", List.of("write", "writeBoolean", "writeByte", "writeBytes", "writeChar", "writeChars", "writeDouble", "writeFloat", "writeInt", "writeLong", "writeShort", "writeUTF")),
+            Map.entry("java.io.File", List.of("setWritable")),
             Map.entry("java.io.FileOutputStream", List.of("write")),
             Map.entry("java.io.FileWriter", List.of("write")),
             Map.entry("java.io.PrintWriter", List.of("write")),
             Map.entry("java.io.RandomAccessFile", List.of("write", "writeBoolean", "writeByte", "writeBytes", "writeChar", "writeChars", "writeDouble", "writeFloat", "writeInt", "writeLong", "writeShort", "writeUTF")),
-            Map.entry("java.io.DataOutputStream", List.of("write", "writeBoolean", "writeByte", "writeBytes", "writeChar", "writeChars", "writeDouble", "writeFloat", "writeInt", "writeLong", "writeShort", "writeUTF")),
+            Map.entry("java.io.UnixFileSystem", List.of("createDirectory", "setLastModifiedTime", "createFileExclusively", "delete0")),
+            Map.entry("java.io.Win32FileSystem", List.of("createDirectory", "createFileExclusively", "delete", "setLastModifiedTime")),
+            Map.entry("java.io.WinNTFileSystem", List.of("createDirectory", "createFileExclusively", "delete", "setLastModifiedTime")),
+            // java.nio
+            Map.entry("java.nio.file.Files", List.of("newOutputStream", "write", "writeBytes", "writeLines", "writeString", "writeAllBytes")),
+            // java.print
             Map.entry("java.print.PrintStream", List.of("write")),
-
-            Map.entry("java.io.UnixFileSystem", List.of("setLastModifiedTime", "createFileExclusively", "delete0", "createDirectory")),
-            Map.entry("java.io.WinNTFileSystem", List.of("createFileExclusively", "delete", "setLastModifiedTime", "createDirectory")),
-            Map.entry("java.io.Win32FileSystem", List.of("createFileExclusively", "delete", "setLastModifiedTime", "createDirectory")),
+            // java.util
             Map.entry("java.util.prefs.FileSystemPreferences", List.of("lockFile0", "unlockFile0")),
-            Map.entry("java.nio.file.Files", List.of("write", "writeString", "newOutputStream", "writeBytes", "writeAllBytes", "writeLines")),
-            Map.entry("java.io.File", List.of("setWritable")),
-            Map.entry("sun.nio.ch.FileChannelImpl", List.of("write", "writeFully", "writeDirect", "writeFromNativeBuffer"))
+            // sun.nio
+            Map.entry("sun.nio.ch.FileChannelImpl", List.of("write", "writeDirect", "writeFully", "writeFromNativeBuffer"))
     );
     //</editor-fold>
 
@@ -169,17 +171,15 @@ public class JavaInstrumentationPointcutDefinitions {
      * This map contains the methods which can execute files. The map keys represent class names,
      * and the values are lists of method names that are considered to be file execute operations.
      */
-    public static final Map<String, List<String>> methodsWhichCanExecuteFiles = Map.of(
-            "java.io.File",
-            List.of("setExecutable"),
-            "java.io.WinNTFileSystem",
-            List.of("setReadOnly"),
-            "java.io.Win32FileSystem",
-            List.of("checkAccess", "setReadOnly"),
-            "java.nio.file.Files",
-            List.of("setPosixFilePermissions"),
-            "java.awt.Desktop",
-            List.of("open", "edit", "print", "browse", "mail")
+    public static final Map<String, List<String>> methodsWhichCanExecuteFiles = Map.ofEntries(
+            // java.awt
+            Map.entry("java.awt.Desktop", List.of("browse", "edit", "mail", "open", "print")),
+            // java.io
+            Map.entry("java.io.File", List.of("setExecutable")),
+            Map.entry("java.io.Win32FileSystem", List.of("checkAccess", "setReadOnly")),
+            Map.entry("java.io.WinNTFileSystem", List.of("setReadOnly")),
+            // java.nio
+            Map.entry("java.nio.file.Files", List.of("setPosixFilePermissions"))
     );
     //</editor-fold>
 
@@ -191,17 +191,18 @@ public class JavaInstrumentationPointcutDefinitions {
     public static final Map<String, List<String>> methodsWhichCanDeleteFiles = Map.ofEntries(
             // java.io
             Map.entry("java.io.File", List.of("delete", "deleteOnExit")),
+            Map.entry("java.io.UnixFileSystem", List.of("delete")),
+            Map.entry("java.io.Win32FileSystem", List.of("delete")),
+            Map.entry("java.io.WinNTFileSystem", List.of("delete")),
             // java.nio
             Map.entry("java.nio.file.Files", List.of("delete", "deleteIfExists")),
-
-
-            Map.entry("sun.nio.fs.UnixFileSystemProvider", List.of("implDelete")),
-            Map.entry("sun.nio.fs.WindowsFileSystemProvider", List.of("implDelete")),
+            // jdk.internal
             Map.entry("jdk.internal.jrtfs.JrtFileSystemProvider", List.of("delete")),
+            // jdk.nio
             Map.entry("jdk.nio.zipfs.ZipFileSystemProvider", List.of("delete")),
-            Map.entry("java.io.UnixFileSystem", List.of("delete")),
-            Map.entry("java.io.WinNTFileSystem", List.of("delete")),
-            Map.entry("java.io.Win32FileSystem", List.of("delete"))
+            // sun.nio
+            Map.entry("sun.nio.fs.UnixFileSystemProvider", List.of("implDelete")),
+            Map.entry("sun.nio.fs.WindowsFileSystemProvider", List.of("implDelete"))
     );
     //</editor-fold>
 
@@ -211,8 +212,8 @@ public class JavaInstrumentationPointcutDefinitions {
      * and the values are lists of method names that are considered to be thread create operations.
      */
     public static final Map<String, List<String>> methodsWhichCanCreateThreads = Map.ofEntries(
-            Map.entry("java.util.concurrent.ExecutorService", List.of("submit")),
             Map.entry("java.util.concurrent.AbstractExecutorService", List.of("submit")),
+            Map.entry("java.util.concurrent.ExecutorService", List.of("submit")),
             Map.entry("java.util.concurrent.ThreadPoolExecutor", List.of("submit"))
     );
     //</editor-fold>

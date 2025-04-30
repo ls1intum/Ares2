@@ -14,6 +14,6 @@ public final class ReadFilesReadMain {
      * Access the file system using the {@link Files} class for reading.
      */
     public static void accessFileSystemViaFilesRead() throws IOException {
-        byte[] content = Files.readAllBytes(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/trusted.txt"));
+        byte[] content = Files.readAllBytes(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
     }
 }

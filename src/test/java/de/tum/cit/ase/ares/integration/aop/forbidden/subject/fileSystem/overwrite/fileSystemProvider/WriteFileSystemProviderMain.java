@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.write.fileSystemProvider;
+package de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwrite.fileSystemProvider;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -17,7 +17,7 @@ public class WriteFileSystemProviderMain {
      */
     public static void accessFileSystemViaFileSystemProvider() throws IOException {
         FileSystemProvider provider = FileSystemProvider.installedProviders().getFirst();
-        try (OutputStream os = provider.newOutputStream(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/output.txt"), StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
+        try (OutputStream os = provider.newOutputStream(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"), StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
             os.write("Hello, world!".getBytes());
         }
     }

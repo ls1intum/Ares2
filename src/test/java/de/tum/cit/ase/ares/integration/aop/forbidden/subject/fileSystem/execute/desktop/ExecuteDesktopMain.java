@@ -16,7 +16,7 @@ public class ExecuteDesktopMain {
     public static void accessFileSystemViaDesktop() throws IOException {
         if (Desktop.isDesktopSupported()) {
             Desktop desktop = Desktop.getDesktop();
-            File file = new File("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/executable.txt");
+            File file = new File("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
             desktop.open(file);
         }
     }

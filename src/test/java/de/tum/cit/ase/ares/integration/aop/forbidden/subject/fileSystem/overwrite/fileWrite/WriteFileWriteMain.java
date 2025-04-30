@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.write.fileWrite;
+package de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwrite.fileWrite;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -14,7 +14,7 @@ public class WriteFileWriteMain {
      * Access the file system using the {@link File} class for writing.
      */
     public static void accessFileSystemViaFileWrite() throws IOException {
-        File file = new File("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/output.txt");
+        File file = new File("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
         try (FileOutputStream fos = new FileOutputStream(file)) {
             byte[] data = "Hello, world!".getBytes();
             fos.write(data);

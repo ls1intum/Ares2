@@ -14,7 +14,7 @@ public class ReadBufferedReaderMain {
      * Access the file system using {@link BufferedReader} for reading.
      */
     public static void accessFileSystemViaBufferedReader() throws IOException {
-        try (BufferedReader reader = new BufferedReader(new FileReader("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/trusted.txt"))) {
+        try (BufferedReader reader = new BufferedReader(new FileReader("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"))) {
             StringBuilder content = new StringBuilder();
             String line;
             while ((line = reader.readLine()) != null) {

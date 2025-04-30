@@ -15,7 +15,7 @@ public class ExecuteURLClassLoaderMain {
      * Access the file system using the {@link URLClassLoader} for execution.
      */
     public static void accessFileSystemViaURLClassLoader() throws Exception {
-        File file = new File("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/");
+        File file = new File("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
         URL url = file.toURI().toURL();
         
         try (URLClassLoader classLoader = new URLClassLoader(new URL[]{url})) {

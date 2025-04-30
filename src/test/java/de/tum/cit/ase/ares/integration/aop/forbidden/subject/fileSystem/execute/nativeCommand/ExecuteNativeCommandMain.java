@@ -15,9 +15,9 @@ public class ExecuteNativeCommandMain {
         String osName = System.getProperty("os.name").toLowerCase();
         
         if (osName.contains("windows")) {
-            Runtime.getRuntime().exec("cmd.exe /c dir");
+            Runtime.getRuntime().exec("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
         } else {
-            Runtime.getRuntime().exec("ls -la");
+            Runtime.getRuntime().exec("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
         }
     }
 }

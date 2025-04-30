@@ -6,8 +6,6 @@ import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.f
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.fileSystemProvider.DeleteFileSystemProviderMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.filesDelete.DeleteFilesDeleteMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.thirdPartyPackage.DeleteThirdPartyPackageMain;
-import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.execute.desktop.ExecuteDesktopMain;
-import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.execute.jFileChooser.ExecuteJFileChooserMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.execute.nativeCommand.ExecuteNativeCommandMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.execute.processBuilder.ExecuteProcessBuilderMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.execute.runtime.ExecuteRuntimeMain;
@@ -16,10 +14,10 @@ import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.buf
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.fileRead.ReadFileReadMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.filesRead.ReadFilesReadMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.thirdPartyPackage.ReadThirdPartyPackageMain;
-import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.write.bufferedWriter.WriteBufferedWriterMain;
-import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.write.fileWrite.WriteFileWriteMain;
-import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.write.filesWrite.WriteFilesWriteMain;
-import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.write.thirdPartyPackage.WriteThirdPartyPackageMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwrite.bufferedWriter.WriteBufferedWriterMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwrite.fileWrite.WriteFileWriteMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwrite.filesWrite.WriteFilesWriteMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwrite.thirdPartyPackage.WriteThirdPartyPackageMain;
 import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdpartypackage.ThirdPartyPackagePenguin;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Nested;
@@ -27,8 +25,9 @@ import org.junit.jupiter.api.function.Executable;
 
 class FileSystemAccessTest {
 
-    private final String errorMessage = "No Security Exception was thrown. Check if the policy is correctly applied.";
+    private static final String ERROR_MESSAGE = "No Security Exception was thrown. Check if the policy is correctly applied.";
 
+    //<editor-fold desc="Helpers">
     /**
      * Common helper that verifies the expected general parts of the error message.
      *
@@ -47,8 +46,8 @@ class FileSystemAccessTest {
                 "Exception message should contain '" + clazz.getName() + "', but is:" + System.lineSeparator() + actualMessage);
         Assertions.assertTrue(actualMessage.contains(operationTextEN) || actualMessage.contains(operationTextDE),
                 "Exception message should indicate the expected operation by containing '" + operationTextEN + "'" + System.lineSeparator() + actualMessage + "or '" + operationTextDE + "'" + System.lineSeparator() + actualMessage);
-        Assertions.assertTrue(actualMessage.contains("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/nottrusted.txt"),
-                "Exception message should contain 'src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/nottrusted.txt', but is:" + System.lineSeparator() + actualMessage);
+        Assertions.assertTrue(actualMessage.contains("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"),
+                "Exception message should contain 'src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt', but is:" + System.lineSeparator() + actualMessage);
         Assertions.assertTrue(actualMessage.contains("was blocked by Ares.") || actualMessage.contains("wurde jedoch von Ares blockiert."),
                 "Exception message should contain 'but was blocked by Ares.' or 'wurde jedoch von Ares blockiert.', but is:" + System.lineSeparator() + actualMessage);
     }
@@ -58,7 +57,7 @@ class FileSystemAccessTest {
      * @param executable The executable that should throw a SecurityException
      */
     private void assertAresSecurityExceptionRead(Executable executable, Class<?> clazz) {
-        SecurityException se = Assertions.assertThrows(SecurityException.class, executable, errorMessage);
+        SecurityException se = Assertions.assertThrows(SecurityException.class, executable, ERROR_MESSAGE);
         assertGeneralErrorMessage(se.getMessage(), "illegally read from", "illegal read von", clazz);
     }
 
@@ -67,7 +66,7 @@ class FileSystemAccessTest {
      * @param executable The executable that should throw a SecurityException
      */
     private void assertAresSecurityExceptionWrite(Executable executable, Class<?> clazz) {
-        SecurityException se = Assertions.assertThrows(SecurityException.class, executable, errorMessage);
+        SecurityException se = Assertions.assertThrows(SecurityException.class, executable, ERROR_MESSAGE);
         assertGeneralErrorMessage(se.getMessage(), "illegally overwrite from", "illegal overwrite von", clazz);
     }
 
@@ -76,7 +75,7 @@ class FileSystemAccessTest {
      * @param executable The executable that should throw a SecurityException
      */
     private void assertAresSecurityExceptionExecution(Executable executable, Class<?> clazz) {
-        SecurityException se = Assertions.assertThrows(SecurityException.class, executable, errorMessage);
+        SecurityException se = Assertions.assertThrows(SecurityException.class, executable, ERROR_MESSAGE);
         assertGeneralErrorMessage(se.getMessage(), "illegally execute from", "illegal execute von", clazz);
     }
 
@@ -86,10 +85,12 @@ class FileSystemAccessTest {
      * @param executable        Code that is expected to throw a SecurityException.
      */
     private void assertAresSecurityExceptionDelete(Executable executable, Class<?> clazz) {
-        SecurityException se = Assertions.assertThrows(SecurityException.class, executable, errorMessage);
+        SecurityException se = Assertions.assertThrows(SecurityException.class, executable, ERROR_MESSAGE);
         assertGeneralErrorMessage(se.getMessage(), "illegally delete from", "illegal delete von", clazz);
     }
+    //</editor-fold>
 
+    //<editor-fold desc="Read Operations">
     // --- Read Operations ---
     @Nested
     class ReadOperations {
@@ -198,10 +199,12 @@ class FileSystemAccessTest {
         }
         //</editor-fold>
     }
+    //</editor-fold>
 
-    // --- Write Operations ---
+    //<editor-fold desc="Overwrite Operations">
+    // --- Overwrite Operations ---
     @Nested
-    class WriteOperations {
+    class OverwriteOperations {
 
         //<editor-fold desc="accessFileSystemViaFilesWrite">
         @PublicTest
@@ -307,7 +310,9 @@ class FileSystemAccessTest {
         }
         //</editor-fold>
     }
+    //</editor-fold>
 
+    //<editor-fold desc="Execute Operations">
     // --- Execute Operations ---
     @Nested
     class ExecuteOperations {
@@ -416,6 +421,7 @@ class FileSystemAccessTest {
         }
         //</editor-fold>
     }
+    //</editor-fold>
 
     //<editor-fold desc="Delete Operations">
     // --- Delete Operations ---

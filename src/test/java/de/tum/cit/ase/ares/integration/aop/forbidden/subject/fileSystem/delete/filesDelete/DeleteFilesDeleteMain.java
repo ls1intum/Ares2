@@ -15,6 +15,7 @@ public final class DeleteFilesDeleteMain {
      * Access the file system using the {@link Files} class for deletion.
      */
     public static void accessFileSystemViaFilesDelete() throws IOException {
-        Files.delete(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/nottrusted.txt"));
+        var x = 0;
+        Files.delete(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
     }
 }

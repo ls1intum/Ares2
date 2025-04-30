@@ -1,80 +1,109 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 
+//<editor-fold desc="imports">
 import java.io.File;
+
+import java.io.IOException;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.List;
 import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
+import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
-import java.util.concurrent.TimeUnit;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+
+import java.util.List;
+//</editor-fold>
 
 /**
- * Utility class for the Java instrumentation advice.
- * <p>
- * This class provides methods to interact with the JavaSecurityTestCaseSettings class and to check
- * file system interactions against established security policies. The goal is to ensure that no
- * unauthorized file system operations (e.g., read, write, execute, delete) are allowed during execution.
- * <p>
- * The class includes methods to access fields from JavaSecurityTestCaseSettings, verify call stack and
- * variable criteria, and determine whether certain file system operations are permitted. This helps
- * enforce security policies at runtime and block unauthorized file interactions.
+ * Utility class for Java instrumentation file system security advice.
+ *
+ * <p>Description: Provides static methods to enforce file system security policies at runtime
+ * by checking file system interactions (read, write, execute, delete) against allowed paths,
+ * call stack criteria, and variable criteria. Uses reflection to interact with test case settings
+ * and localization utilities. Designed to prevent unauthorized file system operations during
+ * Java application execution, especially in test and instrumentation scenarios.
+ *
+ * <p>Design Rationale: Centralizes file system security checks for Java instrumentation advice,
+ * ensuring consistent enforcement of security policies. Uses static utility methods and a private
+ * constructor to prevent instantiation. Reflection is used to decouple the toolbox from direct
+ * dependencies on settings and localization classes, supporting flexible and dynamic test setups.
+ *
+ * @since 2.0.0
+ * @author Markus Paulsen
+ * @version 2.0.0
  */
 public class JavaInstrumentationAdviceFileSystemToolbox {
+
+    //<editor-fold desc="Constants">
     // Skip the OutputTester and InputTester classes, as they intercept the output and input for System.out and System.in
     // Therefore, they cause false positives.
     // Also, X11FontManager needs to be set when using AWT therefore we have to allow it
-    private static final List<String> fileSystemIgnoreCallstack = List.of("de.tum.cit.ase.ares.api.io.OutputTester", "de.tum.cit.ase.ares.api.io.InputTester", "sun.awt.X11FontManager", "de.tum.cit.ase.ares.api.localization.Messages");
-    private static final List<String> fileSystemIgnoreAttributes = List.of("java.io.File.delete");
-    private static final List<String> fileSystemIgnoreParameter = List.of();
+    /**
+     * List of call stack classes to ignore during file system checks.
+     *
+     * <p>Description: Contains class signatures that are excluded from file system security checks
+     * for file operations to avoid false positives.
+     */
+    private static final List<String> FILE_SYSTEM_IGNORE_CALLSTACK = List.of(
+            "java.lang.ClassLoader",
+            "sun.awt.X11FontManager",
+            "de.tum.cit.ase.ares.api.io.OutputTester",
+            "de.tum.cit.ase.ares.api.io.InputTester",
+            "de.tum.cit.ase.ares.api.localization.Messages"
+    );
+    /**
+     * List of method attributes to ignore during file system checks.
+     *
+     * <p>Description: Contains method signatures whose attributes are excluded from file system security checks
+     * for file operations to avoid false positives.
+     */
+    private static final List<String> FILE_SYSTEM_IGNORE_ATTRIBUTES = List.of("java.io.File.delete");
+    /**
+     * List of method parameters to ignore during file system checks.
+     *
+     * <p>Description: Contains method signatures whose parameters are excluded from file system security checks
+     * for file operations to avoid false positives.
+     */
+    private static final List<String> FILE_SYSTEM_IGNORE_PARAMETERS = List.of();
+    //</editor-fold>
 
     //<editor-fold desc="Constructor">
 
     /**
      * Private constructor to prevent instantiation of this utility class.
+     *
+     * <p>Description: Throws a SecurityException if instantiation is attempted, enforcing the
+     * utility class pattern.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
      */
-    protected JavaInstrumentationAdviceFileSystemToolbox() {
+    private JavaInstrumentationAdviceFileSystemToolbox() {
         throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): JavaInstrumentationAdviceFileSystemToolbox is a utility class and should not be instantiated.");
     }
     //</editor-fold>
 
     //<editor-fold desc="Tool methods">
 
-    protected static boolean settingsExist() {
-        try {
-            Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, null);
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
-    }
-
     /**
-     * Retrieves the value of a specified static field from the {@code JavaSecurityTestCaseSettings} class.
-     * <p>
-     * This method uses reflection to dynamically access a field in {@code JavaSecurityTestCaseSettings},
-     * allowing retrieval of security-related configuration values used for instrumentation and aspectJ tests.
-     * </p>
+     * Retrieves the value of a specified static field from the JavaSecurityTestCaseSettings class.
+     *
+     * <p>Description: Uses reflection to access a static field in JavaSecurityTestCaseSettings,
+     * allowing retrieval of security-related configuration values for instrumentation and tests.
      *
      * @param fieldName The name of the field to retrieve.
-     * @param <T>       The expected type of the field's value.
+     * @param <T> The expected type of the field's value.
      * @return The value of the specified field.
-     * @throws SecurityException If the field cannot be accessed due to various issues such as:
-     * <ul>
-     *   <li>Class not found</li>
-     *   <li>No such field</li>
-     *   <li>Illegal access</li>
-     *   <li>Linkage errors</li>
-     *   <li>Null pointer exceptions</li>
-     *   <li>Inaccessible object exceptions</li>
-     *   <li>Illegal argument exceptions</li>
-     * </ul>
+     * @throws SecurityException If the field cannot be accessed due to various issues.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
      */
     @SuppressWarnings("unchecked")
-    protected static <T> T getValueFromSettings(String fieldName) {
+    private static <T> T getValueFromSettings(String fieldName) {
         try {
             // Take bootloader as class loader in order to get the JavaSecurityTestCaseSettings class at bootloader time for instrumentation
             Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, null);
@@ -102,27 +131,20 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
     }
 
     /**
-     * Sets the value of a specified static field in the {@code JavaSecurityTestCaseSettings} class.
-     * <p>
-     * This method uses reflection to dynamically modify a field in {@code JavaSecurityTestCaseSettings},
-     * allowing updates to security-related configuration values used for instrumentation and AspectJ tests.
-     * </p>
+     * Sets the value of a specified static field in the JavaSecurityTestCaseSettings class.
+     *
+     * <p>Description: Uses reflection to modify a static field in JavaSecurityTestCaseSettings,
+     * allowing updates to security-related configuration values for instrumentation and tests.
      *
      * @param fieldName The name of the field to modify.
-     * @param newValue  The new value to assign to the field.
-     * @param <T>       The expected type of the field's value.
-     * @throws SecurityException If the field cannot be accessed or modified due to:
-     * <ul>
-     *   <li>Class not found</li>
-     *   <li>No such field</li>
-     *   <li>Illegal access</li>
-     *   <li>Linkage errors</li>
-     *   <li>Null pointer exceptions</li>
-     *   <li>Inaccessible object exceptions</li>
-     *   <li>Illegal argument exceptions</li>
-     * </ul>
+     * @param newValue The new value to assign to the field.
+     * @param <T> The expected type of the field's value.
+     * @throws SecurityException If the field cannot be accessed or modified.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
      */
-    protected static <T> void setValueToSettings(String fieldName, T newValue) {
+    private static <T> void setValueToSettings(String fieldName, T newValue) {
         try {
             // Take bootloader as class loader in order to get the JavaSecurityTestCaseSettings class at bootloader time for instrumentation
             Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, null);
@@ -148,27 +170,20 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
     }
 
     /**
-     * Decrements the value at a specified position in a settings array stored in the {@code JavaSecurityTestCaseSettings} class.
-     * <p>
-     * This method retrieves an integer array from {@code JavaSecurityTestCaseSettings}, decrements the value at the given
-     * index, and updates the array back to the settings class.
-     * </p>
+     * Decrements the value at a specified position in a settings array.
      *
-     * @param settingsArray The name of the array field in {@code JavaSecurityTestCaseSettings}.
-     * @param position      The index position of the value to decrement.
-     * @throws SecurityException If retrieving or modifying the array fails due to:
-     * <ul>
-     *   <li>Class not found</li>
-     *   <li>No such field</li>
-     *   <li>Illegal access</li>
-     *   <li>Linkage errors</li>
-     *   <li>Null pointer exceptions</li>
-     *   <li>Inaccessible object exceptions</li>
-     *   <li>Illegal argument exceptions</li>
-     * </ul>
+     * <p>Description: Retrieves an integer array from JavaSecurityTestCaseSettings, decrements the value
+     * at the given index, and updates the array back to the settings class.
+     *
+     * @param settingsArray The name of the array field in JavaSecurityTestCaseSettings.
+     * @param position The index position of the value to decrement.
+     * @throws SecurityException If retrieving or modifying the array fails.
      * @throws ArrayIndexOutOfBoundsException If the provided position is out of bounds.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
      */
-    protected static void decrementSettingsArrayValue(String settingsArray, int position) {
+    private static void decrementSettingsArrayValue(String settingsArray, int position) {
         int[] newSettingsArray = ((int[]) getValueFromSettings(settingsArray)).clone();
         newSettingsArray[position]--;
         setValueToSettings(settingsArray, newSettingsArray);
@@ -176,14 +191,16 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
 
     /**
      * Retrieves a localized message based on a given key and optional arguments.
-     * <p>
-     * This method attempts to fetch a localized string from the {@code Messages} class using reflection.
-     * If localization fails due to missing classes or methods, it returns the provided key as a fallback.
-     * </p>
      *
-     * @param key  The localization key identifying the message.
+     * <p>Description: Attempts to fetch a localized string from the Messages class using reflection.
+     * If localization fails, returns the provided key as a fallback.
+     *
+     * @param key The localization key identifying the message.
      * @param args Optional arguments to format the localized message.
      * @return The localized message string, or the key itself if localization fails.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
      */
     public static String localize(String key, Object... args) {
         try {
@@ -208,15 +225,19 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
     //<editor-fold desc="Callstack criteria methods">
 
     /**
-     * Check if the provided call stack element is allowed.
-     * This method verifies whether the class in the call stack element belongs to the list of allowed
-     * classes, ensuring that only authorized classes are permitted to perform certain file system operations.
+     * Checks if the provided call stack element is allowed.
+     *
+     * <p>Description: Verifies whether the class in the call stack element belongs to the list of allowed
+     * classes, ensuring only authorized classes are permitted to perform certain file system operations.
      *
      * @param allowedClasses The list of classes allowed to be present in the call stack.
      * @param elementToCheck The call stack element to check.
      * @return True if the call stack element is allowed, false otherwise.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
      */
-    protected static boolean checkIfCallstackElementIsAllowed(String[] allowedClasses, StackTraceElement elementToCheck) {
+    private static boolean checkIfCallstackElementIsAllowed(String[] allowedClasses, StackTraceElement elementToCheck) {
         String className = elementToCheck.getClassName();
         for (String allowedClass : allowedClasses) {
             if (className.startsWith(allowedClass)) {
@@ -227,25 +248,35 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
     }
 
     /**
-     * Check if the call stack violates the specified criteria.
-     * This method examines the current call stack to determine if any element belongs to a restricted package.
-     * If such an element is found, and it is not in the allowed classes list, the violating call stack element
-     * is returned.
+     * Checks if the call stack violates the specified criteria.
+     *
+     * <p>Description: Examines the current call stack to determine if any element belongs to a restricted
+     * package and is not in the allowed classes list. Returns the violating call stack element if found.
      *
      * @param restrictedPackage The package that is restricted in the call stack.
-     * @param allowedClasses    The list of classes that are allowed to be present in the call stack.
+     * @param allowedClasses The list of classes that are allowed to be present in the call stack.
      * @return The call stack element that violates the criteria, or null if no violation occurred.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
      */
-    protected static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses) {
+    private static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses) {
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
         for (StackTraceElement element : stackTrace) {
             String className = element.getClassName();
-            if (className.startsWith(restrictedPackage)) {
-                if (fileSystemIgnoreCallstack.contains(className)) {
-                    return null;
+            boolean ignoreFound = false;
+            for(String allowedClass : FILE_SYSTEM_IGNORE_CALLSTACK) {
+                if (className.startsWith(allowedClass)) {
+                    ignoreFound = true;
+                    break;
                 }
+            }
+            if(ignoreFound) {
+                break;
+            }
+            if (className.startsWith(restrictedPackage)) {
                 if (!checkIfCallstackElementIsAllowed(allowedClasses, element)) {
-                    return className;
+                    return className + "." +element.getMethodName();
                 }
             }
         }
@@ -256,35 +287,42 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
     //<editor-fold desc="Variable criteria methods">
 
     /**
-     * Transform a variable value into a normalized absolute path.
-     * This method converts the provided variable (e.g., Path, String, or File) into an absolute
-     * normalized path. This path is used to check whether the file system interaction is permitted
-     * according to security policies.
+     * Transforms a variable value into a normalized absolute path.
      *
-     * @param variableValue The variable value to transform into a path. Supported types are Path, String, or File.
+     * <p>Description: Converts the provided variable (Path, String, or File) into an absolute
+     * normalized path for file system security checks.
+     *
+     * @param variableValue The variable value to transform into a path.
      * @return The normalized absolute path of the variable value.
      * @throws InvalidPathException If the variable cannot be transformed into a valid path.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
      */
     private static Path variableToPath(Object variableValue) {
         if (variableValue == null) {
             throw new InvalidPathException("null", localize("security.advice.transform.path.exception"));
-        } else if (variableValue instanceof Path path) {
+        } else if (variableValue instanceof Path) {
+            Path path = (Path) variableValue;
             try {
                 return path.normalize().toAbsolutePath();
             } catch (InvalidPathException e) {
                 throw new InvalidPathException(path.toString(), localize("security.advice.transform.path.exception"));
             }
-        } else if (variableValue instanceof String string) {
+        } else if (variableValue instanceof String) {
+            String string = (String) variableValue;
             try {
-                if (Files.exists(Path.of(string).normalize().toAbsolutePath())) {
-                    return Path.of(string).normalize().toAbsolutePath();
+                Path absolutePath = Path.of(string).normalize().toAbsolutePath();
+                if (Files.exists(absolutePath)) {
+                    return absolutePath;
                 } else {
                     throw new InvalidPathException(string, localize("security.advice.transform.path.exception"));
                 }
             } catch (InvalidPathException e) {
                 throw new InvalidPathException(string, localize("security.advice.transform.path.exception"));
             }
-        } else if (variableValue instanceof File file) {
+        } else if (variableValue instanceof File) {
+            File file = (File) variableValue;
             try {
                 return Path.of(file.toURI()).normalize().toAbsolutePath();
             } catch (InvalidPathException e) {
@@ -296,16 +334,25 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
     }
 
     /**
-     * Check if the provided path is allowed according to security policies.
-     * This method compares the given path with the list of allowed paths to determine whether the path
-     * is permitted for access or modification based on the defined security rules.
+     * Checks if the provided path is allowed according to security policies.
+     *
+     * <p>Description: Compares the given path with the list of allowed paths to determine whether
+     * the path is permitted for access or modification.
      *
      * @param allowedPaths The list of allowed paths that can be accessed or modified.
-     * @param pathToCheck  The path that needs to be checked against the allowed paths.
+     * @param pathToCheck The path that needs to be checked against the allowed paths.
      * @return True if the path is allowed, false otherwise.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
      */
     private static boolean checkIfPathIsAllowed(String[] allowedPaths, Path pathToCheck) {
-        Path absoluteNormalisedPathToCheck = pathToCheck.toAbsolutePath().normalize();
+        Path absoluteNormalisedPathToCheck;
+        try {
+            absoluteNormalisedPathToCheck = pathToCheck.toRealPath(LinkOption.NOFOLLOW_LINKS);
+        } catch (IOException e) {
+            return false;
+        }
         for (String allowedPath : allowedPaths) {
             if (absoluteNormalisedPathToCheck.startsWith(variableToPath(allowedPath))) {
                 return true;
@@ -315,11 +362,17 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
     }
 
     /**
-     * Check if the variable criteria is violated.
+     * Checks if the variable criteria is violated.
      *
-     * @param variables    The variables to check.
+     * <p>Description: Iterates over the provided variables, transforms them to paths, and checks
+     * if any path is not allowed according to the security policies.
+     *
+     * @param variables The variables to check.
      * @param allowedPaths The paths that are allowed to be accessed.
      * @return The path that violates the criteria, null if no violation occurred.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
      */
     private static String checkIfVariableCriteriaIsViolated(Object[] variables, String[] allowedPaths) {
         for (Object variable : variables) {
@@ -338,19 +391,22 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
     //<editor-fold desc="Check methods">
 
     /**
-     * Check if the file system interaction is allowed according to security policies.
-     * This method verifies that the specified file system action (read, write, execute, delete) complies
-     * with the allowed paths and call stack criteria. If any violation is detected, a SecurityException is thrown.
-     * It checks if the action is restricted based on the method call, attributes, and parameters. If a method
-     * violates the file system security rules, the action is blocked.
+     * Checks if the file system interaction is allowed according to security policies.
      *
-     * @param action            The file system action being performed (e.g., read, write, execute, delete).
+     * <p>Description: Verifies that the specified file system action (read, write, execute, delete)
+     * complies with the allowed paths and call stack criteria. Throws a SecurityException if any
+     * violation is detected.
+     *
+     * @param action The file system action being performed (e.g., read, write, execute, delete).
      * @param declaringTypeName The name of the class declaring the method.
-     * @param methodName        The name of the method being invoked.
-     * @param methodSignature   The signature of the method.
-     * @param attributes        The attributes of the method (if any).
-     * @param parameters        The parameters of the method (if any).
+     * @param methodName The name of the method being invoked.
+     * @param methodSignature The signature of the method.
+     * @param attributes The attributes of the method (if any).
+     * @param parameters The parameters of the method (if any).
      * @throws SecurityException If the file system interaction is found to be unauthorized.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
      */
     public static void checkFileSystemInteraction(
             String action,
@@ -360,11 +416,6 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
             Object[] attributes,
             Object[] parameters
     ) {
-        /*while (!settingsExist()) {
-            try {
-                TimeUnit.MILLISECONDS.sleep(100);
-            } catch (InterruptedException ignored) {}
-        }*/
         String aopMode = getValueFromSettings("aopMode");
         if (aopMode == null || !aopMode.equals("INSTRUMENTATION")) {
             return;
@@ -381,17 +432,17 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
                 }
         );
         final String fullMethodSignature = declaringTypeName + "." + methodName + methodSignature;
-        String illegallyReadingMethod = allowedPaths == null ? null : checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses);
-        if (illegallyReadingMethod != null) {
-            String illegallyReadPath = null;
-            if (!fileSystemIgnoreParameter.contains(declaringTypeName + "." + methodName)) {
-                illegallyReadPath = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, allowedPaths);
+        String fileSystemMethodToCheck = allowedPaths == null ? null : checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses);
+        if (fileSystemMethodToCheck != null) {
+            String illegallyInteractedPath = null;
+            if (!FILE_SYSTEM_IGNORE_PARAMETERS.contains(declaringTypeName + "." + methodName)) {
+                illegallyInteractedPath = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, allowedPaths);
             }
-            if (illegallyReadPath == null && !fileSystemIgnoreAttributes.contains(declaringTypeName + "." + methodName)) {
-                illegallyReadPath = (attributes == null || attributes.length == 0) ? null : checkIfVariableCriteriaIsViolated(attributes, allowedPaths);
+            if (illegallyInteractedPath == null && !FILE_SYSTEM_IGNORE_ATTRIBUTES.contains(declaringTypeName + "." + methodName)) {
+                illegallyInteractedPath = (attributes == null || attributes.length == 0) ? null : checkIfVariableCriteriaIsViolated(attributes, allowedPaths);
             }
-            if (illegallyReadPath != null) {
-                throw new SecurityException(localize("security.advice.illegal.method.execution", illegallyReadingMethod, action, illegallyReadPath, fullMethodSignature));
+            if (illegallyInteractedPath != null) {
+                throw new SecurityException(localize("security.advice.illegal.method.execution", fileSystemMethodToCheck, action, illegallyInteractedPath, fullMethodSignature));
             }
         }
     }

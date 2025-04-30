@@ -14,7 +14,7 @@ public class ReadFileReadMain {
      * Access the file system using the {@link File} class for reading.
      */
     public static void accessFileSystemViaFileRead() throws IOException {
-        File file = new File("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/trusted.txt");
+        File file = new File("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
         try (FileInputStream fis = new FileInputStream(file)) {
             byte[] data = new byte[(int) file.length()];
             fis.read(data);

@@ -16,7 +16,7 @@ public class ReadFileSystemProviderMain {
      */
     public static void accessFileSystemViaFileSystemProvider() throws IOException {
         FileSystemProvider provider = FileSystemProvider.installedProviders().getFirst();
-        try (InputStream is = provider.newInputStream(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/trusted.txt"))) {
+        try (InputStream is = provider.newInputStream(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"))) {
             byte[] data = is.readAllBytes();
         }
     }

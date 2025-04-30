@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.write.filesWrite;
+package de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwrite.filesWrite;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -15,6 +15,6 @@ public final class WriteFilesWriteMain {
      */
     public static void accessFileSystemViaFilesWrite() throws IOException {
         byte[] content = "Hello, world!".getBytes();
-        Files.write(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/output.txt"), content);
+        Files.write(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"), content);
     }
 }

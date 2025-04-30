@@ -12,7 +12,7 @@ public class ExecuteProcessBuilderMain {
      * Access the file system using the {@link ProcessBuilder} class for execution.
      */
     public static void accessFileSystemViaProcessBuilder() throws IOException {
-        ProcessBuilder processBuilder = new ProcessBuilder("notepad.exe");
+        ProcessBuilder processBuilder = new ProcessBuilder("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
         processBuilder.start();
     }
 }

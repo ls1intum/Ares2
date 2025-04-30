@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.write.fileWriter;
+package de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwrite.fileWriter;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -13,7 +13,7 @@ public class WriteFileWriterMain {
      * Access the file system using {@link FileWriter} for writing.
      */
     public static void accessFileSystemViaFileWriter() throws IOException {
-        try (FileWriter writer = new FileWriter("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/output.txt")) {
+        try (FileWriter writer = new FileWriter("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt")) {
             writer.write("Hello, world!\n");
             writer.write("This is a test.");
         }

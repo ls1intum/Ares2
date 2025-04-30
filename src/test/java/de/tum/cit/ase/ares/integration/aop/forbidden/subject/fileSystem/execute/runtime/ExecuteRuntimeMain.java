@@ -13,7 +13,7 @@ public class ExecuteRuntimeMain {
      */
     public static void accessFileSystemViaRuntime() throws IOException {
         Runtime runtime = Runtime.getRuntime();
-        Process process = runtime.exec("notepad.exe");
+        Process process = runtime.exec("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
         // We could also wait for the process to complete
         // process.waitFor();
     }

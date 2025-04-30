@@ -15,6 +15,6 @@ public class DeleteFileSystemProviderMain {
      */
     public static void accessFileSystemViaFileSystemProvider() throws IOException {
         FileSystemProvider provider = FileSystemProvider.installedProviders().getFirst();
-        provider.delete(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/nottrusted.txt"));
+        provider.delete(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
     }
 }
