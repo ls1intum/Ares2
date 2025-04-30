@@ -14,7 +14,10 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 //</editor-fold>
 
 /**
@@ -54,20 +57,10 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
             "de.tum.cit.ase.ares.api.io.InputTester",
             "de.tum.cit.ase.ares.api.localization.Messages"
     );
-    /**
-     * List of method attributes to ignore during file system checks.
-     *
-     * <p>Description: Contains method signatures whose attributes are excluded from file system security checks
-     * for file operations to avoid false positives.
-     */
-    private static final List<String> FILE_SYSTEM_IGNORE_ATTRIBUTES = List.of("java.io.File.delete");
-    /**
-     * List of method parameters to ignore during file system checks.
-     *
-     * <p>Description: Contains method signatures whose parameters are excluded from file system security checks
-     * for file operations to avoid false positives.
-     */
-    private static final List<String> FILE_SYSTEM_IGNORE_PARAMETERS = List.of();
+    private static final Map<String, Integer> FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT = Map.ofEntries(
+            Map.entry("java.io.File.delete", 1)
+    );
+    private static final Map<String, Integer> FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT = Map.ofEntries();
     //</editor-fold>
 
     //<editor-fold desc="Constructor">
@@ -374,8 +367,24 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
      * @since 2.0.0
      * @author Markus Paulsen
      */
-    private static String checkIfVariableCriteriaIsViolated(Object[] variables, String[] allowedPaths) {
-        for (Object variable : variables) {
+    private static String checkIfVariableCriteriaIsViolated(Object[] variables, String[] allowedPaths, int ignoreVariablesExcept) {
+        ArrayList<Object> newVariables = new ArrayList<>(Arrays.asList(variables.clone()));
+        switch (ignoreVariablesExcept) {
+            // No variable is ignored
+            case -1:
+                break;
+            // All variables are ignored
+            case -2:
+                newVariables.clear();
+                break;
+            // All variables except the one at the given index are ignored
+            default:
+                Object toKeep = newVariables.get(ignoreVariablesExcept);
+                newVariables.clear();
+                newVariables.add(toKeep);
+                break;
+        }
+        for (Object variable : newVariables) {
             try {
                 Path resultingPath = variableToPath(variable);
                 if (!checkIfPathIsAllowed(allowedPaths, resultingPath)) {
@@ -434,12 +443,9 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
         final String fullMethodSignature = declaringTypeName + "." + methodName + methodSignature;
         String fileSystemMethodToCheck = allowedPaths == null ? null : checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses);
         if (fileSystemMethodToCheck != null) {
-            String illegallyInteractedPath = null;
-            if (!FILE_SYSTEM_IGNORE_PARAMETERS.contains(declaringTypeName + "." + methodName)) {
-                illegallyInteractedPath = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, allowedPaths);
-            }
-            if (illegallyInteractedPath == null && !FILE_SYSTEM_IGNORE_ATTRIBUTES.contains(declaringTypeName + "." + methodName)) {
-                illegallyInteractedPath = (attributes == null || attributes.length == 0) ? null : checkIfVariableCriteriaIsViolated(attributes, allowedPaths);
+            String illegallyInteractedPath = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, allowedPaths, FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, -1));
+            if (illegallyInteractedPath == null) {
+                illegallyInteractedPath = (attributes == null || attributes.length == 0) ? null : checkIfVariableCriteriaIsViolated(attributes, allowedPaths, FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, -1));
             }
             if (illegallyInteractedPath != null) {
                 throw new SecurityException(localize("security.advice.illegal.method.execution", fileSystemMethodToCheck, action, illegallyInteractedPath, fullMethodSignature));

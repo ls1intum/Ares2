@@ -12,6 +12,6 @@ public class DeleteFileDeleteMain {
      * Access the file system using the {@link File} class for deletion.
      */
     public static void accessFileSystemViaFileDelete() {
-        new File("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt").delete();
+        (new File("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt")).delete();
     }
 }

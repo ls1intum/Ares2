@@ -6,9 +6,11 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
 
@@ -42,40 +44,46 @@ public class JavaInstrumentationPointcutDefinitions {
      * @return An element matcher that matches classes based on the method map.
      * If no classes are found in the map, returns {@code ElementMatchers.none()}.
      */
-    public static ElementMatcher<NamedElement> getClassesMatcher(
+    public static ElementMatcher<TypeDescription> getClassesMatcher(
             Map<String, List<String>> methodsMap
     ) {
-        Set<String> classes = methodsMap.keySet();
-        if (classes.isEmpty()) {
+        String[] targets = methodsMap
+                .keySet()
+                .stream()
+                .distinct()
+                .toArray(String[]::new);
+
+        if (targets.length == 0) {
             return ElementMatchers.none();
         }
-        return ElementMatchers.namedOneOf(
-                classes
-                        .stream()
-                        .distinct()
-                        .toArray(String[]::new)
-        );
 
+        // match the type itself
+        ElementMatcher.Junction<TypeDescription> direct = ElementMatchers.namedOneOf(targets);
+
+        // match any subtype (deep in the hierarchy) as well
+        ElementMatcher.Junction<TypeDescription> subtypes = ElementMatchers.hasSuperType(direct);
+
+        return direct.or(subtypes);
     }
 
     static ElementMatcher<MethodDescription> getConstructorsMatcher(
             TypeDescription typeDescription,
             Map<String, List<String>> methodsMap
     ) {
-        List<String> methods = methodsMap.get(typeDescription.getName());
-        if (
-                methods == null
-                        || methods.isEmpty()
-                        || methods
-                        .stream()
-                        .filter(method -> method.equals("<init>"))
-                        .toList()
-                        .isEmpty()
-        ) {
+        String className = typeDescription.getName();
+        List<String> pointcuts = methodsMap.get(className);
+
+        if (pointcuts == null || pointcuts.isEmpty() || !pointcuts.contains("<init>")) {
             return ElementMatchers.none();
-        } else {
-            return ElementMatchers.isConstructor();
         }
+
+        ElementMatcher.Junction<NamedElement> classNameMatcher = ElementMatchers.named(className);
+        ElementMatcher.Junction<TypeDescription> superClassMatcher = ElementMatchers.hasSuperType(classNameMatcher);
+        ElementMatcher.Junction<TypeDescription> hierarchyMatcher = classNameMatcher.or(superClassMatcher);
+
+        return ElementMatchers
+                .isConstructor()
+                .and(ElementMatchers.isDeclaredBy(hierarchyMatcher));
     }
 
     /**
@@ -94,25 +102,30 @@ public class JavaInstrumentationPointcutDefinitions {
             TypeDescription typeDescription,
             Map<String, List<String>> methodsMap
     ) {
-        List<String> methods = methodsMap.get(typeDescription.getName());
-        if (
-                methods == null
-                        || methods.isEmpty()
-                        || methods
-                        .stream()
-                        .filter(method -> !method.equals("<init>"))
-                        .toList()
-                        .isEmpty()
-        ) {
+        String className = typeDescription.getName();
+        List<String> pointcuts = methodsMap.get(className);
+
+        if (pointcuts == null || pointcuts.isEmpty() || pointcuts.stream().allMatch("<init>"::equals)) {
             return ElementMatchers.none();
-        } else {
-            return ElementMatchers.namedOneOf(
-                    methods
-                            .stream()
-                            .distinct()
-                            .toArray(String[]::new)
-            );
         }
+
+        // filter out "<init>" and dedupe
+        String[] methodNames = pointcuts.stream()
+                .filter(name -> !name.equals("<init>"))
+                .distinct()
+                .toArray(String[]::new);
+
+        if (methodNames.length == 0) {
+            return ElementMatchers.none();
+        }
+
+        ElementMatcher.Junction<NamedElement> classNameMatcher = ElementMatchers.named(className);
+        ElementMatcher.Junction<TypeDescription> superClassMatcher = ElementMatchers.hasSuperType(classNameMatcher);
+        ElementMatcher.Junction<TypeDescription> hierarchyMatcher = classNameMatcher.or(superClassMatcher);
+
+        return ElementMatchers
+                .namedOneOf(methodNames)
+                .and(ElementMatchers.isDeclaredBy(hierarchyMatcher));
     }
 
     //</editor-fold>
@@ -124,9 +137,10 @@ public class JavaInstrumentationPointcutDefinitions {
      */
     public static final Map<String, List<String>> methodsWhichCanReadFiles = Map.ofEntries(
             // java.io
-            Map.entry("java.io.BufferedReader", List.of("lines")),
+            Map.entry("java.io.BufferedReader", List.of("lines", "readLine")),
             Map.entry("java.io.FileInputStream", List.of("read")),
             Map.entry("java.io.FileReader", List.of("read", "readLine")),
+            Map.entry("java.io.InputStream", List.of("read")),
             Map.entry("java.io.RandomAccessFile", List.of("read", "readBoolean", "readByte", "readChar", "readChars", "readDouble", "readFloat", "readFully", "readInt", "readLong", "readShort")),
             Map.entry("java.io.UnixFileSystem", List.of("canonicalize0", "getBooleanAttributes0", "getSpace")),
             Map.entry("java.io.Win32FileSystem", List.of("canonicalize", "getBooleanAttributes", "getLastModifiedTime", "getSpace")),
@@ -148,6 +162,7 @@ public class JavaInstrumentationPointcutDefinitions {
             // java.io
             Map.entry("java.io.DataOutputStream", List.of("write", "writeBoolean", "writeByte", "writeBytes", "writeChar", "writeChars", "writeDouble", "writeFloat", "writeInt", "writeLong", "writeShort", "writeUTF")),
             Map.entry("java.io.File", List.of("setWritable")),
+            Map.entry("java.io.FileSystem", List.of("createFileExclusively", "createDirectory", "rename")),
             Map.entry("java.io.FileOutputStream", List.of("write")),
             Map.entry("java.io.FileWriter", List.of("write")),
             Map.entry("java.io.PrintWriter", List.of("write")),
@@ -191,18 +206,10 @@ public class JavaInstrumentationPointcutDefinitions {
     public static final Map<String, List<String>> methodsWhichCanDeleteFiles = Map.ofEntries(
             // java.io
             Map.entry("java.io.File", List.of("delete", "deleteOnExit")),
-            Map.entry("java.io.UnixFileSystem", List.of("delete")),
-            Map.entry("java.io.Win32FileSystem", List.of("delete")),
-            Map.entry("java.io.WinNTFileSystem", List.of("delete")),
+            Map.entry("java.io.FileSystem", List.of("delete")),
             // java.nio
             Map.entry("java.nio.file.Files", List.of("delete", "deleteIfExists")),
-            // jdk.internal
-            Map.entry("jdk.internal.jrtfs.JrtFileSystemProvider", List.of("delete")),
-            // jdk.nio
-            Map.entry("jdk.nio.zipfs.ZipFileSystemProvider", List.of("delete")),
-            // sun.nio
-            Map.entry("sun.nio.fs.UnixFileSystemProvider", List.of("implDelete")),
-            Map.entry("sun.nio.fs.WindowsFileSystemProvider", List.of("implDelete"))
+            Map.entry("java.nio.file.spi.FileSystemProvider", List.of("delete"))
     );
     //</editor-fold>
 
