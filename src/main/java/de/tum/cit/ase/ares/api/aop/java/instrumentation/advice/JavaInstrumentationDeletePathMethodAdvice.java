@@ -42,6 +42,8 @@ public class JavaInstrumentationDeletePathMethodAdvice {
             @AllArguments Object... parameters
     ) {
 
+        System.out.println("delete advice firing for " + declaringTypeName);
+
         //<editor-fold desc="Attributes">
         final Field[] fields = instance != null ? instance.getClass().getDeclaredFields() : new Field[0];
         final Object[] attributes = new Object[fields.length];

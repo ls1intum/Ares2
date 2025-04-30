@@ -9,8 +9,6 @@ import net.bytebuddy.matcher.ElementMatchers;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
 
@@ -96,37 +94,45 @@ public class JavaInstrumentationPointcutDefinitions {
      * @param methodsMap      A map containing class names as keys and lists of method names as values. These
      *                        define the methods to be instrumented.
      * @return An element matcher that matches methods based on the provided methods map.
-     *         If no methods are found for the class, returns {@code ElementMatchers.none()}.
+     * If no methods are found for the class, returns {@code ElementMatchers.none()}.
      */
-    static ElementMatcher<MethodDescription> getMethodsMatcher(
+    static ElementMatcher.Junction<MethodDescription> getMethodsMatcher(
             TypeDescription typeDescription,
             Map<String, List<String>> methodsMap
     ) {
-        String className = typeDescription.getName();
-        List<String> pointcuts = methodsMap.get(className);
+        // collect all method names for this exact class or any key that is a supertype
+        List<String> methodNames = new ArrayList<>();
+        String implClassName = typeDescription.getName();
 
-        if (pointcuts == null || pointcuts.isEmpty() || pointcuts.stream().allMatch("<init>"::equals)) {
+        for (Map.Entry<String, List<String>> entry : methodsMap.entrySet()) {
+            String key = entry.getKey();
+            try {
+                // load both classes via the bootstrap loader so we compare the real types
+                Class<?> keyClass = Class.forName(key, false, null);
+                Class<?> implClass = Class.forName(implClassName, false, null);
+                if (keyClass.isAssignableFrom(implClass)) {
+                    for (String m : entry.getValue()) {
+                        if (!"<init>".equals(m)) {
+                            methodNames.add(m);
+                        }
+                    }
+                }
+            } catch (ClassNotFoundException ignored) {
+                // if either class isn’t on the bootstrap loader, skip
+            }
+        }
+
+        if (methodNames.isEmpty()) {
             return ElementMatchers.none();
         }
 
-        // filter out "<init>" and dedupe
-        String[] methodNames = pointcuts.stream()
-                .filter(name -> !name.equals("<init>"))
-                .distinct()
-                .toArray(String[]::new);
+        String[] names = methodNames.stream().distinct().toArray(String[]::new);
 
-        if (methodNames.length == 0) {
-            return ElementMatchers.none();
-        }
-
-        ElementMatcher.Junction<NamedElement> classNameMatcher = ElementMatchers.named(className);
-        ElementMatcher.Junction<TypeDescription> superClassMatcher = ElementMatchers.hasSuperType(classNameMatcher);
-        ElementMatcher.Junction<TypeDescription> hierarchyMatcher = classNameMatcher.or(superClassMatcher);
-
-        return ElementMatchers
-                .namedOneOf(methodNames)
-                .and(ElementMatchers.isDeclaredBy(hierarchyMatcher));
+        // match by name + a single Path argument
+        return ElementMatchers.namedOneOf(names);
     }
+
+
 
     //</editor-fold>
 
@@ -209,8 +215,7 @@ public class JavaInstrumentationPointcutDefinitions {
             Map.entry("java.io.FileSystem", List.of("delete")),
             // java.nio
             Map.entry("java.nio.file.Files", List.of("delete", "deleteIfExists")),
-            Map.entry("java.nio.file.spi.FileSystemProvider", List.of("delete"))
-    );
+            Map.entry("java.nio.file.spi.FileSystemProvider", List.of("delete", "implDelete")));
     //</editor-fold>
 
     //<editor-fold desc="Create Thread">

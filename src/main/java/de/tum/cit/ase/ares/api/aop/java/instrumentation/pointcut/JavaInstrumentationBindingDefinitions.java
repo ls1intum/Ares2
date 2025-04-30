@@ -279,10 +279,12 @@ public class JavaInstrumentationBindingDefinitions {
             ProtectionDomain ignoredProtectionDomain
     ) {
         try {
-            return createMethodBinding(
+            var binding = createMethodBinding(
                     builder, typeDescription, classLoader,
                     JavaInstrumentationPointcutDefinitions.methodsWhichCanDeleteFiles, JavaInstrumentationDeletePathMethodAdvice.class
+
             );
+            return binding;
         } catch (Exception e) {
             throw new SecurityException(localize("security.instrumentation.delete.method.binding.error"), e);
         }
