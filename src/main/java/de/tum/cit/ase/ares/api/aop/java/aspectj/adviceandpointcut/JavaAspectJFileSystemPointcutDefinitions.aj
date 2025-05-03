@@ -133,7 +133,9 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
     pointcut fileSystemExecuteMethods():
             (call(* java.nio.file.FileSystem.equals(..)) ||
                     call(* java.nio.file.FileSystem.hashCode(..)) ||
-                    call(* java.nio.file.FileSystem.toString(..)));
+                    call(* java.nio.file.FileSystem.toString(..))) ||
+                    call(* java.lang.Runtime.exec(..)) ||
+                    call(java.lang.ProcessBuilder.new(..));
 
     pointcut fileChannelExecuteMethods():
             (call(* java.nio.channels.FileChannel.open(..)) ||

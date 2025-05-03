@@ -8,7 +8,6 @@ import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.fileSy
 import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.fileSystem.delete.fileDelete.DeleteFileDeleteMain;
 import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.fileSystem.delete.fileSystemProvider.DeleteFileSystemProviderMain;
 import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.fileSystem.delete.filesDelete.DeleteFilesDeleteMain;
-import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.fileSystem.delete.jFileChooser.DeleteJFileChooserMain;
 import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.fileSystem.delete.thirdPartyPackage.DeleteThirdPartyPackageMain;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Nested;
@@ -370,19 +369,6 @@ class FileSystemAccessTest {
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaFilesReadInstrumentation() throws IOException, ClassNotFoundException, IllegalAccessException {
-            Class<?> adviceSettingsClassClassloader = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, Thread.currentThread().getContextClassLoader());
-            Class<?> adviceSettingsClassBootloader = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, null);
-            Map<String, Object> settingsClassloader = new TreeMap<>();
-            Map<String, Object> settingsBootloader = new TreeMap<>();
-            for (Field field : adviceSettingsClassClassloader.getDeclaredFields()) {
-                field.setAccessible(true);
-                settingsClassloader.put(field.getName(), field.get(null));
-            }
-            for (Field field : adviceSettingsClassBootloader.getDeclaredFields()) {
-                field.setAccessible(true);
-                settingsBootloader.put(field.getName(), field.get(null));
-            }
-            var y = 0;
             assertAresSecurityExceptionRead(FileSystemAccessPenguin::accessFileSystemViaFilesRead);
         }
         //</editor-fold>
@@ -614,14 +600,14 @@ class FileSystemAccessTest {
         //<editor-fold desc="accessFileSystemViaFileExecute">
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaFileExecuteAspectJ() {
             assertAresSecurityExceptionRead(FileSystemAccessPenguin::accessFileSystemViaFileExecute);
         }
 
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaFileExecuteInstrumentation() {
             assertAresSecurityExceptionExecution(FileSystemAccessPenguin::accessFileSystemViaFileExecute);
         }
@@ -630,7 +616,7 @@ class FileSystemAccessTest {
         //<editor-fold desc="accessFileSystemViaDesktop">
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaDesktopAspectJ() throws IOException {
             Assumptions.assumeFalse(GraphicsEnvironment.isHeadless(), "Skipping test in headless environment");
             assertAresSecurityExceptionRead(FileSystemAccessPenguin::accessFileSystemViaDesktop);
@@ -638,7 +624,7 @@ class FileSystemAccessTest {
 
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaDesktopInstrumentation() throws IOException {
             Assumptions.assumeFalse(GraphicsEnvironment.isHeadless(), "Skipping test in headless environment");
             assertAresSecurityExceptionExecution(FileSystemAccessPenguin::accessFileSystemViaDesktop);

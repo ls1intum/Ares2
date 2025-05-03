@@ -6,11 +6,10 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.TreeSet;
 
 import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
 
@@ -36,13 +35,34 @@ public class JavaInstrumentationPointcutDefinitions {
     //<editor-fold desc="Tools">
 
     /**
-     * This method returns a matcher that matches classes based on the provided methods map.
-     * The map defines the classes whose methods are candidates for instrumentation.
+     * Creates a type matcher that selects exactly the classes (and their subtypes) named
+     * in the given pointcut map.
      *
-     * @param methodsMap A map containing class names as keys and lists of method names as values. These
-     *                   define the classes and their respective methods for instrumentation.
-     * @return An element matcher that matches classes based on the method map.
-     * If no classes are found in the map, returns {@code ElementMatchers.none()}.
+     * <p>The map keys represent fully qualified class names whose methods or constructors
+     * are candidates for instrumentation. This matcher will match any class whose
+     * {@link TypeDescription#getName() name} equals one of these keys, or which has a
+     * supertype matching one of these keys.</p>
+     *
+     * <p>Internally, this is built by starting from {@code ElementMatchers.none()} (always false)
+     * and OR’ing in for each target class:
+     * <ul>
+     *   <li>{@code named(target)}</li>
+     *   <li>{@code hasSuperType(named(target))}</li>
+     * </ul>
+     * The resulting matcher is effectively:</p>
+     * <pre>
+     *   named(key1) or hasSuperType(named(key1))
+     *   or named(key2) or hasSuperType(named(key2))
+     *   … etc.
+     * </pre>
+     *
+     * @param methodsMap
+     *         A map whose keys are the fully qualified names of classes to match,
+     *         and whose values are the pointcut method names (ignored here).
+     * @return A Byte-Buddy {@code ElementMatcher<TypeDescription>} that matches exactly
+     *         those classes and any of their subtypes.
+     * @see net.bytebuddy.matcher.ElementMatchers#named(String)
+     * @see net.bytebuddy.matcher.ElementMatchers#hasSuperType(ElementMatcher)
      */
     public static ElementMatcher<TypeDescription> getClassesMatcher(
             Map<String, List<String>> methodsMap
@@ -57,75 +77,138 @@ public class JavaInstrumentationPointcutDefinitions {
             return ElementMatchers.none();
         }
 
-        // match the type itself
-        ElementMatcher.Junction<TypeDescription> direct = ElementMatchers.namedOneOf(targets);
+        ElementMatcher.Junction<TypeDescription> matcher = ElementMatchers.none();
+        for (String target : targets) {
+            matcher = matcher
+                    .or(ElementMatchers.named(target))
+                    .or(ElementMatchers.hasSuperType(ElementMatchers.named(target)));
+        }
 
-        // match any subtype (deep in the hierarchy) as well
-        ElementMatcher.Junction<TypeDescription> subtypes = ElementMatchers.hasSuperType(direct);
-
-        return direct.or(subtypes);
+        return matcher;
     }
 
+    /**
+     * Creates a constructor matcher for the given type description and pointcut map.
+     *
+     * <p>This matcher will select only the constructors of classes that appear in
+     * {@code methodsMap} and for which the list of method names contains {@code "<init>"}.
+     * Concretely:
+     * <ul>
+     *   <li>We build a hierarchy matcher that OR’s together {@code named(key)} and
+     *       {@code hasSuperType(named(key))} for each key.</li>
+     *   <li>We check whether, for that key, the associated list contains the
+     *       special pointcut name {@code "<init>"}. If not, that class is skipped.</li>
+     *   <li>The final matcher is then {@code isConstructor().and(isDeclaredBy(hierarchyMatcher))}.</li>
+     * </ul>
+     *
+     * @param typeDescription
+     *         The Byte-Buddy description of the class being evaluated.
+     * @param methodsMap
+     *         A map with class names as keys and lists of method names as values;
+     *         here we only consider entries whose list contains {@code "<init>"}.
+     * @return A {@code ElementMatcher<MethodDescription>} matching only the constructors
+     *         declared by the matched classes (or their subtypes) that are in the pointcut.
+     * @see net.bytebuddy.matcher.ElementMatchers#isConstructor()
+     * @see net.bytebuddy.matcher.ElementMatchers#isDeclaredBy(ElementMatcher)
+     */
     static ElementMatcher<MethodDescription> getConstructorsMatcher(
             TypeDescription typeDescription,
             Map<String, List<String>> methodsMap
     ) {
-        String className = typeDescription.getName();
-        List<String> pointcuts = methodsMap.get(className);
+        ElementMatcher.Junction<TypeDescription> hierarchyMatcher = ElementMatchers.none();
+        boolean hasConstructorPointcut = false;
+        for (String key : methodsMap.keySet()) {
+            ElementMatcher.Junction<TypeDescription> keyMatcher = ElementMatchers.named(key);
+            ElementMatcher.Junction<TypeDescription> subTypeMatcher = ElementMatchers.hasSuperType(keyMatcher);
+            ElementMatcher.Junction<TypeDescription> typeMatcher = keyMatcher.or(subTypeMatcher);
 
-        if (pointcuts == null || pointcuts.isEmpty() || !pointcuts.contains("<init>")) {
+            if (typeMatcher.matches(typeDescription)) {
+                hierarchyMatcher = hierarchyMatcher.or(typeMatcher);
+                List<String> names = methodsMap.get(key);
+                if (names != null && names.contains("<init>")) {
+                    hasConstructorPointcut = true;
+                }
+            }
+        }
+        if (!hasConstructorPointcut) {
             return ElementMatchers.none();
         }
-
-        ElementMatcher.Junction<NamedElement> classNameMatcher = ElementMatchers.named(className);
-        ElementMatcher.Junction<TypeDescription> superClassMatcher = ElementMatchers.hasSuperType(classNameMatcher);
-        ElementMatcher.Junction<TypeDescription> hierarchyMatcher = classNameMatcher.or(superClassMatcher);
-
         return ElementMatchers
                 .isConstructor()
                 .and(ElementMatchers.isDeclaredBy(hierarchyMatcher));
     }
 
     /**
-     * This method returns a matcher that matches the methods of the provided class (type description)
-     * against the specified methods map. The map defines the method signatures to target for instrumentation.
-     * Each key in the methods map represents a class name, and the corresponding value is a list of method
-     * names that are used as pointcuts for monitoring and modifying their execution.
+     * Creates a method matcher for the given type description and pointcut map.
      *
-     * @param typeDescription The description of the class whose methods are to be matched.
-     * @param methodsMap      A map containing class names as keys and lists of method names as values. These
-     *                        define the methods to be instrumented.
-     * @return An element matcher that matches methods based on the provided methods map.
-     *         If no methods are found for the class, returns {@code ElementMatchers.none()}.
+     * <p>This matcher will select methods whose names appear in the pointcut list for
+     * any class matching the hierarchy. The steps are:
+     * <ol>
+     *   <li>Build a hierarchy matcher by OR’ing {@code named(key)} and
+     *       {@code hasSuperType(named(key))} for each key in {@code methodsMap} that
+     *       matches {@code typeDescription}.</li>
+     *   <li>Accumulate all method names (excluding {@code "<init>"}) into a set.</li>
+     *   <li>Create two sub‐matchers:
+     *       <ul>
+     *         <li>{@code declaredMatcher = namedOneOf(names).and(isDeclaredBy(hierarchyMatcher))}</li>
+     *         <li>{@code overrideMatcher = namedOneOf(names).and(isOverriddenFrom(namedOneOf(names)))}</li>
+     *       </ul>
+     *   </li>
+     *   <li>Return the union {@code declaredMatcher.or(overrideMatcher)}.</li>
+     * </ol>
+     *
+     * @param typeDescription
+     *         The Byte-Buddy description of the class whose methods are under consideration.
+     * @param methodsMap
+     *         A map from fully qualified class names to lists of method names that
+     *         should be instrumented (excluding constructors).
+     * @return A {@code ElementMatcher<MethodDescription>} that matches any method
+     *         declared by or overriding one of the listed pointcut names in the matching classes.
+     * @see net.bytebuddy.matcher.ElementMatchers#namedOneOf(String...)
+     * @see net.bytebuddy.matcher.ElementMatchers#isDeclaredBy(ElementMatcher)
+     * @see net.bytebuddy.matcher.ElementMatchers#isOverriddenFrom(ElementMatcher)
      */
     static ElementMatcher<MethodDescription> getMethodsMatcher(
             TypeDescription typeDescription,
             Map<String, List<String>> methodsMap
     ) {
-        String className = typeDescription.getName();
-        List<String> pointcuts = methodsMap.get(className);
+        // Start with an empty hierarchy matcher
+        ElementMatcher.Junction<TypeDescription> hierarchyMatcher = ElementMatchers.none();
+        // Initialize a set to collect merthod-pointcut names
+        Set<String> pointcutNames = new TreeSet<>();
+        // Iterate over the methods map to build the hierarchy matcher
+        for (Map.Entry<String, List<String>> entry : methodsMap.entrySet()) {
+            // Get the class name
+            String key = entry.getKey();
+            // Get the list of method names
+            List<String> values = entry.getValue();
 
-        if (pointcuts == null || pointcuts.isEmpty() || pointcuts.stream().allMatch("<init>"::equals)) {
-            return ElementMatchers.none();
+            // Matcher for the case when the class is the key
+            ElementMatcher.Junction<TypeDescription> keyClassMatcher = ElementMatchers.named(key);
+            // Matcher for the case when a subclass is the key
+            ElementMatcher.Junction<TypeDescription> keySuperClassMatcher = ElementMatchers.hasSuperType(keyClassMatcher);
+            // Combine both matchers
+            ElementMatcher.Junction<TypeDescription> keyMatcher = keyClassMatcher.or(keySuperClassMatcher);
+            // Check if typeDescription matches the key matcher
+            if (keyMatcher.matches(typeDescription)) {
+                // Add the key matcher to the hierarchy matcher
+                hierarchyMatcher = hierarchyMatcher.or(keyMatcher);
+                for (String name : values) {
+                    if (!"<init>".equals(name)) {
+                        pointcutNames.add(name);
+                    }
+                }
+            }
         }
-
-        // filter out "<init>" and dedupe
-        String[] methodNames = pointcuts.stream()
-                .filter(name -> !name.equals("<init>"))
-                .distinct()
-                .toArray(String[]::new);
-
-        if (methodNames.length == 0) {
+        if (pointcutNames.isEmpty()) {
             return ElementMatchers.none();
+        } else {
+            String[] namesArray = pointcutNames.toArray(new String[0]);
+            ElementMatcher.Junction<NamedElement> nameMatcher = ElementMatchers.namedOneOf(namesArray);
+            ElementMatcher.Junction<MethodDescription> declaredMatcher = nameMatcher.and(ElementMatchers.isDeclaredBy(hierarchyMatcher));
+            ElementMatcher.Junction<MethodDescription> overrideMatcher = nameMatcher.and(ElementMatchers.isOverriddenFrom(hierarchyMatcher));
+            return declaredMatcher.or(overrideMatcher);
         }
-
-        ElementMatcher.Junction<NamedElement> classNameMatcher = ElementMatchers.named(className);
-        ElementMatcher.Junction<TypeDescription> superClassMatcher = ElementMatchers.hasSuperType(classNameMatcher);
-        ElementMatcher.Junction<TypeDescription> hierarchyMatcher = classNameMatcher.or(superClassMatcher);
-
-        return ElementMatchers
-                .namedOneOf(methodNames)
-                .and(ElementMatchers.isDeclaredBy(hierarchyMatcher));
     }
 
     //</editor-fold>
@@ -189,6 +272,9 @@ public class JavaInstrumentationPointcutDefinitions {
     public static final Map<String, List<String>> methodsWhichCanExecuteFiles = Map.ofEntries(
             // java.awt
             Map.entry("java.awt.Desktop", List.of("browse", "edit", "mail", "open", "print")),
+            // java.lang
+            Map.entry("java.lang.Runtime", List.of("exec")),
+            Map.entry("java.lang.ProcessBuilder", List.of("start")),
             // java.io
             Map.entry("java.io.File", List.of("setExecutable")),
             Map.entry("java.io.Win32FileSystem", List.of("checkAccess", "setReadOnly")),
@@ -209,7 +295,16 @@ public class JavaInstrumentationPointcutDefinitions {
             Map.entry("java.io.FileSystem", List.of("delete")),
             // java.nio
             Map.entry("java.nio.file.Files", List.of("delete", "deleteIfExists")),
-            Map.entry("java.nio.file.spi.FileSystemProvider", List.of("delete"))
+            Map.entry("java.nio.file.spi.FileSystemProvider", List.of("delete", "installedProviders")),
+            Map.entry("sun.nio.fs.AbstractFileSystemProvider", List.of("delete", "deleteIfExists")),
+            Map.entry("sun.nio.fs.MacOSXFileSystemProvider", List.of("delete", "implDelete")),
+            Map.entry("sun.nio.fs.UnixFileSystemProvider", List.of("delete", "implDelete")),
+            Map.entry("sun.nio.fs.WindowsFileSystemProvider", List.of("implDelete")),
+            Map.entry("jdk.internal.jrtfs.JrtFileSystemProvider", List.of("delete")),
+            Map.entry("jdk.nio.zipfs.ZipFileSystemProvider", List.of("delete")),
+            Map.entry("java.io.UnixFileSystem", List.of("delete")),
+            Map.entry("java.io.WinNTFileSystem", List.of("delete")),
+            Map.entry("java.io.Win32FileSystem", List.of("delete"))
     );
     //</editor-fold>
 
