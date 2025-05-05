@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceThreadSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationBindingDefinitions;
@@ -62,13 +63,27 @@ public class JavaInstrumentationAgent {
         try {
             unsafeFactory
                     .make(null, null)
-                    .injectRaw(Map.of(
-                            JavaInstrumentationAdviceFileSystemToolbox.class.getName(),
-                            ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceFileSystemToolbox.class),
-                            JavaInstrumentationAdviceThreadSystemToolbox.class.getName(),
-                            ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceThreadSystemToolbox.class),
-                            JavaAOPTestCaseSettings.class.getName(),
-                            ClassFileLocator.ForClassLoader.read(JavaAOPTestCaseSettings.class)
+                    .injectRaw(Map.ofEntries(
+                            Map.entry(
+                                    JavaInstrumentationAdviceFileSystemToolbox.class.getName(),
+                                    ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceFileSystemToolbox.class)
+                            ),
+                            Map.entry(
+                                    JavaInstrumentationAdviceThreadSystemToolbox.class.getName(),
+                                    ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceThreadSystemToolbox.class)
+                            ),
+                            Map.entry(
+                                    IgnoreValues.class.getName(),
+                                    ClassFileLocator.ForClassLoader.read(IgnoreValues.class)
+                            ),
+                            Map.entry(
+                                    IgnoreValues.Type.class.getName(),
+                                    ClassFileLocator.ForClassLoader.read(IgnoreValues.Type.class)
+                            ),
+                            Map.entry(
+                                    JavaAOPTestCaseSettings.class.getName(),
+                                    ClassFileLocator.ForClassLoader.read(JavaAOPTestCaseSettings.class)
+                            )
                     ));
         } catch (Exception e) {
             throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.agent.installation.error", "Putting the Toolbox on the BootClassLoader failed", e));
@@ -92,7 +107,6 @@ public class JavaInstrumentationAgent {
             AgentBuilder.Transformer transformer
     ) {
         try {
-
             new AgentBuilder
                     .Default()
                     .ignore(ElementMatchers.nameStartsWith("net.bytebuddy."))

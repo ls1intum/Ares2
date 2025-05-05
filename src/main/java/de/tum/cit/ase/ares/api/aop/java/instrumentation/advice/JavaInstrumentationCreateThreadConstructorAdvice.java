@@ -30,7 +30,6 @@ public class JavaInstrumentationCreateThreadConstructorAdvice {
             @Advice.Origin("#t") String declaringTypeName,
             @Advice.AllArguments Object... parameters
     ) {
-        System.out.println("Injected");
 
         JavaInstrumentationAdviceThreadSystemToolbox.checkThreadSystemInteraction(
                 "create",
