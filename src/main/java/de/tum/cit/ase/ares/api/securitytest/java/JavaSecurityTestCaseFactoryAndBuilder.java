@@ -255,13 +255,13 @@ public class JavaSecurityTestCaseFactoryAndBuilder extends SecurityTestCaseAbstr
      * It returns a list of file paths to the generated files.
      * </p>
      *
-     * @param projectDirectory
+     * @param testFolderPath
      *          the directory where test case files will be written; may be null.
      * @return a non-null list of {@link Path} objects representing the generated files.
      */
     @Override
     @Nonnull
-    public List<Path> writeSecurityTestCases(@Nullable Path projectDirectory) {
+    public List<Path> writeSecurityTestCases(@Nullable Path testFolderPath) {
         return writer.writeSecurityTestCases(
                 javaBuildMode,
                 javaArchitectureMode,
@@ -273,7 +273,7 @@ public class JavaSecurityTestCaseFactoryAndBuilder extends SecurityTestCaseAbstr
                 mainClassInPackageName,
                 this.architectureTestCases.stream().map(architectureTestCase -> (JavaArchitectureTestCase) architectureTestCase).toList(),
                 this.aopTestCases.stream().map(aopTestCase -> (JavaAOPTestCase) aopTestCase).toList(),
-                projectDirectory
+                testFolderPath
         );
     }
     //</editor-fold>

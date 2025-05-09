@@ -33,7 +33,7 @@ public interface Writer {
      * @param testClasses the list of test classes; must not be null
      * @param javaArchitectureTestCases the list of architecture test cases; must not be null
      * @param javaAOPTestCases the list of AOP test cases; must not be null
-     * @param projectDirectory the directory of the project; may be null
+     * @param testFolderPath the directory of the project; may be null
      * @return a list of paths to the created files
      */
     @Nonnull
@@ -48,7 +48,7 @@ public interface Writer {
             @Nonnull String mainClassInPackageName,
             @Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
             @Nonnull List<JavaAOPTestCase> javaAOPTestCases,
-            @Nullable Path projectDirectory
+            @Nullable Path testFolderPath
     );
 
 }

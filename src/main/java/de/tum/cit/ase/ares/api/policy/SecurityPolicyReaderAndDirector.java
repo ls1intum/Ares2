@@ -120,9 +120,9 @@ public class SecurityPolicyReaderAndDirector {
      * @return a list of Paths where the security test cases were written.
      */
     @Nonnull
-    public List<Path> writeSecurityTestCases(Path targetFolderPath) {
-        return Preconditions.checkNotNull(this.securityTestCaseFactoryAndBuilder, "testCaseManager must not be null")
-                .writeSecurityTestCases(targetFolderPath);
+    public List<Path> writeSecurityTestCases(Path testFolderPath) {
+        return Preconditions.checkNotNull(this.securityTestCaseFactoryAndBuilder, "securityTestCaseFactoryAndBuilder must not be null")
+                .writeSecurityTestCases(testFolderPath);
     }
     //</editor-fold>
 
@@ -135,7 +135,7 @@ public class SecurityPolicyReaderAndDirector {
      * @author Markus Paulsen
      */
     public void executeSecurityTestCases() {
-        Preconditions.checkNotNull(this.securityTestCaseFactoryAndBuilder, "testCaseManager must not be null")
+        Preconditions.checkNotNull(this.securityTestCaseFactoryAndBuilder, "securityTestCaseFactoryAndBuilder must not be null")
                 .executeSecurityTestCases();
     }
     //</editor-fold>

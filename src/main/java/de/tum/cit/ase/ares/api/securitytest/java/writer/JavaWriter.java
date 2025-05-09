@@ -5,6 +5,7 @@ import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.java.JavaBuildMode;
+import de.tum.cit.ase.ares.api.phobos.Phobos;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
 import javax.annotation.Nonnull;
@@ -31,6 +32,7 @@ import java.util.stream.Stream;
 public class JavaWriter implements Writer {
 
     //<editor-fold desc="Helper methods">
+
     /**
      * Creates Java architecture test files.
      *
@@ -41,7 +43,7 @@ public class JavaWriter implements Writer {
      * @param packageName the name of the package containing the main class; must not be null
      * @param mainClassInPackageName the name of the main class; must not be null
      * @param javaArchitectureTestCases the list of architecture test cases; must not be null
-     * @param projectDirectory the directory of the project; may be null
+     * @param testFolderPath the directory of the project; may be null
      * @return a list of paths to the created files
      */
     @Nonnull
@@ -51,19 +53,19 @@ public class JavaWriter implements Writer {
             @Nonnull String packageName,
             @Nonnull String mainClassInPackageName,
             @Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
-            @Nullable Path projectDirectory
+            @Nullable Path testFolderPath
     ) {
         return Stream.concat(
-                FileTools.copyJavaFiles(
+                FileTools.copyJavaPhobosFiles(
                         javaArchitectureMode.filesToCopy(),
-                        javaArchitectureMode.targetsToCopyTo(projectDirectory, packageName),
+                        javaArchitectureMode.targetsToCopyTo(testFolderPath, packageName),
                         javaArchitectureMode.fileValues(packageName)
                 ).stream(),
-                Stream.of(FileTools.createThreePartedJavaFile(
+                Stream.of(FileTools.createThreePartedJavaPhobosFile(
                         javaArchitectureMode.threePartedFileHeader(),
                         javaArchitectureMode.threePartedFileBody(javaArchitectureTestCases),
                         javaArchitectureMode.threePartedFileFooter(),
-                        javaArchitectureMode.targetToCopyTo(projectDirectory, packageName),
+                        javaArchitectureMode.targetToCopyTo(testFolderPath, packageName),
                         javaArchitectureMode.fileValue(packageName)
                 ))
         ).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
@@ -80,7 +82,7 @@ public class JavaWriter implements Writer {
      * @param packageName the name of the package containing the main class; must not be null
      * @param mainClassInPackageName the name of the main class; must not be null
      * @param javaAOPTestCases the list of AOP test cases; must not be null
-     * @param projectDirectory the directory of the project; may be null
+     * @param testFolderPath the directory of the project; may be null
      * @return a list of paths to the created files
      */
     @Nonnull
@@ -91,27 +93,51 @@ public class JavaWriter implements Writer {
             @Nonnull String packageName,
             @Nonnull String mainClassInPackageName,
             @Nonnull List<JavaAOPTestCase> javaAOPTestCases,
-            @Nullable Path projectDirectory
+            @Nullable Path testFolderPath
     ) {
         @Nonnull ArrayList<String> allowedClasses = Stream.concat(
                 essentialClasses.stream(),
                 testClasses.stream()
         ).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
         return Stream.concat(
-                FileTools.copyJavaFiles(
+                FileTools.copyJavaPhobosFiles(
                         javaAOPMode.filesToCopy(),
-                        javaAOPMode.targetsToCopyTo(projectDirectory, packageName),
+                        javaAOPMode.targetsToCopyTo(testFolderPath, packageName),
                         javaAOPMode.fileValues(packageName, mainClassInPackageName)
                 ).stream(),
-                Stream.of(FileTools.createThreePartedJavaFile(
+                Stream.of(FileTools.createThreePartedJavaPhobosFile(
                         javaAOPMode.threePartedFileHeader(),
                         javaAOPMode.threePartedFileBody(javaAOPMode.toString(), packageName, allowedClasses, javaAOPTestCases),
                         javaAOPMode.threePartedFileFooter(),
-                        javaAOPMode.targetToCopyTo(projectDirectory, packageName),
+                        javaAOPMode.targetToCopyTo(testFolderPath, packageName),
                         javaAOPMode.fileValue(packageName)
                 ))
         ).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
     }
+
+    @Nonnull
+    private List<Path> createPhobosFiles(
+            @Nonnull String packageName,
+            @Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
+            @Nonnull List<JavaAOPTestCase> javaAOPTestCases,
+            @Nullable Path testFolderPath
+    ) {
+        return Stream.concat(
+                FileTools.copyJavaPhobosFiles(
+                        Phobos.filesToCopy(),
+                        Phobos.targetsToCopyTo(testFolderPath, packageName),
+                        Phobos.fileValues(packageName)
+                ).stream(),
+                Stream.of(FileTools.createThreePartedJavaPhobosFile(
+                        Phobos.threePartedFileHeader(),
+                        Phobos.threePartedFileBody(javaArchitectureTestCases, javaAOPTestCases, testFolderPath),
+                        Phobos.threePartedFileFooter(),
+                        Phobos.targetToCopyTo(testFolderPath, packageName),
+                        Phobos.fileValue(packageName)
+                ))
+        ).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+    }
+
     //</editor-fold>
 
     //<editor-fold desc="Write security test cases methods">
@@ -131,7 +157,7 @@ public class JavaWriter implements Writer {
      * @param mainClassInPackageName the name of the main class; must not be null
      * @param javaArchitectureTestCases the list of architecture test cases; must not be null
      * @param javaAOPTestCases the list of AOP test cases; must not be null
-     * @param projectDirectory the directory of the project; may be null
+     * @param testFolderPath the directory of the project; may be null
      * @return a list of paths to the created files
      */
     @Nonnull
@@ -146,27 +172,35 @@ public class JavaWriter implements Writer {
             @Nonnull String mainClassInPackageName,
             @Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
             @Nonnull List<JavaAOPTestCase> javaAOPTestCases,
-            @Nullable Path projectDirectory
+            @Nullable Path testFolderPath
     ) {
-        return Stream.concat(
-                createJavaArchitectureFiles(
-                        javaArchitectureMode,
-                        essentialPackages,
-                        packageName,
-                        mainClassInPackageName,
-                        javaArchitectureTestCases,
-                        projectDirectory
-                ).stream(),
-                createJavaAOPFiles(
-                        javaAOPMode,
-                        essentialClasses,
-                        testClasses,
-                        packageName,
-                        mainClassInPackageName,
-                        javaAOPTestCases,
-                        projectDirectory
-                ).stream()
-        ).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+        return Stream.of(
+                        createJavaArchitectureFiles(
+                                javaArchitectureMode,
+                                essentialPackages,
+                                packageName,
+                                mainClassInPackageName,
+                                javaArchitectureTestCases,
+                                testFolderPath
+                        ).stream(),
+                        createJavaAOPFiles(
+                                javaAOPMode,
+                                essentialClasses,
+                                testClasses,
+                                packageName,
+                                mainClassInPackageName,
+                                javaAOPTestCases,
+                                testFolderPath
+                        ).stream(),
+                        createPhobosFiles(
+                                packageName,
+                                javaArchitectureTestCases,
+                                javaAOPTestCases,
+                                testFolderPath
+                        ).stream()
+                )
+                .flatMap(s -> s)
+                .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
     }
     //</editor-fold>
 }

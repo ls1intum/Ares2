@@ -46,11 +46,11 @@ public abstract class SecurityTestCaseAbstractFactoryAndBuilder {
      *
      * @since 2.0.0
      * @author Markus Paulsen
-     * @param projectDirectory the target directory where Ares 2 saves test case files. It may be null.
+     * @param testFolderPath the target directory where Ares 2 saves test case files. It may be null.
      * @return a non-null list of Path objects representing the generated test case files.
      */
     @Nonnull
-    public abstract List<Path> writeSecurityTestCases(@Nullable Path projectDirectory);
+    public abstract List<Path> writeSecurityTestCases(@Nullable Path testFolderPath);
 
     /**
      * Executes the generated security test cases.
