@@ -13,6 +13,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumenta
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.loading.ClassInjector;
+import net.bytebuddy.dynamic.loading.ClassInjector.UsingUnsafe.Factory;
 import net.bytebuddy.matcher.ElementMatchers;
 
 /**
@@ -29,7 +30,7 @@ public class JavaInstrumentationAgent {
      * @param inst      The instrumentation instance.
      */
     public static void premain(String agentArgs, Instrumentation inst) {
-        ClassInjector.UsingUnsafe.Factory unsafeFactory = ClassInjector.UsingUnsafe.Factory.resolve(inst);
+        Factory unsafeFactory = Factory.resolve(inst);
 
         putToolboxOnBootClassLoader(unsafeFactory);
 
@@ -58,7 +59,7 @@ public class JavaInstrumentationAgent {
     }
 
     private static void putToolboxOnBootClassLoader(
-            ClassInjector.UsingUnsafe.Factory unsafeFactory
+            Factory unsafeFactory
     ) {
         try {
             unsafeFactory

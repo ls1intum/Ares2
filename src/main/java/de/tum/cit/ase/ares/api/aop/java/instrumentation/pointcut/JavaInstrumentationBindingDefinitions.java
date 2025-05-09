@@ -67,9 +67,6 @@ public class JavaInstrumentationBindingDefinitions {
             Map<String, List<String>> pointcuts, Class<?> advice
     ) {
         try {
-            //loadToolbox(classLoader);
-            //return builder.visit(Advice.to(advice).on(JavaInstrumentationPointcutDefinitions.getMethodsMatcher(typeDescription, pointcuts)));
-
             String adviceClassName = advice.getName();
             ElementMatcher<? super MethodDescription> matcher =
                     JavaInstrumentationPointcutDefinitions.getMethodsMatcher(typeDescription, pointcuts);

@@ -6,206 +6,337 @@
     <artifactId>ares</artifactId>
     <version>2.0.0-Beta-4</version>
     <properties>
+        <!-- 0. General Project Settings -->
         <maven.compiler.source>21</maven.compiler.source>
-        <arch.unit.version>1.3.0</arch.unit.version>
         <maven.compiler.target>21</maven.compiler.target>
-        <junit-pioneer-version>2.2.0</junit-pioneer-version>
-        <junit-jupiter-version>5.10.2</junit-jupiter-version>
-        <java-parser-version>3.25.9</java-parser-version>
-        <junit-platform-version>1.10.2</junit-platform-version>
-        <jqwik-version>1.8.4</jqwik-version>
-        <spotless.version>2.43.0</spotless.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <!-- 1. Testing: 1.1 JUnit -->
+        <junit-jupiter-version>5.10.2</junit-jupiter-version>
+        <junit-pioneer-version>2.2.0</junit-pioneer-version>
+        <junit-platform-version>1.10.2</junit-platform-version>
+        <!-- 1. Testing: 1.2 jqwik -->
+        <jqwik-version>1.8.4</jqwik-version>
+        <!-- 1. Testing: 1.3 AssertJ -->
+        <assertj-version>3.25.3</assertj-version>
+        <!-- 1. Testing: 1.4 Mockito -->
+        <mockito-version>5.2.0</mockito-version>
+        <!-- 1. Testing: 1.5 Hamcrest -->
+        <hamcrest-version>2.2</hamcrest-version>
+        <!-- 2. Architecture: 2.1 ArchUnit -->
+        <archunit-version>1.3.0</archunit-version>
+        <!-- 2. Architecture: 2.2 Wala -->
+        <wala-version>1.6.7</wala-version>
+        <!-- 3. AOP: 3.1 AspectJ -->
+        <aspectj-version>1.9.22</aspectj-version>
+        <aspectj-path>
+            ${user.home}${file.separator}.m2${file.separator}repository${file.separator}org${file.separator}aspectj${file.separator}aspectjrt${file.separator}${aspectj-version}${file.separator}aspectjrt-${aspectj-version}.jar
+        </aspectj-path>
+        <!-- 3. AOP: 3.2 Byte Buddy -->
+        <byte-buddy-version>1.14.19</byte-buddy-version>
+        <byte-buddy-path>
+            ${project.build.directory}${file.separator}${project.artifactId}-${project.version}-agent.jar
+        </byte-buddy-path>
+        <!-- 4. AST: 4.1 JavaParser -->
+        <java-parser-version>3.25.9</java-parser-version>
+        <!-- 5. Formats: 5.1 JSON -->
+        <json-version>20240303</json-version>
+        <!-- 5. Formats: 5.2 YAML -->
+        <yaml-version>2.17.2</yaml-version>
+        <!-- 6. Large Tooling Libraries -->
+        <guava-version>33.4.0-jre</guava-version>
+        <commons-io-version>2.18.0</commons-io-version>
+        <vavr-version>0.10.6</vavr-version>
+        <!-- 7. Small Tooling Libraries -->
+        <java-string-similarity-version>2.0.0</java-string-similarity-version>
+        <jgrapht-core-version>1.5.2</jgrapht-core-version>
+        <!-- 8. Logging  -->
+        <logback-version>1.5.3</logback-version>
+        <!-- 8. API  -->
+        <apiguardian-api-version>1.1.2</apiguardian-api-version>
+        <!-- Others -->
+        <spotless.version>2.43.0</spotless.version>
         <!-- if JaCoCo is not executed -->
         <argLine></argLine>
         <!-- full certificate fingerprint: 23E62BB282A473EE4DDA2F8763EFD39363D21A8D -->
         <gpg.key.id>23E62BB282A473EE4DDA2F8763EFD39363D21A8D</gpg.key.id>
-        <aspectj.version>1.9.22</aspectj.version>
-
-        <instrumentation-path>
-            ${project.build.directory}${file.separator}${project.artifactId}-${project.version}-agent.jar
-        </instrumentation-path>
-        <aspectj-path>
-            ${user.home}${file.separator}.m2${file.separator}repository${file.separator}org${file.separator}aspectj${file.separator}aspectjrt${file.separator}${aspectj.version}${file.separator}aspectjrt-${aspectj.version}.jar
-        </aspectj-path>
     </properties>
     <dependencies>
-        <!-- Large Tooling Libraries -->
+        <!-- 1. Testing: 1.1 JUnit -->
         <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>33.4.0-jre</version>
-        </dependency>
-        <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
-            <version>2.18.0</version>
-        </dependency>
-        <dependency>
-            <groupId>io.vavr</groupId>
-            <artifactId>vavr</artifactId>
-            <version>0.10.6</version>
-        </dependency>
-        <!-- Junit frameworks -->
-        <dependency>
-            <groupId>org.junit-pioneer</groupId>
-            <artifactId>junit-pioneer</artifactId>
-            <version>${junit-pioneer-version}</version>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <version>${junit-jupiter-version}</version>
+            <!-- 3 Cases:
+                src/test/java/de/tum/cit/ase/ares/api/util/LruCacheTest.java
+                src/test/java/de/tum/cit/ase/ares/api/util/ClassMemberAccessorTest.java
+                src/test/java/de/tum/cit/ase/ares/integration/testuser/NetworkUser.java
+             -->
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
             <version>${junit-jupiter-version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-            <version>${junit-jupiter-version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-params</artifactId>
-            <version>${junit-jupiter-version}</version>
+            <!-- 1 Case:
+                src/test/java/de/tum/cit/ase/ares/testutilities/UserBased.java
+             -->
         </dependency>
         <dependency>
             <groupId>org.junit.vintage</groupId>
             <artifactId>junit-vintage-engine</artifactId>
             <version>${junit-jupiter-version}</version>
-            <scope>provided</scope>
-            <optional>true</optional>
+            <!-- 2 Cases:
+                src/main/java/de/tum/cit/ase/ares/api/internal/sanitization/SafeTypeThrowableSanitizer.java
+                src/main/java/de/tum/cit/ase/ares/api/internal/sanitization/ThrowableSets.java
+            -->
         </dependency>
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-testkit</artifactId>
+            <version>${junit-platform-version}</version>
+            <!-- Multiple Cases -->
+        </dependency>
+        <!--
+        Included in junit-jupiter-params and junit-jupiter-engine
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <version>${junit-jupiter-version}</version>
+        </dependency>
+
+        Included in junit-platform-testkit
         <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-launcher</artifactId>
             <version>${junit-platform-version}</version>
         </dependency>
+
+        Not required
         <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-inline</artifactId>
-            <version>5.2.0</version>
-            <scope>test</scope>
+            <groupId>org.junit-pioneer</groupId>
+            <artifactId>junit-pioneer</artifactId>
+            <version>${junit-pioneer-version}</version>
         </dependency>
-        <!-- Logging framework -->
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>1.5.3</version>
-        </dependency>
-        <!-- Declarative 'match' rule framework -->
-        <dependency>
-            <groupId>org.hamcrest</groupId>
-            <artifactId>hamcrest</artifactId>
-            <version>2.2</version>
-        </dependency>
-        <!-- Framework for improving assertions -->
-        <dependency>
-            <groupId>org.assertj</groupId>
-            <artifactId>assertj-core</artifactId>
-            <version>3.25.3</version>
-        </dependency>
-        <!-- Framework for working with JSON -->
-        <dependency>
-            <groupId>org.json</groupId>
-            <artifactId>json</artifactId>
-            <version>20240303</version>
-        </dependency>
-        <!-- Framework for analysing the distance of strings -->
-        <dependency>
-            <groupId>info.debatty</groupId>
-            <artifactId>java-string-similarity</artifactId>
-            <version>2.0.0</version>
-        </dependency>
-        <!-- Basis for AST checks -->
-        <dependency>
-            <groupId>com.github.javaparser</groupId>
-            <artifactId>javaparser-core</artifactId>
-            <version>${java-parser-version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.github.javaparser</groupId>
-            <artifactId>javaparser-symbol-solver-core</artifactId>
-            <version>${java-parser-version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.tngtech.archunit</groupId>
-            <artifactId>archunit</artifactId>
-            <version>${arch.unit.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.tngtech.archunit</groupId>
-            <artifactId>archunit-junit5</artifactId>
-            <version>${arch.unit.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.jgrapht</groupId>
-            <artifactId>jgrapht-core</artifactId>
-            <version>1.5.2</version>
-        </dependency>
-        <!-- For testing we use a test framework testing framework -->
-        <dependency>
-            <groupId>org.junit.platform</groupId>
-            <artifactId>junit-platform-testkit</artifactId>
-            <scope>test</scope>
-            <version>${junit-platform-version}</version>
-        </dependency>
-        <!-- For testing the property based testing framework jqwik is supported -->
-        <!-- (but it is not a required dependency) -->
+        -->
+        <!-- 1. Testing: 1.2 jqwik -->
         <dependency>
             <groupId>net.jqwik</groupId>
             <artifactId>jqwik</artifactId>
             <version>${jqwik-version}</version>
             <scope>provided</scope>
-            <optional>true</optional>
+            <!-- Multiple Cases -->
         </dependency>
+        <!-- 1. Testing: 1.3 Mockito -->
         <dependency>
-            <groupId>org.apiguardian</groupId>
-            <artifactId>apiguardian-api</artifactId>
-            <version>1.1.2</version>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-inline</artifactId>
+            <version>${mockito-version}</version>
+            <!-- Multiple Cases -->
         </dependency>
+        <!-- 1. Testing: 1.4 AssertJ -->
+        <!--<dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>${assertj-version}</version>
+        </dependency>-->
+        <!-- 1. Testing: 1.5 Hamcrest -->
+        <!--<dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest</artifactId>
+            <version>${hamcrest-version}</version>
+        </dependency>-->
+        <!-- 2. Architecture: 2.1 ArchUnit -->
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit-junit5</artifactId>
+            <version>${archunit-version}</version>
+            <!-- 1 Case:
+                src/main/java/de/tum/cit/ase/ares/api/securitytest/java/specific/PathLocationProvider.java
+             -->
+        </dependency>
+        <!--
+        Not required
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit</artifactId>
+            <version>${archunit-version}</version>
+        </dependency>
+        -->
+        <!-- 2. Architecture: 2.2 Wala -->
+        <dependency>
+           <groupId>com.ibm.wala</groupId>
+           <artifactId>com.ibm.wala.core</artifactId>
+           <version>${wala-version}</version>
+           <!-- Multiple Cases -->
+       </dependency>
+       <!-- 3. AOP: 3.1 AspectJ -->
         <dependency>
             <groupId>org.aspectj</groupId>
             <artifactId>aspectjrt</artifactId>
-            <version>${aspectj.version}</version>
+            <version>${aspectj-version}</version>
         </dependency>
+        <!--
+        Not required
         <dependency>
             <groupId>org.aspectj</groupId>
             <artifactId>aspectjweaver</artifactId>
-            <version>${aspectj.version}</version>
+            <version>${aspectj-version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.dataformat</groupId>
-            <artifactId>jackson-dataformat-yaml</artifactId>
-            <version>2.17.2</version>
-        </dependency>
+        -->
+        <!-- 3. AOP: 3.2 Byte Buddy -->
         <dependency>
             <groupId>net.bytebuddy</groupId>
             <artifactId>byte-buddy</artifactId>
-            <version>1.14.19</version>
+            <version>${byte-buddy-version}</version>
+            <!-- Multiple Cases -->
         </dependency>
         <dependency>
             <groupId>net.bytebuddy</groupId>
             <artifactId>byte-buddy-agent</artifactId>
-            <version>1.14.19</version>
+            <version>${byte-buddy-version}</version>
+            <!-- Multiple Cases -->
+        </dependency>
+        <!-- 4. AST: 4.1 JavaParser -->
+        <dependency>
+            <groupId>com.github.javaparser</groupId>
+            <artifactId>javaparser-symbol-solver-core</artifactId>
+            <version>${java-parser-version}</version>
+            <!-- 1. Case:
+                src/main/java/de/tum/cit/ase/ares/api/ast/model/RecursionCheck.java
+             -->
+        </dependency>
+        <!--
+        Included in javaparser-symbol-solver-core
+        <dependency>
+            <groupId>com.github.javaparser</groupId>
+            <artifactId>javaparser-core</artifactId>
+            <version>${java-parser-version}</version>
+        </dependency>
+        -->
+        <!-- 5. Formats: 5.1 JSON -->
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>${json-version}</version>
+        </dependency>
+        <!-- 5. Formats: 5.2 YAML -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-yaml</artifactId>
+            <version>${yaml-version}</version>
+        </dependency>
+        <!-- 6. Large Tooling Libraries -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>${guava-version}</version>
         </dependency>
         <dependency>
-            <groupId>com.ibm.wala</groupId>
-            <artifactId>com.ibm.wala.core</artifactId>
-            <version>1.6.7</version>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>${commons-io-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.vavr</groupId>
+            <artifactId>vavr</artifactId>
+            <version>${vavr-version}</version>
+        </dependency>
+        <!-- 7. Small Tooling Libraries -->
+        <dependency>
+            <groupId>info.debatty</groupId>
+            <artifactId>java-string-similarity</artifactId>
+            <version>${java-string-similarity-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jgrapht</groupId>
+            <artifactId>jgrapht-core</artifactId>
+            <version>${jgrapht-core-version}</version>
+        </dependency>
+        <!-- 8. Logging  -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback-version}</version>
+        </dependency>
+        <!-- 8. API  -->
+        <dependency>
+            <groupId>org.apiguardian</groupId>
+            <artifactId>apiguardian-api</artifactId>
+            <version>${apiguardian-api-version}</version>
         </dependency>
     </dependencies>
     <build>
         <plugins>
+            <!-- 1. Clean -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-clean-plugin</artifactId>
                 <version>3.3.2</version>
             </plugin>
+            <!-- 2. Validate -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-resources-plugin</artifactId>
-                <version>3.3.1</version>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.4.1</version>
+                <executions>
+                    <execution>
+                        <id>enforce-versions</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireMavenVersion>
+                                    <version>[3.9,)</version>
+                                </requireMavenVersion>
+                                <requireJavaVersion>
+                                    <version>[9,)</version>
+                                </requireJavaVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>enforce-no-student-code-in-trusted-packages</id>
+                        <phase>process-test-classes</phase>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireFilesDontExist>
+                                    <files>
+                                        <!-- Required for de.tum.cit.ase.ares.api.security.ArtemisSecurityConfigurationTest -->
+                                        <!-- <file>${project.build.outputDirectory}/abc/def/</file> -->
+                                        <file>${project.build.outputDirectory}/ch/qos/logback/</file>
+                                        <file>${project.build.outputDirectory}/com/github/javaparser/</file>
+                                        <file>${project.build.outputDirectory}/com/intellij/</file>
+                                        <file>${project.build.outputDirectory}/com/sun/</file>
+                                        <!-- We cannot fulfill this one because we are building those classes here
+                                        <file>${project.build.outputDirectory}/de/tum/cit/ase/ares/api/</file> -->
+                                        <file>${project.build.outputDirectory}/de/tum/in/test/api/</file>
+                                        <file>${project.build.outputDirectory}/java/</file>
+                                        <file>${project.build.outputDirectory}/javax/</file>
+                                        <file>${project.build.outputDirectory}/jdk/</file>
+                                        <file>${project.build.outputDirectory}/net/jqwik/</file>
+                                        <file>${project.build.outputDirectory}/org/apache/</file>
+                                        <file>${project.build.outputDirectory}/org/assertj/</file>
+                                        <file>${project.build.outputDirectory}/org/eclipse/</file>
+                                        <file>${project.build.outputDirectory}/org/jacoco/</file>
+                                        <file>${project.build.outputDirectory}/org/json/</file>
+                                        <file>${project.build.outputDirectory}/org/junit/</file>
+                                        <file>${project.build.outputDirectory}/org/opentest4j/</file>
+                                        <file>${project.build.outputDirectory}/sun/</file>
+                                        <file>${project.build.outputDirectory}/org/gradle/</file>
+                                        <file>${project.build.outputDirectory}/worker/org/gradle/</file>
+                                    </files>
+                                </requireFilesDontExist>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
+            <!-- 3. Compile -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -213,77 +344,56 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-install-plugin</artifactId>
-                <version>3.1.1</version>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.3.1</version>
+            </plugin>
+            <plugin>
+                <groupId>dev.aspectj</groupId>
+                <artifactId>aspectj-maven-plugin</artifactId>
+                <version>1.14.1</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.aspectj</groupId>
+                        <artifactId>aspectjtools</artifactId>
+                        <version>1.9.24</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <forceAjcCompile>true</forceAjcCompile>
+                    <complianceLevel>21</complianceLevel>
+                    <source>21</source>
+                    <target>21</target>
+                    <showWeaveInfo>true</showWeaveInfo>
+                    <weaveTest>true</weaveTest>
+                </configuration>
                 <executions>
                     <execution>
-                        <id>install-main-jar</id>
-                        <phase>install</phase>
+                        <id>weave-test-classes</id>
+                        <phase>process-test-classes</phase>
                         <goals>
-                            <goal>install-file</goal>
+                            <goal>test-compile</goal>
                         </goals>
-                        <configuration>
-                            <file>${project.build.directory}${file.separator}${project.build.finalName}.jar</file>
-                            <groupId>${project.groupId}</groupId>
-                            <artifactId>${project.artifactId}</artifactId>
-                            <version>${project.version}</version>
-                            <packaging>jar</packaging>
-                        </configuration>
                     </execution>
                     <execution>
-                        <id>install-pom</id>
-                        <phase>package</phase>
+                        <id>weave-main-classes</id>
+                        <phase>process-classes</phase>
                         <goals>
-                            <goal>install-file</goal>
+                            <goal>compile</goal>
                         </goals>
-                        <configuration>
-                            <file>${basedir}${file.separator}pom.xml
-                            </file> <!-- Ensure this is correctly pointing to your POM file -->
-                            <groupId>${project.groupId}</groupId>
-                            <artifactId>${project.artifactId}</artifactId>
-                            <version>${project.version}</version>
-                            <packaging>pom</packaging>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>install-javadoc-jar</id>
-                        <phase>install</phase>
-                        <goals>
-                            <goal>install-file</goal>
-                        </goals>
-                        <configuration>
-                            <file>${project.build.directory}${file.separator}${project.build.finalName}-javadoc.jar
-                            </file>
-                            <groupId>${project.groupId}</groupId>
-                            <artifactId>${project.artifactId}</artifactId>
-                            <version>${project.version}</version>
-                            <packaging>jar</packaging>
-                            <classifier>javadoc</classifier>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>install-sources-jar</id>
-                        <phase>install</phase>
-                        <goals>
-                            <goal>install-file</goal>
-                        </goals>
-                        <configuration>
-                            <file>${project.build.directory}${file.separator}${project.build.finalName}-sources.jar
-                            </file>
-                            <groupId>${project.groupId}</groupId>
-                            <artifactId>${project.artifactId}</artifactId>
-                            <version>${project.version}</version>
-                            <packaging>jar</packaging>
-                            <classifier>sources</classifier>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>
+            <!-- 4. Test -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-site-plugin</artifactId>
-                <version>3.12.1</version>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.1</version>
+                <configuration>
+                    <forkCount>1</forkCount>
+                    <argLine>-javaagent:${byte-buddy-path} -Xbootclasspath/a:${aspectj-path}</argLine>
+                </configuration>
             </plugin>
+            <!-- 5. Package -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
@@ -365,70 +475,125 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-deploy-plugin</artifactId>
+                <artifactId>maven-install-plugin</artifactId>
                 <version>3.1.1</version>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.4.1</version>
                 <executions>
                     <execution>
-                        <id>enforce-versions</id>
-                        <phase>validate</phase>
+                        <id>install-main-jar</id>
+                        <phase>install</phase>
                         <goals>
-                            <goal>enforce</goal>
+                            <goal>install-file</goal>
                         </goals>
                         <configuration>
-                            <rules>
-                                <requireMavenVersion>
-                                    <version>[3.9,)</version>
-                                </requireMavenVersion>
-                                <requireJavaVersion>
-                                    <version>[21,)</version>
-                                </requireJavaVersion>
-                            </rules>
+                            <file>${project.build.directory}${file.separator}${project.build.finalName}.jar</file>
+                            <groupId>${project.groupId}</groupId>
+                            <artifactId>${project.artifactId}</artifactId>
+                            <version>${project.version}</version>
+                            <packaging>jar</packaging>
                         </configuration>
                     </execution>
                     <execution>
-                        <id>enforce-no-student-code-in-trusted-packages</id>
-                        <phase>process-test-classes</phase>
+                        <id>install-pom</id>
+                        <phase>package</phase>
                         <goals>
-                            <goal>enforce</goal>
+                            <goal>install-file</goal>
                         </goals>
                         <configuration>
-                            <rules>
-                                <requireFilesDontExist>
-                                    <files>
-                                        <!-- Required for de.tum.cit.ase.ares.api.security.ArtemisSecurityConfigurationTest -->
-                                        <!-- <file>${project.build.outputDirectory}/abc/def/</file> -->
-                                        <file>${project.build.outputDirectory}/ch/qos/logback/</file>
-                                        <file>${project.build.outputDirectory}/com/github/javaparser/</file>
-                                        <file>${project.build.outputDirectory}/com/intellij/</file>
-                                        <file>${project.build.outputDirectory}/com/sun/</file>
-                                        <!-- We cannot fulfill this one because we are building those classes here
-                                        <file>${project.build.outputDirectory}/de/tum/cit/ase/ares/api/</file> -->
-                                        <file>${project.build.outputDirectory}/de/tum/in/test/api/</file>
-                                        <file>${project.build.outputDirectory}/java/</file>
-                                        <file>${project.build.outputDirectory}/javax/</file>
-                                        <file>${project.build.outputDirectory}/jdk/</file>
-                                        <file>${project.build.outputDirectory}/net/jqwik/</file>
-                                        <file>${project.build.outputDirectory}/org/apache/</file>
-                                        <file>${project.build.outputDirectory}/org/assertj/</file>
-                                        <file>${project.build.outputDirectory}/org/eclipse/</file>
-                                        <file>${project.build.outputDirectory}/org/jacoco/</file>
-                                        <file>${project.build.outputDirectory}/org/json/</file>
-                                        <file>${project.build.outputDirectory}/org/junit/</file>
-                                        <file>${project.build.outputDirectory}/org/opentest4j/</file>
-                                        <file>${project.build.outputDirectory}/sun/</file>
-                                        <file>${project.build.outputDirectory}/org/gradle/</file>
-                                        <file>${project.build.outputDirectory}/worker/org/gradle/</file>
-                                    </files>
-                                </requireFilesDontExist>
-                            </rules>
+                            <file>${basedir}${file.separator}pom.xml
+                            </file> <!-- Ensure this is correctly pointing to your POM file -->
+                            <groupId>${project.groupId}</groupId>
+                            <artifactId>${project.artifactId}</artifactId>
+                            <version>${project.version}</version>
+                            <packaging>pom</packaging>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>install-javadoc-jar</id>
+                        <phase>install</phase>
+                        <goals>
+                            <goal>install-file</goal>
+                        </goals>
+                        <configuration>
+                            <file>${project.build.directory}${file.separator}${project.build.finalName}-javadoc.jar
+                            </file>
+                            <groupId>${project.groupId}</groupId>
+                            <artifactId>${project.artifactId}</artifactId>
+                            <version>${project.version}</version>
+                            <packaging>jar</packaging>
+                            <classifier>javadoc</classifier>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>install-sources-jar</id>
+                        <phase>install</phase>
+                        <goals>
+                            <goal>install-file</goal>
+                        </goals>
+                        <configuration>
+                            <file>${project.build.directory}${file.separator}${project.build.finalName}-sources.jar
+                            </file>
+                            <groupId>${project.groupId}</groupId>
+                            <artifactId>${project.artifactId}</artifactId>
+                            <version>${project.version}</version>
+                            <packaging>jar</packaging>
+                            <classifier>sources</classifier>
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.3.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <shadedArtifactAttached>true</shadedArtifactAttached>
+                            <shadedClassifierName>agent</shadedClassifierName>
+                            <transformers>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <manifestEntries>
+                                        <Premain-Class>
+                                            de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent
+                                        </Premain-Class>
+                                        <Can-Redefine-Classes>true</Can-Redefine-Classes>
+                                        <Can-Retransform-Classes>true</Can-Retransform-Classes>
+                                    </manifestEntries>
+                                </transformer>
+                            </transformers>
+                            <artifactSet>
+                                <includes>
+                                    <include>de.tum.cit.ase:ares</include>
+                                </includes>
+                            </artifactSet>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- 6. Verify -->
+            <!-- 7. Install -->
+            <!-- 8. Site -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-site-plugin</artifactId>
+                <version>3.12.1</version>
+            </plugin>
+            <!-- 9. Deploy -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>3.1.1</version>
+            </plugin>
+            <!-- Manual execution -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>versions-maven-plugin</artifactId>
+                <version>2.15.0</version>
             </plugin>
             <plugin>
                 <groupId>com.diffplug.spotless</groupId>
@@ -463,86 +628,6 @@
                         </eclipse>
                     </java>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>dev.aspectj</groupId>
-                <artifactId>aspectj-maven-plugin</artifactId>
-                <version>1.14.1</version>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.aspectj</groupId>
-                        <artifactId>aspectjtools</artifactId>
-                        <version>1.9.24</version>
-                    </dependency>
-                </dependencies>
-                <configuration>
-                    <forceAjcCompile>true</forceAjcCompile>
-                    <complianceLevel>21</complianceLevel>
-                    <source>21</source>
-                    <target>21</target>
-                    <showWeaveInfo>true</showWeaveInfo>
-                    <weaveTest>true</weaveTest>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>weave-test-classes</id>
-                        <phase>process-test-classes</phase>
-                        <goals>
-                            <goal>test-compile</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>weave-main-classes</id>
-                        <phase>process-classes</phase>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.5.1</version>
-                <configuration>
-                    <forkCount>1</forkCount>
-                    <argLine>-javaagent:${instrumentation-path} -Xbootclasspath/a:${aspectj-path}</argLine>
-                </configuration>
-            </plugin>
-            <!-- Shade Plugin to package the agent JAR -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>3.3.0</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <shadedArtifactAttached>true</shadedArtifactAttached>
-                            <shadedClassifierName>agent</shadedClassifierName>
-                            <transformers>
-                                <transformer
-                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <manifestEntries>
-                                        <Premain-Class>
-                                            de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent
-                                        </Premain-Class>
-                                        <Can-Redefine-Classes>true</Can-Redefine-Classes>
-                                        <Can-Retransform-Classes>true</Can-Retransform-Classes>
-                                    </manifestEntries>
-                                </transformer>
-                            </transformers>
-                            <artifactSet>
-                                <includes>
-                                    <include>de.tum.cit.ase:ares</include>
-                                </includes>
-                            </artifactSet>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>
@@ -679,7 +764,7 @@
                         <version>3.3.0</version>
                         <configuration>
                             <forkCount>1</forkCount>
-                            <argLine>-javaagent:${instrumentation-path} -Xbootclasspath/a:${aspectj-path}</argLine>
+                            <argLine>-javaagent:${byte-buddy-path} -Xbootclasspath/a:${aspectj-path}</argLine>
                         </configuration>
                     </plugin>
                 </plugins>
