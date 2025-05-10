@@ -118,7 +118,6 @@ public class JavaWriter implements Writer {
     @Nonnull
     private List<Path> createPhobosFiles(
             @Nonnull String packageName,
-            @Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
             @Nonnull List<JavaAOPTestCase> javaAOPTestCases,
             @Nullable Path testFolderPath
     ) {
@@ -130,7 +129,7 @@ public class JavaWriter implements Writer {
                 ).stream(),
                 Stream.of(FileTools.createThreePartedJavaPhobosFile(
                         Phobos.threePartedFileHeader(),
-                        Phobos.threePartedFileBody(javaArchitectureTestCases, javaAOPTestCases, testFolderPath),
+                        Phobos.threePartedFileBody(javaAOPTestCases, testFolderPath),
                         Phobos.threePartedFileFooter(),
                         Phobos.targetToCopyTo(testFolderPath, packageName),
                         Phobos.fileValue(packageName)
@@ -194,7 +193,6 @@ public class JavaWriter implements Writer {
                         ).stream(),
                         createPhobosFiles(
                                 packageName,
-                                javaArchitectureTestCases,
                                 javaAOPTestCases,
                                 testFolderPath
                         ).stream()

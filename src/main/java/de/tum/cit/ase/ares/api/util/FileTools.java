@@ -377,5 +377,10 @@ public class FileTools {
             throw new SecurityException(localize("file.tools.io.error", resourcePath), e);
         }
     }
+
+    public static List<List<String>> readCFGFile(Path sourceCFGPath) {
+
+        return null;
+    }
     //</editor-fold>
 }

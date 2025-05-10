@@ -1,7 +1,6 @@
 package de.tum.cit.ase.ares.api.phobos;
 
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
-import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -17,7 +16,7 @@ public class Phobos {
     }
 
     public static List<Path> filesToCopy() {
-        return List.of();
+        return null;
     }
 
     public static List<Path> targetsToCopyTo(
@@ -36,7 +35,6 @@ public class Phobos {
     }
 
     public static String threePartedFileBody(
-            @Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
             @Nonnull List<JavaAOPTestCase> javaAOPTestCases,
             @Nullable Path testFolderPath
     ) {
