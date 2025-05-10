@@ -8,10 +8,8 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Collection;
 import java.util.List;
 
-// TODO Ajay: Implement this class
 
 public class Phobos {
 
@@ -39,7 +37,10 @@ public class Phobos {
             @Nullable Path testFolderPath,
             @Nonnull String packageName
     ) {
-        return List.of();
+        return getCopyConfigurationEntries().stream()
+                .map(entry -> entry.get(2).split("/"))
+                .map(FileTools::resolveOnPackage)
+                .toList();
     }
 
     public static List<String[]> fileValues(@Nonnull String packageName) {
