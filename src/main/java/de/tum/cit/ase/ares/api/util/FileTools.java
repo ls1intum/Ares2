@@ -13,6 +13,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -378,9 +379,19 @@ public class FileTools {
         }
     }
 
-    public static List<List<String>> readCFGFile(Path sourceCFGPath) {
-
-        return null;
+    public static List<List<String>> readCFGFile(Path sourceCFGPath) throws IOException {
+        return Files
+                .lines(sourceCFGPath)
+                .map(String::trim)
+                .filter(line -> !line.isEmpty())
+                .map(line -> List.of(line.split("\\s+")))
+                .peek(parts -> {
+                    if (parts.size() != 3) {
+                        throw new IllegalArgumentException(
+                                "Invalid cfg format (expected exactly 3 tokens per line): " + parts);
+                    }
+                })
+                .collect(Collectors.toList());
     }
     //</editor-fold>
 }

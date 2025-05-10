@@ -53,4 +53,13 @@ public class JavaCSVFileLoader implements JavaFileLoader {
     public List<List<String>> loadEditData(JavaAOPMode mode) throws IOException {
         return FileTools.readCSVFile(getEditPaths(mode));
     }
+
+    @Override
+    public List<List<String>> loadCopyData() throws IOException {
+        return FileTools.readCSVFile(getPhobosCopyPaths());
+    }
+
+    private Path getPhobosCopyPaths() {
+        return FileTools.resolveOnPackage("configuration/BasePhobos.csv");
+    }
 }

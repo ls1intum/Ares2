@@ -1,10 +1,14 @@
 package de.tum.cit.ase.ares.api.phobos;
 
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
+import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaCSVFileLoader;
+import de.tum.cit.ase.ares.api.util.FileTools;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.List;
 
 // TODO Ajay: Implement this class
@@ -16,7 +20,19 @@ public class Phobos {
     }
 
     public static List<Path> filesToCopy() {
-        return null;
+        return getCopyConfigurationEntries().stream()
+                .map(entry -> entry.getFirst().split("/"))
+                .map(FileTools::resolveOnPackage)
+                .toList();
+
+    }
+
+    public static List<List<String>> getCopyConfigurationEntries() {
+        try {
+            return (new JavaCSVFileLoader()).loadCopyData();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static List<Path> targetsToCopyTo(
