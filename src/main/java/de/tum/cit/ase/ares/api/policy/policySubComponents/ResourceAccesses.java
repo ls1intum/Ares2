@@ -21,6 +21,7 @@ import java.util.Objects;
  * @param regardingCommandExecutions permitted command executions; must not be null.
  * @param regardingThreadCreations permitted thread creations; must not be null.
  * @param regardingPackageImports permitted package imports; must not be null.
+ * @param regardingTimeouts permitted timeout parameters, must not be null
  */
 @Nonnull
 public record ResourceAccesses(
@@ -28,7 +29,8 @@ public record ResourceAccesses(
         @Nonnull List<NetworkPermission> regardingNetworkConnections,
         @Nonnull List<CommandPermission> regardingCommandExecutions,
         @Nonnull List<ThreadPermission> regardingThreadCreations,
-        @Nonnull List<PackagePermission> regardingPackageImports
+        @Nonnull List<PackagePermission> regardingPackageImports,
+        @Nonnull List<TimeoutPermission> regardingTimeouts
 ) {
 
     /**
@@ -43,6 +45,7 @@ public record ResourceAccesses(
         Objects.requireNonNull(regardingCommandExecutions, "Command executions list must not be null");
         Objects.requireNonNull(regardingThreadCreations, "Thread creations list must not be null");
         Objects.requireNonNull(regardingPackageImports, "Package imports list must not be null");
+        Objects.requireNonNull(regardingTimeouts, "Timeout list must not be null");
     }
 
     /**
@@ -60,6 +63,7 @@ public record ResourceAccesses(
                 .regardingCommandExecutions(new ArrayList<>())
                 .regardingThreadCreations(new ArrayList<>())
                 .regardingPackageImports(new ArrayList<>())
+                .regardingTimeouts(new ArrayList<>())
                 .build();
     }
 
@@ -117,6 +121,9 @@ public record ResourceAccesses(
          */
         @Nullable
         private List<PackagePermission> regardingPackageImports = new ArrayList<>();
+
+        @Nullable
+        private List<TimeoutPermission> regardingTimeouts = new ArrayList<>();
 
         /**
          * Sets the file system permissions.
@@ -188,6 +195,21 @@ public record ResourceAccesses(
             return this;
         }
 
+
+        /**
+         * Sets the timeout permissions.
+         *
+         * @since 2.0.0
+         * @author Markus Paulsen
+         * @param regardingTimeouts the list of package permissions.
+         * @return the updated Builder.
+         */
+        @Nonnull
+        public Builder regardingTimeouts(@Nonnull List<TimeoutPermission> regardingTimeouts) {
+            this.regardingTimeouts = new ArrayList<>();
+            return this;
+        }
+
         /**
          * Builds a new ResourceAccesses instance.
          *
@@ -202,7 +224,8 @@ public record ResourceAccesses(
                     Objects.requireNonNull(regardingNetworkConnections, "Network connections list must not be null"),
                     Objects.requireNonNull(regardingCommandExecutions, "Command executions list must not be null"),
                     Objects.requireNonNull(regardingThreadCreations, "Thread creations list must not be null"),
-                    Objects.requireNonNull(regardingPackageImports, "Package imports list must not be null")
+                    Objects.requireNonNull(regardingPackageImports, "Package imports list must not be null"),
+                    Objects.requireNonNull(regardingTimeouts, "Timeout list must not be null")
             );
         }
     }

@@ -34,7 +34,12 @@ public enum JavaAOPTestCaseSupported implements AOPTestCaseSupported {
     /**
      * Aspect configuration for managing thread creation.
      */
-    THREAD_CREATION;
+    THREAD_CREATION,
+
+    /**
+     * Aspect configuration for timeout.
+     */
+    TIMEOUT;
 
     /**
      * Retrieves the dynamic AOP test cases.

@@ -1,14 +1,20 @@
 package de.tum.cit.ase.ares.api.phobos;
 
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
+import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSupported;
 import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaCSVFileLoader;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.NetworkPermission;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.TimeoutPermission;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.List;
+import java.util.function.Supplier;
 
 
 public class Phobos {
@@ -55,7 +61,26 @@ public class Phobos {
             @Nonnull List<JavaAOPTestCase> javaAOPTestCases,
             @Nullable Path testFolderPath
     ) {
-        return "";
+        List<FilePermission> filePermissions =
+                extractPermissions(javaAOPTestCases, JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION);
+        List<NetworkPermission> networkPermissions =
+                extractPermissions(javaAOPTestCases, JavaAOPTestCaseSupported.NETWORK_CONNECTION);
+        List<TimeoutPermission> timeoutPermissions = extractPermissions(javaAOPTestCases, JavaAOPTestCaseSupported.TIMEOUT);
+
+
+
+        return JavaPhobosTestCase.writePhobosSecurityTestCaseFile(filePermissions, networkPermissions);
+
+    }
+
+    private static <T> List<T> extractPermissions(List<JavaAOPTestCase> testCases, JavaAOPTestCaseSupported supported) {
+        return testCases.stream()
+                .filter(testCase -> testCase.getAopTestCaseSupported() == supported)
+                .map(JavaAOPTestCase::getResourceAccessSupplier)
+                .map(Supplier::get)
+                .map(permissions -> (List<T>) permissions)
+                .flatMap(Collection::stream)
+                .toList();
     }
 
     public static Path threePartedFileFooter() {
