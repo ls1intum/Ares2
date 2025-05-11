@@ -30,7 +30,7 @@ public record ResourceAccesses(
         @Nonnull List<CommandPermission> regardingCommandExecutions,
         @Nonnull List<ThreadPermission> regardingThreadCreations,
         @Nonnull List<PackagePermission> regardingPackageImports,
-        @Nonnull List<TimeoutPermission> regardingTimeouts
+        @Nonnull List<ResourceLimitsPermission> regardingTimeouts
 ) {
 
     /**
@@ -123,7 +123,7 @@ public record ResourceAccesses(
         private List<PackagePermission> regardingPackageImports = new ArrayList<>();
 
         @Nullable
-        private List<TimeoutPermission> regardingTimeouts = new ArrayList<>();
+        private List<ResourceLimitsPermission> regardingTimeouts = new ArrayList<>();
 
         /**
          * Sets the file system permissions.
@@ -205,7 +205,7 @@ public record ResourceAccesses(
          * @return the updated Builder.
          */
         @Nonnull
-        public Builder regardingTimeouts(@Nonnull List<TimeoutPermission> regardingTimeouts) {
+        public Builder regardingTimeouts(@Nonnull List<ResourceLimitsPermission> regardingTimeouts) {
             this.regardingTimeouts = new ArrayList<>();
             return this;
         }

@@ -5,7 +5,7 @@ import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSupported;
 import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaCSVFileLoader;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.NetworkPermission;
-import de.tum.cit.ase.ares.api.policy.policySubComponents.TimeoutPermission;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceLimitsPermission;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
 import javax.annotation.Nonnull;
@@ -65,11 +65,13 @@ public class Phobos {
                 extractPermissions(javaAOPTestCases, JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION);
         List<NetworkPermission> networkPermissions =
                 extractPermissions(javaAOPTestCases, JavaAOPTestCaseSupported.NETWORK_CONNECTION);
-        List<TimeoutPermission> timeoutPermissions = extractPermissions(javaAOPTestCases, JavaAOPTestCaseSupported.TIMEOUT);
+        List<ResourceLimitsPermission> resourceLimitsPermissions = extractPermissions(javaAOPTestCases, JavaAOPTestCaseSupported.TIMEOUT);
 
 
 
-        return JavaPhobosTestCase.writePhobosSecurityTestCaseFile(filePermissions, networkPermissions);
+
+
+        return JavaPhobosTestCase.writePhobosSecurityTestCaseFile(filePermissions, networkPermissions, resourceLimitsPermissions);
 
     }
 

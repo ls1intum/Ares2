@@ -12,7 +12,7 @@ import javax.annotation.Nonnull;
  * @since 2.0.0
  */
 
-public record TimeoutPermission(long timeout) {
+public record ResourceLimitsPermission(long timeout) {
 
     /**
      * Constructs a TimeoutPermission instance
@@ -20,7 +20,7 @@ public record TimeoutPermission(long timeout) {
      * @author Ajayvir Singh
      * @since 2.0.0
      */
-    public TimeoutPermission {
+    public ResourceLimitsPermission {
         if (timeout < 0) {
             throw new IllegalArgumentException("timeout must not be negative");
         }
@@ -35,7 +35,7 @@ public record TimeoutPermission(long timeout) {
      * @since 2.0.0
      */
     @Nonnull
-    public static TimeoutPermission createRestrictive(long timeout) {
+    public static ResourceLimitsPermission createRestrictive(long timeout) {
         return builder().withTimeout(10000).build();
     }
 
@@ -79,8 +79,8 @@ public record TimeoutPermission(long timeout) {
          * @author Markus Paulsen
          * @return a new TimeoutPermission instance.
          */
-        public TimeoutPermission build() {
-            return new TimeoutPermission(timeout);
+        public ResourceLimitsPermission build() {
+            return new ResourceLimitsPermission(timeout);
         }
     }
 
