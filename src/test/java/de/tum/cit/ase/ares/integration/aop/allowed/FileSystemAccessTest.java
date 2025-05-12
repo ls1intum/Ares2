@@ -11,7 +11,8 @@ import org.junit.jupiter.api.Nested;
 
 /**
  * Integration tests to verify that file system read access is allowed
- * under various security policies and that the file content matches expectations.
+ * under various security policies and that the file content matches
+ * expectations.
  */
 class FileSystemAccessTest {
 
@@ -25,9 +26,23 @@ class FileSystemAccessTest {
     @Nested
     class ReadOperations {
 
+        private static final String ERROR_MESSAGE = "A SecurityException was thrown, but access should be allowed.";
+
         /**
-         * General helper to assert that file reading is allowed and the content matches.
-         * @param fileReadCallable a callable that calls the static file read method and returns the file content
+         * Test that the given executable does NOT throw a SecurityException.
+         * 
+         * @param executable The executable that should NOT throw a SecurityException
+         */
+        private void assertNoAresSecurityExceptionRead(Executable executable) {
+            Assertions.assertDoesNotThrow(executable, ERROR_MESSAGE);
+        }
+
+        /**
+         * General helper to assert that file reading is allowed and the content
+         * matches.
+         * 
+         * @param fileReadCallable a callable that calls the static file read method and
+         *                         returns the file content
          */
         private void assertFileReadAllowedAndContentMatches(java.util.concurrent.Callable<String> fileReadCallable) {
             String content = null;
@@ -36,7 +51,8 @@ class FileSystemAccessTest {
             } catch (Exception e) {
                 Assertions.fail(ERROR_SECURITY_EXCEPTION, e);
             }
-            Assertions.assertEquals(TRUSTED_FILE_CONTENT, content != null ? content.trim() : null, ERROR_FILE_CONTENT_MISMATCH);
+            Assertions.assertEquals(TRUSTED_FILE_CONTENT, content != null ? content.trim() : null,
+                    ERROR_FILE_CONTENT_MISMATCH);
         }
 
         // <editor-fold desc="accessFileSystemViaFilesRead (Files.readAllBytes)">
@@ -69,7 +85,7 @@ class FileSystemAccessTest {
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml")
         void test_accessFileSystemViaFileReadMavenArchunitAspectJ() {
-            assertFileReadAllowedAndContentMatches(ReadFileReadMain::accessFileSystemViaFileRead);
+            assertNoAresSecurityExceptionRead(ReadFileReadMain::accessFileSystemViaFileRead);
         }
 
         @PublicTest
