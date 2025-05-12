@@ -8,6 +8,7 @@ import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.read.fileR
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.function.Executable;
 
 /**
  * Integration tests to verify that file system read access is allowed
