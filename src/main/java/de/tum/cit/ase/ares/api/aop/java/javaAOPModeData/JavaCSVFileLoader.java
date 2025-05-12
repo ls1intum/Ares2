@@ -32,6 +32,14 @@ public class JavaCSVFileLoader implements JavaFileLoader {
         return FileTools.resolveOnPackage("EditFiles.csv");
     }
 
+
+    private Path getPhobosCopyPaths() {
+        return FileTools.resolveOnPackage("configuration/PhobosCopyFiles.csv");
+    }
+    private Path getPhobosEditPaths() {
+        return FileTools.resolveOnPackage("configuration/PhobosEditFiles.csv");
+    }
+
     /**
      * Loads the copy configuration from the CSV file for the selected AOP mode.
      *
@@ -59,7 +67,9 @@ public class JavaCSVFileLoader implements JavaFileLoader {
         return FileTools.readCSVFile(getPhobosCopyPaths());
     }
 
-    private Path getPhobosCopyPaths() {
-        return FileTools.resolveOnPackage("configuration/BasePhobos.csv");
+    @Override
+    public List<List<String>> loadEditData() throws IOException {
+        return FileTools.readCSVFile(getPhobosEditPaths());
     }
+
 }

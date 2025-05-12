@@ -9,4 +9,5 @@ public interface JavaFileLoader {
     List<List<String>> loadCopyData(JavaAOPMode mode) throws IOException;
     List<List<String>> loadEditData(JavaAOPMode mode) throws IOException;
     List<List<String>> loadCopyData() throws IOException;
+    List<List<String>> loadEditData() throws IOException;
 }

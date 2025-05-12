@@ -39,6 +39,15 @@ public class Phobos {
         }
     }
 
+
+    public static List<List<String>> getEditConfigurationEntries() {
+        try {
+            return (new JavaCSVFileLoader()).loadEditData();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static List<Path> targetsToCopyTo(
             @Nullable Path testFolderPath,
             @Nonnull String packageName
@@ -85,15 +94,15 @@ public class Phobos {
         return Path.of("");
     }
 
-    public static Path targetToCopyTo(
-            @Nullable Path testFolderPath,
-            @Nonnull String packageName
-    ) {
-        return Path.of("");
-    }
+
 
     public static String[] fileValue(@Nonnull String packageName) {
         return new String[0];
     }
 
+    public static Path targetToCopyTo(Path testFolderPath, String packageName) {
+        return getEditConfigurationEntries().stream()                .map(entry -> entry.get(2).split("/"))
+                .map(FileTools::resolveOnPackage)
+                .toList().getFirst();
+    }
 }
