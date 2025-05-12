@@ -67,10 +67,6 @@ public class Phobos {
                 extractPermissions(javaAOPTestCases, JavaAOPTestCaseSupported.NETWORK_CONNECTION);
         List<ResourceLimitsPermission> resourceLimitsPermissions = extractPermissions(javaAOPTestCases, JavaAOPTestCaseSupported.TIMEOUT);
 
-
-
-
-
         return JavaPhobosTestCase.writePhobosSecurityTestCaseFile(filePermissions, networkPermissions, resourceLimitsPermissions);
 
     }

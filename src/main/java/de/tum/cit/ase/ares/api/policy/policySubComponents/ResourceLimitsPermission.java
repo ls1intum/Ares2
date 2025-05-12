@@ -29,13 +29,12 @@ public record ResourceLimitsPermission(long timeout) {
     /**
      * Creates a restrictive timeout permission with all .
      *
-     * @param timeout the value of the timeout.
      * @return a new TimeoutPermission instance with a restrictive timeout value.
      * @author Markus Paulsen
      * @since 2.0.0
      */
     @Nonnull
-    public static ResourceLimitsPermission createRestrictive(long timeout) {
+    public static ResourceLimitsPermission createRestrictive() {
         return builder().withTimeout(10000).build();
     }
 
