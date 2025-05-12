@@ -22,7 +22,6 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
 
     pointcut fileWriteMethods():
             (call(* java.io.File.canWrite(..)) ||
-                    call(java.io.RandomAccessFile.new(..)) ||
                     call(* java.io.File.createNewFile(..)) ||
                     call(* java.io.File.createTempFile(..)) ||
                     call(* java.io.File.setExecutable(..)) ||
@@ -39,16 +38,14 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.io.RandomAccessFile.write(..)));
 
     pointcut fileExecuteMethods():
-            (call(java.io.File.new(..)) ||
-                    call(* java.io.File.canExecute(..)) ||
+            (call(* java.io.File.canExecute(..)) ||
                     call(* java.io.File.renameTo(..)) ||
                     call(* java.io.File.toPath(..)) ||
                     call(* java.io.File.mkdirs(..)) ||
                     call(* java.io.File.listFiles(..)));
 
     pointcut fileDeleteMethods():
-            (call(java.io.File.new(..)) ||
-                    call(* java.io.File.delete(..)) ||
+            (call(* java.io.File.delete(..)) ||
                     call(* java.io.File.deleteOnExit(..)));
 
     pointcut fileInputStreamInitMethods(): call(java.io.FileInputStream.new(..));
