@@ -58,25 +58,25 @@ class FileSystemAccessTest {
 
         // <editor-fold desc="accessFileSystemViaFilesRead (Files.readAllBytes)">
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/filesRead")
         void test_accessFileSystemViaFilesReadMavenArchunitAspectJ() {
             assertFileReadAllowedAndContentMatches(ReadFilesReadMain::accessFileSystemViaFilesRead);
         }
 
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/filesRead")
         void test_accessFileSystemViaFilesReadMavenArchunitInstrumentation() {
             assertFileReadAllowedAndContentMatches(ReadFilesReadMain::accessFileSystemViaFilesRead);
         }
 
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/filesRead")
         void test_accessFileSystemViaFilesReadMavenWalaAspectJ() {
             assertFileReadAllowedAndContentMatches(ReadFilesReadMain::accessFileSystemViaFilesRead);
         }
 
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/filesRead")
         void test_accessFileSystemViaFilesReadMavenWalaInstrumentation() {
             assertFileReadAllowedAndContentMatches(ReadFilesReadMain::accessFileSystemViaFilesRead);
         }
@@ -84,25 +84,25 @@ class FileSystemAccessTest {
 
         // <editor-fold desc="accessFileSystemViaFileRead (FileInputStream)">
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/fileRead")
         void test_accessFileSystemViaFileReadMavenArchunitAspectJ() {
             assertNoAresSecurityExceptionRead(ReadFileReadMain::accessFileSystemViaFileRead);
         }
 
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/fileRead")
         void test_accessFileSystemViaFileReadMavenArchunitInstrumentation() {
             assertFileReadAllowedAndContentMatches(ReadFileReadMain::accessFileSystemViaFileRead);
         }
 
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/fileRead")
         void test_accessFileSystemViaFileReadMavenWalaAspectJ() {
             assertFileReadAllowedAndContentMatches(ReadFileReadMain::accessFileSystemViaFileRead);
         }
 
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/fileRead")
         void test_accessFileSystemViaFileReadMavenWalaInstrumentation() {
             assertFileReadAllowedAndContentMatches(ReadFileReadMain::accessFileSystemViaFileRead);
         }
