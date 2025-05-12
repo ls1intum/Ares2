@@ -95,13 +95,12 @@ public class Phobos {
     }
 
 
-
     public static String[] fileValue(@Nonnull String packageName) {
-        return new String[0];
+        return FileTools.generatePackageNameArray(packageName, 1);
     }
 
     public static Path targetToCopyTo(Path testFolderPath, String packageName) {
-        return getEditConfigurationEntries().stream()                .map(entry -> entry.get(2).split("/"))
+        return getEditConfigurationEntries().stream().map(entry -> entry.get(2).split("/"))
                 .map(FileTools::resolveOnPackage)
                 .toList().getFirst();
     }
