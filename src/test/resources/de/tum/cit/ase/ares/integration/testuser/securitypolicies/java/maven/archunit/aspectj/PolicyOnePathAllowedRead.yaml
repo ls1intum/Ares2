@@ -2,8 +2,7 @@ regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
   theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
   theMainClassInsideThisPackageIs: "Main"
-  theFollowingClassesAreTestClasses:
-    - "de.tum.cit.ase.ares.integration.FileSystemAccessTest"
+  theFollowingClassesAreTestClasses: [ ]
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions:
       - readAllFiles: true
