@@ -293,18 +293,21 @@ public class JavaInstrumentationPointcutDefinitions {
             // java.io
             Map.entry("java.io.File", List.of("delete", "deleteOnExit")),
             Map.entry("java.io.FileSystem", List.of("delete")),
+            Map.entry("java.io.UnixFileSystem", List.of("delete")),
+            Map.entry("java.io.WinNTFileSystem", List.of("delete")),
+            Map.entry("java.io.Win32FileSystem", List.of("delete")),
             // java.nio
             Map.entry("java.nio.file.Files", List.of("delete", "deleteIfExists")),
             Map.entry("java.nio.file.spi.FileSystemProvider", List.of("delete", "installedProviders")),
+            // jdk.internal
+            Map.entry("jdk.internal.jrtfs.JrtFileSystemProvider", List.of("delete")),
+            // jdk.nio
+            Map.entry("jdk.nio.zipfs.ZipFileSystemProvider", List.of("delete")),
+            // sun.nio
             Map.entry("sun.nio.fs.AbstractFileSystemProvider", List.of("delete", "deleteIfExists")),
             Map.entry("sun.nio.fs.MacOSXFileSystemProvider", List.of("delete", "implDelete")),
             Map.entry("sun.nio.fs.UnixFileSystemProvider", List.of("delete", "implDelete")),
-            Map.entry("sun.nio.fs.WindowsFileSystemProvider", List.of("implDelete")),
-            Map.entry("jdk.internal.jrtfs.JrtFileSystemProvider", List.of("delete")),
-            Map.entry("jdk.nio.zipfs.ZipFileSystemProvider", List.of("delete")),
-            Map.entry("java.io.UnixFileSystem", List.of("delete")),
-            Map.entry("java.io.WinNTFileSystem", List.of("delete")),
-            Map.entry("java.io.Win32FileSystem", List.of("delete"))
+            Map.entry("sun.nio.fs.WindowsFileSystemProvider", List.of("implDelete"))
     );
     //</editor-fold>
 
@@ -314,6 +317,7 @@ public class JavaInstrumentationPointcutDefinitions {
      * and the values are lists of method names that are considered to be thread create operations.
      */
     public static final Map<String, List<String>> methodsWhichCanCreateThreads = Map.ofEntries(
+            // java.util
             Map.entry("java.util.concurrent.AbstractExecutorService", List.of("submit")),
             Map.entry("java.util.concurrent.ExecutorService", List.of("submit")),
             Map.entry("java.util.concurrent.ThreadPoolExecutor", List.of("submit"))

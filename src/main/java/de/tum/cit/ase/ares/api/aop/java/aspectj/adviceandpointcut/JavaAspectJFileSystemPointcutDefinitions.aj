@@ -4,6 +4,13 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
 
     // These are the FileSystem related methods which we want to ban
 
+    // new Scheme:
+    // - methodsWhichCanReadFiles
+    // - methodsWhichCanOverwriteFiles
+    // - methodsWhichCanExecuteFiles
+    // - methodsWhichCanDeleteFiles
+    // - methodsWhichCanCreateThreads
+
     pointcut fileReadMethods():
             (call(* java.io.File.canRead(..)) ||
                     call(java.io.File.new(..)) ||
