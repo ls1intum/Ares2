@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.api.architecture.java.archunit;
+package %s.api.architecture.java.archunit;
 
 //<editor-fold desc="Imports">
 import com.tngtech.archunit.base.DescribedPredicate;
@@ -6,9 +6,9 @@ import com.tngtech.archunit.core.domain.JavaAccess;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition;
-import de.tum.cit.ase.ares.api.architecture.java.FileHandlerConstants;
-import de.tum.cit.ase.ares.api.localization.Messages;
-import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
+import %s.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
+import %s.api.architecture.java.FileHandlerConstants;
+import %s.api.policy.policySubComponents.PackagePermission;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,7 +36,7 @@ public class JavaArchUnitSecurityTestCaseCollection {
 
     //<editor-fold desc="Constructor">
     private JavaArchUnitSecurityTestCaseCollection() {
-        throw new SecurityException(Messages.localized("security.general.utility.initialization", JavaArchUnitSecurityTestCaseCollection.class.getName()));
+        throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.general.utility.initialization", JavaArchUnitSecurityTestCaseCollection.class.getName()));
     }
     //</editor-fold>
 
@@ -73,7 +73,7 @@ public class JavaArchUnitSecurityTestCaseCollection {
             }
 
         } catch (IOException e) {
-            throw new SecurityException(Messages.localized("security.file-tools.read.content.failure"), e);
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.file-tools.read.content.failure"), e);
         } catch (OutOfMemoryError e) {
             throw new SecurityException("Ares Security Error (Stage: Creation): Out of memory while reading content.", e);
         } catch (IllegalFormatException e) {
@@ -112,7 +112,6 @@ public class JavaArchUnitSecurityTestCaseCollection {
                         }
                         return forbiddenMethods
                                 .stream()
-                                .filter(method -> !method.isEmpty())
                                 .anyMatch(
                                         method -> javaAccess
                                                 .getTarget()
@@ -131,7 +130,7 @@ public class JavaArchUnitSecurityTestCaseCollection {
      * This method checks if any class in the given package accesses the file system.
      */
     public static final ArchRule NO_CLASS_MUST_ACCESS_FILE_SYSTEM = createNoClassShouldHaveMethodRule(
-            Messages.localized("security.architecture.file.system.access"),
+            JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.file.system.access"),
             FileHandlerConstants.ARCHUNIT_FILESYSTEM_METHODS
     );
     //</editor-fold>
@@ -141,7 +140,7 @@ public class JavaArchUnitSecurityTestCaseCollection {
      * This method checks if any class in the given package accesses the network.
      */
     public static final ArchRule NO_CLASS_MUST_ACCESS_NETWORK = createNoClassShouldHaveMethodRule(
-            Messages.localized("security.architecture.network.access"),
+            JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.network.access"),
             FileHandlerConstants.ARCHUNIT_NETWORK_METHODS
     );
     //</editor-fold>
@@ -151,7 +150,7 @@ public class JavaArchUnitSecurityTestCaseCollection {
      * This method checks if any class in the given package creates threads.
      */
     public static final ArchRule NO_CLASS_MUST_CREATE_THREADS = createNoClassShouldHaveMethodRule(
-            Messages.localized("security.architecture.manipulate.threads"),
+            JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.manipulate.threads"),
             FileHandlerConstants.ARCHUNIT_THREAD_MANIPULATION_METHODS
     );
     //</editor-fold>
@@ -161,7 +160,7 @@ public class JavaArchUnitSecurityTestCaseCollection {
      * This method checks if any class in the given package executes commands.
      */
     public static final ArchRule NO_CLASS_MUST_EXECUTE_COMMANDS = createNoClassShouldHaveMethodRule(
-            Messages.localized("security.architecture.execute.command"),
+            JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.execute.command"),
             FileHandlerConstants.ARCHUNIT_COMMAND_EXECUTION_METHODS
     );
     //</editor-fold>
@@ -181,7 +180,7 @@ public class JavaArchUnitSecurityTestCaseCollection {
                         return allowedPackages.stream().noneMatch(allowedPackage -> javaClass.getPackageName().startsWith(allowedPackage.importTheFollowingPackage()));
                     }
                 })
-                .as(Messages.localized("security.architecture.package.import"));
+                .as(JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.package.import"));
     }
     //</editor-fold>
     //</editor-fold>
@@ -192,7 +191,7 @@ public class JavaArchUnitSecurityTestCaseCollection {
      * This method checks if any class in the given package uses reflection.
      */
     public static final ArchRule NO_CLASS_MUST_USE_REFLECTION = createNoClassShouldHaveMethodRule(
-            Messages.localized("security.architecture.reflection.uses"),
+            JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.reflection.uses"),
             FileHandlerConstants.ARCHUNIT_REFLECTION_METHODS
     );
     //</editor-fold>
@@ -202,7 +201,7 @@ public class JavaArchUnitSecurityTestCaseCollection {
      * This method checks if any class in the given package uses the command line.
      */
     public static final ArchRule NO_CLASS_MUST_TERMINATE_JVM = createNoClassShouldHaveMethodRule(
-            Messages.localized("security.architecture.terminate.jvm"),
+            JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.terminate.jvm"),
             FileHandlerConstants.ARCHUNIT_JVM_TERMINATION_METHODS
     );
     //</editor-fold>
@@ -212,7 +211,7 @@ public class JavaArchUnitSecurityTestCaseCollection {
      * This method checks if any class in the given package uses serialization.
      */
     public static final ArchRule NO_CLASS_MUST_SERIALIZE = createNoClassShouldHaveMethodRule(
-            Messages.localized("security.architecture.serialize"),
+            JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.serialize"),
             FileHandlerConstants.ARCHUNIT_SERIALIZATION_METHODS
     );
     //</editor-fold>
@@ -222,7 +221,7 @@ public class JavaArchUnitSecurityTestCaseCollection {
      * This method checks if any class in the given package uses class loaders.
      */
     public static final ArchRule NO_CLASS_MUST_USE_CLASSLOADERS = createNoClassShouldHaveMethodRule(
-            Messages.localized("security.architecture.class.loading"),
+            JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.class.loading"),
             FileHandlerConstants.ARCHUNIT_CLASSLOADER_METHODS
     );
     //</editor-fold>

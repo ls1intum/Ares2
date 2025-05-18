@@ -1,6 +1,5 @@
 package de.tum.cit.ase.ares.api.aop.fileSystem.java;
 
-import de.tum.cit.ase.ares.api.aop.commandExecution.CommandExecutionExtractor;
 import de.tum.cit.ase.ares.api.aop.fileSystem.FileSystemExtractor;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
 

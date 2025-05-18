@@ -1,13 +1,13 @@
-package de.tum.cit.ase.ares.api.aop.commandExecution.java;
+package de.tum.cit.ase.ares.api.aop.commandSystem.java;
 
-import de.tum.cit.ase.ares.api.aop.commandExecution.CommandExecutionExtractor;
+import de.tum.cit.ase.ares.api.aop.commandSystem.CommandSystemExtractor;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.CommandPermission;
 
 import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.function.Supplier;
 
-public class JavaCommandExecutionExtractor implements CommandExecutionExtractor {
+public class JavaCommandSystemExtractor implements CommandSystemExtractor {
 
     /**
      * The supplier for the resource accesses permitted as defined in the security policy.
@@ -20,7 +20,7 @@ public class JavaCommandExecutionExtractor implements CommandExecutionExtractor 
      *
      * @param resourceAccessSupplier the supplier for the resource accesses permitted as defined in the security policy, must not be null.
      */
-    public JavaCommandExecutionExtractor(@Nonnull Supplier<List<?>> resourceAccessSupplier) {
+    public JavaCommandSystemExtractor(@Nonnull Supplier<List<?>> resourceAccessSupplier) {
         this.resourceAccessSupplier = resourceAccessSupplier;
     }
 
@@ -49,6 +49,7 @@ public class JavaCommandExecutionExtractor implements CommandExecutionExtractor 
     public static List<String> extractArguments(@Nonnull List<CommandPermission> configs) {
         return configs.stream()
                 .map(CommandPermission::withTheseArguments)
+                .map(arguments -> arguments.stream().map(String::valueOf).map(value -> "\"" + value + "\"").toList())
                 .map(arguments -> "new String[] {" + String.join(",", arguments) + "}")
                 .toList();
     }

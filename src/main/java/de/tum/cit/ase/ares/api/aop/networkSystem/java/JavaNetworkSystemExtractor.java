@@ -1,6 +1,6 @@
-package de.tum.cit.ase.ares.api.aop.networkConnection.java;
+package de.tum.cit.ase.ares.api.aop.networkSystem.java;
 
-import de.tum.cit.ase.ares.api.aop.networkConnection.NetworkConnectionExtractor;
+import de.tum.cit.ase.ares.api.aop.networkSystem.NetworkSystemExtractor;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.NetworkPermission;
 
 import javax.annotation.Nonnull;
@@ -10,7 +10,7 @@ import java.util.function.Supplier;
 
 import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
 
-public class JavaNetworkConnectionExtractor implements NetworkConnectionExtractor {
+public class JavaNetworkSystemExtractor implements NetworkSystemExtractor {
 
     /**
      * The supplier for the resource accesses permitted as defined in the security policy.
@@ -23,7 +23,7 @@ public class JavaNetworkConnectionExtractor implements NetworkConnectionExtracto
      *
      * @param resourceAccessSupplier the supplier for the resource accesses permitted as defined in the security policy, must not be null.
      */
-    public JavaNetworkConnectionExtractor(@Nonnull Supplier<List<?>> resourceAccessSupplier) {
+    public JavaNetworkSystemExtractor(@Nonnull Supplier<List<?>> resourceAccessSupplier) {
         this.resourceAccessSupplier = resourceAccessSupplier;
     }
 

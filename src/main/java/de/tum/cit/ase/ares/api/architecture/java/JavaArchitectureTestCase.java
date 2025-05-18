@@ -7,13 +7,12 @@ import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCaseSupported;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitSecurityTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.wala.JavaWalaSecurityTestCase;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Set;
-
-import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 
 /**
  * Architecture test case for the Java programming language.
@@ -101,10 +100,10 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
         @Nullable String[] messageParts = e.getMessage().split("\n");
         Preconditions.checkNotNull(messageParts, "messageParts must not be null");
         if (messageParts.length < 2) {
-            throw new SecurityException(localized("security.archunit.illegal.execution", e.getMessage()));
+            throw new SecurityException(Messages.localized("security.archunit.illegal.execution", e.getMessage()));
         }
         @Nonnull String replacementIdentifier = ".*?'(.*?)'.*\r*";
-        throw new SecurityException(localized("security.archunit.violation.error", messageParts[0].replaceAll(replacementIdentifier, "$1"), messageParts[1]));
+        throw new SecurityException(Messages.localized("security.archunit.violation.error", messageParts[0].replaceAll(replacementIdentifier, "$1"), messageParts[1]));
     }
     //</editor-fold>
 

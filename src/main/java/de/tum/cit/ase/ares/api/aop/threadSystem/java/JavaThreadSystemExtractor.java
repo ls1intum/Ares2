@@ -1,13 +1,13 @@
-package de.tum.cit.ase.ares.api.aop.threadCreation.java;
+package de.tum.cit.ase.ares.api.aop.threadSystem.java;
 
-import de.tum.cit.ase.ares.api.aop.threadCreation.ThreadCreationExtractor;
+import de.tum.cit.ase.ares.api.aop.threadSystem.ThreadSystemExtractor;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ThreadPermission;
 
 import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.function.Supplier;
 
-public class JavaThreadCreationExtractor implements ThreadCreationExtractor {
+public class JavaThreadSystemExtractor implements ThreadSystemExtractor {
 
     /**
      * The supplier for the resource accesses permitted as defined in the security policy.
@@ -20,7 +20,7 @@ public class JavaThreadCreationExtractor implements ThreadCreationExtractor {
      *
      * @param resourceAccessSupplier the supplier for the resource accesses permitted as defined in the security policy, must not be null.
      */
-    public JavaThreadCreationExtractor(@Nonnull Supplier<List<?>> resourceAccessSupplier) {
+    public JavaThreadSystemExtractor(@Nonnull Supplier<List<?>> resourceAccessSupplier) {
         this.resourceAccessSupplier = resourceAccessSupplier;
     }
 

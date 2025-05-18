@@ -1,9 +1,9 @@
-package de.tum.cit.ase.ares.api.aop.commandExecution;
+package de.tum.cit.ase.ares.api.aop.commandSystem;
 
 import javax.annotation.Nonnull;
 import java.util.List;
 
-public interface CommandExecutionExtractor {
+public interface CommandSystemExtractor {
 
     /**
      * Retrieves the list of commands that are permitted to be executed.

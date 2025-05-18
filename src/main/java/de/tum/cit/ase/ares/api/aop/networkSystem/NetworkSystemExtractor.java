@@ -1,9 +1,9 @@
-package de.tum.cit.ase.ares.api.aop.networkConnection;
+package de.tum.cit.ase.ares.api.aop.networkSystem;
 
 import javax.annotation.Nonnull;
 import java.util.List;
 
-public interface NetworkConnectionExtractor {
+public interface NetworkSystemExtractor {
 
     /**
      * Retrieves the list of network hosts that are permitted for the given permission type.

@@ -3,12 +3,12 @@ package de.tum.cit.ase.ares.api.aop.java;
 //<editor-fold desc="Imports">
 
 import de.tum.cit.ase.ares.api.aop.AOPTestCase;
-import de.tum.cit.ase.ares.api.aop.commandExecution.java.JavaCommandExecutionExtractor;
+import de.tum.cit.ase.ares.api.aop.commandSystem.java.JavaCommandSystemExtractor;
 import de.tum.cit.ase.ares.api.aop.fileSystem.java.JavaFileSystemExtractor;
 import de.tum.cit.ase.ares.api.aop.java.javaAOPTestCaseToolbox.JavaAOPAdviceSettingTriple;
 import de.tum.cit.ase.ares.api.aop.java.javaAOPTestCaseToolbox.JavaAOPTestCaseToolbox;
-import de.tum.cit.ase.ares.api.aop.networkConnection.java.JavaNetworkConnectionExtractor;
-import de.tum.cit.ase.ares.api.aop.threadCreation.java.JavaThreadCreationExtractor;
+import de.tum.cit.ase.ares.api.aop.networkSystem.java.JavaNetworkSystemExtractor;
+import de.tum.cit.ase.ares.api.aop.threadSystem.java.JavaThreadSystemExtractor;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.CommandPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
@@ -23,8 +23,6 @@ import java.util.IllegalFormatException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -69,9 +67,9 @@ public class JavaAOPTestCase extends AOPTestCase {
         super(
                 javaSecurityTestCaseSupported,
                 new JavaFileSystemExtractor(resourceAccessSupplier),
-                new JavaNetworkConnectionExtractor(resourceAccessSupplier),
-                new JavaCommandExecutionExtractor(resourceAccessSupplier),
-                new JavaThreadCreationExtractor(resourceAccessSupplier)
+                new JavaNetworkSystemExtractor(resourceAccessSupplier),
+                new JavaCommandSystemExtractor(resourceAccessSupplier),
+                new JavaThreadSystemExtractor(resourceAccessSupplier)
         );
         this.resourceAccessSupplier = resourceAccessSupplier;
         this.allowedClasses = allowedClasses;
@@ -251,16 +249,16 @@ public class JavaAOPTestCase extends AOPTestCase {
                         new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeOverwritten", JavaFileSystemExtractor.extractPaths(filePermissions, FilePermission::overwriteAllFiles)),
                         new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeExecuted", JavaFileSystemExtractor.extractPaths(filePermissions, FilePermission::executeAllFiles)),
                         new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeDeleted", JavaFileSystemExtractor.extractPaths(filePermissions, FilePermission::deleteAllFiles)),
-                        new JavaAOPAdviceSettingTriple("String[]", " hostsAllowedToBeConnectedTo", JavaNetworkConnectionExtractor.extractHosts(networkPermissions, NetworkPermission::openConnections)),
-                        new JavaAOPAdviceSettingTriple("int[]", " portsAllowedToBeConnectedTo", JavaNetworkConnectionExtractor.extractPorts(networkPermissions, NetworkPermission::openConnections)),
-                        new JavaAOPAdviceSettingTriple("String[]", " hostsAllowedToBeSentTo", JavaNetworkConnectionExtractor.extractHosts(networkPermissions, NetworkPermission::sendData)),
-                        new JavaAOPAdviceSettingTriple("int[]", " portsAllowedToBeSentTo", JavaNetworkConnectionExtractor.extractPorts(networkPermissions, NetworkPermission::sendData)),
-                        new JavaAOPAdviceSettingTriple("String[]", " hostsAllowedToBeReceivedFrom", JavaNetworkConnectionExtractor.extractHosts(networkPermissions, NetworkPermission::receiveData)),
-                        new JavaAOPAdviceSettingTriple("int[]", " portsAllowedToBeReceivedFrom", JavaNetworkConnectionExtractor.extractPorts(networkPermissions, NetworkPermission::receiveData)),
-                        new JavaAOPAdviceSettingTriple("String[]", " commandsAllowedToBeExecuted", JavaCommandExecutionExtractor.extractCommands(commandPermissions)),
-                        new JavaAOPAdviceSettingTriple("String[][]", " argumentsAllowedToBePassed", JavaCommandExecutionExtractor.extractArguments(commandPermissions)),
-                        new JavaAOPAdviceSettingTriple("int[]", " threadNumberAllowedToBeCreated", JavaThreadCreationExtractor.extractThreadNumbers(threadPermissions)),
-                        new JavaAOPAdviceSettingTriple("String[]", " threadClassAllowedToBeCreated", JavaThreadCreationExtractor.extractThreadClasses(threadPermissions))
+                        new JavaAOPAdviceSettingTriple("String[]", " hostsAllowedToBeConnectedTo", JavaNetworkSystemExtractor.extractHosts(networkPermissions, NetworkPermission::openConnections)),
+                        new JavaAOPAdviceSettingTriple("int[]", " portsAllowedToBeConnectedTo", JavaNetworkSystemExtractor.extractPorts(networkPermissions, NetworkPermission::openConnections)),
+                        new JavaAOPAdviceSettingTriple("String[]", " hostsAllowedToBeSentTo", JavaNetworkSystemExtractor.extractHosts(networkPermissions, NetworkPermission::sendData)),
+                        new JavaAOPAdviceSettingTriple("int[]", " portsAllowedToBeSentTo", JavaNetworkSystemExtractor.extractPorts(networkPermissions, NetworkPermission::sendData)),
+                        new JavaAOPAdviceSettingTriple("String[]", " hostsAllowedToBeReceivedFrom", JavaNetworkSystemExtractor.extractHosts(networkPermissions, NetworkPermission::receiveData)),
+                        new JavaAOPAdviceSettingTriple("int[]", " portsAllowedToBeReceivedFrom", JavaNetworkSystemExtractor.extractPorts(networkPermissions, NetworkPermission::receiveData)),
+                        new JavaAOPAdviceSettingTriple("String[]", " commandsAllowedToBeExecuted", JavaCommandSystemExtractor.extractCommands(commandPermissions)),
+                        new JavaAOPAdviceSettingTriple("String[][]", " argumentsAllowedToBePassed", JavaCommandSystemExtractor.extractArguments(commandPermissions)),
+                        new JavaAOPAdviceSettingTriple("int[]", " threadNumberAllowedToBeCreated", JavaThreadSystemExtractor.extractThreadNumbers(threadPermissions)),
+                        new JavaAOPAdviceSettingTriple("String[]", " threadClassAllowedToBeCreated", JavaThreadSystemExtractor.extractThreadClasses(threadPermissions))
                 )
                 .map(JavaAOPTestCase::generateAdviceSettingValue)
                 .forEach(fileContentBuilder::append);

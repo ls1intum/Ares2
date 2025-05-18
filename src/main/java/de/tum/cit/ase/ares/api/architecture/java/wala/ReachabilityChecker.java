@@ -53,44 +53,43 @@ public class ReachabilityChecker {
         return new CustomDFSPathFinder(callGraph, startNodes, targetNodeFilter).find();
     }
 
+    private static ClassHierarchy createClassHierarchy(String classPath) throws IOException, ClassHierarchyException {
+        return ClassHierarchyFactory.make(
+                AnalysisScopeReader
+                        .instance
+                        .makeJavaBinaryAnalysisScope(classPath, null)
+        );
+    }
+
     /**
      * Get entry points from a student submission.
      *
-     * @param applicationCha The class hierarchy of the application.
+     * @param applicationClassHierarchy The class hierarchy of the application.
      * @return A list of entry points from the student submission.
      */
-    public static List<DefaultEntrypoint> getEntryPointsFromStudentSubmission(String classPath, ClassHierarchy applicationCha) {
+    public static List<DefaultEntrypoint> getEntryPointsFromStudentSubmission(String classPath, ClassHierarchy applicationClassHierarchy) {
         if (classPath == null || classPath.trim().isEmpty()) {
             throw new SecurityException(localize("security.common.not.null", "classPath", ReachabilityChecker.class.getName()));
         }
-        if (applicationCha == null) {
+        if (applicationClassHierarchy == null) {
             throw new SecurityException(localize("security.common.not.null", "Class hierarchy", ReachabilityChecker.class.getName()));
         }
-
-        // Create CHA of the student submission
-        ClassHierarchy targetClasses;
         try {
-            targetClasses = ClassHierarchyFactory
-                    .make(AnalysisScopeReader.instance
-                            .makeJavaBinaryAnalysisScope(classPath, null));
+            return new ArrayList<>(
+                    io.vavr.collection.Stream.ofAll(createClassHierarchy(classPath))
+                            .toJavaStream()
+                            .filter(iClass -> iClass.getClassLoader().getReference().equals(ClassLoaderReference.Application))
+                            .map(IClass::getDeclaredMethods)
+                            .map(io.vavr.collection.Stream::ofAll)
+                            .flatMap(io.vavr.collection.Stream::toJavaStream)
+                            .filter(iMethod -> !iMethod.getName().toString().equals("main"))
+                            .map(IMethod::getReference)
+                            .map(methodReference -> new DefaultEntrypoint(methodReference, applicationClassHierarchy))
+                            .toList()
+            );
         } catch (ClassHierarchyException | IOException e) {
-            throw new SecurityException(localize("security.architecture.class.hierarchy.error")); // $NON-NLS-1$
+            throw new SecurityException(localize("security.architecture.class.hierarchy.error"));
         }
-
-        // Iterate through all classes in the application classloader
-        List<DefaultEntrypoint> customEntryPoints = new ArrayList<>();
-        for (IClass klass : targetClasses) {
-            if (klass.getClassLoader().getReference().equals(ClassLoaderReference.Application)) {
-                // Iterate through all declared methods in each class
-                for (IMethod method : klass.getDeclaredMethods()) {
-                    // Exclude the 'main' methods from being entry points
-                    if (!method.getName().toString().equals("main")) {
-                        customEntryPoints.add(new DefaultEntrypoint(method.getReference(), applicationCha));
-                    }
-                }
-            }
-        }
-        return customEntryPoints;
     }
 }
 
