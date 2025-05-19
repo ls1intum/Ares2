@@ -1,6 +1,6 @@
-package de.tum.cit.ase.ares.api.architecture.java;
+package %s.api.architecture.java;
 
-import de.tum.cit.ase.ares.api.localization.Messages;
+import %s.api.localization.Messages;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;

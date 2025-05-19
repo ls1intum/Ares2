@@ -1,11 +1,10 @@
 package de.tum.cit.ase.ares.api.aop;
 
 import com.google.common.base.Preconditions;
-import de.tum.cit.ase.ares.api.aop.commandExecution.CommandExecutionExtractor;
+import de.tum.cit.ase.ares.api.aop.commandSystem.CommandSystemExtractor;
 import de.tum.cit.ase.ares.api.aop.fileSystem.FileSystemExtractor;
-import de.tum.cit.ase.ares.api.aop.networkConnection.NetworkConnectionExtractor;
-import de.tum.cit.ase.ares.api.aop.threadCreation.ThreadCreationExtractor;
-import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCaseSupported;
+import de.tum.cit.ase.ares.api.aop.networkSystem.NetworkSystemExtractor;
+import de.tum.cit.ase.ares.api.aop.threadSystem.ThreadSystemExtractor;
 
 import javax.annotation.Nonnull;
 
@@ -34,13 +33,13 @@ public abstract class AOPTestCase {
     protected final FileSystemExtractor fileSystemExtractor;
 
     @Nonnull
-    protected final NetworkConnectionExtractor networkConnectionExtractor;
+    protected final NetworkSystemExtractor networkConnectionExtractor;
 
     @Nonnull
-    protected final CommandExecutionExtractor commandExecutionExtractor;
+    protected final CommandSystemExtractor commandExecutionExtractor;
 
     @Nonnull
-    protected final ThreadCreationExtractor threadCreationExtractor;
+    protected final ThreadSystemExtractor threadCreationExtractor;
     //</editor-fold>
 
     //<editor-fold desc="Constructor">
@@ -54,9 +53,9 @@ public abstract class AOPTestCase {
     protected AOPTestCase(
             @Nonnull AOPTestCaseSupported aopTestCaseSupported,
             @Nonnull FileSystemExtractor fileSystemExtractor,
-            @Nonnull NetworkConnectionExtractor networkConnectionExtractor,
-            @Nonnull CommandExecutionExtractor commandExecutionExtractor,
-            @Nonnull ThreadCreationExtractor threadCreationExtractor
+            @Nonnull NetworkSystemExtractor networkConnectionExtractor,
+            @Nonnull CommandSystemExtractor commandExecutionExtractor,
+            @Nonnull ThreadSystemExtractor threadCreationExtractor
     ) {
         this.aopTestCaseSupported = Preconditions.checkNotNull(aopTestCaseSupported, "aopTestCaseSupported must not be null");
         this.fileSystemExtractor = Preconditions.checkNotNull(fileSystemExtractor, "fileSystemExtractor must not be null");

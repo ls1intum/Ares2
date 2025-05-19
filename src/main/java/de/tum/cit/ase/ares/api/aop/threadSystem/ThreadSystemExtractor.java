@@ -1,9 +1,9 @@
-package de.tum.cit.ase.ares.api.aop.threadCreation;
+package de.tum.cit.ase.ares.api.aop.threadSystem;
 
 import javax.annotation.Nonnull;
 import java.util.List;
 
-public interface ThreadCreationExtractor {
+public interface ThreadSystemExtractor {
 
     /**
      * Retrieves the list of permitted thread counts based on the security policy.
