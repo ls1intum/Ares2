@@ -4,6 +4,7 @@ regardingTheSupervisedCode:
   theMainClassInsideThisPackageIs: "Main"
   theFollowingClassesAreTestClasses:
     - "de.tum.cit.ase.ares.integration.aop.forbidden.FileSystemAccessInstrumentationTest"
+    - "de.tum.cit.ase.ares.integration.aop.allowed.FileSystemAccessTest"
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions:
       - readAllFiles: false
