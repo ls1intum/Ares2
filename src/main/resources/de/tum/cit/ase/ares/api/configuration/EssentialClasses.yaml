@@ -10,5 +10,11 @@ essentialInstrumentationClasses:
 essentialAresClasses:
   - de.tum.cit.ase.ares.api.internal
   - de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings
+  - de.tum.cit.ase.ares.api.policy.reader.yaml.SecurityPolicyYAMLReader
+  - de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector
+  - de.tum.cit.ase.ares.api.util.ProjectSourcesFinder
+  - de.tum.cit.ase.ares.api.securitytest.java.projectScanner.JavaProjectScanner
+  - de.tum.cit.ase.ares.api.securitytest.java.JavaSecurityTestCaseFactoryAndBuilder
+  - de.tum.cit.ase.ares.api.policy.director.java.SecurityPolicyJavaDirector
 essentialJUnitClasses:
   - de.tum.cit.ase.ares.api.jupiter
