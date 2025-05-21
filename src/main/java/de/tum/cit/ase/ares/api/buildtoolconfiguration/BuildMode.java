@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.api.buildtoolconfiguration.java;
+package de.tum.cit.ase.ares.api.buildtoolconfiguration;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -12,7 +12,7 @@ import java.nio.file.Paths;
  *   <li>{@link #GRADLE} - A mode using Gradle for running Ares.</li>
  * </ul>
  */
-public enum JavaBuildMode {
+public enum BuildMode {
 
     /**
      * Maven mode.

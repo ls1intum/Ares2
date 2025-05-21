@@ -122,7 +122,7 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
     @Nullable
     private static <T> T getValueFromSettings(@Nonnull String fieldName) {
         try {
-            // Take bootloader as class loader in order to get the JavaSecurityTestCaseSettings class at bootloader time for instrumentation
+            // Take bootloader as class loader in order to get the JavaTestCaseSettings class at bootloader time for instrumentation
             @Nonnull Class<?> adviceSettingsClass = Objects.requireNonNull(Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, null), "adviceSettingsClass must not be null");
             @Nonnull Field field = Objects.requireNonNull(adviceSettingsClass.getDeclaredField(Objects.requireNonNull(fieldName, "fieldName must not be null")), "field must not be null");
             field.setAccessible(true);
@@ -161,7 +161,7 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
      */
     private static <T> void setValueToSettings(@Nonnull String fieldName, @Nullable T newValue) {
         try {
-            // Take bootloader as class loader in order to get the JavaSecurityTestCaseSettings class at bootloader time for instrumentation
+            // Take bootloader as class loader in order to get the JavaTestCaseSettings class at bootloader time for instrumentation
             @Nonnull Class<?> adviceSettingsClass = Objects.requireNonNull(Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, null), "adviceSettingsClass must not be null");
             @Nonnull Field field = Objects.requireNonNull(adviceSettingsClass.getDeclaredField(Objects.requireNonNull(fieldName, "fieldName must not be null")), "field must not be null");
             field.setAccessible(true);

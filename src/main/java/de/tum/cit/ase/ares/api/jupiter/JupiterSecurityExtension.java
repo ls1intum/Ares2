@@ -8,6 +8,7 @@ import java.util.Optional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.google.common.base.Preconditions;
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
@@ -65,7 +66,7 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
             Optional<Policy> policyAnnotation = findAnnotation(testContext.testMethod(), Policy.class);
             if (policyAnnotation.isPresent()) {
                 SecurityPolicyReader securityPolicyReader = SecurityPolicyYAMLReader.builder()
-                        .yamlMapper(new ObjectMapper(new YAMLFactory()))
+                        .yamlMapper(new YAMLMapper())
                         .build();
                 SecurityPolicyDirector securityPolicyDirector = SecurityPolicyJavaDirector.builder()
                         .creator(new JavaCreator())
@@ -85,7 +86,7 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
                             .securityPolicyFilePath(securityPolicyFilePath)
                             .projectFolderPath(projectFolderPath)
                             .build();
-                    securityPolicyReaderAndDirector.executeSecurityTestCases();
+                    securityPolicyReaderAndDirector.executeTestCases();
                 } else {
                     SecurityPolicyReaderAndDirector securityPolicyReaderAndDirector = SecurityPolicyReaderAndDirector.builder()
                             .securityPolicyReader(securityPolicyReader)
@@ -93,7 +94,7 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
                             .securityPolicyFilePath(securityPolicyFilePath)
                             .projectFolderPath(Path.of("classes"))
                             .build();
-                    securityPolicyReaderAndDirector.executeSecurityTestCases();
+                    securityPolicyReaderAndDirector.executeTestCases();
                 }
             }
         } else {
@@ -125,9 +126,9 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
         throw failure;
     }
 
-    public static void resetSettings(Class<?> javaSecurityTestCaseSettingsClass) {
+    public static void resetSettings(Class<?> javaTestCaseSettingsClass) {
         try {
-            Method resetMethod = javaSecurityTestCaseSettingsClass.getDeclaredMethod("reset");
+            Method resetMethod = javaTestCaseSettingsClass.getDeclaredMethod("reset");
             resetMethod.setAccessible(true);
             resetMethod.invoke(null);
             resetMethod.setAccessible(false);

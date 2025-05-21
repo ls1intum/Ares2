@@ -1,6 +1,8 @@
-package de.tum.cit.ase.ares.api.aop.java;
+package de.tum.cit.ase.ares.api.aop;
 
-import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaCSVFileLoader;
+import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
+import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSupported;
+import de.tum.cit.ase.ares.api.aop.java.aopModeData.JavaCSVFileLoader;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.CommandPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.NetworkPermission;
@@ -31,7 +33,7 @@ import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstru
  * @author Markus Paulsen
  * @version 2.0.0
  */
-public enum JavaAOPMode {
+public enum AOPMode {
 
     /**
      * Instrumentation mode using Java Instrumentation for load-time weaving.
@@ -86,7 +88,7 @@ public enum JavaAOPMode {
      * @return a list of string arrays representing the file values.
      */
     @Nonnull
-    public List<String[]> fileValues(@Nonnull String packageName, @Nonnull String mainClassInPackageName) {
+    public List<String[]> formatValues(@Nonnull String packageName, @Nonnull String mainClassInPackageName) {
         return getCopyConfigurationEntries().stream()
                 .map(entry -> entry.get(1))
                 .map(Integer::parseInt)
@@ -159,7 +161,7 @@ public enum JavaAOPMode {
         List<ThreadPermission> threadPermissions =
                 extractPermissions(javaAOPTestCases, JavaAOPTestCaseSupported.THREAD_CREATION);
 
-        return JavaAOPTestCase.writeAOPSecurityTestCaseFile(
+        return JavaAOPTestCase.writeAOPTestCaseFile(
                 aopMode,
                 restrictedPackage,
                 allowedListedClasses,
@@ -213,7 +215,7 @@ public enum JavaAOPMode {
      * @return an array of strings representing the file value.
      */
     @Nonnull
-    public String[] fileValue(@Nonnull String packageName) {
+    public String[] formatValue(@Nonnull String packageName) {
         return FileTools.generatePackageNameArray(packageName, 1);
     }
 

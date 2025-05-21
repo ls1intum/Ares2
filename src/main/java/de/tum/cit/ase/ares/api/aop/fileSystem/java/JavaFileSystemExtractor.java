@@ -33,7 +33,7 @@ public class JavaFileSystemExtractor implements FileSystemExtractor {
     /**
      * Extracts the permitted file paths from the provided configurations based on the given predicate.
      *
-     * @param configs   the list of JavaSecurityTestCase configurations, must not be null.
+     * @param configs   the list of JavaTestCase configurations, must not be null.
      * @param predicate a filter for determining which paths are permitted, must not be null.
      * @return a list of permitted paths.
      */

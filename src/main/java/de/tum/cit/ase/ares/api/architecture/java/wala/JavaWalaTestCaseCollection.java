@@ -4,7 +4,7 @@ package de.tum.cit.ase.ares.api.architecture.java.wala;
 
 import com.tngtech.archunit.core.domain.JavaClasses;
 import de.tum.cit.ase.ares.api.architecture.java.FileHandlerConstants;
-import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitSecurityTestCaseCollection;
+import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitTestCaseCollection;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 
 import java.nio.file.Path;
@@ -24,11 +24,11 @@ import static de.tum.cit.ase.ares.api.util.FileTools.readMethodsFromGivenPath;
  * - Execute system commands
  * - Create threads
  */
-public class JavaWalaSecurityTestCaseCollection {
+public class JavaWalaTestCaseCollection {
 
     //<editor-fold desc="Constructor">
-    private JavaWalaSecurityTestCaseCollection() {
-        throw new SecurityException(localize("security.general.utility.initialization", JavaWalaSecurityTestCaseCollection.class.getName()));
+    private JavaWalaTestCaseCollection() {
+        throw new SecurityException(localize("security.general.utility.initialization", JavaWalaTestCaseCollection.class.getName()));
     }
     //</editor-fold>
 
@@ -98,7 +98,7 @@ public class JavaWalaSecurityTestCaseCollection {
      * This method checks if any class in the given package imports forbidden packages.
      */
     public static void noClassMustImportForbiddenPackages(JavaClasses javaClasses, Set<PackagePermission> allowedPackages) {
-        JavaArchUnitSecurityTestCaseCollection
+        JavaArchUnitTestCaseCollection
                 .noClassMustImportForbiddenPackages(allowedPackages)
                 .check(javaClasses);
     }

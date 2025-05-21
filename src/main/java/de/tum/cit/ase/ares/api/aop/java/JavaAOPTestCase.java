@@ -32,7 +32,7 @@ import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 
 /**
  * Configures Java instrumentation based on a security policy.
- * Implements the AOPSecurityTestCase interface for managing aspect configurations.
+ * Implements the AOPTestCase interface for managing aspect configurations.
  */
 public class JavaAOPTestCase extends AOPTestCase {
 
@@ -56,16 +56,16 @@ public class JavaAOPTestCase extends AOPTestCase {
     /**
      * Initializes the configuration with the given support type and resource accesses.
      *
-     * @param javaSecurityTestCaseSupported the type of security test case being supported, must not be null.
+     * @param javaTestCaseSupported the type of security test case being supported, must not be null.
      * @param resourceAccessSupplier the resource accesses permitted as defined in the security policy, must not be null.
      */
     public JavaAOPTestCase(
-            @Nonnull JavaAOPTestCaseSupported javaSecurityTestCaseSupported,
+            @Nonnull JavaAOPTestCaseSupported javaTestCaseSupported,
             @Nonnull Supplier<List<?>> resourceAccessSupplier,
             @Nonnull Set<ClassPermission> allowedClasses
     ) {
         super(
-                javaSecurityTestCaseSupported,
+                javaTestCaseSupported,
                 new JavaFileSystemExtractor(resourceAccessSupplier),
                 new JavaNetworkSystemExtractor(resourceAccessSupplier),
                 new JavaCommandSystemExtractor(resourceAccessSupplier),
@@ -147,7 +147,7 @@ public class JavaAOPTestCase extends AOPTestCase {
 
     /**
      * Sets the value for a given Java advice setting using reflection.
-     * <p>This method accesses the field of the {@code JavaSecurityTestCaseSettings} class using reflection
+     * <p>This method accesses the field of the {@code JavaTestCaseSettings} class using reflection
      * and assigns the specified value to it. This allows dynamically setting advice configurations based
      * on the security test case being executed.</p>
      *
@@ -211,7 +211,7 @@ public class JavaAOPTestCase extends AOPTestCase {
      */
     @Override
     @Nonnull
-    public String writeAOPSecurityTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
+    public String writeAOPTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
         return "";
     }
     //</editor-fold>
@@ -231,7 +231,7 @@ public class JavaAOPTestCase extends AOPTestCase {
      * @return a string representing the content of the AOP security test case configuration file.
      */
     @Nonnull
-    public static String writeAOPSecurityTestCaseFile(
+    public static String writeAOPTestCaseFile(
             @Nonnull String aopMode,
             @Nonnull String restrictedPackage,
             @Nonnull List<String> allowedListedClasses,
@@ -272,7 +272,7 @@ public class JavaAOPTestCase extends AOPTestCase {
      * Executes the AOP security test case by setting Java advice settings.
      */
     @Override
-    public void executeAOPSecurityTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
+    public void executeAOPTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
         switch ((JavaAOPTestCaseSupported) aopTestCaseSupported) {
             case JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION -> Map.of(
                     "pathsAllowedToBeRead", fileSystemExtractor.getPermittedFilePaths("read").toArray(String[]::new),

@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.google.common.base.Preconditions;
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension;
@@ -72,7 +73,7 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
 			Optional<Policy> policyAnnotation = findAnnotation(testContext.testMethod(), Policy.class);
 			if (policyAnnotation.isPresent()) {
 				SecurityPolicyReader securityPolicyReader = SecurityPolicyYAMLReader.builder()
-						.yamlMapper(new ObjectMapper(new YAMLFactory()))
+						.yamlMapper((YAMLMapper) new ObjectMapper(new YAMLFactory()))
 						.build();
 				SecurityPolicyDirector securityPolicyDirector = SecurityPolicyJavaDirector.builder()
 						.creator(new JavaCreator())
@@ -92,7 +93,7 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
 							.securityPolicyFilePath(securityPolicyFilePath)
 							.projectFolderPath(projectFolderPath)
 							.build();
-					securityPolicyReaderAndDirector.executeSecurityTestCases();
+					securityPolicyReaderAndDirector.executeTestCases();
 				} else {
 					SecurityPolicyReaderAndDirector securityPolicyReaderAndDirector = SecurityPolicyReaderAndDirector.builder()
 							.securityPolicyReader(securityPolicyReader)
@@ -100,15 +101,15 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
 							.securityPolicyFilePath(securityPolicyFilePath)
 							.projectFolderPath(Path.of("classes"))
 							.build();
-					securityPolicyReaderAndDirector.executeSecurityTestCases();
+					securityPolicyReaderAndDirector.executeTestCases();
 				}
 			}
 		} else {
 			try {
-				Class<?> javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings");
-				resetSettings(javaSecurityTestCaseSettingsClass);
-				javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, null);
-				resetSettings(javaSecurityTestCaseSettingsClass);
+				Class<?> javaTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings");
+				resetSettings(javaTestCaseSettingsClass);
+				javaTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, null);
+				resetSettings(javaTestCaseSettingsClass);
 			} catch (ClassNotFoundException e) {
 				throw new SecurityException("Security configuration error: The class for the specific security test case settings could not be found. Ensure the class name is correct and the class is available at runtime.", e);
 			}

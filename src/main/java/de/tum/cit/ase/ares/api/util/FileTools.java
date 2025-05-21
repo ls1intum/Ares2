@@ -89,7 +89,7 @@ public class FileTools {
      * @return a list of copied paths.
      * @throws SecurityException if an error occurs during the process.
      */
-    public static List<Path> copyJavaPhobosFiles(List<Path> sourceFilePaths, List<Path> targetFilePaths, List<String[]> formatValues) {
+    public static List<Path> copyFormatStringFiles(List<Path> sourceFilePaths, List<Path> targetFilePaths, List<String[]> formatValues) {
         List<Path> copiedFiles = copyFiles(sourceFilePaths, targetFilePaths);
         for (int i = 0; i < copiedFiles.size(); i++) {
             try {
@@ -292,7 +292,7 @@ public class FileTools {
         return writeFile(target.getParent(), target.getFileName().toString(), fileContent);
     }
 
-    public static Path createThreePartedJavaPhobosFile(
+    public static Path createThreePartedFormatStringFile(
             Path sourceHeaderPath, String sourceBody, Path sourceFooterPath,
             Path target, String[] formatValues
     ) {

@@ -32,7 +32,7 @@ public class JavaNetworkSystemExtractor implements NetworkSystemExtractor {
     /**
      * Extracts the permitted network hosts from the provided configurations based on the given predicate.
      *
-     * @param configs   the list of JavaSecurityTestCase configurations, must not be null.
+     * @param configs   the list of JavaTestCase configurations, must not be null.
      * @param predicate a filter for determining which hosts are permitted, must not be null.
      * @return a list of permitted hosts.
      */
@@ -47,7 +47,7 @@ public class JavaNetworkSystemExtractor implements NetworkSystemExtractor {
     /**
      * Extracts the permitted network ports from the provided configurations based on the given predicate.
      *
-     * @param configs   the list of JavaSecurityTestCase configurations, must not be null.
+     * @param configs   the list of JavaTestCase configurations, must not be null.
      * @param predicate a filter for determining which ports are permitted, must not be null.
      * @return a list of permitted ports.
      */

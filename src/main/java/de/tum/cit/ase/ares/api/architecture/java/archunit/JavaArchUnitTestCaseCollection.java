@@ -32,11 +32,11 @@ import java.util.Set;
  * - Execute system commands
  * - Create threads
  */
-public class JavaArchUnitSecurityTestCaseCollection {
+public class JavaArchUnitTestCaseCollection {
 
     //<editor-fold desc="Constructor">
-    private JavaArchUnitSecurityTestCaseCollection() {
-        throw new SecurityException(Messages.localized("security.general.utility.initialization", JavaArchUnitSecurityTestCaseCollection.class.getName()));
+    private JavaArchUnitTestCaseCollection() {
+        throw new SecurityException(Messages.localized("security.general.utility.initialization", JavaArchUnitTestCaseCollection.class.getName()));
     }
     //</editor-fold>
 
@@ -57,7 +57,7 @@ public class JavaArchUnitSecurityTestCaseCollection {
     public static String readFile(Path sourceFilePath) {
         try {
 
-            InputStream sourceStream = JavaArchUnitSecurityTestCaseCollection.class.getResourceAsStream("/" + sourceFilePath.toString());
+            InputStream sourceStream = JavaArchUnitTestCaseCollection.class.getResourceAsStream("/" + sourceFilePath.toString());
 
             if (sourceStream == null) {
                 throw new IOException("Resource not found: " + sourceFilePath);

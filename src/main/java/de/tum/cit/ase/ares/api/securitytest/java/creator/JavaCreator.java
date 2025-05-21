@@ -3,14 +3,14 @@ package de.tum.cit.ase.ares.api.securitytest.java.creator;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import de.tum.cit.ase.ares.api.aop.AOPTestCase;
-import de.tum.cit.ase.ares.api.aop.java.JavaAOPMode;
+import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSupported;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
-import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureMode;
+import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
-import de.tum.cit.ase.ares.api.buildtoolconfiguration.java.JavaBuildMode;
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
@@ -133,7 +133,7 @@ public class JavaCreator implements Creator {
     ) {
         return JavaArchitectureTestCase.builder()
                 // The architecture test case checks for the following aspect
-                .javaArchitecturalTestCaseSupported(supported)
+                .javaArchitectureTestCaseSupported(supported)
                 // The architecture test cases are built over the following classes
                 .javaClasses(classes)
                 // The architecture test cases are built over the following call graph
@@ -172,16 +172,22 @@ public class JavaCreator implements Creator {
         if (resourceAccessSupplier.get().isEmpty()) {
             javaArchitectureTestCases.add(
                     JavaArchitectureTestCase.builder()
-                            .javaArchitecturalTestCaseSupported(JavaArchitectureTestCaseSupported.valueOf(supported.name()))
+                            // The architecture test case checks for the following aspect
+                            .javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.valueOf(supported.name()))
+                            // The architecture test cases are built over the following classes
                             .javaClasses(classes)
+                            // The architecture test cases are built over the following call graph
                             .callGraph(callGraph)
+                            // The following packages are allowed
                             .allowedPackages(allowedPackages)
+                            // Build the architecture test case
                             .build()
             );
         }
         return JavaAOPTestCase.builder()
                 // The AOP test case checks for the following aspect
                 .javaAOPTestCaseSupported(supported)
+                // The AOP test cases are built over the following ressources
                 .resourceAccessSupplier(resourceAccessSupplier)
                 // The following classes are allowed
                 .allowedClasses(allowedClasses)
@@ -247,38 +253,38 @@ public class JavaCreator implements Creator {
      *
      * @since 2.0.0
      * @author Markus Paulsen
-     * @param javaBuildMode the Java build mode to use; must not be null
-     * @param javaArchitectureMode the Java architecture mode to use; must not be null
-     * @param javaAOPMode the Java AOP mode to use; must not be null
+     * @param buildMode the Java build mode to use; must not be null
+     * @param architectureMode the Java architecture mode to use; must not be null
+     * @param aopMode the Java AOP mode to use; must not be null
      * @param essentialPackages the list of essential packages; must not be null
      * @param essentialClasses the list of essential classes; must not be null
      * @param testClasses the list of test classes; must not be null
      * @param packageName the name of the package containing the main class; must not be null
      * @param mainClassInPackageName the name of the main class; must not be null
-     * @param javaArchitectureTestCases the list to populate with architecture test cases; must not be null
-     * @param javaAOPTestCases the list to populate with AOP test cases; must not be null
+     * @param architectureTestCases the list to populate with architecture test cases; must not be null
+     * @param aopTestCases the list to populate with AOP test cases; must not be null
      * @param resourceAccesses the resource accesses permitted by the security policy; must not be null
      * @param projectPath the path to the project; must not be null
      */
-    public void createSecurityTestCases(
-            @Nonnull JavaBuildMode javaBuildMode,
-            @Nonnull JavaArchitectureMode javaArchitectureMode,
-            @Nonnull JavaAOPMode javaAOPMode,
+    public void createTestCases(
+            @Nonnull BuildMode buildMode,
+            @Nonnull ArchitectureMode architectureMode,
+            @Nonnull AOPMode aopMode,
             @Nonnull List<String> essentialPackages,
             @Nonnull List<String> essentialClasses,
             @Nonnull List<String> testClasses,
             @Nonnull String packageName,
             @Nonnull String mainClassInPackageName,
-            @Nonnull List<ArchitectureTestCase> javaArchitectureTestCases,
-            @Nonnull List<AOPTestCase> javaAOPTestCases,
+            @Nonnull List<ArchitectureTestCase> architectureTestCases,
+            @Nonnull List<AOPTestCase> aopTestCases,
             @Nonnull ResourceAccesses resourceAccesses,
             @Nonnull Path projectPath
     ) {
 
         //<editor-fold desc="Extraction">
-        @Nonnull String classPath = javaBuildMode.getClasspath(projectPath);
-        @Nonnull JavaClasses javaClasses = cacheResult(() -> javaArchitectureMode.getJavaClasses(classPath)).get();
-        @Nonnull CallGraph callGraph = cacheResult(() -> javaArchitectureMode.getCallGraph(classPath)).get();
+        @Nonnull String classPath = buildMode.getClasspath(projectPath);
+        @Nonnull JavaClasses javaClasses = cacheResult(() -> architectureMode.getJavaClasses(classPath)).get();
+        @Nonnull CallGraph callGraph = cacheResult(() -> architectureMode.getCallGraph(classPath)).get();
         //</editor-fold>
 
         //<editor-fold desc="Preparation">
@@ -287,11 +293,11 @@ public class JavaCreator implements Creator {
         //</editor-fold>
 
         //<editor-fold desc="Create variable rules code">
-        addVariableTestCases(javaArchitectureTestCases, javaAOPTestCases, javaClasses, callGraph, allowedPackages, allowedClasses, resourceAccesses);
+        addVariableTestCases(architectureTestCases, aopTestCases, javaClasses, callGraph, allowedPackages, allowedClasses, resourceAccesses);
         //</editor-fold>
 
         //<editor-fold desc="Create fixed rules code">
-        addFixedTestCases(javaArchitectureTestCases, javaClasses, callGraph, allowedPackages, allowedClasses);
+        addFixedTestCases(architectureTestCases, javaClasses, callGraph, allowedPackages, allowedClasses);
         //</editor-fold>
     }
     //</editor-fold>

@@ -1,7 +1,7 @@
 package de.tum.cit.ase.ares.api.securitytest.java.projectScanner;
 
 import com.google.common.base.Preconditions;
-import de.tum.cit.ase.ares.api.buildtoolconfiguration.java.JavaBuildMode;
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 
 import javax.annotation.Nonnull;
@@ -236,8 +236,8 @@ public class JavaProjectScanner implements ProjectScanner {
      */
     @Override
     @Nonnull
-    public JavaBuildMode scanForBuildMode() {
-        return ProjectSourcesFinder.isGradleProject() ? JavaBuildMode.GRADLE : JavaBuildMode.MAVEN;
+    public BuildMode scanForBuildMode() {
+        return ProjectSourcesFinder.isGradleProject() ? BuildMode.GRADLE : BuildMode.MAVEN;
     }
 
     /**
@@ -293,9 +293,9 @@ public class JavaProjectScanner implements ProjectScanner {
     public Path scanForTestPath() {
         Optional<Path> projectRoot = ProjectSourcesFinder.findProjectSourcesPath();
         if (projectRoot.isPresent()) {
-            JavaBuildMode buildMode = scanForBuildMode();
+            BuildMode buildMode = scanForBuildMode();
             Path testPath;
-            if (buildMode == JavaBuildMode.GRADLE) {// Check for custom test directory in Gradle projects
+            if (buildMode == BuildMode.GRADLE) {// Check for custom test directory in Gradle projects
                 Path buildGradle = projectRoot.get().resolve("build.gradle");
                 if (Files.exists(buildGradle)) {
                     try {

@@ -29,7 +29,7 @@ public class JavaCommandSystemExtractor implements CommandSystemExtractor {
     /**
      * Extracts the permitted commands from the provided configurations.
      *
-     * @param configs the list of JavaSecurityTestCase configurations, must not be null.
+     * @param configs the list of JavaTestCase configurations, must not be null.
      * @return a list of permitted commands.
      */
     @Nonnull
@@ -42,7 +42,7 @@ public class JavaCommandSystemExtractor implements CommandSystemExtractor {
     /**
      * Extracts the permitted arguments for command execution from the provided configurations.
      *
-     * @param configs the list of JavaSecurityTestCase configurations, must not be null.
+     * @param configs the list of JavaTestCase configurations, must not be null.
      * @return a list of permitted command arguments.
      */
     @Nonnull

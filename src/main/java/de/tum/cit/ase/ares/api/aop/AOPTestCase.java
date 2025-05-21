@@ -81,7 +81,7 @@ public abstract class AOPTestCase {
      * @return the AOP test case configuration content as a string.
      */
     @Nonnull
-    public abstract String writeAOPSecurityTestCase(@Nonnull String architectureMode, @Nonnull String aopMode);
+    public abstract String writeAOPTestCase(@Nonnull String architectureMode, @Nonnull String aopMode);
 
     /**
      * Executes the AOP test case using the provided architecture mode and AOP mode.
@@ -91,6 +91,6 @@ public abstract class AOPTestCase {
      * @param architectureMode the identifier for the architecture mode.
      * @param aopMode the identifier for the AOP mode.
      */
-    public abstract void executeAOPSecurityTestCase(@Nonnull String architectureMode, @Nonnull String aopMode);
+    public abstract void executeAOPTestCase(@Nonnull String architectureMode, @Nonnull String aopMode);
     //</editor-fold>
 }

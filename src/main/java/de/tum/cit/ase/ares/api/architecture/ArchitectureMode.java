@@ -1,17 +1,20 @@
-package de.tum.cit.ase.ares.api.architecture.java;
+package de.tum.cit.ase.ares.api.architecture;
 
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
-import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitSecurityTestCase;
+import de.tum.cit.ase.ares.api.aop.AOPMode;
+import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
+import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
+import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.wala.CustomCallgraphBuilder;
-import de.tum.cit.ase.ares.api.architecture.java.wala.JavaWalaSecurityTestCase;
-import de.tum.cit.ase.ares.api.localization.Messages;
+import de.tum.cit.ase.ares.api.architecture.java.wala.JavaWalaTestCase;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -28,7 +31,7 @@ import java.util.stream.Stream;
  * @author Markus Paulsen
  * @version 2.0.0
  */
-public enum JavaArchitectureMode {
+public enum ArchitectureMode {
 
     /**
      * ArchUnit mode for analysing Java code with TNGs ArchUnit.
@@ -57,7 +60,7 @@ public enum JavaArchitectureMode {
                     new String[]{"templates", "architecture", "ArchitectureTestCaseSupported.java"},
                     new String[]{"templates", "architecture", "java", "JavaArchitectureTestCaseSupported.java"},
                     new String[]{"templates", "architecture", "java", "FileHandlerConstants.java"},
-                    new String[]{"templates", "architecture", "java", "archunit", "JavaArchUnitSecurityTestCaseCollection.java"},
+                    new String[]{"templates", "architecture", "java", "archunit", "JavaArchUnitTestCaseCollection.java"},
                     new String[]{"templates", "architecture", "java", "archunit", "TransitivelyAccessesMethodsCondition.java"},
                     new String[]{"templates", "policy", "policySubComponents", "PackagePermission.java"},
                     new String[]{"templates", "localization", "Messages.java"},
@@ -111,7 +114,7 @@ public enum JavaArchitectureMode {
      * @return a list of string arrays representing file values.
      */
     @Nonnull
-    public List<String[]> fileValues(@Nonnull String packageName) {
+    public List<String[]> formatValues(@Nonnull String packageName) {
         return (switch (this) {
             case ARCHUNIT -> Stream.of(
                     // postcompile classes
@@ -180,7 +183,7 @@ public enum JavaArchitectureMode {
                     new String[]{"api", "architecture", "ArchitectureTestCaseSupported.java"},
                     new String[]{"api", "architecture", "java", "JavaArchitectureTestCaseSupported.java"},
                     new String[]{"api", "architecture", "java", "FileHandlerConstants.java"},
-                    new String[]{"api", "architecture", "java", "archunit", "JavaArchUnitSecurityTestCaseCollection.java"},
+                    new String[]{"api", "architecture", "java", "archunit", "JavaArchUnitTestCaseCollection.java"},
                     new String[]{"api", "architecture", "java", "archunit", "TransitivelyAccessesMethodsCondition.java"},
                     new String[]{"api", "policy", "policySubComponents", "PackagePermission.java"},
                     new String[]{"api", "localization", "Messages.java"},
@@ -238,9 +241,39 @@ public enum JavaArchitectureMode {
     @Nonnull
     public Path threePartedFileHeader() {
         return FileTools.resolveOnPackage(switch (this) {
-            case ARCHUNIT -> new String[]{"templates", "architecture", "java", "archunit", "JavaArchitectureTestCaseHeader.txt"};
-            case WALA -> new String[]{"templates", "architecture", "java", "wala", "JavaArchitectureTestCaseHeader.txt"};
+            case ARCHUNIT ->
+                    new String[]{"templates", "architecture", "java", "archunit", "JavaArchitectureTestCaseHeader.txt"};
+            case WALA ->
+                    new String[]{"templates", "architecture", "java", "wala", "JavaArchitectureTestCaseHeader.txt"};
         });
+    }
+
+    private List<JavaArchUnitTestCase> convertToJavaArchUnitTestCase(List<JavaArchitectureTestCase> testCases) {
+        return new ArrayList<>(
+                testCases.stream()
+                        .map(testCase -> (JavaArchUnitTestCase) JavaArchUnitTestCase.builder()
+                                .javaArchitectureTestCaseSupported((JavaArchitectureTestCaseSupported) testCase.getArchitectureTestCaseSupported())
+                                .allowedPackages(testCase.getAllowedPackages())
+                                .callGraph(testCase.getCallGraph())
+                                .javaClasses(testCase.getJavaClasses())
+                                .build()
+                        )
+                        .toList()
+        );
+    }
+
+    private List<JavaWalaTestCase> convertToJavaWalaTestCase(List<JavaArchitectureTestCase> testCases) {
+        return new ArrayList<>(
+                testCases.stream()
+                        .map(testCase -> (JavaWalaTestCase) JavaWalaTestCase.builder()
+                                .javaArchitectureTestCaseSupported((JavaArchitectureTestCaseSupported) testCase.getArchitectureTestCaseSupported())
+                                .allowedPackages(testCase.getAllowedPackages())
+                                .callGraph(testCase.getCallGraph())
+                                .javaClasses(testCase.getJavaClasses())
+                                .build()
+                        )
+                        .toList()
+        );
     }
 
     /**
@@ -255,8 +288,17 @@ public enum JavaArchitectureMode {
     @Nonnull
     public String threePartedFileBody(List<?> testCases) {
         return switch (this) {
-            case ARCHUNIT -> String.join("\n", ((List<JavaArchUnitSecurityTestCase>) testCases).stream().map(JavaArchUnitSecurityTestCase::writeArchitectureTestCase).toList());
-            case WALA -> String.join("\n", ((List<JavaWalaSecurityTestCase>) testCases).stream().map(JavaWalaSecurityTestCase::writeArchitectureTestCase).toList());
+            case ARCHUNIT -> String.join("\n",
+                    convertToJavaArchUnitTestCase((List<JavaArchitectureTestCase>) testCases).stream()
+                            .map(javaArchUnitTestCase -> javaArchUnitTestCase.writeArchitectureTestCase("ARCHUNIT", ""))
+                            .toList()
+
+            );
+            case WALA -> String.join("\n",
+                    convertToJavaWalaTestCase((List<JavaArchitectureTestCase>) testCases).stream()
+                            .map(javaWalaTestCase -> javaWalaTestCase.writeArchitectureTestCase("WALA", ""))
+                            .toList()
+            );
         };
     }
 
@@ -270,8 +312,10 @@ public enum JavaArchitectureMode {
     @Nonnull
     public Path threePartedFileFooter() {
         return FileTools.resolveOnPackage(switch (this) {
-            case ARCHUNIT -> new String[]{"templates", "architecture", "java", "archunit", "JavaArchitectureTestCaseFooter.txt"};
-            case WALA -> new String[]{"templates", "architecture", "java", "wala", "JavaArchitectureTestCaseFooter.txt"};
+            case ARCHUNIT ->
+                    new String[]{"templates", "architecture", "java", "archunit", "JavaArchitectureTestCaseFooter.txt"};
+            case WALA ->
+                    new String[]{"templates", "architecture", "java", "wala", "JavaArchitectureTestCaseFooter.txt"};
         });
     }
 

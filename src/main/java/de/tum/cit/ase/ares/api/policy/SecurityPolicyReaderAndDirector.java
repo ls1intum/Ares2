@@ -4,7 +4,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import de.tum.cit.ase.ares.api.policy.director.SecurityPolicyDirector;
 import de.tum.cit.ase.ares.api.policy.reader.SecurityPolicyReader;
-import de.tum.cit.ase.ares.api.securitytest.SecurityTestCaseAbstractFactoryAndBuilder;
+import de.tum.cit.ase.ares.api.securitytest.TestCaseAbstractFactoryAndBuilder;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -61,7 +61,7 @@ public class SecurityPolicyReaderAndDirector {
      * The manager for creating and handling security test cases.
      */
     @Nonnull
-    private SecurityTestCaseAbstractFactoryAndBuilder securityTestCaseFactoryAndBuilder;
+    private TestCaseAbstractFactoryAndBuilder securityTestCaseFactoryAndBuilder;
     //</editor-fold>
 
     //<editor-fold desc="Constructors">
@@ -86,7 +86,7 @@ public class SecurityPolicyReaderAndDirector {
         this.securityPolicyDirector = Preconditions.checkNotNull(securityPolicyDirector, "securityPolicyDirector must not be null");
         this.securityPolicyFilePath = securityPolicyFilePath;
         this.projectFolderPath = projectFolderPath;
-        createSecurityTestCases();
+        createTestCases();
     }
     //</editor-fold>
 
@@ -98,12 +98,12 @@ public class SecurityPolicyReaderAndDirector {
      * @since 2.0.0
      * @author Markus Paulsen
      */
-    public void createSecurityTestCases() {
+    public void createTestCases() {
         @Nullable SecurityPolicy securityPolicy = Optional
                 .fromNullable(securityPolicyFilePath)
                 .transform(securityPolicyReader::readSecurityPolicyFrom)
                 .orNull();
-        this.securityTestCaseFactoryAndBuilder = securityPolicyDirector.createSecurityTestCases(
+        this.securityTestCaseFactoryAndBuilder = securityPolicyDirector.createTestCases(
                 securityPolicy,
                 projectFolderPath
         );
@@ -120,9 +120,9 @@ public class SecurityPolicyReaderAndDirector {
      * @return a list of Paths where the security test cases were written.
      */
     @Nonnull
-    public List<Path> writeSecurityTestCases(Path testFolderPath) {
+    public List<Path> writeTestCases(Path testFolderPath) {
         return Preconditions.checkNotNull(this.securityTestCaseFactoryAndBuilder, "securityTestCaseFactoryAndBuilder must not be null")
-                .writeSecurityTestCases(testFolderPath);
+                .writeTestCases(testFolderPath);
     }
     //</editor-fold>
 
@@ -134,9 +134,9 @@ public class SecurityPolicyReaderAndDirector {
      * @since 2.0.0
      * @author Markus Paulsen
      */
-    public void executeSecurityTestCases() {
+    public void executeTestCases() {
         Preconditions.checkNotNull(this.securityTestCaseFactoryAndBuilder, "securityTestCaseFactoryAndBuilder must not be null")
-                .executeSecurityTestCases();
+                .executeTestCases();
     }
     //</editor-fold>
 
@@ -190,6 +190,5 @@ public class SecurityPolicyReaderAndDirector {
         }
     }
     // </editor-fold>
-
 
 }

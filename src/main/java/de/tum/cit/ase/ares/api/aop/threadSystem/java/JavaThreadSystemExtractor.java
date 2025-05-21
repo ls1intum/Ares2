@@ -29,7 +29,7 @@ public class JavaThreadSystemExtractor implements ThreadSystemExtractor {
     /**
      * Retrieves the list of permitted thread counts based on the security policy.
      *
-     * @param configs the list of JavaSecurityTestCase configurations, must not be null.
+     * @param configs the list of JavaTestCase configurations, must not be null.
      * @return a list of permitted thread numbers.
      */
     @Nonnull
@@ -43,7 +43,7 @@ public class JavaThreadSystemExtractor implements ThreadSystemExtractor {
     /**
      * Retrieves the list of permitted thread classes based on the security policy.
      *
-     * @param configs the list of JavaSecurityTestCase configurations, must not be null.
+     * @param configs the list of JavaTestCase configurations, must not be null.
      * @return a list of permitted thread classes.
      */
     @Nonnull

@@ -2,6 +2,7 @@ package de.tum.cit.ase.ares.integration.precompile;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 import de.tum.cit.ase.ares.api.policy.director.SecurityPolicyDirector;
 import de.tum.cit.ase.ares.api.policy.director.java.SecurityPolicyJavaDirector;
@@ -30,7 +31,7 @@ public class PrecompileTest {
     @BeforeEach
     @AfterEach
     void clean() {
-        Path target = Paths.get("src/test/resources/dump/test");
+        Path target = Paths.get("src/test/resources/dump");
         if (!Files.exists(target) || !Files.isDirectory(target)) {
             System.err.println("Target path does not exist or is not a directory: " + target);
             return;
@@ -61,7 +62,7 @@ public class PrecompileTest {
     @Test
     void testPrecompileJavaMavenArchunitInstrumentation() {
         SecurityPolicyReader securityPolicyReader = SecurityPolicyYAMLReader.builder()
-                .yamlMapper(new ObjectMapper(new YAMLFactory()))
+                .yamlMapper((YAMLMapper) new ObjectMapper(new YAMLFactory()))
                 .build();
         SecurityPolicyDirector securityPolicyDirector = SecurityPolicyJavaDirector.builder()
                 .creator(new JavaCreator())
@@ -78,7 +79,7 @@ public class PrecompileTest {
                 .securityPolicyFilePath(Path.of("src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyEverythingForbidden.yaml"))
                 .projectFolderPath(Path.of("src/test/resources/dump"))
                 .build();
-        sprad.writeSecurityTestCases(Path.of("src/test/resources/dump/test"));
+        sprad.writeTestCases(Path.of("src/test/resources/dump/test"));
         System.out.println(sprad);
         var x = 0;
     }

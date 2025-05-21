@@ -1,6 +1,6 @@
-package de.tum.cit.ase.ares.api.aop.java.javaAOPModeData;
+package de.tum.cit.ase.ares.api.aop.java.aopModeData;
 
-import de.tum.cit.ase.ares.api.aop.java.JavaAOPMode;
+import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
 import java.io.IOException;
@@ -15,7 +15,7 @@ public class JavaCSVFileLoader implements JavaFileLoader {
      * @param mode the selected AOP mode.
      * @return the path to the CSV file containing the copy configuration.
      */
-    public Path getCopyPaths(JavaAOPMode mode) {
+    public Path getCopyPaths(AOPMode mode) {
         return switch (mode) {
             case INSTRUMENTATION -> FileTools.resolveOnPackage("configuration/InstrumentationCopyFiles.csv");
             case ASPECTJ -> FileTools.resolveOnPackage("configuration/AspectJCopyFiles.csv");
@@ -28,7 +28,7 @@ public class JavaCSVFileLoader implements JavaFileLoader {
      * @param mode the selected AOP mode.
      * @return the path to the CSV file containing the edit configuration.
      */
-    public Path getEditPaths(JavaAOPMode mode) {
+    public Path getEditPaths(AOPMode mode) {
         return FileTools.resolveOnPackage("EditFiles.csv");
     }
 
@@ -39,7 +39,7 @@ public class JavaCSVFileLoader implements JavaFileLoader {
      * @return the copy configuration.
      */
     @Override
-    public List<List<String>> loadCopyData(JavaAOPMode mode) throws IOException {
+    public List<List<String>> loadCopyData(AOPMode mode) throws IOException {
         return FileTools.readCSVFile(getCopyPaths(mode));
     }
 
@@ -50,7 +50,7 @@ public class JavaCSVFileLoader implements JavaFileLoader {
      * @return the edit configuration.
      */
     @Override
-    public List<List<String>> loadEditData(JavaAOPMode mode) throws IOException {
+    public List<List<String>> loadEditData(AOPMode mode) throws IOException {
         return FileTools.readCSVFile(getEditPaths(mode));
     }
 }
