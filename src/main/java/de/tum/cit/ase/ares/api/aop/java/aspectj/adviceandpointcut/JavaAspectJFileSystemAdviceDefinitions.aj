@@ -43,11 +43,11 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
      */
     @Nonnull
     private static final List<String> FILE_SYSTEM_IGNORE_CALLSTACK = List.of(
-            "java.lang.ClassLoader",
-            "sun.awt.X11FontManager",
-            "de.tum.cit.ase.ares.api.io.OutputTester",
-            "de.tum.cit.ase.ares.api.io.InputTester",
-            "de.tum.cit.ase.ares.api.localization.Messages"
+            "java.lang.ClassLoader"//,
+            //"sun.awt.X11FontManager",
+            //"de.tum.cit.ase.ares.api.io.OutputTester",
+            //"de.tum.cit.ase.ares.api.io.InputTester",
+            //"de.tum.cit.ase.ares.api.localization.Messages"
     );
 
     /**
@@ -58,7 +58,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
      */
     @Nonnull
     private static final Map<String, IgnoreValues> FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT = Map.ofEntries(
-            Map.entry("java.io.File.delete", IgnoreValues.allExcept(1))
+            Map.entry("java.io.File.delete", IgnoreValues.allExcept(1)),
+            Map.entry("java.io.File.deleteOnExit", IgnoreValues.allExcept(1))
     );
 
     /**
@@ -555,9 +556,9 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
      * @since 2.0.0
      * @author Markus Paulsen
      */
-    private void checkFileSystemInteraction(
-            String action,
-            JoinPoint thisJoinPoint
+    public void checkFileSystemInteraction(
+            @Nonnull String action,
+            @Nonnull JoinPoint thisJoinPoint
     ) {
         //<editor-fold desc="Get information from settings">
         @Nullable final String aopMode = getValueFromSettings("aopMode");

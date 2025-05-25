@@ -2,19 +2,25 @@ essentialJavaClasses: []
 essentialArchUnitClasses:
   - de.tum.cit.ase.ares.api.architecture.java.archunit
 essentialWalaClasses:
-  - de.tum.cit.ase.ares.api.aop.java.aspectj.wala
+  - de.tum.cit.ase.ares.api.architecture.java.wala
 essentialAspectJClasses:
   - de.tum.cit.ase.ares.api.aop.java.aspectj
 essentialInstrumentationClasses:
   - de.tum.cit.ase.ares.api.aop.java.instrumentation
 essentialAresClasses:
   - de.tum.cit.ase.ares.api.internal
-  - de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings
-  - de.tum.cit.ase.ares.api.policy.reader.yaml.SecurityPolicyYAMLReader
+  - de.tum.cit.ase.ares.api.aop.java.JavaTestCaseSettings
   - de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector
-  - de.tum.cit.ase.ares.api.util.ProjectSourcesFinder
+  - de.tum.cit.ase.ares.api.policy.reader.yaml.SecurityPolicyYAMLReader
+  - de.tum.cit.ase.ares.api.policy.director.java.SecurityPolicyJavaDirector
   - de.tum.cit.ase.ares.api.securitytest.java.projectScanner.JavaProjectScanner
   - de.tum.cit.ase.ares.api.securitytest.java.JavaSecurityTestCaseFactoryAndBuilder
-  - de.tum.cit.ase.ares.api.policy.director.java.SecurityPolicyJavaDirector
+  - de.tum.cit.ase.ares.api.securitytest.java.essentialModel.yaml.EssentialDataYAMLReader
+  - de.tum.cit.ase.ares.api.securitytest.TestCaseAbstractFactoryAndBuilder
+  - de.tum.cit.ase.ares.api.securitytest.java.JavaTestCaseFactoryAndBuilder
+  - de.tum.cit.ase.ares.api.util.ProjectSourcesFinder
+  - de.tum.cit.ase.ares.api.util.FileTools
+  - de.tum.cit.ase.ares.api.architecture.ArchitectureMode
+  - de.tum.cit.ase.ares.api.securitytest.java.creator.JavaCreator
 essentialJUnitClasses:
   - de.tum.cit.ase.ares.api.jupiter

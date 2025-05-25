@@ -58,11 +58,11 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
      */
     @Nonnull
     private static final List<String> FILE_SYSTEM_IGNORE_CALLSTACK = List.of(
-            "java.lang.ClassLoader",
-            "sun.awt.X11FontManager",
-            "de.tum.cit.ase.ares.api.io.OutputTester",
-            "de.tum.cit.ase.ares.api.io.InputTester",
-            "de.tum.cit.ase.ares.api.localization.Messages"
+            "java.lang.ClassLoader"//,
+            //"sun.awt.X11FontManager",
+            //"de.tum.cit.ase.ares.api.io.OutputTester",
+            //"de.tum.cit.ase.ares.api.io.InputTester",
+            //"de.tum.cit.ase.ares.api.localization.Messages"
     );
 
     /**
@@ -73,7 +73,8 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
      */
     @Nonnull
     private static final Map<String, IgnoreValues> FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT = Map.ofEntries(
-            Map.entry("java.io.File.delete", IgnoreValues.allExcept(1))
+            Map.entry("java.io.File.delete", IgnoreValues.allExcept(1)),
+            Map.entry("java.io.File.deleteOnExit", IgnoreValues.allExcept(1))
     );
 
     /**

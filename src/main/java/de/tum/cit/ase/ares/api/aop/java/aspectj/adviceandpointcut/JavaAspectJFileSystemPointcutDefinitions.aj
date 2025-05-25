@@ -142,8 +142,7 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(java.lang.ProcessBuilder.new(..));
 
     pointcut fileChannelExecuteMethods():
-            (call(* java.nio.channels.FileChannel.open(..)) ||
-                    call(* java.nio.channels.AsynchronousFileChannel.open()) ||
+            (call(* java.nio.channels.AsynchronousFileChannel.open()) ||
                     call(* java.nio.channels.FileChannel.position(..)) ||
                     call(* java.nio.channels.FileChannel.tryLock(..)) ||
                     call(* java.nio.channels.AsynchronousFileChannel.tryLock()));
@@ -204,7 +203,6 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.nio.file.spi.FileSystemProvider.newDirectoryStream(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider.newFileChannel(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider.newInputStream(..)) ||
-                    call(* java.nio.file.spi.FileSystemProvider.newOutputStream(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider.newWatchService(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider.readAttributes(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider.readSymbolicLink(..)));

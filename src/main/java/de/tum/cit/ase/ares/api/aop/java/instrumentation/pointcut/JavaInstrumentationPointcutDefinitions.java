@@ -230,9 +230,8 @@ public class JavaInstrumentationPointcutDefinitions {
             Map.entry("java.io.WinNTFileSystem", List.of("canonicalize", "getBooleanAttributes", "getLastModifiedTime", "getSpace")),
             // java.nio
             Map.entry("java.nio.file.Files", List.of("lines", "newBufferedReader", "newByteChannel", "newInputStream", "readAllBytes", "readAllLines", "readString")),
-            Map.entry("java.nio.file.spi.FileSystemProvider", List.of("newFileChannel")),
             // sun.nio
-            Map.entry("sun.nio.ch.FileChannelImpl", List.of("open", "read", "readDirect", "readFully", "readIntoNativeBuffer"))
+            Map.entry("sun.nio.ch.FileChannelImpl", List.of("read", "readDirect", "readFully", "readIntoNativeBuffer"))
     );
     //</editor-fold>
 
@@ -292,13 +291,14 @@ public class JavaInstrumentationPointcutDefinitions {
     public static final Map<String, List<String>> methodsWhichCanDeleteFiles = Map.ofEntries(
             // java.io
             Map.entry("java.io.File", List.of("delete", "deleteOnExit")),
-            Map.entry("java.io.FileSystem", List.of("delete")),
-            Map.entry("java.io.UnixFileSystem", List.of("delete")),
+            //Map.entry("java.io.FileSystem", List.of("delete")),
+            //Map.entry("java.io.UnixFileSystem", List.of("delete")),
             Map.entry("java.io.WinNTFileSystem", List.of("delete")),
             Map.entry("java.io.Win32FileSystem", List.of("delete")),
             // java.nio
             Map.entry("java.nio.file.Files", List.of("delete", "deleteIfExists")),
             Map.entry("java.nio.file.spi.FileSystemProvider", List.of("delete", "installedProviders")),
+            Map.entry("java.nio.file.SecureDirectoryStream", List.of("deleteFile")),
             // jdk.internal
             Map.entry("jdk.internal.jrtfs.JrtFileSystemProvider", List.of("delete")),
             // jdk.nio

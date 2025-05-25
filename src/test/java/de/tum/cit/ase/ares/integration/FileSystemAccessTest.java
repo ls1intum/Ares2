@@ -385,14 +385,14 @@ class FileSystemAccessTest {
         //<editor-fold desc="accessFileSystemViaRandomAccessFileWrite">
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaRandomAccessFileWriteAspectJ() throws IOException {
             assertAresSecurityExceptionRead(FileSystemAccessPenguin::accessFileSystemViaRandomAccessFileWrite);
         }
 
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaRandomAccessFileWriteInstrumentation() throws IOException {
             assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaRandomAccessFileWrite);
         }
@@ -401,14 +401,14 @@ class FileSystemAccessTest {
         //<editor-fold desc="accessFileSystemViaFileWrite">
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaFileWriteAspectJ() throws IOException {
             assertAresSecurityExceptionRead(FileSystemAccessPenguin::accessFileSystemViaFileWrite);
         }
 
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaFileWriteInstrumentation() throws IOException {
             assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaFileWrite);
         }
@@ -417,14 +417,14 @@ class FileSystemAccessTest {
         //<editor-fold desc="accessFileSystemViaFileOutputStream">
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaFileOutputStreamAspectJ() throws IOException {
             assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaFileOutputStream);
         }
 
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaFileOutputStreamInstrumentation() throws IOException {
             assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaFileOutputStream);
         }
@@ -433,14 +433,14 @@ class FileSystemAccessTest {
         //<editor-fold desc="accessFileSystemViaFileWriter">
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaFileWriterAspectJ() throws IOException {
             assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaFileWriter);
         }
 
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaFileWriterInstrumentation() throws IOException {
             assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaFileWriter);
         }
@@ -449,14 +449,14 @@ class FileSystemAccessTest {
         //<editor-fold desc="accessFileSystemViaBufferedWriter">
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaBufferedWriterAspectJ() throws IOException {
             assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaBufferedWriter);
         }
 
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaBufferedWriterInstrumentation() throws IOException {
             assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaBufferedWriter);
         }
@@ -465,14 +465,14 @@ class FileSystemAccessTest {
         //<editor-fold desc="accessFileSystemViaPrintWriter">
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaPrintWriterAspectJ() throws IOException {
             assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaPrintWriter);
         }
 
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaPrintWriterInstrumentation() throws IOException {
             assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaPrintWriter);
         }
@@ -481,14 +481,14 @@ class FileSystemAccessTest {
         //<editor-fold desc="accessFileSystemViaDataOutputStream">
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaDataOutputStreamAspectJ() throws IOException {
             assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaDataOutputStream);
         }
 
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaDataOutputStreamInstrumentation() throws IOException {
             assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaDataOutputStream);
         }
@@ -497,14 +497,14 @@ class FileSystemAccessTest {
         //<editor-fold desc="accessFileSystemViaObjectOutputStream">
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaObjectOutputStreamAspectJ() throws IOException {
             assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaObjectOutputStream);
         }
 
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaObjectOutputStreamInstrumentation() throws IOException {
             assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaObjectOutputStream);
         }
@@ -513,14 +513,14 @@ class FileSystemAccessTest {
         //<editor-fold desc="accessFileSystemViaOutputStreamWriter">
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaOutputStreamWriterAspectJ() throws IOException {
             assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaOutputStreamWriter);
         }
 
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaOutputStreamWriterInstrumentation() throws IOException {
             assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaOutputStreamWriter);
         }
@@ -529,14 +529,14 @@ class FileSystemAccessTest {
         //<editor-fold desc="accessFileSystemViaPrintStream">
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaPrintStreamAspectJ() throws IOException {
             assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaPrintStream);
         }
 
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaPrintStreamInstrumentation() throws IOException {
             assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaPrintStream);
         }
@@ -545,14 +545,14 @@ class FileSystemAccessTest {
         //<editor-fold desc="accessFileSystemViaFileChannelWrite">
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaFileChannelWriteAspectJ() throws IOException {
             assertAresSecurityExceptionExecution(FileSystemAccessPenguin::accessFileSystemViaFileChannelWrite);
         }
 
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaFileChannelWriteInstrumentation() throws IOException {
             assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaFileChannelWrite);
         }
@@ -561,14 +561,14 @@ class FileSystemAccessTest {
         //<editor-fold desc="accessFileSystemViaFilesWrite">
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaFilesWriteAspectJ() throws IOException {
             assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaFilesWrite);
         }
 
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaFilesWriteInstrumentation() throws IOException {
             assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaFilesWrite);
         }
@@ -577,14 +577,14 @@ class FileSystemAccessTest {
         //<editor-fold desc="accessFileSystemViaFileHandler">
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaFileHandlerAspectJ() throws IOException {
             assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaFileHandler);
         }
 
         @TestTest
         @PublicTest
-        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedWrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
         void test_accessFileSystemViaFileHandlerInstrumentation() {
             assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaFileHandler);
         }

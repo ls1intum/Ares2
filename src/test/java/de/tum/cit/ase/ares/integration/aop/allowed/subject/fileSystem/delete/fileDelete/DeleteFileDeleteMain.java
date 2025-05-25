@@ -14,4 +14,8 @@ public class DeleteFileDeleteMain {
     public static void accessFileSystemViaFileDelete() {
         (new File("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt")).delete();
     }
+
+    public static void accessFileSystemViaFileDeleteOnExit() {
+        (new File("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt")).deleteOnExit();
+    }
 }
