@@ -116,6 +116,7 @@ public enum AOPMode {
         return getCopyConfigurationEntries().stream()
                 .map(entry -> entry.get(2).split("/"))
                 .map(FileTools::resolveOnPackage)
+                .map(projectPath::resolve)
                 .toList();
     }
     //</editor-fold>
