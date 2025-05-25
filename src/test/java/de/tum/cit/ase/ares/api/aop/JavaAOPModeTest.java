@@ -1,6 +1,6 @@
 package de.tum.cit.ase.ares.api.aop;
 
-import de.tum.cit.ase.ares.api.aop.java.JavaAOPMode;
+import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.util.FileTools;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,7 +13,7 @@ import java.util.Arrays;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-class JavaAOPModeTest {
+class AOPModeTest {
 
     private static final int SETUP_OPTIONS_COUNT = 2;
     /**
@@ -36,21 +36,21 @@ class JavaAOPModeTest {
     private static String TEST_MAIN_CLASS = "MainClass";
     private static String[] EXPECTED_ARRAY = {"mocked", "array"};
 
-    private JavaAOPMode instrumentationMode;
-    private JavaAOPMode aspectjMode;
+    private AOPMode instrumentationMode;
+    private AOPMode aspectjMode;
 
     @BeforeEach
     void setUp() {
-        instrumentationMode = JavaAOPMode.INSTRUMENTATION;
-        aspectjMode = JavaAOPMode.ASPECTJ;
+        instrumentationMode = AOPMode.INSTRUMENTATION;
+        aspectjMode = AOPMode.ASPECTJ;
     }
 
     @Test
     void testEnumValues() {
-        JavaAOPMode[] modes = JavaAOPMode.values();
+        AOPMode[] modes = AOPMode.values();
         assertEquals(SETUP_OPTIONS_COUNT, modes.length);
-        assertTrue(Arrays.asList(modes).contains(JavaAOPMode.INSTRUMENTATION));
-        assertTrue(Arrays.asList(modes).contains(JavaAOPMode.ASPECTJ));
+        assertTrue(Arrays.asList(modes).contains(AOPMode.INSTRUMENTATION));
+        assertTrue(Arrays.asList(modes).contains(AOPMode.ASPECTJ));
     }
 
     @Test
@@ -87,7 +87,7 @@ class JavaAOPModeTest {
             mockedFileTools
                     .when(() -> FileTools.generatePackageNameArray(anyString(), anyInt()))
                     .thenReturn(EXPECTED_ARRAY);
-            instrumentationMode.fileValues(TEST_PACKAGE, TEST_MAIN_CLASS);
+            instrumentationMode.formatValues(TEST_PACKAGE, TEST_MAIN_CLASS);
             mockedFileTools
                     .verify(() -> FileTools.generatePackageNameArray(anyString(), anyInt()),
                             times(INSTRUMENTATION_VALUES_COUNT)
@@ -101,7 +101,7 @@ class JavaAOPModeTest {
             mockedFileTools
                     .when(() -> FileTools.generatePackageNameArray(anyString(), anyInt()))
                     .thenReturn(EXPECTED_ARRAY);
-            aspectjMode.fileValues(TEST_PACKAGE, TEST_MAIN_CLASS);
+            aspectjMode.formatValues(TEST_PACKAGE, TEST_MAIN_CLASS);
             mockedFileTools
                     .verify(() -> FileTools.generatePackageNameArray(anyString(), anyInt()),
                             times(ASPECTJ_VALUES_COUNT)

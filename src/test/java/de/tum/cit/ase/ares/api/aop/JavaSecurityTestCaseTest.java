@@ -28,7 +28,7 @@ class JavaSecurityTestCaseTest {
 
     @Test
     void testWriteAOPSecurityTestCase() {
-        String result = javaSecurityTestCase.writeAOPSecurityTestCase("ARCHUNIT", "INSTRUMENTATION");
+        String result = javaSecurityTestCase.writeAOPTestCase("ARCHUNIT", "INSTRUMENTATION");
         assertEquals("", result);
     }
 
@@ -37,7 +37,7 @@ class JavaSecurityTestCaseTest {
         List<String> allowedListedClasses = List.of("TestClass");
         List<JavaAOPTestCase> javaSecurityTestCases = List.of(javaSecurityTestCase);
 
-        String result = JavaAOPTestCase.writeAOPSecurityTestCaseFile(
+        String result = JavaAOPTestCase.writeAOPTestCaseFile(
                 "INSTRUMENTATION",
                 "de.tum.cit",
                 allowedListedClasses,
@@ -55,7 +55,7 @@ class JavaSecurityTestCaseTest {
     @Test
     void testExecuteAOPSecurityTestCase() {
         try (MockedStatic<JavaAOPTestCase> mockedStatic = mockStatic(JavaAOPTestCase.class)) {
-            javaSecurityTestCase.executeAOPSecurityTestCase("WALA", "INSTRUMENTATION");
+            javaSecurityTestCase.executeAOPTestCase("WALA", "INSTRUMENTATION");
             mockedStatic.verify(() -> JavaAOPTestCase.setJavaAdviceSettingValue(anyString(), any(), any(), eq("INSTRUMENTATION")), atLeastOnce());
         }
     }
