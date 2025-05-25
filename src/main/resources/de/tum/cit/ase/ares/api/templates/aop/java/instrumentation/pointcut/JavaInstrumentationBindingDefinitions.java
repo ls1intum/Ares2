@@ -1,6 +1,6 @@
 package %s.api.aop.java.instrumentation.pointcut;
 
-import %s.api.aop.java.JavaSecurityTestCaseSettings;
+import %s.api.aop.java.JavaTestCaseSettings;
 import %s.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
 import %s.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathConstructorAdvice;
 import %s.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathMethodAdvice;
@@ -97,8 +97,8 @@ public class JavaInstrumentationBindingDefinitions {
                     .inject(Map.of(
                             new TypeDescription.ForLoadedType(JavaInstrumentationAdviceFileSystemToolbox.class),
                             ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceFileSystemToolbox.class),
-                            new TypeDescription.ForLoadedType(JavaSecurityTestCaseSettings.class),
-                            ClassFileLocator.ForClassLoader.read(JavaSecurityTestCaseSettings.class)
+                            new TypeDescription.ForLoadedType(JavaTestCaseSettings.class),
+                            ClassFileLocator.ForClassLoader.read(JavaTestCaseSettings.class)
                     ));
         }
         catch (Exception e) {

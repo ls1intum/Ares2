@@ -192,13 +192,13 @@ public class JavaWriter implements Writer {
                                 mainClassInPackageName,
                                 javaAOPTestCases,
                                 testFolderPath
-                        ).stream(),
-                        createPhobosFiles(
+                        ).stream()//,
+                        /*createPhobosFiles(
                                 packageName,
                                 javaArchitectureTestCases,
                                 javaAOPTestCases,
                                 testFolderPath
-                        ).stream()
+                        ).stream()*/
                 )
                 .flatMap(s -> s)
                 .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);

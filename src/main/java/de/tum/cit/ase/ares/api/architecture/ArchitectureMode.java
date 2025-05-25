@@ -7,6 +7,7 @@ import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitTestCase;
+import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitTestCaseCollection;
 import de.tum.cit.ase.ares.api.architecture.java.wala.CustomCallgraphBuilder;
 import de.tum.cit.ase.ares.api.architecture.java.wala.JavaWalaTestCase;
 import de.tum.cit.ase.ares.api.util.FileTools;
@@ -248,34 +249,6 @@ public enum ArchitectureMode {
         });
     }
 
-    private List<JavaArchUnitTestCase> convertToJavaArchUnitTestCase(List<JavaArchitectureTestCase> testCases) {
-        return new ArrayList<>(
-                testCases.stream()
-                        .map(testCase -> (JavaArchUnitTestCase) JavaArchUnitTestCase.builder()
-                                .javaArchitectureTestCaseSupported((JavaArchitectureTestCaseSupported) testCase.getArchitectureTestCaseSupported())
-                                .allowedPackages(testCase.getAllowedPackages())
-                                .callGraph(testCase.getCallGraph())
-                                .javaClasses(testCase.getJavaClasses())
-                                .build()
-                        )
-                        .toList()
-        );
-    }
-
-    private List<JavaWalaTestCase> convertToJavaWalaTestCase(List<JavaArchitectureTestCase> testCases) {
-        return new ArrayList<>(
-                testCases.stream()
-                        .map(testCase -> (JavaWalaTestCase) JavaWalaTestCase.builder()
-                                .javaArchitectureTestCaseSupported((JavaArchitectureTestCaseSupported) testCase.getArchitectureTestCaseSupported())
-                                .allowedPackages(testCase.getAllowedPackages())
-                                .callGraph(testCase.getCallGraph())
-                                .javaClasses(testCase.getJavaClasses())
-                                .build()
-                        )
-                        .toList()
-        );
-    }
-
     /**
      * Generates the body content for the three-parted file by concatenating the architecture test case definitions.
      *
@@ -289,13 +262,13 @@ public enum ArchitectureMode {
     public String threePartedFileBody(List<?> testCases) {
         return switch (this) {
             case ARCHUNIT -> String.join("\n",
-                    convertToJavaArchUnitTestCase((List<JavaArchitectureTestCase>) testCases).stream()
+                    convertToJavaArchUnitTestCases((List<JavaArchitectureTestCase>) testCases).stream()
                             .map(javaArchUnitTestCase -> javaArchUnitTestCase.writeArchitectureTestCase("ARCHUNIT", ""))
                             .toList()
 
             );
             case WALA -> String.join("\n",
-                    convertToJavaWalaTestCase((List<JavaArchitectureTestCase>) testCases).stream()
+                    convertToJavaWalaTestCases((List<JavaArchitectureTestCase>) testCases).stream()
                             .map(javaWalaTestCase -> javaWalaTestCase.writeArchitectureTestCase("WALA", ""))
                             .toList()
             );
@@ -389,6 +362,33 @@ public enum ArchitectureMode {
             case ARCHUNIT -> null;
             case WALA -> new CustomCallgraphBuilder().buildCallGraph(classPath);
         };
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Static methods">
+    private static JavaArchUnitTestCase convertToJavaArchUnitTestCase(JavaArchitectureTestCase testCase) {
+        return JavaArchUnitTestCase.archunitBuilder()
+                .javaArchitectureTestCaseSupported((JavaArchitectureTestCaseSupported) testCase.getArchitectureTestCaseSupported())
+                .allowedPackages(testCase.getAllowedPackages())
+                .javaClasses(testCase.getJavaClasses())
+                .build();
+    }
+
+    private static JavaWalaTestCase convertToJavaWalaTestCases(JavaArchitectureTestCase testCase) {
+        return JavaWalaTestCase.walaBuilder()
+                .javaArchitectureTestCaseSupported((JavaArchitectureTestCaseSupported) testCase.getArchitectureTestCaseSupported())
+                .allowedPackages(testCase.getAllowedPackages())
+                .callGraph(testCase.getCallGraph())
+                .javaClasses(testCase.getJavaClasses())
+                .build();
+    }
+
+    private static List<JavaArchUnitTestCase> convertToJavaArchUnitTestCases(List<JavaArchitectureTestCase> testCases) {
+        return new ArrayList<>(testCases.stream().map(ArchitectureMode::convertToJavaArchUnitTestCase).toList());
+    }
+
+    private static List<JavaWalaTestCase> convertToJavaWalaTestCases(List<JavaArchitectureTestCase> testCases) {
+        return new ArrayList<>(testCases.stream().map(ArchitectureMode::convertToJavaWalaTestCases).toList());
     }
     //</editor-fold>
 }

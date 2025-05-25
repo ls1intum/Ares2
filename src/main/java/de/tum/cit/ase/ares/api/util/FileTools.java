@@ -1,7 +1,15 @@
 package de.tum.cit.ase.ares.api.util;
 
 //<editor-fold desc="Import">
+
+import com.opencsv.CSVParser;
+import com.opencsv.CSVParserBuilder;
+import com.opencsv.CSVReader;
+import com.opencsv.CSVReaderBuilder;
+import com.opencsv.exceptions.CsvException;
+
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -27,6 +35,7 @@ import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstru
 public class FileTools {
 
     //<editor-fold desc="Constructor">
+
     /**
      * Private constructor to prevent instantiation of this utility class.
      * <p>
@@ -40,6 +49,7 @@ public class FileTools {
     //</editor-fold>
 
     //<editor-fold desc="Copy">
+
     /**
      * Copies a list of files to a specified target directory.
      * <p>
@@ -94,7 +104,7 @@ public class FileTools {
         for (int i = 0; i < copiedFiles.size(); i++) {
             try {
                 String formatedFile;
-                try{
+                try {
                     formatedFile = String.format(Files.readString(copiedFiles.get(i)), (String[]) formatValues.get(i));
                 } catch (IllegalFormatException e) {
                     throw new SecurityException("Ares Security Error (Stage: Creation): Illegal format in " + copiedFiles.get(i).toAbsolutePath() + ".", e);
@@ -113,6 +123,7 @@ public class FileTools {
     //</editor-fold>
 
     //<editor-fold desc="Read">
+
     /**
      * Reads the content of a file from the specified path.
      * <p>
@@ -155,11 +166,20 @@ public class FileTools {
     /**
      * Loads data from the corresponding CSV file.
      */
-    public static List<List<String>> readCSVFile(Path sourceCSVPath) throws IOException {
-        return Files.readAllLines(getResourceAsFile(sourceCSVPath.toString()).toPath())
-                .stream()
-                .map(line -> Arrays.asList(line.split(",")))
-                .toList();
+    public static List<List<String>> readCSVFile(File file) throws IOException, CsvException {
+        CSVParser csvParserBuilder = new CSVParserBuilder()
+                .withSeparator(',')
+                .withQuoteChar('"')
+                .build();
+        try (
+                CSVReader csvReaderBuilder = new CSVReaderBuilder(new FileReader(file))
+                        .withCSVParser(csvParserBuilder)
+                        .withSkipLines(1)
+                        .build()
+        ) {
+            List<String[]> csvRowList = csvReaderBuilder.readAll();
+            return csvRowList.stream().map(Arrays::asList).toList();
+        }
     }
 
     /**
@@ -171,6 +191,7 @@ public class FileTools {
     //</editor-fold>
 
     //<editor-fold desc="Write">
+
     /**
      * Writes content to a file in the specified target directory.
      * <p>
@@ -214,6 +235,7 @@ public class FileTools {
     //</editor-fold>
 
     //<editor-fold desc="Resolve">
+
     /**
      * Resolves a path based on the target and additional path parts.
      *
@@ -234,7 +256,7 @@ public class FileTools {
      * @return the resolved path.
      */
     public static Path resolveOnPackage(String... furtherPathParts) {
-        Path target = Paths.get("de","tum","cit","ase","ares","api");
+        Path target = Paths.get("de", "tum", "cit", "ase", "ares", "api");
         return resolveOnTarget(target, furtherPathParts);
     }
 
@@ -268,6 +290,7 @@ public class FileTools {
     //</editor-fold>
 
     //<editor-fold desc="Three Parted Java File">
+
     /**
      * Creates a new file by combining the content of a header file, a body string, and a footer file.
      * <p>
@@ -311,6 +334,7 @@ public class FileTools {
     //</editor-fold>
 
     //<editor-fold desc="Rest">
+
     /**
      * Generates an array of package name strings.
      * <p>

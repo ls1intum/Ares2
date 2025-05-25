@@ -1,8 +1,9 @@
 package de.tum.cit.ase.ares.api.aop;
 
+import com.opencsv.exceptions.CsvException;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSupported;
-import de.tum.cit.ase.ares.api.aop.java.aopModeData.JavaCSVFileLoader;
+import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaCSVFileLoader;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.CommandPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.NetworkPermission;
@@ -48,7 +49,7 @@ public enum AOPMode {
     public List<List<String>> getCopyConfigurationEntries() {
         try {
             return (new JavaCSVFileLoader()).loadCopyData(this);
-        } catch (IOException e) {
+        } catch (IOException | CsvException e) {
             throw new RuntimeException(e);
         }
     }
@@ -56,7 +57,7 @@ public enum AOPMode {
     public List<List<String>> getEditConfigurationEntries() {
         try {
             return (new JavaCSVFileLoader()).loadEditData(this);
-        } catch (IOException e) {
+        } catch (IOException | CsvException e) {
             throw new RuntimeException(e);
         }
     }

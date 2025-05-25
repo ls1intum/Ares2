@@ -14,7 +14,7 @@ package %s.api.aop.java;
  * @version 2.0.0
  * @since 2.0.0
  */
-public class JavaSecurityTestCaseSettings {
+public class JavaTestCaseSettings {
 
     /**
      * Private constructor to prevent instantiation of this utility class.
@@ -22,6 +22,6 @@ public class JavaSecurityTestCaseSettings {
      * The constructor throws an {@link UnsupportedOperationException} to enforce the utility class pattern.
      * </p>
      */
-    private JavaSecurityTestCaseSettings() {
-        throw new UnsupportedOperationException("JavaSecurityTestCaseSettings is a utility class and should not be instantiated");
+    private JavaTestCaseSettings() {
+        throw new UnsupportedOperationException("JavaTestCaseSettings is a utility class and should not be instantiated");
     }

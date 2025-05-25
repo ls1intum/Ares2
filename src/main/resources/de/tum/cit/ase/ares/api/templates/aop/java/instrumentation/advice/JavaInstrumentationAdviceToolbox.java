@@ -9,11 +9,11 @@ import java.nio.file.Path;
 /**
  * Utility class for the Java instrumentation advice.
  * <p>
- * This class provides methods to interact with the JavaSecurityTestCaseSettings class and to check
+ * This class provides methods to interact with the JavaTestCaseSettings class and to check
  * file system interactions against established security policies. The goal is to ensure that no
  * unauthorized file system operations (e.g., read, write, execute, delete) are allowed during execution.
  * <p>
- * The class includes methods to access fields from JavaSecurityTestCaseSettings, verify call stack and
+ * The class includes methods to access fields from JavaTestCaseSettings, verify call stack and
  * variable criteria, and determine whether certain file system operations are permitted. This helps
  * enforce security policies at runtime and block unauthorized file interactions.
  */
@@ -29,8 +29,8 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
 
     //<editor-fold desc="Tool methods">
     /**
-     * Get the value of a field from the JavaSecurityTestCaseSettings class.
-     * This method dynamically accesses a field in the JavaSecurityTestCaseSettings class
+     * Get the value of a field from the JavaTestCaseSettings class.
+     * This method dynamically accesses a field in the JavaTestCaseSettings class
      * to retrieve security-related configuration values needed for file system interaction checks.
      *
      * @param fieldName The name of the field to retrieve the value from.
@@ -40,8 +40,8 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
      */
     private static Object getValueFromSettings(String fieldName) {
         try {
-            // Take bootloader as class loader in order to get the JavaSecurityTestCaseSettings class at bootloader time for instrumentation
-            Class<?> adviceSettingsClass = Class.forName("%s.api.aop.java.JavaSecurityTestCaseSettings", true, null);
+            // Take bootloader as class loader in order to get the JavaTestCaseSettings class at bootloader time for instrumentation
+            Class<?> adviceSettingsClass = Class.forName("%s.api.aop.java.JavaTestCaseSettings", true, null);
             Field field = adviceSettingsClass.getDeclaredField(fieldName);
             field.setAccessible(true);
             Object value = field.get(null);
@@ -50,7 +50,7 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
         } catch (LinkageError e) {
             throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Linkage error while accessing field '" + fieldName + "' in AdviceSettings", e);
         } catch (ClassNotFoundException e) {
-            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Could not find 'JavaSecurityTestCaseSettings' class to access field '" + fieldName + "'", e);
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Could not find 'JavaTestCaseSettings' class to access field '" + fieldName + "'", e);
         } catch (NoSuchFieldException e) {
             throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Field '" + fieldName + "' not found in AdviceSettings", e);
         } catch (NullPointerException e) {

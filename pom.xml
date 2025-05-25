@@ -249,6 +249,11 @@
         </dependency>
         <!-- 7. Small Tooling Libraries -->
         <dependency>
+            <groupId>com.opencsv</groupId>
+            <artifactId>opencsv</artifactId>
+            <version>5.11</version>
+        </dependency>
+        <dependency>
             <groupId>info.debatty</groupId>
             <artifactId>java-string-similarity</artifactId>
             <version>${java-string-similarity-version}</version>
