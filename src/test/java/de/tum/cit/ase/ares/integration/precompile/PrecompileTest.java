@@ -1,7 +1,5 @@
 package de.tum.cit.ase.ares.integration.precompile;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 import de.tum.cit.ase.ares.api.policy.director.SecurityPolicyDirector;
@@ -29,7 +27,6 @@ import java.nio.file.attribute.BasicFileAttributes;
 
 public class PrecompileTest {
     @BeforeEach
-    @AfterEach
     void clean() {
         Path target = Paths.get("src/test/resources/dump");
         if (!Files.exists(target) || !Files.isDirectory(target)) {
@@ -62,7 +59,7 @@ public class PrecompileTest {
     @Test
     void testPrecompileJavaMavenArchunitInstrumentation() {
         SecurityPolicyReader securityPolicyReader = SecurityPolicyYAMLReader.builder()
-                .yamlMapper((YAMLMapper) new ObjectMapper(new YAMLFactory()))
+                .yamlMapper(new YAMLMapper())
                 .build();
         SecurityPolicyDirector securityPolicyDirector = SecurityPolicyJavaDirector.builder()
                 .creator(new JavaCreator())
@@ -70,8 +67,8 @@ public class PrecompileTest {
                 .executer(new JavaExecuter())
                 .essentialDataReader(new EssentialDataYAMLReader())
                 .javaScanner(new JavaProjectScanner())
-                .essentialPackagesPath(FileTools.resolveOnPackage("configuration/EssentialPackages.yaml"))
-                .essentialClassesPath(FileTools.resolveOnPackage("configuration/EssentialClasses.yaml"))
+                .essentialPackagesPath(FileTools.resolveOnPackage("configuration/essentialFiles/java/EssentialPackages.yaml"))
+                .essentialClassesPath(FileTools.resolveOnPackage("configuration/essentialFiles/java/EssentialClasses.yaml"))
                 .build();
         SecurityPolicyReaderAndDirector sprad = SecurityPolicyReaderAndDirector.builder()
                 .securityPolicyReader(securityPolicyReader)
@@ -80,7 +77,5 @@ public class PrecompileTest {
                 .projectFolderPath(Path.of("src/test/resources/dump"))
                 .build();
         sprad.writeTestCases(Path.of("src/test/resources/dump/test"));
-        System.out.println(sprad);
-        var x = 0;
     }
 }

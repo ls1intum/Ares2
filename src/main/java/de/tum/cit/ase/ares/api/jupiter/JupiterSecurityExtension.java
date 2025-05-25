@@ -42,7 +42,7 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
      */
     @Nonnull
     private static final Path DEFAULT_ESSENTIAL_PACKAGES_PATH = Preconditions.checkNotNull(
-            FileTools.resolveOnPackage("configuration/EssentialPackages.yaml")
+            FileTools.resolveOnPackage("configuration/essentialFiles/java/EssentialPackages.yaml")
     );
 
     /**
@@ -50,7 +50,7 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
      */
     @Nonnull
     private static final Path DEFAULT_ESSENTIAL_CLASSES_PATH = Preconditions.checkNotNull(
-            FileTools.resolveOnPackage("configuration/EssentialClasses.yaml")
+            FileTools.resolveOnPackage("configuration/essentialFiles/java/EssentialClasses.yaml")
     );
 
     @Override

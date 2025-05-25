@@ -46,6 +46,7 @@ public enum AOPMode {
      */
     ASPECTJ;
 
+    //<editor-fold desc="Load configuration">
     public List<List<String>> getCopyConfigurationEntries() {
         try {
             return (new JavaCSVFileLoader()).loadCopyData(this);
@@ -61,6 +62,7 @@ public enum AOPMode {
             throw new RuntimeException(e);
         }
     }
+    //</editor-fold>
 
     //<editor-fold desc="Multi-file methods">
 
@@ -216,7 +218,7 @@ public enum AOPMode {
      * @return an array of strings representing the file value.
      */
     @Nonnull
-    public String[] formatValue(@Nonnull String packageName) {
+    public String[] formatValues(@Nonnull String packageName) {
         return FileTools.generatePackageNameArray(packageName, 1);
     }
 

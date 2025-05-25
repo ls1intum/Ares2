@@ -60,14 +60,14 @@ public class JavaWriter implements Writer {
                 FileTools.copyFormatStringFiles(
                         architectureMode.filesToCopy(),
                         architectureMode.targetsToCopyTo(testFolderPath, packageName),
-                        architectureMode.formatValues(packageName)
+                        architectureMode.formatValues(packageName, mainClassInPackageName)
                 ).stream(),
                 Stream.of(FileTools.createThreePartedFormatStringFile(
                         architectureMode.threePartedFileHeader(),
                         architectureMode.threePartedFileBody(javaArchitectureTestCases),
                         architectureMode.threePartedFileFooter(),
                         architectureMode.targetToCopyTo(testFolderPath, packageName),
-                        architectureMode.fileValue(packageName)
+                        architectureMode.formatValues(packageName)
                 ))
         ).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
     }
@@ -111,7 +111,7 @@ public class JavaWriter implements Writer {
                         aopMode.threePartedFileBody(aopMode.toString(), packageName, allowedClasses, javaAOPTestCases),
                         aopMode.threePartedFileFooter(),
                         aopMode.targetToCopyTo(testFolderPath, packageName),
-                        aopMode.formatValue(packageName)
+                        aopMode.formatValues(packageName)
                 ))
         ).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
     }

@@ -1,23 +1,23 @@
 package de.tum.cit.ase.ares.api.architecture;
 
 import com.ibm.wala.ipa.callgraph.CallGraph;
+import com.opencsv.exceptions.CsvException;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
-import de.tum.cit.ase.ares.api.aop.AOPMode;
+import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaCSVFileLoader;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitTestCase;
-import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitTestCaseCollection;
 import de.tum.cit.ase.ares.api.architecture.java.wala.CustomCallgraphBuilder;
 import de.tum.cit.ase.ares.api.architecture.java.wala.JavaWalaTestCase;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Stream;
 
 /**
  * Enum representing the architecture modes for Java security test cases.
@@ -44,6 +44,24 @@ public enum ArchitectureMode {
      */
     WALA;
 
+    //<editor-fold desc="Load configuration">
+    public List<List<String>> getCopyConfigurationEntries() {
+        try {
+            return (new JavaCSVFileLoader()).loadCopyData(this);
+        } catch (IOException | CsvException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public List<List<String>> getEditConfigurationEntries() {
+        try {
+            return (new JavaCSVFileLoader()).loadEditData(this);
+        } catch (IOException | CsvException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    //</editor-fold>
+
     //<editor-fold desc="Multi-file methods">
 
     /**
@@ -55,55 +73,10 @@ public enum ArchitectureMode {
      */
     @Nonnull
     public List<Path> filesToCopy() {
-        return (switch (this) {
-            case ARCHUNIT -> Stream.of(
-                    // postcompile classes
-                    new String[]{"templates", "architecture", "ArchitectureTestCaseSupported.java"},
-                    new String[]{"templates", "architecture", "java", "JavaArchitectureTestCaseSupported.java"},
-                    new String[]{"templates", "architecture", "java", "FileHandlerConstants.java"},
-                    new String[]{"templates", "architecture", "java", "archunit", "JavaArchUnitTestCaseCollection.java"},
-                    new String[]{"templates", "architecture", "java", "archunit", "TransitivelyAccessesMethodsCondition.java"},
-                    new String[]{"templates", "policy", "policySubComponents", "PackagePermission.java"},
-                    new String[]{"templates", "localization", "Messages.java"},
-                    // exclusions
-                    new String[]{"templates", "architecture", "java", "exclusions.txt"},
-                    // dynamic permission rule-library
-                    new String[]{"templates", "architecture", "java", "archunit", "rules", "FILESYSTEM_INTERACTION.txt"},
-                    new String[]{"templates", "architecture", "java", "archunit", "rules", "NETWORK_CONNECTION.txt"},
-                    new String[]{"templates", "architecture", "java", "archunit", "rules", "COMMAND_EXECUTION.txt"},
-                    new String[]{"templates", "architecture", "java", "archunit", "rules", "THREAD_CREATION.txt"},
-                    new String[]{"templates", "architecture", "java", "archunit", "rules", "PACKAGE_IMPORT.txt"},
-                    // dynamic permission method-library
-                    new String[]{"templates", "architecture", "java", "archunit", "methods", "file-system-access-methods.txt"},
-                    new String[]{"templates", "architecture", "java", "archunit", "methods", "network-access-methods.txt"},
-                    new String[]{"templates", "architecture", "java", "archunit", "methods", "command-execution-methods.txt"},
-                    new String[]{"templates", "architecture", "java", "archunit", "methods", "thread-manipulation-methods.txt"},
-                    // static permission method-library
-                    new String[]{"templates", "architecture", "java", "archunit", "methods", "jvm-termination-methods.txt"},
-                    new String[]{"templates", "architecture", "java", "archunit", "methods", "reflection-methods.txt"},
-                    new String[]{"templates", "architecture", "java", "archunit", "methods", "classloader-methods.txt"},
-                    new String[]{"templates", "architecture", "java", "archunit", "methods", "serializable-methods.txt"}
-            );
-            case WALA -> Stream.of(
-                    // postcompile classes
-                    new String[]{"templates", "architecture", "ArchitectureTestCaseSupported.java"},
-                    new String[]{"templates", "architecture", "java", "JavaArchitectureTestCaseSupported.java"},
-                    new String[]{"templates", "architecture", "java", "FileHandlerConstants.java"},
-                    // exclusions
-                    new String[]{"templates", "architecture", "java", "exclusions.txt"},
-                    new String[]{"templates", "architecture", "java", "wala", "false-positives", "false-positives-file.txt"},
-                    // dynamic permission method-library
-                    new String[]{"templates", "architecture", "java", "wala", "methods", "file-system-access-methods.txt"},
-                    new String[]{"templates", "architecture", "java", "wala", "methods", "network-access-methods.txt"},
-                    new String[]{"templates", "architecture", "java", "wala", "methods", "command-execution-methods.txt"},
-                    new String[]{"templates", "architecture", "java", "wala", "methods", "thread-manipulation-methods.txt"},
-                    // static permission method-library
-                    new String[]{"templates", "architecture", "java", "wala", "methods", "jvm-termination-methods.txt"},
-                    new String[]{"templates", "architecture", "java", "wala", "methods", "reflection-methods.txt"},
-                    new String[]{"templates", "architecture", "java", "wala", "methods", "classloader-methods.txt"},
-                    new String[]{"templates", "architecture", "java", "wala", "methods", "serializable-methods.txt"}
-            );
-        }).map(FileTools::resolveOnPackage).toList();
+        return getCopyConfigurationEntries().stream()
+                .map(entry -> entry.getFirst().split("/"))
+                .map(FileTools::resolveOnPackage)
+                .toList();
     }
 
     /**
@@ -115,56 +88,15 @@ public enum ArchitectureMode {
      * @return a list of string arrays representing file values.
      */
     @Nonnull
-    public List<String[]> formatValues(@Nonnull String packageName) {
-        return (switch (this) {
-            case ARCHUNIT -> Stream.of(
-                    // postcompile classes
-                    FileTools.generatePackageNameArray(packageName, 1),
-                    FileTools.generatePackageNameArray(packageName, 2),
-                    FileTools.generatePackageNameArray(packageName, 2),
-                    FileTools.generatePackageNameArray(packageName, 4),
-                    FileTools.generatePackageNameArray(packageName, 1),
-                    FileTools.generatePackageNameArray(packageName, 1),
-                    FileTools.generatePackageNameArray(packageName, 3),
-                    // exclusions
-                    new String[]{},
-                    // dynamic permission rule-library
-                    new String[]{},
-                    new String[]{},
-                    new String[]{},
-                    new String[]{},
-                    new String[]{},
-                    // dynamic permission method-library
-                    new String[]{},
-                    new String[]{},
-                    new String[]{},
-                    new String[]{},
-                    // static permission method-library
-                    new String[]{},
-                    new String[]{},
-                    new String[]{},
-                    new String[]{}
-            );
-            case WALA -> Stream.of(
-                    // postcompile classes
-                    FileTools.generatePackageNameArray(packageName, 1),
-                    FileTools.generatePackageNameArray(packageName, 2),
-                    FileTools.generatePackageNameArray(packageName, 2),
-                    // exclusions
-                    new String[]{},
-                    new String[]{},
-                    // dynamic permission method-library
-                    new String[]{},
-                    new String[]{},
-                    new String[]{},
-                    new String[]{},
-                    // static permission method-library
-                    new String[]{},
-                    new String[]{},
-                    new String[]{},
-                    new String[]{}
-            );
-        }).toList();
+    public List<String[]> formatValues(@Nonnull String packageName, @Nonnull String mainClassInPackageName) {
+        return getCopyConfigurationEntries().stream()
+                .map(entry -> entry.get(1))
+                .map(Integer::parseInt)
+                .map(entry -> switch (entry){
+                    case 0 -> new String[]{packageName, packageName, mainClassInPackageName};
+                    default -> FileTools.generatePackageNameArray(packageName, entry);
+                })
+                .toList();
     }
 
     /**
@@ -178,55 +110,10 @@ public enum ArchitectureMode {
      */
     @Nonnull
     public List<Path> targetsToCopyTo(@Nonnull Path projectPath, @Nonnull String packageName) {
-        return (switch (this) {
-            case ARCHUNIT -> Stream.of(
-                    // postcompile classes
-                    new String[]{"api", "architecture", "ArchitectureTestCaseSupported.java"},
-                    new String[]{"api", "architecture", "java", "JavaArchitectureTestCaseSupported.java"},
-                    new String[]{"api", "architecture", "java", "FileHandlerConstants.java"},
-                    new String[]{"api", "architecture", "java", "archunit", "JavaArchUnitTestCaseCollection.java"},
-                    new String[]{"api", "architecture", "java", "archunit", "TransitivelyAccessesMethodsCondition.java"},
-                    new String[]{"api", "policy", "policySubComponents", "PackagePermission.java"},
-                    new String[]{"api", "localization", "Messages.java"},
-                    // exclusions
-                    new String[]{"api", "architecture", "java", "exclusions.txt"},
-                    // dynamic permission rule-library
-                    new String[]{"api", "architecture", "java", "archunit", "rules", "FILESYSTEM_INTERACTION.txt"},
-                    new String[]{"api", "architecture", "java", "archunit", "rules", "NETWORK_CONNECTION.txt"},
-                    new String[]{"api", "architecture", "java", "archunit", "rules", "THREAD_CREATION.txt"},
-                    new String[]{"api", "architecture", "java", "archunit", "rules", "COMMAND_EXECUTION.txt"},
-                    new String[]{"api", "architecture", "java", "archunit", "rules", "PACKAGE_IMPORT.txt"},
-                    // dynamic permission method-library
-                    new String[]{"api", "architecture", "java", "archunit", "methods", "file-system-access-methods.txt"},
-                    new String[]{"api", "architecture", "java", "archunit", "methods", "network-access-methods.txt"},
-                    new String[]{"api", "architecture", "java", "archunit", "methods", "command-execution-methods.txt"},
-                    new String[]{"api", "architecture", "java", "archunit", "methods", "thread-manipulation-methods.txt"},
-                    // static permission method-library
-                    new String[]{"api", "architecture", "java", "archunit", "methods", "jvm-termination-methods.txt"},
-                    new String[]{"api", "architecture", "java", "archunit", "methods", "reflection-methods.txt"},
-                    new String[]{"api", "architecture", "java", "archunit", "methods", "classloader-methods.txt"},
-                    new String[]{"api", "architecture", "java", "archunit", "methods", "serializable-methods.txt"}
-            );
-            case WALA -> Stream.of(
-                    // postcompile classes
-                    new String[]{"api", "architecture", "ArchitectureTestCaseSupported.java"},
-                    new String[]{"api", "architecture", "java", "JavaArchitectureTestCaseSupported.java"},
-                    new String[]{"api", "architecture", "java", "FileHandlerConstants.java"},
-                    // exclusions
-                    new String[]{"api", "architecture", "java", "exclusions.txt"},
-                    new String[]{"api", "architecture", "java", "wala", "false-positives", "false-positives-file.txt"},
-                    // dynamic permission method-library
-                    new String[]{"api", "architecture", "java", "wala", "methods", "file-system-access-methods.txt"},
-                    new String[]{"api", "architecture", "java", "wala", "methods", "network-access-methods.txt"},
-                    new String[]{"api", "architecture", "java", "wala", "methods", "command-execution-methods.txt"},
-                    new String[]{"api", "architecture", "java", "wala", "methods", "thread-manipulation-methods.txt"},
-                    // static permission method-library
-                    new String[]{"api", "architecture", "java", "wala", "methods", "jvm-termination-methods.txt"},
-                    new String[]{"api", "architecture", "java", "wala", "methods", "reflection-methods.txt"},
-                    new String[]{"api", "architecture", "java", "wala", "methods", "classloader-methods.txt"},
-                    new String[]{"api", "architecture", "java", "wala", "methods", "serializable-methods.txt"}
-            );
-        }).map(pathParticles -> FileTools.resolveOnTests(projectPath, packageName, pathParticles)).toList();
+        return getCopyConfigurationEntries().stream()
+                .map(entry -> entry.get(2).split("/"))
+                .map(FileTools::resolveOnPackage)
+                .toList();
     }
     //</editor-fold>
 
@@ -241,12 +128,10 @@ public enum ArchitectureMode {
      */
     @Nonnull
     public Path threePartedFileHeader() {
-        return FileTools.resolveOnPackage(switch (this) {
-            case ARCHUNIT ->
-                    new String[]{"templates", "architecture", "java", "archunit", "JavaArchitectureTestCaseHeader.txt"};
-            case WALA ->
-                    new String[]{"templates", "architecture", "java", "wala", "JavaArchitectureTestCaseHeader.txt"};
-        });
+        return getEditConfigurationEntries().stream()
+                .map(entry -> entry.getFirst().split("/"))
+                .map(FileTools::resolveOnPackage)
+                .toList().getFirst();
     }
 
     /**
@@ -284,12 +169,10 @@ public enum ArchitectureMode {
      */
     @Nonnull
     public Path threePartedFileFooter() {
-        return FileTools.resolveOnPackage(switch (this) {
-            case ARCHUNIT ->
-                    new String[]{"templates", "architecture", "java", "archunit", "JavaArchitectureTestCaseFooter.txt"};
-            case WALA ->
-                    new String[]{"templates", "architecture", "java", "wala", "JavaArchitectureTestCaseFooter.txt"};
-        });
+        return getEditConfigurationEntries().stream()
+                .map(entry -> entry.get(1).split("/"))
+                .map(FileTools::resolveOnPackage)
+                .toList().getFirst();
     }
 
     /**
@@ -301,7 +184,7 @@ public enum ArchitectureMode {
      * @return an array of strings representing the file value.
      */
     @Nonnull
-    public String[] fileValue(@Nonnull String packageName) {
+    public String[] formatValues(@Nonnull String packageName) {
         return switch (this) {
             case ARCHUNIT -> FileTools.generatePackageNameArray(packageName, 2);
             case WALA -> FileTools.generatePackageNameArray(packageName, 2);
@@ -319,10 +202,10 @@ public enum ArchitectureMode {
      */
     @Nonnull
     public Path targetToCopyTo(@Nonnull Path projectPath, @Nonnull String packageName) {
-        return FileTools.resolveOnTests(projectPath, packageName, switch (this) {
-            case ARCHUNIT -> new String[]{"api", "architecture", "java", "archunit", "JavaArchitectureTestCase.java"};
-            case WALA -> new String[]{"api", "architecture", "java", "wala", "JavaArchitectureTestCase.java"};
-        });
+        return getEditConfigurationEntries().stream()
+                .map(entry -> entry.get(2).split("/"))
+                .map(FileTools::resolveOnPackage)
+                .toList().getFirst();
     }
     //</editor-fold>
 
