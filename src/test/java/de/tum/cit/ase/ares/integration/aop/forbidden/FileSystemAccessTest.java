@@ -209,6 +209,8 @@ class FileSystemAccessTest {
             assertAresSecurityExceptionRead(ReadFileReadMain::accessFileSystemViaFileRead, ReadFileReadMain.class);
         }
 
+
+        // TODO: reference test case for analysis
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileRead")
         void test_accessFileSystemViaFileReadMavenWalaInstrumentation() {
