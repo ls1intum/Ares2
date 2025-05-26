@@ -40,6 +40,11 @@ public class ThirdPartyPackagePenguin {
         Process process = runtime.exec("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
     }
 
+    public static void executeFile_with_path(String path) throws IOException {
+        Runtime runtime = Runtime.getRuntime();
+        Process process = runtime.exec(path);
+    }
+
     public static void deleteFile() throws IOException {
         Files.delete(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
     }

@@ -1,3 +1,4 @@
+
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION
   theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"

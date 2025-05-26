@@ -6,14 +6,14 @@ regardingTheSupervisedCode:
     - "de.tum.cit.ase.ares.integration.FileSystemAccessTest"
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions:
-      - readAllFiles: false
+      - readAllFiles: true
         overwriteAllFiles: false
         executeAllFiles: true
         deleteAllFiles: false
         onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted_execute.bat"
     regardingNetworkConnections: [ ]
     regardingCommandExecutions:
-      - executeTheCommand: "src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"
+      - executeTheCommand: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted_execute.bat"
         withTheseArguments: []
     regardingThreadCreations: [ ]
     regardingPackageImports: [ ]
