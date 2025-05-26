@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.execute.urlClassLoader;
+package de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.execute.urlClassLoader;
 
 import java.io.File;
 import java.lang.reflect.Method;

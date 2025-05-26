@@ -11,9 +11,21 @@ regardingTheSupervisedCode:
         executeAllFiles: true
         deleteAllFiles: false
         onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted_execute.bat"
+      - readAllFiles: true
+        overwriteAllFiles: false
+        executeAllFiles: true
+        deleteAllFiles: false
+        onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted_execute.sh"
+      - readAllFiles: true
+        overwriteAllFiles: false
+        executeAllFiles: false
+        deleteAllFiles: true
+        onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted_output.txt"
     regardingNetworkConnections: [ ]
     regardingCommandExecutions:
       - executeTheCommand: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted_execute.bat"
         withTheseArguments: []
+      - executeTheCommand: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted_execute.sh"
+        withTheseArguments: [ ]
     regardingThreadCreations: [ ]
     regardingPackageImports: [ ]
