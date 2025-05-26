@@ -1,4 +1,4 @@
-package %s.api.architecture.java.archunit;
+package %s.ares.api.architecture.java.archunit;
 
 //<editor-fold desc="Imports">
 

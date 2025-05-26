@@ -1,4 +1,4 @@
-package %s.api.aop.java;
+package %s.ares.api.aop.java;
 
 /**
  * Configuration settings for Java instrumentation aspect configurations.

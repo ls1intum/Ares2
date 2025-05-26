@@ -1,4 +1,4 @@
-package %s.api.aop.java.instrumentation.advice;
+package %s.ares.api.aop.java.instrumentation.advice;
 
 import net.bytebuddy.asm.Advice;
 

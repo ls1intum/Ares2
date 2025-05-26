@@ -1,4 +1,4 @@
-package %s.api.templates.architecture.java;
+package %s.ares.api.templates.architecture.java;
 
 import java.util.List;
 

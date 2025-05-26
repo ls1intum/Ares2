@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 
 //<editor-fold desc="imports">
+
 import java.io.File;
 import java.io.IOException;
 
@@ -369,9 +370,11 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
         try {
             @Nonnull Path real = pathToCheck.toRealPath(LinkOption.NOFOLLOW_LINKS);
             for (@Nonnull String allowed : allowedPaths) {
-                if (real.startsWith(variableToPath(allowed))) {
-                    return true;
-                }
+                try {
+                    if (real.startsWith(variableToPath(allowed))) {
+                        return true;
+                    }
+                } catch (InvalidPathException ignored) {}
             }
             return false;
         } catch (IOException e) {

@@ -1,6 +1,6 @@
-package %s.api.architecture.java;
+package %s.ares.api.architecture.java;
 
-import %s.api.architecture.ArchitectureTestCaseSupported;
+import %s.ares.api.architecture.ArchitectureTestCaseSupported;
 
 import javax.annotation.Nonnull;
 import java.util.List;

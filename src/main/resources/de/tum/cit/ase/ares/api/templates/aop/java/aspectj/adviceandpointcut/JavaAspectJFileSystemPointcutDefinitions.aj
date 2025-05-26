@@ -1,4 +1,4 @@
-package %s.api.aop.java.aspectj.adviceandpointcut;
+package %s.ares.api.aop.java.aspectj.adviceandpointcut;
 
 public aspect JavaAspectJFileSystemPointcutDefinitions {
 

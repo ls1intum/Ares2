@@ -73,11 +73,11 @@ public class JavaArchUnitTestCase extends JavaArchitectureTestCase {
                 case NETWORK_CONNECTION -> JavaArchUnitTestCaseCollection
                         .NO_CLASS_MUST_ACCESS_NETWORK
                         .check(javaClasses);
-                case THREAD_CREATION -> JavaArchUnitTestCaseCollection
-                        .NO_CLASS_MUST_CREATE_THREADS
-                        .check(javaClasses);
                 case COMMAND_EXECUTION -> JavaArchUnitTestCaseCollection
                         .NO_CLASS_MUST_EXECUTE_COMMANDS
+                        .check(javaClasses);
+                case THREAD_CREATION -> JavaArchUnitTestCaseCollection
+                        .NO_CLASS_MUST_CREATE_THREADS
                         .check(javaClasses);
                 case PACKAGE_IMPORT -> JavaArchUnitTestCaseCollection
                         .noClassMustImportForbiddenPackages(allowedPackages)

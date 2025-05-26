@@ -237,6 +237,7 @@ public enum AOPMode {
         return getEditConfigurationEntries().stream()
                 .map(entry -> entry.get(2).split("/"))
                 .map(FileTools::resolveOnPackage)
+                .map(projectPath::resolve)
                 .toList().getFirst();
     }
     //</editor-fold>

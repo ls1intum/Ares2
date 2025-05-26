@@ -1,6 +1,6 @@
-package %s.api.localization;
+package %s.ares.api.localization;
 
-import %s.api.util.LruCache;
+import %s.ares.api.util.LruCache;
 import org.opentest4j.AssertionFailedError;
 
 import java.util.Collections;
@@ -12,7 +12,7 @@ import java.util.ResourceBundle;
 
 public final class Messages {
 
-	private static final String BUNDLE_NAME = "%s.api.localization.messages"; //$NON-NLS-1$
+	private static final String BUNDLE_NAME = "%s.ares.api.localization.messages"; //$NON-NLS-1$
 
 	private static Map<Locale, ResourceBundle> resourceBundleCache = Collections.synchronizedMap(new LruCache<>(100));
 

@@ -634,6 +634,7 @@ class FileSystemAccessTest {
         @AfterEach
         public void ensureTrustedFileExistsAfter() throws IOException {
             if (Files.notExists(TRUSTED_FILE_PATH)) {
+                Files.createDirectories(TRUSTED_FILE_PATH.getParent());
                 Files.createFile(TRUSTED_FILE_PATH);
             }
         }

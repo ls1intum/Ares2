@@ -10,7 +10,7 @@ regardingTheSupervisedCode:
         overwriteAllFiles: false
         executeAllFiles: false
         deleteAllFiles: false
-        onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/rusted.txt"
+        onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"
     regardingNetworkConnections: [ ]
     regardingCommandExecutions: [ ]
     regardingThreadCreations: [ ]

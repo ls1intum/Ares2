@@ -1,6 +1,6 @@
-package %s.api.architecture.java;
+package %s.ares.api.architecture.java;
 
-import %s.api.localization.Messages;
+import %s.ares.api.localization.Messages;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;

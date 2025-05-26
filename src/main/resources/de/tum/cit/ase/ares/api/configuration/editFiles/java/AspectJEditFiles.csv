@@ -1,2 +1,2 @@
 SourceHeader,SourceFooter,Target
-templates/aop/java/JavaTestCaseSettingsHeader.txt,templates/aop/java/JavaTestCaseSettingsFooter.txt,api/aop/java/JavaTestCaseSettings.java
+templates/aop/java/JavaAOPTestCaseSettingsHeader.txt,templates/aop/java/JavaAOPTestCaseSettingsFooter.txt,ares/api/aop/java/JavaAOPTestCaseSettings.java

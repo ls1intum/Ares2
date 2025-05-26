@@ -1,4 +1,4 @@
-package %s.api.aop.java.instrumentation.pointcut;
+package %s.ares.api.aop.java.instrumentation.pointcut;
 
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
