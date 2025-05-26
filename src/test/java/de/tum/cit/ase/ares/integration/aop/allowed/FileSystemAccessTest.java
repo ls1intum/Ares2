@@ -97,29 +97,29 @@ class FileSystemAccessTest {
      * Helper method to assert that execution is allowed and creates
      * the expected output file with correct content.
      *
-     * @param executeCallable a callable that calls the static execute method
+     * @param executeExecutable an executable that calls the static execute method
      */
-    private void assertExecuteAllowedWithFileCreation(java.util.concurrent.Callable<Void> executeCallable) {
+    private void assertExecuteAllowedWithFileCreation(Executable executeExecutable) {
         // Define the output file path (in the same directory as the scripts)
         String outputFilePath = "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted_output.txt";
 
         try {
             // Clean up any existing output file before test
-            //cleanupOutputFile(outputFilePath);
+            cleanupOutputFile(outputFilePath);
 
             // Execute the method (this should not throw SecurityException and should create the file)
-            executeCallable.call();
+            executeExecutable.execute();
 
             // Verify the file was created and has correct content
             verifyOutputFileCreatedWithCorrectContent(outputFilePath);
 
         } catch (SecurityException e) {
             Assertions.fail(ERROR_SECURITY_EXCEPTION, e);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             Assertions.fail("Unexpected exception during execution: " + e.getMessage(), e);
         } finally {
             // Clean up the output file after test
-            //cleanupOutputFile(outputFilePath);
+            cleanupOutputFile(outputFilePath);
         }
     }
 
@@ -1004,7 +1004,6 @@ class FileSystemAccessTest {
                 } catch (java.io.IOException e) {
                     throw new RuntimeException(e);
                 }
-                return null;
             });
         }
 
@@ -1017,7 +1016,6 @@ class FileSystemAccessTest {
                 } catch (java.io.IOException e) {
                     throw new RuntimeException(e);
                 }
-                return null;
             });
         }
 
@@ -1030,7 +1028,6 @@ class FileSystemAccessTest {
                 } catch (java.io.IOException e) {
                     throw new RuntimeException(e);
                 }
-                return null;
             });
         }
 
@@ -1043,7 +1040,6 @@ class FileSystemAccessTest {
                 } catch (java.io.IOException e) {
                     throw new RuntimeException(e);
                 }
-                return null;
             });
         }
         // </editor-fold>
