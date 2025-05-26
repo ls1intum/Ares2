@@ -1,0 +1,4 @@
+@Test
+public void networkSystemShouldNotBeAccessed() {
+    JavaArchUnitTestCaseCollection.NO_CLASS_MUST_ACCESS_NETWORK.check(javaClasses);
+}

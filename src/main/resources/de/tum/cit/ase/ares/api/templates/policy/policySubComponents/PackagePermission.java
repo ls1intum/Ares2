@@ -1,4 +1,4 @@
-package %s.api.policy.policySubComponents;
+package %s.ares.api.policy.policySubComponents;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

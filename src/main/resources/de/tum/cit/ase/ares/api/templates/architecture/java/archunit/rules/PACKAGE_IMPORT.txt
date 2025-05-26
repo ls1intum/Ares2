@@ -1,0 +1,4 @@
+@Test
+public void packageImportShouldNotBeAccessed() {
+    JavaArchUnitTestCaseCollection.noClassMustImportForbiddenPackages(allowedPackages).check(javaClasses);
+}

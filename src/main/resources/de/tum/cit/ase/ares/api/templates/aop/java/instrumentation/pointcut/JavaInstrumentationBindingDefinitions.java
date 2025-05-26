@@ -1,15 +1,15 @@
-package %s.api.aop.java.instrumentation.pointcut;
+package %s.ares.api.aop.java.instrumentation.pointcut;
 
-import %s.api.aop.java.JavaTestCaseSettings;
-import %s.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
-import %s.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathConstructorAdvice;
-import %s.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathMethodAdvice;
-import %s.api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathConstructorAdvice;
-import %s.api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathMethodAdvice;
-import %s.api.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathConstructorAdvice;
-import %s.api.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathMethodAdvice;
-import %s.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathConstructorAdvice;
-import %s.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathMethodAdvice;
+import %s.ares.api.aop.java.JavaTestCaseSettings;
+import %s.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
+import %s.ares.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathConstructorAdvice;
+import %s.ares.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathMethodAdvice;
+import %s.ares.api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathConstructorAdvice;
+import %s.ares.api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathMethodAdvice;
+import %s.ares.api.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathConstructorAdvice;
+import %s.ares.api.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathMethodAdvice;
+import %s.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathConstructorAdvice;
+import %s.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathMethodAdvice;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.ClassFileLocator;

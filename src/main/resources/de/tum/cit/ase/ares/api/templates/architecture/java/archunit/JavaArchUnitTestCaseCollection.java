@@ -1,4 +1,4 @@
-package %s.api.architecture.java.archunit;
+package %s.ares.api.architecture.java.archunit;
 
 //<editor-fold desc="Imports">
 import com.tngtech.archunit.base.DescribedPredicate;
@@ -6,9 +6,9 @@ import com.tngtech.archunit.core.domain.JavaAccess;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition;
-import %s.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
-import %s.api.architecture.java.FileHandlerConstants;
-import %s.api.policy.policySubComponents.PackagePermission;
+import %s.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
+import %s.ares.api.architecture.java.FileHandlerConstants;
+import %s.ares.api.policy.policySubComponents.PackagePermission;
 
 import java.io.IOException;
 import java.io.InputStream;

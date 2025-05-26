@@ -1,2 +1,2 @@
 SourceHeader,SourceFooter,Target
-templates/architecture/java/wala/JavaWalaTestCaseHeader.txt,templates/architecture/java/wala/JavaWalaTestCaseFooter.txt,api/architecture/java/wala/JavaWalaTestCase.java
+templates/architecture/java/wala/JavaWalaTestCaseHeader.txt,templates/architecture/java/wala/JavaWalaTestCaseFooter.txt,ares/api/architecture/java/wala/JavaWalaTestCase.java

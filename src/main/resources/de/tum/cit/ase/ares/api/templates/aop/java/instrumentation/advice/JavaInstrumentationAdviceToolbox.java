@@ -1,4 +1,4 @@
-package %s.api.aop.java.instrumentation.advice;
+package %s.ares.api.aop.java.instrumentation.advice;
 
 import java.io.File;
 import java.lang.reflect.Field;
@@ -41,7 +41,7 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
     private static Object getValueFromSettings(String fieldName) {
         try {
             // Take bootloader as class loader in order to get the JavaTestCaseSettings class at bootloader time for instrumentation
-            Class<?> adviceSettingsClass = Class.forName("%s.api.aop.java.JavaTestCaseSettings", true, null);
+            Class<?> adviceSettingsClass = Class.forName("%s.ares.api.aop.java.JavaTestCaseSettings", true, null);
             Field field = adviceSettingsClass.getDeclaredField(fieldName);
             field.setAccessible(true);
             Object value = field.get(null);
