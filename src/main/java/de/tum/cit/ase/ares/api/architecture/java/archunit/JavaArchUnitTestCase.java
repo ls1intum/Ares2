@@ -3,6 +3,7 @@ package de.tum.cit.ase.ares.api.architecture.java.archunit;
 //<editor-fold desc="Imports">
 
 import com.google.common.base.Preconditions;
+import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
@@ -14,7 +15,9 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 //</editor-fold>
 
 /**
@@ -48,10 +51,15 @@ public class JavaArchUnitTestCase extends JavaArchitectureTestCase {
     @Nonnull
     public String writeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
         try {
-            return FileTools.readRuleFile(
+            String testWithPlaceholders = FileTools.readRuleFile(
                     Paths.get("de", "tum", "cit", "ase", "ares", "api",
                             "templates", "architecture", "java", "archunit", "rules", ((JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported).name() + ".txt")
             ).stream().reduce("", (acc, line) -> acc + line + "\n");
+
+
+            return testWithPlaceholders
+                    .replace("${allowedPackages}", allowedPackagesAsCode())
+                    .replace("${javaClasses}", javaClassesAsCode());
         } catch (AssertionError | IOException e) {
             throw new SecurityException("Ares Security Error (Reason: Student-Code; Stage: Execution): Illegal Statement found: " + e.getMessage());
         }
@@ -108,14 +116,49 @@ public class JavaArchUnitTestCase extends JavaArchitectureTestCase {
     /**
      * Creates a new builder instance for constructing JavaArchitectureTestCase objects.
      *
-     * @since 2.0.0
-     * @author Sarp Sahinalp
      * @return A new Builder instance
+     * @author Sarp Sahinalp
+     * @since 2.0.0
      */
     @Nonnull
     public static JavaArchUnitTestCase.Builder archunitBuilder() {
         return new JavaArchUnitTestCase.Builder();
     }
+
+    /**
+     * Formats the Set<PackagePermission> structure as a Java-literal Set.of(PackagePermission(...), ...).
+     */
+    private String allowedPackagesAsCode() {
+        if (allowedPackages.isEmpty()) {
+            return "Set.of()";
+        }
+        String inner = allowedPackages.stream()
+                .map(pp -> String.format(
+                        "new %s(\"%s\")",
+                        PackagePermission.class.getSimpleName(),
+                        pp.importTheFollowingPackage()
+                ))
+                .collect(Collectors.joining(", "));
+        return "Set.of(" + inner + ")";
+    }
+
+    /**
+     * Formats the JavaClasses structure as a Java-literal ClassFileImporter.importPackages(...) String.
+     */
+    private String javaClassesAsCode() {
+        Set<String> packages = javaClasses.stream()
+                .map(JavaClass::getPackageName)
+                .collect(Collectors.toCollection(HashSet::new));
+
+        if (packages.isEmpty()) {
+            return "new ClassFileImporter().importPackages()";
+        }
+        String packagesAsString = packages.stream()
+                .map(p -> "\"" + p + "\"")
+                .collect(Collectors.joining(", "));
+        return "new ClassFileImporter().importPackages(" + packagesAsString + ")";
+    }
+
 
     /**
      * Builder for the Java architecture test case.
@@ -131,11 +174,11 @@ public class JavaArchUnitTestCase extends JavaArchitectureTestCase {
         /**
          * Sets the architecture test case type supported by this instance.
          *
-         * @since 2.0.0
-         * @author Sarp Sahinalp
          * @param javaArchitectureTestCaseSupported The type of architecture test case to support
          * @return This builder instance for method chaining
          * @throws SecurityException if the parameter is null
+         * @author Sarp Sahinalp
+         * @since 2.0.0
          */
         @Nonnull
         public JavaArchUnitTestCase.Builder javaArchitectureTestCaseSupported(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported) {
@@ -146,10 +189,10 @@ public class JavaArchUnitTestCase extends JavaArchitectureTestCase {
         /**
          * Sets the Java classes to be analyzed by this architecture test case.
          *
-         * @since 2.0.0
-         * @author Sarp Sahinalp
          * @param javaClasses Collection of Java classes for analysis
          * @return This builder instance for method chaining
+         * @author Sarp Sahinalp
+         * @since 2.0.0
          */
         @Nonnull
         public JavaArchUnitTestCase.Builder javaClasses(@Nonnull JavaClasses javaClasses) {
@@ -160,10 +203,10 @@ public class JavaArchUnitTestCase extends JavaArchitectureTestCase {
         /**
          * Sets the allowed package permissions.
          *
-         * @since 2.0.0
-         * @author Sarp Sahinalp
          * @param allowedPackages Set of package permissions that should be allowed
          * @return This builder instance for method chaining
+         * @author Sarp Sahinalp
+         * @since 2.0.0
          */
         @Nonnull
         public JavaArchUnitTestCase.Builder allowedPackages(@Nonnull Set<PackagePermission> allowedPackages) {
@@ -174,10 +217,10 @@ public class JavaArchUnitTestCase extends JavaArchitectureTestCase {
         /**
          * Builds and returns a new JavaArchitectureTestCase instance with the configured properties.
          *
-         * @since 2.0.0
-         * @author Sarp Sahinalp
          * @return A new JavaArchitectureTestCase instance
          * @throws SecurityException if required parameters are missing
+         * @author Sarp Sahinalp
+         * @since 2.0.0
          */
         @Nonnull
         public JavaArchUnitTestCase build() {

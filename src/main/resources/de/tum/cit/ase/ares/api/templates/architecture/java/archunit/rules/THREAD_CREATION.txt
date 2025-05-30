@@ -1,4 +1,5 @@
 @Test
 public void threadSystemShouldNotBeAccessed() {
+    javaClasses = ${javaClasses};
     JavaArchUnitTestCaseCollection.NO_CLASS_MUST_CREATE_THREADS.check(javaClasses);
 }
