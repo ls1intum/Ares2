@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.exc.StreamReadException;
 import com.fasterxml.jackson.databind.DatabindException;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.google.common.base.Preconditions;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
 import org.apache.commons.io.FileUtils;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.reader.SecurityPolicyReader;
@@ -15,8 +16,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
-
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
 
 /**
  * YAML security policy reader.
@@ -61,26 +60,26 @@ public class SecurityPolicyYAMLReader extends SecurityPolicyReader {
     @Nonnull
     public SecurityPolicy readSecurityPolicyFrom(@Nonnull Path securityPolicyPath) {
         Preconditions.checkNotNull(securityPolicyPath, "Security policy path must not be null");
-        Preconditions.checkArgument(FileUtils.isFileNewer(securityPolicyPath.toFile(), 0), localize("security.policy.file.not.found", securityPolicyPath));
-        Preconditions.checkArgument(Files.isReadable(securityPolicyPath), localize("security.policy.file.not.readable", securityPolicyPath));
+        Preconditions.checkArgument(FileUtils.isFileNewer(securityPolicyPath.toFile(), 0), JavaInstrumentationAdviceFileSystemToolbox.localize("security.policy.file.not.found", securityPolicyPath));
+        Preconditions.checkArgument(Files.isReadable(securityPolicyPath), JavaInstrumentationAdviceFileSystemToolbox.localize("security.policy.file.not.readable", securityPolicyPath));
         @Nonnull File yamlFile = Preconditions.checkNotNull(securityPolicyPath.toFile(), "The security policy file must not be null.");
         @Nonnull Class<SecurityPolicy> yamlClass = Preconditions.checkNotNull(SecurityPolicy.class, "The security policy class must not be null.");
         try {
             return objectMapper.readValue(yamlFile, yamlClass);
         } catch (StreamReadException e) {
-            throw new SecurityException(localize("security.policy.read.failed", securityPolicyPath.toString()), e);
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.policy.read.failed", securityPolicyPath.toString()), e);
         } catch (DatabindException e) {
-            throw new SecurityException(localize("security.policy.data.bind.failed", securityPolicyPath.toString()), e);
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.policy.data.bind.failed", securityPolicyPath.toString()), e);
         } catch (UnsupportedOperationException e) {
-            throw new SecurityException(localize("security.policy.unsupported.operation"), e);
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.policy.unsupported.operation"), e);
         } catch (IOException e) {
-            throw new SecurityException(localize("security.policy.io.exception", securityPolicyPath.toString()), e);
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.policy.io.exception", securityPolicyPath.toString()), e);
         }
     }
     //</editor-fold>
 
     //<editor-fold desc="Builder">
-    public static Builder builder() {
+    public static Builder yamlBuilder() {
         return new Builder();
     }
 

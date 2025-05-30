@@ -41,7 +41,7 @@
         <java-parser-version>3.25.9</java-parser-version>
         <!-- 5. Formats: 5.1 JSON -->
         <json-version>20240303</json-version>
-        <!-- 5. Formats: 5.2 YAML -->
+        <!-- 5. Formats: 5.2 YAML and XML-->
         <yaml-version>2.17.2</yaml-version>
         <!-- 6. Large Tooling Libraries -->
         <guava-version>33.4.0-jre</guava-version>
@@ -225,7 +225,7 @@
             <artifactId>json</artifactId>
             <version>${json-version}</version>
         </dependency>
-        <!-- 5. Formats: 5.2 YAML -->
+        <!-- 5. Formats: 5.2 YAML and XML -->
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-yaml</artifactId>

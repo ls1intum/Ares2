@@ -14,6 +14,7 @@ import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.yaml.EssentialDa
 import de.tum.cit.ase.ares.api.securitytest.java.executer.JavaExecuter;
 import de.tum.cit.ase.ares.api.securitytest.java.projectScanner.JavaProjectScanner;
 import de.tum.cit.ase.ares.api.securitytest.java.writer.JavaWriter;
+import de.tum.cit.ase.ares.api.util.FileTools;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -37,6 +38,22 @@ import java.util.Objects;
  * @version 2.0.0
  */
 public class SecurityPolicyJavaDirector extends SecurityPolicyDirector {
+
+    /**
+     * Default path to the essential packages YAML file.
+     */
+    @Nonnull
+    public static final Path DEFAULT_ESSENTIAL_PACKAGES_PATH = Preconditions.checkNotNull(
+            FileTools.resolveOnPackage("configuration/essentialFiles/java/EssentialPackages.yaml")
+    );
+
+    /**
+     * Default path to the essential classes YAML file.
+     */
+    @Nonnull
+    public static final Path DEFAULT_ESSENTIAL_CLASSES_PATH = Preconditions.checkNotNull(
+            FileTools.resolveOnPackage("configuration/essentialFiles/java/EssentialClasses.yaml")
+    );
 
     //<editor-fold desc="Constructor">
     /**
@@ -132,7 +149,7 @@ public class SecurityPolicyJavaDirector extends SecurityPolicyDirector {
     //</editor-fold>
 
     //<editor-fold desc="Builder">
-    public static Builder builder() {
+    public static Builder javaBuilder() {
         return new Builder();
     }
 

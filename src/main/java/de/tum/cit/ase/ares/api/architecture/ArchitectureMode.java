@@ -1,9 +1,18 @@
 package de.tum.cit.ase.ares.api.architecture;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.opencsv.exceptions.CsvException;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
+
 import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaCSVFileLoader;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
@@ -11,13 +20,6 @@ import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.wala.CustomCallgraphBuilder;
 import de.tum.cit.ase.ares.api.architecture.java.wala.JavaWalaTestCase;
 import de.tum.cit.ase.ares.api.util.FileTools;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Enum representing the architecture modes for Java security test cases.
@@ -65,7 +67,7 @@ public enum ArchitectureMode {
     //<editor-fold desc="Multi-file methods">
 
     /**
-     * Retrieves the list of resource file paths to copy for the current architecture mode.
+     * Retrieves the list of resource file paths to copy for the selected architecture mode.
      *
      * @since 2.0.0
      * @author Markus Paulsen
@@ -80,11 +82,12 @@ public enum ArchitectureMode {
     }
 
     /**
-     * Retrieves the file value arrays based on the provided package name.
+     * Retrieves the file value arrays based on the provided package name and main class name.
      *
      * @since 2.0.0
      * @author Markus Paulsen
      * @param packageName the base package name.
+     * @param mainClassInPackageName the main class name within the package.
      * @return a list of string arrays representing file values.
      */
     @Nonnull
@@ -100,7 +103,7 @@ public enum ArchitectureMode {
     }
 
     /**
-     * Determines the target paths for copying resource files based on the project path and package name.
+     * Determines the target paths where resource files should be copied for the selected architecture mode.
      *
      * @since 2.0.0
      * @author Markus Paulsen
@@ -112,8 +115,7 @@ public enum ArchitectureMode {
     public List<Path> targetsToCopyTo(@Nonnull Path projectPath, @Nonnull String packageName) {
         return getCopyConfigurationEntries().stream()
                 .map(entry -> entry.get(2).split("/"))
-                .map(FileTools::resolveOnPackage)
-                .map(projectPath::resolve)
+                .map( path -> FileTools.resolveOn(projectPath, packageName, path))
                 .toList();
     }
     //</editor-fold>
@@ -199,14 +201,13 @@ public enum ArchitectureMode {
      * @author Markus Paulsen
      * @param projectPath the project path.
      * @param packageName the base package name.
-     * @return the target path for the main file.
+     * @return the target path for the main architecture test case file.
      */
     @Nonnull
     public Path targetToCopyTo(@Nonnull Path projectPath, @Nonnull String packageName) {
         return getEditConfigurationEntries().stream()
                 .map(entry -> entry.get(2).split("/"))
-                .map(FileTools::resolveOnPackage)
-                .map(projectPath::resolve)
+                .map(path -> FileTools.resolveOn(projectPath, packageName, path))
                 .toList().getFirst();
     }
     //</editor-fold>

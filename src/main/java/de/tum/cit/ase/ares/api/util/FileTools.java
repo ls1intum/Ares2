@@ -8,6 +8,7 @@ import com.opencsv.CSVReader;
 import com.opencsv.CSVReaderBuilder;
 import com.opencsv.exceptions.CsvException;
 
+import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
@@ -247,6 +248,13 @@ public class FileTools {
         return Stream
                 .of(furtherPathParts)
                 .reduce(target, Path::resolve, Path::resolve);
+    }
+
+    public static Path resolveOn(@Nonnull Path projectPath, @Nonnull String packageName, String... furtherPathParts){
+        String[] packageParts = packageName.split("\\.");
+        String[] allParts = Stream.concat(Arrays.stream(packageParts), Arrays.stream(furtherPathParts))
+                .toArray(String[]::new);
+        return resolveOnTarget(projectPath, allParts);
     }
 
     /**

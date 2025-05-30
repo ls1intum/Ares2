@@ -10,22 +10,22 @@ import static net.bytebuddy.asm.Advice.Origin;
 import static net.bytebuddy.asm.Advice.This;
 
 /**
- * This class provides advice for the execution of methods executing files.
- * It is responsible for verifying whether the method execution is allowed based on the file system
+ * This class provides advice for the execution of methods creating threads.
+ * It is responsible for verifying whether the method execution is allowed based on the thread system
  * security policies defined within the application.
  * <p>
  * If an execution attempt violates these policies, a SecurityException is thrown, preventing
- * unauthorized file executions. The class interacts with the JavaInstrumentationAdviceFileSystemToolbox to
+ * unauthorized thread creation. The class interacts with the JavaInstrumentationAdviceFileSystemToolbox to
  * perform these security checks.
  */
-public class JavaInstrumentationExecutePathMethodAdvice {
+public class JavaInstrumentationCreateThreadMethodAdvice {
     /**
-     * This method is called when a method executing files is entered.
+     * This method is called when a method annotated with the creating threads is entered.
      * It performs security checks to determine whether the method execution is allowed according
-     * to file system security policies. If the method execution is not permitted, a SecurityException
+     * to thread system security policies. If the method execution is not permitted, a SecurityException
      * is thrown, blocking the execution.
      * <p>
-     * The checkFileSystemInteraction method from JavaInstrumentationAdviceFileSystemToolbox is called to
+     * The checkThreadSystemInteraction method from JavaInstrumentationAdviceThreadSystemToolbox is called to
      * perform these checks, ensuring that both the method's parameters and the instance fields
      * adhere to the security restrictions.
      *
@@ -69,8 +69,8 @@ public class JavaInstrumentationExecutePathMethodAdvice {
         //</editor-fold>
 
         //<editor-fold desc="Check">
-        JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction(
-                "execute",
+        JavaInstrumentationAdviceThreadSystemToolbox.checkThreadSystemInteraction(
+                "create",
                 declaringTypeName,
                 methodName,
                 methodSignature,

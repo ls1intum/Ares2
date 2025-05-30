@@ -1,8 +1,12 @@
 package de.tum.cit.ase.ares.api.policy.reader;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.google.common.base.Preconditions;
+import com.google.common.io.MoreFiles;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
+import de.tum.cit.ase.ares.api.policy.reader.yaml.SecurityPolicyYAMLReader;
+
 import javax.annotation.Nonnull;
 import java.nio.file.Path;
 
@@ -54,5 +58,18 @@ public abstract class SecurityPolicyReader {
      */
     @Nonnull
     public abstract SecurityPolicy readSecurityPolicyFrom(@Nonnull Path securityPolicyPath);
+    //</editor-fold>
+
+    //<editor-fold desc="Static methods">
+    public static SecurityPolicyReader selectSecurityPolicyReader(Path securityPolicyFilePath) {
+        Preconditions.checkNotNull(securityPolicyFilePath, "securityPolicyFilePath must not be null");
+        return switch (MoreFiles.getFileExtension(securityPolicyFilePath)) {
+            case "yaml", "yml" ->
+                SecurityPolicyYAMLReader.yamlBuilder()
+                        .yamlMapper(new YAMLMapper())
+                        .build();
+            default -> throw new IllegalArgumentException("Unsupported security policy file format: " + MoreFiles.getFileExtension(securityPolicyFilePath));
+        };
+    }
     //</editor-fold>
 }

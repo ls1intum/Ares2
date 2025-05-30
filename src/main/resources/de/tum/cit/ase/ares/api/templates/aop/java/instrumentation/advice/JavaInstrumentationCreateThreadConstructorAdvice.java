@@ -3,22 +3,22 @@ package %s.ares.api.aop.java.instrumentation.advice;
 import net.bytebuddy.asm.Advice;
 
 /**
- * This class provides advice for the execution of constructors reading files.
- * It is responsible for verifying whether the constructor execution is allowed based on the file system
+ * This class provides advice for the execution of constructors creating threads.
+ * It is responsible for verifying whether the constructor execution is allowed based on the thread system
  * security policies defined within the application.
  * <p>
  * If an execution attempt violates these policies, a SecurityException is thrown, preventing
- * unauthorized file readings. The class interacts with the JavaInstrumentationAdviceFileSystemToolbox to
+ * unauthorized thread creation. The class interacts with the JavaInstrumentationAdviceFileSystemToolbox to
  * perform these security checks.
  */
-public class JavaInstrumentationReadPathConstructorAdvice {
+public class JavaInstrumentationCreateThreadConstructorAdvice {
     /**
-     * This method is called when a constructor reading files is entered.
+     * This method is called when a constructor creating threads is entered.
      * It performs security checks to determine whether the constructor execution is allowed according
-     * to file system security policies. If the constructor execution is not permitted, a SecurityException
+     * to thread system security policies. If the constructor execution is not permitted, a SecurityException
      * is thrown, blocking the execution.
      * <p>
-     * The checkFileSystemInteraction method from JavaInstrumentationAdviceFileSystemToolbox is called to
+     * The checkThreadSystemInteraction method from JavaInstrumentationAdviceThreadSystemToolbox is called to
      * perform these checks, ensuring that the constructor's parameters
      * adhere to the security restrictions.
      *
@@ -30,8 +30,9 @@ public class JavaInstrumentationReadPathConstructorAdvice {
             @Advice.Origin("#t") String declaringTypeName,
             @Advice.AllArguments Object... parameters
     ) {
-        JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction(
-                "read",
+
+        JavaInstrumentationAdviceThreadSystemToolbox.checkThreadSystemInteraction(
+                "create",
                 declaringTypeName,
                 "<init>",
                 "",

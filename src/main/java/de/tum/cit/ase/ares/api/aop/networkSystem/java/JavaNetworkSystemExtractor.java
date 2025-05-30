@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.api.aop.networkSystem.java;
 
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.networkSystem.NetworkSystemExtractor;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.NetworkPermission;
 
@@ -7,8 +8,6 @@ import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
 
 public class JavaNetworkSystemExtractor implements NetworkSystemExtractor {
 
@@ -73,7 +72,7 @@ public class JavaNetworkSystemExtractor implements NetworkSystemExtractor {
             case "send" -> NetworkPermission::sendData;
             case "receive" -> NetworkPermission::receiveData;
             default ->
-                    throw new IllegalArgumentException(localize("security.advice.settings.invalid.network.permission", networkPermission));
+                    throw new IllegalArgumentException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.advice.settings.invalid.network.permission", networkPermission));
         };
         return ((List<NetworkPermission>) resourceAccessSupplier.get())
                 .stream()
@@ -95,7 +94,7 @@ public class JavaNetworkSystemExtractor implements NetworkSystemExtractor {
             case "send" -> NetworkPermission::sendData;
             case "receive" -> NetworkPermission::receiveData;
             default ->
-                    throw new IllegalArgumentException(localize("security.advice.settings.invalid.network.permission", networkPermission));
+                    throw new IllegalArgumentException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.advice.settings.invalid.network.permission", networkPermission));
         };
         return ((List<NetworkPermission>) resourceAccessSupplier.get())
                 .stream()

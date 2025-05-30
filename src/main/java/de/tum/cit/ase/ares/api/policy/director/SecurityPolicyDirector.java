@@ -2,6 +2,7 @@ package de.tum.cit.ase.ares.api.policy.director;
 
 import com.google.common.base.Preconditions;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
+import de.tum.cit.ase.ares.api.policy.director.java.SecurityPolicyJavaDirector;
 import de.tum.cit.ase.ares.api.securitytest.TestCaseAbstractFactoryAndBuilder;
 import de.tum.cit.ase.ares.api.securitytest.java.creator.Creator;
 import de.tum.cit.ase.ares.api.securitytest.java.creator.JavaCreator;
@@ -115,5 +116,35 @@ public abstract class SecurityPolicyDirector {
      */
     @Nonnull
     public abstract TestCaseAbstractFactoryAndBuilder createTestCases(@Nullable SecurityPolicy securityPolicy, @Nullable Path projectFolderPath);
+    //</editor-fold>
+
+    //<editor-fold desc="Static methods">
+    @Nonnull
+    public static SecurityPolicyDirector selectSecurityPolicyDirector(@Nullable SecurityPolicy securityPolicy) {
+        if(securityPolicy == null) {
+            return SecurityPolicyJavaDirector.javaBuilder()
+                    .creator(new JavaCreator())
+                    .writer(new JavaWriter())
+                    .executer(new JavaExecuter())
+                    .essentialDataReader(new EssentialDataYAMLReader())
+                    .javaScanner(new JavaProjectScanner())
+                    .essentialPackagesPath(SecurityPolicyJavaDirector.DEFAULT_ESSENTIAL_PACKAGES_PATH)
+                    .essentialClassesPath(SecurityPolicyJavaDirector.DEFAULT_ESSENTIAL_CLASSES_PATH)
+                    .build();
+        } else {
+            return switch (securityPolicy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed()) {
+                case JAVA_USING_GRADLE_ARCHUNIT_AND_ASPECTJ, JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION, JAVA_USING_GRADLE_WALA_AND_ASPECTJ, JAVA_USING_GRADLE_WALA_AND_INSTRUMENTATION, JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ, JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION, JAVA_USING_MAVEN_WALA_AND_ASPECTJ, JAVA_USING_MAVEN_WALA_AND_INSTRUMENTATION ->
+                        SecurityPolicyJavaDirector.javaBuilder()
+                                .creator(new JavaCreator())
+                                .writer(new JavaWriter())
+                                .executer(new JavaExecuter())
+                                .essentialDataReader(new EssentialDataYAMLReader())
+                                .javaScanner(new JavaProjectScanner())
+                                .essentialPackagesPath(SecurityPolicyJavaDirector.DEFAULT_ESSENTIAL_PACKAGES_PATH)
+                                .essentialClassesPath(SecurityPolicyJavaDirector.DEFAULT_ESSENTIAL_CLASSES_PATH)
+                                .build();
+            };
+        }
+    }
     //</editor-fold>
 }

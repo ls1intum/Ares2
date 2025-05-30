@@ -1,14 +1,13 @@
 package de.tum.cit.ase.ares.api.aop.fileSystem.java;
 
 import de.tum.cit.ase.ares.api.aop.fileSystem.FileSystemExtractor;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
 
 import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
 
 public class JavaFileSystemExtractor implements FileSystemExtractor {
 
@@ -59,7 +58,7 @@ public class JavaFileSystemExtractor implements FileSystemExtractor {
             case "execute" -> FilePermission::executeAllFiles;
             case "delete" -> FilePermission::deleteAllFiles;
             default ->
-                    throw new IllegalArgumentException(localize("security.advice.settings.invalid.file.permission", filePermission));
+                    throw new IllegalArgumentException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.advice.settings.invalid.file.permission", filePermission));
         };
         return ((List<FilePermission>) resourceAccessSupplier.get())
                 .stream()

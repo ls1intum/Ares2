@@ -26,7 +26,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 
 public class PrecompileTest {
-    @BeforeEach
+    /*@BeforeEach
     void clean() {
         Path target = Paths.get("src/test/resources/dump");
         if (!Files.exists(target) || !Files.isDirectory(target)) {
@@ -54,28 +54,15 @@ public class PrecompileTest {
         } catch (IOException e) {
             System.err.println("Error cleaning directory: " + e.getMessage());
         }
-    }
+    }*/
 
     @Test
     void testPrecompileJavaMavenArchunitInstrumentation() {
-        SecurityPolicyReader securityPolicyReader = SecurityPolicyYAMLReader.builder()
-                .yamlMapper(new YAMLMapper())
-                .build();
-        SecurityPolicyDirector securityPolicyDirector = SecurityPolicyJavaDirector.builder()
-                .creator(new JavaCreator())
-                .writer(new JavaWriter())
-                .executer(new JavaExecuter())
-                .essentialDataReader(new EssentialDataYAMLReader())
-                .javaScanner(new JavaProjectScanner())
-                .essentialPackagesPath(FileTools.resolveOnPackage("configuration/essentialFiles/java/EssentialPackages.yaml"))
-                .essentialClassesPath(FileTools.resolveOnPackage("configuration/essentialFiles/java/EssentialClasses.yaml"))
-                .build();
         SecurityPolicyReaderAndDirector sprad = SecurityPolicyReaderAndDirector.builder()
-                .securityPolicyReader(securityPolicyReader)
-                .securityPolicyDirector(securityPolicyDirector)
-                .securityPolicyFilePath(Path.of("src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyEverythingForbidden.yaml"))
-                .projectFolderPath(Path.of("src/test/resources/dump"))
+                .securityPolicyFilePath(Path.of(""))
+                .projectFolderPath(Path.of(""))
                 .build();
-        sprad.writeTestCases(Path.of("src/test/resources/dump/test"));
+        sprad.createTestCases();
+        sprad.writeTestCases(Path.of(""));
     }
 }

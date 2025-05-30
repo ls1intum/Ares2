@@ -1,12 +1,12 @@
 package de.tum.cit.ase.ares.api.aop.java.javaAOPTestCaseToolbox;
 
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import java.util.List;
 import java.util.stream.Collectors;
-
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
 
 public class JavaAOPTestCaseToolbox {
     private JavaAOPTestCaseToolbox() {}
@@ -14,14 +14,14 @@ public class JavaAOPTestCaseToolbox {
     //<editor-fold desc="Basic Types">
     public static String getStringAssignment(@Nonnull String adviceSetting, @Nullable Object value) {
         if (!(value instanceof String)) {
-            throw new SecurityException(localize("security.advice.settings.data.type.mismatch.string", value!=null ? value.getClass() : null));
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.advice.settings.data.type.mismatch.string", value!=null ? value.getClass() : null));
         }
         return String.format("private static String %s = \"%s\";%n", adviceSetting, value);
     }
 
     public static String getIntegerAssignment(@Nonnull String adviceSetting, @Nullable Object value) {
         if (!(value instanceof Integer)) {
-            throw new SecurityException(localize("security.advice.settings.data.type.mismatch.int", value!=null ? value.getClass() : null));
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.advice.settings.data.type.mismatch.int", value!=null ? value.getClass() : null));
         }
         return String.format("private static int %s = %d;%n", adviceSetting, value);
     }
@@ -30,7 +30,7 @@ public class JavaAOPTestCaseToolbox {
     //<editor-fold desc="1-Dimensional Array Types">
     public static String getStringOneDArrayAssignment(@Nonnull String adviceSetting, @Nullable Object value) {
         if (!(value instanceof List<?>)) {
-            throw new SecurityException(localize("security.advice.settings.data.type.mismatch.string[]", value!=null ? value.getClass() : null));
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.advice.settings.data.type.mismatch.string[]", value!=null ? value.getClass() : null));
         }
         String stringArrayValue = ((List<?>) value).stream()
                 .map(Object::toString)
@@ -41,7 +41,7 @@ public class JavaAOPTestCaseToolbox {
 
     public static String getIntegerOneDArrayAssignment(@Nonnull String adviceSetting, @Nullable Object value) {
         if (!(value instanceof List<?>)) {
-            throw new SecurityException(localize("security.advice.settings.data.type.mismatch.int[]", value!=null ? value.getClass() : null));
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.advice.settings.data.type.mismatch.int[]", value!=null ? value.getClass() : null));
         }
         String intArrayValue = ((List<?>) value).stream()
                 .map(Object::toString)
@@ -53,7 +53,7 @@ public class JavaAOPTestCaseToolbox {
     //<editor-fold desc="2-Dimensional Array Types">
     public static String getStringTwoDArrayAssignment(@Nonnull String adviceSetting, @Nullable Object value) {
         if (!(value instanceof List<?>)) {
-            throw new SecurityException(localize("security.advice.settings.data.type.mismatch.string[][]", value!=null ? value.getClass() : null));
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.advice.settings.data.type.mismatch.string[][]", value!=null ? value.getClass() : null));
         }
         String stringArrayArrayValue = ((List<?>) value).stream()
                 .filter(e -> e instanceof List<?>)
@@ -69,7 +69,7 @@ public class JavaAOPTestCaseToolbox {
 
     public static String getIntegerTwoDArrayAssignment(@Nonnull String adviceSetting, @Nullable Object value) {
         if (!(value instanceof List<?>)) {
-            throw new SecurityException(localize("security.advice.settings.data.type.mismatch.int[][]", value!=null ? value.getClass() : null));
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.advice.settings.data.type.mismatch.int[][]", value!=null ? value.getClass() : null));
         }
         String intArrayArrayValue = ((List<?>) value).stream()
                 .filter(e -> e instanceof List<?>)

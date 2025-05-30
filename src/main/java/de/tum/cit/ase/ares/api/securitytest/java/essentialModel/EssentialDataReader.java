@@ -1,10 +1,9 @@
 package de.tum.cit.ase.ares.api.securitytest.java.essentialModel;
 
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
+
 import javax.annotation.Nonnull;
 import java.nio.file.Path;
-
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
-
 /**
  * Interface for reading essential configurations from YAML files.
  *
@@ -49,6 +48,6 @@ public interface EssentialDataReader {
      * @param e the exception that triggered the error
      */
     default void throwReaderErrorMessage(String errorMessageIdentifier, String errorMessageParameter, Exception e) {
-        throw new SecurityException(localize(errorMessageIdentifier, errorMessageParameter), e);
+        throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize(errorMessageIdentifier, errorMessageParameter), e);
     }
 }

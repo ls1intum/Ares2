@@ -1,16 +1,5 @@
 package de.tum.cit.ase.ares.api.aop;
 
-import com.opencsv.exceptions.CsvException;
-import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
-import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSupported;
-import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaCSVFileLoader;
-import de.tum.cit.ase.ares.api.policy.policySubComponents.CommandPermission;
-import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
-import de.tum.cit.ase.ares.api.policy.policySubComponents.NetworkPermission;
-import de.tum.cit.ase.ares.api.policy.policySubComponents.ThreadPermission;
-import de.tum.cit.ase.ares.api.util.FileTools;
-
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -19,16 +8,30 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.Supplier;
 
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
+import javax.annotation.Nonnull;
+
+import com.opencsv.exceptions.CsvException;
+
+import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
+import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSupported;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
+import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaCSVFileLoader;
+
+import de.tum.cit.ase.ares.api.policy.policySubComponents.CommandPermission;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.NetworkPermission;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ThreadPermission;
+
+import de.tum.cit.ase.ares.api.util.FileTools;
 
 /**
- * Enum representing the AOP modes for Java security test case configuration.
+ * Enum representing the AOP modes for Java security test cases.
  *
- * <p>Description: Defines the different modes of aspect-oriented programming available for Java.
- * The modes determine whether Java Instrumentation or AspectJ is used for weaving aspects into the code.</p>
+ * <p>Description: Provides different modes for AOP test case generation and execution in Java.
+ * The modes determine how files and settings are copied and resolved based on the underlying AOP tool.</p>
  *
- * <p>Design Rationale: By abstracting AOP mode selection into an enum, the implementation details are hidden,
- * enabling flexible integration of either instrumentation-based or AspectJ-based approaches with a consistent interface.</p>
+ * <p>Design Rationale: Using an enum to represent AOP modes centralises configuration and enables future extensions
+ * (e.g. supporting INSTRUMENTATION) while ensuring that file handling and resource resolution are consistently applied.</p>
  *
  * @since 2.0.0
  * @author Markus Paulsen
@@ -115,8 +118,7 @@ public enum AOPMode {
     public List<Path> targetsToCopyTo(@Nonnull Path projectPath, @Nonnull String packageName) {
         return getCopyConfigurationEntries().stream()
                 .map(entry -> entry.get(2).split("/"))
-                .map(FileTools::resolveOnPackage)
-                .map(projectPath::resolve)
+                .map( path -> FileTools.resolveOn(projectPath, packageName, path))
                 .toList();
     }
     //</editor-fold>
@@ -124,11 +126,11 @@ public enum AOPMode {
     //<editor-fold desc="Single-file methods">
 
     /**
-     * Retrieves the path to the header template for the three-parted security test case file.
+     * Retrieves the path to the file header template for the three-parted file.
      *
      * @since 2.0.0
      * @author Markus Paulsen
-     * @return the path to the header template.
+     * @return the path to the file header template.
      */
     @Nonnull
     public Path threePartedFileHeader() {
@@ -196,11 +198,11 @@ public enum AOPMode {
     }
 
     /**
-     * Retrieves the path to the footer template for the three-parted security test case file.
+     * Retrieves the path to the file footer template for the three-parted file.
      *
      * @since 2.0.0
      * @author Markus Paulsen
-     * @return the path to the footer template.
+     * @return the path to the file footer template.
      */
     @Nonnull
     public Path threePartedFileFooter() {
@@ -220,24 +222,26 @@ public enum AOPMode {
      */
     @Nonnull
     public String[] formatValues(@Nonnull String packageName) {
-        return FileTools.generatePackageNameArray(packageName, 1);
+        return switch (this) {
+            case ASPECTJ -> FileTools.generatePackageNameArray(packageName, 1);
+            case INSTRUMENTATION -> FileTools.generatePackageNameArray(packageName, 1);
+        };
     }
 
     /**
-     * Determines the target path for the main AOP configuration file based on the project path and package name.
+     * Determines the target path for copying the main AOP test case file based on the project path and package name.
      *
      * @since 2.0.0
      * @author Markus Paulsen
      * @param projectPath the project path.
      * @param packageName the base package name.
-     * @return the target path for the AOP configuration file.
+     * @return the target path for the main AOP test case file.
      */
     @Nonnull
     public Path targetToCopyTo(@Nonnull Path projectPath, @Nonnull String packageName) {
         return getEditConfigurationEntries().stream()
                 .map(entry -> entry.get(2).split("/"))
-                .map(FileTools::resolveOnPackage)
-                .map(projectPath::resolve)
+                .map(path -> FileTools.resolveOn(projectPath, packageName, path))
                 .toList().getFirst();
     }
     //</editor-fold>
@@ -265,13 +269,13 @@ public enum AOPMode {
             classloaderMethod.invoke(null);
             classloaderMethod.setAccessible(false);
         } catch (ClassNotFoundException e) {
-            throw new SecurityException(localize("security.creation.reset.class.not.found.exception"), e);
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.creation.reset.class.not.found.exception"), e);
         } catch (NoSuchMethodException e) {
-            throw new SecurityException(localize("security.creation.reset.no.method.exception"), e);
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.creation.reset.no.method.exception"), e);
         } catch (IllegalAccessException e) {
-            throw new SecurityException(localize("security.creation.reset.illegal.access.exception"), e);
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.creation.reset.illegal.access.exception"), e);
         } catch (InvocationTargetException e) {
-            throw new SecurityException(localize("security.creation.reset.invocation.target.exception"), e);
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.creation.reset.invocation.target.exception"), e);
         }
     }
     //</editor-fold>

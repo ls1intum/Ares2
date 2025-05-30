@@ -5,10 +5,12 @@ package de.tum.cit.ase.ares.api.aop.java;
 import de.tum.cit.ase.ares.api.aop.AOPTestCase;
 import de.tum.cit.ase.ares.api.aop.commandSystem.java.JavaCommandSystemExtractor;
 import de.tum.cit.ase.ares.api.aop.fileSystem.java.JavaFileSystemExtractor;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.javaAOPTestCaseToolbox.JavaAOPAdviceSettingTriple;
 import de.tum.cit.ase.ares.api.aop.java.javaAOPTestCaseToolbox.JavaAOPTestCaseToolbox;
 import de.tum.cit.ase.ares.api.aop.networkSystem.java.JavaNetworkSystemExtractor;
 import de.tum.cit.ase.ares.api.aop.threadSystem.java.JavaThreadSystemExtractor;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.CommandPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
@@ -25,9 +27,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
-
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
-import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 //</editor-fold>
 
 /**
@@ -121,10 +120,10 @@ public class JavaAOPTestCase extends AOPTestCase {
                 case "int[][]", "Integer[][]" ->
                         JavaAOPTestCaseToolbox.getIntegerTwoDArrayAssignment(adviceSetting, value);
                 default ->
-                        throw new SecurityException(localize("security.advice.settings.data.type.unknown", value, dataType, adviceSetting));
+                        throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.advice.settings.data.type.unknown", value, dataType, adviceSetting));
             };
         } catch (IllegalFormatException e) {
-            throw new SecurityException(localize("security.advice.invalid.format", value, dataType, adviceSetting));
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.advice.invalid.format", value, dataType, adviceSetting));
         }
     }
 
@@ -170,31 +169,31 @@ public class JavaAOPTestCase extends AOPTestCase {
             field.setAccessible(false);
         } catch (LinkageError e) {
             throw new SecurityException(
-                    localize("security.advice.linkage.exception", adviceSetting),
+                    JavaInstrumentationAdviceFileSystemToolbox.localize("security.advice.linkage.exception", adviceSetting),
                     e);
         } catch (ClassNotFoundException e) {
             throw new SecurityException(
-                    localize("security.advice.class.not.found.exception", adviceSetting),
+                    JavaInstrumentationAdviceFileSystemToolbox.localize("security.advice.class.not.found.exception", adviceSetting),
                     e);
         } catch (NoSuchFieldException e) {
             throw new SecurityException(
-                    localize("security.advice.no.such.field.exception", adviceSetting),
+                    JavaInstrumentationAdviceFileSystemToolbox.localize("security.advice.no.such.field.exception", adviceSetting),
                     e);
         } catch (NullPointerException e) {
             throw new SecurityException(
-                    localize("security.advice.null.pointer.exception", adviceSetting),
+                    JavaInstrumentationAdviceFileSystemToolbox.localize("security.advice.null.pointer.exception", adviceSetting),
                     e);
         } catch (IllegalAccessException e) {
             throw new SecurityException(
-                    localize("security.advice.illegal.access.exception", adviceSetting),
+                    JavaInstrumentationAdviceFileSystemToolbox.localize("security.advice.illegal.access.exception", adviceSetting),
                     e);
         } catch (IllegalArgumentException e) {
             throw new SecurityException(
-                    localize("security.advice.illegal.argument.exception", adviceSetting, value),
+                    JavaInstrumentationAdviceFileSystemToolbox.localize("security.advice.illegal.argument.exception", adviceSetting, value),
                     e);
         } catch (InaccessibleObjectException e) {
             throw new SecurityException(
-                    localize("security.advice.inaccessible.object.exception", adviceSetting),
+                    JavaInstrumentationAdviceFileSystemToolbox.localize("security.advice.inaccessible.object.exception", adviceSetting),
                     e);
         }
     }
@@ -319,7 +318,7 @@ public class JavaAOPTestCase extends AOPTestCase {
 
         public JavaAOPTestCase.Builder javaAOPTestCaseSupported(JavaAOPTestCaseSupported javaAOPTestCaseSupported) {
             if (javaAOPTestCaseSupported == null) {
-                throw new SecurityException(localized("security.common.not.null", "javaAOPTestCaseSupported"));
+                throw new SecurityException(Messages.localized("security.common.not.null", "javaAOPTestCaseSupported"));
             }
             this.javaAOPTestCaseSupported = javaAOPTestCaseSupported;
             return this;
@@ -327,7 +326,7 @@ public class JavaAOPTestCase extends AOPTestCase {
 
         public JavaAOPTestCase.Builder allowedClasses(Set<ClassPermission> allowedClasses) {
             if (allowedClasses == null) {
-                throw new SecurityException(localized("security.common.not.null", "resourceAccessSupplier"));
+                throw new SecurityException(Messages.localized("security.common.not.null", "resourceAccessSupplier"));
             }
             this.allowedClasses = allowedClasses;
             return this;
@@ -335,7 +334,7 @@ public class JavaAOPTestCase extends AOPTestCase {
 
         public JavaAOPTestCase.Builder resourceAccessSupplier(Supplier<List<?>> resourceAccessSupplier) {
             if (resourceAccessSupplier == null) {
-                throw new SecurityException(localized("security.common.not.null", "resourceAccessSupplier"));
+                throw new SecurityException(Messages.localized("security.common.not.null", "resourceAccessSupplier"));
             }
             this.resourceAccessSupplier = resourceAccessSupplier;
             return this;
@@ -343,13 +342,13 @@ public class JavaAOPTestCase extends AOPTestCase {
 
         public JavaAOPTestCase build() {
             if (javaAOPTestCaseSupported == null) {
-                throw new SecurityException(localized("security.common.not.null", "javaArchitectureTestCaseSupported"));
+                throw new SecurityException(Messages.localized("security.common.not.null", "javaArchitectureTestCaseSupported"));
             }
             if (resourceAccessSupplier == null) {
-                throw new SecurityException(localized("security.common.not.null", "resourceAccessSupplier"));
+                throw new SecurityException(Messages.localized("security.common.not.null", "resourceAccessSupplier"));
             }
             if(allowedClasses == null) {
-                throw new SecurityException(localized("security.common.not.null", "allowedClasses"));
+                throw new SecurityException(Messages.localized("security.common.not.null", "allowedClasses"));
             }
             return new JavaAOPTestCase(javaAOPTestCaseSupported, resourceAccessSupplier, allowedClasses);
         }

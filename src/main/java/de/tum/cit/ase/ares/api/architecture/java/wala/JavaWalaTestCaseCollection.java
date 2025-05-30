@@ -3,15 +3,15 @@ package de.tum.cit.ase.ares.api.architecture.java.wala;
 //<editor-fold desc="Imports">
 
 import com.tngtech.archunit.core.domain.JavaClasses;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
 import de.tum.cit.ase.ares.api.architecture.java.FileHandlerConstants;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitTestCaseCollection;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
+import de.tum.cit.ase.ares.api.util.FileTools;
 
 import java.nio.file.Path;
 import java.util.Set;
 
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
-import static de.tum.cit.ase.ares.api.util.FileTools.readMethodsFromGivenPath;
 //</editor-fold>
 
 /**
@@ -28,7 +28,7 @@ public class JavaWalaTestCaseCollection {
 
     //<editor-fold desc="Constructor">
     private JavaWalaTestCaseCollection() {
-        throw new SecurityException(localize("security.general.utility.initialization", JavaWalaTestCaseCollection.class.getName()));
+        throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.general.utility.initialization", JavaWalaTestCaseCollection.class.getName()));
     }
     //</editor-fold>
 
@@ -41,7 +41,7 @@ public class JavaWalaTestCaseCollection {
             String ruleName,
             Path methodsFilePath
     ) {
-        return new WalaRule(ruleName, readMethodsFromGivenPath(methodsFilePath));
+        return new WalaRule(ruleName, FileTools.readMethodsFromGivenPath(methodsFilePath));
     }
     //</editor-fold>
 
@@ -52,7 +52,7 @@ public class JavaWalaTestCaseCollection {
      * This method checks if any class in the given package accesses the file system.
      */
     public static final WalaRule NO_CLASS_MUST_ACCESS_FILE_SYSTEM = createNoClassShouldHaveMethodRule(
-            localize("security.architecture.file.system.access"),
+            JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.file.system.access"),
             FileHandlerConstants.WALA_FILESYSTEM_METHODS
     );
     //</editor-fold>
@@ -63,7 +63,7 @@ public class JavaWalaTestCaseCollection {
      * This method checks if any class in the given package accesses the network.
      */
     public static final WalaRule NO_CLASS_MUST_ACCESS_NETWORK = createNoClassShouldHaveMethodRule(
-            localize("security.architecture.network.access"),
+            JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.network.access"),
             FileHandlerConstants.WALA_NETWORK_METHODS
     );
     //</editor-fold>
@@ -74,7 +74,7 @@ public class JavaWalaTestCaseCollection {
      * This method checks if any class in the given package creates threads.
      */
     public static final WalaRule NO_CLASS_MUST_CREATE_THREADS = createNoClassShouldHaveMethodRule(
-            localize("security.architecture.manipulate.threads"),
+            JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.manipulate.threads"),
             FileHandlerConstants.WALA_THREAD_MANIPULATION_METHODS
     );
     //</editor-fold>
@@ -85,7 +85,7 @@ public class JavaWalaTestCaseCollection {
      * This method checks if any class in the given package executes commands.
      */
     public static final WalaRule NO_CLASS_MUST_EXECUTE_COMMANDS = createNoClassShouldHaveMethodRule(
-            localize("security.architecture.execute.command"),
+            JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.execute.command"),
             FileHandlerConstants.WALA_COMMAND_EXECUTION_METHODS
     );
     //</editor-fold>
@@ -112,7 +112,7 @@ public class JavaWalaTestCaseCollection {
      * This method checks if any class in the given package uses reflection.
      */
     public static final WalaRule NO_CLASS_MUST_USE_REFLECTION = createNoClassShouldHaveMethodRule(
-            localize("security.architecture.reflection.uses"),
+            JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.reflection.uses"),
             FileHandlerConstants.WALA_REFLECTION_METHODS
     );
     //</editor-fold>
@@ -123,7 +123,7 @@ public class JavaWalaTestCaseCollection {
      * This method checks if any class in the given package uses the command line.
      */
     public static final WalaRule NO_CLASS_MUST_TERMINATE_JVM = createNoClassShouldHaveMethodRule(
-            localize("security.architecture.terminate.jvm"),
+            JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.terminate.jvm"),
             FileHandlerConstants.WALA_JVM_METHODS
     );
     //</editor-fold>
@@ -134,7 +134,7 @@ public class JavaWalaTestCaseCollection {
      * This method checks if any class in the given package uses serialization.
      */
     public static final WalaRule NO_CLASS_MUST_SERIALIZE = createNoClassShouldHaveMethodRule(
-            localize("security.architecture.serialize"),
+            JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.serialize"),
             FileHandlerConstants.WALA_SERIALIZATION_METHODS
     );
     //</editor-fold>
@@ -144,7 +144,7 @@ public class JavaWalaTestCaseCollection {
      * This method checks if any class in the given package uses class loaders.
      */
     public static final WalaRule NO_CLASS_MUST_USE_CLASSLOADERS = createNoClassShouldHaveMethodRule(
-            localize("security.architecture.class.loading"),
+            JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.class.loading"),
             FileHandlerConstants.WALA_CLASSLOADER_METHODS
     );
     //</editor-fold>

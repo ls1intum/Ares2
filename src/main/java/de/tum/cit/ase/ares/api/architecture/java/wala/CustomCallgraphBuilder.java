@@ -17,6 +17,7 @@ import com.ibm.wala.types.ClassLoaderReference;
 import com.ibm.wala.types.TypeReference;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
 import java.io.IOException;
@@ -25,8 +26,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
 
 /**
  * Utility to build a call graph for Java binaries using WALA framework.
@@ -90,7 +89,7 @@ public class CustomCallgraphBuilder {
             classHierarchy = ClassHierarchyFactory.make(scope);
         } catch (ClassHierarchyException | IOException e) {
             // Fail fast if hierarchy cannot be built
-            throw new SecurityException(localize("security.architecture.class.hierarchy.error"));
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.class.hierarchy.error"));
         }
     }
 
@@ -107,7 +106,7 @@ public class CustomCallgraphBuilder {
     private static String convertTypeNameToClassName(String typeName) {
         if (typeName == null || typeName.isEmpty()) {
             // Prevent invalid names
-            throw new SecurityException(localize("security.architecture.class.type.resolution.error"));
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.class.type.resolution.error"));
         }
         // Replace dots with slashes and add .class suffix
         return "/" + typeName.replace(".", "/") + ".class";
@@ -126,7 +125,7 @@ public class CustomCallgraphBuilder {
     private static String convertTypeNameToWalaName(String typeName) {
         if (typeName == null || typeName.isEmpty()) {
             // Prevent invalid names
-            throw new SecurityException(localize("security.architecture.class.type.resolution.error"));
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.class.type.resolution.error"));
         }
         // Prefix with L and replace dots with slashes
         return "L" + typeName.replace('.', '/');
@@ -237,7 +236,7 @@ public class CustomCallgraphBuilder {
             return callGraph;
         } catch (Exception e) {
             // Wrap builder failures as security exceptions
-            throw new SecurityException(localize("security.architecture.build.call.graph.error"));
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.build.call.graph.error"));
         }
     }
 }

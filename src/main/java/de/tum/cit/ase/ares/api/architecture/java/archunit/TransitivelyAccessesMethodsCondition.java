@@ -11,17 +11,14 @@ import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ConditionEvent;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
+import com.tngtech.archunit.thirdparty.com.google.common.base.Preconditions;
 import com.tngtech.archunit.thirdparty.com.google.common.collect.ImmutableList;
+import com.tngtech.archunit.thirdparty.com.google.common.collect.Iterables;
 
 import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
-
-import static com.tngtech.archunit.lang.ConditionEvent.createMessage;
-import static com.tngtech.archunit.thirdparty.com.google.common.base.Preconditions.checkNotNull;
-import static com.tngtech.archunit.thirdparty.com.google.common.collect.Iterables.getLast;
-import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toSet;
+import java.util.stream.Collectors;
 //</editor-fold>
 
 /**
@@ -73,7 +70,7 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
     public TransitivelyAccessesMethodsCondition(DescribedPredicate<? super JavaAccess<?>> checkIfAccessIsViolating) {
         // Provides this condition with a description of the predicate
         super(checkIfAccessIsViolating.getDescription());
-        this.checkIfAccessIsViolating = checkNotNull(checkIfAccessIsViolating, "checkIfAccessIsViolating cannot be null");
+        this.checkIfAccessIsViolating = Preconditions.checkNotNull(checkIfAccessIsViolating, "checkIfAccessIsViolating cannot be null");
     }
     //</editor-fold>
 
@@ -102,7 +99,7 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
             messageBuilder.append("transitively ");
         }
         messageBuilder.append("accesses <");
-        messageBuilder.append(getLast(transitiveAccessDependencyPath).getTarget().getFullName());
+        messageBuilder.append(Iterables.getLast(transitiveAccessDependencyPath).getTarget().getFullName());
         messageBuilder.append(">");
         // In case the path is transitive, it adds the chain of method calls
         if (hasTransitiveDependencyPath) {
@@ -110,12 +107,12 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
             String joinedChain = transitiveAccessDependencyPath
                     .stream()
                     .map(transitiveAccess -> transitiveAccess.getOrigin().getFullName())
-                    .collect(joining("->"));
+                    .collect(Collectors.joining("->"));
             messageBuilder.append(joinedChain);
             messageBuilder.append("]");
         }
         // Creates a message indicating the methods that are transitively accessed
-        String simpleConditionEventMessage = createMessage(access, messageBuilder.toString());
+        String simpleConditionEventMessage = ConditionEvent.createMessage(access, messageBuilder.toString());
         // Creates a new event with the message
         return SimpleConditionEvent.satisfied(access, simpleConditionEventMessage);
     }
@@ -186,7 +183,7 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
                         JavaCodeUnit callingMethod = accessInsideJavaClass.getOrigin();
                         return callingMethod.getFullName().equals(specificMethodName);
                     })
-                    .collect(toSet());
+                    .collect(Collectors.toSet());
         }
 
         /**

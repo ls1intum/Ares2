@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.aop;
 
 import com.google.common.base.Preconditions;
+
 import de.tum.cit.ase.ares.api.aop.commandSystem.CommandSystemExtractor;
 import de.tum.cit.ase.ares.api.aop.fileSystem.FileSystemExtractor;
 import de.tum.cit.ase.ares.api.aop.networkSystem.NetworkSystemExtractor;
@@ -11,9 +12,9 @@ import javax.annotation.Nonnull;
 /**
  * Interface for AOP test case configurations.
  *
- * <p>Description: Defines methods for generating and executing aspect configuration files that enforce security via aspect-oriented programming.</p>
+ * <p>Description: Defines methods for generating and executing AOP test cases that enforce security via aspect-oriented programming.</p>
  *
- * <p>Design Rationale: Abstracting AOP configurations into a unified interface allows for consistent integration and language-specific implementation of security measures.</p>
+ * <p>Design Rationale: Abstracting AOP test cases into a unified interface allows for consistent integration and language-specific implementation of security measures.</p>
  *
  * @since 2.0.0
  * @author Markus Paulsen
@@ -49,6 +50,10 @@ public abstract class AOPTestCase {
      * @since 2.0.0
      * @author Markus Paulsen
      * @param aopTestCaseSupported The type of aop test case supported, determining which rules to apply
+     * @param fileSystemExtractor The extractor for file system operations
+     * @param networkConnectionExtractor The extractor for network system operations
+     * @param commandExecutionExtractor The extractor for command execution operations
+     * @param threadCreationExtractor The extractor for thread creation operations
      */
     protected AOPTestCase(
             @Nonnull AOPTestCaseSupported aopTestCaseSupported,
@@ -65,26 +70,48 @@ public abstract class AOPTestCase {
     }
     //</editor-fold>
 
+    //<editor-fold desc="Getter methods">
     @Nonnull
     public AOPTestCaseSupported getAopTestCaseSupported() {
         return aopTestCaseSupported;
     }
 
+    @Nonnull
+    public FileSystemExtractor getFileSystemExtractor() {
+        return fileSystemExtractor;
+    }
+
+    @Nonnull
+    public NetworkSystemExtractor getNetworkConnectionExtractor() {
+        return networkConnectionExtractor;
+    }
+
+    @Nonnull
+    public CommandSystemExtractor getCommandExecutionExtractor() {
+        return commandExecutionExtractor;
+    }
+
+    @Nonnull
+    public ThreadSystemExtractor getThreadCreationExtractor() {
+        return threadCreationExtractor;
+    }
+    //</editor-fold>
 
     //<editor-fold desc="Abstract Methods">
     /**
-     * Writes the content of the AOP test case configuration for the specified AOP mode.
+     * Writes the content of the AOP test cases for the provided architecture mode and AOP mode.
      *
      * @since 2.0.0
      * @author Markus Paulsen
+     * @param architectureMode the identifier for the architecture mode.
      * @param aopMode the identifier for the AOP mode.
-     * @return the AOP test case configuration content as a string.
+     * @return the AOP test case content as a string.
      */
     @Nonnull
     public abstract String writeAOPTestCase(@Nonnull String architectureMode, @Nonnull String aopMode);
 
     /**
-     * Executes the AOP test case using the provided architecture mode and AOP mode.
+     * Executes the AOP test cases for the provided architecture mode and AOP mode.
      *
      * @since 2.0.0
      * @author Markus Paulsen
