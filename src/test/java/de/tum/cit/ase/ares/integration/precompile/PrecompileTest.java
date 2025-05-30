@@ -58,11 +58,11 @@ public class PrecompileTest {
 
     @Test
     void testPrecompileJavaMavenArchunitInstrumentation() {
-        SecurityPolicyReaderAndDirector sprad = SecurityPolicyReaderAndDirector.builder()
+        SecurityPolicyReaderAndDirector.builder()
                 .securityPolicyFilePath(Path.of(""))
                 .projectFolderPath(Path.of(""))
-                .build();
-        sprad.createTestCases();
-        sprad.writeTestCases(Path.of(""));
+                .build()
+                .createTestCases()
+                .writeTestCases(Path.of(""));
     }
 }
