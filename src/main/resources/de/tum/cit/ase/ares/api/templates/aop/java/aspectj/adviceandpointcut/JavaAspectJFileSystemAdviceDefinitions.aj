@@ -13,18 +13,18 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
     //<editor-fold desc="Tool methods">
 
     /**
-     * Get the value of a field from the JavaTestCaseSettings class.
-     * This method retrieves the value of a field from the JavaTestCaseSettings class.
+     * Get the value of a field from the JavaAOPTestCaseSettings class.
+     * This method retrieves the value of a field from the JavaAOPTestCaseSettings class.
      * The field is specified by its name, and the value is returned as an Object.
      *
-     * @param fieldName The name of the field to retrieve from the JavaTestCaseSettings class.
+     * @param fieldName The name of the field to retrieve from the JavaAOPTestCaseSettings class.
      * @return The value of the specified field.
      * @throws SecurityException If the field cannot be accessed or does not exist.
      */
     private static Object getValueFromSettings(String fieldName) {
         try {
-            // Take standard class loader as class loader in order to get the JavaTestCaseSettings class at compile time for aspectj
-            Class<?> adviceSettingsClass = Class.forName("%s.ares.api.aop.java.JavaTestCaseSettings");
+            // Take standard class loader as class loader in order to get the JavaAOPTestCaseSettings class at compile time for aspectj
+            Class<?> adviceSettingsClass = Class.forName("%s.ares.api.aop.java.JavaAOPTestCaseSettings");
             Field field = adviceSettingsClass.getDeclaredField(fieldName);
             field.setAccessible(true);
             Object value = field.get(null);
@@ -33,7 +33,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
         } catch (LinkageError e) {
             throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Linkage error while accessing field '" + fieldName + "' in AdviceSettings", e);
         } catch (ClassNotFoundException e) {
-            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Could not find 'JavaTestCaseSettings' class to access field '" + fieldName + "'", e);
+            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Could not find 'JavaAOPTestCaseSettings' class to access field '" + fieldName + "'", e);
         } catch (NoSuchFieldException e) {
             throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Field '" + fieldName + "' not found in AdviceSettings", e);
         } catch (NullPointerException e) {
