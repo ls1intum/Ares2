@@ -34,7 +34,7 @@ public class FileHandlerConstants {
      * @return the resolved path.
      */
     public static Path resolveOnPackage(String... furtherPathParts) {
-        Path target = Paths.get("de","tum","cit","ase","ares","api");
+        Path target = Paths.get("de","tum","cit","aet","ares","api");
         return resolveOnTarget(target, furtherPathParts);
     }
     //</editor-fold>

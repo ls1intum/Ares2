@@ -6,6 +6,8 @@ templates/architecture/java/archunit/JavaArchUnitTestCaseCollection.java,4,ares/
 templates/architecture/java/archunit/TransitivelyAccessesMethodsCondition.java,1,ares/api/architecture/java/archunit/TransitivelyAccessesMethodsCondition.java
 templates/policy/policySubComponents/PackagePermission.java,1,ares/api/policy/policySubComponents/PackagePermission.java
 templates/localization/Messages.java,3,ares/api/localization/Messages.java
+templates/util/LruCache.java,1,ares/api/util/LruCache.java
+configuration/archunit.properties,0,../../../../archunit.properties
 templates/architecture/java/exclusions.txt,0,ares/api/architecture/java/exclusions.txt
 templates/architecture/java/archunit/rules/FILESYSTEM_INTERACTION.txt,0,ares/api/architecture/java/archunit/rules/FILESYSTEM_INTERACTION.txt
 templates/architecture/java/archunit/rules/NETWORK_CONNECTION.txt,0,ares/api/architecture/java/archunit/rules/NETWORK_CONNECTION.txt
