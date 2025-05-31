@@ -146,7 +146,7 @@ public class JavaAOPTestCase extends AOPTestCase {
 
     /**
      * Sets the value for a given Java advice setting using reflection.
-     * <p>This method accesses the field of the {@code JavaTestCaseSettings} class using reflection
+     * <p>This method accesses the field of the {@code JavaAOPTestCaseSettings} class using reflection
      * and assigns the specified value to it. This allows dynamically setting advice configurations based
      * on the security test case being executed.</p>
      *

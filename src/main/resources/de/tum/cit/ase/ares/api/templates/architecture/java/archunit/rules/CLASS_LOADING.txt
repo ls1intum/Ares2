@@ -1,4 +1,5 @@
 @Test
 public void classLoadingShouldNotBeAccessed() {
+    javaClasses = ${javaClasses};
     JavaArchUnitTestCaseCollection.NO_CLASS_MUST_USE_CLASSLOADERS.check(javaClasses);
 }

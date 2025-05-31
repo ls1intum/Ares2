@@ -9,7 +9,7 @@ essentialInstrumentationClasses:
   - de.tum.cit.ase.ares.api.aop.java.instrumentation
 essentialAresClasses:
   - de.tum.cit.ase.ares.api.internal
-  - de.tum.cit.ase.ares.api.aop.java.JavaTestCaseSettings
+  - de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings
   - de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector
   - de.tum.cit.ase.ares.api.policy.reader.yaml.SecurityPolicyYAMLReader
   - de.tum.cit.ase.ares.api.policy.director.java.SecurityPolicyJavaDirector

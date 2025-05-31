@@ -59,9 +59,9 @@ public class JavaInstrumentationAdviceThreadSystemToolbox {
     //<editor-fold desc="Tool methods">
 
     /**
-     * Retrieves the value of a specified static field from the JavaTestCaseSettings class.
+     * Retrieves the value of a specified static field from the JavaAOPTestCaseSettings class.
      *
-     * <p>Description: Uses reflection to access a static field in JavaTestCaseSettings,
+     * <p>Description: Uses reflection to access a static field in JavaAOPTestCaseSettings,
      * allowing retrieval of security-related configuration values for instrumentation and tests.
      *
      * @param fieldName The name of the field to retrieve.
@@ -75,7 +75,7 @@ public class JavaInstrumentationAdviceThreadSystemToolbox {
     @SuppressWarnings("unchecked")
     private static <T> T getValueFromSettings(String fieldName) {
         try {
-            // Take bootloader as class loader in order to get the JavaTestCaseSettings class at bootloader time for instrumentation
+            // Take bootloader as class loader in order to get the JavaAOPTestCaseSettings class at bootloader time for instrumentation
             Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, null);
             Field field = adviceSettingsClass.getDeclaredField(fieldName);
             field.setAccessible(true);
@@ -101,9 +101,9 @@ public class JavaInstrumentationAdviceThreadSystemToolbox {
     }
 
     /**
-     * Sets the value of a specified static field in the JavaTestCaseSettings class.
+     * Sets the value of a specified static field in the JavaAOPTestCaseSettings class.
      *
-     * <p>Description: Uses reflection to modify a static field in JavaTestCaseSettings,
+     * <p>Description: Uses reflection to modify a static field in JavaAOPTestCaseSettings,
      * allowing updates to security-related configuration values for instrumentation and tests.
      *
      * @param fieldName The name of the field to modify.
@@ -116,7 +116,7 @@ public class JavaInstrumentationAdviceThreadSystemToolbox {
      */
     private static <T> void setValueToSettings(String fieldName, T newValue) {
         try {
-            // Take bootloader as class loader in order to get the JavaTestCaseSettings class at bootloader time for instrumentation
+            // Take bootloader as class loader in order to get the JavaAOPTestCaseSettings class at bootloader time for instrumentation
             Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, null);
             Field field = adviceSettingsClass.getDeclaredField(fieldName);
             field.setAccessible(true);
@@ -142,10 +142,10 @@ public class JavaInstrumentationAdviceThreadSystemToolbox {
     /**
      * Decrements the value at a specified position in a settings array.
      *
-     * <p>Description: Retrieves an integer array from JavaTestCaseSettings, decrements the value
+     * <p>Description: Retrieves an integer array from JavaAOPTestCaseSettings, decrements the value
      * at the given index, and updates the array back to the settings class.
      *
-     * @param settingsArray The name of the array field in JavaTestCaseSettings.
+     * @param settingsArray The name of the array field in JavaAOPTestCaseSettings.
      * @param position The index position of the value to decrement.
      * @throws SecurityException If retrieving or modifying the array fails.
      * @throws ArrayIndexOutOfBoundsException If the provided position is out of bounds.

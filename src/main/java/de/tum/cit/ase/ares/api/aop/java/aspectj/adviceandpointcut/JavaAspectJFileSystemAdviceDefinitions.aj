@@ -90,7 +90,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
     @Nullable
     private static <T> T getValueFromSettings(@Nonnull String fieldName) {
         try {
-            // Take standard class loader as class loader in order to get the JavaTestCaseSettings class at compile time for aspectj
+            // Take standard class loader as class loader in order to get the JavaAOPTestCaseSettings class at compile time for aspectj
             @Nonnull Class<?> adviceSettingsClass = Objects.requireNonNull(Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings"), "adviceSettingsClass must not be null");
             @Nonnull Field field = Objects.requireNonNull(adviceSettingsClass.getDeclaredField(Objects.requireNonNull(fieldName, "fieldName must not be null")), "field must not be null");
             field.setAccessible(true);
@@ -128,7 +128,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
      */
     private static <T> void setValueToSettings(@Nonnull String fieldName, @Nullable T newValue) {
         try {
-            // Take standard class loader as class loader in order to get the JavaTestCaseSettings class at compile time for aspectj
+            // Take standard class loader as class loader in order to get the JavaAOPTestCaseSettings class at compile time for aspectj
             @Nonnull Class<?> adviceSettingsClass =  Objects.requireNonNull(Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings"), "adviceSettingsClass must not be null");
             @Nonnull Field field = Objects.requireNonNull(adviceSettingsClass.getDeclaredField(Objects.requireNonNull(fieldName, "fieldName must not be null")), "field must not be null");
             field.setAccessible(true);

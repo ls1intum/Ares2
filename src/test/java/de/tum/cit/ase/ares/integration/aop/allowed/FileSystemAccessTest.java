@@ -305,6 +305,33 @@ class FileSystemAccessTest {
         }
         // </editor-fold>
 
+        // <editor-fold desc="accessFileSystemViaBufferedReader
+        // (BufferedReader.readLine)">
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/bufferedReader")
+        void test_accessFileSystemViaBufferedReaderMavenArchunitAspectJ() {
+            assertFileReadAllowedAndContentMatches(ReadBufferedReaderMain::accessFileSystemViaBufferedReader);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/bufferedReader")
+        void test_accessFileSystemViaBufferedReaderMavenArchunitInstrumentation() {
+            assertFileReadAllowedAndContentMatches(ReadBufferedReaderMain::accessFileSystemViaBufferedReader);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/bufferedReader")
+        void test_accessFileSystemViaBufferedReaderMavenWalaAspectJ() {
+            assertFileReadAllowedAndContentMatches(ReadBufferedReaderMain::accessFileSystemViaBufferedReader);
+        }
+
+        @PublicTest
+        @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/bufferedReader")
+        void test_accessFileSystemViaBufferedReaderMavenWalaInstrumentation() {
+            assertFileReadAllowedAndContentMatches(ReadBufferedReaderMain::accessFileSystemViaBufferedReader);
+        }
+        // </editor-fold>
+
         // <editor-fold desc="accessFileSystemViaInputStreamReader
         // (InputStreamReader.read)">
         @PublicTest
@@ -374,6 +401,8 @@ class FileSystemAccessTest {
         void test_accessFileSystemViaJFileChooserMavenWalaInstrumentation() {
             assertNoAresSecurityException(ReadJFileChooserMain::accessFileSystemViaJFileChooser);
         }
+        // </editor-fold>
+
         // </editor-fold>
 
         // <editor-fold desc="accessFileSystemViaNIOChannel (FileChannel)">

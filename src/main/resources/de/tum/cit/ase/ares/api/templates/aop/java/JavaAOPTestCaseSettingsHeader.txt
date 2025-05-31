@@ -14,7 +14,7 @@ package %s.ares.api.aop.java;
  * @version 2.0.0
  * @since 2.0.0
  */
-public class JavaTestCaseSettings {
+public class JavaAOPTestCaseSettings {
 
     /**
      * Private constructor to prevent instantiation of this utility class.
@@ -22,6 +22,6 @@ public class JavaTestCaseSettings {
      * The constructor throws an {@link UnsupportedOperationException} to enforce the utility class pattern.
      * </p>
      */
-    private JavaTestCaseSettings() {
-        throw new UnsupportedOperationException("JavaTestCaseSettings is a utility class and should not be instantiated");
+    private JavaAOPTestCaseSettings() {
+        throw new UnsupportedOperationException("JavaAOPTestCaseSettings is a utility class and should not be instantiated");
     }
