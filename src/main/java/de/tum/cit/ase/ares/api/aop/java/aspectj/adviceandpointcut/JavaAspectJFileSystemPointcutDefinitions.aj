@@ -78,7 +78,8 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.nio.file.Files.newBufferedReader(..)) ||
                     call(* java.nio.file.Files.newInputStream(..)) ||
                     call(* java.nio.file.Files.probeContentType(..)) ||
-                    call(* java.nio.file.Files.isReadable(..)) ||
+                    call(* java.nio.file.Files.isReadable(..))||
+                    call(* java.nio.channels.FileChannel.open(..)) ||
                     call(* java.io.DataInputStream.read(..)) ||
                     call(* java.io.DataInputStream.readFully(..)) ||
                     call(* java.io.ObjectInputStream.readObject(..)) ||

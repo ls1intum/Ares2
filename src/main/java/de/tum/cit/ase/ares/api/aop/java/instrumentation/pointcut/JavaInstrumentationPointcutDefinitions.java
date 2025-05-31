@@ -7,6 +7,7 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 
+import java.io.BufferedReader;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -219,9 +220,9 @@ public class JavaInstrumentationPointcutDefinitions {
      */
     public static final Map<String, List<String>> methodsWhichCanReadFiles = Map.ofEntries(
             // java.io
-            Map.entry("java.io.BufferedReader", List.of("lines", "readLine")),
+            Map.entry("java.io.BufferedReader", List.of("lines", "readLine", "ready")),
             Map.entry("java.io.FileInputStream", List.of("read")),
-            Map.entry("java.io.FileReader", List.of("read", "readLine")),
+            Map.entry("java.io.FileReader", List.of("<init>", "read", "readLine")),
             Map.entry("java.io.InputStream", List.of("read")),
             Map.entry("java.io.RandomAccessFile", List.of("read", "readBoolean", "readByte", "readChar", "readChars", "readDouble", "readFloat", "readFully", "readInt", "readLong", "readShort")),
             Map.entry("java.io.UnixFileSystem", List.of("canonicalize0", "getBooleanAttributes0", "getSpace")),
