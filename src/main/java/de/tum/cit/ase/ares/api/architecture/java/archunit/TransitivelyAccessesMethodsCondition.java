@@ -200,6 +200,12 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
         private Set<JavaAccess<?>> getTransitiveAccessesFrom(JavaAccess<?> accessInsideJavaClass) {
             JavaClass relatedClassWhichIsCalledByAccess = accessInsideJavaClass.getTargetOwner();
             AccessTarget relatedMethodWhichIsCalledByAccess = accessInsideJavaClass.getTarget();
+            
+            // Check for null target owner to prevent NullPointerException
+            if (relatedClassWhichIsCalledByAccess == null) {
+                return Set.of();
+            }
+            
             String nameOfRelatedClassWhichIsCalledByAccess = relatedClassWhichIsCalledByAccess.getFullName();
             String nameOfRelatedMethodWhichIsCalledByAccess = relatedMethodWhichIsCalledByAccess.getFullName();
             int lengthOfNameOfRelatedClassWhichIsCalledByAccess = nameOfRelatedClassWhichIsCalledByAccess.length();

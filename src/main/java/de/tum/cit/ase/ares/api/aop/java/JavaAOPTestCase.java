@@ -162,7 +162,9 @@ public class JavaAOPTestCase extends AOPTestCase {
         }*/
         try {
             @Nullable ClassLoader customClassLoader = Thread.currentThread().getContextClassLoader();
-            @Nonnull Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, aopMode.equals("INSTRUMENTATION") ? null : customClassLoader);
+            // Use the current context class loader during tests to ensure the class can be found
+            ClassLoader classLoader = customClassLoader != null ? customClassLoader : JavaAOPTestCase.class.getClassLoader();
+            @Nonnull Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, classLoader);
             @Nonnull Field field = adviceSettingsClass.getDeclaredField(adviceSetting);
             field.setAccessible(true);
             field.set(null, value);
@@ -342,13 +344,13 @@ public class JavaAOPTestCase extends AOPTestCase {
 
         public JavaAOPTestCase build() {
             if (javaAOPTestCaseSupported == null) {
-                throw new SecurityException(Messages.localized("security.common.not.null", "javaArchitectureTestCaseSupported"));
+                throw new SecurityException(Messages.localized("security.common.not.null", "javaAOPTestCaseSupported", "JavaAOPTestCase.Builder"));
             }
             if (resourceAccessSupplier == null) {
-                throw new SecurityException(Messages.localized("security.common.not.null", "resourceAccessSupplier"));
+                throw new SecurityException(Messages.localized("security.common.not.null", "resourceAccessSupplier", "JavaAOPTestCase.Builder"));
             }
             if(allowedClasses == null) {
-                throw new SecurityException(Messages.localized("security.common.not.null", "allowedClasses"));
+                throw new SecurityException(Messages.localized("security.common.not.null", "allowedClasses", "JavaAOPTestCase.Builder"));
             }
             return new JavaAOPTestCase(javaAOPTestCaseSupported, resourceAccessSupplier, allowedClasses);
         }

@@ -1,10 +1,10 @@
-package de.tum.cit.aet.ares.api.architecture.java.archunit;
+package de.tum.cit.ase.ares.api.architecture.java.archunit;
 
 //<editor-fold desc="Imports">
 import org.junit.jupiter.api.Test;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import java.util.Set;
-import de.tum.cit.aet.ares.api.policy.policySubComponents.PackagePermission;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 
 

@@ -1,4 +1,4 @@
-package de.tum.cit.aet.ares.api.util;
+package de.tum.cit.ase.ares.api.util;
 
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;

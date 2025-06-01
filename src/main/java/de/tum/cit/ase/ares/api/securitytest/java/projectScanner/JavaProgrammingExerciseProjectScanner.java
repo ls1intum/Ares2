@@ -12,7 +12,7 @@ public class JavaProgrammingExerciseProjectScanner extends JavaProjectScanner {
      */
     @Nonnull
     private String getDefaultPackage() {
-        return "de.tum.cit.aet";
+        return "de.tum.cit.ase";
     }
 
     /**

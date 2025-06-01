@@ -59,7 +59,7 @@ public class PrecompileTest {
     @Test
     void testPrecompileJavaMavenArchunitInstrumentation() {
          SecurityPolicyReaderAndDirector.builder()
-                .securityPolicyFilePath(Path.of("\\Users\\ajayv\\OneDrive\\Desktop\\itp2425retake-R02E01_-_Seal_Rebels_Communication_System-tests\\test\\de\\tum\\cit\\aet\\Configuration.yaml"))
+                .securityPolicyFilePath(Path.of("\\Users\\ajayv\\OneDrive\\Desktop\\itp2425retake-R02E01_-_Seal_Rebels_Communication_System-tests\\test\\de\\tum\\cit\\ase\\Configuration.yaml"))
                 .projectFolderPath(Path.of("\\Users\\ajayv\\OneDrive\\Desktop\\itp2425retake-R02E01_-_Seal_Rebels_Communication_System-tests\\assignment\\src"))
                 .build()
         .createTestCases()
