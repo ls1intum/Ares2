@@ -1,29 +1,9 @@
 package de.tum.cit.ase.ares.integration.precompile;
 
-import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
-import de.tum.cit.ase.ares.api.policy.director.SecurityPolicyDirector;
-import de.tum.cit.ase.ares.api.policy.director.java.SecurityPolicyJavaDirector;
-import de.tum.cit.ase.ares.api.policy.reader.SecurityPolicyReader;
-import de.tum.cit.ase.ares.api.policy.reader.yaml.SecurityPolicyYAMLReader;
-import de.tum.cit.ase.ares.api.securitytest.java.creator.JavaCreator;
-import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.yaml.EssentialDataYAMLReader;
-import de.tum.cit.ase.ares.api.securitytest.java.executer.JavaExecuter;
-import de.tum.cit.ase.ares.api.securitytest.java.projectScanner.JavaProjectScanner;
-import de.tum.cit.ase.ares.api.securitytest.java.writer.JavaWriter;
-import de.tum.cit.ase.ares.api.util.FileTools;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
 
 public class PrecompileTest {
     /*@BeforeEach

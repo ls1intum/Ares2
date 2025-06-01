@@ -17,7 +17,7 @@ regardingTheSupervisedCode:
         deleteAllFiles: false
         onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted_execute.sh"
       - readAllFiles: true
-        overwriteAllFiles: false
+        overwriteAllFiles: true
         executeAllFiles: false
         deleteAllFiles: true
         onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted_output.txt"

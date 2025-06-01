@@ -163,8 +163,7 @@ public class JavaAOPTestCase extends AOPTestCase {
         try {
             @Nullable ClassLoader customClassLoader = Thread.currentThread().getContextClassLoader();
             // Use the current context class loader during tests to ensure the class can be found
-            ClassLoader classLoader = customClassLoader != null ? customClassLoader : JavaAOPTestCase.class.getClassLoader();
-            @Nonnull Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, classLoader);
+            @Nonnull Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, aopMode.equals("INSTRUMENTATION") ? null : customClassLoader);
             @Nonnull Field field = adviceSettingsClass.getDeclaredField(adviceSetting);
             field.setAccessible(true);
             field.set(null, value);

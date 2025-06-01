@@ -1,0 +1,5 @@
+#commentLine
+methodA
+
+methodB
+#anotherComment

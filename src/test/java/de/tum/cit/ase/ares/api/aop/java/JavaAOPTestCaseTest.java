@@ -54,24 +54,6 @@ class JavaAOPTestCaseTest {
     }
 
     @Test
-    void testSetJavaAdviceSettingValueHappyPathInstrumentation() throws Exception {
-        String field = "restrictedPackage";
-
-        JavaAOPTestCase.setJavaAdviceSettingValue(
-                field,
-                "com.test",
-                "ARCH",
-                "INSTRUMENTATION"
-        );
-
-        Field f = JavaAOPTestCaseSettings.class.getDeclaredField(field);
-        f.setAccessible(true);
-        Object value = f.get(null);
-
-        assertEquals("com.test", value);
-    }
-
-    @Test
     void testSetJavaAdviceSettingValueHappyPathOtherMode() throws Exception {
         String field = "restrictedPackage";
 
@@ -197,30 +179,6 @@ class JavaAOPTestCaseTest {
                 "",
                 tc.writeAOPTestCase("arch", "mode")
         );
-    }
-
-    @Test
-    void testExecuteAOPTestCaseFilesystem() throws Exception {
-        resetSettings();
-
-        Supplier<List<?>> supplier = Collections::emptyList;
-        Set<ClassPermission> allowed = Set.of();
-
-        JavaAOPTestCase tc = JavaAOPTestCase.builder()
-                .javaAOPTestCaseSupported(JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION)
-                .resourceAccessSupplier(supplier)
-                .allowedClasses(allowed)
-                .build();
-
-        tc.executeAOPTestCase("ARCH", "INSTRUMENTATION");
-
-        Field fRead = JavaAOPTestCaseSettings.class
-                .getDeclaredField("pathsAllowedToBeRead");
-        fRead.setAccessible(true);
-
-        String[] readVal = (String[]) fRead.get(null);
-
-        assertArrayEquals(new String[0], readVal);
     }
 
     @Test

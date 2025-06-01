@@ -335,9 +335,11 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
         try {
             @Nonnull Path real = pathToCheck.toRealPath(LinkOption.NOFOLLOW_LINKS);
             for (@Nonnull String allowed : allowedPaths) {
-                if (real.startsWith(variableToPath(allowed))) {
-                    return true;
-                }
+                try {
+                    if (real.startsWith(variableToPath(allowed))) {
+                        return true;
+                    }
+                } catch (InvalidPathException ignored) {}
             }
             return false;
         } catch (IOException e) {
