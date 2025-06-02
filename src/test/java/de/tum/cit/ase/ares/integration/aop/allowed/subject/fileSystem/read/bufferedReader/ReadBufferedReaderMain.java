@@ -56,14 +56,4 @@ public class ReadBufferedReaderMain {
             return content.toString();
         }
     }
-
-    /**
-     * Access the file system using BufferedReader.ready()
-     * Checks if the stream is ready to be read, then reads all lines.
-     */
-    public static String accessFileSystemViaBufferedReaderReady() throws IOException {
-        try (BufferedReader reader = new BufferedReader(new FileReader("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"))) {
-            return reader.ready() ? "Yes, the reader is ready." : "No, the reader is not ready.";
-        }
-    }
 }

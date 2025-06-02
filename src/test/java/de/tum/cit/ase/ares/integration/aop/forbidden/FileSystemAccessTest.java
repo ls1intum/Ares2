@@ -209,6 +209,7 @@ class FileSystemAccessTest {
         }
         // </editor-fold>
 
+        // <editor-fold desc="accessFileSystemViaBufferedReader - 3 subtests">
         // <editor-fold desc="accessFileSystemViaBufferedReader">
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/bufferedReader")
@@ -238,7 +239,9 @@ class FileSystemAccessTest {
                     ReadBufferedReaderMain.class);
         }
         // </editor-fold>
+        // </editor-fold>
 
+        // <editor-fold desc="accessFileSystemViaFileReader (FileReader) - 3 subtests">
         // <editor-fold desc="accessFileSystemViaFileReader">
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileReader")
@@ -267,7 +270,9 @@ class FileSystemAccessTest {
             assertAresSecurityExceptionRead(ReadFileReaderMain::accessFileSystemViaFileReader,
                     ReadFileReaderMain.class);
         }
+        // </editor-fold>
 
+        // <editor-fold desc="accessFileSystemViaFileReaderReadCharArray">
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileReader")
         void test_accessFileSystemViaFileReaderReadCharArrayMavenArchunitAspectJ() {
@@ -295,7 +300,9 @@ class FileSystemAccessTest {
             assertAresSecurityExceptionRead(ReadFileReaderMain::accessFileSystemViaFileReaderReadCharArray,
                     ReadFileReaderMain.class);
         }
+        // </editor-fold>
 
+        // <editor-fold desc="accessFileSystemViaFileReaderReadCharArrayOffsetLength">
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileReader")
         void test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenArchunitAspectJ() {
@@ -323,6 +330,7 @@ class FileSystemAccessTest {
             assertAresSecurityExceptionRead(ReadFileReaderMain::accessFileSystemViaFileReaderReadCharArrayOffsetLength,
                     ReadFileReaderMain.class);
         }
+        // </editor-fold>
         // </editor-fold>
 
         // <editor-fold desc="accessFileSystemViaThirdPartyPackage">
