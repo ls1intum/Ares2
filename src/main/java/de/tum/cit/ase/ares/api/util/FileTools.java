@@ -411,6 +411,16 @@ public class FileTools {
         }
     }
 
+    /**
+     * Reads a Phobos configuration file and returns its content as a list of lists of strings.
+     * <p>
+     * Each line in the configuration file is expected to contain exactly three tokens separated by whitespace.
+     * </p>
+     *
+     * @param sourceCFGPath the path to the configuration file.
+     * @return a list of lists, where each inner list contains three tokens from a line in the configuration file.
+     * @throws IOException if an I/O error occurs while reading the file.
+     */
     public static List<List<String>> readCFGFile(Path sourceCFGPath) throws IOException {
         return Files
                 .lines(sourceCFGPath)

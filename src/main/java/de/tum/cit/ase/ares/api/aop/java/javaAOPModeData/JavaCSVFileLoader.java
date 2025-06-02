@@ -52,10 +52,10 @@ public class JavaCSVFileLoader implements JavaFileLoader {
     public File getEditPaths(ArchitectureMode mode) throws IOException {
         return switch (mode) {
             case ARCHUNIT ->
-                FileTools.getResourceAsFile("de/tum/cit/ase/ares/api/configuration/editFiles/java/ArchunitEditFiles.csv");
+                    FileTools.getResourceAsFile("de/tum/cit/ase/ares/api/configuration/editFiles/java/ArchunitEditFiles.csv");
 
             case WALA ->
-                FileTools.getResourceAsFile("de/tum/cit/ase/ares/api/configuration/editFiles/java/WalaEditFiles.csv");
+                    FileTools.getResourceAsFile("de/tum/cit/ase/ares/api/configuration/editFiles/java/WalaEditFiles.csv");
 
         };
     }
@@ -69,10 +69,10 @@ public class JavaCSVFileLoader implements JavaFileLoader {
     public File getEditPaths(AOPMode mode) throws IOException {
         return switch (mode) {
             case INSTRUMENTATION ->
-                FileTools.getResourceAsFile("de/tum/cit/ase/ares/api/configuration/editFiles/java/InstrumentationEditFiles.csv");
+                    FileTools.getResourceAsFile("de/tum/cit/ase/ares/api/configuration/editFiles/java/InstrumentationEditFiles.csv");
 
             case ASPECTJ ->
-                FileTools.getResourceAsFile("de/tum/cit/ase/ares/api/configuration/editFiles/java/AspectJEditFiles.csv");
+                    FileTools.getResourceAsFile("de/tum/cit/ase/ares/api/configuration/editFiles/java/AspectJEditFiles.csv");
         };
     }
 
@@ -88,9 +88,21 @@ public class JavaCSVFileLoader implements JavaFileLoader {
     }
 
 
+    /**
+     * Retrieves the path to the CSV file containing the copy configuration for the selected AOP mode.
+     *
+     * @return the path to the CSV file containing the copy configuration.
+     */
     private Path getPhobosCopyPaths() {
         return FileTools.resolveOnPackage("configuration/PhobosCopyFiles.csv");
     }
+
+
+    /**
+     * Retrieves the path to the CSV file containing the edit configuration for Phobos.
+     *
+     * @return the path to the CSV file containing the edit configuration.
+     */
     private Path getPhobosEditPaths() {
         return FileTools.resolveOnPackage("configuration/PhobosEditFiles.csv");
     }
@@ -128,11 +140,23 @@ public class JavaCSVFileLoader implements JavaFileLoader {
         return FileTools.readCSVFile(getEditPaths(mode));
     }
 
+
+    /**
+     * Loads the copy configuration from the CSV file for Phobos.
+     *
+     * @return the copy configuration.
+     */
     @Override
     public List<List<String>> loadCopyData() throws IOException, CsvException {
         return FileTools.readCSVFile(getPhobosCopyPaths().toFile());
     }
 
+
+    /**
+     * Loads the edit configuration from the CSV file for Phobos.
+     *
+     * @return the edit configuration.
+     */
     @Override
     public List<List<String>> loadEditData() throws IOException, CsvException {
         return FileTools.readCSVFile(getPhobosEditPaths().toFile());

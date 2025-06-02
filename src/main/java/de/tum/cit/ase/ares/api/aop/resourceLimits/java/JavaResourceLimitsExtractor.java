@@ -14,7 +14,7 @@ public class JavaResourceLimitsExtractor {
     private final Supplier<List<?>> resourceAccessSupplier;
 
     /**
-     * Constructs a new JavaNetworkConnectionExtractor with the specified resource access supplier.
+     * Constructs a new JavaResourceLimitsExtractor with the specified resource access supplier.
      *
      * @param resourceAccessSupplier the supplier for the resource accesses permitted as defined in the security policy, must not be null.
      */
@@ -23,6 +23,12 @@ public class JavaResourceLimitsExtractor {
     }
 
 
+
+    /**
+     * Retrieves the tightest timeout limit given by the Java security policy (in case multiple timeouts are configured).
+     *
+     * @return the minimum timeout value in milliseconds, or a restrictive default if no timeouts are configured.
+     */
     @Nonnull
     public Long getTightestTimeout() {
         OptionalLong min =
@@ -34,6 +40,12 @@ public class JavaResourceLimitsExtractor {
     }
 
 
+
+    /**
+     * Collects the resource limits defined in the Java security policy.
+     *
+     * @return a map of resource limits where the key is the resource type and the value is the limit.
+     */
     @Nonnull
     public Map<String, Long> collectResourceLimits() {
         Map<String, Long> min = new LinkedHashMap<>();
