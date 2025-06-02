@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.fileReader;
+package de.tum.cit.ase.ares.integration.architecture.forbidden.subject.fileSystem.read.fileReader;
 
 import java.io.FileReader;
 import java.io.IOException;
@@ -12,7 +12,7 @@ public class ReadFileReaderMain {
     /**
      * Access the file system using {@link FileReader} for reading.
      */
-    public static void accessFileSystemViaFileReaderRead() throws IOException {
+    public static void accessFileSystemViaFileReader() throws IOException {
         try (FileReader reader = new FileReader("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt")) {
             StringBuilder content = new StringBuilder();
             int ch;
