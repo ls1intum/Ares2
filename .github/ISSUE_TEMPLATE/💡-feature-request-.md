@@ -1,5 +1,5 @@
 ---
-name: Feature request template
+name: "\U0001F4A1 Feature Request "
 about: This template should help structure a new feature request for Ares2
 title: ''
 labels: feature-request
