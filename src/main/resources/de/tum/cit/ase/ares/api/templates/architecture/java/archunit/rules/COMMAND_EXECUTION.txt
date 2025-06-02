@@ -1,0 +1,5 @@
+@Test
+public void commandSystemShouldNotBeAccessed() {
+    javaClasses = ${javaClasses};
+    JavaArchUnitTestCaseCollection.NO_CLASS_MUST_EXECUTE_COMMANDS.check(javaClasses);
+}

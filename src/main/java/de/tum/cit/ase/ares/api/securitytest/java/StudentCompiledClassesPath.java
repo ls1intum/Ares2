@@ -2,28 +2,32 @@ package de.tum.cit.ase.ares.api.securitytest.java;
 
 import javax.annotation.Nonnull;
 import java.lang.annotation.Retention;
-
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
+import java.lang.annotation.RetentionPolicy;
 
 /**
- * Annotation to specify the path of the compiled student classes.
- * <p>
- * This annotation is used to mark a field or method with the file path
- * where the compiled student classes are located.
- * </p>
+ * Specifies the path of the compiled student classes.
+ *
+ * <p>Description:
+ * Exercise Instructors use this annotation
+ * to mark a field or method with the file system path
+ * where the respective Learning Management Systems locates compiled student classes.</p>
+ *
+ * <p>Design Rationale: This annotation facilitates the automated detection and utilisation of compiled student classes, supporting efficient class loading and evaluation processes.</p>
+ *
+ * @since 2.0.0
+ * @author Sarp Sahinalp
+ * @version 2.0.0
  */
-@Retention(RUNTIME)
+@Retention(RetentionPolicy.RUNTIME)
 public @interface StudentCompiledClassesPath {
 
     /**
-     * Specifies the path to the compiled student classes.
-     * <p>
-     * The value returned by this method should represent a valid file system
-     * path pointing to the location where the student's compiled Java classes
-     * are stored.
-     * </p>
+     * Returns the file system path to the compiled student classes.
      *
-     * @return the path of the compiled student classes as a {@link String}.
+     * @since 2.0.0
+     * @author Sarp Sahinalp
+     * @return the path of the compiled student classes as a {@link String}
      */
-    @Nonnull String value();
+    @Nonnull
+    String value();
 }

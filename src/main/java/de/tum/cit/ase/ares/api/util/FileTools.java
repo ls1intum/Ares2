@@ -1,7 +1,16 @@
 package de.tum.cit.ase.ares.api.util;
 
+//<editor-fold desc="Import">
+
+import com.opencsv.CSVParser;
+import com.opencsv.CSVParserBuilder;
+import com.opencsv.CSVReader;
+import com.opencsv.CSVReaderBuilder;
+import com.opencsv.exceptions.CsvException;
+
+import javax.annotation.Nonnull;
 import java.io.File;
-import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -16,7 +25,8 @@ import java.util.*;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
+//</editor-fold>
 
 /**
  * Utility class providing file-related operations such as copying files, reading file content,
@@ -25,7 +35,8 @@ import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstru
  */
 public class FileTools {
 
-    // TODO: This is only needed for the pre-compile mode, translation not that necessary
+    //<editor-fold desc="Constructor">
+
     /**
      * Private constructor to prevent instantiation of this utility class.
      * <p>
@@ -36,8 +47,10 @@ public class FileTools {
     private FileTools() {
         throw new UnsupportedOperationException("FileTools is a utility class and should not be instantiated");
     }
+    //</editor-fold>
 
     //<editor-fold desc="Copy">
+
     /**
      * Copies a list of files to a specified target directory.
      * <p>
@@ -87,12 +100,12 @@ public class FileTools {
      * @return a list of copied paths.
      * @throws SecurityException if an error occurs during the process.
      */
-    public static List<Path> copyJavaFiles(List<Path> sourceFilePaths, List<Path> targetFilePaths, List<String[]> formatValues) {
+    public static List<Path> copyFormatStringFiles(List<Path> sourceFilePaths, List<Path> targetFilePaths, List<String[]> formatValues) {
         List<Path> copiedFiles = copyFiles(sourceFilePaths, targetFilePaths);
         for (int i = 0; i < copiedFiles.size(); i++) {
             try {
                 String formatedFile;
-                try{
+                try {
                     formatedFile = String.format(Files.readString(copiedFiles.get(i)), (String[]) formatValues.get(i));
                 } catch (IllegalFormatException e) {
                     throw new SecurityException("Ares Security Error (Stage: Creation): Illegal format in " + copiedFiles.get(i).toAbsolutePath() + ".", e);
@@ -111,6 +124,7 @@ public class FileTools {
     //</editor-fold>
 
     //<editor-fold desc="Read">
+
     /**
      * Reads the content of a file from the specified path.
      * <p>
@@ -132,13 +146,13 @@ public class FileTools {
                 throw new IOException("Resource not found: " + sourceFilePath);
             }
 
-            Scanner scanner = new Scanner(sourceStream, StandardCharsets.UTF_8);
-
-            // Check if the scanner has any content
-            if (scanner.hasNext()) {
-                return scanner.useDelimiter("\\A").next();
-            } else {
-                return "";  // Return an empty string if the file is empty
+            try (Scanner scanner = new Scanner(sourceStream, StandardCharsets.UTF_8)) {
+                // Check if the scanner has any content
+                if (scanner.hasNext()) {
+                    return scanner.useDelimiter("\\A").next();
+                } else {
+                    return "";  // Return an empty string if the file is empty
+                }
             }
 
         } catch (IOException e) {
@@ -149,9 +163,36 @@ public class FileTools {
             throw new SecurityException("Ares Security Error (Stage: Creation): Illegal format in content.", e);
         }
     }
+
+    /**
+     * Loads data from the corresponding CSV file.
+     */
+    public static List<List<String>> readCSVFile(File file) throws IOException, CsvException {
+        CSVParser csvParserBuilder = new CSVParserBuilder()
+                .withSeparator(',')
+                .withQuoteChar('"')
+                .build();
+        try (
+                CSVReader csvReaderBuilder = new CSVReaderBuilder(new FileReader(file))
+                        .withCSVParser(csvParserBuilder)
+                        .withSkipLines(1)
+                        .build()
+        ) {
+            List<String[]> csvRowList = csvReaderBuilder.readAll();
+            return csvRowList.stream().map(Arrays::asList).toList();
+        }
+    }
+
+    /**
+     * Loads data from the corresponding Rule file.
+     */
+    public static List<String> readRuleFile(Path sourceRulePath) throws IOException {
+        return Files.readAllLines(getResourceAsFile(sourceRulePath.toString()).toPath());
+    }
     //</editor-fold>
 
     //<editor-fold desc="Write">
+
     /**
      * Writes content to a file in the specified target directory.
      * <p>
@@ -194,6 +235,8 @@ public class FileTools {
     }
     //</editor-fold>
 
+    //<editor-fold desc="Resolve">
+
     /**
      * Resolves a path based on the target and additional path parts.
      *
@@ -207,19 +250,40 @@ public class FileTools {
                 .reduce(target, Path::resolve, Path::resolve);
     }
 
+    public static Path resolveOn(@Nonnull Path projectPath, @Nonnull String packageName, String... furtherPathParts){
+        String[] packageParts = packageName.split("\\.");
+        String[] allParts = Stream.concat(Arrays.stream(packageParts), Arrays.stream(furtherPathParts))
+                .toArray(String[]::new);
+        return resolveOnTarget(projectPath, allParts);
+    }
+
     /**
-     * Resolves a path based on the target and additional path parts.
+     * Resolves a path based on "de/tum/cit/ase/ares/api" and additional path parts.
      *
      * @param furtherPathParts additional path parts.
      * @return the resolved path.
      */
-    public static Path resolveOnResources(String... furtherPathParts) {
-        Path target = Paths.get("de","tum","cit","ase","ares","api");
+    public static Path resolveOnPackage(String... furtherPathParts) {
+        Path target = Paths.get("de", "tum", "cit", "ase", "ares", "api");
         return resolveOnTarget(target, furtherPathParts);
     }
 
     /**
-     * Resolves a path based on the target and additional path parts.
+     * Resolves a path based on "src/main/java/[package]" and additional path parts.
+     *
+     * @param furtherPathParts additional path parts.
+     * @return the resolved path.
+     */
+    public static Path resolveOnSource(Path projectPath, String packageName, String... furtherPathParts) {
+        String[] prefix = new String[]{"src", "main", "java"};
+        String[] infix = packageName.split("\\.");
+        String[] newPrefix = Stream.concat(Arrays.stream(prefix), Arrays.stream(infix)).toArray(String[]::new);
+        String[] newFurtherPathParts = Stream.concat(Arrays.stream(newPrefix), Arrays.stream(furtherPathParts)).toArray(String[]::new);
+        return resolveOnTarget(projectPath, newFurtherPathParts);
+    }
+
+    /**
+     * Resolves a path based on "src/test/java/[package]" and additional path parts.
      *
      * @param furtherPathParts additional path parts.
      * @return the resolved path.
@@ -231,6 +295,9 @@ public class FileTools {
         String[] newFurtherPathParts = Stream.concat(Arrays.stream(newPrefix), Arrays.stream(furtherPathParts)).toArray(String[]::new);
         return resolveOnTarget(projectPath, newFurtherPathParts);
     }
+    //</editor-fold>
+
+    //<editor-fold desc="Three Parted Java File">
 
     /**
      * Creates a new file by combining the content of a header file, a body string, and a footer file.
@@ -256,7 +323,7 @@ public class FileTools {
         return writeFile(target.getParent(), target.getFileName().toString(), fileContent);
     }
 
-    public static Path createThreePartedJavaFile(
+    public static Path createThreePartedFormatStringFile(
             Path sourceHeaderPath, String sourceBody, Path sourceFooterPath,
             Path target, String[] formatValues
     ) {
@@ -272,6 +339,9 @@ public class FileTools {
         }
         return createdFile;
     }
+    //</editor-fold>
+
+    //<editor-fold desc="Rest">
 
     /**
      * Generates an array of package name strings.
@@ -339,4 +409,5 @@ public class FileTools {
             throw new SecurityException(localize("file.tools.io.error", resourcePath), e);
         }
     }
+    //</editor-fold>
 }

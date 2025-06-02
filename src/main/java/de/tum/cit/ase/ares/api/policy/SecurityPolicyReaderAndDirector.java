@@ -1,143 +1,194 @@
 package de.tum.cit.ase.ares.api.policy;
 
-//<editor-fold desc="Imports">
-
-import com.fasterxml.jackson.core.exc.StreamReadException;
-import com.fasterxml.jackson.databind.DatabindException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import de.tum.cit.ase.ares.api.aop.java.JavaAOPMode;
-import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureMode;
-import de.tum.cit.ase.ares.api.buildtoolconfiguration.java.JavaBuildMode;
-import de.tum.cit.ase.ares.api.securitytest.java.JavaSecurityTestCaseFactoryAndBuilder;
-import de.tum.cit.ase.ares.api.securitytest.SecurityTestCaseAbstractFactoryAndBuilder;
-import de.tum.cit.ase.ares.api.policy.SecurityPolicy.ProgrammingLanguageConfiguration;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.io.MoreFiles;
+import de.tum.cit.ase.ares.api.policy.director.SecurityPolicyDirector;
+import de.tum.cit.ase.ares.api.policy.reader.SecurityPolicyReader;
+import de.tum.cit.ase.ares.api.securitytest.TestCaseAbstractFactoryAndBuilder;
+import org.apache.commons.io.FilenameUtils;
 
 import javax.annotation.Nonnull;
-import java.io.IOException;
+import javax.annotation.Nullable;
 import java.nio.file.Path;
 import java.util.List;
-
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
-//</editor-fold>
+import java.util.Objects;
 
 /**
- * Handles the reading of security policy files and manages the creation and execution of security test cases.
- * <p>
- * This class serves as a client of the Abstract Factory Design Pattern and also acts as the director in the Builder Design Pattern.
- * It reads a security policy from a file, configures the appropriate test case factory and builder,
- * and manages the writing and execution of the security test cases.
- * </p>
+ * Security policy file reader and test case director.
  *
+ * <p>Description:
+ * Handles the reading of a security policy from a security policy file and manages the respective creation,
+ * the writing, and the execution of security test cases.
+ * Acts as a client of the Abstract Factory Design Pattern, and a director in the Builder Design Pattern.
+ *
+ * <p>Design Rationale: By separating the responsibilities of file reading and test case management, this class adheres to the
+ * Single Responsibility Principle, ensuring that each component handles its specific functionality.
+ *
+ * @since 2.0.0
+ * @author Markus Paulsen
  * @version 2.0.0
  * @see <a href="https://refactoring.guru/design-patterns/abstract-factory">Abstract Factory Design Pattern</a>
  * @see <a href="https://refactoring.guru/design-patterns/builder">Builder Design Pattern</a>
- * @since 2.0.0
  */
+@SuppressWarnings("unused")
 public class SecurityPolicyReaderAndDirector {
 
     //<editor-fold desc="Attributes">
     /**
-     * The security policy used for generating security test cases.
+     * The reader for the security policy file (first dependency injection).
      */
-    @Nonnull private final SecurityPolicy securityPolicy;
+    @Nullable
+    private SecurityPolicyReader securityPolicyReader;
 
     /**
-     * The factory and builder for creating and managing security test cases.
+     * The director for creating security test cases based on the security policy (second dependency injection).
      */
-    @Nonnull private final SecurityTestCaseAbstractFactoryAndBuilder testCaseManager;
+    @Nullable
+    private SecurityPolicyDirector securityPolicyDirector;
+
+    /**
+     * The path to the security policy file.
+     */
+    @Nullable
+    private final Path securityPolicyFilePath;
+
+    /**
+     * The path to the project folder.
+     */
+    @Nullable
+    private final Path projectFolderPath;
+
+    /**
+     * The manager for creating and handling security test cases.
+     */
+    @Nullable
+    private TestCaseAbstractFactoryAndBuilder securityTestCaseFactoryAndBuilder;
     //</editor-fold>
 
-    //<editor-fold desc="Constructor">
+    //<editor-fold desc="Constructors">
 
     /**
-     * Constructs a new {@link SecurityPolicyReaderAndDirector} to read the security policy and configure the test case manager.
+     * Constructs a SecurityPolicyReaderAndDirector instance.
      *
-     * @param securityPolicyPath the path to the security policy file.
-     * @param projectPath        the path within the project where the policy is applied.
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @param securityPolicyFilePath the path to the security policy file.
+     * @param projectFolderPath the path to the project folder.
      */
-    public SecurityPolicyReaderAndDirector(@Nonnull Path securityPolicyPath, @Nonnull Path projectPath) {
-        try {
-            securityPolicy = new ObjectMapper(new YAMLFactory()).readValue(securityPolicyPath.toFile(), SecurityPolicy.class);
-            testCaseManager = createSecurityTestCases(
-                    securityPolicy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed(),
-                    projectPath
+    public SecurityPolicyReaderAndDirector(
+            @Nullable Path securityPolicyFilePath,
+            @Nullable Path projectFolderPath
+    ) {
+        this.securityPolicyFilePath = securityPolicyFilePath;
+        this.projectFolderPath = projectFolderPath;
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Create method">
+
+    /**
+     * Creates the security test cases.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     */
+    public SecurityPolicyReaderAndDirector createTestCases() {
+        @Nullable SecurityPolicy securityPolicy = Optional
+                .fromNullable(securityPolicyFilePath)
+                .transform(securityPolicyFilePath -> {
+                    securityPolicyReader = SecurityPolicyReader.selectSecurityPolicyReader(this.securityPolicyFilePath);
+                    return securityPolicyReader.readSecurityPolicyFrom(securityPolicyFilePath);
+                })
+                .orNull();
+        this.securityTestCaseFactoryAndBuilder = Optional
+                .fromNullable(securityPolicy)
+                .transform(securityPolicyExisting -> {
+                    securityPolicyDirector = SecurityPolicyDirector.selectSecurityPolicyDirector(securityPolicyExisting);
+                    return securityPolicyDirector.createTestCases(securityPolicyExisting, projectFolderPath);
+                })
+                .orNull();
+                //.or(SecurityPolicyDirector.selectSecurityPolicyDirector(null).createTestCases(null, projectFolderPath));
+        return this;
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Write method">
+
+    /**
+     * Writes the security test cases to the project folder.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @return a list of Paths where the security test cases were written.
+     */
+    @Nonnull
+    public List<Path> writeTestCases(Path testFolderPath) {
+        return Preconditions.checkNotNull(this.securityTestCaseFactoryAndBuilder, "securityTestCaseFactoryAndBuilder must not be null")
+                .writeTestCases(testFolderPath);
+    }
+
+    /**
+     * Writes the security test cases to the project folder and continues.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @return a list of Paths where the security test cases were written.
+     */
+    @Nonnull
+    public SecurityPolicyReaderAndDirector writeTestCasesAndContinue(Path testFolderPath) {
+        Preconditions.checkNotNull(this.securityTestCaseFactoryAndBuilder, "securityTestCaseFactoryAndBuilder must not be null")
+                .writeTestCases(testFolderPath);
+        return this;
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Execute method">
+
+    /**
+     * Executes the security test cases.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     */
+    public SecurityPolicyReaderAndDirector executeTestCases() {
+        Preconditions.checkNotNull(this.securityTestCaseFactoryAndBuilder, "securityTestCaseFactoryAndBuilder must not be null")
+                .executeTestCases();
+        return this;
+    }
+    //</editor-fold>
+
+    // <editor-fold desc="Builder">
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        @Nullable
+        private Path securityPolicyFilePath;
+        @Nullable
+        private Path projectFolderPath;
+
+        @Nonnull
+        public Builder securityPolicyFilePath(@Nullable Path securityPolicyFilePath) {
+            this.securityPolicyFilePath = securityPolicyFilePath;
+            return this;
+        }
+
+        @Nonnull
+        public Builder projectFolderPath(@Nullable Path projectFolderPath) {
+            this.projectFolderPath = projectFolderPath;
+            return this;
+        }
+
+        @Nonnull
+        public SecurityPolicyReaderAndDirector build() {
+            return new SecurityPolicyReaderAndDirector(
+                    securityPolicyFilePath,
+                    projectFolderPath
             );
-        } catch (StreamReadException e) {
-            throw new SecurityException(localize("security.policy.read.failed", securityPolicyPath.toString()), e);
-        } catch (DatabindException e) {
-            throw new SecurityException(localize("security.policy.data.bind.failed", securityPolicyPath.toString()), e);
-        } catch (UnsupportedOperationException e) {
-            throw new SecurityException(localize("security.policy.unsupported.operation"), e);
-        } catch (IOException e) {
-            throw new SecurityException(localize("security.policy.io.exception", securityPolicyPath.toString()), e);
         }
     }
-    //</editor-fold>
-
-    //<editor-fold desc="Create security test cases methods">
-
-    /**
-     * Creates the appropriate security test case factory and builder based on the programming language configuration.
-     *
-     * @param programmingLanguageConfiguration the programming language configuration used for the security test cases.
-     * @param projectPath                      the path within the project where the test cases will be applied.
-     * @return the factory and builder for creating and managing security test cases.
-     */
-    @Nonnull public JavaSecurityTestCaseFactoryAndBuilder createSecurityTestCases(@Nonnull ProgrammingLanguageConfiguration programmingLanguageConfiguration, @Nonnull Path projectPath) {
-        return switch (programmingLanguageConfiguration) {
-            case JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ -> new JavaSecurityTestCaseFactoryAndBuilder(
-                    JavaBuildMode.MAVEN, JavaArchitectureMode.ARCHUNIT, JavaAOPMode.ASPECTJ, securityPolicy, projectPath
-            );
-            case JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION -> new JavaSecurityTestCaseFactoryAndBuilder(
-                    JavaBuildMode.MAVEN, JavaArchitectureMode.ARCHUNIT, JavaAOPMode.INSTRUMENTATION, securityPolicy, projectPath
-            );
-            case JAVA_USING_GRADLE_ARCHUNIT_AND_ASPECTJ -> new JavaSecurityTestCaseFactoryAndBuilder(
-                    JavaBuildMode.GRADLE, JavaArchitectureMode.ARCHUNIT, JavaAOPMode.ASPECTJ, securityPolicy, projectPath
-            );
-            case JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION -> new JavaSecurityTestCaseFactoryAndBuilder(
-                    JavaBuildMode.GRADLE, JavaArchitectureMode.ARCHUNIT, JavaAOPMode.INSTRUMENTATION, securityPolicy, projectPath
-            );
-            case JAVA_USING_MAVEN_WALA_AND_ASPECTJ -> new JavaSecurityTestCaseFactoryAndBuilder(
-                    JavaBuildMode.MAVEN, JavaArchitectureMode.WALA, JavaAOPMode.ASPECTJ, securityPolicy, projectPath
-            );
-            case JAVA_USING_MAVEN_WALA_AND_INSTRUMENTATION -> new JavaSecurityTestCaseFactoryAndBuilder(
-                    JavaBuildMode.MAVEN, JavaArchitectureMode.WALA, JavaAOPMode.INSTRUMENTATION, securityPolicy, projectPath
-            );
-            case JAVA_USING_GRADLE_WALA_AND_ASPECTJ -> new JavaSecurityTestCaseFactoryAndBuilder(
-                    JavaBuildMode.GRADLE, JavaArchitectureMode.WALA, JavaAOPMode.ASPECTJ, securityPolicy, projectPath
-            );
-            case JAVA_USING_GRADLE_WALA_AND_INSTRUMENTATION -> new JavaSecurityTestCaseFactoryAndBuilder(
-                    JavaBuildMode.GRADLE, JavaArchitectureMode.WALA, JavaAOPMode.INSTRUMENTATION, securityPolicy, projectPath
-            );
-        };
-    }
-    //</editor-fold>
-
-    //<editor-fold desc="Write security test cases methods">
-
-    /**
-     * Writes the security test cases to the specified directory.
-     *
-     * @param projectPath the directory where the test case files should be written.
-     * @return a list of paths representing the files that were written. Each path corresponds to a test case file generated in the specified directory.
-     */
-    @Nonnull public List<Path> writeSecurityTestCases(@Nonnull Path projectPath) {
-        return testCaseManager.writeSecurityTestCases(projectPath);
-    }
-    //</editor-fold>
-
-    //<editor-fold desc="Execute security test cases methods">
-
-    /**
-     * Executes the generated security test cases.
-     * <p>
-     * If any of the test cases fail during execution, this method logs the failure or throws an exception, depending on the configuration of the underlying test case manager.
-     * </p>
-     */
-    public void executeSecurityTestCases() {
-        testCaseManager.executeSecurityTestCases();
-    }
-    //</editor-fold>
+    // </editor-fold>
 
 }

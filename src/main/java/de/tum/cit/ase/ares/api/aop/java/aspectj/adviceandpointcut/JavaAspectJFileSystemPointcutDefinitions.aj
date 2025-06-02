@@ -4,6 +4,13 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
 
     // These are the FileSystem related methods which we want to ban
 
+    // new Scheme:
+    // - methodsWhichCanReadFiles
+    // - methodsWhichCanOverwriteFiles
+    // - methodsWhichCanExecuteFiles
+    // - methodsWhichCanDeleteFiles
+    // - methodsWhichCanCreateThreads
+
     pointcut fileReadMethods():
             (call(* java.io.File.canRead(..)) ||
                     call(java.io.File.new(..)) ||
@@ -22,7 +29,6 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
 
     pointcut fileWriteMethods():
             (call(* java.io.File.canWrite(..)) ||
-                    call(java.io.RandomAccessFile.new(..)) ||
                     call(* java.io.File.createNewFile(..)) ||
                     call(* java.io.File.createTempFile(..)) ||
                     call(* java.io.File.setExecutable(..)) ||
@@ -72,7 +78,8 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.nio.file.Files.newBufferedReader(..)) ||
                     call(* java.nio.file.Files.newInputStream(..)) ||
                     call(* java.nio.file.Files.probeContentType(..)) ||
-                    call(* java.nio.file.Files.isReadable(..)) ||
+                    call(* java.nio.file.Files.isReadable(..))||
+                    call(* java.nio.channels.FileChannel.open(..)) ||
                     call(* java.io.DataInputStream.read(..)) ||
                     call(* java.io.DataInputStream.readFully(..)) ||
                     call(* java.io.ObjectInputStream.readObject(..)) ||
@@ -131,11 +138,12 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
     pointcut fileSystemExecuteMethods():
             (call(* java.nio.file.FileSystem.equals(..)) ||
                     call(* java.nio.file.FileSystem.hashCode(..)) ||
-                    call(* java.nio.file.FileSystem.toString(..)));
+                    call(* java.nio.file.FileSystem.toString(..))) ||
+                    call(* java.lang.Runtime.exec(..)) ||
+                    call(java.lang.ProcessBuilder.new(..));
 
     pointcut fileChannelExecuteMethods():
-            (call(* java.nio.channels.FileChannel.open(..)) ||
-                    call(* java.nio.channels.AsynchronousFileChannel.open()) ||
+            (call(* java.nio.channels.AsynchronousFileChannel.open()) ||
                     call(* java.nio.channels.FileChannel.position(..)) ||
                     call(* java.nio.channels.FileChannel.tryLock(..)) ||
                     call(* java.nio.channels.AsynchronousFileChannel.tryLock()));
@@ -196,7 +204,6 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.nio.file.spi.FileSystemProvider.newDirectoryStream(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider.newFileChannel(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider.newInputStream(..)) ||
-                    call(* java.nio.file.spi.FileSystemProvider.newOutputStream(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider.newWatchService(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider.readAttributes(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider.readSymbolicLink(..)));

@@ -1,170 +1,109 @@
 package de.tum.cit.ase.ares.api.policy;
 
-import javax.annotation.Nullable;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.SupervisedCode;
+
 import javax.annotation.Nonnull;
-import java.util.List;
+import javax.annotation.Nullable;
+import java.util.Objects;
 
 /**
- * Defines the security policy for supervised code execution.
+ * Immutable security policy for supervised code execution.
  *
- * @param regardingTheSupervisedCode the supervised code details, including its programming language configuration and permitted resource accesses.
+ * <p>Description: This record encapsulates all necessary details regarding supervised code, including its programming language
+ * configuration, permitted resource accesses, and additional metadata. By using the immutable record pattern, it guarantees
+ * thread-safety and reduces boilerplate. Input validation is performed in factory methods to ensure that every instance meets its invariants.
+ *
+ * <p>Design Rationale: Leveraging modern Java features such as records and nullability annotations enforces immutability and clarity.
+ * The use of a factory method for construction and in‑constructor validation ensures that only valid, consistent instances are created,
+ * aligning with best practices for secure and maintainable design. The clear separation into nested records reflects the Single Responsibility Principle.
+ *
+ * @since 2.0.0
+ * @author Markus Paulsen
+ * @since 2.0.0
+ * @param regardingTheSupervisedCode the details of the supervised code; must not be null.
  */
-@Nonnull public record SecurityPolicy(
-        @Nonnull SupervisedCode regardingTheSupervisedCode
-) {
+@SuppressWarnings("unused")
+public record SecurityPolicy(@Nonnull SupervisedCode regardingTheSupervisedCode) {
 
     /**
-     * Specifies details about the supervised code, including programming language configuration and permitted resource accesses.
+     * Constructs a SecurityPolicy instance with validated supervised code.
      *
-     * @param theFollowingProgrammingLanguageConfigurationIsUsed the programming language configuration used by the supervised code.
-     * @param theProgrammingLanguageUsesTheFollowingPackage      the package used by the programming language.
-     * @param theMainClassInsideThisPackageIs                    the main class inside the package.
-     * @param theFollowingClassesAreTestClasses                  the test classes for the supervised code (these are ignored in the analysis).
-     * @param theFollowingResourceAccessesArePermitted           the permitted resource accesses for the supervised code.
+     * @since 2.0.0
+     * @author Markus Paulsen
      */
-    @Nonnull public record SupervisedCode(
-            @Nonnull ProgrammingLanguageConfiguration theFollowingProgrammingLanguageConfigurationIsUsed,
-            @Nullable String theProgrammingLanguageUsesTheFollowingPackage,
-            @Nullable String theMainClassInsideThisPackageIs,
-            @Nonnull String[] theFollowingClassesAreTestClasses,
-            @Nonnull ResourceAccesses theFollowingResourceAccessesArePermitted
-    ) {
+    public SecurityPolicy {
+        Objects.requireNonNull(regardingTheSupervisedCode, "regardingTheSupervisedCode must not be null");
     }
 
     /**
-     * Supported programming language configurations for the policy.
-     */
-    @Nonnull public enum ProgrammingLanguageConfiguration {
-
-
-        /**
-         * Java using Maven build tool, ArchUnit for architecture tests and instrumentation-based aspect-oriented programming.
-         */
-        JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION,
-
-        /**
-         * Java using Maven build tool, ArchUnit for architecture tests and AspectJ for aspect-oriented programming.
-         */
-        JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ,
-
-        /**
-         * Java using Gradle build tool, ArchUnit for architecture tests and instrumentation-based aspect-oriented programming.
-         */
-        JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION,
-
-        /**
-         * Java using Gradle build tool, ArchUnit for architecture tests and AspectJ for aspect-oriented programming.
-         */
-        JAVA_USING_GRADLE_ARCHUNIT_AND_ASPECTJ,
-
-        /**
-         * Java using Maven build tool, Wala for architecture tests and instrumentation-based aspect-oriented programming.
-         */
-        JAVA_USING_MAVEN_WALA_AND_INSTRUMENTATION,
-
-        /**
-         * Java using Maven build tool, Wala for architecture tests and AspectJ for aspect-oriented programming.
-         */
-        JAVA_USING_MAVEN_WALA_AND_ASPECTJ,
-
-        /**
-         * Java using Gradle build tool, Wala for architecture tests and instrumentation-based aspect-oriented programming.
-         */
-        JAVA_USING_GRADLE_WALA_AND_INSTRUMENTATION,
-
-        /**
-         * Java using Gradle build tool, Wala for architecture tests and AspectJ for aspect-oriented programming.
-         */
-        JAVA_USING_GRADLE_WALA_AND_ASPECTJ;
-    }
-
-
-    /**
-     * Specifies the resource accesses that are permitted for the supervised code.
+     * Creates a restrictive security policy with all permissions denied by default.
      *
-     * @param regardingFileSystemInteractions permitted file system interactions.
-     * @param regardingNetworkConnections     permitted network connections.
-     * @param regardingCommandExecutions      permitted command executions.
-     * @param regardingThreadCreations        permitted thread creations.
-     * @param regardingPackageImports         permitted package imports.
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @param programmingLanguageConfiguration the programming language configuration for the restrictive policy.
+     * @return a new SecurityPolicy instance.
      */
-    @Nonnull public record ResourceAccesses(
-            @Nonnull List<FilePermission> regardingFileSystemInteractions,
-            @Nonnull List<NetworkPermission> regardingNetworkConnections,
-            @Nonnull List<CommandPermission> regardingCommandExecutions,
-            @Nonnull List<ThreadPermission> regardingThreadCreations,
-            @Nonnull List<PackagePermission> regardingPackageImports
-    ) {
+    @Nonnull
+    public static SecurityPolicy createRestrictive(@Nonnull ProgrammingLanguageConfiguration programmingLanguageConfiguration) {
+        return builder().regardingTheSupervisedCode(SupervisedCode.createRestrictive(Objects.requireNonNull(programmingLanguageConfiguration, "programmingLanguageConfiguration must not be null"))).build();
     }
 
     /**
-     * Specifies allowed file operations.
+     * Returns a builder for creating a SecurityPolicy instance.
      *
-     * @param readAllFiles               whether reading all files is permitted.
-     * @param overwriteAllFiles          whether overwriting all files is permitted.
-     * @param executeAllFiles            whether executing all files is permitted.
-     * @param deleteAllFiles             whether deleting all files is permitted.
-     * @param onThisPathAndAllPathsBelow the path and its sub-paths where these permissions apply.
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @return a new SecurityPolicy.Builder instance.
      */
-    @Nonnull public record FilePermission(
-            boolean readAllFiles,
-            boolean overwriteAllFiles,
-            boolean executeAllFiles,
-            boolean deleteAllFiles,
-            @Nonnull String onThisPathAndAllPathsBelow
-    ) {
+    @Nonnull
+    public static Builder builder() {
+        return new Builder();
     }
 
     /**
-     * Specifies allowed network operations.
+     * Builder for SecurityPolicy.
      *
-     * @param openConnections whether opening network connections is permitted.
-     * @param sendData        whether sending data is permitted.
-     * @param receiveData     whether receiving data is permitted.
-     * @param onTheHost       the host where these operations are permitted.
-     * @param onThePort       the port where these operations are permitted.
-     */
-    @Nonnull public record NetworkPermission(
-            boolean openConnections,
-            boolean sendData,
-            boolean receiveData,
-            @Nonnull String onTheHost,
-            int onThePort
-    ) {
-    }
-
-    /**
-     * Specifies allowed command execution operations.
+     * <p>Description: Provides a fluent API to construct a SecurityPolicy instance.
      *
-     * @param executeTheCommand  the command that is permitted to be executed.
-     * @param withTheseArguments the arguments that are permitted to be attached to the command when executing it. These arguments are predefined and cannot be altered by the user at runtime.
-     */
-    @Nonnull public record CommandPermission(
-            @Nonnull String executeTheCommand,
-            @Nonnull List<String> withTheseArguments
-    ) {
-    }
-
-    /**
-     * Specifies allowed thread creation operations.
+     * <p>Design Rationale: The builder pattern here allows for step-by-step configuration of a SecurityPolicy, ensuring immutability.
      *
-     * @param createTheFollowingNumberOfThreads the number of threads that are permitted to be created.
-     * @param ofThisClass                       the class of the threads that are permitted to be created.
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @version 2.0.0
      */
-    @Nonnull public record ThreadPermission(
-            int createTheFollowingNumberOfThreads,
-            @Nonnull String ofThisClass
-    ) {
-    }
+    public static class Builder {
 
-    /**
-     * Specifies allowed package imports.
-     *
-     * @param importTheFollowingPackage the package that is permitted to be imported.
-     */
-    @Nonnull public record PackagePermission(
-            @Nonnull String importTheFollowingPackage
-    ) {
-    }
+        /**
+         * The supervised code for the SecurityPolicy.
+         */
+        @Nullable
+        private SupervisedCode regardingTheSupervisedCode;
 
+        /**
+         * Sets the supervised code for the SecurityPolicy.
+         *
+         * @since 2.0.0
+         * @author Markus Paulsen
+         * @param regardingTheSupervisedCode the supervised code instance.
+         * @return the updated Builder.
+         */
+        @Nonnull
+        public Builder regardingTheSupervisedCode(@Nonnull SupervisedCode regardingTheSupervisedCode) {
+            this.regardingTheSupervisedCode = Objects.requireNonNull(regardingTheSupervisedCode, "regardingTheSupervisedCode must not be null");
+            return this;
+        }
+
+        /**
+         * Builds a new SecurityPolicy instance.
+         *
+         * @since 2.0.0
+         * @author Markus Paulsen
+         * @return a new SecurityPolicy instance.
+         */
+        @Nonnull
+        public SecurityPolicy build() {
+            return new SecurityPolicy(Objects.requireNonNull(regardingTheSupervisedCode, "regardingTheSupervisedCode must not be null"));
+        }
+    }
 }

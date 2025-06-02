@@ -11,8 +11,11 @@ import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 import org.junit.jupiter.api.extension.*;
+import org.junit.platform.commons.function.Try;
 
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceToolbox.localize;
+import javax.annotation.Nonnull;
+
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
 import static de.tum.cit.ase.ares.api.internal.TestGuardUtils.hasAnnotation;
 import static org.junit.platform.commons.support.AnnotationSupport.findAnnotation;
 //REMOVED: Import of ArtemisSecurityManager
@@ -30,26 +33,28 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
          * the policy file and run the security test cases.
          */
         if (hasAnnotation(testContext, Policy.class)) {
-            Optional<Policy> policyAnnotation = findAnnotation(testContext.testMethod(), Policy.class);
-            if (policyAnnotation.isPresent()) {
-                Path policyPath = JupiterSecurityExtension.testAndGetPolicyValue(policyAnnotation.get());
-                if (!policyAnnotation.get().withinPath().isBlank()) {
-                    Path withinPath = JupiterSecurityExtension.testAndGetPolicyWithinPath(policyAnnotation.get());
-                    new SecurityPolicyReaderAndDirector(policyPath, withinPath).executeSecurityTestCases();
-                } else {
-                    new SecurityPolicyReaderAndDirector(policyPath, Path.of("classes")).executeSecurityTestCases();
-                }
-            }
+            findAnnotation(testContext.testMethod(), Policy.class)
+                    .ifPresent(policy -> SecurityPolicyReaderAndDirector.builder()
+                            .securityPolicyFilePath(
+                                    !policy.value().isBlank()
+                                            ? JupiterSecurityExtension.testAndGetPolicyValue(policy)
+                                            : null
+                            )
+                            .projectFolderPath(
+                                    !policy.withinPath().isBlank()
+                                            ? JupiterSecurityExtension.testAndGetPolicyWithinPath(policy)
+                                            : Path.of("classes"))
+                            .build()
+                            .createTestCases()
+                            .executeTestCases());
         } else {
-            try {
-                // We have to reset both the settings classes in the runtime and the bootstrap class loader to be able to run multiple tests in the same JVM instance.
-                Class<?> javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings");
-                resetSettings(javaSecurityTestCaseSettingsClass);
-                javaSecurityTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings", true, null);
-                resetSettings(javaSecurityTestCaseSettingsClass);
-            } catch (ClassNotFoundException e) {
-                throw new SecurityException(localize("security.settings.error"), e);
-            }
+            // We have to reset both the settings classes in the runtime and the bootstrap class loader to be able to run multiple tests in the same JVM instance.
+            String className = "de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings";
+            Try.call(() -> Class.forName(className, true, Thread.currentThread().getContextClassLoader()))
+                    .ifSuccess(JupiterSecurityExtension::resetSettings);
+
+            Try.call(() -> Class.forName(className, true, null))
+                    .ifSuccess(JupiterSecurityExtension::resetSettings);
         }
         //REMOVED: Installing of ArtemisSecurityManager
         Throwable failure = null;
@@ -71,9 +76,9 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
         throw failure;
     }
 
-    public static void resetSettings(Class<?> javaSecurityTestCaseSettingsClass) {
+    public static void resetSettings(Class<?> javaTestCaseSettingsClass) {
         try {
-            Method resetMethod = javaSecurityTestCaseSettingsClass.getDeclaredMethod("reset");
+            Method resetMethod = javaTestCaseSettingsClass.getDeclaredMethod("reset");
             resetMethod.setAccessible(true);
             resetMethod.invoke(null);
             resetMethod.setAccessible(false);

@@ -1,27 +1,30 @@
-package %s.api.aop.java.instrumentation.advice;
+package %s.ares.api.aop.java.instrumentation.advice;
+
+import net.bytebuddy.asm.Advice;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 
-import static net.bytebuddy.asm.Advice.*;
+import static %s.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
+import static net.bytebuddy.asm.Advice.OnMethodEnter;
 
 /**
- * This class provides advice for the execution of methods annotated with the @ExecutePath annotation.
+ * This class provides advice for the execution of methods reading files.
  * It is responsible for verifying whether the method execution is allowed based on the file system
  * security policies defined within the application.
  * <p>
  * If an execution attempt violates these policies, a SecurityException is thrown, preventing
- * unauthorized file executions. The class interacts with the JavaInstrumentationAdviceToolbox to
+ * unauthorized file readings. The class interacts with the JavaInstrumentationAdviceFileSystemToolbox to
  * perform these security checks.
  */
 public class JavaInstrumentationReadPathMethodAdvice {
     /**
-     * This method is called when a method annotated with the @ExecutePath annotation is entered.
+     * This method is called when a method reading files is entered.
      * It performs security checks to determine whether the method execution is allowed according
      * to file system security policies. If the method execution is not permitted, a SecurityException
      * is thrown, blocking the execution.
      * <p>
-     * The checkFileSystemInteraction method from JavaInstrumentationAdviceToolbox is called to
+     * The checkFileSystemInteraction method from JavaInstrumentationAdviceFileSystemToolbox is called to
      * perform these checks, ensuring that both the method's parameters and the instance fields
      * adhere to the security restrictions.
      *
@@ -34,11 +37,11 @@ public class JavaInstrumentationReadPathMethodAdvice {
      */
     @OnMethodEnter
     public static void onEnter(
-            @Origin("#t") String declaringTypeName,
-            @Origin("#m") String methodName,
-            @Origin("#s") String methodSignature,
-            @This(optional = true) Object instance,
-            @AllArguments Object... parameters
+            @Advice.Origin("#t") String declaringTypeName,
+            @Advice.Origin("#m") String methodName,
+            @Advice.Origin("#s") String methodSignature,
+            @Advice.This(optional = true) Object instance,
+            @Advice.AllArguments Object... parameters
     ) {
 
         //<editor-fold desc="Attributes">
@@ -50,28 +53,22 @@ public class JavaInstrumentationReadPathMethodAdvice {
                     fields[i].setAccessible(true);
                     attributes[i] = fields[i].get(instance);
                 } catch (InaccessibleObjectException e) {
-                    throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Unable to make field '" + fields[i].getName() + "' in class '"
-                            + instance.getClass().getName() + "' accessible due to JVM security restrictions.", e);
+                    throw new SecurityException(localize("security.instrumentation.inaccessible.object.exception", fields[i].getName(), instance.getClass().getName()), e);
                 } catch (IllegalAccessException e) {
-                    throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Access denied to field '" + fields[i].getName()
-                            + "' in class '" + instance.getClass().getName() + "'. Field access is not permitted.", e);
+                    throw new SecurityException(localize("security.instrumentation.illegal.access.exception", fields[i].getName(), instance.getClass().getName()), e);
                 } catch (IllegalArgumentException e) {
-                    throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Field '" + fields[i].getName() + "' in class '"
-                            + fields[i].getDeclaringClass().getName() + "' cannot be accessed because the provided instance is of type '"
-                            + instance.getClass().getName() + "', which is not the declaring class or interface.", e);
+                    throw new SecurityException(localize("security.instrumentation.illegal.argument.exception", fields[i].getName(), fields[i].getDeclaringClass().getName(), instance.getClass().getName()), e);
                 } catch (NullPointerException e) {
-                    throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): The field '" + fields[i].getName()
-                            + "' in class '" + instance.getClass().getName() + "' is unexpectedly null. This may indicate a corrupt or improperly initialized object.", e);
+                    throw new SecurityException(localize("security.instrumentation.null.pointer.exception", fields[i].getName(), instance.getClass().getName()), e);
                 } catch (ExceptionInInitializerError e) {
-                    throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): Initialization of the field '" + fields[i].getName()
-                            + "' in class '" + instance.getClass().getName() + "' failed due to an error during static initialization or field setup.", e);
+                    throw new SecurityException(localize("security.instrumentation.exception.in-initializer.error", fields[i].getName(), instance.getClass().getName()), e);
                 }
             }
         }
         //</editor-fold>
 
         //<editor-fold desc="Check">
-        JavaInstrumentationAdviceToolbox.checkFileSystemInteraction(
+        JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction(
                 "read",
                 declaringTypeName,
                 methodName,

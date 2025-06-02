@@ -1,68 +1,226 @@
 package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
 
-import org.aspectj.lang.JoinPoint;
-
+//<editor-fold desc="imports">
 import java.io.File;
+
+import java.io.IOException;
+import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 
-import static de.tum.cit.ase.ares.api.localization.Messages.localized;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
+
+import org.aspectj.lang.JoinPoint;
+//</editor-fold>
 
 public aspect JavaAspectJFileSystemAdviceDefinitions {
 
-    //<editor-fold desc="Tool methods">
+    //<editor-fold desc="Constants">
     /**
-     * Get the value of a field from the JavaSecurityTestCaseSettings class.
-     * This method retrieves the value of a field from the JavaSecurityTestCaseSettings class.
-     * The field is specified by its name, and the value is returned as an Object.
+     * List of call stack classes to ignore during file system checks.
      *
-     * @param fieldName The name of the field to retrieve from the JavaSecurityTestCaseSettings class.
-     * @return The value of the specified field.
-     * @throws SecurityException If the field cannot be accessed or does not exist.
+     * <p>Description: Contains class name prefixes that should be skipped when analyzing the call stack
+     * to avoid false positives from test harness or localization utilities.
      */
-    private static Object getValueFromSettings(String fieldName) {
+    @Nonnull
+    private static final List<String> FILE_SYSTEM_IGNORE_CALLSTACK = List.of(
+            "java.lang.ClassLoader"
+    );
+
+    /**
+     * Map of methods with attribute index exceptions for file system ignore logic.
+     *
+     * <p>Description: Specifies for certain methods which attribute index should be exempted
+     * from ignore rules during file system checks.
+     */
+    @Nonnull
+    private static final Map<String, IgnoreValues> FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT = Map.ofEntries(
+            Map.entry("java.io.File.delete", IgnoreValues.allExcept(1)),
+            Map.entry("java.io.File.deleteOnExit", IgnoreValues.allExcept(1))
+    );
+
+    /**
+     * Map of methods with parameter index exceptions for file system ignore logic.
+     *
+     * <p>Description: Specifies for certain methods which parameter index should be exempted
+     * from ignore rules during file system checks.
+     */
+    @Nonnull
+    private static final Map<String, IgnoreValues> FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT = Map.ofEntries();
+    //</editor-fold>
+
+    //<editor-fold desc="Tool methods">
+
+    /**
+     * Retrieves the value of a specified static field from the settings class.
+     *
+     * <p>Description: Uses reflection to access a static field in JavaAOPTestCaseSettings,
+     * allowing retrieval of security-related configuration values for instrumentation and tests.
+     *
+     * @param fieldName the name of the field to retrieve
+     * @param <T> the type of the field's value
+     * @return the value of the specified field
+     * @since 2.0.0
+     * @author Markus Paulsen
+     */
+    @SuppressWarnings("unchecked")
+    @Nullable
+    private static <T> T getValueFromSettings(@Nonnull String fieldName) {
         try {
-            // Take standard class loader as class loader in order to get the JavaSecurityTestCaseSettings class at compile time for aspectj
-            Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaSecurityTestCaseSettings");
-            Field field = adviceSettingsClass.getDeclaredField(fieldName);
+            // Take standard class loader as class loader in order to get the JavaAOPTestCaseSettings class at compile time for aspectj
+            @Nonnull Class<?> adviceSettingsClass = Objects.requireNonNull(Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings"), "adviceSettingsClass must not be null");
+            @Nonnull Field field = Objects.requireNonNull(adviceSettingsClass.getDeclaredField(Objects.requireNonNull(fieldName, "fieldName must not be null")), "field must not be null");
             field.setAccessible(true);
-            Object value = field.get(null);
+            @Nullable T value = (T) field.get(null);
             field.setAccessible(false);
             return value;
         } catch (LinkageError e) {
-            throw new SecurityException(localized("security.advice.linkage.exception", fieldName), e);
+            throw new SecurityException(localize("security.advice.linkage.exception", fieldName), e);
         } catch (ClassNotFoundException e) {
-            throw new SecurityException(localized("security.advice.class.not.found.exception", fieldName), e);
+            throw new SecurityException(localize("security.advice.class.not.found.exception", fieldName), e);
         } catch (NoSuchFieldException e) {
-            throw new SecurityException(localized("security.advice.no.such.field.exception", fieldName), e);
+            throw new SecurityException(localize("security.advice.no.such.field.exception", fieldName), e);
         } catch (NullPointerException e) {
-            throw new SecurityException(localized("security.advice.null.pointer.exception", fieldName), e);
-        } catch (IllegalAccessException e) {
-            throw new SecurityException(localized("security.advice.illegal.access.exception", fieldName), e);
+            throw new SecurityException(localize("security.advice.null.pointer.exception", fieldName), e);
         } catch (InaccessibleObjectException e) {
-            throw new SecurityException(localized("security.advice.inaccessible.object.exception", fieldName), e);
+            throw new SecurityException(localize("security.advice.inaccessible.object.exception", fieldName), e);
+        } catch (IllegalAccessException e) {
+            throw new SecurityException(localize("security.advice.illegal.access.exception", fieldName), e);
+        } catch (IllegalArgumentException e) {
+            throw new SecurityException(localize("security.advice.illegal.argument.exception", fieldName), e);
         }
     }
-    // </editor-fold>
+
+    /**
+     * Sets the value of a specified static field in the settings class.
+     *
+     * <p>Description: Uses reflection to modify a static field in JavaAOPTestCaseSettings,
+     * allowing updates to security-related configuration values for instrumentation and tests.
+     *
+     * @param fieldName the name of the field to modify
+     * @param newValue the new value to assign to the field
+     * @param <T> the type of the field's value
+     * @since 2.0.0
+     * @author Markus Paulsen
+     */
+    private static <T> void setValueToSettings(@Nonnull String fieldName, @Nullable T newValue) {
+        try {
+            // Take standard class loader as class loader in order to get the JavaAOPTestCaseSettings class at compile time for aspectj
+            @Nonnull Class<?> adviceSettingsClass =  Objects.requireNonNull(Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings"), "adviceSettingsClass must not be null");
+            @Nonnull Field field = Objects.requireNonNull(adviceSettingsClass.getDeclaredField(Objects.requireNonNull(fieldName, "fieldName must not be null")), "field must not be null");
+            field.setAccessible(true);
+            field.set(null, newValue);
+            field.setAccessible(false);
+        } catch (LinkageError e) {
+            throw new SecurityException(localize("security.advice.linkage.exception", fieldName), e);
+        } catch (ClassNotFoundException e) {
+            throw new SecurityException(localize("security.advice.class.not.found.exception", fieldName), e);
+        } catch (NoSuchFieldException e) {
+            throw new SecurityException(localize("security.advice.no.such.field.exception", fieldName), e);
+        } catch (NullPointerException e) {
+            throw new SecurityException(localize("security.advice.null.pointer.exception", fieldName), e);
+        } catch (InaccessibleObjectException e) {
+            throw new SecurityException(localize("security.advice.inaccessible.object.exception", fieldName), e);
+        } catch (IllegalAccessException e) {
+            throw new SecurityException(localize("security.advice.illegal.access.exception", fieldName), e);
+        } catch (IllegalArgumentException e) {
+            throw new SecurityException(localize("security.advice.illegal.argument.exception", fieldName), e);
+        }
+    }
+
+    /**
+     * Decrements the value at a specified index in an integer array setting.
+     *
+     * <p>Description: Retrieves an integer array from settings, decrements the value
+     * at the given position, and updates the array back to the settings class.
+     *
+     * @param settingsArray the name of the array field in settings
+     * @param position the index position of the value to decrement
+     * @since 2.0.0
+     * @author Markus Paulsen
+     */
+    private static void decrementSettingsArrayValue(@Nonnull String settingsArray, int position) {
+        @Nullable int[] array = getValueFromSettings(settingsArray);
+        if (array != null && position >= 0 && position < array.length) {
+            @Nonnull int[] clone = array.clone();
+            clone[position]--;
+            setValueToSettings(settingsArray, clone);
+        }
+    }
+
+    /**
+     * Retrieves a localized message based on a key and optional arguments.
+     *
+     * <p>Description: Attempts to fetch a localized string from the Messages class using reflection.
+     * Falls back to the key if localization fails.
+     *
+     * @param key the localization key identifying the message
+     * @param args optional arguments to format the localized message
+     * @return the localized message string, or the key itself if localization fails
+     * @since 2.0.0
+     * @author Markus Paulsen
+     */
+    @Nonnull
+    public static String localize(@Nonnull String key, @Nullable Object... args) {
+        try {
+            @Nonnull Class<?> messagesClass = Class.forName(
+                    "de.tum.cit.ase.ares.api.localization.Messages",
+                    true,
+                    Thread.currentThread().getContextClassLoader()
+            );
+            @Nonnull Method localized = messagesClass.getDeclaredMethod(
+                    "localized", String.class, Object[].class
+            );
+            @Nullable Object result = localized.invoke(null, key, args);
+            if (result instanceof String str) {
+                return str;
+            } else {
+                throw new IllegalStateException("Method does not return a String");
+            }
+        } catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException |
+                 IllegalAccessException e) {
+            // Fallback: Return the key if localization fails
+            return key;
+        }
+    }
+    //</editor-fold>
 
     //<editor-fold desc="File system methods">
 
     //<editor-fold desc="Callstack criteria methods">
+
     /**
-     * Check if the provided call stack element is allowed.
-     * This method verifies whether the class in the call stack element belongs to the list of allowed
-     * classes, ensuring that only authorized classes are permitted to perform certain file system operations.
+     * Determines if a call stack element is in the allow list.
      *
-     * @param allowedClasses The list of classes allowed to be present in the call stack.
-     * @param elementToCheck The call stack element to check.
-     * @return True if the call stack element is allowed, false otherwise.
+     * <p>Description: Checks whether the class name of the provided stack trace element
+     * starts with any of the allowed class name prefixes.
+     *
+     * @param allowedClasses the array of allowed class name prefixes
+     * @param elementToCheck the stack trace element to check
+     * @return true if the element is allowed, false otherwise
+     * @since 2.0.0
+     * @author Markus Paulsen
      */
-    private static boolean checkIfCallstackElementIsAllowed(String[] allowedClasses, StackTraceElement elementToCheck) {
-        for (String allowedClass : allowedClasses) {
-            if (elementToCheck.getClassName().startsWith(allowedClass)) {
+    private static boolean checkIfCallstackElementIsAllowed(@Nonnull String[] allowedClasses, @Nonnull StackTraceElement elementToCheck) {
+        String className = elementToCheck.getClassName();
+        for (@Nonnull String allowedClass : allowedClasses) {
+            if (className.startsWith(allowedClass)) {
                 return true;
             }
         }
@@ -70,28 +228,35 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
     }
 
     /**
-     * Check if the call stack violates the specified criteria.
-     * This method examines the current call stack to determine if any element belongs to a restricted package.
-     * If such an element is found, and it is not in the allowed classes list, the violating call stack element
-     * is returned.
+     * Checks the current call stack for violations of restricted packages.
      *
-     * @param restrictedPackage The package that is restricted in the call stack.
-     * @param allowedClasses The list of classes that are allowed to be present in the call stack.
-     * @param readingMethod The method that is currently being executed.
-     * @return The call stack element that violates the criteria, or null if no violation occurred.
+     * <p>Description: Examines the stack trace to find the first element whose class name
+     * starts with the restricted package but is not in the allowed classes list,
+     * skipping any classes in the ignore list.
+     *
+     * @param restrictedPackage the prefix of restricted package names
+     * @param allowedClasses the array of allowed class name prefixes
+     * @return the fully qualified method name that violates criteria, or null if none
+     * @since 2.0.0
+     * @author Markus Paulsen
      */
-    private static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses, String readingMethod) {
+    @Nullable
+    private static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses) {
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-        for (StackTraceElement element : stackTrace) {
-            if (element.getClassName().startsWith(restrictedPackage)) {
-                // Skip the OutputTester and InputTester classes, as they intercept the output and input for System.out and System.in
-                // Therefore, they cause false positives.
-                if (element.toString().equals("de.tum.cit.ase.ares.api.io.OutputTester") || element.toString().equals("de.tum.cit.ase.ares.api.io.InputTester")) {
-                    return null;
+        for (@Nonnull StackTraceElement element : stackTrace) {
+            String className = element.getClassName();
+            boolean ignoreFound = false;
+            for (@Nonnull String allowedClass : FILE_SYSTEM_IGNORE_CALLSTACK) {
+                if (className.startsWith(allowedClass)) {
+                    ignoreFound = true;
+                    break;
                 }
-                if (!checkIfCallstackElementIsAllowed(allowedClasses, element)) {
-                    return element.getClassName();
-                }
+            }
+            if (ignoreFound) {
+                break;
+            }
+            if (className.startsWith(restrictedPackage) && !checkIfCallstackElementIsAllowed(allowedClasses, element)) {
+                return className + "." + element.getMethodName();
             }
         }
         return null;
@@ -100,128 +265,288 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
 
     //<editor-fold desc="Variable criteria methods">
 
-    /**
-     * Transform a variable value into a normalized absolute path.
-     * This method converts the provided variable (e.g., Path, String, or File) into an absolute
-     * normalized path. This path is used to check whether the file system interaction is permitted
-     * according to security policies.
-     *
-     * @param variableValue The variable value to transform into a path. Supported types are Path, String, or File.
-     * @return The normalized absolute path of the variable value.
-     * @throws InvalidPathException If the variable cannot be transformed into a valid path.
-     */
-    private static Path variableToPath(Object variableValue) {
-        if (variableValue == null) {
-            throw new InvalidPathException("null", localized("security.advice.transform.path.exception"));
-        } else if (variableValue instanceof Path) {
-            Path path = (Path) variableValue;
-            try {
-                return path.normalize().toAbsolutePath();
-            } catch (InvalidPathException e) {
-                throw new InvalidPathException(path.toString(), localized("security.advice.transform.path.exception"));
-            }
-        } else if (variableValue instanceof String) {
-            String string = (String) variableValue;
-            try {
-                return Path.of(string).normalize().toAbsolutePath();
-            } catch (InvalidPathException e) {
-                throw new InvalidPathException(string, localized("security.advice.transform.path.exception"));
-            }
-        } else if (variableValue instanceof File) {
-            File file = (File) variableValue;
-            try {
-                return Path.of(file.toURI()).normalize().toAbsolutePath();
-            } catch (InvalidPathException e) {
-                throw new InvalidPathException(file.toString(), localized("security.advice.transform.path.exception"));
-            }
-        } else {
-            throw new InvalidPathException(variableValue.toString(), localized("security.advice.transform.path.exception"));
-        }
-    }
+    //<editor-fold desc="Filter variables">
 
     /**
-     * Check if the provided path is allowed according to security policies.
-     * This method compares the given path with the list of allowed paths to determine whether the path
-     * is permitted for access or modification based on the defined security rules.
+     * Filters variables based on the IgnoreValues criteria.
      *
-     * @param allowedPaths The list of allowed paths that can be accessed or modified.
-     * @param pathToCheck The path that needs to be checked against the allowed paths.
-     * @return True if the path is allowed, false otherwise.
+     * <p>Description: Returns a new array of variables, excluding those that match the ignore criteria.
+     * If all variables are ignored, returns an empty array. If all except one variable is ignored,
+     * returns an array with only that variable.
+     *
+     * @param variables the original array of variables
+     * @param ignoreVariables criteria determining which variables to skip
+     * @return a filtered array of variables
+     * @since 2.0.0
+     * @author Markus Paulsen
      */
-    private static boolean checkIfPathIsAllowed(String[] allowedPaths, Path pathToCheck) {
-        Path absoluteNormalisedPathToCheck = pathToCheck.toAbsolutePath().normalize();
-        for (String allowedPath : allowedPaths) {
-            if (absoluteNormalisedPathToCheck.startsWith( variableToPath(allowedPath))) {
-                return true;
-            }
+    @Nonnull
+    private static Object[] filterVariables(@Nonnull Object[] variables, @Nonnull IgnoreValues ignoreVariables) {
+        @Nonnull ArrayList<Object> newVariables = new ArrayList<>(Arrays.asList(variables.clone()));
+        switch (ignoreVariables.getType()) {
+            // No variable is ignored
+            case NONE:
+                break;
+            // All variables are ignored
+            case ALL:
+                newVariables.clear();
+                break;
+            // All variables except the one at the given index are ignored
+            case ALL_EXCEPT:
+                @Nonnull Object toKeep = newVariables.get(ignoreVariables.getIndex());
+                newVariables.clear();
+                newVariables.add(toKeep);
+                break;
+            case NONE_EXCEPT:
+                newVariables.remove(ignoreVariables.getIndex());
+                break;
         }
-        return false;
+        return newVariables.toArray();
     }
+    //</editor-fold>
+
+    //<editor-fold desc="Forbidden handling">
 
     /**
-     * Check if the variable criteria is violated.
+     * Checks if a Path is outside of the allowed paths whitelist.
      *
-     * @param variables     The variables to check.
-     * @param allowedPaths  The paths that are allowed to be accessed.
-     * @return The path that violates the criteria, null if no violation occurred.
+     * <p>Description: Returns true if allowedPaths not null or if the given path does not match one of the allowedPatterns.
+     *
+     * @since 2.0.0
+     * @author Markus
+     * @param path         the Path to test
+     * @param allowedPaths whitelist of allowed path strings
+     * @return true if path is forbidden; false otherwise
      */
-    private static String checkIfVariableCriteriaIsViolated(Object[] variables, String[] allowedPaths) {
-        for (Object variable : variables) {
-            try {
-                Path resultingPath = variableToPath(variable);
-                if (!checkIfPathIsAllowed(allowedPaths, resultingPath)) {
-                    return resultingPath.toString();
+    private static boolean checkIfPathIsForbidden(@Nullable Path path, @Nullable String[] allowedPaths) {
+        if(path == null) {
+            return false;
+        }
+        if(allowedPaths == null) {
+            return true;
+        }
+        try {
+            @Nonnull Path realPath = path.toRealPath(LinkOption.NOFOLLOW_LINKS);
+            for (@Nonnull String allowed : allowedPaths) {
+                try {
+                    Path allowedPath = variableToPath(allowed);
+                    if (allowedPath != null && realPath.startsWith(allowedPath)) {
+                        return false;
+                    }
+                } catch (InvalidPathException ignored) {
                 }
-            } catch (InvalidPathException ignored) {
+            }
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Conversion handling">
+
+    /**
+     * Transforms variable values into a normalized absolute path.
+     *
+     * <p>Description: Converts the provided variable (Path, String, or File)
+     * into an absolute normalized Path for security checks, validating existence.
+     *
+     * @param variableValue the variable to transform into a Path
+     * @return the normalized absolute Path
+     * @throws InvalidPathException if transformation fails
+     * @since 2.0.0
+     * @author Markus Paulsen
+     */
+    @Nullable
+    private static Path variableToPath(@Nullable Object variableValue) {
+        try {
+            if (variableValue == null) {
+                return null;
+            } else if (variableValue instanceof Path) {
+                return ((Path) variableValue).normalize().toAbsolutePath();
+            } else if (variableValue instanceof String) {
+                Path absolutePath = Path.of((String) variableValue).normalize().toAbsolutePath();
+                if (Files.exists(absolutePath)) {
+                    return absolutePath;
+                } else {
+                    return null;
+                }
+            } else if (variableValue instanceof File) {
+                return Path.of(((File) variableValue).toURI()).normalize().toAbsolutePath();
+            } else {
+                return null;
+            }
+        } catch (InvalidPathException e) {
+            return null;
+        }
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Violation analysis">
+    /**
+     * Analyzes a variable to determine if it violates allowed paths.
+     *
+     * <p>Description: Recursively checks if the variable or its elements (if an array or List)
+     * are in violation of the allowed paths. Returns true if any element is forbidden.
+     *
+     * @since 2.0.0
+     * @author Markus
+     * @param variable      the variable to analyze
+     * @param allowedPaths  whitelist of allowed path strings; if null, all paths are considered allowed
+     * @return true if a violation is found, false otherwise
+     */
+    private static boolean analyseViolation(@Nullable Object observedVariable, @Nullable String[] allowedPaths) {
+        if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
+            return false;
+        } else if (observedVariable.getClass().isArray()) {
+            for (int i = 0; i < Array.getLength(observedVariable); i++) {
+                Object element = Array.get(observedVariable, i);
+                if (analyseViolation(element, allowedPaths)) {
+                    return true;
+                }
+            }
+            return false;
+        } else if (observedVariable instanceof List<?>) {
+            for (Object element : (List<?>) observedVariable) {
+                if (analyseViolation(element, allowedPaths)) {
+                    return true;
+                }
+            }
+            return false;
+        } else {
+            Path observedPath = variableToPath(observedVariable);
+            return checkIfPathIsForbidden(observedPath, allowedPaths);
+        }
+    }
+
+    /**
+     * Extracts and returns the first violating path string from an array or list variable.
+     *
+     * <p>Description: Iterates through the variable’s elements (array or List), converts each to a Path if possible,
+     * and returns the string of the first path that does not satisfy the allowedPaths whitelist.
+     *
+     * @since 2.0.0
+     * @author Markus
+     * @param observedVariable     the array or List to inspect
+     * @param allowedPaths whitelist of allowed path strings
+     * @return the first violating path as a String, or null if none found
+     */
+    @Nullable
+    private static String extractViolationPath(@Nullable Object observedVariable, @Nullable String[] allowedPaths) {
+        if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
+            return null;
+        } else if (observedVariable.getClass().isArray()) {
+            for (int i = 0; i < Array.getLength(observedVariable); i++) {
+                Object element = Array.get(observedVariable, i);
+                String violationPath = extractViolationPath(element, allowedPaths);
+                if (violationPath != null) {
+                    return violationPath;
+                }
+            }
+            return null;
+        } else if (observedVariable instanceof List<?>) {
+            for (Object element : (List<?>) observedVariable) {
+                String violationPath = extractViolationPath(element, allowedPaths);
+                if (violationPath != null) {
+                    return violationPath;
+                }
+            }
+            return null;
+        } else {
+            Path observedPath = variableToPath(observedVariable);
+            if (checkIfPathIsForbidden(observedPath, allowedPaths)) {
+                return observedPath.toString();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Checks an array of observedVariables against allowed file system paths.
+     *
+     * <p>Description: Iterates through the filtered observedVariables (excluding those matching ignoreVariables). For each
+     * non-null variable, if it is an array or a List (excluding byte[]/Byte[]), each element is converted to a Path
+     * and tested against allowedPaths. Otherwise, the variable itself is converted to a Path and tested. The first
+     * violating path found is returned.
+     *
+     * @since 2.0.0
+     * @author Markus
+     * @param observedVariables      array of values to validate
+     * @param allowedPaths   whitelist of allowed path strings; if null, all paths are considered allowed
+     * @param ignoreVariables criteria determining which observedVariables to skip
+     * @return the first path (as String) that is not allowed, or null if none violate
+     */
+    private static String checkIfVariableCriteriaIsViolated(
+            @Nonnull Object[] observedVariables,
+            @Nullable String[] allowedPaths,
+            @Nonnull IgnoreValues ignoreVariables
+    ) {
+        for (@Nullable Object observedVariable : filterVariables(observedVariables, ignoreVariables)) {
+            if (analyseViolation(observedVariable, allowedPaths)) {
+                return extractViolationPath(observedVariable, allowedPaths);
             }
         }
         return null;
     }
     //</editor-fold>
 
+    //</editor-fold>
+
     //<editor-fold desc="Check methods">
 
     /**
-     * Check if the file system interaction is allowed according to security policies.
-     * This method verifies that the specified file system action (read, write, execute, delete) complies
-     * with the allowed paths and call stack criteria. If any violation is detected, a SecurityException is thrown.
-     * It checks if the action is restricted based on the method call, attributes, and parameters. If a method
-     * violates the file system security rules, the action is blocked.
+     * Validates a file system interaction against security policies.
      *
-     * @param action The file system action being performed (e.g., read, write, execute, delete).
-     * @param thisJoinPoint The current join point of the method being executed.
-     * @throws SecurityException If the file system interaction is found to be unauthorized.
+     * <p>Description: Verifies that the specified action (read, overwrite, execute, delete)
+     * complies with allowed paths and call stack criteria. Throws SecurityException
+     * if a policy violation is detected.
+     *
+     * @param action the file system action being performed
+     * @param thisJoinPoint the join point of the method being executed
+     * @throws SecurityException if unauthorized access is detected
+     * @since 2.0.0
+     * @author Markus Paulsen
      */
-    private void checkFileSystemInteraction(
-            String action,
-            JoinPoint thisJoinPoint
+    public void checkFileSystemInteraction(
+            @Nonnull String action,
+            @Nonnull JoinPoint thisJoinPoint
     ) {
-        String aopMode = (String) getValueFromSettings("aopMode");
-        if(aopMode == null || !aopMode.equals("ASPECTJ")) {
+        //<editor-fold desc="Get information from settings">
+        @Nullable final String aopMode = getValueFromSettings("aopMode");
+        if (aopMode == null || !aopMode.equals("ASPECTJ")) {
             return;
         }
-        String restrictedPackage = (String) getValueFromSettings("restrictedPackage");
-        String[] allowedClasses = (String[]) getValueFromSettings("allowedListedClasses");
-        String[] allowedPaths = (String[]) getValueFromSettings(
+        @Nullable final String restrictedPackage = getValueFromSettings("restrictedPackage");
+        @Nullable final String[] allowedClasses = getValueFromSettings("allowedListedClasses");
+        @Nullable final String[] allowedPaths = getValueFromSettings(
                 switch (action) {
                     case "read" -> "pathsAllowedToBeRead";
                     case "overwrite" -> "pathsAllowedToBeOverwritten";
                     case "execute" -> "pathsAllowedToBeExecuted";
                     case "delete" -> "pathsAllowedToBeDeleted";
-                    default -> throw new IllegalArgumentException("Unknown action: " + action);
+                    default -> throw new SecurityException("Unknown action: " + action);
                 }
         );
-        Object[] parameters = thisJoinPoint.getArgs();
-        final String fullMethodSignature = thisJoinPoint.getSignature().toLongString();
-        String illegallyReadingMethod = allowedPaths == null ? null : checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses, thisJoinPoint.getSourceLocation().getWithinType().getName());
-        if (illegallyReadingMethod != null) {
-            String illegallyReadPath = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, allowedPaths);
-            if (illegallyReadPath != null) {
-                throw new SecurityException(localized("security.advice.illegal.method.execution", illegallyReadingMethod, action, illegallyReadPath, fullMethodSignature));
-            }
+        //</editor-fold>
+        //<editor-fold desc="Get information from attributes">
+        @Nonnull Object[] parameters = thisJoinPoint.getArgs();
+        @Nonnull final String fullMethodSignature = thisJoinPoint.getSignature().toLongString();
+        //</editor-fold>
+        //<editor-fold desc="Check callstack">
+        @Nullable String fileSystemMethodToCheck = (restrictedPackage == null) ? null : checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses);
+        if (fileSystemMethodToCheck == null) {
+            return;
         }
+        //</editor-fold>
+        //<editor-fold desc="Check parameters">
+        @Nullable String pathIllegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, allowedPaths, FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(fullMethodSignature, IgnoreValues.NONE));
+        if (pathIllegallyInteractedThroughParameter != null) {
+            throw new SecurityException(localize("security.advice.illegal.method.execution", fileSystemMethodToCheck, action, pathIllegallyInteractedThroughParameter, fullMethodSignature));
+        }
+        //</editor-fold>
     }
     //</editor-fold>
+
     //</editor-fold>
 
     before():

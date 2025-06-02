@@ -167,3 +167,4 @@ org/aspectj.*
 com/fasterxml/jackson.*
 net/bytebuddy.*
 com/ibm/wala.*
+java/util/concurrent/locks.*

@@ -3,12 +3,16 @@ package de.tum.cit.ase.ares.api.architecture.java.wala;
 import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.util.collections.HashMapFactory;
 import com.ibm.wala.util.collections.Iterator2Iterable;
-import com.ibm.wala.util.collections.NonNullSingletonIterator;
 import com.ibm.wala.util.graph.Graph;
 
-import java.awt.*;
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Predicate;
 
 import de.tum.cit.ase.ares.api.architecture.java.FileHandlerConstants;
@@ -16,212 +20,168 @@ import de.tum.cit.ase.ares.api.util.FileTools;
 import org.jspecify.annotations.Nullable;
 
 /**
- * This class searches depth-first search for node that matches some criteria. If found, it reports
- * a path to the first node found.
+ * Utility to traverse a call graph using depth-first search.
  *
- * <p>This class follows the outNodes of the graph nodes to define the graph, but this behavior can
- * be changed by overriding the getConnected method.
+ * <p>Description: Explores nodes in a directed CGNode graph by following successor edges until a target filter matches, returning the path found.
  *
- * @see com.ibm.wala.util.graph.traverse.DFSPathFinder
+ * <p>Design Rationale: Enables precise path discovery for security checks by walking down call graph branches, avoiding broad breadth-first scans.
+ *
+ * @since 2.0.0
+ * @author Sarp Sahinalp
+ * @version 2.0.0
  */
-public class CustomDFSPathFinder extends ArrayList<CGNode> {
-    /**
-     * The graph to search
-     */
-    protected final Graph<CGNode> G;
+public class CustomDFSPathFinder {
 
     /**
-     * The Filter which defines the target set of nodes to find
+     * Graph to search through.
+     *
+     * <p>Description: Directed graph whose nodes are CGNode instances and edges represent call relationships.
      */
-    private final Predicate<CGNode> filter;
+    private final Graph<CGNode> G;
 
     /**
-     * an enumeration of all nodes to search from
+     * Filter defining target nodes.
+     *
+     * <p>Description: Predicate that returns true for nodes we aim to find in the graph.
+     */
+    private final Predicate<CGNode> P;
+
+    /**
+     * Entry points for search.
+     *
+     * <p>Description: Iterator over root nodes from which depth-first traversal begins.
      */
     private final Iterator<CGNode> roots;
 
     /**
-     * An iterator of child nodes for each node being searched
+     * Pending successors for each node.
+     *
+     * <p>Description: Maps visited nodes to their unvisited child iterator for traversal order.
      */
-    protected final Map<Object, Iterator<? extends CGNode>> pendingChildren = HashMapFactory.make(25);
+    private final Map<CGNode, Iterator<? extends CGNode>> pendingChildren = HashMapFactory.make(25);
 
     /**
-     * Flag recording whether initialization has happened.
+     * Indicates if initialization occurred.
+     *
+     * <p>Description: Ensures that init() is called only once before traversal begins.
      */
     private boolean initialized = false;
 
     /**
-     * Set of methods to exclude from the path
+     * Methods to skip during traversal.
+     *
+     * <p>Description: List of false-positive file system interaction methods to exclude from paths.
      */
     private static final Set<String> toExcludeMethodsFromPath = FileTools.readMethodsFromGivenPath(FileHandlerConstants.FALSE_POSITIVES_FILE_SYSTEM_INTERACTIONS);
 
     /**
-     * Construct a depth-first enumerator starting with a particular node in a directed graph.
+     * Stack for DFS traversal.
      *
-     * @param G the graph whose nodes to enumerate
-     * @throws IllegalArgumentException if G is null
+     * <p>Description: Deque used to keep track of the current path in the graph during depth-first search.
      */
-    public CustomDFSPathFinder(Graph<CGNode> G, CGNode N, Predicate<CGNode> f) throws IllegalArgumentException {
-        if (G == null) {
-            throw new IllegalArgumentException("G is null");
-        }
-        if (!G.containsNode(N)) {
-            throw new IllegalArgumentException("source node not in graph: " + N);
-        }
-        this.G = G;
-        this.roots = new NonNullSingletonIterator<>(N);
-        this.filter = f;
-    }
+    private final Deque<CGNode> stack = new ArrayDeque<>();
 
     /**
-     * Construct a depth-first enumerator across the (possibly improper) subset of nodes reachable
-     * from the nodes in the given enumeration.
+     * Construct a DFS finder starting from multiple nodes.
      *
-     * @param nodes the set of nodes from which to start searching
+     * <p>Description: Initializes search state with an iterator of root nodes and filter, validating inputs.
+     *
+     * @since 2.0.0
+     * @author Sarp Sahinalp
+     * @param G graph to traverse, must not be null
+     * @param nodes iterator over root nodes, must not be null
+     * @param f filter predicate for target nodes, must not be null
      */
     public CustomDFSPathFinder(Graph<CGNode> G, Iterator<CGNode> nodes, Predicate<CGNode> f) {
-        this.G = G;
-        this.roots = nodes;
-        this.filter = f;
         if (G == null) {
             throw new IllegalArgumentException("G is null");
         }
-        if (roots == null) {
+        if (nodes == null) {
             throw new IllegalArgumentException("roots is null");
         }
-        if (filter == null) {
+        if (f == null) {
             throw new IllegalArgumentException("filter is null");
         }
+        this.G = G;
+        this.roots = nodes;
+        this.P = f;
     }
 
+    /**
+     * Initialize DFS by pushing the first root and setting its children iterator.
+     *
+     * <p>Description: Sets initialized flag, pushes initial node, and records its successors for traversal.
+     *
+     * @since 2.0.0
+     * @author Sarp Sahinalp
+     */
     private void init() {
-        initialized = true;
-        if (roots.hasNext()) {
-            CGNode n = roots.next();
-            push(n);
-            setPendingChildren(n, getConnected(n));
+        initialized = true; // mark as initialized
+        if (roots.hasNext()) { // check if roots available
+            CGNode n = roots.next(); // get first root
+            stack.push(n); // add root to path stack
+            pendingChildren.put(n, G.getSuccNodes(n)); // put its children in pending
         }
     }
 
     /**
-     * @return a List of nodes that specifies the first path found from a root to a node accepted by
-     * the filter. Returns null if no path found.
+     * Finds the first path to a node matching the filter.
+     *
+     * <p>Description: Performs DFS until a node passes the filter, returning the path from root to that node, or null if none found.
+     *
+     * @since 2.0.0
+     * @author Sarp Sahinalp
+     * @return list of CGNode from root to matching node, or null if no match
      */
     public @Nullable List<CGNode> find() {
+        // check if initialized and initialize if not
         if (!initialized) {
             init();
         }
-        while (hasNext()) {
-            CGNode n = peek();
-            if (filter.test(n)) {
-                List<CGNode> path = currentPath();
-                advance();
+        while (!stack.isEmpty()) {
+            if (P.test(stack.peek())) {
+                List<CGNode> path = new ArrayList<>(stack);
+                Collections.reverse(path);
+                advance(); // move forward for next call
                 return path;
             }
-            advance();
+            advance(); // continue traversal
         }
-        return null;
-    }
-
-    protected List<CGNode> currentPath() {
-        ArrayList<CGNode> result = new ArrayList<>();
-        for (CGNode cgNode : this) {
-            result.add(0, cgNode);
-        }
-        return result;
+        return null; // no matching path found
     }
 
     /**
-     * Return whether there are any more nodes left to enumerate.
+     * Advances DFS to the next node in discovery order.
      *
-     * @return true if there nodes left to enumerate.
-     */
-    public boolean hasNext() {
-        return !empty();
-    }
-
-    /**
-     * Method getPendingChildren.
+     * <p>Description: Examines top of stack, pushes unvisited children, or pops when all children visited, then moves to next root if needed.
      *
-     * @return Object
-     */
-    protected @Nullable Iterator<? extends CGNode> getPendingChildren(CGNode n) {
-        return pendingChildren.get(n);
-    }
-
-    /**
-     * Method setPendingChildren.
-     */
-    protected void setPendingChildren(CGNode v, Iterator<? extends CGNode> iterator) {
-        pendingChildren.put(v, iterator);
-    }
-
-    /**
-     * Advance to the next graph node in discover time order.
+     * @since 2.0.0
+     * @author Sarp Sahinalp
      */
     private void advance() {
-
-        // we always return the top node on the stack.
-        CGNode currentNode = peek();
-
-        // compute the next node to return.
-        assert getPendingChildren(currentNode) != null;
         do {
-            CGNode stackTop = peek();
-            for (CGNode child : Iterator2Iterable.make(getPendingChildren(stackTop))) {
-                if (getPendingChildren(child) == null) {
+            CGNode stackTop = stack.peek();
+            for (CGNode child : Iterator2Iterable.make(pendingChildren.get(stackTop))) {
+                if (pendingChildren.get(child) == null) {
+                    // skip excluded methods
                     if (toExcludeMethodsFromPath.stream().anyMatch(child.getMethod().getSignature()::startsWith)) {
                         continue;
                     }
-                    // found a new child.
-                    push(child);
-                    setPendingChildren(child, getConnected(child));
-                    return;
+                    stack.push(child); // descend into this child
+                    pendingChildren.put(child, G.getSuccNodes(child));
+                    return; // move down one level
                 }
             }
-            // didn'CGNode find any new children. pop the stack and try again.
-            pop();
-
-        } while (!empty());
-
-        // search for the next unvisited root.
+            stack.pop(); // no more children, backtrack
+        } while (!stack.isEmpty());
+        // start next root if available
         while (roots.hasNext()) {
             CGNode nextRoot = roots.next();
-            if (getPendingChildren(nextRoot) == null) {
-                push(nextRoot);
-                setPendingChildren(nextRoot, getConnected(nextRoot));
+            if (pendingChildren.get(nextRoot) == null) {
+                stack.push(nextRoot); // new branch
+                pendingChildren.put(nextRoot, G.getSuccNodes(nextRoot));
+                return;
             }
         }
-
-        return;
-    }
-
-    /**
-     * get the out edges of a given node
-     *
-     * @param n the node of which to get the out edges
-     * @return the out edges
-     */
-    protected Iterator<? extends CGNode> getConnected(CGNode n) {
-        return G.getSuccNodes(n);
-    }
-
-    private boolean empty() {
-        return size() == 0;
-    }
-
-    private void push(CGNode elt) {
-        add(elt);
-    }
-
-    private CGNode peek() {
-        return get(size() - 1);
-    }
-
-    private CGNode pop() {
-        CGNode e = get(size() - 1);
-        remove(size() - 1);
-        return e;
     }
 }
-
