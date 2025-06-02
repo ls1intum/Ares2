@@ -1,0 +1,5 @@
+@Test
+public void reflectionShouldNotBeAccessed() {
+    javaClasses = ${javaClasses};
+    JavaArchUnitTestCaseCollection.NO_CLASS_MUST_USE_REFLECTION.check(javaClasses);
+}

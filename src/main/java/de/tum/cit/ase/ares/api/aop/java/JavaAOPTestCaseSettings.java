@@ -23,7 +23,7 @@ public class JavaAOPTestCaseSettings {
      * </p>
      */
     private JavaAOPTestCaseSettings() {
-        throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): JavaSecurityTestCaseSettings is a utility class and should not be instantiated.");
+        throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): JavaAOPTestCaseSettings is a utility class and should not be instantiated.");
     }
 
     /**

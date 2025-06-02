@@ -52,8 +52,8 @@ public enum JavaAOPTestCaseSupported implements AOPTestCaseSupported {
         return List.of(
                 JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION,
                 JavaAOPTestCaseSupported.NETWORK_CONNECTION,
-                JavaAOPTestCaseSupported.COMMAND_EXECUTION
-                //JavaAOPTestCaseSupported.THREAD_CREATION
+                JavaAOPTestCaseSupported.COMMAND_EXECUTION,
+                JavaAOPTestCaseSupported.THREAD_CREATION
         );
     }
 }

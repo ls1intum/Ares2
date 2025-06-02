@@ -1,17 +1,17 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut;
 
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 
+import java.io.BufferedReader;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
 
 /**
  * This class contains the pointcut definitions for the Java instrumentation agent.
@@ -28,7 +28,7 @@ public class JavaInstrumentationPointcutDefinitions {
      * This constructor is private to prevent instantiation of this utility class.
      */
     private JavaInstrumentationPointcutDefinitions() {
-        throw new SecurityException(localize("security.general.utility.initialization"));
+        throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.general.utility.initialization"));
     }
     //</editor-fold>
 
@@ -220,9 +220,9 @@ public class JavaInstrumentationPointcutDefinitions {
      */
     public static final Map<String, List<String>> methodsWhichCanReadFiles = Map.ofEntries(
             // java.io
-            Map.entry("java.io.BufferedReader", List.of("lines", "readLine")),
+            Map.entry("java.io.BufferedReader", List.of("lines", "readLine", "ready")),
             Map.entry("java.io.FileInputStream", List.of("read")),
-            Map.entry("java.io.FileReader", List.of("read", "readLine")),
+            Map.entry("java.io.FileReader", List.of("<init>", "read", "readLine")),
             Map.entry("java.io.InputStream", List.of("read")),
             Map.entry("java.io.RandomAccessFile", List.of("read", "readBoolean", "readByte", "readChar", "readChars", "readDouble", "readFloat", "readFully", "readInt", "readLong", "readShort")),
             Map.entry("java.io.UnixFileSystem", List.of("canonicalize0", "getBooleanAttributes0", "getSpace")),
@@ -230,9 +230,8 @@ public class JavaInstrumentationPointcutDefinitions {
             Map.entry("java.io.WinNTFileSystem", List.of("canonicalize", "getBooleanAttributes", "getLastModifiedTime", "getSpace")),
             // java.nio
             Map.entry("java.nio.file.Files", List.of("lines", "newBufferedReader", "newByteChannel", "newInputStream", "readAllBytes", "readAllLines", "readString")),
-            Map.entry("java.nio.file.spi.FileSystemProvider", List.of("newFileChannel")),
             // sun.nio
-            Map.entry("sun.nio.ch.FileChannelImpl", List.of("open", "read", "readDirect", "readFully", "readIntoNativeBuffer"))
+            Map.entry("sun.nio.ch.FileChannelImpl", List.of("read", "readDirect", "readFully", "readIntoNativeBuffer"))
     );
     //</editor-fold>
 
@@ -292,19 +291,23 @@ public class JavaInstrumentationPointcutDefinitions {
     public static final Map<String, List<String>> methodsWhichCanDeleteFiles = Map.ofEntries(
             // java.io
             Map.entry("java.io.File", List.of("delete", "deleteOnExit")),
-            Map.entry("java.io.FileSystem", List.of("delete")),
+            //Map.entry("java.io.FileSystem", List.of("delete")),
+            //Map.entry("java.io.UnixFileSystem", List.of("delete")),
+            Map.entry("java.io.WinNTFileSystem", List.of("delete")),
+            Map.entry("java.io.Win32FileSystem", List.of("delete")),
             // java.nio
             Map.entry("java.nio.file.Files", List.of("delete", "deleteIfExists")),
             Map.entry("java.nio.file.spi.FileSystemProvider", List.of("delete", "installedProviders")),
+            Map.entry("java.nio.file.SecureDirectoryStream", List.of("deleteFile")),
+            // jdk.internal
+            Map.entry("jdk.internal.jrtfs.JrtFileSystemProvider", List.of("delete")),
+            // jdk.nio
+            Map.entry("jdk.nio.zipfs.ZipFileSystemProvider", List.of("delete")),
+            // sun.nio
             Map.entry("sun.nio.fs.AbstractFileSystemProvider", List.of("delete", "deleteIfExists")),
             Map.entry("sun.nio.fs.MacOSXFileSystemProvider", List.of("delete", "implDelete")),
             Map.entry("sun.nio.fs.UnixFileSystemProvider", List.of("delete", "implDelete")),
-            Map.entry("sun.nio.fs.WindowsFileSystemProvider", List.of("implDelete")),
-            Map.entry("jdk.internal.jrtfs.JrtFileSystemProvider", List.of("delete")),
-            Map.entry("jdk.nio.zipfs.ZipFileSystemProvider", List.of("delete")),
-            Map.entry("java.io.UnixFileSystem", List.of("delete")),
-            Map.entry("java.io.WinNTFileSystem", List.of("delete")),
-            Map.entry("java.io.Win32FileSystem", List.of("delete"))
+            Map.entry("sun.nio.fs.WindowsFileSystemProvider", List.of("implDelete"))
     );
     //</editor-fold>
 
@@ -314,6 +317,7 @@ public class JavaInstrumentationPointcutDefinitions {
      * and the values are lists of method names that are considered to be thread create operations.
      */
     public static final Map<String, List<String>> methodsWhichCanCreateThreads = Map.ofEntries(
+            // java.util
             Map.entry("java.util.concurrent.AbstractExecutorService", List.of("submit")),
             Map.entry("java.util.concurrent.ExecutorService", List.of("submit")),
             Map.entry("java.util.concurrent.ThreadPoolExecutor", List.of("submit"))

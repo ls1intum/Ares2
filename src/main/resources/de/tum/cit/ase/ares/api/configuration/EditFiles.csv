@@ -1,2 +1,0 @@
-SourceHeader,SourceFooter,Target
-templates/aop/java/JavaSecurityTestCaseSettingsHeader.txt, templates/aop/java/JavaSecurityTestCaseSettingsFooter.txt, api/aop/java/JavaSecurityTestCaseSettings.java

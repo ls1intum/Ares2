@@ -1,11 +1,11 @@
 package de.tum.cit.ase.ares.api.phobos;
 
 import de.tum.cit.ase.ares.api.aop.fileSystem.java.JavaFileSystemExtractor;
-import de.tum.cit.ase.ares.api.aop.networkConnection.java.JavaNetworkConnectionExtractor;
 import de.tum.cit.ase.ares.api.aop.resourceLimits.java.JavaResourceLimitsExtractor;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.NetworkPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceLimitsPermission;
+import de.tum.cit.ase.ares.api.aop.networkSystem.java.JavaNetworkSystemExtractor;
 
 import javax.annotation.Nonnull;
 import java.util.LinkedHashSet;
@@ -23,7 +23,7 @@ public class JavaPhobosTestCase {
                                                          @Nonnull List<ResourceLimitsPermission> resourceLimitsPermissions) {
 
         JavaFileSystemExtractor fileSystemExtractor = new JavaFileSystemExtractor(supplier(filePermissions));
-        JavaNetworkConnectionExtractor networkConnectionExtractor = new JavaNetworkConnectionExtractor(supplier(networkPermissions));
+        JavaNetworkSystemExtractor networkConnectionExtractor = new JavaNetworkSystemExtractor(supplier(networkPermissions));
         JavaResourceLimitsExtractor resourceLimitsExtractor = new JavaResourceLimitsExtractor(supplier(resourceLimitsPermissions));
 
         Set<String> readOnlyPaths = collectReadOnlyPaths(fileSystemExtractor);
@@ -71,13 +71,13 @@ public class JavaPhobosTestCase {
     }
 
 
-    private static Set<String> collectAllowHosts(JavaNetworkConnectionExtractor net) {
+    private static Set<String> collectAllowHosts(JavaNetworkSystemExtractor net) {
         Set<String> hosts = new LinkedHashSet<>(net.getPermittedNetworkHosts("connect"));
         hosts.addAll(net.getPermittedNetworkHosts("send"));
         return hosts;
     }
 
-    private static Set<Integer> collectAllowPorts(JavaNetworkConnectionExtractor net) {
+    private static Set<Integer> collectAllowPorts(JavaNetworkSystemExtractor net) {
         Set<Integer> ports = new LinkedHashSet<>(net.getPermittedNetworkPorts("connect"));
         ports.addAll(net.getPermittedNetworkPorts("send"));
         return ports;

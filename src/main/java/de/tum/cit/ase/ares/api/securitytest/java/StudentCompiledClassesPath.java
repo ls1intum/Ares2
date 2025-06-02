@@ -2,8 +2,7 @@ package de.tum.cit.ase.ares.api.securitytest.java;
 
 import javax.annotation.Nonnull;
 import java.lang.annotation.Retention;
-
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
+import java.lang.annotation.RetentionPolicy;
 
 /**
  * Specifies the path of the compiled student classes.
@@ -19,7 +18,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * @author Sarp Sahinalp
  * @version 2.0.0
  */
-@Retention(RUNTIME)
+@Retention(RetentionPolicy.RUNTIME)
 public @interface StudentCompiledClassesPath {
 
     /**

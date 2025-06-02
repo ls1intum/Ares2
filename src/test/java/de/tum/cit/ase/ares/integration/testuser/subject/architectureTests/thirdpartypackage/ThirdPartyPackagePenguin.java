@@ -21,9 +21,18 @@ public class ThirdPartyPackagePenguin {
         Files.readString(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
     }
 
+    public static String readFile_with_path(String path) throws IOException {
+        return Files.readString(Path.of(path));
+    }
+
     public static void overwriteFile() throws IOException {
         byte[] content = "Hello, world!".getBytes();
         Files.write(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"), content);
+    }
+
+    public static void overwriteFile_with_path_text(String path, String text) throws IOException {
+        byte[] content = text.getBytes();
+        Files.write(Path.of(path), content);
     }
 
     public static void executeFile() throws IOException {
@@ -31,7 +40,16 @@ public class ThirdPartyPackagePenguin {
         Process process = runtime.exec("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
     }
 
+    public static void executeFile_with_path(String path) throws IOException {
+        Runtime runtime = Runtime.getRuntime();
+        Process process = runtime.exec(path);
+    }
+
     public static void deleteFile() throws IOException {
         Files.delete(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
+    }
+
+    public static void deleteFile_with_path(String path) throws IOException {
+        Files.delete(Path.of(path));
     }
 }

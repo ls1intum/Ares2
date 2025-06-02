@@ -1,19 +1,20 @@
 package de.tum.cit.ase.ares.api.policy.director.java;
 
 import com.google.common.base.Preconditions;
-import de.tum.cit.ase.ares.api.aop.java.JavaAOPMode;
-import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureMode;
-import de.tum.cit.ase.ares.api.buildtoolconfiguration.java.JavaBuildMode;
+import de.tum.cit.ase.ares.api.aop.AOPMode;
+import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.director.SecurityPolicyDirector;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
-import de.tum.cit.ase.ares.api.securitytest.SecurityTestCaseAbstractFactoryAndBuilder;
-import de.tum.cit.ase.ares.api.securitytest.java.JavaSecurityTestCaseFactoryAndBuilder;
-import de.tum.cit.ase.ares.api.securitytest.java.creator.Creator;
+import de.tum.cit.ase.ares.api.securitytest.TestCaseAbstractFactoryAndBuilder;
+import de.tum.cit.ase.ares.api.securitytest.java.JavaTestCaseFactoryAndBuilder;
+import de.tum.cit.ase.ares.api.securitytest.java.creator.JavaCreator;
 import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.yaml.EssentialDataYAMLReader;
-import de.tum.cit.ase.ares.api.securitytest.java.executer.Executer;
-import de.tum.cit.ase.ares.api.securitytest.java.projectScanner.ProjectScanner;
-import de.tum.cit.ase.ares.api.securitytest.java.writer.Writer;
+import de.tum.cit.ase.ares.api.securitytest.java.executer.JavaExecuter;
+import de.tum.cit.ase.ares.api.securitytest.java.projectScanner.JavaProjectScanner;
+import de.tum.cit.ase.ares.api.securitytest.java.writer.JavaWriter;
+import de.tum.cit.ase.ares.api.util.FileTools;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -24,7 +25,7 @@ import java.util.Objects;
  * Java security policy director.
  *
  * <p>Description: A director for creating security test cases for Java projects based on a given SecurityPolicy.
- * It creates and configures instances of JavaSecurityTestCaseFactoryAndBuilder using information extracted from the provided
+ * It creates and configures instances of JavaTestCaseFactoryAndBuilder using information extracted from the provided
  * security policy. If no security policy is provided, a default configuration is used.
  *
  * <p>Design Rationale: This class encapsulates the logic required to select the appropriate Java build mode, architecture mode,
@@ -36,50 +37,25 @@ import java.util.Objects;
  * @author Markus Paulsen
  * @version 2.0.0
  */
-public class SecurityPolicyJavaDirector implements SecurityPolicyDirector {
+public class SecurityPolicyJavaDirector extends SecurityPolicyDirector {
 
     /**
-     * Creator for Java security test cases.
+     * Default path to the essential packages YAML file.
      */
     @Nonnull
-    private final Creator creator;
+    public static final Path DEFAULT_ESSENTIAL_PACKAGES_PATH = Preconditions.checkNotNull(
+            FileTools.resolveOnPackage("configuration/essentialFiles/java/EssentialPackages.yaml")
+    );
 
     /**
-     * Writer for Java security test cases.
+     * Default path to the essential classes YAML file.
      */
     @Nonnull
-    private final Writer writer;
+    public static final Path DEFAULT_ESSENTIAL_CLASSES_PATH = Preconditions.checkNotNull(
+            FileTools.resolveOnPackage("configuration/essentialFiles/java/EssentialClasses.yaml")
+    );
 
-    /**
-     * Executer for Java security test cases.
-     */
-    @Nonnull
-    private final Executer executer;
-
-    /**
-     * Reader for essential classes YAML files.
-     */
-    @Nonnull
-    private final EssentialDataYAMLReader essentialDataReader;
-
-    /**
-     * Scanner for Java programming exercises.
-     */
-    @Nonnull
-    private final ProjectScanner javaScanner;
-
-    /**
-     * Path to the essential packages YAML file.
-     */
-    @Nonnull
-    private final Path essentialPackagesPath;
-
-    /**
-     * Path to the essential classes YAML file.
-     */
-    @Nonnull
-    private final Path essentialClassesPath;
-
+    //<editor-fold desc="Constructor">
     /**
      * Constructs a new SecurityPolicyJavaDirector with provided dependencies.
      *
@@ -89,51 +65,47 @@ public class SecurityPolicyJavaDirector implements SecurityPolicyDirector {
      * @param writer the writer for Java security test cases; must not be null.
      * @param executer the executer for Java security test cases; must not be null.
      * @param essentialDataReader the reader for essential data files; must not be null.
-     * @param javaScanner the scanner for Java programming exercises; must not be null.
+     * @param projectScanner the scanner for Java programming exercises; must not be null.
      * @param essentialPackagesPath the path to the essential packages YAML file; must not be null.
      * @param essentialClassesPath the path to the essential classes YAML file; must not be null.
      */
-    public SecurityPolicyJavaDirector(@Nonnull Creator creator, @Nonnull Writer writer, @Nonnull Executer executer, @Nonnull EssentialDataYAMLReader essentialDataReader, @Nonnull ProjectScanner javaScanner, @Nonnull Path essentialPackagesPath, @Nonnull Path essentialClassesPath) {
-        this.creator = Preconditions.checkNotNull(creator, "creator must not be null");
-        this.writer = Preconditions.checkNotNull(writer, "writer must not be null");
-        this.executer = Preconditions.checkNotNull(executer, "executer must not be null");
-        this.essentialDataReader = Preconditions.checkNotNull(essentialDataReader, "essentialDataReader must not be null");
-        this.javaScanner = Preconditions.checkNotNull(javaScanner, "javaScanner must not be null");
-        this.essentialPackagesPath = Preconditions.checkNotNull(essentialPackagesPath, "essentialPackagesPath must not be null");
-        this.essentialClassesPath = Preconditions.checkNotNull(essentialClassesPath, "essentialClassesPath must not be null");
+    public SecurityPolicyJavaDirector(@Nonnull JavaCreator creator, @Nonnull JavaWriter writer, @Nonnull JavaExecuter executer, @Nonnull EssentialDataYAMLReader essentialDataReader, @Nonnull JavaProjectScanner projectScanner, @Nonnull Path essentialPackagesPath, @Nonnull Path essentialClassesPath) {
+        super(creator, writer, executer, essentialDataReader, projectScanner, essentialPackagesPath, essentialClassesPath);
     }
+    //</editor-fold>
 
+    //<editor-fold desc="Create security test cases methods">
     /**
-     * Generates a JavaSecurityTestCaseFactoryAndBuilder with the provided configuration.
+     * Generates a JavaTestCaseFactoryAndBuilder with the provided configuration.
      *
      * @since 2.0.0
      * @author Markus Paulsen
-     * @param javaBuildMode the Java build mode to use; may be null.
-     * @param javaArchitectureMode the Java architecture mode to use; may be null.
-     * @param javaAOPMode the Java AOP mode to use; may be null.
+     * @param buildMode the Java build mode to use; may be null.
+     * @param architectureMode the Java architecture mode to use; may be null.
+     * @param aopMode the Java AOP mode to use; may be null.
      * @param projectPath the project directory path where test cases will be applied; may be null.
      * @param securityPolicy the security policy to base test case creation on; may be null.
-     * @return a non-null instance of JavaSecurityTestCaseFactoryAndBuilder configured according to the provided parameters.
+     * @return a non-null instance of JavaTestCaseFactoryAndBuilder configured according to the provided parameters.
      */
     @Nonnull
-    private SecurityTestCaseAbstractFactoryAndBuilder generateJavaFactoryAndBuilder(
-            @Nullable JavaBuildMode javaBuildMode,
-            @Nullable JavaArchitectureMode javaArchitectureMode,
-            @Nullable JavaAOPMode javaAOPMode,
+    private TestCaseAbstractFactoryAndBuilder generateFactoryAndBuilder(
+            @Nullable BuildMode buildMode,
+            @Nullable ArchitectureMode architectureMode,
+            @Nullable AOPMode aopMode,
             @Nullable SecurityPolicy securityPolicy,
             @Nullable Path projectPath
     ) {
-        return JavaSecurityTestCaseFactoryAndBuilder.builder()
-                .creator(creator)
-                .writer(writer)
-                .executer(executer)
+        return JavaTestCaseFactoryAndBuilder.builder()
+                .creator((JavaCreator) creator)
+                .writer((JavaWriter) writer)
+                .executer((JavaExecuter) executer)
                 .essentialDataReader(essentialDataReader)
-                .projectScanner(javaScanner)
+                .projectScanner((JavaProjectScanner) projectScanner)
                 .essentialPackagesPath(essentialPackagesPath)
                 .essentialClassesPath(essentialClassesPath)
-                .javaBuildMode(javaBuildMode)
-                .javaArchitectureMode(javaArchitectureMode)
-                .javaAOPMode(javaAOPMode)
+                .buildMode(buildMode)
+                .architectureMode(architectureMode)
+                .aopMode(aopMode)
                 .securityPolicy(securityPolicy)
                 .projectPath(projectPath)
                 .build();
@@ -146,70 +118,71 @@ public class SecurityPolicyJavaDirector implements SecurityPolicyDirector {
      * @author Markus Paulsen
      * @param securityPolicy the security policy to base test case creation on; may be null.
      * @param projectFolderPath the project directory path where test cases will be applied; may be null.
-     * @return a non-null instance of SecurityTestCaseAbstractFactoryAndBuilder configured for Java security tests.
+     * @return a non-null instance of TestCaseAbstractFactoryAndBuilder configured for Java security tests.
      */
     @Nonnull
     @Override
-    public SecurityTestCaseAbstractFactoryAndBuilder createSecurityTestCases(@Nullable SecurityPolicy securityPolicy, @Nullable Path projectFolderPath) {
+    public TestCaseAbstractFactoryAndBuilder createTestCases(@Nullable SecurityPolicy securityPolicy, @Nullable Path projectFolderPath) {
         if (securityPolicy == null) {
-            return generateJavaFactoryAndBuilder(null, null, null, null, null);
+            return generateFactoryAndBuilder(null, null, null, null, null);
         }
         @Nonnull ProgrammingLanguageConfiguration config = Preconditions.checkNotNull(securityPolicy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed());
         return switch (config) {
             case ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ ->
-                    generateJavaFactoryAndBuilder(JavaBuildMode.MAVEN, JavaArchitectureMode.ARCHUNIT, JavaAOPMode.ASPECTJ, securityPolicy, projectFolderPath);
+                    generateFactoryAndBuilder(BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, securityPolicy, projectFolderPath);
             case ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION ->
-                    generateJavaFactoryAndBuilder(JavaBuildMode.MAVEN, JavaArchitectureMode.ARCHUNIT, JavaAOPMode.INSTRUMENTATION, securityPolicy, projectFolderPath);
+                    generateFactoryAndBuilder(BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.INSTRUMENTATION, securityPolicy, projectFolderPath);
             case ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_WALA_AND_ASPECTJ ->
-                    generateJavaFactoryAndBuilder(JavaBuildMode.MAVEN, JavaArchitectureMode.WALA, JavaAOPMode.ASPECTJ, securityPolicy, projectFolderPath);
+                    generateFactoryAndBuilder(BuildMode.MAVEN, ArchitectureMode.WALA, AOPMode.ASPECTJ, securityPolicy, projectFolderPath);
             case ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_WALA_AND_INSTRUMENTATION ->
-                    generateJavaFactoryAndBuilder(JavaBuildMode.MAVEN, JavaArchitectureMode.WALA, JavaAOPMode.INSTRUMENTATION, securityPolicy, projectFolderPath);
+                    generateFactoryAndBuilder(BuildMode.MAVEN, ArchitectureMode.WALA, AOPMode.INSTRUMENTATION, securityPolicy, projectFolderPath);
             case ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_ARCHUNIT_AND_ASPECTJ ->
-                    generateJavaFactoryAndBuilder(JavaBuildMode.GRADLE, JavaArchitectureMode.ARCHUNIT, JavaAOPMode.ASPECTJ, securityPolicy, projectFolderPath);
+                    generateFactoryAndBuilder(BuildMode.GRADLE, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, securityPolicy, projectFolderPath);
             case ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION ->
-                    generateJavaFactoryAndBuilder(JavaBuildMode.GRADLE, JavaArchitectureMode.ARCHUNIT, JavaAOPMode.INSTRUMENTATION, securityPolicy, projectFolderPath);
+                    generateFactoryAndBuilder(BuildMode.GRADLE, ArchitectureMode.ARCHUNIT, AOPMode.INSTRUMENTATION, securityPolicy, projectFolderPath);
             case ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_WALA_AND_ASPECTJ ->
-                    generateJavaFactoryAndBuilder(JavaBuildMode.GRADLE, JavaArchitectureMode.WALA, JavaAOPMode.ASPECTJ, securityPolicy, projectFolderPath);
+                    generateFactoryAndBuilder(BuildMode.GRADLE, ArchitectureMode.WALA, AOPMode.ASPECTJ, securityPolicy, projectFolderPath);
             case ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_WALA_AND_INSTRUMENTATION ->
-                    generateJavaFactoryAndBuilder(JavaBuildMode.GRADLE, JavaArchitectureMode.WALA, JavaAOPMode.INSTRUMENTATION, securityPolicy, projectFolderPath);
+                    generateFactoryAndBuilder(BuildMode.GRADLE, ArchitectureMode.WALA, AOPMode.INSTRUMENTATION, securityPolicy, projectFolderPath);
         };
     }
+    //</editor-fold>
 
     //<editor-fold desc="Builder">
-    public static Builder builder() {
+    public static Builder javaBuilder() {
         return new Builder();
     }
 
     public static class Builder {
         @Nullable
-        private Creator creator;
+        private JavaCreator creator;
         @Nullable
-        private Writer writer;
+        private JavaWriter writer;
         @Nullable
-        private Executer executer;
+        private JavaExecuter executer;
         @Nullable
         private EssentialDataYAMLReader essentialDataReader;
         @Nullable
-        private ProjectScanner javaScanner;
+        private JavaProjectScanner javaScanner;
         @Nullable
         private Path essentialPackagesPath;
         @Nullable
         private Path essentialClassesPath;
 
         @Nonnull
-        public Builder creator(@Nonnull Creator creator) {
+        public Builder creator(@Nonnull JavaCreator creator) {
             this.creator = Objects.requireNonNull(creator, "creator must not be null");
             return this;
         }
 
         @Nonnull
-        public Builder writer(@Nonnull Writer writer) {
+        public Builder writer(@Nonnull JavaWriter writer) {
             this.writer = Objects.requireNonNull(writer, "writer must not be null");
             return this;
         }
 
         @Nonnull
-        public Builder executer(@Nonnull Executer executer) {
+        public Builder executer(@Nonnull JavaExecuter executer) {
             this.executer = Objects.requireNonNull(executer, "executer must not be null");
             return this;
         }
@@ -221,7 +194,7 @@ public class SecurityPolicyJavaDirector implements SecurityPolicyDirector {
         }
 
         @Nonnull
-        public Builder javaScanner(@Nonnull ProjectScanner javaScanner) {
+        public Builder javaScanner(@Nonnull JavaProjectScanner javaScanner) {
             this.javaScanner = Objects.requireNonNull(javaScanner, "javaScanner must not be null");
             return this;
         }

@@ -41,7 +41,7 @@
         <java-parser-version>3.25.9</java-parser-version>
         <!-- 5. Formats: 5.1 JSON -->
         <json-version>20240303</json-version>
-        <!-- 5. Formats: 5.2 YAML -->
+        <!-- 5. Formats: 5.2 YAML and XML-->
         <yaml-version>2.17.2</yaml-version>
         <!-- 6. Large Tooling Libraries -->
         <guava-version>33.4.0-jre</guava-version>
@@ -96,7 +96,8 @@
             <version>${junit-platform-version}</version>
             <!-- Multiple Cases -->
         </dependency>
-        <!--
+        <!-- Not Required
+
         Included in junit-jupiter-params and junit-jupiter-engine
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -134,13 +135,17 @@
             <!-- Multiple Cases -->
         </dependency>
         <!-- 1. Testing: 1.4 AssertJ -->
-        <!--<dependency>
+        <!-- Not Required
+
+        <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
             <version>${assertj-version}</version>
         </dependency>-->
         <!-- 1. Testing: 1.5 Hamcrest -->
-        <!--<dependency>
+        <!-- Not Required
+
+        <dependency>
             <groupId>org.hamcrest</groupId>
             <artifactId>hamcrest</artifactId>
             <version>${hamcrest-version}</version>
@@ -154,8 +159,8 @@
                 src/main/java/de/tum/cit/ase/ares/api/securitytest/java/specific/PathLocationProvider.java
              -->
         </dependency>
-        <!--
-        Not required
+        <!-- Not required
+
         <dependency>
             <groupId>com.tngtech.archunit</groupId>
             <artifactId>archunit</artifactId>
@@ -175,8 +180,8 @@
             <artifactId>aspectjrt</artifactId>
             <version>${aspectj-version}</version>
         </dependency>
-        <!--
-        Not required
+        <!-- Not required
+
         <dependency>
             <groupId>org.aspectj</groupId>
             <artifactId>aspectjweaver</artifactId>
@@ -205,7 +210,8 @@
                 src/main/java/de/tum/cit/ase/ares/api/ast/model/RecursionCheck.java
              -->
         </dependency>
-        <!--
+        <!-- Not Required
+
         Included in javaparser-symbol-solver-core
         <dependency>
             <groupId>com.github.javaparser</groupId>
@@ -219,7 +225,7 @@
             <artifactId>json</artifactId>
             <version>${json-version}</version>
         </dependency>
-        <!-- 5. Formats: 5.2 YAML -->
+        <!-- 5. Formats: 5.2 YAML and XML -->
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-yaml</artifactId>
@@ -242,6 +248,11 @@
             <version>${vavr-version}</version>
         </dependency>
         <!-- 7. Small Tooling Libraries -->
+        <dependency>
+            <groupId>com.opencsv</groupId>
+            <artifactId>opencsv</artifactId>
+            <version>5.11</version>
+        </dependency>
         <dependency>
             <groupId>info.debatty</groupId>
             <artifactId>java-string-similarity</artifactId>

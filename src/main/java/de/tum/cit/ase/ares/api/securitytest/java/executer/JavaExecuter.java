@@ -1,10 +1,10 @@
 package de.tum.cit.ase.ares.api.securitytest.java.executer;
 
-import de.tum.cit.ase.ares.api.aop.java.JavaAOPMode;
+import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
-import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureMode;
+import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
-import de.tum.cit.ase.ares.api.buildtoolconfiguration.java.JavaBuildMode;
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -36,16 +36,16 @@ public class JavaExecuter implements Executer {
      * @author Markus Paulsen
      * @param key the key of the setting to set; must not be null
      * @param value the value to set for the setting; may be null
-     * @param javaArchitectureMode the Java architecture mode; must not be null
-     * @param javaAOPMode the Java AOP mode; must not be null
+     * @param architectureMode the Java architecture mode; must not be null
+     * @param aopMode the Java AOP mode; must not be null
      */
     private void setJavaAdviceSettingValue(
             @Nonnull String key,
             @Nullable Object value,
-            @Nonnull JavaArchitectureMode javaArchitectureMode,
-            @Nonnull JavaAOPMode javaAOPMode
+            @Nonnull ArchitectureMode architectureMode,
+            @Nonnull AOPMode aopMode
     ) {
-        JavaAOPTestCase.setJavaAdviceSettingValue(key, value, javaArchitectureMode.toString(), javaAOPMode.toString());
+        JavaAOPTestCase.setJavaAdviceSettingValue(key, value, architectureMode.toString(), aopMode.toString());
     }
     //</editor-fold>
 
@@ -56,9 +56,9 @@ public class JavaExecuter implements Executer {
      *
      * @since 2.0.0
      * @author Markus Paulsen
-     * @param javaBuildMode the Java build mode to use; must not be null
-     * @param javaArchitectureMode the Java architecture mode to use; must not be null
-     * @param javaAOPMode the Java AOP mode to use; must not be null
+     * @param buildMode the Java build mode to use; must not be null
+     * @param architectureMode the Java architecture mode to use; must not be null
+     * @param aopMode the Java AOP mode to use; must not be null
      * @param essentialPackages the list of essential packages; must not be null
      * @param essentialClasses the list of essential classes; must not be null
      * @param testClasses the list of test classes; must not be null
@@ -68,10 +68,10 @@ public class JavaExecuter implements Executer {
      * @param javaAOPTestCases the list of AOP test cases; must not be null
      */
     @Override
-    public void executeSecurityTestCases(
-            @Nonnull JavaBuildMode javaBuildMode,
-            @Nonnull JavaArchitectureMode javaArchitectureMode,
-            @Nonnull JavaAOPMode javaAOPMode,
+    public void executeTestCases(
+            @Nonnull BuildMode buildMode,
+            @Nonnull ArchitectureMode architectureMode,
+            @Nonnull AOPMode aopMode,
             @Nonnull List<String> essentialPackages,
             @Nonnull List<String> essentialClasses,
             @Nonnull List<String> testClasses,
@@ -80,20 +80,20 @@ public class JavaExecuter implements Executer {
             @Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
             @Nonnull List<JavaAOPTestCase> javaAOPTestCases
     ) {
-        @Nonnull String javaBuildModeString = javaBuildMode.toString();
-        @Nonnull String javaArchitectureModeString = javaArchitectureMode.toString();
-        @Nonnull String javaAOPModeString = javaAOPMode.toString();
+        @Nonnull String buildModeString = buildMode.toString();
+        @Nonnull String architectureModeString = architectureMode.toString();
+        @Nonnull String aopModeString = aopMode.toString();
         Map.ofEntries(
-                Map.entry("buildMode", javaBuildModeString),
-                Map.entry("architectureMode", javaArchitectureModeString),
-                Map.entry("aopMode", javaAOPModeString),
+                Map.entry("buildMode", buildModeString),
+                Map.entry("architectureMode", architectureModeString),
+                Map.entry("aopMode", aopModeString),
                 Map.entry("allowedListedPackages", essentialPackages.toArray(String[]::new)),
                 Map.entry("allowedListedClasses", Stream.concat(essentialClasses.stream(), testClasses.stream()).toArray(String[]::new)),
                 Map.entry("restrictedPackage", packageName),
                 Map.entry("mainClass", mainClassInPackageName)
-        ).forEach((key, value) -> setJavaAdviceSettingValue(key, value, javaArchitectureMode, javaAOPMode));
-        javaArchitectureTestCases.forEach(javaArchitectureTestCase -> javaArchitectureTestCase.executeArchitectureTestCase(javaArchitectureModeString, javaAOPModeString));
-        javaAOPTestCases.forEach(javaSecurityTestCase -> javaSecurityTestCase.executeAOPSecurityTestCase(javaArchitectureModeString, javaAOPModeString));
+        ).forEach((key, value) -> setJavaAdviceSettingValue(key, value, architectureMode, aopMode));
+        javaArchitectureTestCases.forEach(javaArchitectureTestCase -> javaArchitectureTestCase.executeArchitectureTestCase(architectureModeString, aopModeString));
+        javaAOPTestCases.forEach(javaTestCase -> javaTestCase.executeAOPTestCase(architectureModeString, aopModeString));
     }
     //</editor-fold>
 

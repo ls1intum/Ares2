@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.api.phobos;
 
+import com.opencsv.exceptions.CsvException;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSupported;
 import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaCSVFileLoader;
@@ -34,7 +35,7 @@ public class Phobos {
     public static List<List<String>> getCopyConfigurationEntries() {
         try {
             return (new JavaCSVFileLoader()).loadCopyData();
-        } catch (IOException e) {
+        } catch (IOException | CsvException e) {
             throw new RuntimeException(e);
         }
     }
@@ -43,7 +44,7 @@ public class Phobos {
     public static List<List<String>> getEditConfigurationEntries() {
         try {
             return (new JavaCSVFileLoader()).loadEditData();
-        } catch (IOException e) {
+        } catch (IOException | CsvException e) {
             throw new RuntimeException(e);
         }
     }

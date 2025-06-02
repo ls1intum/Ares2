@@ -18,8 +18,7 @@ public class ReadFileReadMain {
         try (FileInputStream fis = new FileInputStream(file)) {
             byte[] data = new byte[(int) file.length()];
             fis.read(data);
-            //return new String(data);
-            return "test";
+            return new String(data);
         }
     }
 }

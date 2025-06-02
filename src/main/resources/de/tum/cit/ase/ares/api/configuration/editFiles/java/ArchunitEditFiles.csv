@@ -1,0 +1,2 @@
+SourceHeader,SourceFooter,Target
+templates/architecture/java/archunit/JavaArchUnitTestCaseHeader.txt,templates/architecture/java/archunit/JavaArchUnitTestCaseFooter.txt,ares/api/architecture/java/archunit/JavaArchUnitTestCase.java

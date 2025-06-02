@@ -10,7 +10,7 @@ import com.ibm.wala.ipa.cha.ClassHierarchy;
 import com.ibm.wala.ipa.cha.ClassHierarchyException;
 import com.ibm.wala.ipa.cha.ClassHierarchyFactory;
 import com.ibm.wala.types.ClassLoaderReference;
-import de.tum.cit.ase.ares.api.architecture.java.FileHandlerConstants;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -18,17 +18,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.Predicate;
 
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
-import static de.tum.cit.ase.ares.api.localization.Messages.localized;
-
 /**
  * A utility class to check reachability in a call graph.
  */
 public class ReachabilityChecker {
-
     //<editor-fold desc="Constructor">
     private ReachabilityChecker() {
-        throw new SecurityException(localized("security.general.utility.initialization", FileHandlerConstants.class.getName()));
+        throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.general.utility.initialization", ReachabilityChecker.class.getName()));
     }
     //</editor-fold>
 
@@ -42,55 +38,57 @@ public class ReachabilityChecker {
      */
     public static List<CGNode> findReachableMethods(CallGraph callGraph, Iterator<CGNode> startNodes, Predicate<CGNode> targetNodeFilter) {
         if (callGraph == null) {
-            throw new SecurityException(localize("security.common.not.null", "CallGraph", ReachabilityChecker.class.getName()));
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.common.not.null", "CallGraph"));
         }
         if (startNodes == null) {
-            throw new SecurityException(localize("security.common.not.null", "startNodes", ReachabilityChecker.class.getName()));
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.common.not.null", "startNodes"));
         }
         if (targetNodeFilter == null) {
-            throw new SecurityException(localize("security.common.not.null", "targetNodeFilter", ReachabilityChecker.class.getName()));
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.common.not.null", "targetNodeFilter"));
         }
         return new CustomDFSPathFinder(callGraph, startNodes, targetNodeFilter).find();
+    }
+
+    private static ClassHierarchy createClassHierarchy(String classPath) throws IOException, ClassHierarchyException {
+        return ClassHierarchyFactory.make(
+                AnalysisScopeReader
+                        .instance
+                        .makeJavaBinaryAnalysisScope(classPath, null)
+        );
     }
 
     /**
      * Get entry points from a student submission.
      *
-     * @param applicationCha The class hierarchy of the application.
+     * @param classPath                The path to the student submission.
+     * @param applicationClassHierarchy The class hierarchy of the application.
      * @return A list of entry points from the student submission.
      */
-    public static List<DefaultEntrypoint> getEntryPointsFromStudentSubmission(String classPath, ClassHierarchy applicationCha) {
+    public static List<DefaultEntrypoint> getEntryPointsFromStudentSubmission(String classPath, ClassHierarchy applicationClassHierarchy) {
         if (classPath == null || classPath.trim().isEmpty()) {
-            throw new SecurityException(localize("security.common.not.null", "classPath", ReachabilityChecker.class.getName()));
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.common.not.null", "classPath"));
         }
-        if (applicationCha == null) {
-            throw new SecurityException(localize("security.common.not.null", "Class hierarchy", ReachabilityChecker.class.getName()));
+        if (applicationClassHierarchy == null) {
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.common.not.null", "ClassHierarchy"));
         }
-
-        // Create CHA of the student submission
-        ClassHierarchy targetClasses;
         try {
-            targetClasses = ClassHierarchyFactory
-                    .make(AnalysisScopeReader.instance
-                            .makeJavaBinaryAnalysisScope(classPath, null));
+            return new ArrayList<>(
+                    io.vavr.collection.Stream.ofAll(createClassHierarchy(classPath))
+                            .toJavaStream()
+                            .filter(iClass -> iClass.getClassLoader().getReference().equals(ClassLoaderReference.Application))
+                            .map(IClass::getDeclaredMethods)
+                            .map(io.vavr.collection.Stream::ofAll)
+                            .flatMap(io.vavr.collection.Stream::toJavaStream)
+                            .filter(iMethod -> !iMethod.getName().toString().equals("main"))
+                            .map(IMethod::getReference)
+                            .map(methodReference -> new DefaultEntrypoint(methodReference, applicationClassHierarchy))
+                            .toList()
+            );
         } catch (ClassHierarchyException | IOException e) {
-            throw new SecurityException(localize("security.architecture.class.hierarchy.error")); // $NON-NLS-1$
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.class.hierarchy.error"));
+        } catch (com.ibm.wala.util.debug.UnimplementedError e) {
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.class.hierarchy.error"));
         }
-
-        // Iterate through all classes in the application classloader
-        List<DefaultEntrypoint> customEntryPoints = new ArrayList<>();
-        for (IClass klass : targetClasses) {
-            if (klass.getClassLoader().getReference().equals(ClassLoaderReference.Application)) {
-                // Iterate through all declared methods in each class
-                for (IMethod method : klass.getDeclaredMethods()) {
-                    // Exclude the 'main' methods from being entry points
-                    if (!method.getName().toString().equals("main")) {
-                        customEntryPoints.add(new DefaultEntrypoint(method.getReference(), applicationCha));
-                    }
-                }
-            }
-        }
-        return customEntryPoints;
     }
 }
 

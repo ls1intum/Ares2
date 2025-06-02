@@ -9,17 +9,47 @@ public class ReadBufferedReaderMain {
     private ReadBufferedReaderMain() {
         throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
     }
+    
+    /**
+     * Access the file system using BufferedReader.read()
+     * Reads the file character by character.
+     */
+    public static void accessFileSystemViaBufferedReaderRead() throws IOException {
+        try (BufferedReader reader = new BufferedReader(new FileReader("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"))) {
+            int ch;
+            while ((ch = reader.read()) != -1) {
+                // Just read the data to trigger the file system access
+                @SuppressWarnings("unused")
+                char character = (char) ch;
+            }
+        }
+    }
 
     /**
-     * Access the file system using {@link BufferedReader} for reading.
+     * Access the file system using BufferedReader.read(char[] cbuf, int off, int len)
+     * Reads the file into a buffer.
      */
-    public static void accessFileSystemViaBufferedReader() throws IOException {
+    public static void accessFileSystemViaBufferedReaderReadCharArray() throws IOException {
         try (BufferedReader reader = new BufferedReader(new FileReader("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"))) {
-            StringBuilder content = new StringBuilder();
+            char[] buffer = new char[1024];
+            int numRead;
+            while ((numRead = reader.read(buffer, 0, buffer.length)) != -1) {
+                // Just read the data to trigger the file system access
+                @SuppressWarnings("unused")
+                int bytesRead = numRead;
+            }
+        }
+    }    /**
+     * Access the file system using BufferedReader.readLine()
+     * Reads the file line by line.
+     */
+    public static void accessFileSystemViaBufferedReaderReadLine() throws IOException {
+        try (BufferedReader reader = new BufferedReader(new FileReader("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                content.append(line);
-                content.append(System.lineSeparator());
+                // Just read the data to trigger the file system access
+                @SuppressWarnings("unused")
+                String readLine = line;
             }
         }
     }

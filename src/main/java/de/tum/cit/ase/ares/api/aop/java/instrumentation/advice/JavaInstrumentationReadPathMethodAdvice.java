@@ -5,9 +5,6 @@ import net.bytebuddy.asm.Advice;
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
-import static net.bytebuddy.asm.Advice.OnMethodEnter;
-
 /**
  * This class provides advice for the execution of methods reading files.
  * It is responsible for verifying whether the method execution is allowed based on the file system
@@ -35,7 +32,7 @@ public class JavaInstrumentationReadPathMethodAdvice {
      * @param parameters        The parameters passed to the method being executed.
      * @throws SecurityException If the method execution is not allowed based on security policies.
      */
-    @OnMethodEnter
+    @Advice.OnMethodEnter
     public static void onEnter(
             @Advice.Origin("#t") String declaringTypeName,
             @Advice.Origin("#m") String methodName,
@@ -53,15 +50,15 @@ public class JavaInstrumentationReadPathMethodAdvice {
                     fields[i].setAccessible(true);
                     attributes[i] = fields[i].get(instance);
                 } catch (InaccessibleObjectException e) {
-                    throw new SecurityException(localize("security.instrumentation.inaccessible.object.exception", fields[i].getName(), instance.getClass().getName()), e);
+                    throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.inaccessible.object.exception", fields[i].getName(), instance.getClass().getName()), e);
                 } catch (IllegalAccessException e) {
-                    throw new SecurityException(localize("security.instrumentation.illegal.access.exception", fields[i].getName(), instance.getClass().getName()), e);
+                    throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.illegal.access.exception", fields[i].getName(), instance.getClass().getName()), e);
                 } catch (IllegalArgumentException e) {
-                    throw new SecurityException(localize("security.instrumentation.illegal.argument.exception", fields[i].getName(), fields[i].getDeclaringClass().getName(), instance.getClass().getName()), e);
+                    throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.illegal.argument.exception", fields[i].getName(), fields[i].getDeclaringClass().getName(), instance.getClass().getName()), e);
                 } catch (NullPointerException e) {
-                    throw new SecurityException(localize("security.instrumentation.null.pointer.exception", fields[i].getName(), instance.getClass().getName()), e);
+                    throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.null.pointer.exception", fields[i].getName(), instance.getClass().getName()), e);
                 } catch (ExceptionInInitializerError e) {
-                    throw new SecurityException(localize("security.instrumentation.exception.in-initializer.error", fields[i].getName(), instance.getClass().getName()), e);
+                    throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.exception.in-initializer.error", fields[i].getName(), instance.getClass().getName()), e);
                 }
             }
         }

@@ -1,14 +1,13 @@
 package de.tum.cit.ase.ares.api.architecture.java.wala;
 
+import com.google.common.collect.Iterables;
 import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.ibm.wala.shrike.shrikeCT.InvalidClassFileException;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
 
 import java.util.List;
 import java.util.Set;
-
-import static com.google.common.collect.Iterables.isEmpty;
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
 
 public class WalaRule {
     String ruleName;
@@ -27,11 +26,11 @@ public class WalaRule {
                                 .getSignature()
                                 .startsWith(method)));
 
-        if (reachableNodes == null || isEmpty(reachableNodes)) {
+        if (reachableNodes == null || Iterables.isEmpty(reachableNodes)) {
             return;
         }
         try {
-            throw new AssertionError(localize("security.architecture.method.call.message",
+            throw new AssertionError(JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.method.call.message",
                     ruleName,
                     reachableNodes.getLast().getMethod().getSignature(),
                     reachableNodes.get(reachableNodes.size() - 2).getMethod().getSignature(),
@@ -40,7 +39,7 @@ public class WalaRule {
                     reachableNodes.getFirst().getMethod().getSignature()
             ));
         } catch (InvalidClassFileException e) {
-            throw new SecurityException(localize("security.architecture.invalid.class.file"));
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.invalid.class.file"));
         }
     }
 }

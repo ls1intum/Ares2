@@ -1,7 +1,6 @@
 package de.tum.cit.ase.ares.api.securitytest.java.projectScanner;
 
 import javax.annotation.Nonnull;
-import java.util.regex.Pattern;
 
 public class JavaProgrammingExerciseProjectScanner extends JavaProjectScanner {
 
@@ -12,34 +11,46 @@ public class JavaProgrammingExerciseProjectScanner extends JavaProjectScanner {
      */
     @Nonnull
     private String getDefaultPackage() {
-        return "de.tum.cit.aet";
-    }
-
-    /**
+        return "de.tum.cit.ase";
+    }    /**
      * Default main class name used if no main class is detected.
      */
     @Nonnull
     private String getDefaultMainClass() {
         return "Main";
     }
+    //</editor-fold>
+
+    //<editor-fold desc="Overridden methods with TUM-specific defaults">
 
     /**
-     * Regex pattern to identify test annotations.
-     * This pattern matches the following annotations:
-     * - @Test
-     * - @Property
-     * - @PublicTest
-     * - @PrivateTest
+     * Determines the most commonly used package name in the project.
+     * Uses TUM-specific default package if none is found.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @return the most frequent package name or TUM default if none is found
      */
+    @Override
     @Nonnull
-    private static final Pattern TEST_ANNOTATION_PATTERN = Pattern.compile("@(?:Test|Property|PublicTest|PrivateTest)\\b");
+    public String scanForPackageName() {
+        String result = super.scanForPackageName();
+        return result.isEmpty() ? getDefaultPackage() : result;
+    }
 
     /**
-     * Regex pattern to identify test annotations.
+     * Identifies the main class within the project.
+     * Uses TUM-specific default main class if none is found.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @return the name of the class containing the main method or TUM default value if none is found
      */
+    @Override
     @Nonnull
-    private Pattern getTestAnnotationPattern() {
-        return JavaProgrammingExerciseProjectScanner.TEST_ANNOTATION_PATTERN;
+    public String scanForMainClassInPackage() {
+        String result = super.scanForMainClassInPackage();
+        return "Main".equals(result) ? getDefaultMainClass() : result;
     }
     //</editor-fold>
 

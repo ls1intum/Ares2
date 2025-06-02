@@ -1,10 +1,10 @@
 package de.tum.cit.ase.ares.api.securitytest.java.executer;
 
-import de.tum.cit.ase.ares.api.aop.java.JavaAOPMode;
+import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
-import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureMode;
+import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
-import de.tum.cit.ase.ares.api.buildtoolconfiguration.java.JavaBuildMode;
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 
 import javax.annotation.Nonnull;
 import java.util.List;
@@ -34,10 +34,10 @@ public interface Executer {
      * @param javaArchitectureTestCases the list of architecture test cases; must not be null
      * @param javaAOPTestCases the list of AOP test cases; must not be null
      */
-    void executeSecurityTestCases(
-            @Nonnull JavaBuildMode javaBuildMode,
-            @Nonnull JavaArchitectureMode javaArchitectureMode,
-            @Nonnull JavaAOPMode javaAOPMode,
+    void executeTestCases(
+            @Nonnull BuildMode buildMode,
+            @Nonnull ArchitectureMode architectureMode,
+            @Nonnull AOPMode aopMode,
             @Nonnull List<String> essentialPackages,
             @Nonnull List<String> essentialClasses,
             @Nonnull List<String> testClasses,

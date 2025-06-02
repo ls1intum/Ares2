@@ -1,10 +1,10 @@
 package de.tum.cit.ase.ares.api.securitytest.java.writer;
 
-import de.tum.cit.ase.ares.api.aop.java.JavaAOPMode;
+import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
-import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureMode;
+import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
-import de.tum.cit.ase.ares.api.buildtoolconfiguration.java.JavaBuildMode;
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.phobos.Phobos;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
@@ -38,7 +38,7 @@ public class JavaWriter implements Writer {
      *
      * @since 2.0.0
      * @author Markus Paulsen
-     * @param javaArchitectureMode the Java architecture mode to use; must not be null
+     * @param architectureMode the Java architecture mode to use; must not be null
      * @param essentialPackages the list of essential packages; must not be null
      * @param packageName the name of the package containing the main class; must not be null
      * @param mainClassInPackageName the name of the main class; must not be null
@@ -48,25 +48,26 @@ public class JavaWriter implements Writer {
      */
     @Nonnull
     private List<Path> createJavaArchitectureFiles(
-            @Nonnull JavaArchitectureMode javaArchitectureMode,
+            @Nonnull ArchitectureMode architectureMode,
             @Nonnull List<String> essentialPackages,
             @Nonnull String packageName,
             @Nonnull String mainClassInPackageName,
             @Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
             @Nullable Path testFolderPath
     ) {
+        var x = 0;
         return Stream.concat(
-                FileTools.copyJavaPhobosFiles(
-                        javaArchitectureMode.filesToCopy(),
-                        javaArchitectureMode.targetsToCopyTo(testFolderPath, packageName),
-                        javaArchitectureMode.fileValues(packageName)
+                FileTools.copyFormatStringFiles(
+                        architectureMode.filesToCopy(),
+                        architectureMode.targetsToCopyTo(testFolderPath, packageName),
+                        architectureMode.formatValues(packageName, mainClassInPackageName)
                 ).stream(),
-                Stream.of(FileTools.createThreePartedJavaPhobosFile(
-                        javaArchitectureMode.threePartedFileHeader(),
-                        javaArchitectureMode.threePartedFileBody(javaArchitectureTestCases),
-                        javaArchitectureMode.threePartedFileFooter(),
-                        javaArchitectureMode.targetToCopyTo(testFolderPath, packageName),
-                        javaArchitectureMode.fileValue(packageName)
+                Stream.of(FileTools.createThreePartedFormatStringFile(
+                        architectureMode.threePartedFileHeader(),
+                        architectureMode.threePartedFileBody(javaArchitectureTestCases),
+                        architectureMode.threePartedFileFooter(),
+                        architectureMode.targetToCopyTo(testFolderPath, packageName),
+                        architectureMode.formatValues(packageName)
                 ))
         ).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
     }
@@ -76,7 +77,7 @@ public class JavaWriter implements Writer {
      *
      * @since 2.0.0
      * @author Markus Paulsen
-     * @param javaAOPMode the Java AOP mode to use; must not be null
+     * @param aopMode the Java AOP mode to use; must not be null
      * @param essentialClasses the list of essential classes; must not be null
      * @param testClasses the list of test classes; must not be null
      * @param packageName the name of the package containing the main class; must not be null
@@ -87,7 +88,7 @@ public class JavaWriter implements Writer {
      */
     @Nonnull
     private List<Path> createJavaAOPFiles(
-            @Nonnull JavaAOPMode javaAOPMode,
+            @Nonnull AOPMode aopMode,
             @Nonnull List<String> essentialClasses,
             @Nonnull List<String> testClasses,
             @Nonnull String packageName,
@@ -100,17 +101,17 @@ public class JavaWriter implements Writer {
                 testClasses.stream()
         ).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
         return Stream.concat(
-                FileTools.copyJavaPhobosFiles(
-                        javaAOPMode.filesToCopy(),
-                        javaAOPMode.targetsToCopyTo(testFolderPath, packageName),
-                        javaAOPMode.fileValues(packageName, mainClassInPackageName)
+                FileTools.copyFormatStringFiles(
+                        aopMode.filesToCopy(),
+                        aopMode.targetsToCopyTo(testFolderPath, packageName),
+                        aopMode.formatValues(packageName, mainClassInPackageName)
                 ).stream(),
-                Stream.of(FileTools.createThreePartedJavaPhobosFile(
-                        javaAOPMode.threePartedFileHeader(),
-                        javaAOPMode.threePartedFileBody(javaAOPMode.toString(), packageName, allowedClasses, javaAOPTestCases),
-                        javaAOPMode.threePartedFileFooter(),
-                        javaAOPMode.targetToCopyTo(testFolderPath, packageName),
-                        javaAOPMode.fileValue(packageName)
+                Stream.of(FileTools.createThreePartedFormatStringFile(
+                        aopMode.threePartedFileHeader(),
+                        aopMode.threePartedFileBody(aopMode.toString(), packageName, allowedClasses, javaAOPTestCases),
+                        aopMode.threePartedFileFooter(),
+                        aopMode.targetToCopyTo(testFolderPath, packageName),
+                        aopMode.formatValues(packageName)
                 ))
         ).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
     }
@@ -122,12 +123,12 @@ public class JavaWriter implements Writer {
             @Nullable Path testFolderPath
     ) {
         return Stream.concat(
-                FileTools.copyJavaPhobosFiles(
+                FileTools.copyFormatStringFiles(
                         Phobos.filesToCopy(),
                         Phobos.targetsToCopyTo(testFolderPath, packageName),
                         Phobos.fileValues(packageName)
                 ).stream(),
-                Stream.of(FileTools.createThreePartedJavaPhobosFile(
+                Stream.of(FileTools.createThreePartedFormatStringFile(
                         Phobos.threePartedFileHeader(),
                         Phobos.threePartedFileBody(javaAOPTestCases, testFolderPath),
                         Phobos.threePartedFileFooter(),
@@ -146,9 +147,9 @@ public class JavaWriter implements Writer {
      *
      * @since 2.0.0
      * @author Markus Paulsen
-     * @param javaBuildMode the Java build mode to use; must not be null
-     * @param javaArchitectureMode the Java architecture mode to use; must not be null
-     * @param javaAOPMode the Java AOP mode to use; must not be null
+     * @param buildMode the Java build mode to use; must not be null
+     * @param architectureMode the Java architecture mode to use; must not be null
+     * @param aopMode the Java AOP mode to use; must not be null
      * @param essentialPackages the list of essential packages; must not be null
      * @param essentialClasses the list of essential classes; must not be null
      * @param testClasses the list of test classes; must not be null
@@ -160,10 +161,10 @@ public class JavaWriter implements Writer {
      * @return a list of paths to the created files
      */
     @Nonnull
-    public List<Path> writeSecurityTestCases(
-            @Nonnull JavaBuildMode javaBuildMode,
-            @Nonnull JavaArchitectureMode javaArchitectureMode,
-            @Nonnull JavaAOPMode javaAOPMode,
+    public List<Path> writeTestCases(
+            @Nonnull BuildMode buildMode,
+            @Nonnull ArchitectureMode architectureMode,
+            @Nonnull AOPMode aopMode,
             @Nonnull List<String> essentialPackages,
             @Nonnull List<String> essentialClasses,
             @Nonnull List<String> testClasses,
@@ -175,7 +176,7 @@ public class JavaWriter implements Writer {
     ) {
         return Stream.of(
                         createJavaArchitectureFiles(
-                                javaArchitectureMode,
+                                architectureMode,
                                 essentialPackages,
                                 packageName,
                                 mainClassInPackageName,
@@ -183,19 +184,19 @@ public class JavaWriter implements Writer {
                                 testFolderPath
                         ).stream(),
                         createJavaAOPFiles(
-                                javaAOPMode,
+                                aopMode,
                                 essentialClasses,
                                 testClasses,
                                 packageName,
                                 mainClassInPackageName,
                                 javaAOPTestCases,
                                 testFolderPath
-                        ).stream(),
-                        createPhobosFiles(
+                        ).stream()//,
+                        /*createPhobosFiles(
                                 packageName,
                                 javaAOPTestCases,
                                 testFolderPath
-                        ).stream()
+                        ).stream()*/
                 )
                 .flatMap(s -> s)
                 .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);

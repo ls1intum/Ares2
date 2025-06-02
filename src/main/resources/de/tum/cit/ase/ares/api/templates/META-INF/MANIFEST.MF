@@ -1,5 +1,5 @@
 Manifest-Version: 1.0
-Premain-Class: %s.aop.java.instrumentation.JavaInstrumentationAgent
+Premain-Class: %s.ares.api.aop.java.instrumentation.JavaInstrumentationAgent
 Can-Redefine-Classes: true
 Can-Retransform-Classes: true
-Main-Class: %s.%s
+Main-Class: %s.ares.api.aop.java.instrumentation.JavaInstrumentationAgent

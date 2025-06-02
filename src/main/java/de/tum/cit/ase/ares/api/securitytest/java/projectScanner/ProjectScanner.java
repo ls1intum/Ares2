@@ -1,6 +1,6 @@
 package de.tum.cit.ase.ares.api.securitytest.java.projectScanner;
 
-import de.tum.cit.ase.ares.api.buildtoolconfiguration.java.JavaBuildMode;
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 
 import javax.annotation.Nonnull;
 import java.nio.file.Path;
@@ -28,7 +28,7 @@ public interface ProjectScanner {
      * @return the Java build mode for the project
      */
     @Nonnull
-    JavaBuildMode scanForBuildMode();
+    BuildMode scanForBuildMode();
 
     /**
      * Scans the project for test classes.
