@@ -12,7 +12,7 @@ public class ReadFileReaderMain {
     /**
      * Access the file system using {@link FileReader} for reading.
      */
-    public static void accessFileSystemViaFileReader() throws IOException {
+    public static void accessFileSystemViaFileReaderRead() throws IOException {
         try (FileReader reader = new FileReader("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt")) {
             StringBuilder content = new StringBuilder();
             int ch;
