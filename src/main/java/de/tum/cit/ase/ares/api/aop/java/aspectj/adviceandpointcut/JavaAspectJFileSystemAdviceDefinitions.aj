@@ -32,9 +32,6 @@ import org.aspectj.lang.JoinPoint;
 public aspect JavaAspectJFileSystemAdviceDefinitions {
 
     //<editor-fold desc="Constants">
-    // Skip the OutputTester and InputTester classes, as they intercept the output and input for System.out and System.in
-    // Therefore, they cause false positives.
-    // Also, X11FontManager needs to be set when using AWT therefore we have to allow it
     /**
      * List of call stack classes to ignore during file system checks.
      *
@@ -43,11 +40,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
      */
     @Nonnull
     private static final List<String> FILE_SYSTEM_IGNORE_CALLSTACK = List.of(
-            "java.lang.ClassLoader"//,
-            //"sun.awt.X11FontManager",
-            //"de.tum.cit.ase.ares.api.io.OutputTester",
-            //"de.tum.cit.ase.ares.api.io.InputTester",
-            //"de.tum.cit.ase.ares.api.localization.Messages"
+            "java.lang.ClassLoader"
     );
 
     /**
@@ -272,82 +265,23 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
 
     //<editor-fold desc="Variable criteria methods">
 
+    //<editor-fold desc="Filter variables">
+
     /**
-     * Transforms variable values into a normalized absolute path.
+     * Filters variables based on the IgnoreValues criteria.
      *
-     * <p>Description: Converts the provided variable (Path, String, or File)
-     * into an absolute normalized Path for security checks, validating existence.
+     * <p>Description: Returns a new array of variables, excluding those that match the ignore criteria.
+     * If all variables are ignored, returns an empty array. If all except one variable is ignored,
+     * returns an array with only that variable.
      *
-     * @param variableValue the variable to transform into a Path
-     * @return the normalized absolute Path
-     * @throws InvalidPathException if transformation fails
+     * @param variables the original array of variables
+     * @param ignoreVariables criteria determining which variables to skip
+     * @return a filtered array of variables
      * @since 2.0.0
      * @author Markus Paulsen
      */
     @Nonnull
-    private static Path variableToPath(@Nullable Object variableValue) {
-        if (variableValue == null) {
-            throw new InvalidPathException("null", localize("security.advice.transform.path.exception"));
-        } else if (variableValue instanceof Path) {
-            @Nonnull Path path = (Path) variableValue;
-            try {
-                return path.normalize().toAbsolutePath();
-            } catch (InvalidPathException e) {
-                throw new InvalidPathException(path.toString(), localize("security.advice.transform.path.exception"));
-            }
-        } else if (variableValue instanceof String) {
-            @Nonnull String string = (String) variableValue;
-            try {
-                Path absolutePath = Path.of(string).normalize().toAbsolutePath();
-                if (Files.exists(absolutePath)) {
-                    return absolutePath;
-                } else {
-                    throw new InvalidPathException(string, localize("security.advice.transform.path.exception"));
-                }
-            } catch (InvalidPathException e) {
-                throw new InvalidPathException(string, localize("security.advice.transform.path.exception"));
-            }
-        } else if (variableValue instanceof File) {
-            @Nonnull File file = (File) variableValue;
-            try {
-                return Path.of(file.toURI()).normalize().toAbsolutePath();
-            } catch (InvalidPathException e) {
-                throw new InvalidPathException(file.toString(), localize("security.advice.transform.path.exception"));
-            }
-        } else {
-            throw new InvalidPathException(variableValue.toString(), localize("security.advice.transform.path.exception"));
-        }
-    }
-
-    /**
-     * Determines if a given path is allowed based on configured prefixes.
-     *
-     * <p>Description: Resolves the real path of the target and checks
-     * whether it starts with any allowed path prefix.
-     *
-     * @param allowedPaths the array of allowed path prefixes
-     * @param pathToCheck the Path to verify against allowed prefixes
-     * @return true if access is allowed, false otherwise
-     * @since 2.0.0
-     * @author Markus Paulsen
-     */
-    private static boolean checkIfPathIsAllowed(@Nonnull String[] allowedPaths, @Nonnull Path pathToCheck) {
-        try {
-            @Nonnull Path real = pathToCheck.toRealPath(LinkOption.NOFOLLOW_LINKS);
-            for (@Nonnull String allowed : allowedPaths) {
-                try {
-                    if (real.startsWith(variableToPath(allowed))) {
-                        return true;
-                    }
-                } catch (InvalidPathException ignored) {}
-            }
-            return false;
-        } catch (IOException e) {
-            return false;
-        }
-    }
-
-    private static Object[] filterVariables(@Nonnull Object[] variables, IgnoreValues ignoreVariables) {
+    private static Object[] filterVariables(@Nonnull Object[] variables, @Nonnull IgnoreValues ignoreVariables) {
         @Nonnull ArrayList<Object> newVariables = new ArrayList<>(Arrays.asList(variables.clone()));
         switch (ignoreVariables.getType()) {
             // No variable is ignored
@@ -369,129 +303,9 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
         }
         return newVariables.toArray();
     }
+    //</editor-fold>
 
-    /**
-     * Checks an array of variables against allowed file system paths.
-     *
-     * <p>Description: Iterates through the filtered variables (excluding those matching ignoreVariables). For each
-     * non-null variable, if it is an array or a List (excluding byte[]/Byte[]), each element is converted to a Path
-     * and tested against allowedPaths. Otherwise, the variable itself is converted to a Path and tested. The first
-     * violating path found is returned.
-     *
-     * @since 2.0.0
-     * @author Markus
-     * @param variables      array of values to validate
-     * @param allowedPaths   whitelist of allowed path strings; if null, all paths are considered allowed
-     * @param ignoreVariables criteria determining which variables to skip
-     * @return the first path (as String) that is not allowed, or null if none violate
-     */
-    private static String checkIfVariableCriteriaIsViolated(
-            @Nonnull Object[] variables,
-            @Nullable String[] allowedPaths,
-            IgnoreValues ignoreVariables
-    ) {
-        for (@Nullable Object variable : filterVariables(variables, ignoreVariables)) {
-            if (variable == null || isByteArray(variable)) {
-                continue;
-            }
-
-            if (variable.getClass().isArray()) {
-                if (handleArrayVariable(variable, allowedPaths)) {
-                    return extractViolationPath(variable, allowedPaths);
-                }
-            } else if (variable instanceof List<?>) {
-                if (handleListVariable((List<?>) variable, allowedPaths)) {
-                    return extractViolationPath(variable, allowedPaths);
-                }
-            } else {
-                Path path = safeConvertToPath(variable);
-                if (path != null && isForbidden(path, allowedPaths)) {
-                    return path.toString();
-                }
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Determines if an object is a byte array.
-     *
-     * <p>Description: Returns true if the object is either a primitive byte[] or an array of Byte.
-     *
-     * @since 2.0.0
-     * @author Markus
-     * @param obj the object to test
-     * @return true if obj is byte[] or Byte[], false otherwise
-     */
-    private static boolean isByteArray(Object obj) {
-        return obj instanceof byte[] || obj instanceof Byte[];
-    }
-
-    /**
-     * Processes an array variable, checking each element for path violations.
-     *
-     * <p>Description: Reflectively iterates through the given array, converts each element to a Path if possible,
-     * and tests against allowedPaths. Stops at the first violation.
-     *
-     * @since 2.0.0
-     * @author Markus
-     * @param array        the array to inspect
-     * @param allowedPaths whitelist of allowed paths
-     * @return true if any element violates the allowedPaths; false otherwise
-     */
-    private static boolean handleArrayVariable(Object array, @Nullable String[] allowedPaths) {
-        int length = Array.getLength(array);
-        for (int i = 0; i < length; i++) {
-            Object element = Array.get(array, i);
-            Path path = safeConvertToPath(element);
-            if (path != null && isForbidden(path, allowedPaths)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Processes a List variable, checking each element for path violations.
-     *
-     * <p>Description: Iterates through the list, converts each element to a Path if possible, and tests against
-     * allowedPaths. Stops at the first violation encountered.
-     *
-     * @since 2.0.0
-     * @author Markus
-     * @param list         the list to inspect
-     * @param allowedPaths whitelist of allowed paths
-     * @return true if any element violates the allowedPaths; false otherwise
-     */
-    private static boolean handleListVariable(List<?> list, @Nullable String[] allowedPaths) {
-        for (Object element : list) {
-            Path path = safeConvertToPath(element);
-            if (path != null && isForbidden(path, allowedPaths)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Safely converts an object to a Path, ignoring invalid inputs.
-     *
-     * <p>Description: Attempts to convert the given object to a Path via variableToPath. If the conversion
-     * fails with InvalidPathException, returns null.
-     *
-     * @since 2.0.0
-     * @author Markus
-     * @param obj the object to convert
-     * @return the resulting Path, or null if conversion fails
-     */
-    @Nullable
-    private static Path safeConvertToPath(@Nullable Object obj) {
-        try {
-            return variableToPath(obj);
-        } catch (InvalidPathException ex) {
-            return null;
-        }
-    }
+    //<editor-fold desc="Forbidden handling">
 
     /**
      * Checks if a Path is outside of the allowed paths whitelist.
@@ -504,8 +318,105 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
      * @param allowedPaths whitelist of allowed path strings
      * @return true if path is forbidden; false otherwise
      */
-    private static boolean isForbidden(@Nonnull Path path, @Nullable String[] allowedPaths) {
-        return allowedPaths != null && !checkIfPathIsAllowed(allowedPaths, path);
+    private static boolean checkIfPathIsForbidden(@Nullable Path path, @Nullable String[] allowedPaths) {
+        if(path == null) {
+            return false;
+        }
+        if(allowedPaths == null) {
+            return true;
+        }
+        try {
+            @Nonnull Path realPath = path.toRealPath(LinkOption.NOFOLLOW_LINKS);
+            for (@Nonnull String allowed : allowedPaths) {
+                try {
+                    Path allowedPath = variableToPath(allowed);
+                    if (allowedPath != null && realPath.startsWith(allowedPath)) {
+                        return false;
+                    }
+                } catch (InvalidPathException ignored) {
+                }
+            }
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Conversion handling">
+
+    /**
+     * Transforms variable values into a normalized absolute path.
+     *
+     * <p>Description: Converts the provided variable (Path, String, or File)
+     * into an absolute normalized Path for security checks, validating existence.
+     *
+     * @param variableValue the variable to transform into a Path
+     * @return the normalized absolute Path
+     * @throws InvalidPathException if transformation fails
+     * @since 2.0.0
+     * @author Markus Paulsen
+     */
+    @Nullable
+    private static Path variableToPath(@Nullable Object variableValue) {
+        try {
+            if (variableValue == null) {
+                return null;
+            } else if (variableValue instanceof Path) {
+                return ((Path) variableValue).normalize().toAbsolutePath();
+            } else if (variableValue instanceof String) {
+                Path absolutePath = Path.of((String) variableValue).normalize().toAbsolutePath();
+                if (Files.exists(absolutePath)) {
+                    return absolutePath;
+                } else {
+                    return null;
+                }
+            } else if (variableValue instanceof File) {
+                return Path.of(((File) variableValue).toURI()).normalize().toAbsolutePath();
+            } else {
+                return null;
+            }
+        } catch (InvalidPathException e) {
+            return null;
+        }
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Violation analysis">
+    /**
+     * Analyzes a variable to determine if it violates allowed paths.
+     *
+     * <p>Description: Recursively checks if the variable or its elements (if an array or List)
+     * are in violation of the allowed paths. Returns true if any element is forbidden.
+     *
+     * @since 2.0.0
+     * @author Markus
+     * @param variable      the variable to analyze
+     * @param allowedPaths  whitelist of allowed path strings; if null, all paths are considered allowed
+     * @return true if a violation is found, false otherwise
+     */
+    private static boolean analyseViolation(@Nullable Object observedVariable, @Nullable String[] allowedPaths) {
+        if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
+            return false;
+        } else if (observedVariable.getClass().isArray()) {
+            for (int i = 0; i < Array.getLength(observedVariable); i++) {
+                Object element = Array.get(observedVariable, i);
+                if (analyseViolation(element, allowedPaths)) {
+                    return true;
+                }
+            }
+            return false;
+        } else if (observedVariable instanceof List<?>) {
+            for (Object element : (List<?>) observedVariable) {
+                if (analyseViolation(element, allowedPaths)) {
+                    return true;
+                }
+            }
+            return false;
+        } else {
+            Path observedPath = variableToPath(observedVariable);
+            return checkIfPathIsForbidden(observedPath, allowedPaths);
+        }
     }
 
     /**
@@ -516,31 +427,69 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
      *
      * @since 2.0.0
      * @author Markus
-     * @param variable     the array or List to inspect
+     * @param observedVariable     the array or List to inspect
      * @param allowedPaths whitelist of allowed path strings
      * @return the first violating path as a String, or null if none found
      */
     @Nullable
-    private static String extractViolationPath(Object variable, @Nullable String[] allowedPaths) {
-        if (variable.getClass().isArray()) {
-            int length = Array.getLength(variable);
-            for (int i = 0; i < length; i++) {
-                Object element = Array.get(variable, i);
-                Path path = safeConvertToPath(element);
-                if (path != null && isForbidden(path, allowedPaths)) {
-                    return path.toString();
+    private static String extractViolationPath(@Nullable Object observedVariable, @Nullable String[] allowedPaths) {
+        if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
+            return null;
+        } else if (observedVariable.getClass().isArray()) {
+            for (int i = 0; i < Array.getLength(observedVariable); i++) {
+                Object element = Array.get(observedVariable, i);
+                String violationPath = extractViolationPath(element, allowedPaths);
+                if (violationPath != null) {
+                    return violationPath;
                 }
             }
-        } else if (variable instanceof List<?>) {
-            for (Object element : (List<?>) variable) {
-                Path path = safeConvertToPath(element);
-                if (path != null && isForbidden(path, allowedPaths)) {
-                    return path.toString();
+            return null;
+        } else if (observedVariable instanceof List<?>) {
+            for (Object element : (List<?>) observedVariable) {
+                String violationPath = extractViolationPath(element, allowedPaths);
+                if (violationPath != null) {
+                    return violationPath;
                 }
+            }
+            return null;
+        } else {
+            Path observedPath = variableToPath(observedVariable);
+            if (checkIfPathIsForbidden(observedPath, allowedPaths)) {
+                return observedPath.toString();
             }
         }
         return null;
     }
+
+    /**
+     * Checks an array of observedVariables against allowed file system paths.
+     *
+     * <p>Description: Iterates through the filtered observedVariables (excluding those matching ignoreVariables). For each
+     * non-null variable, if it is an array or a List (excluding byte[]/Byte[]), each element is converted to a Path
+     * and tested against allowedPaths. Otherwise, the variable itself is converted to a Path and tested. The first
+     * violating path found is returned.
+     *
+     * @since 2.0.0
+     * @author Markus
+     * @param observedVariables      array of values to validate
+     * @param allowedPaths   whitelist of allowed path strings; if null, all paths are considered allowed
+     * @param ignoreVariables criteria determining which observedVariables to skip
+     * @return the first path (as String) that is not allowed, or null if none violate
+     */
+    private static String checkIfVariableCriteriaIsViolated(
+            @Nonnull Object[] observedVariables,
+            @Nullable String[] allowedPaths,
+            @Nonnull IgnoreValues ignoreVariables
+    ) {
+        for (@Nullable Object observedVariable : filterVariables(observedVariables, ignoreVariables)) {
+            if (analyseViolation(observedVariable, allowedPaths)) {
+                return extractViolationPath(observedVariable, allowedPaths);
+            }
+        }
+        return null;
+    }
+    //</editor-fold>
+
     //</editor-fold>
 
     //<editor-fold desc="Check methods">
@@ -548,8 +497,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
     /**
      * Validates a file system interaction against security policies.
      *
-     * <p>Description: Verifies that the specified action (read, overwrite, execute,
-     * delete) complies with allowed paths and call stack criteria. Throws SecurityException
+     * <p>Description: Verifies that the specified action (read, overwrite, execute, delete)
+     * complies with allowed paths and call stack criteria. Throws SecurityException
      * if a policy violation is detected.
      *
      * @param action the file system action being performed
@@ -597,6 +546,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
         //</editor-fold>
     }
     //</editor-fold>
+
     //</editor-fold>
 
     before():
