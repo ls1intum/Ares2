@@ -1,5 +1,5 @@
 ---
-name: Bug Report template
+name: "\U0001F41B Bug Report "
 about: This template should function as a template for bug reports in Ares2
 title: ''
 labels: bug
