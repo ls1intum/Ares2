@@ -15,4 +15,6 @@ public interface JavaFileLoader {
     List<List<String>> loadEditData(ArchitectureMode mode) throws IOException, CsvException;
 
     List<List<String>> loadEditData(AOPMode mode) throws IOException, CsvException;
+    List<List<String>> loadCopyData() throws IOException, CsvException;
+    List<List<String>> loadEditData() throws IOException, CsvException;
 }
