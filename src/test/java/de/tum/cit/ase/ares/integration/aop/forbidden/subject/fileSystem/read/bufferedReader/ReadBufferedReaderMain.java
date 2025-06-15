@@ -53,4 +53,7 @@ public class ReadBufferedReaderMain {
             }
         }
     }
+
+    public static void accessFileSystemViaBufferedReader() {
+    }
 }
