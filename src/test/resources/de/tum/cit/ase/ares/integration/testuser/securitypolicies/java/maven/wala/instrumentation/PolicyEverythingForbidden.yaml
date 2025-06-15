@@ -2,7 +2,8 @@ regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_WALA_AND_INSTRUMENTATION
   theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
   theMainClassInsideThisPackageIs: "Main"
-  theFollowingClassesAreTestClasses: [ ]
+  theFollowingClassesAreTestClasses:
+    - "de.tum.cit.ase.ares.integration.architecture.forbidden.FileSystemAccessTest"
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions: [ ]
     regardingNetworkConnections: [ ]

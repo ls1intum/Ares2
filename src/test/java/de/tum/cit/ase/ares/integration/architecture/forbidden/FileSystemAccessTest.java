@@ -21,12 +21,22 @@ import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwrit
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwrite.thirdPartyPackage.WriteThirdPartyPackageMain;
 import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdpartypackage.ThirdPartyPackagePenguin;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
+import org.junit.platform.testkit.engine.EngineTestKit;
+import org.junit.platform.testkit.engine.Events;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+
+import static org.junit.platform.engine.discovery.DiscoverySelectors.selectMethod;
+import static org.junit.platform.testkit.engine.EventConditions.event;
+import static org.junit.platform.testkit.engine.EventConditions.finishedWithFailure;
+import static org.junit.platform.testkit.engine.EventConditions.test;
+import static org.junit.platform.testkit.engine.TestExecutionResultConditions.instanceOf;
 
 class FileSystemAccessTest {
 
@@ -149,6 +159,21 @@ class FileSystemAccessTest {
         SecurityException se = Assertions.assertThrows(SecurityException.class, executable, ERROR_MESSAGE);
         assertGeneralErrorMessage(se.getMessage(), "illegally delete from", "illegal delete von", clazz);
     }
+
+    private void testtest(Class<?> clazz, String methodName) {
+        Events testEvents = EngineTestKit
+                .engine("junit-jupiter")
+                .configurationParameter(
+                        "junit.jupiter.conditions.deactivate",
+                        "org.junit.*DisabledCondition"
+                )
+                .selectors(selectMethod(clazz, methodName))
+                .execute()
+                .testEvents();
+
+        testEvents.assertStatistics(stats -> stats.failed(1).aborted(0).succeeded(0));
+        testEvents.assertThatEvents().haveExactly(1, event(test(methodName), finishedWithFailure(instanceOf(SecurityException.class))));
+    }
     // </editor-fold>
 
     // <editor-fold desc="Read Operations">
@@ -157,24 +182,49 @@ class FileSystemAccessTest {
     class ReadOperations {
 
         // <editor-fold desc="accessFileSystemViaFilesRead">
+
+        @Test
+        void test_accessFileSystemViaFilesReadMavenArchunitAspectJ_test() {
+            testtest(FileSystemAccessTest.ReadOperations.class, "test_accessFileSystemViaFilesReadMavenArchunitAspectJ");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
         void test_accessFileSystemViaFilesReadMavenArchunitAspectJ() {
             assertAresSecurityExceptionRead(ReadFilesReadMain::accessFileSystemViaFilesRead, ReadFilesReadMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaFilesReadMavenArchunitInstrumentation_test() {
+            testtest(FileSystemAccessTest.ReadOperations.class, "test_accessFileSystemViaFilesReadMavenArchunitInstrumentation");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
         void test_accessFileSystemViaFilesReadMavenArchunitInstrumentation() {
             assertAresSecurityExceptionRead(ReadFilesReadMain::accessFileSystemViaFilesRead, ReadFilesReadMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaFilesReadMavenWalaAspectJ_test() {
+            testtest(FileSystemAccessTest.ReadOperations.class, "test_accessFileSystemViaFilesReadMavenWalaAspectJ");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
         void test_accessFileSystemViaFilesReadMavenWalaAspectJ() {
             assertAresSecurityExceptionRead(ReadFilesReadMain::accessFileSystemViaFilesRead, ReadFilesReadMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaFilesReadMavenWalaInstrumentation_test() {
+            testtest(FileSystemAccessTest.ReadOperations.class, "test_accessFileSystemViaFilesReadMavenWalaInstrumentation");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
         void test_accessFileSystemViaFilesReadMavenWalaInstrumentation() {
@@ -183,25 +233,48 @@ class FileSystemAccessTest {
         // </editor-fold>
 
         // <editor-fold desc="accessFileSystemViaFileRead">
+        @Test
+        void test_accessFileSystemViaFileReadMavenArchunitAspectJ_test() {
+            testtest(FileSystemAccessTest.ReadOperations.class, "test_accessFileSystemViaFileReadMavenArchunitAspectJ");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileRead")
         void test_accessFileSystemViaFileReadMavenArchunitAspectJ() {
             assertAresSecurityExceptionRead(ReadFileReadMain::accessFileSystemViaFileRead, ReadFileReadMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaFileReadMavenArchunitInstrumentation_test() {
+            testtest(FileSystemAccessTest.ReadOperations.class, "test_accessFileSystemViaFileReadMavenArchunitInstrumentation");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileRead")
         void test_accessFileSystemViaFileReadMavenArchunitInstrumentation() {
             assertAresSecurityExceptionRead(ReadFileReadMain::accessFileSystemViaFileRead, ReadFileReadMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaFileReadMavenWalaAspectJ_test() {
+            testtest(FileSystemAccessTest.ReadOperations.class, "test_accessFileSystemViaFileReadMavenWalaAspectJ");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileRead")
         void test_accessFileSystemViaFileReadMavenWalaAspectJ() {
             assertAresSecurityExceptionRead(ReadFileReadMain::accessFileSystemViaFileRead, ReadFileReadMain.class);
         }
 
-        // TODO: reference test case for analysis
+        @Test
+        void test_accessFileSystemViaFileReadMavenWalaInstrumentation_test() {
+            testtest(FileSystemAccessTest.ReadOperations.class, "test_accessFileSystemViaFileReadMavenWalaInstrumentation");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileRead")
         void test_accessFileSystemViaFileReadMavenWalaInstrumentation() {
@@ -209,8 +282,13 @@ class FileSystemAccessTest {
         }
         // </editor-fold>
 
-        // <editor-fold desc="accessFileSystemViaBufferedReader - 3 subtests">
-        // <editor-fold desc="accessFileSystemViaBufferedReader">
+        // <editor-fold desc="accessFileSystemViaBufferedReader - 3 subtests">        // <editor-fold desc="accessFileSystemViaBufferedReader">
+        @Test
+        void test_accessFileSystemViaBufferedReaderMavenArchunitAspectJ_test() {
+            testtest(FileSystemAccessTest.ReadOperations.class, "test_accessFileSystemViaBufferedReaderMavenArchunitAspectJ");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/bufferedReader")
         void test_accessFileSystemViaBufferedReaderMavenArchunitAspectJ() {
@@ -218,6 +296,12 @@ class FileSystemAccessTest {
                     ReadBufferedReaderMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaBufferedReaderMavenArchunitInstrumentation_test() {
+            testtest(FileSystemAccessTest.ReadOperations.class, "test_accessFileSystemViaBufferedReaderMavenArchunitInstrumentation");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/bufferedReader")
         void test_accessFileSystemViaBufferedReaderMavenArchunitInstrumentation() {
@@ -225,6 +309,12 @@ class FileSystemAccessTest {
                     ReadBufferedReaderMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaBufferedReaderMavenWalaAspectJ_test() {
+            testtest(FileSystemAccessTest.ReadOperations.class, "test_accessFileSystemViaBufferedReaderMavenWalaAspectJ");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/bufferedReader")
         void test_accessFileSystemViaBufferedReaderMavenWalaAspectJ() {
@@ -232,6 +322,12 @@ class FileSystemAccessTest {
                     ReadBufferedReaderMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaBufferedReaderMavenWalaInstrumentation_test() {
+            testtest(FileSystemAccessTest.ReadOperations.class, "test_accessFileSystemViaBufferedReaderMavenWalaInstrumentation");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/bufferedReader")
         void test_accessFileSystemViaBufferedReaderMavenWalaInstrumentation() {
@@ -239,10 +335,14 @@ class FileSystemAccessTest {
                     ReadBufferedReaderMain.class);
         }
         // </editor-fold>
-        // </editor-fold>
-
-        // <editor-fold desc="accessFileSystemViaFileReader (FileReader) - 3 subtests">
+        // </editor-fold>        // <editor-fold desc="accessFileSystemViaFileReader (FileReader) - 3 subtests">
         // <editor-fold desc="accessFileSystemViaFileReader">
+        @Test
+        void test_accessFileSystemViaFileReaderMavenArchunitAspectJ_test() {
+            testtest(FileSystemAccessTest.ReadOperations.class, "test_accessFileSystemViaFileReaderMavenArchunitAspectJ");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileReader")
         void test_accessFileSystemViaFileReaderMavenArchunitAspectJ() {
@@ -250,6 +350,12 @@ class FileSystemAccessTest {
                     ReadFileReaderMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaFileReaderMavenArchunitInstrumentation_test() {
+            testtest(FileSystemAccessTest.ReadOperations.class, "test_accessFileSystemViaFileReaderMavenArchunitInstrumentation");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileReader")
         void test_accessFileSystemViaFileReaderMavenArchunitInstrumentation() {
@@ -257,6 +363,12 @@ class FileSystemAccessTest {
                     ReadFileReaderMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaFileReaderMavenWalaAspectJ_test() {
+            testtest(FileSystemAccessTest.ReadOperations.class, "test_accessFileSystemViaFileReaderMavenWalaAspectJ");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileReader")
         void test_accessFileSystemViaFileReaderMavenWalaAspectJ() {
@@ -264,15 +376,24 @@ class FileSystemAccessTest {
                     ReadFileReaderMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaFileReaderMavenWalaInstrumentation_test() {
+            testtest(FileSystemAccessTest.ReadOperations.class, "test_accessFileSystemViaFileReaderMavenWalaInstrumentation");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileReader")
         void test_accessFileSystemViaFileReaderMavenWalaInstrumentation() {
             assertAresSecurityExceptionRead(ReadFileReaderMain::accessFileSystemViaFileReader,
                     ReadFileReaderMain.class);
         }
-        // </editor-fold>
-
-        // <editor-fold desc="accessFileSystemViaFileReaderReadCharArray">
+        // </editor-fold>// <editor-fold desc="accessFileSystemViaFileReaderReadCharArray">
+        @Test
+        void test_accessFileSystemViaFileReaderReadCharArrayMavenArchunitAspectJ_test() {
+            testtest(FileSystemAccessTest.ReadOperations.class, "test_accessFileSystemViaFileReaderReadCharArrayMavenArchunitAspectJ");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileReader")
         void test_accessFileSystemViaFileReaderReadCharArrayMavenArchunitAspectJ() {
@@ -280,6 +401,11 @@ class FileSystemAccessTest {
                     ReadFileReaderMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaFileReaderReadCharArrayMavenArchunitInstrumentation_test() {
+            testtest(FileSystemAccessTest.ReadOperations.class, "test_accessFileSystemViaFileReaderReadCharArrayMavenArchunitInstrumentation");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileReader")
         void test_accessFileSystemViaFileReaderReadCharArrayMavenArchunitInstrumentation() {
@@ -287,6 +413,11 @@ class FileSystemAccessTest {
                     ReadFileReaderMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaFileReaderReadCharArrayMavenWalaAspectJ_test() {
+            testtest(FileSystemAccessTest.ReadOperations.class, "test_accessFileSystemViaFileReaderReadCharArrayMavenWalaAspectJ");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileReader")
         void test_accessFileSystemViaFileReaderReadCharArrayMavenWalaAspectJ() {
@@ -294,15 +425,24 @@ class FileSystemAccessTest {
                     ReadFileReaderMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaFileReaderReadCharArrayMavenWalaInstrumentation_test() {
+            testtest(FileSystemAccessTest.ReadOperations.class, "test_accessFileSystemViaFileReaderReadCharArrayMavenWalaInstrumentation");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileReader")
         void test_accessFileSystemViaFileReaderReadCharArrayMavenWalaInstrumentation() {
             assertAresSecurityExceptionRead(ReadFileReaderMain::accessFileSystemViaFileReaderReadCharArray,
                     ReadFileReaderMain.class);
         }
-        // </editor-fold>
+        // </editor-fold>        // <editor-fold desc="accessFileSystemViaFileReaderReadCharArrayOffsetLength">
+        @Test
+        void test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenArchunitAspectJ_test() {
+            testtest(FileSystemAccessTest.ReadOperations.class, "test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenArchunitAspectJ");
+        }
 
-        // <editor-fold desc="accessFileSystemViaFileReaderReadCharArrayOffsetLength">
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileReader")
         void test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenArchunitAspectJ() {
@@ -310,6 +450,12 @@ class FileSystemAccessTest {
                     ReadFileReaderMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenArchunitInstrumentation_test() {
+            testtest(FileSystemAccessTest.ReadOperations.class, "test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenArchunitInstrumentation");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileReader")
         void test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenArchunitInstrumentation() {
@@ -317,6 +463,12 @@ class FileSystemAccessTest {
                     ReadFileReaderMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenWalaAspectJ_test() {
+            testtest(FileSystemAccessTest.ReadOperations.class, "test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenWalaAspectJ");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileReader")
         void test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenWalaAspectJ() {
@@ -324,6 +476,12 @@ class FileSystemAccessTest {
                     ReadFileReaderMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenWalaInstrumentation_test() {
+            testtest(FileSystemAccessTest.ReadOperations.class, "test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenWalaInstrumentation");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileReader")
         void test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenWalaInstrumentation() {
@@ -331,9 +489,13 @@ class FileSystemAccessTest {
                     ReadFileReaderMain.class);
         }
         // </editor-fold>
-        // </editor-fold>
+        // </editor-fold>        // <editor-fold desc="accessFileSystemViaThirdPartyPackage">
+        @Test
+        void test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ_test() {
+            testtest(FileSystemAccessTest.ReadOperations.class, "test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ");
+        }
 
-        // <editor-fold desc="accessFileSystemViaThirdPartyPackage">
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/thirdPartyPackage")
         void test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ() {
@@ -341,6 +503,12 @@ class FileSystemAccessTest {
                     ThirdPartyPackagePenguin.class);
         }
 
+        @Test
+        void test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation_test() {
+            testtest(FileSystemAccessTest.ReadOperations.class, "test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/thirdPartyPackage")
         void test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation() {
@@ -348,6 +516,12 @@ class FileSystemAccessTest {
                     ThirdPartyPackagePenguin.class);
         }
 
+        @Test
+        void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ_test() {
+            testtest(FileSystemAccessTest.ReadOperations.class, "test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/thirdPartyPackage")
         void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ() {
@@ -355,6 +529,12 @@ class FileSystemAccessTest {
                     ThirdPartyPackagePenguin.class);
         }
 
+        @Test
+        void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation_test() {
+            testtest(FileSystemAccessTest.ReadOperations.class, "test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/thirdPartyPackage")
         void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation() {
@@ -371,64 +551,97 @@ class FileSystemAccessTest {
     class OverwriteOperations {
 
         // <editor-fold desc="accessFileSystemViaFilesWrite">
+        @Test
+        void test_accessFileSystemViaFilesWriteMavenArchunitAspectJ_test() {
+            testtest(FileSystemAccessTest.OverwriteOperations.class, "test_accessFileSystemViaFilesWriteMavenArchunitAspectJ");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/filesWrite")
         void test_accessFileSystemViaFilesWriteMavenArchunitAspectJ() {
-            assertAresSecurityExceptionWrite(WriteFilesWriteMain::accessFileSystemViaFilesWrite,
-                    WriteFilesWriteMain.class);
+            assertAresSecurityExceptionWrite(WriteFilesWriteMain::accessFileSystemViaFilesWrite, WriteFilesWriteMain.class);
         }
-
+        @Test
+        void test_accessFileSystemViaFilesWriteMavenArchunitInstrumentation_test() {
+            testtest(FileSystemAccessTest.OverwriteOperations.class, "test_accessFileSystemViaFilesWriteMavenArchunitInstrumentation");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/filesWrite")
         void test_accessFileSystemViaFilesWriteMavenArchunitInstrumentation() {
-            assertAresSecurityExceptionWrite(WriteFilesWriteMain::accessFileSystemViaFilesWrite,
-                    WriteFilesWriteMain.class);
+            assertAresSecurityExceptionWrite(WriteFilesWriteMain::accessFileSystemViaFilesWrite, WriteFilesWriteMain.class);
         }
-
+        @Test
+        void test_accessFileSystemViaFilesWriteMavenWalaAspectJ_test() {
+            testtest(FileSystemAccessTest.OverwriteOperations.class, "test_accessFileSystemViaFilesWriteMavenWalaAspectJ");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/filesWrite")
         void test_accessFileSystemViaFilesWriteMavenWalaAspectJ() {
-            assertAresSecurityExceptionWrite(WriteFilesWriteMain::accessFileSystemViaFilesWrite,
-                    WriteFilesWriteMain.class);
+            assertAresSecurityExceptionWrite(WriteFilesWriteMain::accessFileSystemViaFilesWrite, WriteFilesWriteMain.class);
         }
-
+        @Test
+        void test_accessFileSystemViaFilesWriteMavenWalaInstrumentation_test() {
+            testtest(FileSystemAccessTest.OverwriteOperations.class, "test_accessFileSystemViaFilesWriteMavenWalaInstrumentation");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/filesWrite")
         void test_accessFileSystemViaFilesWriteMavenWalaInstrumentation() {
-            assertAresSecurityExceptionWrite(WriteFilesWriteMain::accessFileSystemViaFilesWrite,
-                    WriteFilesWriteMain.class);
+            assertAresSecurityExceptionWrite(WriteFilesWriteMain::accessFileSystemViaFilesWrite, WriteFilesWriteMain.class);
         }
         // </editor-fold>
 
         // <editor-fold desc="accessFileSystemViaFileWrite">
+        @Test
+        void test_accessFileSystemViaFileWriteMavenArchunitAspectJ_test() {
+            testtest(FileSystemAccessTest.OverwriteOperations.class, "test_accessFileSystemViaFileWriteMavenArchunitAspectJ");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/fileWrite")
         void test_accessFileSystemViaFileWriteMavenArchunitAspectJ() {
             assertAresSecurityExceptionRead(WriteFileWriteMain::accessFileSystemViaFileWrite, WriteFileWriteMain.class);
         }
-
+        @Test
+        void test_accessFileSystemViaFileWriteMavenArchunitInstrumentation_test() {
+            testtest(FileSystemAccessTest.OverwriteOperations.class, "test_accessFileSystemViaFileWriteMavenArchunitInstrumentation");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/fileWrite")
         void test_accessFileSystemViaFileWriteMavenArchunitInstrumentation() {
-            assertAresSecurityExceptionWrite(WriteFileWriteMain::accessFileSystemViaFileWrite,
-                    WriteFileWriteMain.class);
+            assertAresSecurityExceptionWrite(WriteFileWriteMain::accessFileSystemViaFileWrite, WriteFileWriteMain.class);
         }
-
+        @Test
+        void test_accessFileSystemViaFileWriteMavenWalaAspectJ_test() {
+            testtest(FileSystemAccessTest.OverwriteOperations.class, "test_accessFileSystemViaFileWriteMavenWalaAspectJ");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/fileWrite")
         void test_accessFileSystemViaFileWriteMavenWalaAspectJ() {
             assertAresSecurityExceptionRead(WriteFileWriteMain::accessFileSystemViaFileWrite, WriteFileWriteMain.class);
         }
-
+        @Test
+        void test_accessFileSystemViaFileWriteMavenWalaInstrumentation_test() {
+            testtest(FileSystemAccessTest.OverwriteOperations.class, "test_accessFileSystemViaFileWriteMavenWalaInstrumentation");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/fileWrite")
         void test_accessFileSystemViaFileWriteMavenWalaInstrumentation() {
-            assertAresSecurityExceptionWrite(WriteFileWriteMain::accessFileSystemViaFileWrite,
-                    WriteFileWriteMain.class);
+            assertAresSecurityExceptionWrite(WriteFileWriteMain::accessFileSystemViaFileWrite, WriteFileWriteMain.class);
         }
         // </editor-fold>
 
         // <editor-fold desc="accessFileSystemViaBufferedWriter">
+        @Test
+        void test_accessFileSystemViaBufferedWriterMavenArchunitAspectJ_test() {
+            testtest(FileSystemAccessTest.OverwriteOperations.class, "test_accessFileSystemViaBufferedWriterMavenArchunitAspectJ");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/bufferedWriter")
         void test_accessFileSystemViaBufferedWriterMavenArchunitAspectJ() {
@@ -436,6 +649,11 @@ class FileSystemAccessTest {
                     WriteBufferedWriterMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaBufferedWriterMavenArchunitInstrumentation_test() {
+            testtest(FileSystemAccessTest.OverwriteOperations.class, "test_accessFileSystemViaBufferedWriterMavenArchunitInstrumentation");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/bufferedWriter")
         void test_accessFileSystemViaBufferedWriterMavenArchunitInstrumentation() {
@@ -443,6 +661,11 @@ class FileSystemAccessTest {
                     WriteBufferedWriterMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaBufferedWriterMavenWalaAspectJ_test() {
+            testtest(FileSystemAccessTest.OverwriteOperations.class, "test_accessFileSystemViaBufferedWriterMavenWalaAspectJ");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/bufferedWriter")
         void test_accessFileSystemViaBufferedWriterMavenWalaAspectJ() {
@@ -450,15 +673,24 @@ class FileSystemAccessTest {
                     WriteBufferedWriterMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaBufferedWriterMavenWalaInstrumentation_test() {
+            testtest(FileSystemAccessTest.OverwriteOperations.class, "test_accessFileSystemViaBufferedWriterMavenWalaInstrumentation");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/bufferedWriter")
         void test_accessFileSystemViaBufferedWriterMavenWalaInstrumentation() {
             assertAresSecurityExceptionWrite(WriteBufferedWriterMain::accessFileSystemViaBufferedWriter,
                     WriteBufferedWriterMain.class);
         }
-        // </editor-fold>
+        // </editor-fold>        // <editor-fold desc="accessFileSystemViaThirdPartyPackage">
+        @Test
+        void test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ_test() {
+            testtest(FileSystemAccessTest.OverwriteOperations.class, "test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ");
+        }
 
-        // <editor-fold desc="accessFileSystemViaThirdPartyPackage">
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/thirdPartyPackage")
         void test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ() {
@@ -466,6 +698,12 @@ class FileSystemAccessTest {
                     ThirdPartyPackagePenguin.class);
         }
 
+        @Test
+        void test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation_test() {
+            testtest(FileSystemAccessTest.OverwriteOperations.class, "test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/thirdPartyPackage")
         void test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation() {
@@ -473,6 +711,12 @@ class FileSystemAccessTest {
                     ThirdPartyPackagePenguin.class);
         }
 
+        @Test
+        void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ_test() {
+            testtest(FileSystemAccessTest.OverwriteOperations.class, "test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/thirdPartyPackage")
         void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ() {
@@ -480,6 +724,12 @@ class FileSystemAccessTest {
                     ThirdPartyPackagePenguin.class);
         }
 
+        @Test
+        void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation_test() {
+            testtest(FileSystemAccessTest.OverwriteOperations.class, "test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/thirdPartyPackage")
         void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation() {
@@ -496,36 +746,54 @@ class FileSystemAccessTest {
     class ExecuteOperations {
 
         // <editor-fold desc="accessFileSystemViaRuntime">
+        @Test
+        void test_accessFileSystemViaRuntimeMavenArchunitAspectJ_test() {
+            testtest(FileSystemAccessTest.ExecuteOperations.class, "test_accessFileSystemViaRuntimeMavenArchunitAspectJ");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/runtime")
         void test_accessFileSystemViaRuntimeMavenArchunitAspectJ() {
-            assertAresSecurityExceptionExecution(ExecuteRuntimeMain::accessFileSystemViaRuntime,
-                    ExecuteRuntimeMain.class);
+            assertAresSecurityExceptionExecution(ExecuteRuntimeMain::accessFileSystemViaRuntime, ExecuteRuntimeMain.class);
         }
-
+        @Test
+        void test_accessFileSystemViaRuntimeMavenArchunitInstrumentation_test() {
+            testtest(FileSystemAccessTest.ExecuteOperations.class, "test_accessFileSystemViaRuntimeMavenArchunitInstrumentation");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/runtime")
         void test_accessFileSystemViaRuntimeMavenArchunitInstrumentation() {
-            assertAresSecurityExceptionExecution(ExecuteRuntimeMain::accessFileSystemViaRuntime,
-                    ExecuteRuntimeMain.class);
+            assertAresSecurityExceptionExecution(ExecuteRuntimeMain::accessFileSystemViaRuntime, ExecuteRuntimeMain.class);
         }
-
+        @Test
+        void test_accessFileSystemViaRuntimeMavenWalaAspectJ_test() {
+            testtest(FileSystemAccessTest.ExecuteOperations.class, "test_accessFileSystemViaRuntimeMavenWalaAspectJ");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/runtime")
         void test_accessFileSystemViaRuntimeMavenWalaAspectJ() {
-            assertAresSecurityExceptionExecution(ExecuteRuntimeMain::accessFileSystemViaRuntime,
-                    ExecuteRuntimeMain.class);
+            assertAresSecurityExceptionExecution(ExecuteRuntimeMain::accessFileSystemViaRuntime, ExecuteRuntimeMain.class);
         }
-
+        @Test
+        void test_accessFileSystemViaRuntimeMavenWalaInstrumentation_test() {
+            testtest(FileSystemAccessTest.ExecuteOperations.class, "test_accessFileSystemViaRuntimeMavenWalaInstrumentation");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/runtime")
         void test_accessFileSystemViaRuntimeMavenWalaInstrumentation() {
-            assertAresSecurityExceptionExecution(ExecuteRuntimeMain::accessFileSystemViaRuntime,
-                    ExecuteRuntimeMain.class);
+            assertAresSecurityExceptionExecution(ExecuteRuntimeMain::accessFileSystemViaRuntime, ExecuteRuntimeMain.class);
         }
         // </editor-fold>
 
         // <editor-fold desc="accessFileSystemViaProcessBuilder">
+        @Test
+        void test_accessFileSystemViaProcessBuilderMavenArchunitAspectJ_test() {
+            testtest(FileSystemAccessTest.ExecuteOperations.class, "test_accessFileSystemViaProcessBuilderMavenArchunitAspectJ");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/processBuilder")
         void test_accessFileSystemViaProcessBuilderMavenArchunitAspectJ() {
@@ -533,6 +801,11 @@ class FileSystemAccessTest {
                     ExecuteProcessBuilderMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaProcessBuilderMavenArchunitInstrumentation_test() {
+            testtest(FileSystemAccessTest.ExecuteOperations.class, "test_accessFileSystemViaProcessBuilderMavenArchunitInstrumentation");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/processBuilder")
         void test_accessFileSystemViaProcessBuilderMavenArchunitInstrumentation() {
@@ -540,6 +813,11 @@ class FileSystemAccessTest {
                     ExecuteProcessBuilderMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaProcessBuilderMavenWalaAspectJ_test() {
+            testtest(FileSystemAccessTest.ExecuteOperations.class, "test_accessFileSystemViaProcessBuilderMavenWalaAspectJ");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/processBuilder")
         void test_accessFileSystemViaProcessBuilderMavenWalaAspectJ() {
@@ -547,6 +825,11 @@ class FileSystemAccessTest {
                     ExecuteProcessBuilderMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaProcessBuilderMavenWalaInstrumentation_test() {
+            testtest(FileSystemAccessTest.ExecuteOperations.class, "test_accessFileSystemViaProcessBuilderMavenWalaInstrumentation");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/processBuilder")
         void test_accessFileSystemViaProcessBuilderMavenWalaInstrumentation() {
@@ -556,6 +839,11 @@ class FileSystemAccessTest {
         // </editor-fold>
 
         // <editor-fold desc="accessFileSystemViaNativeCommand">
+        @Test
+        void test_accessFileSystemViaNativeCommandMavenArchunitAspectJ_test() {
+            testtest(FileSystemAccessTest.ExecuteOperations.class, "test_accessFileSystemViaNativeCommandMavenArchunitAspectJ");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/nativeCommand")
         void test_accessFileSystemViaNativeCommandMavenArchunitAspectJ() {
@@ -563,6 +851,11 @@ class FileSystemAccessTest {
                     ExecuteNativeCommandMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaNativeCommandMavenArchunitInstrumentation_test() {
+            testtest(FileSystemAccessTest.ExecuteOperations.class, "test_accessFileSystemViaNativeCommandMavenArchunitInstrumentation");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/nativeCommand")
         void test_accessFileSystemViaNativeCommandMavenArchunitInstrumentation() {
@@ -570,6 +863,11 @@ class FileSystemAccessTest {
                     ExecuteNativeCommandMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaNativeCommandMavenWalaAspectJ_test() {
+            testtest(FileSystemAccessTest.ExecuteOperations.class, "test_accessFileSystemViaNativeCommandMavenWalaAspectJ");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/nativeCommand")
         void test_accessFileSystemViaNativeCommandMavenWalaAspectJ() {
@@ -577,15 +875,24 @@ class FileSystemAccessTest {
                     ExecuteNativeCommandMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaNativeCommandMavenWalaInstrumentation_test() {
+            testtest(FileSystemAccessTest.ExecuteOperations.class, "test_accessFileSystemViaNativeCommandMavenWalaInstrumentation");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/nativeCommand")
         void test_accessFileSystemViaNativeCommandMavenWalaInstrumentation() {
             assertAresSecurityExceptionExecution(ExecuteNativeCommandMain::accessFileSystemViaNativeCommand,
                     ExecuteNativeCommandMain.class);
         }
-        // </editor-fold>
+        // </editor-fold>        // <editor-fold desc="accessFileSystemViaThirdPartyPackage">
+        @Test
+        void test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ_test() {
+            testtest(FileSystemAccessTest.ExecuteOperations.class, "test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ");
+        }
 
-        // <editor-fold desc="accessFileSystemViaThirdPartyPackage">
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/thirdPartyPackage")
         void test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ() {
@@ -593,6 +900,12 @@ class FileSystemAccessTest {
                     ThirdPartyPackagePenguin.class);
         }
 
+        @Test
+        void test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation_test() {
+            testtest(FileSystemAccessTest.ExecuteOperations.class, "test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/thirdPartyPackage")
         void test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation() {
@@ -600,6 +913,12 @@ class FileSystemAccessTest {
                     ThirdPartyPackagePenguin.class);
         }
 
+        @Test
+        void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ_test() {
+            testtest(FileSystemAccessTest.ExecuteOperations.class, "test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/thirdPartyPackage")
         void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ() {
@@ -607,6 +926,12 @@ class FileSystemAccessTest {
                     ThirdPartyPackagePenguin.class);
         }
 
+        @Test
+        void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation_test() {
+            testtest(FileSystemAccessTest.ExecuteOperations.class, "test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/thirdPartyPackage")
         void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation() {
@@ -623,36 +948,52 @@ class FileSystemAccessTest {
     class DeleteOperations {
 
         // <editor-fold desc="accessFileSystemViaFileDelete">
+        @Test
+        void test_accessFileSystemViaFileDeleteMavenArchunitAspectJ_test() {
+            testtest(FileSystemAccessTest.DeleteOperations.class, "test_accessFileSystemViaFileDeleteMavenArchunitAspectJ");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/fileDelete")
         void test_accessFileSystemViaFileDeleteMavenArchunitAspectJ() {
-            // Read, as File.new has the parameter
-            assertAresSecurityExceptionRead(DeleteFileDeleteMain::accessFileSystemViaFileDelete,
-                    DeleteFileDeleteMain.class);
+            assertAresSecurityExceptionRead(DeleteFileDeleteMain::accessFileSystemViaFileDelete, DeleteFileDeleteMain.class);
         }
-
+        @Test
+        void test_accessFileSystemViaFileDeleteMavenArchunitInstrumentation_test() {
+            testtest(FileSystemAccessTest.DeleteOperations.class, "test_accessFileSystemViaFileDeleteMavenArchunitInstrumentation");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/fileDelete")
         void test_accessFileSystemViaFileDeleteMavenArchunitInstrumentation() {
-            assertAresSecurityExceptionDelete(DeleteFileDeleteMain::accessFileSystemViaFileDelete,
-                    DeleteFileDeleteMain.class);
+            assertAresSecurityExceptionDelete(DeleteFileDeleteMain::accessFileSystemViaFileDelete, DeleteFileDeleteMain.class);
         }
-
+        @Test
+        void test_accessFileSystemViaFileDeleteMavenWalaAspectJ_test() {
+            testtest(FileSystemAccessTest.DeleteOperations.class, "test_accessFileSystemViaFileDeleteMavenWalaAspectJ");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/fileDelete")
         void test_accessFileSystemViaFileDeleteMavenWalaAspectJ() {
-            // Read, as File.new has the parameter
-            assertAresSecurityExceptionRead(DeleteFileDeleteMain::accessFileSystemViaFileDelete,
-                    DeleteFileDeleteMain.class);
+            assertAresSecurityExceptionRead(DeleteFileDeleteMain::accessFileSystemViaFileDelete, DeleteFileDeleteMain.class);
         }
-
+        @Test
+        void test_accessFileSystemViaFileDeleteMavenWalaInstrumentation_test() {
+            testtest(FileSystemAccessTest.DeleteOperations.class, "test_accessFileSystemViaFileDeleteMavenWalaInstrumentation");
+        }
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/fileDelete")
         void test_accessFileSystemViaFileDeleteMavenWalaInstrumentation() {
-            assertAresSecurityExceptionDelete(DeleteFileDeleteMain::accessFileSystemViaFileDelete,
-                    DeleteFileDeleteMain.class);
+            assertAresSecurityExceptionDelete(DeleteFileDeleteMain::accessFileSystemViaFileDelete, DeleteFileDeleteMain.class);        }
+
+        @Test
+        void test_accessFileSystemViaFileDeleteOnExitMavenArchunitAspectJ_test() {
+            testtest(FileSystemAccessTest.DeleteOperations.class, "test_accessFileSystemViaFileDeleteOnExitMavenArchunitAspectJ");
         }
 
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/fileDelete")
         void test_accessFileSystemViaFileDeleteOnExitMavenArchunitAspectJ() {
@@ -661,6 +1002,12 @@ class FileSystemAccessTest {
                     DeleteFileDeleteMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaFileDeleteOnExitMavenArchunitInstrumentation_test() {
+            testtest(FileSystemAccessTest.DeleteOperations.class, "test_accessFileSystemViaFileDeleteOnExitMavenArchunitInstrumentation");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/fileDelete")
         void test_accessFileSystemViaFileDeleteOnExitMavenArchunitInstrumentation() {
@@ -668,6 +1015,12 @@ class FileSystemAccessTest {
                     DeleteFileDeleteMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaFileDeleteOnExitMavenWalaAspectJ_test() {
+            testtest(FileSystemAccessTest.DeleteOperations.class, "test_accessFileSystemViaFileDeleteOnExitMavenWalaAspectJ");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/fileDelete")
         void test_accessFileSystemViaFileDeleteOnExitMavenWalaAspectJ() {
@@ -676,15 +1029,25 @@ class FileSystemAccessTest {
                     DeleteFileDeleteMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaFileDeleteOnExitMavenWalaInstrumentation_test() {
+            testtest(FileSystemAccessTest.DeleteOperations.class, "test_accessFileSystemViaFileDeleteOnExitMavenWalaInstrumentation");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/fileDelete")
         void test_accessFileSystemViaFileDeleteOnExitMavenWalaInstrumentation() {
             assertAresSecurityExceptionDelete(DeleteFileDeleteMain::accessFileSystemViaFileDeleteOnExit,
                     DeleteFileDeleteMain.class);
         }
-        // </editor-fold>
+        // </editor-fold>        // <editor-fold desc="accessFileSystemViaFilesDelete">
+        @Test
+        void test_accessFileSystemViaFilesDeleteMavenArchunitAspectJ_test() {
+            testtest(FileSystemAccessTest.DeleteOperations.class, "test_accessFileSystemViaFilesDeleteMavenArchunitAspectJ");
+        }
 
-        // <editor-fold desc="accessFileSystemViaFilesDelete">
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/filesDelete")
         void test_accessFileSystemViaFilesDeleteMavenArchunitAspectJ() {
@@ -692,6 +1055,12 @@ class FileSystemAccessTest {
                     DeleteFilesDeleteMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaFilesDeleteMavenArchunitInstrumentation_test() {
+            testtest(FileSystemAccessTest.DeleteOperations.class, "test_accessFileSystemViaFilesDeleteMavenArchunitInstrumentation");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/filesDelete")
         void test_accessFileSystemViaFilesDeleteMavenArchunitInstrumentation() {
@@ -699,6 +1068,12 @@ class FileSystemAccessTest {
                     DeleteFilesDeleteMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaFilesDeleteMavenWalaAspectJ_test() {
+            testtest(FileSystemAccessTest.DeleteOperations.class, "test_accessFileSystemViaFilesDeleteMavenWalaAspectJ");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/filesDelete")
         void test_accessFileSystemViaFilesDeleteMavenWalaAspectJ() {
@@ -706,13 +1081,24 @@ class FileSystemAccessTest {
                     DeleteFilesDeleteMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaFilesDeleteMavenWalaInstrumentation_test() {
+            testtest(FileSystemAccessTest.DeleteOperations.class, "test_accessFileSystemViaFilesDeleteMavenWalaInstrumentation");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/filesDelete")
         void test_accessFileSystemViaFilesDeleteMavenWalaInstrumentation() {
-            assertAresSecurityExceptionDelete(DeleteFilesDeleteMain::accessFileSystemViaFilesDelete,
-                    DeleteFilesDeleteMain.class);
+            assertAresSecurityExceptionDelete(DeleteFilesDeleteMain::accessFileSystemViaFilesDelete,                    DeleteFilesDeleteMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaFilesDeleteIfExistsMavenArchunitAspectJ_test() {
+            testtest(FileSystemAccessTest.DeleteOperations.class, "test_accessFileSystemViaFilesDeleteIfExistsMavenArchunitAspectJ");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/filesDelete")
         void test_accessFileSystemViaFilesDeleteIfExistsMavenArchunitAspectJ() {
@@ -720,6 +1106,12 @@ class FileSystemAccessTest {
                     DeleteFilesDeleteMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaFilesDeleteIfExistsMavenArchunitInstrumentation_test() {
+            testtest(FileSystemAccessTest.DeleteOperations.class, "test_accessFileSystemViaFilesDeleteIfExistsMavenArchunitInstrumentation");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/filesDelete")
         void test_accessFileSystemViaFilesDeleteIfExistsMavenArchunitInstrumentation() {
@@ -727,6 +1119,12 @@ class FileSystemAccessTest {
                     DeleteFilesDeleteMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaFilesDeleteIfExistsMavenWalaAspectJ_test() {
+            testtest(FileSystemAccessTest.DeleteOperations.class, "test_accessFileSystemViaFilesDeleteIfExistsMavenWalaAspectJ");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/filesDelete")
         void test_accessFileSystemViaFilesDeleteIfExistsMavenWalaAspectJ() {
@@ -734,15 +1132,25 @@ class FileSystemAccessTest {
                     DeleteFilesDeleteMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaFilesDeleteIfExistsMavenWalaInstrumentation_test() {
+            testtest(FileSystemAccessTest.DeleteOperations.class, "test_accessFileSystemViaFilesDeleteIfExistsMavenWalaInstrumentation");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/filesDelete")
         void test_accessFileSystemViaFilesDeleteIfExistsMavenWalaInstrumentation() {
             assertAresSecurityExceptionDelete(DeleteFilesDeleteMain::accessFileSystemViaFilesDeleteIfExists,
                     DeleteFilesDeleteMain.class);
         }
-        // </editor-fold>
+        // </editor-fold>        // <editor-fold desc="accessFileSystemViaFileSystemProvider">
+        @Test
+        void test_accessFileSystemViaFileSystemProviderMavenArchunitAspectJ_test() {
+            testtest(FileSystemAccessTest.DeleteOperations.class, "test_accessFileSystemViaFileSystemProviderMavenArchunitAspectJ");
+        }
 
-        // <editor-fold desc="accessFileSystemViaFileSystemProvider">
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/fileSystemProvider")
         void test_accessFileSystemViaFileSystemProviderMavenArchunitAspectJ() {
@@ -750,6 +1158,12 @@ class FileSystemAccessTest {
                     DeleteFileSystemProviderMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaFileSystemProviderMavenArchunitInstrumentation_test() {
+            testtest(FileSystemAccessTest.DeleteOperations.class, "test_accessFileSystemViaFileSystemProviderMavenArchunitInstrumentation");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/fileSystemProvider")
         void test_accessFileSystemViaFileSystemProviderMavenArchunitInstrumentation() {
@@ -757,6 +1171,12 @@ class FileSystemAccessTest {
                     DeleteFileSystemProviderMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaFileSystemProviderMavenWalaAspectJ_test() {
+            testtest(FileSystemAccessTest.DeleteOperations.class, "test_accessFileSystemViaFileSystemProviderMavenWalaAspectJ");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/fileSystemProvider")
         void test_accessFileSystemViaFileSystemProviderMavenWalaAspectJ() {
@@ -764,15 +1184,25 @@ class FileSystemAccessTest {
                     DeleteFileSystemProviderMain.class);
         }
 
+        @Test
+        void test_accessFileSystemViaFileSystemProviderMavenWalaInstrumentation_test() {
+            testtest(FileSystemAccessTest.DeleteOperations.class, "test_accessFileSystemViaFileSystemProviderMavenWalaInstrumentation");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/fileSystemProvider")
         void test_accessFileSystemViaFileSystemProviderMavenWalaInstrumentation() {
             assertAresSecurityExceptionDelete(DeleteFileSystemProviderMain::accessFileSystemViaFileSystemProvider,
                     DeleteFileSystemProviderMain.class);
         }
-        // </editor-fold>
+        // </editor-fold>        // <editor-fold desc="accessFileSystemViaThirdPartyPackage">
+        @Test
+        void test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ_test() {
+            testtest(FileSystemAccessTest.DeleteOperations.class, "test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ");
+        }
 
-        // <editor-fold desc="accessFileSystemViaThirdPartyPackage">
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/thirdPartyPackage")
         void test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ() {
@@ -780,6 +1210,12 @@ class FileSystemAccessTest {
                     ThirdPartyPackagePenguin.class);
         }
 
+        @Test
+        void test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation_test() {
+            testtest(FileSystemAccessTest.DeleteOperations.class, "test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/thirdPartyPackage")
         void test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation() {
@@ -787,6 +1223,12 @@ class FileSystemAccessTest {
                     ThirdPartyPackagePenguin.class);
         }
 
+        @Test
+        void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ_test() {
+            testtest(FileSystemAccessTest.DeleteOperations.class, "test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/thirdPartyPackage")
         void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ() {
@@ -794,6 +1236,12 @@ class FileSystemAccessTest {
                     ThirdPartyPackagePenguin.class);
         }
 
+        @Test
+        void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation_test() {
+            testtest(FileSystemAccessTest.DeleteOperations.class, "test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation");
+        }
+
+        @Disabled
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/thirdPartyPackage")
         void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation() {
