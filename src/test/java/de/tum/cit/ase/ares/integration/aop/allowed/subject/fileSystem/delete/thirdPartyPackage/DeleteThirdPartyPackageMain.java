@@ -14,7 +14,6 @@ public class DeleteThirdPartyPackageMain {
      * Access the file system using the {@link ThirdPartyPackagePenguin} class for deletion.
      */
     public static void accessFileSystemViaThirdPartyPackage() throws IOException {
-        String filePath = "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt";
-        ThirdPartyPackagePenguin.deleteFile_with_path(filePath);
+        ThirdPartyPackagePenguin.deleteFile();
     }
 }

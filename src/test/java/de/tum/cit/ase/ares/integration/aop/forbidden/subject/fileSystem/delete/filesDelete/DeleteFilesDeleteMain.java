@@ -3,8 +3,8 @@ package de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 
-@SuppressWarnings({"resource", "ResultOfMethodCallIgnored"})
 public final class DeleteFilesDeleteMain {
 
     private DeleteFilesDeleteMain() {
@@ -20,5 +20,17 @@ public final class DeleteFilesDeleteMain {
 
     public static void accessFileSystemViaFilesDeleteIfExists() throws IOException {
         Files.deleteIfExists(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
+    }
+
+    public static void accessFileSystemViaFilesCopy() throws IOException {
+        Path source = Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
+        Path target = Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
+        Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    public static void accessFileSystemViaFilesMove() throws IOException {
+        Path source = Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
+        Path target = Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
+        Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
     }
 }

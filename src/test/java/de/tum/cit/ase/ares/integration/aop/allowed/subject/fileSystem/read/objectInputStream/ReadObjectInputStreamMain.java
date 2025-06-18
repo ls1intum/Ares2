@@ -2,7 +2,10 @@ package de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.read.obje
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InvalidClassException;
 import java.io.ObjectInputStream;
+import java.io.OptionalDataException;
+import java.io.StreamCorruptedException;
 
 public class ReadObjectInputStreamMain {
 
@@ -14,13 +17,12 @@ public class ReadObjectInputStreamMain {
      * Access the file system using {@link ObjectInputStream} for reading.
      * @return The content of the trusted file as string
      */
-    public static String accessFileSystemViaObjectInputStream() throws IOException, ClassNotFoundException {
-        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"))) {
+    public static String accessFileSystemViaObjectInputStream() throws IOException, ClassNotFoundException {        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"))) {
             // Try to read object, even if it fails due to format issues, the file system access is tested
             try {
                 Object obj = ois.readObject();
                 return obj.toString();
-            } catch (Exception e) {
+            } catch (ClassNotFoundException | InvalidClassException | StreamCorruptedException | OptionalDataException e) {
                 // Expected for non-object files, but file system access is still attempted
                 // For text files that aren't serialized objects, we'll read them as bytes instead
                 // Close the ObjectInputStream and open a regular FileInputStream

@@ -115,11 +115,9 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
             (call(* java.nio.file.Files.delete(..)) ||
                     call(* java.nio.file.Files.deleteIfExists(..)) ||
                     call(* java.nio.file.Files.isDirectory(..)) ||
-                    call(* java.nio.file.Files.isRegularFile(..)) ||
                     call(* java.nio.file.Files.isSameFile(..)) ||
                     call(* java.nio.file.Files.isSymbolicLink(..)) ||
-                    call(* java.nio.file.Files.notExists(..)) ||
-                    call(* java.nio.file.Files.size(..)));
+                    call(* java.nio.file.Files.notExists(..)));
 
     pointcut fileSystemReadMethods():
             (call(* java.nio.file.FileSystem.getFileStores(..)) ||

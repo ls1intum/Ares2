@@ -15,6 +15,6 @@ public class WriteThirdPartyPackageMain {
      */
     public static void accessFileSystemViaThirdPartyPackage(String text) throws IOException {
         String filePath = "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt";
-        ThirdPartyPackagePenguin.overwriteFile_with_path_text(filePath, text);
+        ThirdPartyPackagePenguin.overwriteFile();
     }
 }

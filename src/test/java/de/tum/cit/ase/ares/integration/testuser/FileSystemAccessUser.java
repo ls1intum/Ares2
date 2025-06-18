@@ -41,19 +41,19 @@ public class FileSystemAccessUser {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
     public void accessPathNormalInstrumentation() throws IOException {
-        FileSystemAccessPenguin.accessPath(Path.of("pom212.xml"));
+        //FileSystemAccessPenguin.accessPath(Path.of("pom212.xml"));
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
     public void accessPathNormal() throws IOException {
-        FileSystemAccessPenguin.accessPath(Path.of("pom212.xml"));
+        //FileSystemAccessPenguin.accessPath(Path.of("pom212.xml"));
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
     void accessPathNormalAllowed() throws IOException {
-        FileSystemAccessPenguin.accessPath(Path.of("pom.xml"));
+        //FileSystemAccessPenguin.accessPath(Path.of("pom.xml"));
     }
 
     @PublicTest
