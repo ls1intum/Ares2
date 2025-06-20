@@ -2,16 +2,11 @@ package de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.fi
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.channels.SeekableByteChannel;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.CopyOption;
 import java.nio.file.Files;
-import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Stream;
 
 public class FilesReadMain {
@@ -48,35 +43,47 @@ public class FilesReadMain {
         return Files.lines(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"), StandardCharsets.UTF_8);
     }
 
-    public static java.io.BufferedReader accessFileSystemViaFilesNewBufferedReader(Path path) throws IOException {
-        return Files.newBufferedReader(path);
+    public static java.io.BufferedReader accessFileSystemViaFilesNewBufferedReaderCharset() throws IOException {
+        return Files.newBufferedReader(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"), StandardCharsets.UTF_8);
     }
 
-    public static java.io.BufferedReader accessFileSystemViaFilesNewBufferedReaderCharset(Path path, Charset cs) throws IOException {
-        return Files.newBufferedReader(path, cs);
+    public static java.io.BufferedReader accessFileSystemViaFilesNewBufferedReader() throws IOException {
+        return Files.newBufferedReader(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
     }
 
-    public static InputStream accessFileSystemViaFilesNewInputStream(Path path, OpenOption... options) throws IOException {
-        return Files.newInputStream(path, options);
+    public static InputStream accessFileSystemViaFilesNewInputStream() throws IOException {
+        return Files.newInputStream(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
     }
 
-    public static SeekableByteChannel accessFileSystemViaFilesNewByteChannel(Path path, OpenOption... options) throws IOException {
-        return Files.newByteChannel(path, options);
+    public static SeekableByteChannel accessFileSystemViaFilesNewByteChannel() throws IOException {
+        return Files.newByteChannel(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
     }
 
-    public static long accessFileSystemViaFilesCopyPathToOutputStream(Path source, OutputStream out) throws IOException {
-        return Files.copy(source, out);
+    public static long accessFileSystemViaFilesCopyPathToOutputStream() throws IOException {
+        return Files.copy(
+            Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"),
+            new java.io.ByteArrayOutputStream()
+        );
     }
 
-    public static long accessFileSystemViaFilesCopyInputStreamToPath(InputStream in, Path target, CopyOption... options) throws IOException {
-        return Files.copy(in, target, options);
+    public static long accessFileSystemViaFilesCopyInputStreamToPath() throws IOException {
+        return Files.copy(
+            new java.io.ByteArrayInputStream("test".getBytes()),
+            Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt")
+        );
     }
 
-    public static Path accessFileSystemViaFilesMovePath(Path source, Path target, CopyOption... options) throws IOException {
-        return Files.move(source, target, options);
+    public static Path accessFileSystemViaFilesMovePath() throws IOException {
+        return Files.move(
+            Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"),
+            Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted_moved.txt")
+        );
     }
 
-    public static long accessFileSystemViaFilesMismatch(Path path, Path path2) throws IOException {
-        return Files.mismatch(path, path2);
+    public static long accessFileSystemViaFilesMismatch() throws IOException {
+        return Files.mismatch(
+            Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"),
+            Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt")
+        );
     }
 }

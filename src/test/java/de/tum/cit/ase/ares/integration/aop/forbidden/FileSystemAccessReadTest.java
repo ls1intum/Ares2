@@ -7,6 +7,7 @@ import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.inp
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.inputStream.fileInputStream.FileInputStreamReadMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.reader.fileReader.FileReaderReadMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.fileChannel.FileChannelReadMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.files.FilesReadMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.properties.ReadPropertiesMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.randomAccessFile.RandomAccessFileReadMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.scanner.ReadScannerMain;
@@ -207,25 +208,29 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/fileInputStream")
     void test_accessFileSystemViaFileInputStreamReadMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(FileInputStreamReadMain::accessFileSystemViaFileInputStreamRead, FileInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(FileInputStreamReadMain::accessFileSystemViaFileInputStreamRead,
+                FileInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/fileInputStream")
     void test_accessFileSystemViaFileInputStreamReadMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(FileInputStreamReadMain::accessFileSystemViaFileInputStreamRead, FileInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(FileInputStreamReadMain::accessFileSystemViaFileInputStreamRead,
+                FileInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/fileInputStream")
     void test_accessFileSystemViaFileInputStreamReadMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(FileInputStreamReadMain::accessFileSystemViaFileInputStreamRead, FileInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(FileInputStreamReadMain::accessFileSystemViaFileInputStreamRead,
+                FileInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/fileInputStream")
     void test_accessFileSystemViaFileInputStreamReadMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(FileInputStreamReadMain::accessFileSystemViaFileInputStreamRead, FileInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(FileInputStreamReadMain::accessFileSystemViaFileInputStreamRead,
+                FileInputStreamReadMain.class);
     }
     // </editor-fold>
 
@@ -233,51 +238,64 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/fileInputStream")
     void test_accessFileSystemViaFileInputStreamReadByteArrayMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(FileInputStreamReadMain::accessFileSystemViaFileInputStreamReadByteArray, FileInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(FileInputStreamReadMain::accessFileSystemViaFileInputStreamReadByteArray,
+                FileInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/fileInputStream")
     void test_accessFileSystemViaFileInputStreamReadByteArrayMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(FileInputStreamReadMain::accessFileSystemViaFileInputStreamReadByteArray, FileInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(FileInputStreamReadMain::accessFileSystemViaFileInputStreamReadByteArray,
+                FileInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/fileInputStream")
     void test_accessFileSystemViaFileInputStreamReadByteArrayMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(FileInputStreamReadMain::accessFileSystemViaFileInputStreamReadByteArray, FileInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(FileInputStreamReadMain::accessFileSystemViaFileInputStreamReadByteArray,
+                FileInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/fileInputStream")
     void test_accessFileSystemViaFileInputStreamReadByteArrayMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(FileInputStreamReadMain::accessFileSystemViaFileInputStreamReadByteArray, FileInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(FileInputStreamReadMain::accessFileSystemViaFileInputStreamReadByteArray,
+                FileInputStreamReadMain.class);
     }
     // </editor-fold>
 
-    // <editor-fold desc="accessFileSystemViaFileInputStreamReadByteArrayOffsetLength">
+    // <editor-fold
+    // desc="accessFileSystemViaFileInputStreamReadByteArrayOffsetLength">
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/fileInputStream")
     void test_accessFileSystemViaFileInputStreamReadByteArrayOffsetLengthMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(FileInputStreamReadMain::accessFileSystemViaFileInputStreamReadByteArrayOffsetLength, FileInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(
+                FileInputStreamReadMain::accessFileSystemViaFileInputStreamReadByteArrayOffsetLength,
+                FileInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/fileInputStream")
     void test_accessFileSystemViaFileInputStreamReadByteArrayOffsetLengthMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(FileInputStreamReadMain::accessFileSystemViaFileInputStreamReadByteArrayOffsetLength, FileInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(
+                FileInputStreamReadMain::accessFileSystemViaFileInputStreamReadByteArrayOffsetLength,
+                FileInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/fileInputStream")
     void test_accessFileSystemViaFileInputStreamReadByteArrayOffsetLengthMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(FileInputStreamReadMain::accessFileSystemViaFileInputStreamReadByteArrayOffsetLength, FileInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(
+                FileInputStreamReadMain::accessFileSystemViaFileInputStreamReadByteArrayOffsetLength,
+                FileInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/fileInputStream")
     void test_accessFileSystemViaFileInputStreamReadByteArrayOffsetLengthMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(FileInputStreamReadMain::accessFileSystemViaFileInputStreamReadByteArrayOffsetLength, FileInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(
+                FileInputStreamReadMain::accessFileSystemViaFileInputStreamReadByteArrayOffsetLength,
+                FileInputStreamReadMain.class);
     }
     // </editor-fold>
 
@@ -526,6 +544,455 @@ class FileSystemAccessReadTest {
     // </editor-fold>
     // </editor-fold>
 
+    // <editor-fold desc="accessFileSystemViaFilesRead">
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesReadMavenArchunitAspectJ() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesRead,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesReadMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesRead,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesReadMavenWalaAspectJ() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesRead,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesReadMavenWalaInstrumentation() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesRead,
+                FilesReadMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessFileSystemViaFilesReadAllLines">
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesReadAllLinesMavenArchunitAspectJ() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesReadAllLines,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesReadAllLinesMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesReadAllLines,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesReadAllLinesMavenWalaAspectJ() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesReadAllLines,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesReadAllLinesMavenWalaInstrumentation() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesReadAllLines,
+                FilesReadMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessFileSystemViaFilesReadAllLinesCharset">
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesReadAllLinesCharsetMavenArchunitAspectJ() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesReadAllLinesCharset,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesReadAllLinesCharsetMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesReadAllLinesCharset,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesReadAllLinesCharsetMavenWalaAspectJ() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesReadAllLinesCharset,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesReadAllLinesCharsetMavenWalaInstrumentation() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesReadAllLinesCharset,
+                FilesReadMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessFileSystemViaFilesReadString">
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesReadStringMavenArchunitAspectJ() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesReadString,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesReadStringMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesReadString,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesReadStringMavenWalaAspectJ() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesReadString,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesReadStringMavenWalaInstrumentation() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesReadString,
+                FilesReadMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessFileSystemViaFilesReadStringCharset">
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesReadStringCharsetMavenArchunitAspectJ() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesReadStringCharset,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesReadStringCharsetMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesReadStringCharset,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesReadStringCharsetMavenWalaAspectJ() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesReadStringCharset,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesReadStringCharsetMavenWalaInstrumentation() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesReadStringCharset,
+                FilesReadMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessFileSystemViaFilesLines">
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesLinesMavenArchunitAspectJ() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesLines,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesLinesMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesLines,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesLinesMavenWalaAspectJ() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesLines,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesLinesMavenWalaInstrumentation() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesLines,
+                FilesReadMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessFileSystemViaFilesLinesCharset">
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesLinesCharsetMavenArchunitAspectJ() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesLinesCharset,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesLinesCharsetMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesLinesCharset,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesLinesCharsetMavenWalaAspectJ() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesLinesCharset,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesLinesCharsetMavenWalaInstrumentation() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesLinesCharset,
+                FilesReadMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessFileSystemViaFilesNewBufferedReader">
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesNewBufferedReaderMavenArchunitAspectJ() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesNewBufferedReader,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesNewBufferedReaderMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesNewBufferedReader,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesNewBufferedReaderMavenWalaAspectJ() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesNewBufferedReader,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesNewBufferedReaderMavenWalaInstrumentation() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesNewBufferedReader,
+                FilesReadMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessFileSystemViaFilesNewBufferedReaderCharset">
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesNewBufferedReaderCharsetMavenArchunitAspectJ() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesNewBufferedReaderCharset,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesNewBufferedReaderCharsetMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesNewBufferedReaderCharset,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesNewBufferedReaderCharsetMavenWalaAspectJ() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesNewBufferedReaderCharset,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesNewBufferedReaderCharsetMavenWalaInstrumentation() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesNewBufferedReaderCharset,
+                FilesReadMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessFileSystemViaFilesNewInputStream">
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesNewInputStreamMavenArchunitAspectJ() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesNewInputStream,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesNewInputStreamMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesNewInputStream,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesNewInputStreamMavenWalaAspectJ() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesNewInputStream,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesNewInputStreamMavenWalaInstrumentation() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesNewInputStream,
+                FilesReadMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessFileSystemViaFilesNewByteChannel">
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesNewByteChannelMavenArchunitAspectJ() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesNewByteChannel,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesNewByteChannelMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesNewByteChannel,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesNewByteChannelMavenWalaAspectJ() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesNewByteChannel,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesNewByteChannelMavenWalaInstrumentation() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesNewByteChannel,
+                FilesReadMain.class);
+    }// </editor-fold>
+
+    // <editor-fold desc="accessFileSystemViaFilesMismatch">
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesMismatchMavenArchunitAspectJ() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesMismatch,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesMismatchMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesMismatch,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesMismatchMavenWalaAspectJ() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesMismatch,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesMismatchMavenWalaInstrumentation() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesMismatch,
+                FilesReadMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessFileSystemViaFilesCopyPathToOutputStream">
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesCopyPathToOutputStreamMavenArchunitAspectJ() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesCopyPathToOutputStream,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesCopyPathToOutputStreamMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesCopyPathToOutputStream,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesCopyPathToOutputStreamMavenWalaAspectJ() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesCopyPathToOutputStream,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesCopyPathToOutputStreamMavenWalaInstrumentation() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesCopyPathToOutputStream,
+                FilesReadMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessFileSystemViaFilesCopyInputStreamToPath">
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesCopyInputStreamToPathMavenArchunitAspectJ() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesCopyInputStreamToPath,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesCopyInputStreamToPathMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesCopyInputStreamToPath,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesCopyInputStreamToPathMavenWalaAspectJ() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesCopyInputStreamToPath,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesCopyInputStreamToPathMavenWalaInstrumentation() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesCopyInputStreamToPath,
+                FilesReadMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessFileSystemViaFilesMovePath">
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesMovePathMavenArchunitAspectJ() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesMovePath,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesMovePathMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesMovePath,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesMovePathMavenWalaAspectJ() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesMovePath,
+                FilesReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/files")
+    void test_accessFileSystemViaFilesMovePathMavenWalaInstrumentation() {
+        assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesMovePath,
+                FilesReadMain.class);
+    }
+    // </editor-fold>
+
     // <editor-fold desc="accessFileSystemViaProperties - 3 subtests">
     // <editor-fold desc="accessFileSystemViaPropertiesLoadInputStream">
     @PublicTest
@@ -622,25 +1089,29 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFile, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFile,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFile, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFile,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFile, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFile,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFile, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFile,
+                RandomAccessFileReadMain.class);
     }
     // </editor-fold>
 
@@ -675,25 +1146,29 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/scanner")
     void test_accessFileSystemViaScannerFileCharsetNameMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(ReadScannerMain::accessFileSystemViaScannerFileCharsetName, ReadScannerMain.class);
+        assertAresSecurityExceptionRead(ReadScannerMain::accessFileSystemViaScannerFileCharsetName,
+                ReadScannerMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/scanner")
     void test_accessFileSystemViaScannerFileCharsetNameMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(ReadScannerMain::accessFileSystemViaScannerFileCharsetName, ReadScannerMain.class);
+        assertAresSecurityExceptionRead(ReadScannerMain::accessFileSystemViaScannerFileCharsetName,
+                ReadScannerMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/scanner")
     void test_accessFileSystemViaScannerFileCharsetNameMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(ReadScannerMain::accessFileSystemViaScannerFileCharsetName, ReadScannerMain.class);
+        assertAresSecurityExceptionRead(ReadScannerMain::accessFileSystemViaScannerFileCharsetName,
+                ReadScannerMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/scanner")
     void test_accessFileSystemViaScannerFileCharsetNameMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(ReadScannerMain::accessFileSystemViaScannerFileCharsetName, ReadScannerMain.class);
+        assertAresSecurityExceptionRead(ReadScannerMain::accessFileSystemViaScannerFileCharsetName,
+                ReadScannerMain.class);
     }
     // </editor-fold>
 
@@ -753,25 +1228,29 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/scanner")
     void test_accessFileSystemViaScannerPathCharsetNameMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(ReadScannerMain::accessFileSystemViaScannerPathCharsetName, ReadScannerMain.class);
+        assertAresSecurityExceptionRead(ReadScannerMain::accessFileSystemViaScannerPathCharsetName,
+                ReadScannerMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/scanner")
     void test_accessFileSystemViaScannerPathCharsetNameMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(ReadScannerMain::accessFileSystemViaScannerPathCharsetName, ReadScannerMain.class);
+        assertAresSecurityExceptionRead(ReadScannerMain::accessFileSystemViaScannerPathCharsetName,
+                ReadScannerMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/scanner")
     void test_accessFileSystemViaScannerPathCharsetNameMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(ReadScannerMain::accessFileSystemViaScannerPathCharsetName, ReadScannerMain.class);
+        assertAresSecurityExceptionRead(ReadScannerMain::accessFileSystemViaScannerPathCharsetName,
+                ReadScannerMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/scanner")
     void test_accessFileSystemViaScannerPathCharsetNameMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(ReadScannerMain::accessFileSystemViaScannerPathCharsetName, ReadScannerMain.class);
+        assertAresSecurityExceptionRead(ReadScannerMain::accessFileSystemViaScannerPathCharsetName,
+                ReadScannerMain.class);
     }
     // </editor-fold>
 
@@ -1066,25 +1545,29 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/thirdPartyPackage")
     void test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(ReadThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ReadThirdPartyPackageMain.class);
+        assertAresSecurityExceptionRead(ReadThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
+                ReadThirdPartyPackageMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/thirdPartyPackage")
     void test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(ReadThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ReadThirdPartyPackageMain.class);
+        assertAresSecurityExceptionRead(ReadThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
+                ReadThirdPartyPackageMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/thirdPartyPackage")
     void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(ReadThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ReadThirdPartyPackageMain.class);
+        assertAresSecurityExceptionRead(ReadThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
+                ReadThirdPartyPackageMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/thirdPartyPackage")
     void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(ReadThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ReadThirdPartyPackageMain.class);
+        assertAresSecurityExceptionRead(ReadThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
+                ReadThirdPartyPackageMain.class);
     }
     // </editor-fold>
 
@@ -1095,25 +1578,29 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileRead, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileRead,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileRead, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileRead,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileRead, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileRead,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileRead, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileRead,
+                RandomAccessFileReadMain.class);
     }
     // </editor-fold>
 
@@ -1121,51 +1608,64 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadByteArrayMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadByteArray, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadByteArray,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadByteArrayMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadByteArray, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadByteArray,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadByteArrayMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadByteArray, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadByteArray,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadByteArrayMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadByteArray, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadByteArray,
+                RandomAccessFileReadMain.class);
     }
     // </editor-fold>
 
-    // <editor-fold desc="accessFileSystemViaRandomAccessFileReadByteArrayOffsetLength">
+    // <editor-fold
+    // desc="accessFileSystemViaRandomAccessFileReadByteArrayOffsetLength">
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadByteArrayOffsetLengthMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadByteArrayOffsetLength, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(
+                RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadByteArrayOffsetLength,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadByteArrayOffsetLengthMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadByteArrayOffsetLength, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(
+                RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadByteArrayOffsetLength,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadByteArrayOffsetLengthMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadByteArrayOffsetLength, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(
+                RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadByteArrayOffsetLength,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadByteArrayOffsetLengthMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadByteArrayOffsetLength, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(
+                RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadByteArrayOffsetLength,
+                RandomAccessFileReadMain.class);
     }
     // </editor-fold>
 
@@ -1173,25 +1673,29 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadBooleanMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadBoolean, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadBoolean,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadBooleanMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadBoolean, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadBoolean,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadBooleanMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadBoolean, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadBoolean,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadBooleanMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadBoolean, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadBoolean,
+                RandomAccessFileReadMain.class);
     }
     // </editor-fold>
 
@@ -1199,25 +1703,29 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadByteMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadByte, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadByte,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadByteMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadByte, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadByte,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadByteMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadByte, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadByte,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadByteMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadByte, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadByte,
+                RandomAccessFileReadMain.class);
     }
     // </editor-fold>
 
@@ -1225,25 +1733,29 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadCharMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadChar, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadChar,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadCharMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadChar, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadChar,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadCharMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadChar, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadChar,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadCharMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadChar, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadChar,
+                RandomAccessFileReadMain.class);
     }
     // </editor-fold>
 
@@ -1251,25 +1763,29 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadDoubleMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadDouble, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadDouble,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadDoubleMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadDouble, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadDouble,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadDoubleMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadDouble, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadDouble,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadDoubleMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadDouble, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadDouble,
+                RandomAccessFileReadMain.class);
     }
     // </editor-fold>
 
@@ -1277,25 +1793,29 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadFloatMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadFloat, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadFloat,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadFloatMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadFloat, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadFloat,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadFloatMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadFloat, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadFloat,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadFloatMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadFloat, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadFloat,
+                RandomAccessFileReadMain.class);
     }
     // </editor-fold>
 
@@ -1303,25 +1823,33 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadFullyOffsetLengthMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadFullyOffsetLength, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(
+                RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadFullyOffsetLength,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadFullyOffsetLengthMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadFullyOffsetLength, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(
+                RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadFullyOffsetLength,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadFullyOffsetLengthMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadFullyOffsetLength, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(
+                RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadFullyOffsetLength,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadFullyOffsetLengthMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadFullyOffsetLength, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(
+                RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadFullyOffsetLength,
+                RandomAccessFileReadMain.class);
     }
     // </editor-fold>
 
@@ -1329,25 +1857,29 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadIntMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadInt, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadInt,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadIntMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadInt, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadInt,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadIntMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadInt, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadInt,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadIntMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadInt, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadInt,
+                RandomAccessFileReadMain.class);
     }
     // </editor-fold>
 
@@ -1355,25 +1887,29 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadLineMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadLine, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadLine,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadLineMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadLine, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadLine,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadLineMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadLine, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadLine,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadLineMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadLine, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadLine,
+                RandomAccessFileReadMain.class);
     }
     // </editor-fold>
 
@@ -1381,25 +1917,29 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadLongMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadLong, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadLong,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadLongMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadLong, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadLong,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadLongMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadLong, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadLong,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadLongMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadLong, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadLong,
+                RandomAccessFileReadMain.class);
     }
     // </editor-fold>
 
@@ -1407,25 +1947,29 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadShortMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadShort, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadShort,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadShortMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadShort, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadShort,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadShortMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadShort, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadShort,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadShortMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadShort, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadShort,
+                RandomAccessFileReadMain.class);
     }
     // </editor-fold>
 
@@ -1433,25 +1977,29 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadUnsignedByteMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadUnsignedByte, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadUnsignedByte,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadUnsignedByteMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadUnsignedByte, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadUnsignedByte,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadUnsignedByteMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadUnsignedByte, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadUnsignedByte,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadUnsignedByteMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadUnsignedByte, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadUnsignedByte,
+                RandomAccessFileReadMain.class);
     }
     // </editor-fold>
 
@@ -1459,25 +2007,29 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadUnsignedShortMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadUnsignedShort, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadUnsignedShort,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadUnsignedShortMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadUnsignedShort, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadUnsignedShort,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadUnsignedShortMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadUnsignedShort, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadUnsignedShort,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadUnsignedShortMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadUnsignedShort, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadUnsignedShort,
+                RandomAccessFileReadMain.class);
     }
     // </editor-fold>
 
@@ -1485,25 +2037,29 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadUTFMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadUTF, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadUTF,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadUTFMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadUTF, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadUTF,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadUTFMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadUTF, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadUTF,
+                RandomAccessFileReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/randomAccessFile")
     void test_accessFileSystemViaRandomAccessFileReadUTFMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadUTF, RandomAccessFileReadMain.class);
+        assertAresSecurityExceptionRead(RandomAccessFileReadMain::accessFileSystemViaRandomAccessFileReadUTF,
+                RandomAccessFileReadMain.class);
     }
     // </editor-fold>
     // </editor-fold>
@@ -1516,25 +2072,29 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamRead, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamRead,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamRead, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamRead,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamRead, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamRead,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamRead, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamRead,
+                DataInputStreamReadMain.class);
     }
     // </editor-fold>
 
@@ -1542,51 +2102,64 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadByteArrayMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadByteArray, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadByteArray,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadByteArrayMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadByteArray, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadByteArray,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadByteArrayMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadByteArray, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadByteArray,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadByteArrayMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadByteArray, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadByteArray,
+                DataInputStreamReadMain.class);
     }
     // </editor-fold>
 
-    // <editor-fold desc="accessFileSystemViaDataInputStreamReadByteArrayOffsetLength">
+    // <editor-fold
+    // desc="accessFileSystemViaDataInputStreamReadByteArrayOffsetLength">
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadByteArrayOffsetLengthMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadByteArrayOffsetLength, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(
+                DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadByteArrayOffsetLength,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadByteArrayOffsetLengthMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadByteArrayOffsetLength, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(
+                DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadByteArrayOffsetLength,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadByteArrayOffsetLengthMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadByteArrayOffsetLength, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(
+                DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadByteArrayOffsetLength,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadByteArrayOffsetLengthMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadByteArrayOffsetLength, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(
+                DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadByteArrayOffsetLength,
+                DataInputStreamReadMain.class);
     }
     // </editor-fold>
 
@@ -1594,25 +2167,29 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadBooleanMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadBoolean, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadBoolean,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadBooleanMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadBoolean, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadBoolean,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadBooleanMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadBoolean, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadBoolean,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadBooleanMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadBoolean, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadBoolean,
+                DataInputStreamReadMain.class);
     }
     // </editor-fold>
 
@@ -1620,25 +2197,29 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadCharMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadChar, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadChar,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadCharMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadChar, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadChar,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadCharMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadChar, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadChar,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadCharMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadChar, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadChar,
+                DataInputStreamReadMain.class);
     }
     // </editor-fold>
 
@@ -1646,25 +2227,29 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadDoubleMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadDouble, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadDouble,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadDoubleMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadDouble, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadDouble,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadDoubleMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadDouble, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadDouble,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadDoubleMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadDouble, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadDouble,
+                DataInputStreamReadMain.class);
     }
     // </editor-fold>
 
@@ -1672,25 +2257,29 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadFloatMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadFloat, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadFloat,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadFloatMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadFloat, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadFloat,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadFloatMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadFloat, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadFloat,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadFloatMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadFloat, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadFloat,
+                DataInputStreamReadMain.class);
     }
     // </editor-fold>
 
@@ -1698,25 +2287,29 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadFullyMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadFully, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadFully,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadFullyMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadFully, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadFully,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadFullyMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadFully, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadFully,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadFullyMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadFully, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadFully,
+                DataInputStreamReadMain.class);
     }
     // </editor-fold>
 
@@ -1724,25 +2317,29 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadLineMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadLine, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadLine,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadLineMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadLine, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadLine,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadLineMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadLine, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadLine,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadLineMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadLine, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadLine,
+                DataInputStreamReadMain.class);
     }
     // </editor-fold>
 
@@ -1750,25 +2347,29 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadLongMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadLong, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadLong,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadLongMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadLong, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadLong,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadLongMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadLong, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadLong,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadLongMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadLong, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadLong,
+                DataInputStreamReadMain.class);
     }
     // </editor-fold>
 
@@ -1776,25 +2377,29 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadShortMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadShort, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadShort,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadShortMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadShort, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadShort,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadShortMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadShort, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadShort,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadShortMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadShort, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadShort,
+                DataInputStreamReadMain.class);
     }
     // </editor-fold>
 
@@ -1802,25 +2407,29 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadUnsignedByteMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadUnsignedByte, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadUnsignedByte,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadUnsignedByteMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadUnsignedByte, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadUnsignedByte,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadUnsignedByteMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadUnsignedByte, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadUnsignedByte,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadUnsignedByteMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadUnsignedByte, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadUnsignedByte,
+                DataInputStreamReadMain.class);
     }
     // </editor-fold>
 
@@ -1828,25 +2437,29 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadUnsignedShortMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadUnsignedShort, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadUnsignedShort,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadUnsignedShortMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadUnsignedShort, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadUnsignedShort,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadUnsignedShortMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadUnsignedShort, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadUnsignedShort,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadUnsignedShortMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadUnsignedShort, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadUnsignedShort,
+                DataInputStreamReadMain.class);
     }
     // </editor-fold>
 
@@ -1854,25 +2467,29 @@ class FileSystemAccessReadTest {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadUTFMavenArchunitAspectJ() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadUTF, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadUTF,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadUTFMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadUTF, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadUTF,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadUTFMavenWalaAspectJ() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadUTF, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadUTF,
+                DataInputStreamReadMain.class);
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/dataInputStream")
     void test_accessFileSystemViaDataInputStreamReadUTFMavenWalaInstrumentation() {
-        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadUTF, DataInputStreamReadMain.class);
+        assertAresSecurityExceptionRead(DataInputStreamReadMain::accessFileSystemViaDataInputStreamReadUTF,
+                DataInputStreamReadMain.class);
     }
     // </editor-fold>
     // </editor-fold>
