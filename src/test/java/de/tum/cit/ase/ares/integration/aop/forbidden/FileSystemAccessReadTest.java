@@ -403,7 +403,37 @@ class FileSystemAccessReadTest {
         assertAresSecurityExceptionRead(FileChannelReadMain::accessFileSystemViaNIOChannel,
                 FileChannelReadMain.class);
     }
-// </editor
+    // </editor
+
+    // <editor-fold desc="accessFileSystemViaFileChannelTransferFrom">
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedReadOneThreadAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileChannel")
+    void test_accessFileSystemViaFileChannelTransferFromMavenArchunitAspectJ() {
+        assertAresSecurityExceptionRead(FileChannelReadMain::accessFileSystemViaFileChannelTransferFrom,
+                FileChannelReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedReadOneThreadAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileChannel")
+    void test_accessFileSystemViaFileChannelTransferFromMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionRead(FileChannelReadMain::accessFileSystemViaFileChannelTransferFrom,
+                FileChannelReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedReadOneThreadAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileChannel")
+    void test_accessFileSystemViaFileChannelTransferFromMavenWalaAspectJ() {
+        assertAresSecurityExceptionRead(FileChannelReadMain::accessFileSystemViaFileChannelTransferFrom,
+                FileChannelReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedReadOneThreadAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileChannel")
+    void test_accessFileSystemViaFileChannelTransferFromMavenWalaInstrumentation() {
+        assertAresSecurityExceptionRead(FileChannelReadMain::accessFileSystemViaFileChannelTransferFrom,
+                FileChannelReadMain.class);
+    }
+    // </editor-fold>
 
     // <editor-fold desc="accessFileSystemViaFileChannelRead">
     @PublicTest
