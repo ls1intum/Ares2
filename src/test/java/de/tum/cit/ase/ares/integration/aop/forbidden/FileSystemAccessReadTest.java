@@ -375,6 +375,36 @@ class FileSystemAccessReadTest {
 
     // <editor-fold desc="accessFileSystemViaNIOChannel - 6 subtests">
 
+    // <editor-fold desc="accessFileSystemViaNIOChannel">
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedReadOneThreadAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileChannel")
+    void test_accessFileSystemViaNIOChannelMavenArchunitAspectJ() {
+        assertAresSecurityExceptionRead(FileChannelReadMain::accessFileSystemViaNIOChannel,
+                FileChannelReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedReadOneThreadAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileChannel")
+    void test_accessFileSystemViaNIOChannelMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionRead(FileChannelReadMain::accessFileSystemViaNIOChannel,
+                FileChannelReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedReadOneThreadAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileChannel")
+    void test_accessFileSystemViaNIOChannelMavenWalaAspectJ() {
+        assertAresSecurityExceptionRead(FileChannelReadMain::accessFileSystemViaNIOChannel,
+                FileChannelReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedReadOneThreadAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileChannel")
+    void test_accessFileSystemViaNIOChannelMavenWalaInstrumentation() {
+        assertAresSecurityExceptionRead(FileChannelReadMain::accessFileSystemViaNIOChannel,
+                FileChannelReadMain.class);
+    }
+// </editor
+
     // <editor-fold desc="accessFileSystemViaFileChannelRead">
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedReadOneThreadAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileChannel")
