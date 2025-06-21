@@ -2,6 +2,7 @@ package de.tum.cit.ase.ares.integration.aop.forbidden;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.inputStream.audioInputStream.AudioInputStreamReadMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.reader.bufferedReader.BufferedReaderReadMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.inputStream.dataInputStream.DataInputStreamReadMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.inputStream.fileInputStream.FileInputStreamReadMain;
@@ -901,6 +902,182 @@ class FileSystemAccessReadTest {
         assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesMismatch,
                 FilesReadMain.class);
     }
+    // </editor-fold>
+
+    // <editor-fold desc="AudioInputStream Operations">
+    // --- AudioInputStream Operations ---
+
+    // <editor-fold desc="accessFileSystemViaAudioInputStreamRead">
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/audioInputStream")
+    void test_accessFileSystemViaAudioInputStreamReadMavenArchunitAspectJ() {
+        assertAresSecurityExceptionRead(
+                AudioInputStreamReadMain::accessFileSystemViaAudioInputStreamRead,
+                AudioInputStreamReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/audioInputStream")
+    void test_accessFileSystemViaAudioInputStreamReadMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionRead(
+                AudioInputStreamReadMain::accessFileSystemViaAudioInputStreamRead,
+                AudioInputStreamReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/audioInputStream")
+    void test_accessFileSystemViaAudioInputStreamReadMavenWalaAspectJ() {
+        assertAresSecurityExceptionRead(
+                AudioInputStreamReadMain::accessFileSystemViaAudioInputStreamRead,
+                AudioInputStreamReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/audioInputStream")
+    void test_accessFileSystemViaAudioInputStreamReadMavenWalaInstrumentation() {
+        assertAresSecurityExceptionRead(
+                AudioInputStreamReadMain::accessFileSystemViaAudioInputStreamRead,
+                AudioInputStreamReadMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessFileSystemViaAudioInputStreamReadByteArray">
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/audioInputStream")
+    void test_accessFileSystemViaAudioInputStreamReadByteArrayMavenArchunitAspectJ() {
+        assertAresSecurityExceptionRead(
+                AudioInputStreamReadMain::accessFileSystemViaAudioInputStreamReadByteArray,
+                AudioInputStreamReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/audioInputStream")
+    void test_accessFileSystemViaAudioInputStreamReadByteArrayMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionRead(
+                AudioInputStreamReadMain::accessFileSystemViaAudioInputStreamReadByteArray,
+                AudioInputStreamReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/audioInputStream")
+    void test_accessFileSystemViaAudioInputStreamReadByteArrayMavenWalaAspectJ() {
+        assertAresSecurityExceptionRead(
+                AudioInputStreamReadMain::accessFileSystemViaAudioInputStreamReadByteArray,
+                AudioInputStreamReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/audioInputStream")
+    void test_accessFileSystemViaAudioInputStreamReadByteArrayMavenWalaInstrumentation() {
+        assertAresSecurityExceptionRead(
+                AudioInputStreamReadMain::accessFileSystemViaAudioInputStreamReadByteArray,
+                AudioInputStreamReadMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold
+    // desc="accessFileSystemViaAudioInputStreamReadByteArrayOffsetLength">
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/audioInputStream")
+    void test_accessFileSystemViaAudioInputStreamReadByteArrayOffsetLengthMavenArchunitAspectJ() {
+        assertAresSecurityExceptionRead(
+                AudioInputStreamReadMain::accessFileSystemViaAudioInputStreamReadByteArrayOffsetLength,
+                AudioInputStreamReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/audioInputStream")
+    void test_accessFileSystemViaAudioInputStreamReadByteArrayOffsetLengthMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionRead(
+                AudioInputStreamReadMain::accessFileSystemViaAudioInputStreamReadByteArrayOffsetLength,
+                AudioInputStreamReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/audioInputStream")
+    void test_accessFileSystemViaAudioInputStreamReadByteArrayOffsetLengthMavenWalaAspectJ() {
+        assertAresSecurityExceptionRead(
+                AudioInputStreamReadMain::accessFileSystemViaAudioInputStreamReadByteArrayOffsetLength,
+                AudioInputStreamReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/audioInputStream")
+    void test_accessFileSystemViaAudioInputStreamReadByteArrayOffsetLengthMavenWalaInstrumentation() {
+        assertAresSecurityExceptionRead(
+                AudioInputStreamReadMain::accessFileSystemViaAudioInputStreamReadByteArrayOffsetLength,
+                AudioInputStreamReadMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessFileSystemViaAudioInputStreamReadAllBytes">
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/audioInputStream")
+    void test_accessFileSystemViaAudioInputStreamReadAllBytesMavenArchunitAspectJ() {
+        assertAresSecurityExceptionRead(
+                AudioInputStreamReadMain::accessFileSystemViaAudioInputStreamReadAllBytes,
+                AudioInputStreamReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/audioInputStream")
+    void test_accessFileSystemViaAudioInputStreamReadAllBytesMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionRead(
+                AudioInputStreamReadMain::accessFileSystemViaAudioInputStreamReadAllBytes,
+                AudioInputStreamReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/audioInputStream")
+    void test_accessFileSystemViaAudioInputStreamReadAllBytesMavenWalaAspectJ() {
+        assertAresSecurityExceptionRead(
+                AudioInputStreamReadMain::accessFileSystemViaAudioInputStreamReadAllBytes,
+                AudioInputStreamReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/audioInputStream")
+    void test_accessFileSystemViaAudioInputStreamReadAllBytesMavenWalaInstrumentation() {
+        assertAresSecurityExceptionRead(
+                AudioInputStreamReadMain::accessFileSystemViaAudioInputStreamReadAllBytes,
+                AudioInputStreamReadMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessFileSystemViaAudioInputStreamReadNBytes">
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/audioInputStream")
+    void test_accessFileSystemViaAudioInputStreamReadNBytesMavenArchunitAspectJ() {
+        assertAresSecurityExceptionRead(
+                AudioInputStreamReadMain::accessFileSystemViaAudioInputStreamReadNBytes,
+                AudioInputStreamReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/audioInputStream")
+    void test_accessFileSystemViaAudioInputStreamReadNBytesMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionRead(
+                AudioInputStreamReadMain::accessFileSystemViaAudioInputStreamReadNBytes,
+                AudioInputStreamReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/audioInputStream")
+    void test_accessFileSystemViaAudioInputStreamReadNBytesMavenWalaAspectJ() {
+        assertAresSecurityExceptionRead(
+                AudioInputStreamReadMain::accessFileSystemViaAudioInputStreamReadNBytes,
+                AudioInputStreamReadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/inputStream/audioInputStream")
+    void test_accessFileSystemViaAudioInputStreamReadNBytesMavenWalaInstrumentation() {
+        assertAresSecurityExceptionRead(
+                AudioInputStreamReadMain::accessFileSystemViaAudioInputStreamReadNBytes,
+                AudioInputStreamReadMain.class);
+    }
+    // </editor-fold>
+
     // </editor-fold>
 
     // <editor-fold desc="accessFileSystemViaFilesCopyPathToOutputStream">
