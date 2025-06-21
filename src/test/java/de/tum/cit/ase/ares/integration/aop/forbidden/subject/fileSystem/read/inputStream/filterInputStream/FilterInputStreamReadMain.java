@@ -5,10 +5,9 @@ import java.io.FileInputStream;
 import java.io.FilterInputStream;
 import java.io.IOException;
 
-@SuppressWarnings("unused")
 public class FilterInputStreamReadMain {
 
-    private FilterInputStreamReadMain() {
+        private FilterInputStreamReadMain() {
         throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
     }
 
