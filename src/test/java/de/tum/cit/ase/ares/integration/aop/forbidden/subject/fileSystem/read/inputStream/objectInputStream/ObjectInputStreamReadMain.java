@@ -4,7 +4,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 
-@SuppressWarnings("unused")
 public class ObjectInputStreamReadMain {
 
     private ObjectInputStreamReadMain() {
