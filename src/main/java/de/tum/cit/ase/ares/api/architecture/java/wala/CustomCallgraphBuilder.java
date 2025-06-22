@@ -236,7 +236,6 @@ public class CustomCallgraphBuilder {
             return callGraph;
         } catch (Exception e) {
             // Wrap builder failures as security exceptions
-            System.out.println(e);
             throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.build.call.graph.error"));
         }
     }
