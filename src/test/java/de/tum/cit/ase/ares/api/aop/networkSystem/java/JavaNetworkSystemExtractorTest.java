@@ -10,9 +10,9 @@ import java.util.function.Supplier;
 /**
  * Unit tests for JavaNetworkSystemExtractor.
  *
- * <p>Description: Verifies extraction of network hosts and ports for connect, send, receive operations.
+ * <p>Description: Verifies extraction and filtering of network system permissions for connect, send, receive operations.
  *
- * <p>Design Rationale: Confirms correct filtering and error handling across all network permissions.
+ * <p>Design Rationale: Ensures full coverage across all permission types and invalid inputs.
  *
  * @since 2.0.0
  * @author Markus Paulsen
@@ -29,7 +29,7 @@ public class JavaNetworkSystemExtractorTest {
      * @author Markus Paulsen
      */
     @Test
-    public void testExtractHosts_andPorts() {
+    public void testExtractHostsAndPortsAllPermissionTypesAndValid() {
         List<NetworkPermission> configs = List.of(
                 NetworkPermission.builder().onTheHost("0.0.0.0").onThePort(0).openConnections(true).sendData(true).receiveData(true).build(),
                 NetworkPermission.builder().onTheHost("10.10.10.10").onThePort(10).openConnections(true).sendData(false).receiveData(false).build(),
@@ -37,15 +37,23 @@ public class JavaNetworkSystemExtractorTest {
                 NetworkPermission.builder().onTheHost("200.200.200.200").onThePort(1000).openConnections(false).sendData(false).receiveData(true).build(),
                 NetworkPermission.builder().onTheHost("255.255.255.255").onThePort(10000).openConnections(false).sendData(false).receiveData(false).build()
         );
-        // hosts
-        Assertions.assertEquals(List.of("0.0.0.0", "10.10.10.10"), JavaNetworkSystemExtractor.extractHosts(configs, NetworkPermission::openConnections));
-        Assertions.assertEquals(List.of("0.0.0.0", "100.100.100.100"), JavaNetworkSystemExtractor.extractHosts(configs, NetworkPermission::sendData));
-        Assertions.assertEquals(List.of("0.0.0.0", "200.200.200.200"), JavaNetworkSystemExtractor.extractHosts(configs, NetworkPermission::receiveData));
+        // connect
+        List<String> connectHosts = List.of("0.0.0.0", "10.10.10.10");
+        List<String> connectPorts = List.of("0", "10");
+        Assertions.assertEquals(connectHosts, JavaNetworkSystemExtractor.extractHosts(configs, NetworkPermission::openConnections));
+        Assertions.assertEquals(connectPorts, JavaNetworkSystemExtractor.extractPorts(configs, NetworkPermission::openConnections));
 
-        // ports
-        Assertions.assertEquals(List.of("0", "10"), JavaNetworkSystemExtractor.extractPorts(configs, NetworkPermission::openConnections));
-        Assertions.assertEquals(List.of("0", "100"), JavaNetworkSystemExtractor.extractPorts(configs, NetworkPermission::sendData));
-        Assertions.assertEquals(List.of("0", "1000"), JavaNetworkSystemExtractor.extractPorts(configs, NetworkPermission::receiveData));
+        // send
+        List<String> sendHosts = List.of("0.0.0.0", "100.100.100.100");
+        List<String> sendPorts = List.of("0", "100");
+        Assertions.assertEquals(sendHosts, JavaNetworkSystemExtractor.extractHosts(configs, NetworkPermission::sendData));
+        Assertions.assertEquals(sendPorts, JavaNetworkSystemExtractor.extractPorts(configs, NetworkPermission::sendData));
+
+        // receive
+        List<String> receiveHosts = List.of("0.0.0.0", "200.200.200.200");
+        List<String> receivePorts = List.of("0", "1000");
+        Assertions.assertEquals(receiveHosts, JavaNetworkSystemExtractor.extractHosts(configs, NetworkPermission::receiveData));
+        Assertions.assertEquals(receivePorts, JavaNetworkSystemExtractor.extractPorts(configs, NetworkPermission::receiveData));
     }
 
     /**
@@ -57,7 +65,7 @@ public class JavaNetworkSystemExtractorTest {
      * @author Markus Paulsen
      */
     @Test
-    public void testGetPermittedNetworkHostsAndPortsAndInvalid() {
+    public void testExtractHostsAndPortsAllPermissionTypesAndInvalid() {
         Supplier<List<?>> supplier = () -> List.of(
                 NetworkPermission.builder().onTheHost("0.0.0.0").onThePort(0).openConnections(true).sendData(true).receiveData(true).build(),
                 NetworkPermission.builder().onTheHost("10.10.10.10").onThePort(10).openConnections(true).sendData(false).receiveData(false).build(),
@@ -67,13 +75,29 @@ public class JavaNetworkSystemExtractorTest {
         );
         JavaNetworkSystemExtractor extractor = new JavaNetworkSystemExtractor(supplier);
 
-        // valid
-        Assertions.assertEquals(List.of("0.0.0.0", "10.10.10.10"), extractor.getPermittedNetworkHosts("connect"));
-        Assertions.assertEquals(List.of("0.0.0.0", "100.100.100.100"), extractor.getPermittedNetworkHosts("send"));
-        Assertions.assertEquals(List.of("0.0.0.0", "200.200.200.200"), extractor.getPermittedNetworkHosts("receive"));
-        Assertions.assertEquals(List.of(0, 10), extractor.getPermittedNetworkPorts("connect"));
-        Assertions.assertEquals(List.of(0, 100), extractor.getPermittedNetworkPorts("send"));
-        Assertions.assertEquals(List.of(0, 1000), extractor.getPermittedNetworkPorts("receive"));
+        // connect hosts
+        List<String> expectedConnectHosts = List.of("0.0.0.0", "10.10.10.10");
+        List<Integer> expectedConnectPorts = List.of(0, 10);
+        List<String> actualConnectHosts = extractor.getPermittedNetworkHosts("connect");
+        List<Integer> actualConnectPorts = extractor.getPermittedNetworkPorts("connect");
+        Assertions.assertEquals(expectedConnectHosts, actualConnectHosts);
+        Assertions.assertEquals(expectedConnectPorts, actualConnectPorts);
+
+        // send hosts
+        List<String> expectedSendHosts = List.of("0.0.0.0", "100.100.100.100");
+        List<Integer> expectedSendPorts = List.of(0, 100);
+        List<String> actualSendHosts = extractor.getPermittedNetworkHosts("send");
+        List<Integer> actualSendPorts = extractor.getPermittedNetworkPorts("send");
+        Assertions.assertEquals(expectedSendHosts, actualSendHosts);
+        Assertions.assertEquals(expectedSendPorts, actualSendPorts);
+
+        // receive hosts
+        List<String> expectedReceiveHosts = List.of("0.0.0.0", "200.200.200.200");
+        List<Integer> expectedReceivePorts = List.of(0, 1000);
+        List<String> actualReceiveHosts = extractor.getPermittedNetworkHosts("receive");
+        List<Integer> actualReceivePorts = extractor.getPermittedNetworkPorts("receive");
+        Assertions.assertEquals(expectedReceiveHosts, actualReceiveHosts);
+        Assertions.assertEquals(expectedReceivePorts, actualReceivePorts);
 
         // invalid
         Assertions.assertThrows(IllegalArgumentException.class, () -> extractor.getPermittedNetworkHosts("kill"));

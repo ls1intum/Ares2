@@ -14,6 +14,6 @@ public class ExecuteThirdPartyPackageMain {
      * Access the file system using the {@link ThirdPartyPackagePenguin} class for execution.
      */
     public static void accessFileSystemViaThirdPartyPackage(String filePath) throws IOException {
-        ThirdPartyPackagePenguin.executeFile_with_path(filePath);
+        ThirdPartyPackagePenguin.executeFile();
     }
 }

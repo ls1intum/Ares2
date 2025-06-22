@@ -1,0 +1,19 @@
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION
+  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.cit.ase.ares.integration.architecture.forbidden.FileSystemAccessReadTest"
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions:
+      - readAllFiles: false
+        overwriteAllFiles: false
+        executeAllFiles: false
+        deleteAllFiles: true
+        onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"
+    regardingNetworkConnections: [ ]
+    regardingCommandExecutions: [ ]
+    regardingThreadCreations:
+      - createTheFollowingNumberOfThreads: 1
+        ofThisClass: "*"
+    regardingPackageImports: [ ]

@@ -6,6 +6,6 @@ import java.io.IOException;
 
 public class ThirdPartyAccessPenguin {
     public void accessPathThroughThirdPartyPackage() throws IOException {
-        ThirdPartyPackagePenguin.accessFileSystem();
+        ThirdPartyPackagePenguin.readFile();
     }
 }

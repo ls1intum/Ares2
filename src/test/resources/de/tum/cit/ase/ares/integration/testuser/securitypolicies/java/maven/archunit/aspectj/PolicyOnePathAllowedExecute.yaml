@@ -4,7 +4,7 @@ regardingTheSupervisedCode:
   theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
   theMainClassInsideThisPackageIs: "Main"
   theFollowingClassesAreTestClasses:
-    - "de.tum.cit.ase.ares.integration.FileSystemAccessTest"
+    - "de.tum.cit.ase.ares.integration.architecture.forbidden.FileSystemAccessExecuteTest"
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions:
       - readAllFiles: true
