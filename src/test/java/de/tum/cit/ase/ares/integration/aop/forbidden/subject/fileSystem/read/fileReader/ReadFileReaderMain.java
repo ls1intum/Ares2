@@ -49,4 +49,6 @@ public class ReadFileReaderMain {
     }
 
 
+    public static void accessFileSystemViaFileReader() {
+    }
 }

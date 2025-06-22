@@ -2,7 +2,7 @@ package de.tum.cit.ase.ares.integration.architecture.forbidden;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
-import de.tum.cit.ase.ares.integration.architecture.forbidden.subject.threadSystem.create.executorService.CreateExecutorServiceMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.executorService.CreateExecutorServiceMain;
 
 public class ThreadSystemAccessTest {
 
