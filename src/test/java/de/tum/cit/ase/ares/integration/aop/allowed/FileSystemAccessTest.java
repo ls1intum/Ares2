@@ -62,6 +62,56 @@ class FileSystemAccessTest {
     private static final String TRUSTED_FILE_CONTENT = "Let all who dare look upon these words tremble: Hello, world, and witness the unraveling of reality.";
 
     /**
+     * Executes the platform-specific trusted script and verifies console output.
+     */
+    private String returnPlatformSpecificTrustedScriptPath() {
+        String osName = System.getProperty("os.name").toLowerCase();
+        return osName.contains("windows")
+                ? "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted_execute.bat"
+                : "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted_execute.sh";
+    }
+
+    /**
+     * Sets up the input file with the expected trusted content for read tests.
+     *
+     * @param inputFilePath The path to the input file
+     */
+    private void setupInputFile(String inputFilePath) {
+        try {
+            java.nio.file.Files.writeString(java.nio.file.Paths.get(inputFilePath), TRUSTED_FILE_CONTENT);
+        } catch (java.io.IOException e) {
+            Assertions.fail("Failed to setup input file: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Cleans up the output file if it exists.
+     */
+    private void cleanupOutputFile(String outputFilePath) {
+        java.io.File outputFile = new java.io.File(outputFilePath);
+        if (outputFile.exists()) {
+            outputFile.delete();
+        }
+    }
+
+    /**
+     * Verifies that the output file was created and contains the expected content.
+     */
+    private void verifyOutputFileCreatedWithCorrectContent(String outputFilePath) throws java.io.IOException {
+        java.io.File outputFile = new java.io.File(outputFilePath);
+
+        // Verify file exists
+        Assertions.assertTrue(outputFile.exists(),
+                "Output file was not created at: " + outputFilePath);
+
+        // Verify file content
+        String content = java.nio.file.Files.readString(java.nio.file.Paths.get(outputFilePath)).trim();
+        Assertions.assertEquals(TRUSTED_FILE_CONTENT, content,
+                "Output file content does not match the expected trusted file content.");
+    }
+
+
+    /**
      * Test that the given executable does NOT throw a SecurityException.
      *
      * @param executable The executable that should NOT throw a SecurityException
@@ -78,27 +128,25 @@ class FileSystemAccessTest {
      *                         returns the file content
      */
     private void assertFileReadAllowedAndContentMatches(java.util.concurrent.Callable<String> fileReadCallable) {
-        String content = null;
+        // Define the input file path
+        String inputFilePath = "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt";
+        
         try {
-            content = fileReadCallable.call();
+            // Set up the input file with expected content
+            setupInputFile(inputFilePath);
+            
+            // Call the file read method
+            String content = fileReadCallable.call();
+            
+            // Verify that the reading was correct
+            Assertions.assertEquals(TRUSTED_FILE_CONTENT, content != null ? content.trim() : null,
+                    ERROR_FILE_CONTENT_MISMATCH);
+        } catch (SecurityException e) {
+            Assertions.fail(ERROR_SECURITY_EXCEPTION, e);
         } catch (Exception e) {
             Assertions.fail(ERROR_SECURITY_EXCEPTION, e);
         }
-        Assertions.assertEquals(TRUSTED_FILE_CONTENT, content != null ? content.trim() : null,
-                ERROR_FILE_CONTENT_MISMATCH);
-    }
-
-    /**
-     * Executes the platform-specific trusted script and verifies console output.
-     */
-    private String returnPlatformSpecificTrustedScriptPath() {
-        String osName = System.getProperty("os.name").toLowerCase();
-        return osName.contains("windows")
-                ? "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted_execute.bat"
-                : "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted_execute.sh";
-    }
-
-    /**
+    }    /**
      * Helper method to assert that execution is allowed and creates
      * the expected output file with correct content.
      *
@@ -130,30 +178,33 @@ class FileSystemAccessTest {
     }
 
     /**
-     * Cleans up the output file if it exists.
+     * General helper to assert that file overwriting is allowed and the content
+     * matches after writing.
+     *
+     * @param fileWriteCallable a callable that calls the static file write method
      */
-    private void cleanupOutputFile(String outputFilePath) {
-        java.io.File outputFile = new java.io.File(outputFilePath);
-        if (outputFile.exists()) {
-            outputFile.delete();
+    private void assertFileOverwriteAllowedAndContentMatches(java.util.concurrent.Callable<Void> fileWriteCallable) {
+        // Define the output file path
+        String outputFilePath = "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt";
+        
+        try {
+            // Clean up the output file (empty it)
+            cleanupOutputFile(outputFilePath);
+            
+            // Call the file write method
+            fileWriteCallable.call();
+            
+            // Verify that the writing was correct
+            verifyOutputFileCreatedWithCorrectContent(outputFilePath);
+        } catch (SecurityException e) {
+            Assertions.fail(ERROR_SECURITY_EXCEPTION, e);
+        } catch (Exception e) {
+            Assertions.fail(ERROR_SECURITY_EXCEPTION, e);
         }
     }
 
-    /**
-     * Verifies that the output file was created and contains the expected content.
-     */
-    private void verifyOutputFileCreatedWithCorrectContent(String outputFilePath) throws java.io.IOException {
-        java.io.File outputFile = new java.io.File(outputFilePath);
 
-        // Verify file exists
-        Assertions.assertTrue(outputFile.exists(),
-                "Output file was not created at: " + outputFilePath);
 
-        // Verify file content
-        String content = java.nio.file.Files.readString(java.nio.file.Paths.get(outputFilePath)).trim();
-        Assertions.assertEquals(TRUSTED_FILE_CONTENT, content,
-                "Output file content does not match the expected trusted file content.");
-    }
 
     // <editor-fold desc="Read Operations">
     // --- Read Operations ---
@@ -645,35 +696,45 @@ class FileSystemAccessTest {
     // <editor-fold desc="Overwrite Operations">
     // --- Overwrite Operations ---
     @Nested
-    class OverwriteOperations {
-
-        // <editor-fold desc="accessFileSystemViaBufferedWriter">
+    class OverwriteOperations {        // <editor-fold desc="accessFileSystemViaBufferedWriter">
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/bufferedWriter")
         void test_accessFileSystemViaBufferedWriterMavenArchunitAspectJ() {
-            assertNoAresSecurityException(
-                    () -> WriteBufferedWriterMain.accessFileSystemViaBufferedWriter(TRUSTED_FILE_CONTENT));
+            assertFileOverwriteAllowedAndContentMatches(
+                    () -> {
+                        WriteBufferedWriterMain.accessFileSystemViaBufferedWriter(TRUSTED_FILE_CONTENT);
+                        return null;
+                    });
         }
 
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/bufferedWriter")
         void test_accessFileSystemViaBufferedWriterMavenArchunitInstrumentation() {
-            assertNoAresSecurityException(
-                    () -> WriteBufferedWriterMain.accessFileSystemViaBufferedWriter(TRUSTED_FILE_CONTENT));
+            assertFileOverwriteAllowedAndContentMatches(
+                    () -> {
+                        WriteBufferedWriterMain.accessFileSystemViaBufferedWriter(TRUSTED_FILE_CONTENT);
+                        return null;
+                    });
         }
 
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/bufferedWriter")
         void test_accessFileSystemViaBufferedWriterMavenWalaAspectJ() {
-            assertNoAresSecurityException(
-                    () -> WriteBufferedWriterMain.accessFileSystemViaBufferedWriter(TRUSTED_FILE_CONTENT));
+            assertFileOverwriteAllowedAndContentMatches(
+                    () -> {
+                        WriteBufferedWriterMain.accessFileSystemViaBufferedWriter(TRUSTED_FILE_CONTENT);
+                        return null;
+                    });
         }
 
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/bufferedWriter")
         void test_accessFileSystemViaBufferedWriterMavenWalaInstrumentation() {
-            assertNoAresSecurityException(
-                    () -> WriteBufferedWriterMain.accessFileSystemViaBufferedWriter(TRUSTED_FILE_CONTENT));
+            assertFileOverwriteAllowedAndContentMatches(
+                    () -> {
+                        WriteBufferedWriterMain.accessFileSystemViaBufferedWriter(TRUSTED_FILE_CONTENT);
+                        return null;
+                    });
         }
         // </editor-fold>
 

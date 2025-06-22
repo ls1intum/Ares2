@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
 
 //<editor-fold desc="imports">
+
 import java.io.File;
 
 import java.io.IOException;
@@ -122,7 +123,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
     private static <T> void setValueToSettings(@Nonnull String fieldName, @Nullable T newValue) {
         try {
             // Take standard class loader as class loader in order to get the JavaAOPTestCaseSettings class at compile time for aspectj
-            @Nonnull Class<?> adviceSettingsClass =  Objects.requireNonNull(Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings"), "adviceSettingsClass must not be null");
+            @Nonnull Class<?> adviceSettingsClass = Objects.requireNonNull(Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings"), "adviceSettingsClass must not be null");
             @Nonnull Field field = Objects.requireNonNull(adviceSettingsClass.getDeclaredField(Objects.requireNonNull(fieldName, "fieldName must not be null")), "field must not be null");
             field.setAccessible(true);
             field.set(null, newValue);
@@ -319,10 +320,10 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
      * @return true if path is forbidden; false otherwise
      */
     private static boolean checkIfPathIsForbidden(@Nullable Path path, @Nullable String[] allowedPaths) {
-        if(path == null) {
+        if (path == null) {
             return false;
         }
-        if(allowedPaths == null) {
+        if (allowedPaths == null) {
             return true;
         }
         try {
@@ -383,6 +384,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
     //</editor-fold>
 
     //<editor-fold desc="Violation analysis">
+
     /**
      * Analyzes a variable to determine if it violates allowed paths.
      *
@@ -391,7 +393,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions {
      *
      * @since 2.0.0
      * @author Markus
-     * @param variable      the variable to analyze
+     * @param observedVariable      the variable to analyze
      * @param allowedPaths  whitelist of allowed path strings; if null, all paths are considered allowed
      * @return true if a violation is found, false otherwise
      */

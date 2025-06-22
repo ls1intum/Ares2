@@ -1,5 +1,7 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 
+//<editor-fold desc="imports">
+
 import java.lang.invoke.SerializedLambda;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
@@ -19,6 +21,7 @@ import java.util.concurrent.ForkJoinTask;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+//</editor-fold>
 
 /**
  * Utility class for Java instrumentation thread system security advice.
