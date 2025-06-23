@@ -50,15 +50,15 @@ public class JavaInstrumentationExecuteCommandMethodAdvice {
                     fields[i].setAccessible(true);
                     attributes[i] = fields[i].get(instance);
                 } catch (InaccessibleObjectException e) {
-                    throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.inaccessible.object.exception", fields[i].getName(), instance.getClass().getName()), e);
+                    throw new SecurityException(JavaInstrumentationAdviceCommandSystemToolbox.localize("security.instrumentation.inaccessible.object.exception", fields[i].getName(), instance.getClass().getName()), e);
                 } catch (IllegalAccessException e) {
-                    throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.illegal.access.exception", fields[i].getName(), instance.getClass().getName()), e);
+                    throw new SecurityException(JavaInstrumentationAdviceCommandSystemToolbox.localize("security.instrumentation.illegal.access.exception", fields[i].getName(), instance.getClass().getName()), e);
                 } catch (IllegalArgumentException e) {
-                    throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.illegal.argument.exception", fields[i].getName(), fields[i].getDeclaringClass().getName(), instance.getClass().getName()), e);
+                    throw new SecurityException(JavaInstrumentationAdviceCommandSystemToolbox.localize("security.instrumentation.illegal.argument.exception", fields[i].getName(), fields[i].getDeclaringClass().getName(), instance.getClass().getName()), e);
                 } catch (NullPointerException e) {
-                    throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.null.pointer.exception", fields[i].getName(), instance.getClass().getName()), e);
+                    throw new SecurityException(JavaInstrumentationAdviceCommandSystemToolbox.localize("security.instrumentation.null.pointer.exception", fields[i].getName(), instance.getClass().getName()), e);
                 } catch (ExceptionInInitializerError e) {
-                    throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.exception.in-initializer.error", fields[i].getName(), instance.getClass().getName()), e);
+                    throw new SecurityException(JavaInstrumentationAdviceCommandSystemToolbox.localize("security.instrumentation.exception.in-initializer.error", fields[i].getName(), instance.getClass().getName()), e);
                 }
             }
         }
