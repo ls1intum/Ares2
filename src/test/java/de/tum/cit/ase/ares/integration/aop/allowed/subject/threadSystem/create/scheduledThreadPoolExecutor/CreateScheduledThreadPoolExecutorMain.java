@@ -15,27 +15,36 @@ public class CreateScheduledThreadPoolExecutorMain {
      * Tests ScheduledThreadPoolExecutor.execute(Runnable) method
      */
     public static void executeRunnable() {
-        @SuppressWarnings("resource")
         ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
-        scheduledThreadPoolExecutor.execute(new LegalThread());
+        try {
+            scheduledThreadPoolExecutor.execute(new LegalThread());
+        } finally {
+            scheduledThreadPoolExecutor.shutdown();
+        }
     }
 
     /**
      * Tests ScheduledThreadPoolExecutor.submit(Runnable) method
      */
     public static void submitRunnable() {
-        @SuppressWarnings("resource")
         ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
-        scheduledThreadPoolExecutor.submit(new LegalThread());
+        try {
+            scheduledThreadPoolExecutor.submit(new LegalThread());
+        } finally {
+            scheduledThreadPoolExecutor.shutdown();
+        }
     }
 
     /**
      * Tests ScheduledThreadPoolExecutor.submit(Callable) method
      */
     public static void submitCallable() {
-        @SuppressWarnings("resource")
         ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
         Callable<String> callable = () -> "test";
-        scheduledThreadPoolExecutor.submit(callable);
+        try {
+            scheduledThreadPoolExecutor.submit(callable);
+        } finally {
+            scheduledThreadPoolExecutor.shutdown();
+        }
     }
 }
