@@ -34,7 +34,11 @@ public class CreateThreadPoolExecutorMain {
         ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
                 1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>()
         );
-        threadPoolExecutor.submit(new IllegalThread());
+        try {
+            threadPoolExecutor.submit(new IllegalThread());
+        } finally {
+            threadPoolExecutor.shutdown();
+        }
     }
 
     /**
