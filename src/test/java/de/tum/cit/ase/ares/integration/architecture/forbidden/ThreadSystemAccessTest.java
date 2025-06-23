@@ -29,7 +29,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     private static final String SCHEDULED_THREAD_POOL_EXECUTOR_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/scheduledThreadPoolExecutor";
     private static final String COMPLETABLE_FUTURE_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/completableFuture";
     private static final String PARALLEL_STREAM_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/parallelStream";
-    
+
     // <editor-fold desc="accessThreadSystemViaStartThread">
     @Test
     void test_createThreadViaStartMavenArchunitAspectJ_test() {
@@ -131,8 +131,8 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     public void test_createVirtualThreadMavenWalaInstrumentation() {
         CreateThreadMain.startVirtualThread();
     }
-    // </editor-fold> 
-    
+    // </editor-fold>
+
     // <editor-fold desc="accessThreadSystemViaCreateThreadInGroup">
     @Test
     void test_createThreadInGroupMavenArchunitAspectJ_test() {
@@ -184,8 +184,8 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     public void test_createThreadInGroupMavenWalaInstrumentation() {
         CreateThreadGroupMain.createThreadInGroup();
     }
-    // </editor-fold> 
-    
+    // </editor-fold>
+
     // <editor-fold desc="accessThreadSystemViaCreateThreadBuilder">
     @Test
     void test_createThreadViaBuilderMavenArchunitAspectJ_test() {
@@ -234,8 +234,8 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     public void test_createThreadViaBuilderMavenWalaInstrumentation() {
         CreateThreadBuilderMain.createThreadBuilder();
     }
-    // </editor-fold> 
-    
+    // </editor-fold>
+
     // <editor-fold desc="accessThreadSystemViaCreateExecutor">
     @Test
     void test_createThreadViaExecutorMavenArchunitAspectJ_test() {
@@ -284,8 +284,8 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     public void test_createThreadViaExecutorMavenWalaInstrumentation() {
         CreateExecutorMain.createExecutor();
     }
-    // </editor-fold> 
-    
+    // </editor-fold>
+
     // <editor-fold desc="accessThreadSystemViaCreateExecutorService">
     @Test
     void test_createExecutorServiceMavenArchunitAspectJ_test() {
@@ -585,7 +585,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
         CreateExecutorServiceMain.invokeAny();
     }
     // </editor-fold>
-    
+
     // <editor-fold desc="accessThreadSystemViaScheduledExecutorServiceScheduleRunnable">
     @Test
     void test_scheduleRunnableMavenArchunitAspectJ_test() {
@@ -785,7 +785,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
         CreateScheduledExecutorServiceMain.scheduleWithFixedDelay();
     }
     // </editor-fold>
-    
+
     // <editor-fold desc="accessThreadSystemViaForkJoinPoolExecuteRunnable">
     @Test
     void test_forkJoinPool_executeRunnableMavenArchunitAspectJ_test() {
@@ -935,7 +935,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
         CreateForkJoinPoolMain.submitCallable();
     }
     // </editor-fold>
-    
+
     // <editor-fold desc="accessThreadSystemViaThreadPoolExecutorExecuteRunnable">
     @Test
     void test_threadPoolExecutor_executeRunnableMavenArchunitAspectJ_test() {
@@ -1085,7 +1085,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
         CreateThreadPoolExecutorMain.submitCallable();
     }
     // </editor-fold>
-    
+
     // <editor-fold desc="accessThreadSystemViaScheduledThreadPoolExecutorExecuteRunnable">
     @Test
     void test_scheduledThreadPoolExecutor_executeRunnableMavenArchunitAspectJ_test() {
@@ -1241,7 +1241,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
         CreateScheduledThreadPoolExecutorMain.submitCallable();
     }
     // </editor-fold>
-    
+
     // <editor-fold desc="accessThreadSystemViaCompletableFutureRunAsync">
     @Test
     void test_completableFuture_runAsyncMavenArchunitAspectJ_test() {
@@ -1391,7 +1391,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
         CreateCompletableFutureMain.thenApplyAsync();
     }
     // </editor-fold>
-    
+
     // <editor-fold desc="accessThreadSystemViaParallelStreamCollectionParallelStream">
     @Test
     void test_parallelStream_collectionParallelStreamMavenArchunitAspectJ_test() {
@@ -1492,5 +1492,5 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
         CreateParallelStreamMain.streamParallel();
     }
     // </editor-fold>
-    
+
 }

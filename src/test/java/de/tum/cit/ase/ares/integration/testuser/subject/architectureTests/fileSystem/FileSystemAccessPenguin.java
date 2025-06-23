@@ -24,9 +24,6 @@ public final class FileSystemAccessPenguin {
     //</editor-fold>
 
     //<editor-fold desc="Other Methods">
-    public static void accessPath(Path p) throws IOException {
-        ThirdPartyPackagePenguin.accessFileSystem();
-    }
 
     public static void askForFilePermission(String path) {
         //REMOVED: Checking Permission of the system's SecurityManager for "read"

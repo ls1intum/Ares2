@@ -75,7 +75,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
         assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaFileDeleteOnExit,
                 FileDeleteMain.class);
     }
-    //</editor-fold>
+    // </editor-fold>
 
     // <editor-fold desc="accessFileSystemViaFilesDelete">
     @PublicTest

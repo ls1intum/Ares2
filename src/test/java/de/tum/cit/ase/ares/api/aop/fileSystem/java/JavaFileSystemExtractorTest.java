@@ -10,7 +10,7 @@ import java.util.function.Supplier;
 /**
  * Unit tests for JavaFileSystemExtractor.
  *
- * <p>Description: Verifies extraction and filtering of file system permissions for various operations.
+ * <p>Description: Verifies extraction and filtering of file system permissions for read, overwrite, execute, and delete operations.
  *
  * <p>Design Rationale: Ensures full coverage across all permission types and invalid inputs.
  *
@@ -29,7 +29,7 @@ public class JavaFileSystemExtractorTest {
      * @author Markus Paulsen
      */
     @Test
-    public void testExtractPaths_allPermissionTypes() {
+    public void testExtractPathsAllPermissionTypesAndValid() {
         List<FilePermission> configs = List.of(
                 FilePermission.builder().onThisPathAndAllPathsBelow("/a").readAllFiles(true).overwriteAllFiles(true).executeAllFiles(true).deleteAllFiles(true).build(),
                 FilePermission.builder().onThisPathAndAllPathsBelow("/b").readAllFiles(true).overwriteAllFiles(false).executeAllFiles(false).deleteAllFiles(false).build(),
@@ -39,20 +39,24 @@ public class JavaFileSystemExtractorTest {
                 FilePermission.builder().onThisPathAndAllPathsBelow("/f").readAllFiles(false).overwriteAllFiles(false).executeAllFiles(false).deleteAllFiles(false).build()
         );
         // read
-        List<String> readPaths = JavaFileSystemExtractor.extractPaths(configs, FilePermission::readAllFiles);
-        Assertions.assertEquals(List.of("/a", "/b"), readPaths);
+        List<String> readPathsExpected = List.of("/a", "/b");
+        List<String> readPathsActual = JavaFileSystemExtractor.extractPaths(configs, FilePermission::readAllFiles);
+        Assertions.assertEquals(readPathsExpected, readPathsActual);
 
         // overwrite
-        List<String> overwritePaths = JavaFileSystemExtractor.extractPaths(configs, FilePermission::overwriteAllFiles);
-        Assertions.assertEquals(List.of("/a", "/c"), overwritePaths);
+        List<String> overwritePathsExpected = List.of("/a", "/c");
+        List<String> overwritePathsActual = JavaFileSystemExtractor.extractPaths(configs, FilePermission::overwriteAllFiles);
+        Assertions.assertEquals(overwritePathsExpected, overwritePathsActual);
 
         // execute
-        List<String> executePaths = JavaFileSystemExtractor.extractPaths(configs, FilePermission::executeAllFiles);
-        Assertions.assertEquals(List.of("/a", "/d"), executePaths);
+        List<String> executePathsExpected = List.of("/a", "/d");
+        List<String> executePathsActual = JavaFileSystemExtractor.extractPaths(configs, FilePermission::executeAllFiles);
+        Assertions.assertEquals(executePathsExpected, executePathsActual);
 
         // delete
-        List<String> deletePaths = JavaFileSystemExtractor.extractPaths(configs, FilePermission::deleteAllFiles);
-        Assertions.assertEquals(List.of("/a", "/e"), deletePaths);
+        List<String> deletePathsExpected = List.of("/a", "/e");
+        List<String> deletePathsActual = JavaFileSystemExtractor.extractPaths(configs, FilePermission::deleteAllFiles);
+        Assertions.assertEquals(deletePathsExpected, deletePathsActual);
     }
 
     /**
@@ -64,7 +68,7 @@ public class JavaFileSystemExtractorTest {
      * @author Markus Paulsen
      */
     @Test
-    public void testGetPermittedFilePaths_allTypesAndInvalid() {
+    public void testGetPermittedFilePathsAllPermissionTypesAndInvalid() {
         Supplier<List<?>> supplier = () -> List.of(
                 FilePermission.builder().onThisPathAndAllPathsBelow("/a").readAllFiles(true).overwriteAllFiles(true).executeAllFiles(true).deleteAllFiles(true).build(),
                 FilePermission.builder().onThisPathAndAllPathsBelow("/b").readAllFiles(true).overwriteAllFiles(false).executeAllFiles(false).deleteAllFiles(false).build(),
@@ -76,13 +80,24 @@ public class JavaFileSystemExtractorTest {
         JavaFileSystemExtractor extractor = new JavaFileSystemExtractor(supplier);
 
         // read
-        Assertions.assertEquals(List.of("/a", "/b"), extractor.getPermittedFilePaths("read"));
+        List<String> readPathsExpected = List.of("/a", "/b");
+        List<String> readPathsActual = extractor.getPermittedFilePaths("read");
+        Assertions.assertEquals(readPathsExpected, readPathsActual);
+
         // overwrite
-        Assertions.assertEquals(List.of("/a", "/c"), extractor.getPermittedFilePaths("overwrite"));
+        List<String> overwritePathsExpected = List.of("/a", "/c");
+        List<String> overwritePathsActual = extractor.getPermittedFilePaths("overwrite");
+        Assertions.assertEquals(overwritePathsExpected, overwritePathsActual);
+
         // execute
-        Assertions.assertEquals(List.of("/a", "/d"), extractor.getPermittedFilePaths("execute"));
+        List<String> executePathsExpected = List.of("/a", "/d");
+        List<String> executePathsActual = extractor.getPermittedFilePaths("execute");
+        Assertions.assertEquals(executePathsExpected, executePathsActual);
+
         // delete
-        Assertions.assertEquals(List.of("/a", "/e"), extractor.getPermittedFilePaths("delete"));
+        List<String> deletePathsExpected = List.of("/a", "/e");
+        List<String> deletePathsActual = extractor.getPermittedFilePaths("delete");
+        Assertions.assertEquals(deletePathsExpected, deletePathsActual);
 
         // invalid
         Assertions.assertThrows(IllegalArgumentException.class, () -> extractor.getPermittedFilePaths("kill"));

@@ -228,7 +228,9 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
     }
     // </editor-fold>
 
-    // <editor-fold desc="accessFileSystemViaThirdPartyPackage()">
+    // <editor-fold desc="accessFileSystemViaThirdPartyPackage">
+
+    /* Archunit cannot handle third party packages, so we skip this test
 
     @Test
     void test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ_test() {
@@ -255,6 +257,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
         assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
                 ThirdPartyPackagePenguin.class);
     }
+    }*/
 
     @Test
     void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ_test() {

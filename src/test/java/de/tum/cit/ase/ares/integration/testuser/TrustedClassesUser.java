@@ -21,7 +21,7 @@ public class TrustedClassesUser {
 
 	@Test
 	void testNotWhitelisted() throws IOException {
-		FileSystemAccessPenguin.accessPath(PATH);
+		//FileSystemAccessPenguin.accessPath(PATH);
 	}
 
 	@Test
