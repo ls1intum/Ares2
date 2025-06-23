@@ -307,7 +307,7 @@ public abstract class SystemAccessTest {
      * @param clazz      The test class containing the method
      * @param methodName The name of the test method to execute
      */
-    protected void testtest(Class<?> clazz, String methodName) {
+    protected void executeTestAndExpectSecurityException(Class<?> clazz, String methodName) {
         Events testEvents = EngineTestKit
                 .engine("junit-jupiter")
                 .configurationParameter(
