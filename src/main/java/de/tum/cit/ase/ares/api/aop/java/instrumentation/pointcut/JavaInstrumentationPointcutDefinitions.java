@@ -348,7 +348,7 @@ public class JavaInstrumentationPointcutDefinitions {
      */
     public static final Map<String, List<String>> methodsWhichCanExecuteCommands = Map.ofEntries(
             // java.lang
-            Map.entry("java.lang.Process", List.of("exec")),
+            Map.entry("java.lang.Runtime", List.of("exec")),
             Map.entry("java.lang.ProcessBuilder", List.of("start"))
     );
     //</editor-fold>
