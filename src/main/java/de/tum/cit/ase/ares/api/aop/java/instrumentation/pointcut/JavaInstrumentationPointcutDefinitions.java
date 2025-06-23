@@ -336,7 +336,7 @@ public class JavaInstrumentationPointcutDefinitions {
             // java.util
             Map.entry("java.util.concurrent.ExecutorService", List.of("submit", "invokeAll", "invokeAny")),
             Map.entry("java.util.concurrent.ThreadPoolExecutor", List.of("submit", "execute")),
-            Map.entry("java.util.concurrent.Compareable Future", List.of("runAsync", "supplyAsync", "thenApplyAsync"))
+            Map.entry("java.util.concurrent.CompletableFuture", List.of("runAsync", "supplyAsync", "thenApplyAsync"))
     );
     //</editor-fold>
 
