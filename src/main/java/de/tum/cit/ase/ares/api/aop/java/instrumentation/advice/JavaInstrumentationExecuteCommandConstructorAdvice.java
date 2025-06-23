@@ -3,12 +3,12 @@ package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 import net.bytebuddy.asm.Advice;
 
 /**
- * This class provides advice for the execution of constructors creating threads.
- * It is responsible for verifying whether the constructor execution is allowed based on the thread system
+ * This class provides advice for the execution of constructors that can execute commands.
+ * It is responsible for verifying whether the constructor execution is allowed based on the command system
  * security policies defined within the application.
  * <p>
  * If an execution attempt violates these policies, a SecurityException is thrown, preventing
- * unauthorized thread creation. The class interacts with the JavaInstrumentationAdviceFileSystemToolbox to
+ * unauthorized command execution. The class interacts with the JavaInstrumentationAdviceCommandSystemToolbox to
  * perform these security checks.
  */
 public class JavaInstrumentationExecuteCommandConstructorAdvice {

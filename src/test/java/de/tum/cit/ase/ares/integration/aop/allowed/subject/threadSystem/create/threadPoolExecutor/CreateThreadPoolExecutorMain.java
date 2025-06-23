@@ -17,11 +17,15 @@ public class CreateThreadPoolExecutorMain {
      * Tests ThreadPoolExecutor.execute(Runnable) method
      */
     public static void executeRunnable() {
-        @SuppressWarnings("resource")
-        ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
+        try (ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
                 1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>()
-        );
-        threadPoolExecutor.execute(new LegalThread());
+        )) {
+            threadPoolExecutor.execute(new LegalThread());
+            threadPoolExecutor.shutdown();
+            threadPoolExecutor.awaitTermination(1, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     /**

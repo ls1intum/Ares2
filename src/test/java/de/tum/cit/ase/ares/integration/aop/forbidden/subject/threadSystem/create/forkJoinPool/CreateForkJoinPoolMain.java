@@ -15,24 +15,27 @@ public class CreateForkJoinPoolMain {
      * Tests ForkJoinPool.execute(Runnable) method
      */
     public static void executeRunnable() {
-        ForkJoinPool forkJoinPool = new ForkJoinPool();
-        forkJoinPool.execute(new IllegalThread());
+        try (ForkJoinPool forkJoinPool = new ForkJoinPool()) {
+            forkJoinPool.execute(new IllegalThread());
+        }
     }
 
     /**
      * Tests ForkJoinPool.submit(Runnable) method
      */
     public static void submitRunnable() {
-        ForkJoinPool forkJoinPool = new ForkJoinPool();
-        forkJoinPool.submit(new IllegalThread());
+        try (ForkJoinPool forkJoinPool = new ForkJoinPool()) {
+            forkJoinPool.submit(new IllegalThread());
+        }
     }
 
     /**
      * Tests ForkJoinPool.submit(Callable) method
      */
     public static void submitCallable() {
-        ForkJoinPool forkJoinPool = new ForkJoinPool();
-        Callable<String> callable = () -> "test";
-        forkJoinPool.submit(callable);
+        try (ForkJoinPool forkJoinPool = new ForkJoinPool()) {
+            Callable<String> callable = () -> "test";
+            forkJoinPool.submit(callable);
+        }
     }
 }

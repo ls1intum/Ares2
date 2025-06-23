@@ -4,6 +4,7 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Callable;
 
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.LegalThread;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.IllegalThread;
 
 public class CreateForkJoinPoolMain {
 
@@ -15,9 +16,9 @@ public class CreateForkJoinPoolMain {
      * Tests ForkJoinPool.execute(Runnable) method
      */
     public static void executeRunnable() {
-        @SuppressWarnings("resource")
-        ForkJoinPool forkJoinPool = new ForkJoinPool();
-        forkJoinPool.execute(new LegalThread());
+        try (ForkJoinPool forkJoinPool = new ForkJoinPool()) {
+            forkJoinPool.execute(new IllegalThread());
+        }
     }
 
     /**
@@ -33,9 +34,9 @@ public class CreateForkJoinPoolMain {
      * Tests ForkJoinPool.submit(Callable) method
      */
     public static void submitCallable() {
-        @SuppressWarnings("resource")
-        ForkJoinPool forkJoinPool = new ForkJoinPool();
-        Callable<String> callable = () -> "test";
-        forkJoinPool.submit(callable);
+        try (ForkJoinPool forkJoinPool = new ForkJoinPool()) {
+            Callable<String> callable = () -> "test";
+            forkJoinPool.submit(callable);
+        }
     }
 }
