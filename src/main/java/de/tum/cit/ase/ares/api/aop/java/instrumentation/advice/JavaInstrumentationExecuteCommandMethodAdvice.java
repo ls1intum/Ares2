@@ -6,12 +6,12 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 
 /**
- * This class provides advice for the execution of methods creating threads.
- * It is responsible for verifying whether the method execution is allowed based on the thread system
+ * This class provides advice for the execution of methods that execute commands.
+ * It is responsible for verifying whether the method execution is allowed based on the command system
  * security policies defined within the application.
  * <p>
  * If an execution attempt violates these policies, a SecurityException is thrown, preventing
- * unauthorized thread creation. The class interacts with the JavaInstrumentationAdviceFileSystemToolbox to
+ * unauthorized command execution. The class interacts with the JavaInstrumentationAdviceCommandSystemToolbox to
  * perform these security checks.
  */
 public class JavaInstrumentationExecuteCommandMethodAdvice {
