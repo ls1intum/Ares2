@@ -9,57 +9,53 @@ import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdp
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-class FileSystemAccessReadTest extends SystemAccessTest {
-
-    private static final String FILE_READER_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/reader/fileReader";
+class FileSystemAccessReadTest extends SystemAccessTest {    private static final String FILE_READER_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/reader/fileReader";
     private static final String THIRD_PARTY_PACKAGE_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/thirdPartyPackage";
+    private static final String FILES_READ_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead";
+    
+    // Additional policy constants for specific test cases
+    private static final String WALA_INSTRUMENTATION_POLICY_EVERYTHING_FORBIDDEN = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyEverythingForbidden.yaml";
+    private static final String ARCHUNIT_ASPECTJ_POLICY_EVERYTHING_FORBIDDEN = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyEverythingForbidden.yaml";
+    private static final String ARCHUNIT_INSTRUMENTATION_POLICY_EVERYTHING_FORBIDDEN = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyEverythingForbidden.yaml";
 
     // <editor-fold desc="accessFileSystemViaFilesRead">
 
     @Test
     void test_accessFileSystemViaFilesReadMavenArchunitAspectJ_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadMavenArchunitAspectJ");
-    }
-
-    @Disabled
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadMavenArchunitAspectJ");
+    }    @Disabled
     @PublicTest
-    @Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = FILES_READ_PATH)
     void test_accessFileSystemViaFilesReadMavenArchunitAspectJ() {
         assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesRead, FilesReadMain.class);
     }
 
     @Test
     void test_accessFileSystemViaFilesReadMavenArchunitInstrumentation_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadMavenArchunitInstrumentation");
-    }
-
-    @Disabled
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadMavenArchunitInstrumentation");
+    }    @Disabled
     @PublicTest
-    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = FILES_READ_PATH)
     void test_accessFileSystemViaFilesReadMavenArchunitInstrumentation() {
         assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesRead, FilesReadMain.class);
     }
 
     @Test
     void test_accessFileSystemViaFilesReadMavenWalaAspectJ_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadMavenWalaAspectJ");
-    }
-
-    @Disabled
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadMavenWalaAspectJ");
+    }    @Disabled
     @PublicTest
-    @Policy(value = WALA_ASPECTJ_POLICY, withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
+    @Policy(value = WALA_ASPECTJ_POLICY, withinPath = FILES_READ_PATH)
     void test_accessFileSystemViaFilesReadMavenWalaAspectJ() {
         assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesRead, FilesReadMain.class);
     }
 
     @Test
     void test_accessFileSystemViaFilesReadMavenWalaInstrumentation_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadMavenWalaInstrumentation");
-    }
-
-    @Disabled
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadMavenWalaInstrumentation");
+    }    @Disabled
     @PublicTest
-    @Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
+    @Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = FILES_READ_PATH)
     void test_accessFileSystemViaFilesReadMavenWalaInstrumentation() {
         assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesRead, FilesReadMain.class);
     }
@@ -69,12 +65,10 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ");
-    }
-
-    @Disabled
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ");
+    }    @Disabled
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/thirdPartyPackage")
+    @Policy(value = WALA_ASPECTJ_POLICY, withinPath = THIRD_PARTY_PACKAGE_PATH)
     void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ() {
         assertAresSecurityExceptionRead(ReadThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
                 ThirdPartyPackagePenguin.class);
@@ -82,12 +76,10 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation");
-    }
-
-    @Disabled
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation");
+    }    @Disabled
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/thirdPartyPackage")
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_EVERYTHING_FORBIDDEN, withinPath = THIRD_PARTY_PACKAGE_PATH)
     void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation() {
         assertAresSecurityExceptionRead(ReadThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
                 ThirdPartyPackagePenguin.class);
@@ -97,12 +89,10 @@ class FileSystemAccessReadTest extends SystemAccessTest {
     // <editor-fold desc="accessFileSystemViaFileReaderReadCharArray">
     @Test
     void test_accessFileSystemViaFileReaderReadCharArrayMavenArchunitAspectJ_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFileReaderReadCharArrayMavenArchunitAspectJ");
-    }
-
-    @Disabled
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFileReaderReadCharArrayMavenArchunitAspectJ");
+    }    @Disabled
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileReader")
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_EVERYTHING_FORBIDDEN, withinPath = FILE_READER_PATH)
     void test_accessFileSystemViaFileReaderReadCharArrayMavenArchunitAspectJ() {
         assertAresSecurityExceptionRead(FileReaderReadMain::accessFileSystemViaFileReaderReadCharArray,
                 FileReaderReadMain.class);
@@ -110,12 +100,10 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaFileReaderReadCharArrayMavenArchunitInstrumentation_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFileReaderReadCharArrayMavenArchunitInstrumentation");
-    }
-
-    @Disabled
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFileReaderReadCharArrayMavenArchunitInstrumentation");
+    }    @Disabled
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileReader")
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_EVERYTHING_FORBIDDEN, withinPath = FILE_READER_PATH)
     void test_accessFileSystemViaFileReaderReadCharArrayMavenArchunitInstrumentation() {
         assertAresSecurityExceptionRead(FileReaderReadMain::accessFileSystemViaFileReaderReadCharArray,
                 FileReaderReadMain.class);
@@ -123,12 +111,12 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaFileReaderReadCharArrayMavenWalaAspectJ_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFileReaderReadCharArrayMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFileReaderReadCharArrayMavenWalaAspectJ");
     }
 
     @Disabled
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileReader")
+    @Policy(value = WALA_ASPECTJ_POLICY, withinPath = FILE_READER_PATH)
     void test_accessFileSystemViaFileReaderReadCharArrayMavenWalaAspectJ() {
         assertAresSecurityExceptionRead(FileReaderReadMain::accessFileSystemViaFileReaderReadCharArray,
                 FileReaderReadMain.class);
@@ -136,12 +124,12 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaFileReaderReadCharArrayMavenWalaInstrumentation_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFileReaderReadCharArrayMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFileReaderReadCharArrayMavenWalaInstrumentation");
     }
 
     @Disabled
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileReader")
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_EVERYTHING_FORBIDDEN, withinPath = FILE_READER_PATH)
     void test_accessFileSystemViaFileReaderReadCharArrayMavenWalaInstrumentation() {
         assertAresSecurityExceptionRead(FileReaderReadMain::accessFileSystemViaFileReaderReadCharArray,
                 FileReaderReadMain.class);
@@ -151,12 +139,12 @@ class FileSystemAccessReadTest extends SystemAccessTest {
     // <editor-fold desc="accessFileSystemViaFileReaderReadCharArrayOffsetLength">
     @Test
     void test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenArchunitAspectJ_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenArchunitAspectJ");
     }
 
     @Disabled
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileReader")
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_EVERYTHING_FORBIDDEN, withinPath = FILE_READER_PATH)
     void test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenArchunitAspectJ() {
         assertAresSecurityExceptionRead(FileReaderReadMain::accessFileSystemViaFileReaderReadCharArrayOffsetLength,
                 FileReaderReadMain.class);
@@ -164,12 +152,12 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenArchunitInstrumentation_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenArchunitInstrumentation");
     }
 
     @Disabled
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileReader")
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_EVERYTHING_FORBIDDEN, withinPath = FILE_READER_PATH)
     void test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenArchunitInstrumentation() {
         assertAresSecurityExceptionRead(FileReaderReadMain::accessFileSystemViaFileReaderReadCharArrayOffsetLength,
                 FileReaderReadMain.class);
@@ -177,12 +165,12 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenWalaAspectJ_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenWalaAspectJ");
     }
 
     @Disabled
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileReader")
+    @Policy(value = WALA_ASPECTJ_POLICY, withinPath = FILE_READER_PATH)
     void test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenWalaAspectJ() {
         assertAresSecurityExceptionRead(FileReaderReadMain::accessFileSystemViaFileReaderReadCharArrayOffsetLength,
                 FileReaderReadMain.class);
@@ -190,12 +178,12 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenWalaInstrumentation_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenWalaInstrumentation");
     }
 
     @Disabled
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/fileReader")
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_EVERYTHING_FORBIDDEN, withinPath = FILE_READER_PATH)
     void test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenWalaInstrumentation() {
         assertAresSecurityExceptionRead(FileReaderReadMain::accessFileSystemViaFileReaderReadCharArrayOffsetLength,
                 FileReaderReadMain.class);
@@ -206,48 +194,48 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaFilesReadAllLinesMavenArchunitAspectJ_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadAllLinesMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadAllLinesMavenArchunitAspectJ");
     }
 
     @Disabled
     @PublicTest
-    @Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = FILES_READ_PATH)
     void test_accessFileSystemViaFilesReadAllLinesMavenArchunitAspectJ() {
         assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesReadAllLines, FilesReadMain.class);
     }
 
     @Test
     void test_accessFileSystemViaFilesReadAllLinesMavenArchunitInstrumentation_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadAllLinesMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadAllLinesMavenArchunitInstrumentation");
     }
 
     @Disabled
     @PublicTest
-    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = FILES_READ_PATH)
     void test_accessFileSystemViaFilesReadAllLinesMavenArchunitInstrumentation() {
         assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesReadAllLines, FilesReadMain.class);
     }
 
     @Test
     void test_accessFileSystemViaFilesReadAllLinesMavenWalaAspectJ_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadAllLinesMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadAllLinesMavenWalaAspectJ");
     }
 
     @Disabled
     @PublicTest
-    @Policy(value = WALA_ASPECTJ_POLICY, withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
+    @Policy(value = WALA_ASPECTJ_POLICY, withinPath = FILES_READ_PATH)
     void test_accessFileSystemViaFilesReadAllLinesMavenWalaAspectJ() {
         assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesReadAllLines, FilesReadMain.class);
     }
 
     @Test
     void test_accessFileSystemViaFilesReadAllLinesMavenWalaInstrumentation_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadAllLinesMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadAllLinesMavenWalaInstrumentation");
     }
 
     @Disabled
     @PublicTest
-    @Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
+    @Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = FILES_READ_PATH)
     void test_accessFileSystemViaFilesReadAllLinesMavenWalaInstrumentation() {
         assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesReadAllLines, FilesReadMain.class);
     }
@@ -257,48 +245,48 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaFilesReadAllLinesCharsetMavenArchunitAspectJ_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadAllLinesCharsetMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadAllLinesCharsetMavenArchunitAspectJ");
     }
 
     @Disabled
     @PublicTest
-    @Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = FILES_READ_PATH)
     void test_accessFileSystemViaFilesReadAllLinesCharsetMavenArchunitAspectJ() {
         assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesReadAllLinesCharset, FilesReadMain.class);
     }
 
     @Test
     void test_accessFileSystemViaFilesReadAllLinesCharsetMavenArchunitInstrumentation_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadAllLinesCharsetMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadAllLinesCharsetMavenArchunitInstrumentation");
     }
 
     @Disabled
     @PublicTest
-    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = FILES_READ_PATH)
     void test_accessFileSystemViaFilesReadAllLinesCharsetMavenArchunitInstrumentation() {
         assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesReadAllLinesCharset, FilesReadMain.class);
     }
 
     @Test
     void test_accessFileSystemViaFilesReadAllLinesCharsetMavenWalaAspectJ_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadAllLinesCharsetMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadAllLinesCharsetMavenWalaAspectJ");
     }
 
     @Disabled
     @PublicTest
-    @Policy(value = WALA_ASPECTJ_POLICY, withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
+    @Policy(value = WALA_ASPECTJ_POLICY, withinPath = FILES_READ_PATH)
     void test_accessFileSystemViaFilesReadAllLinesCharsetMavenWalaAspectJ() {
         assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesReadAllLinesCharset, FilesReadMain.class);
     }
 
     @Test
     void test_accessFileSystemViaFilesReadAllLinesCharsetMavenWalaInstrumentation_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadAllLinesCharsetMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadAllLinesCharsetMavenWalaInstrumentation");
     }
 
     @Disabled
     @PublicTest
-    @Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
+    @Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = FILES_READ_PATH)
     void test_accessFileSystemViaFilesReadAllLinesCharsetMavenWalaInstrumentation() {
         assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesReadAllLinesCharset, FilesReadMain.class);
     }
@@ -308,48 +296,48 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaFilesReadStringCharsetMavenArchunitAspectJ_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadStringCharsetMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadStringCharsetMavenArchunitAspectJ");
     }
 
     @Disabled
     @PublicTest
-    @Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = FILES_READ_PATH)
     void test_accessFileSystemViaFilesReadStringCharsetMavenArchunitAspectJ() {
         assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesReadStringCharset, FilesReadMain.class);
     }
 
     @Test
     void test_accessFileSystemViaFilesReadStringCharsetMavenArchunitInstrumentation_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadStringCharsetMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadStringCharsetMavenArchunitInstrumentation");
     }
 
     @Disabled
     @PublicTest
-    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = FILES_READ_PATH)
     void test_accessFileSystemViaFilesReadStringCharsetMavenArchunitInstrumentation() {
         assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesReadStringCharset, FilesReadMain.class);
     }
 
     @Test
     void test_accessFileSystemViaFilesReadStringCharsetMavenWalaAspectJ_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadStringCharsetMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadStringCharsetMavenWalaAspectJ");
     }
 
     @Disabled
     @PublicTest
-    @Policy(value = WALA_ASPECTJ_POLICY, withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
+    @Policy(value = WALA_ASPECTJ_POLICY, withinPath = FILES_READ_PATH)
     void test_accessFileSystemViaFilesReadStringCharsetMavenWalaAspectJ() {
         assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesReadStringCharset, FilesReadMain.class);
     }
 
     @Test
     void test_accessFileSystemViaFilesReadStringCharsetMavenWalaInstrumentation_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadStringCharsetMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadStringCharsetMavenWalaInstrumentation");
     }
 
     @Disabled
     @PublicTest
-    @Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
+    @Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = FILES_READ_PATH)
     void test_accessFileSystemViaFilesReadStringCharsetMavenWalaInstrumentation() {
         assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesReadStringCharset, FilesReadMain.class);
     }
@@ -359,48 +347,48 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaFilesLinesMavenArchunitAspectJ_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesLinesMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesLinesMavenArchunitAspectJ");
     }
 
     @Disabled
     @PublicTest
-    @Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = FILES_READ_PATH)
     void test_accessFileSystemViaFilesLinesMavenArchunitAspectJ() {
         assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesLines, FilesReadMain.class);
     }
 
     @Test
     void test_accessFileSystemViaFilesLinesMavenArchunitInstrumentation_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesLinesMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesLinesMavenArchunitInstrumentation");
     }
 
     @Disabled
     @PublicTest
-    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = FILES_READ_PATH)
     void test_accessFileSystemViaFilesLinesMavenArchunitInstrumentation() {
         assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesLines, FilesReadMain.class);
     }
 
     @Test
     void test_accessFileSystemViaFilesLinesMavenWalaAspectJ_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesLinesMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesLinesMavenWalaAspectJ");
     }
 
     @Disabled
     @PublicTest
-    @Policy(value = WALA_ASPECTJ_POLICY, withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
+    @Policy(value = WALA_ASPECTJ_POLICY, withinPath = FILES_READ_PATH)
     void test_accessFileSystemViaFilesLinesMavenWalaAspectJ() {
         assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesLines, FilesReadMain.class);
     }
 
     @Test
     void test_accessFileSystemViaFilesLinesMavenWalaInstrumentation_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesLinesMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesLinesMavenWalaInstrumentation");
     }
 
     @Disabled
     @PublicTest
-    @Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
+    @Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = FILES_READ_PATH)
     void test_accessFileSystemViaFilesLinesMavenWalaInstrumentation() {
         assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesLines, FilesReadMain.class);
     }
@@ -410,48 +398,48 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaFilesLinesCharsetMavenArchunitAspectJ_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesLinesCharsetMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesLinesCharsetMavenArchunitAspectJ");
     }
 
     @Disabled
     @PublicTest
-    @Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = FILES_READ_PATH)
     void test_accessFileSystemViaFilesLinesCharsetMavenArchunitAspectJ() {
         assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesLinesCharset, FilesReadMain.class);
     }
 
     @Test
     void test_accessFileSystemViaFilesLinesCharsetMavenArchunitInstrumentation_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesLinesCharsetMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesLinesCharsetMavenArchunitInstrumentation");
     }
 
     @Disabled
     @PublicTest
-    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = FILES_READ_PATH)
     void test_accessFileSystemViaFilesLinesCharsetMavenArchunitInstrumentation() {
         assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesLinesCharset, FilesReadMain.class);
     }
 
     @Test
     void test_accessFileSystemViaFilesLinesCharsetMavenWalaAspectJ_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesLinesCharsetMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesLinesCharsetMavenWalaAspectJ");
     }
 
     @Disabled
     @PublicTest
-    @Policy(value = WALA_ASPECTJ_POLICY, withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
+    @Policy(value = WALA_ASPECTJ_POLICY, withinPath = FILES_READ_PATH)
     void test_accessFileSystemViaFilesLinesCharsetMavenWalaAspectJ() {
         assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesLinesCharset, FilesReadMain.class);
     }
 
     @Test
     void test_accessFileSystemViaFilesLinesCharsetMavenWalaInstrumentation_test() {
-        testtest(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesLinesCharsetMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesLinesCharsetMavenWalaInstrumentation");
     }
 
     @Disabled
     @PublicTest
-    @Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead")
+    @Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = FILES_READ_PATH)
     void test_accessFileSystemViaFilesLinesCharsetMavenWalaInstrumentation() {
         assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesLinesCharset, FilesReadMain.class);
     }}

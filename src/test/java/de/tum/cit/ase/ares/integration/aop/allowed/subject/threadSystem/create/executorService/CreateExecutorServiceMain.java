@@ -32,8 +32,12 @@ public class CreateExecutorServiceMain {
      */
     public static void submitCallable() {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
-        Callable<String> callable = () -> "test";
-        executorService.submit(callable);
+        try {
+            Callable<String> callable = () -> "test";
+            executorService.submit(callable);
+        } finally {
+            executorService.shutdown();
+        }
     }
 
     /**
@@ -41,8 +45,12 @@ public class CreateExecutorServiceMain {
      */
     public static void submitRunnableWithResult() {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
-        String result = "result";
-        executorService.submit(new LegalThread(), result);
+        try {
+            String result = "result";
+            executorService.submit(new LegalThread(), result);
+        } finally {
+            executorService.shutdown();
+        }
     }
 
     /**
@@ -50,7 +58,11 @@ public class CreateExecutorServiceMain {
      */
     public static void submitRunnable() {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
-        executorService.submit(new LegalThread());
+        try {
+            executorService.submit(new LegalThread());
+        } finally {
+            executorService.shutdown();
+        }
     }
 
     /**
@@ -58,11 +70,15 @@ public class CreateExecutorServiceMain {
      */
     public static void invokeAll() throws InterruptedException {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
-        Collection<Callable<String>> tasks = Arrays.asList(
-            () -> "task1",
-            () -> "task2"
-        );
-        executorService.invokeAll(tasks);
+        try {
+            Collection<Callable<String>> tasks = Arrays.asList(
+                    () -> "task1",
+                    () -> "task2"
+            );
+            executorService.invokeAll(tasks);
+        } finally {
+            executorService.shutdown();
+        }
     }
 
     /**
@@ -70,10 +86,14 @@ public class CreateExecutorServiceMain {
      */
     public static void invokeAny() throws Exception {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
-        Collection<Callable<String>> tasks = Arrays.asList(
-            () -> "task1",
-            () -> "task2"
-        );
-        executorService.invokeAny(tasks);
+        try {
+            Collection<Callable<String>> tasks = Arrays.asList(
+                    () -> "task1",
+                    () -> "task2"
+            );
+            executorService.invokeAny(tasks);
+        } finally {
+            executorService.shutdown();
+        }
     }
 }

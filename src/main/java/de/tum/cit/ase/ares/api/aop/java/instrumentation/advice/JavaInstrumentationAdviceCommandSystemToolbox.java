@@ -342,12 +342,10 @@ public class JavaInstrumentationAdviceCommandSystemToolbox {
 
     //<editor-fold desc="Conversion handling">
 
-    /** Converts a variable value to its class name.
-     *
-     * <p>Description: If the variable is null, throws an InvalidPathException.
-     * If the variable is a lambda expression, returns "Lambda-Expression".
-     * Otherwise, returns the class name of the variable.
-     *
+    /**
+     * Converts a variable value to a command string.
+     * @param variableValue the value of the variable to convert
+     * @return the command string representation of the variable value
      */
     @Nonnull
     private static String variableToCommand(@Nullable Object variableValue) {

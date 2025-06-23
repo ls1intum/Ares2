@@ -110,7 +110,7 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions {
      */
     private static <T> void setValueToSettings(@Nonnull String fieldName, @Nullable T newValue) {
         try {
-            // Take bootloader as class loader in order to get the JavaAOPTestCaseSettings class at bootloader time for instrumentation
+            // Take standard class loader as class loader in order to get the JavaAOPTestCaseSettings class at compile time for aspectj
             @Nonnull Class<?> adviceSettingsClass = Objects.requireNonNull(Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings"), "adviceSettingsClass must not be null");
             @Nonnull Field field = Objects.requireNonNull(adviceSettingsClass.getDeclaredField(Objects.requireNonNull(fieldName, "fieldName must not be null")), "field must not be null");
             field.setAccessible(true);
@@ -311,12 +311,10 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions {
 
     //<editor-fold desc="Conversion handling">
 
-    /** Converts a variable value to its class name.
-     *
-     * <p>Description: If the variable is null, throws an InvalidPathException.
-     * If the variable is a lambda expression, returns "Lambda-Expression".
-     * Otherwise, returns the class name of the variable.
-     *
+    /**
+     * Converts a variable value to a command string.
+     * @param variableValue the value of the variable to convert
+     * @return the command string representation of the variable value
      */
     @Nonnull
     private static String variableToCommand(@Nullable Object variableValue) {

@@ -18,7 +18,7 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
     // <editor-fold desc="accessFileSystemViaFilesWrite">
     @Test
     void test_accessFileSystemViaFilesWriteMavenArchunitAspectJ_test() {
-        testtest(FileSystemAccessOverwriteTest.class, "test_accessFileSystemViaFilesWriteMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(FileSystemAccessOverwriteTest.class, "test_accessFileSystemViaFilesWriteMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -30,7 +30,7 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaFilesWriteMavenArchunitInstrumentation_test() {
-        testtest(FileSystemAccessOverwriteTest.class, "test_accessFileSystemViaFilesWriteMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(FileSystemAccessOverwriteTest.class, "test_accessFileSystemViaFilesWriteMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -42,7 +42,7 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaFilesWriteMavenWalaAspectJ_test() {
-        testtest(FileSystemAccessOverwriteTest.class, "test_accessFileSystemViaFilesWriteMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(FileSystemAccessOverwriteTest.class, "test_accessFileSystemViaFilesWriteMavenWalaAspectJ");
     }
 
     @Disabled
@@ -54,7 +54,7 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaFilesWriteMavenWalaInstrumentation_test() {
-        testtest(FileSystemAccessOverwriteTest.class, "test_accessFileSystemViaFilesWriteMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(FileSystemAccessOverwriteTest.class, "test_accessFileSystemViaFilesWriteMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -68,7 +68,7 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
     // <editor-fold desc="accessFileSystemViaBufferedWriter">
     @Test
     void test_accessFileSystemViaBufferedWriterMavenArchunitAspectJ_test() {
-        testtest(FileSystemAccessOverwriteTest.class, "test_accessFileSystemViaBufferedWriterMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(FileSystemAccessOverwriteTest.class, "test_accessFileSystemViaBufferedWriterMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -81,7 +81,7 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaBufferedWriterMavenArchunitInstrumentation_test() {
-        testtest(FileSystemAccessOverwriteTest.class, "test_accessFileSystemViaBufferedWriterMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(FileSystemAccessOverwriteTest.class, "test_accessFileSystemViaBufferedWriterMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -94,7 +94,7 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaBufferedWriterMavenWalaAspectJ_test() {
-        testtest(FileSystemAccessOverwriteTest.class, "test_accessFileSystemViaBufferedWriterMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(FileSystemAccessOverwriteTest.class, "test_accessFileSystemViaBufferedWriterMavenWalaAspectJ");
     }
 
     @Disabled
@@ -107,7 +107,7 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaBufferedWriterMavenWalaInstrumentation_test() {
-        testtest(FileSystemAccessOverwriteTest.class, "test_accessFileSystemViaBufferedWriterMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(FileSystemAccessOverwriteTest.class, "test_accessFileSystemViaBufferedWriterMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -123,7 +123,7 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ_test() {
-        testtest(FileSystemAccessOverwriteTest.class, "test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(FileSystemAccessOverwriteTest.class, "test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -136,7 +136,7 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation_test() {
-        testtest(FileSystemAccessOverwriteTest.class, "test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(FileSystemAccessOverwriteTest.class, "test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -149,7 +149,7 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ_test() {
-        testtest(FileSystemAccessOverwriteTest.class, "test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(FileSystemAccessOverwriteTest.class, "test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ");
     }
 
     @Disabled
@@ -162,7 +162,7 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation_test() {
-        testtest(FileSystemAccessOverwriteTest.class, "test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(FileSystemAccessOverwriteTest.class, "test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation");
     }
 
     @Disabled

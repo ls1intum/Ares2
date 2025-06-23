@@ -33,7 +33,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessThreadSystemViaStartThread">
     @Test
     void test_createThreadViaStartMavenArchunitAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_createThreadViaStartMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_createThreadViaStartMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -45,7 +45,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_createThreadViaStartMavenArchunitInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_createThreadViaStartMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_createThreadViaStartMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -57,7 +57,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_createThreadViaStartMavenWalaAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_createThreadViaStartMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_createThreadViaStartMavenWalaAspectJ");
     }
 
     @Disabled
@@ -69,7 +69,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_createThreadViaStartMavenWalaInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_createThreadViaStartMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_createThreadViaStartMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -83,7 +83,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessThreadSystemViaStartVirtualThread">
     @Test
     void test_createVirtualThreadMavenArchunitAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_createVirtualThreadMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_createVirtualThreadMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -96,7 +96,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_createVirtualThreadMavenArchunitInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_createVirtualThreadMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_createVirtualThreadMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -109,7 +109,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_createVirtualThreadMavenWalaAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_createVirtualThreadMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_createVirtualThreadMavenWalaAspectJ");
     }
 
     @Disabled
@@ -122,7 +122,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_createVirtualThreadMavenWalaInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_createVirtualThreadMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_createVirtualThreadMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -136,7 +136,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessThreadSystemViaCreateThreadInGroup">
     @Test
     void test_createThreadInGroupMavenArchunitAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_createThreadInGroupMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_createThreadInGroupMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -149,7 +149,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_createThreadInGroupMavenArchunitInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_createThreadInGroupMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_createThreadInGroupMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -162,7 +162,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_createThreadInGroupMavenWalaAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_createThreadInGroupMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_createThreadInGroupMavenWalaAspectJ");
     }
 
     @Disabled
@@ -175,7 +175,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_createThreadInGroupMavenWalaInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_createThreadInGroupMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_createThreadInGroupMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -189,7 +189,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessThreadSystemViaCreateThreadBuilder">
     @Test
     void test_createThreadViaBuilderMavenArchunitAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_createThreadViaBuilderMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_createThreadViaBuilderMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -201,7 +201,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_createThreadViaBuilderMavenArchunitInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_createThreadViaBuilderMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_createThreadViaBuilderMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -213,7 +213,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_createThreadViaBuilderMavenWalaAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_createThreadViaBuilderMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_createThreadViaBuilderMavenWalaAspectJ");
     }
 
     @Disabled
@@ -225,7 +225,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_createThreadViaBuilderMavenWalaInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_createThreadViaBuilderMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_createThreadViaBuilderMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -239,7 +239,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessThreadSystemViaCreateExecutor">
     @Test
     void test_createThreadViaExecutorMavenArchunitAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_createThreadViaExecutorMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_createThreadViaExecutorMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -251,7 +251,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_createThreadViaExecutorMavenArchunitInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_createThreadViaExecutorMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_createThreadViaExecutorMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -263,7 +263,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_createThreadViaExecutorMavenWalaAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_createThreadViaExecutorMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_createThreadViaExecutorMavenWalaAspectJ");
     }
 
     @Disabled
@@ -275,7 +275,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_createThreadViaExecutorMavenWalaInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_createThreadViaExecutorMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_createThreadViaExecutorMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -289,7 +289,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessThreadSystemViaCreateExecutorService">
     @Test
     void test_createExecutorServiceMavenArchunitAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_createExecutorServiceMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_createExecutorServiceMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -301,7 +301,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_createExecutorServiceMavenArchunitInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_createExecutorServiceMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_createExecutorServiceMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -313,7 +313,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_createExecutorServiceMavenWalaAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_createExecutorServiceMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_createExecutorServiceMavenWalaAspectJ");
     }
 
     @Disabled
@@ -325,7 +325,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_createExecutorServiceMavenWalaInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_createExecutorServiceMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_createExecutorServiceMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -339,7 +339,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessThreadSystemViaExecutorServiceSubmitCallable">
     @Test
     void test_submitCallableMavenArchunitAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_submitCallableMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_submitCallableMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -351,7 +351,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_submitCallableMavenArchunitInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_submitCallableMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_submitCallableMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -363,7 +363,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_submitCallableMavenWalaAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_submitCallableMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_submitCallableMavenWalaAspectJ");
     }
 
     @Disabled
@@ -375,7 +375,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_submitCallableMavenWalaInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_submitCallableMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_submitCallableMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -389,7 +389,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessThreadSystemViaExecutorServiceSubmitRunnableWithResult">
     @Test
     void test_submitRunnableWithResultMavenArchunitAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_submitRunnableWithResultMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_submitRunnableWithResultMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -401,7 +401,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_submitRunnableWithResultMavenArchunitInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_submitRunnableWithResultMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_submitRunnableWithResultMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -413,7 +413,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_submitRunnableWithResultMavenWalaAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_submitRunnableWithResultMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_submitRunnableWithResultMavenWalaAspectJ");
     }
 
     @Disabled
@@ -425,7 +425,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_submitRunnableWithResultMavenWalaInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_submitRunnableWithResultMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_submitRunnableWithResultMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -439,7 +439,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessThreadSystemViaExecutorServiceSubmitRunnable">
     @Test
     void test_submitRunnableMavenArchunitAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_submitRunnableMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_submitRunnableMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -451,7 +451,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_submitRunnableMavenArchunitInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_submitRunnableMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_submitRunnableMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -463,7 +463,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_submitRunnableMavenWalaAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_submitRunnableMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_submitRunnableMavenWalaAspectJ");
     }
 
     @Disabled
@@ -475,7 +475,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_submitRunnableMavenWalaInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_submitRunnableMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_submitRunnableMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -489,7 +489,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessThreadSystemViaExecutorServiceInvokeAll">
     @Test
     void test_invokeAllMavenArchunitAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_invokeAllMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_invokeAllMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -501,7 +501,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_invokeAllMavenArchunitInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_invokeAllMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_invokeAllMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -513,7 +513,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_invokeAllMavenWalaAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_invokeAllMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_invokeAllMavenWalaAspectJ");
     }
 
     @Disabled
@@ -525,7 +525,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_invokeAllMavenWalaInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_invokeAllMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_invokeAllMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -539,7 +539,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessThreadSystemViaExecutorServiceInvokeAny">
     @Test
     void test_invokeAnyMavenArchunitAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_invokeAnyMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_invokeAnyMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -551,7 +551,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_invokeAnyMavenArchunitInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_invokeAnyMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_invokeAnyMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -563,7 +563,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_invokeAnyMavenWalaAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_invokeAnyMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_invokeAnyMavenWalaAspectJ");
     }
 
     @Disabled
@@ -575,7 +575,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_invokeAnyMavenWalaInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_invokeAnyMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_invokeAnyMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -589,7 +589,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessThreadSystemViaScheduledExecutorServiceScheduleRunnable">
     @Test
     void test_scheduleRunnableMavenArchunitAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_scheduleRunnableMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_scheduleRunnableMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -601,7 +601,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_scheduleRunnableMavenArchunitInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_scheduleRunnableMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_scheduleRunnableMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -613,7 +613,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_scheduleRunnableMavenWalaAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_scheduleRunnableMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_scheduleRunnableMavenWalaAspectJ");
     }
 
     @Disabled
@@ -625,7 +625,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_scheduleRunnableMavenWalaInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_scheduleRunnableMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_scheduleRunnableMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -639,7 +639,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessThreadSystemViaScheduledExecutorServiceScheduleCallable">
     @Test
     void test_scheduleCallableMavenArchunitAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_scheduleCallableMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_scheduleCallableMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -651,7 +651,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_scheduleCallableMavenArchunitInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_scheduleCallableMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_scheduleCallableMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -663,7 +663,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_scheduleCallableMavenWalaAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_scheduleCallableMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_scheduleCallableMavenWalaAspectJ");
     }
 
     @Disabled
@@ -675,7 +675,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_scheduleCallableMavenWalaInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_scheduleCallableMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_scheduleCallableMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -689,7 +689,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessThreadSystemViaScheduledExecutorServiceScheduleAtFixedRate">
     @Test
     void test_scheduleAtFixedRateMavenArchunitAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_scheduleAtFixedRateMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_scheduleAtFixedRateMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -701,7 +701,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_scheduleAtFixedRateMavenArchunitInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_scheduleAtFixedRateMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_scheduleAtFixedRateMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -713,7 +713,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_scheduleAtFixedRateMavenWalaAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_scheduleAtFixedRateMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_scheduleAtFixedRateMavenWalaAspectJ");
     }
 
     @Disabled
@@ -725,7 +725,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_scheduleAtFixedRateMavenWalaInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_scheduleAtFixedRateMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_scheduleAtFixedRateMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -739,7 +739,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessThreadSystemViaScheduledExecutorServiceScheduleWithFixedDelay">
     @Test
     void test_scheduleWithFixedDelayMavenArchunitAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_scheduleWithFixedDelayMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_scheduleWithFixedDelayMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -751,7 +751,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_scheduleWithFixedDelayMavenArchunitInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_scheduleWithFixedDelayMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_scheduleWithFixedDelayMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -763,7 +763,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_scheduleWithFixedDelayMavenWalaAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_scheduleWithFixedDelayMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_scheduleWithFixedDelayMavenWalaAspectJ");
     }
 
     @Disabled
@@ -775,7 +775,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_scheduleWithFixedDelayMavenWalaInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_scheduleWithFixedDelayMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_scheduleWithFixedDelayMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -789,7 +789,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessThreadSystemViaForkJoinPoolExecuteRunnable">
     @Test
     void test_forkJoinPool_executeRunnableMavenArchunitAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_forkJoinPool_executeRunnableMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_forkJoinPool_executeRunnableMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -801,7 +801,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_forkJoinPool_executeRunnableMavenArchunitInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_forkJoinPool_executeRunnableMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_forkJoinPool_executeRunnableMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -813,7 +813,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_forkJoinPool_executeRunnableMavenWalaAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_forkJoinPool_executeRunnableMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_forkJoinPool_executeRunnableMavenWalaAspectJ");
     }
 
     @Disabled
@@ -825,7 +825,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_forkJoinPool_executeRunnableMavenWalaInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_forkJoinPool_executeRunnableMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_forkJoinPool_executeRunnableMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -839,7 +839,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessThreadSystemViaForkJoinPoolSubmitRunnable">
     @Test
     void test_forkJoinPool_submitRunnableMavenArchunitAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_forkJoinPool_submitRunnableMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_forkJoinPool_submitRunnableMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -851,7 +851,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_forkJoinPool_submitRunnableMavenArchunitInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_forkJoinPool_submitRunnableMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_forkJoinPool_submitRunnableMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -863,7 +863,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_forkJoinPool_submitRunnableMavenWalaAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_forkJoinPool_submitRunnableMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_forkJoinPool_submitRunnableMavenWalaAspectJ");
     }
 
     @Disabled
@@ -875,7 +875,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_forkJoinPool_submitRunnableMavenWalaInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_forkJoinPool_submitRunnableMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_forkJoinPool_submitRunnableMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -889,7 +889,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessThreadSystemViaForkJoinPoolSubmitCallable">
     @Test
     void test_forkJoinPool_submitCallableMavenArchunitAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_forkJoinPool_submitCallableMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_forkJoinPool_submitCallableMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -901,7 +901,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_forkJoinPool_submitCallableMavenArchunitInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_forkJoinPool_submitCallableMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_forkJoinPool_submitCallableMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -913,7 +913,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_forkJoinPool_submitCallableMavenWalaAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_forkJoinPool_submitCallableMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_forkJoinPool_submitCallableMavenWalaAspectJ");
     }
 
     @Disabled
@@ -925,7 +925,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_forkJoinPool_submitCallableMavenWalaInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_forkJoinPool_submitCallableMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_forkJoinPool_submitCallableMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -939,7 +939,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessThreadSystemViaThreadPoolExecutorExecuteRunnable">
     @Test
     void test_threadPoolExecutor_executeRunnableMavenArchunitAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_threadPoolExecutor_executeRunnableMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_threadPoolExecutor_executeRunnableMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -951,7 +951,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_threadPoolExecutor_executeRunnableMavenArchunitInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_threadPoolExecutor_executeRunnableMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_threadPoolExecutor_executeRunnableMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -963,7 +963,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_threadPoolExecutor_executeRunnableMavenWalaAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_threadPoolExecutor_executeRunnableMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_threadPoolExecutor_executeRunnableMavenWalaAspectJ");
     }
 
     @Disabled
@@ -975,7 +975,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_threadPoolExecutor_executeRunnableMavenWalaInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_threadPoolExecutor_executeRunnableMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_threadPoolExecutor_executeRunnableMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -989,7 +989,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessThreadSystemViaThreadPoolExecutorSubmitRunnable">
     @Test
     void test_threadPoolExecutor_submitRunnableMavenArchunitAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_threadPoolExecutor_submitRunnableMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_threadPoolExecutor_submitRunnableMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -1001,7 +1001,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_threadPoolExecutor_submitRunnableMavenArchunitInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_threadPoolExecutor_submitRunnableMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_threadPoolExecutor_submitRunnableMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -1013,7 +1013,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_threadPoolExecutor_submitRunnableMavenWalaAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_threadPoolExecutor_submitRunnableMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_threadPoolExecutor_submitRunnableMavenWalaAspectJ");
     }
 
     @Disabled
@@ -1025,7 +1025,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_threadPoolExecutor_submitRunnableMavenWalaInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_threadPoolExecutor_submitRunnableMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_threadPoolExecutor_submitRunnableMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -1039,7 +1039,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessThreadSystemViaThreadPoolExecutorSubmitCallable">
     @Test
     void test_threadPoolExecutor_submitCallableMavenArchunitAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_threadPoolExecutor_submitCallableMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_threadPoolExecutor_submitCallableMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -1051,7 +1051,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_threadPoolExecutor_submitCallableMavenArchunitInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_threadPoolExecutor_submitCallableMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_threadPoolExecutor_submitCallableMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -1063,7 +1063,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_threadPoolExecutor_submitCallableMavenWalaAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_threadPoolExecutor_submitCallableMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_threadPoolExecutor_submitCallableMavenWalaAspectJ");
     }
 
     @Disabled
@@ -1075,7 +1075,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_threadPoolExecutor_submitCallableMavenWalaInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_threadPoolExecutor_submitCallableMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_threadPoolExecutor_submitCallableMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -1089,7 +1089,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessThreadSystemViaScheduledThreadPoolExecutorExecuteRunnable">
     @Test
     void test_scheduledThreadPoolExecutor_executeRunnableMavenArchunitAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_scheduledThreadPoolExecutor_executeRunnableMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_scheduledThreadPoolExecutor_executeRunnableMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -1101,7 +1101,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_scheduledThreadPoolExecutor_executeRunnableMavenArchunitInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class,
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class,
                 "test_scheduledThreadPoolExecutor_executeRunnableMavenArchunitInstrumentation");
     }
 
@@ -1114,7 +1114,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_scheduledThreadPoolExecutor_executeRunnableMavenWalaAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_scheduledThreadPoolExecutor_executeRunnableMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_scheduledThreadPoolExecutor_executeRunnableMavenWalaAspectJ");
     }
 
     @Disabled
@@ -1126,7 +1126,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_scheduledThreadPoolExecutor_executeRunnableMavenWalaInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class,
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class,
                 "test_scheduledThreadPoolExecutor_executeRunnableMavenWalaInstrumentation");
     }
 
@@ -1141,7 +1141,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessThreadSystemViaScheduledThreadPoolExecutorSubmitRunnable">
     @Test
     void test_scheduledThreadPoolExecutor_submitRunnableMavenArchunitAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_scheduledThreadPoolExecutor_submitRunnableMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_scheduledThreadPoolExecutor_submitRunnableMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -1153,7 +1153,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_scheduledThreadPoolExecutor_submitRunnableMavenArchunitInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class,
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class,
                 "test_scheduledThreadPoolExecutor_submitRunnableMavenArchunitInstrumentation");
     }
 
@@ -1166,7 +1166,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_scheduledThreadPoolExecutor_submitRunnableMavenWalaAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_scheduledThreadPoolExecutor_submitRunnableMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_scheduledThreadPoolExecutor_submitRunnableMavenWalaAspectJ");
     }
 
     @Disabled
@@ -1178,7 +1178,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_scheduledThreadPoolExecutor_submitRunnableMavenWalaInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class,
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class,
                 "test_scheduledThreadPoolExecutor_submitRunnableMavenWalaInstrumentation");
     }
 
@@ -1193,7 +1193,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessThreadSystemViaScheduledThreadPoolExecutorSubmitCallable">
     @Test
     void test_scheduledThreadPoolExecutor_submitCallableMavenArchunitAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_scheduledThreadPoolExecutor_submitCallableMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_scheduledThreadPoolExecutor_submitCallableMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -1205,7 +1205,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_scheduledThreadPoolExecutor_submitCallableMavenArchunitInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class,
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class,
                 "test_scheduledThreadPoolExecutor_submitCallableMavenArchunitInstrumentation");
     }
 
@@ -1218,7 +1218,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_scheduledThreadPoolExecutor_submitCallableMavenWalaAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_scheduledThreadPoolExecutor_submitCallableMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_scheduledThreadPoolExecutor_submitCallableMavenWalaAspectJ");
     }
 
     @Disabled
@@ -1230,7 +1230,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_scheduledThreadPoolExecutor_submitCallableMavenWalaInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class,
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class,
                 "test_scheduledThreadPoolExecutor_submitCallableMavenWalaInstrumentation");
     }
 
@@ -1245,7 +1245,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessThreadSystemViaCompletableFutureRunAsync">
     @Test
     void test_completableFuture_runAsyncMavenArchunitAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_completableFuture_runAsyncMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_completableFuture_runAsyncMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -1257,7 +1257,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_completableFuture_runAsyncMavenArchunitInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_completableFuture_runAsyncMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_completableFuture_runAsyncMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -1269,7 +1269,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_completableFuture_runAsyncMavenWalaAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_completableFuture_runAsyncMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_completableFuture_runAsyncMavenWalaAspectJ");
     }
 
     @Disabled
@@ -1281,7 +1281,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_completableFuture_runAsyncMavenWalaInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_completableFuture_runAsyncMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_completableFuture_runAsyncMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -1295,7 +1295,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessThreadSystemViaCompletableFutureSupplyAsync">
     @Test
     void test_completableFuture_supplyAsyncMavenArchunitAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_completableFuture_supplyAsyncMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_completableFuture_supplyAsyncMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -1307,7 +1307,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_completableFuture_supplyAsyncMavenArchunitInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_completableFuture_supplyAsyncMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_completableFuture_supplyAsyncMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -1319,7 +1319,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_completableFuture_supplyAsyncMavenWalaAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_completableFuture_supplyAsyncMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_completableFuture_supplyAsyncMavenWalaAspectJ");
     }
 
     @Disabled
@@ -1331,7 +1331,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_completableFuture_supplyAsyncMavenWalaInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_completableFuture_supplyAsyncMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_completableFuture_supplyAsyncMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -1345,7 +1345,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessThreadSystemViaCompletableFutureThenApplyAsync">
     @Test
     void test_completableFuture_thenApplyAsyncMavenArchunitAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_completableFuture_thenApplyAsyncMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_completableFuture_thenApplyAsyncMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -1357,7 +1357,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_completableFuture_thenApplyAsyncMavenArchunitInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_completableFuture_thenApplyAsyncMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_completableFuture_thenApplyAsyncMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -1369,7 +1369,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_completableFuture_thenApplyAsyncMavenWalaAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_completableFuture_thenApplyAsyncMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_completableFuture_thenApplyAsyncMavenWalaAspectJ");
     }
 
     @Disabled
@@ -1381,7 +1381,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_completableFuture_thenApplyAsyncMavenWalaInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_completableFuture_thenApplyAsyncMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_completableFuture_thenApplyAsyncMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -1395,7 +1395,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessThreadSystemViaParallelStreamCollectionParallelStream">
     @Test
     void test_parallelStream_collectionParallelStreamMavenArchunitAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_parallelStream_collectionParallelStreamMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_parallelStream_collectionParallelStreamMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -1407,7 +1407,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_parallelStream_collectionParallelStreamMavenArchunitInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class,
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class,
                 "test_parallelStream_collectionParallelStreamMavenArchunitInstrumentation");
     }
 
@@ -1420,7 +1420,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_parallelStream_collectionParallelStreamMavenWalaAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_parallelStream_collectionParallelStreamMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_parallelStream_collectionParallelStreamMavenWalaAspectJ");
     }
 
     @Disabled
@@ -1432,7 +1432,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_parallelStream_collectionParallelStreamMavenWalaInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_parallelStream_collectionParallelStreamMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_parallelStream_collectionParallelStreamMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -1446,7 +1446,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessThreadSystemViaParallelStreamStreamParallel">
     @Test
     void test_parallelStream_streamParallelMavenArchunitAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_parallelStream_streamParallelMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_parallelStream_streamParallelMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -1458,7 +1458,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_parallelStream_streamParallelMavenArchunitInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_parallelStream_streamParallelMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_parallelStream_streamParallelMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -1470,7 +1470,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_parallelStream_streamParallelMavenWalaAspectJ_test() {
-        testtest(ThreadSystemAccessTest.class, "test_parallelStream_streamParallelMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_parallelStream_streamParallelMavenWalaAspectJ");
     }
 
     @Disabled
@@ -1482,7 +1482,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_parallelStream_streamParallelMavenWalaInstrumentation_test() {
-        testtest(ThreadSystemAccessTest.class, "test_parallelStream_streamParallelMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(ThreadSystemAccessTest.class, "test_parallelStream_streamParallelMavenWalaInstrumentation");
     }
 
     @Disabled

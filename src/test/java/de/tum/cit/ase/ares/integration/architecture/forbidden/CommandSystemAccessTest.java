@@ -16,7 +16,7 @@ class CommandSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessCommandSystemViaRuntime()">
     @Test
     void test_executeCommandViaRuntimeMavenArchunitAspectJ_test() {
-        testtest(CommandSystemAccessTest.class, "test_executeCommandViaRuntimeMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(CommandSystemAccessTest.class, "test_executeCommandViaRuntimeMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -28,7 +28,7 @@ class CommandSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_executeCommandViaRuntimeMavenArchunitInstrumentation_test() {
-        testtest(CommandSystemAccessTest.class, "test_executeCommandViaRuntimeMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(CommandSystemAccessTest.class, "test_executeCommandViaRuntimeMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -40,7 +40,7 @@ class CommandSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_executeCommandViaRuntimeMavenWalaAspectJ_test() {
-        testtest(CommandSystemAccessTest.class, "test_executeCommandViaRuntimeMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(CommandSystemAccessTest.class, "test_executeCommandViaRuntimeMavenWalaAspectJ");
     }
 
     @Disabled
@@ -52,7 +52,7 @@ class CommandSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_executeCommandViaRuntimeMavenWalaInstrumentation_test() {
-        testtest(CommandSystemAccessTest.class, "test_executeCommandViaRuntimeMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(CommandSystemAccessTest.class, "test_executeCommandViaRuntimeMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -66,7 +66,7 @@ class CommandSystemAccessTest extends SystemAccessTest {
     // <editor-fold desc="accessCommandSystemViaProcessBuilder()">
     @Test
     void test_executeCommandViaProcessBuilderMavenArchunitAspectJ_test() {
-        testtest(CommandSystemAccessTest.class, "test_executeCommandViaProcessBuilderMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(CommandSystemAccessTest.class, "test_executeCommandViaProcessBuilderMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -78,7 +78,7 @@ class CommandSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_executeCommandViaProcessBuilderMavenArchunitInstrumentation_test() {
-        testtest(CommandSystemAccessTest.class, "test_executeCommandViaProcessBuilderMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(CommandSystemAccessTest.class, "test_executeCommandViaProcessBuilderMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -90,7 +90,7 @@ class CommandSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_executeCommandViaProcessBuilderMavenWalaAspectJ_test() {
-        testtest(CommandSystemAccessTest.class, "test_executeCommandViaProcessBuilderMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(CommandSystemAccessTest.class, "test_executeCommandViaProcessBuilderMavenWalaAspectJ");
     }
 
     @Disabled
@@ -102,7 +102,7 @@ class CommandSystemAccessTest extends SystemAccessTest {
 
     @Test
     void test_executeCommandViaProcessBuilderMavenWalaInstrumentation_test() {
-        testtest(CommandSystemAccessTest.class, "test_executeCommandViaProcessBuilderMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(CommandSystemAccessTest.class, "test_executeCommandViaProcessBuilderMavenWalaInstrumentation");
     }
 
     @Disabled

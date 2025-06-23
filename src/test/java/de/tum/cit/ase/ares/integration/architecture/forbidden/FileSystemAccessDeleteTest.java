@@ -18,7 +18,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
     // <editor-fold desc="accessFileSystemViaFileDelete()">
     @Test
     void test_accessFileSystemViaFileDeleteMavenArchunitAspectJ_test() {
-        testtest(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFileDeleteMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFileDeleteMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -30,7 +30,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaFileDeleteMavenArchunitInstrumentation_test() {
-        testtest(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFileDeleteMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFileDeleteMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -42,7 +42,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaFileDeleteMavenWalaAspectJ_test() {
-        testtest(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFileDeleteMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFileDeleteMavenWalaAspectJ");
     }
 
     @Disabled
@@ -54,7 +54,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaFileDeleteMavenWalaInstrumentation_test() {
-        testtest(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFileDeleteMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFileDeleteMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -68,7 +68,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
     // <editor-fold desc="accessFileSystemViaFileDeleteOnExit()">
     @Test
     void test_accessFileSystemViaFileDeleteOnExitMavenArchunitAspectJ_test() {
-        testtest(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFileDeleteOnExitMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFileDeleteOnExitMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -82,7 +82,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaFileDeleteOnExitMavenArchunitInstrumentation_test() {
-        testtest(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFileDeleteOnExitMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFileDeleteOnExitMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -95,7 +95,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaFileDeleteOnExitMavenWalaAspectJ_test() {
-        testtest(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFileDeleteOnExitMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFileDeleteOnExitMavenWalaAspectJ");
     }
 
     @Disabled
@@ -109,7 +109,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaFileDeleteOnExitMavenWalaInstrumentation_test() {
-        testtest(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFileDeleteOnExitMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFileDeleteOnExitMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -124,7 +124,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
     // <editor-fold desc="accessFileSystemViaFilesDelete()">
     @Test
     void test_accessFileSystemViaFilesDeleteMavenArchunitAspectJ_test() {
-        testtest(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFilesDeleteMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFilesDeleteMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -137,7 +137,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaFilesDeleteMavenArchunitInstrumentation_test() {
-        testtest(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFilesDeleteMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFilesDeleteMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -150,7 +150,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaFilesDeleteMavenWalaAspectJ_test() {
-        testtest(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFilesDeleteMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFilesDeleteMavenWalaAspectJ");
     }
 
     @Disabled
@@ -163,7 +163,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaFilesDeleteMavenWalaInstrumentation_test() {
-        testtest(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFilesDeleteMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFilesDeleteMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -177,7 +177,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
     // <editor-fold desc="accessFileSystemViaFilesDeleteIfExists()">
     @Test
     void test_accessFileSystemViaFilesDeleteIfExistsMavenArchunitAspectJ_test() {
-        testtest(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFilesDeleteIfExistsMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFilesDeleteIfExistsMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -190,7 +190,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaFilesDeleteIfExistsMavenArchunitInstrumentation_test() {
-        testtest(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFilesDeleteIfExistsMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFilesDeleteIfExistsMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -203,7 +203,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaFilesDeleteIfExistsMavenWalaAspectJ_test() {
-        testtest(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFilesDeleteIfExistsMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFilesDeleteIfExistsMavenWalaAspectJ");
     }
 
     @Disabled
@@ -216,7 +216,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaFilesDeleteIfExistsMavenWalaInstrumentation_test() {
-        testtest(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFilesDeleteIfExistsMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaFilesDeleteIfExistsMavenWalaInstrumentation");
     }
 
     @Disabled
@@ -234,7 +234,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ_test() {
-        testtest(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ");
+        executeTestAndExpectSecurityException(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ");
     }
 
     @Disabled
@@ -247,7 +247,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation_test() {
-        testtest(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation");
+        executeTestAndExpectSecurityException(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation");
     }
 
     @Disabled
@@ -261,7 +261,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ_test() {
-        testtest(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ");
+        executeTestAndExpectSecurityException(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ");
     }
 
     @Disabled
@@ -274,7 +274,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 
     @Test
     void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation_test() {
-        testtest(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation");
+        executeTestAndExpectSecurityException(FileSystemAccessDeleteTest.class, "test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation");
     }
 
     @Disabled

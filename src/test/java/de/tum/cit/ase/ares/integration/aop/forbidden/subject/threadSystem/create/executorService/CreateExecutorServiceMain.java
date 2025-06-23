@@ -13,7 +13,9 @@ public class CreateExecutorServiceMain {
 
     private CreateExecutorServiceMain() {
         throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
-    }    public static void createExecutorService() {
+    }
+
+    public static void createExecutorService() {
         @SuppressWarnings("resource")
         ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
                 1,
@@ -30,8 +32,12 @@ public class CreateExecutorServiceMain {
      */
     public static void submitCallable() {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
-        Callable<String> callable = () -> "test";
-        executorService.submit(callable);
+        try {
+            Callable<String> callable = () -> "test";
+            executorService.submit(callable);
+        } finally {
+            executorService.shutdown();
+        }
     }
 
     /**
@@ -39,8 +45,12 @@ public class CreateExecutorServiceMain {
      */
     public static void submitRunnableWithResult() {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
-        String result = "result";
-        executorService.submit(new IllegalThread(), result);
+        try {
+            String result = "result";
+            executorService.submit(new IllegalThread(), result);
+        } finally {
+            executorService.shutdown();
+        }
     }
 
     /**
@@ -48,7 +58,11 @@ public class CreateExecutorServiceMain {
      */
     public static void submitRunnable() {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
-        executorService.submit(new IllegalThread());
+        try {
+            executorService.submit(new IllegalThread());
+        } finally {
+            executorService.shutdown();
+        }
     }
 
     /**
@@ -56,11 +70,15 @@ public class CreateExecutorServiceMain {
      */
     public static void invokeAll() throws InterruptedException {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
-        Collection<Callable<String>> tasks = Arrays.asList(
-            () -> "task1",
-            () -> "task2"
-        );
-        executorService.invokeAll(tasks);
+        try {
+            Collection<Callable<String>> tasks = Arrays.asList(
+                    () -> "task1",
+                    () -> "task2"
+            );
+            executorService.invokeAll(tasks);
+        } finally {
+            executorService.shutdown();
+        }
     }
 
     /**
@@ -68,10 +86,14 @@ public class CreateExecutorServiceMain {
      */
     public static void invokeAny() throws Exception {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
-        Collection<Callable<String>> tasks = Arrays.asList(
-            () -> "task1",
-            () -> "task2"
-        );
-        executorService.invokeAny(tasks);
+        try {
+            Collection<Callable<String>> tasks = Arrays.asList(
+                    () -> "task1",
+                    () -> "task2"
+            );
+            executorService.invokeAny(tasks);
+        } finally {
+            executorService.shutdown();
+        }
     }
 }
