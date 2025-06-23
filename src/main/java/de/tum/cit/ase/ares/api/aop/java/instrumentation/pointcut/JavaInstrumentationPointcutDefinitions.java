@@ -329,10 +329,27 @@ public class JavaInstrumentationPointcutDefinitions {
      * and the values are lists of method names that are considered to be thread create operations.
      */
     public static final Map<String, List<String>> methodsWhichCanCreateThreads = Map.ofEntries(
+            //java.lang
+            Map.entry("java.lang.Thread", List.of("start", "startVirtualThread")),
+            Map.entry("java.lang.Thread.Builder", List.of("run")),
+            Map.entry("java.lang.ThreadGroup", List.of("newThread")),
             // java.util
-            Map.entry("java.util.concurrent.AbstractExecutorService", List.of("submit")),
-            Map.entry("java.util.concurrent.ExecutorService", List.of("submit")),
-            Map.entry("java.util.concurrent.ThreadPoolExecutor", List.of("submit"))
+            Map.entry("java.util.concurrent.ExecutorService", List.of("submit", "invokeAll", "invokeAny")),
+            Map.entry("java.util.concurrent.ThreadPoolExecutor", List.of("submit", "execute")),
+            Map.entry("java.util.concurrent.CompletableFuture", List.of("runAsync", "supplyAsync", "thenApplyAsync"))
+    );
+    //</editor-fold>
+
+
+    //<editor-fold desc="Execute command">
+    /**
+     * This map contains the methods which can execute commands. The map keys represent class names,
+     * and the values are lists of method names that are considered to be command execution operations.
+     */
+    public static final Map<String, List<String>> methodsWhichCanExecuteCommands = Map.ofEntries(
+            // java.lang
+            Map.entry("java.lang.Runtime", List.of("exec")),
+            Map.entry("java.lang.ProcessBuilder", List.of("start"))
     );
     //</editor-fold>
 

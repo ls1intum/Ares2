@@ -2,15 +2,6 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
 
 public aspect JavaAspectJFileSystemPointcutDefinitions {
 
-    // These are the FileSystem related methods which we want to ban
-
-    // new Scheme:
-    // - methodsWhichCanReadFiles
-    // - methodsWhichCanOverwriteFiles
-    // - methodsWhichCanExecuteFiles
-    // - methodsWhichCanDeleteFiles
-    // - methodsWhichCanCreateThreads
-
     pointcut fileReadMethods():
             (call(* java.io.File.canRead(..)) ||
                     call(java.io.File.new(..)) ||
@@ -79,7 +70,6 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.nio.file.Files.newInputStream(..)) ||
                     call(* java.nio.file.Files.probeContentType(..)) ||
                     call(* java.nio.file.Files.isReadable(..))||
-                    call(* java.nio.channels.FileChannel.open(..)) ||
                     call(* java.io.DataInputStream.read(..)) ||
                     call(* java.io.DataInputStream.readFully(..)) ||
                     call(* java.io.ObjectInputStream.readObject(..)) ||
@@ -126,7 +116,6 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.nio.file.FileSystem.getRootDirectories(..)) ||
                     call(* java.nio.file.FileSystem.provider(..)) ||
                     call(* java.nio.file.FileSystem.supportedFileAttributeViews(..)) ||
-                    call(* java.nio.file.FileSystem.isOpen(..)) ||
                     call(* java.nio.file.FileSystem.isReadOnly(..)));
 
     pointcut fileSystemWriteMethods():
@@ -141,8 +130,7 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(java.lang.ProcessBuilder.new(..));
 
     pointcut fileChannelExecuteMethods():
-            (call(* java.nio.channels.AsynchronousFileChannel.open()) ||
-                    call(* java.nio.channels.FileChannel.position(..)) ||
+            (call(* java.nio.channels.FileChannel.position(..)) ||
                     call(* java.nio.channels.FileChannel.tryLock(..)) ||
                     call(* java.nio.channels.AsynchronousFileChannel.tryLock()));
 

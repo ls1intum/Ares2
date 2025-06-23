@@ -22,7 +22,6 @@ import java.util.Objects;
  * @param regardingThreadCreations permitted thread creations; must not be null.
  * @param regardingPackageImports permitted package imports; must not be null.
  */
-@Nonnull
 public record ResourceAccesses(
         @Nonnull List<FilePermission> regardingFileSystemInteractions,
         @Nonnull List<NetworkPermission> regardingNetworkConnections,

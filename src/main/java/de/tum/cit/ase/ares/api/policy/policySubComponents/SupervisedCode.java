@@ -21,7 +21,6 @@ import java.util.Objects;
  * @param theFollowingClassesAreTestClasses an array of test class names; must not be null.
  * @param theFollowingResourceAccessesArePermitted the permitted resource accesses; must not be null.
  */
-@Nonnull
 public record SupervisedCode(
         @Nonnull ProgrammingLanguageConfiguration theFollowingProgrammingLanguageConfigurationIsUsed,
         @Nullable String theSupervisedCodeUsesTheFollowingPackage,

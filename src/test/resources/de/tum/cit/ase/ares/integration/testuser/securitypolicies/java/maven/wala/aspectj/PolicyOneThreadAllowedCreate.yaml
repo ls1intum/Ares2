@@ -10,5 +10,5 @@ regardingTheSupervisedCode:
     regardingCommandExecutions: []
     regardingThreadCreations:
       - createTheFollowingNumberOfThreads: 1
-        ofThisClass: "de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.LegalThread"
+        ofThisClass: "de.tum.cit.ase.ares.integration.aop.allowed.subject.LegalThread"
     regardingPackageImports: []

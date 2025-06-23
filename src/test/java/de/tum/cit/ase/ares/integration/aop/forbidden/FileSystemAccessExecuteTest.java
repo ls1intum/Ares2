@@ -7,163 +7,38 @@ import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.execute.
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.execute.runtime.RuntimeExecuteMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.execute.thirdPartyPackage.ExecuteThirdPartyPackageMain;
 import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdpartypackage.ThirdPartyPackagePenguin;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.function.Executable;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Arrays;
+class FileSystemAccessExecuteTest extends SystemAccessTest {
 
-class FileSystemAccessExecuteTest {
-
-    private static final String ERROR_MESSAGE = "No Security Exception was thrown. Check if the policy is correctly applied.";
-    private static final String ERR_SECURITY_EN = "Ares Security Error";
-    private static final String ERR_SECURITY_DE = "Ares Sicherheitsfehler";
-    private static final String REASON_EN = "(Reason: Student-Code; Stage: Execution)";
-    private static final String REASON_DE = "(Grund: Student-Code; Phase: Ausführung)";
-    private static final String TRIED_EN = "tried";
-    private static final String TRIED_DE = "hat versucht,";
-    private static final String BLOCKED_EN = "was blocked by Ares.";
-    private static final String BLOCKED_DE = "wurde jedoch von Ares blockiert.";
-
-    // <editor-fold desc="Helpers">
-
-    /**
-     * Common helper that verifies the expected general parts of the error message.
-     *
-     * @param actualMessage   The message from the thrown exception.
-     * @param operationTextEN The operation-specific substring in English (e.g.,
-     *                        "illegally read from", "illegally write from",
-     *                        "illegally execute from").
-     * @param operationTextDE The operation-specific substring in German (e.g.,
-     *                        "illegally read from", "illegally write from",
-     *                        "illegally execute from").
-     */
-    private void assertGeneralErrorMessage(
-            String actualMessage,
-            String operationTextEN,
-            String operationTextDE,
-            Class<?> clazz) {
-        Path expectedPath = Paths.get(
-                "src", "test", "java", "de", "tum", "cit", "ase",
-                "ares", "integration", "aop", "forbidden", "subject", "nottrusted.txt");
-        String nativePath = expectedPath.toString();
-        String unixPath = nativePath.replace(expectedPath.getFileSystem().getSeparator(), "/");
-
-        Assertions.assertTrue(
-                actualMessage.contains(ERR_SECURITY_EN) || actualMessage.contains(ERR_SECURITY_DE),
-                () -> String.format(
-                        "Exception message should contain '%s' or '%s', but was:%n%s",
-                        ERR_SECURITY_EN, ERR_SECURITY_DE, actualMessage));
-
-        Assertions.assertTrue(
-                actualMessage.contains(REASON_EN) || actualMessage.contains(REASON_DE),
-                () -> String.format(
-                        "Exception message should contain '%s' or '%s', but was:%n%s",
-                        REASON_EN, REASON_DE, actualMessage));
-
-        Assertions.assertTrue(
-                actualMessage.contains(TRIED_EN) || actualMessage.contains(TRIED_DE),
-                () -> String.format(
-                        "Exception message should contain '%s' or '%s', but was:%n%s",
-                        TRIED_EN, TRIED_DE, actualMessage));
-
-        Assertions.assertTrue(
-                actualMessage.contains(clazz.getName()),
-                () -> String.format(
-                        "Exception message should contain '%s', but was:%n%s",
-                        clazz.getName(), actualMessage));
-
-        Assertions.assertTrue(
-                actualMessage.contains(operationTextEN) || actualMessage.contains(operationTextDE),
-                () -> String.format(
-                        "Exception message should indicate the operation by containing '%s' or '%s', but was:%n%s",
-                        operationTextEN, operationTextDE, actualMessage));
-
-        Assertions.assertTrue(
-                Arrays.asList(nativePath, unixPath).stream().anyMatch(actualMessage::contains),
-                () -> String.format(
-                        "Exception message should contain the path '%s' (or '%s'), but was:%n%s",
-                        nativePath, unixPath, actualMessage));
-
-        Assertions.assertTrue(
-                actualMessage.contains(BLOCKED_EN) || actualMessage.contains(BLOCKED_DE),
-                () -> String.format(
-                        "Exception message should contain '%s' or '%s', but was:%n%s",
-                        BLOCKED_EN, BLOCKED_DE, actualMessage));
-    }
-
-    /**
-     * Test that the given executable throws a SecurityException with the expected
-     * message.
-     *
-     * @param executable The executable that should throw a SecurityException
-     */
-    private void assertAresSecurityExceptionRead(Executable executable, Class<?> clazz) {
-        SecurityException se = Assertions.assertThrows(SecurityException.class, executable, ERROR_MESSAGE);
-        assertGeneralErrorMessage(se.getMessage(), "illegally read from", "illegal read von", clazz);
-    }
-
-    /**
-     * Test that the given executable throws a SecurityException with the expected
-     * message.
-     *
-     * @param executable The executable that should throw a SecurityException
-     */
-    private void assertAresSecurityExceptionWrite(Executable executable, Class<?> clazz) {
-        SecurityException se = Assertions.assertThrows(SecurityException.class, executable, ERROR_MESSAGE);
-        assertGeneralErrorMessage(se.getMessage(), "illegally overwrite from", "illegal overwrite von", clazz);
-    }
-
-    /**
-     * Test that the given executable throws a SecurityException with the expected
-     * message.
-     *
-     * @param executable The executable that should throw a SecurityException
-     */
-    private void assertAresSecurityExceptionExecution(Executable executable, Class<?> clazz) {
-        SecurityException se = Assertions.assertThrows(SecurityException.class, executable, ERROR_MESSAGE);
-        assertGeneralErrorMessage(se.getMessage(), "illegally execute from", "illegal execute von", clazz);
-    }
-
-    /**
-     * Helper method for delete operations.
-     *
-     * @param executable Code that is expected to throw a SecurityException.
-     */
-    private void assertAresSecurityExceptionDelete(Executable executable, Class<?> clazz) {
-        SecurityException se = Assertions.assertThrows(SecurityException.class, executable, ERROR_MESSAGE);
-        assertGeneralErrorMessage(se.getMessage(), "illegally delete from", "illegal delete von", clazz);
-    }
-    // </editor-fold>
-
-    // <editor-fold desc="Execute Operations">
-    // --- Execute Operations ---
+    private static final String RUNTIME_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/runtime";
+    private static final String PROCESS_BUILDER_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/processBuilder";
+    private static final String DESKTOP_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/desktop";
+    private static final String THIRD_PARTY_PACKAGE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/thirdPartyPackage";
 
     // <editor-fold desc="accessFileSystemViaRuntime">
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/runtime")
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = RUNTIME_WITHIN_PATH)
     void test_accessFileSystemViaRuntimeMavenArchunitAspectJ() {
         assertAresSecurityExceptionExecution(RuntimeExecuteMain::accessFileSystemViaRuntime,
                 RuntimeExecuteMain.class);
     }
 
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/runtime")
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = RUNTIME_WITHIN_PATH)
     void test_accessFileSystemViaRuntimeMavenArchunitInstrumentation() {
         assertAresSecurityExceptionExecution(RuntimeExecuteMain::accessFileSystemViaRuntime,
                 RuntimeExecuteMain.class);
     }
 
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/runtime")
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = RUNTIME_WITHIN_PATH)
     void test_accessFileSystemViaRuntimeMavenWalaAspectJ() {
         assertAresSecurityExceptionExecution(RuntimeExecuteMain::accessFileSystemViaRuntime,
                 RuntimeExecuteMain.class);
     }
 
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/runtime")
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = RUNTIME_WITHIN_PATH)
     void test_accessFileSystemViaRuntimeMavenWalaInstrumentation() {
         assertAresSecurityExceptionExecution(RuntimeExecuteMain::accessFileSystemViaRuntime,
                 RuntimeExecuteMain.class);
@@ -172,28 +47,28 @@ class FileSystemAccessExecuteTest {
 
     // <editor-fold desc="accessFileSystemViaDesktop">
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/desktop")
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
     void test_accessFileSystemViaDesktopMavenArchunitAspectJ() {
         assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktop,
                 DesktopExecuteMain.class);
     }
 
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/desktop")
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
     void test_accessFileSystemViaDesktopMavenArchunitInstrumentation() {
         assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktop,
                 DesktopExecuteMain.class);
     }
 
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/desktop")
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
     void test_accessFileSystemViaDesktopMavenWalaAspectJ() {
         assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktop,
                 DesktopExecuteMain.class);
     }
 
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/desktop")
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
     void test_accessFileSystemViaDesktopMavenWalaInstrumentation() {
         assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktop,
                 DesktopExecuteMain.class);
@@ -202,28 +77,28 @@ class FileSystemAccessExecuteTest {
 
     // <editor-fold desc="accessFileSystemViaDesktopBrowseFileDirectory">
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/desktop")
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
     void test_accessFileSystemViaDesktopBrowseFileDirectoryMavenArchunitAspectJ() {
         assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopBrowseFileDirectory,
                 DesktopExecuteMain.class);
     }
 
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/desktop")
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
     void test_accessFileSystemViaDesktopBrowseFileDirectoryMavenArchunitInstrumentation() {
         assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopBrowseFileDirectory,
                 DesktopExecuteMain.class);
     }
 
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/desktop")
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
     void test_accessFileSystemViaDesktopBrowseFileDirectoryMavenWalaAspectJ() {
         assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopBrowseFileDirectory,
                 DesktopExecuteMain.class);
     }
 
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/desktop")
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
     void test_accessFileSystemViaDesktopBrowseFileDirectoryMavenWalaInstrumentation() {
         assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopBrowseFileDirectory,
                 DesktopExecuteMain.class);
@@ -232,28 +107,28 @@ class FileSystemAccessExecuteTest {
 
     // <editor-fold desc="accessFileSystemViaDesktopEdit">
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/desktop")
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
     void test_accessFileSystemViaDesktopEditMavenArchunitAspectJ() {
         assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopEdit,
                 DesktopExecuteMain.class);
     }
 
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/desktop")
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
     void test_accessFileSystemViaDesktopEditMavenArchunitInstrumentation() {
         assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopEdit,
                 DesktopExecuteMain.class);
     }
 
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/desktop")
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
     void test_accessFileSystemViaDesktopEditMavenWalaAspectJ() {
         assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopEdit,
                 DesktopExecuteMain.class);
     }
 
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/desktop")
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
     void test_accessFileSystemViaDesktopEditMavenWalaInstrumentation() {
         assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopEdit,
                 DesktopExecuteMain.class);
@@ -262,28 +137,28 @@ class FileSystemAccessExecuteTest {
 
     // <editor-fold desc="accessFileSystemViaDesktopPrint">
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/desktop")
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
     void test_accessFileSystemViaDesktopPrintMavenArchunitAspectJ() {
         assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopPrint,
                 DesktopExecuteMain.class);
     }
 
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/desktop")
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
     void test_accessFileSystemViaDesktopPrintMavenArchunitInstrumentation() {
         assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopPrint,
                 DesktopExecuteMain.class);
     }
 
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/desktop")
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
     void test_accessFileSystemViaDesktopPrintMavenWalaAspectJ() {
         assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopPrint,
                 DesktopExecuteMain.class);
     }
 
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/desktop")
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
     void test_accessFileSystemViaDesktopPrintMavenWalaInstrumentation() {
         assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopPrint,
                 DesktopExecuteMain.class);
@@ -292,28 +167,28 @@ class FileSystemAccessExecuteTest {
 
     // <editor-fold desc="accessFileSystemViaProcessBuilder">
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/processBuilder")
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = PROCESS_BUILDER_WITHIN_PATH)
     void test_accessFileSystemViaProcessBuilderMavenArchunitAspectJ() {
         assertAresSecurityExceptionExecution(ProcessBuilderExecuteMain::accessFileSystemViaProcessBuilder,
                 ProcessBuilderExecuteMain.class);
     }
 
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/processBuilder")
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = PROCESS_BUILDER_WITHIN_PATH)
     void test_accessFileSystemViaProcessBuilderMavenArchunitInstrumentation() {
         assertAresSecurityExceptionExecution(ProcessBuilderExecuteMain::accessFileSystemViaProcessBuilder,
                 ProcessBuilderExecuteMain.class);
     }
 
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/processBuilder")
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = PROCESS_BUILDER_WITHIN_PATH)
     void test_accessFileSystemViaProcessBuilderMavenWalaAspectJ() {
         assertAresSecurityExceptionExecution(ProcessBuilderExecuteMain::accessFileSystemViaProcessBuilder,
                 ProcessBuilderExecuteMain.class);
     }
 
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/processBuilder")
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = PROCESS_BUILDER_WITHIN_PATH)
     void test_accessFileSystemViaProcessBuilderMavenWalaInstrumentation() {
         assertAresSecurityExceptionExecution(ProcessBuilderExecuteMain::accessFileSystemViaProcessBuilder,
                 ProcessBuilderExecuteMain.class);
@@ -322,32 +197,31 @@ class FileSystemAccessExecuteTest {
 
     // <editor-fold desc="accessFileSystemViaThirdPartyPackage">
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/thirdPartyPackage")
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = THIRD_PARTY_PACKAGE_WITHIN_PATH)
     void test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ() {
         assertAresSecurityExceptionExecution(ExecuteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
                 ThirdPartyPackagePenguin.class);
     }
 
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/thirdPartyPackage")
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = THIRD_PARTY_PACKAGE_WITHIN_PATH)
     void test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation() {
         assertAresSecurityExceptionExecution(ExecuteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
                 ThirdPartyPackagePenguin.class);
     }
 
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/thirdPartyPackage")
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = THIRD_PARTY_PACKAGE_WITHIN_PATH)
     void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ() {
         assertAresSecurityExceptionExecution(ExecuteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
                 ThirdPartyPackagePenguin.class);
     }
 
     @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/thirdPartyPackage")
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = THIRD_PARTY_PACKAGE_WITHIN_PATH)
     void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation() {
         assertAresSecurityExceptionExecution(ExecuteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
                 ThirdPartyPackagePenguin.class);
     }
-    // </editor-fold>
     // </editor-fold>
 }

@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem;
+package de.tum.cit.ase.ares.integration.architecture.forbidden.subject.threadSystem;
 
 public class IllegalThread extends Thread {
     @Override

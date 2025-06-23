@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem;
+package de.tum.cit.ase.ares.integration.aop.allowed.subject;
 
 public class LegalThread extends Thread {
     @Override
