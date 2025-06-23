@@ -397,7 +397,7 @@ public class JavaInstrumentationBindingDefinitions {
                     JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteCommands, JavaInstrumentationExecuteCommandMethodAdvice.class
             );
         } catch (Exception e) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.create.thread.method.binding.error"), e);
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.execute.command.method.binding.error"), e);
         }
     }
 
