@@ -333,7 +333,7 @@ public class JavaInstrumentationAdviceCommandSystemToolbox {
             @Nonnull String allowedCommand = commandsAllowedToBeExecuted[i];
             @Nullable String[] allowedArguments = argumentsAllowedToBePassed[i];
             if (allowedCommand.equals(actualCommand)) {
-                return Arrays.deepEquals(allowedArguments, actualArguments);
+                return !Arrays.deepEquals(allowedArguments, actualArguments);
             }
         }
         return false;
