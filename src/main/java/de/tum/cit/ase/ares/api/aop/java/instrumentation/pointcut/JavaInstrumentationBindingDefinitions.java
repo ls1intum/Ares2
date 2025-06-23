@@ -373,18 +373,18 @@ public class JavaInstrumentationBindingDefinitions {
 
     //<editor-fold desc="Execute Command">
     /**
-     * This method creates a binding for the create thread pointcut. It applies the instrumentation advice
-     * for file deletion operations defined in the corresponding pointcuts, ensuring that security-related
-     * advice is applied when methods that create threads are invoked. This safeguards against unauthorized
-     * or harmful file deletion operations.
+     * This method creates a binding for the execute command pointcut. It applies the instrumentation advice
+     * for command execution operations defined in the corresponding pointcuts, ensuring that security-related
+     * advice is applied when methods that execute commands are invoked. This safeguards against unauthorized
+     * or harmful command execution operations.
      *
      * @param builder                 The builder used to create the binding.
      * @param typeDescription         The description of the class whose methods are being instrumented.
      * @param classLoader             The class loader responsible for loading the class.
      * @param javaModule       The Java module being ignored (for compatibility reasons).
      * @param protectionDomain The protection domain being ignored (for compatibility reasons).
-     * @return The builder with the binding applied for file deletion operations.
-     * @throws SecurityException If the binding could not be created for the create thread, preventing the enforcement of security policies for file deletion operations.
+     * @return The builder with the binding applied for command execution operations.
+     * @throws SecurityException If the binding could not be created for the execute command, preventing the enforcement of security policies for command execution operations.
      */
     public static DynamicType.Builder<?> createExecuteCommandMethodBinding(
             DynamicType.Builder<?> builder, TypeDescription typeDescription,
