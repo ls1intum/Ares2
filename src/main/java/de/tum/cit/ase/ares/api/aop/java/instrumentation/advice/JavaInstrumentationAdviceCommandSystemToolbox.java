@@ -336,7 +336,7 @@ public class JavaInstrumentationAdviceCommandSystemToolbox {
                 return !Arrays.deepEquals(allowedArguments, actualArguments);
             }
         }
-        return false;
+        return true;
     }
     //</editor-fold>
 
