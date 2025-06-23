@@ -16,7 +16,11 @@ public class CreateScheduledThreadPoolExecutorMain {
      */
     public static void executeRunnable() {
         ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
-        scheduledThreadPoolExecutor.execute(new IllegalThread());
+        try {
+            scheduledThreadPoolExecutor.execute(new IllegalThread());
+        } finally {
+            scheduledThreadPoolExecutor.shutdown();
+        }
     }
 
     /**
@@ -24,7 +28,11 @@ public class CreateScheduledThreadPoolExecutorMain {
      */
     public static void submitRunnable() {
         ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
-        scheduledThreadPoolExecutor.submit(new IllegalThread());
+        try {
+            scheduledThreadPoolExecutor.submit(new IllegalThread());
+        } finally {
+            scheduledThreadPoolExecutor.shutdown();
+        }
     }
 
     /**
@@ -33,6 +41,10 @@ public class CreateScheduledThreadPoolExecutorMain {
     public static void submitCallable() {
         ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
         Callable<String> callable = () -> "test";
-        scheduledThreadPoolExecutor.submit(callable);
+        try {
+            scheduledThreadPoolExecutor.submit(callable);
+        } finally {
+            scheduledThreadPoolExecutor.shutdown();
+        }
     }
 }
