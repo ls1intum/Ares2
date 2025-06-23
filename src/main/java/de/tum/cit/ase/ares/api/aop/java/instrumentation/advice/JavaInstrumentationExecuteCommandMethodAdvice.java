@@ -16,12 +16,12 @@ import java.lang.reflect.InaccessibleObjectException;
  */
 public class JavaInstrumentationExecuteCommandMethodAdvice {
     /**
-     * This method is called when a method annotated with the creating threads is entered.
+     * This method is called when a method that can execute commands is entered.
      * It performs security checks to determine whether the method execution is allowed according
-     * to thread system security policies. If the method execution is not permitted, a SecurityException
+     * to command system security policies. If the method execution is not permitted, a SecurityException
      * is thrown, blocking the execution.
      * <p>
-     * The checkThreadSystemInteraction method from JavaInstrumentationAdviceThreadSystemToolbox is called to
+     * The checkCommandSystemInteraction method from JavaInstrumentationAdviceCommandSystemToolbox is called to
      * perform these checks, ensuring that both the method's parameters and the instance fields
      * adhere to the security restrictions.
      *
