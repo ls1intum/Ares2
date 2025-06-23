@@ -20,7 +20,6 @@ import java.util.Objects;
  * @param withTheseArguments the predefined arguments for the command; must not be null.
  */
 @SuppressWarnings("unused")
-@Nonnull
 public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List<String> withTheseArguments) {
 
     /**

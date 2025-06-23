@@ -17,8 +17,6 @@ import java.util.Objects;
  * @param createTheFollowingNumberOfThreads the number of threads permitted to be created.
  * @param ofThisClass the fully qualified name of the allowed thread class; must not be null.
  */
-@SuppressWarnings("unused")
-@Nonnull
 public record ThreadPermission(int createTheFollowingNumberOfThreads, @Nonnull String ofThisClass) {
 
     /**
