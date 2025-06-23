@@ -412,7 +412,7 @@ public class JavaInstrumentationBindingDefinitions {
                     JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteCommands, JavaInstrumentationExecuteCommandConstructorAdvice.class
             );
         } catch (Exception e) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.create.thread.constructor.binding.error"), e);
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.execute.command.constructor.binding.error"), e);
         }
     }
     //</editor-fold>
