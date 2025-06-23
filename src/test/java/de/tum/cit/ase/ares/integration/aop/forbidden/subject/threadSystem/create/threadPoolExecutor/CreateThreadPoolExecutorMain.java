@@ -41,6 +41,10 @@ public class CreateThreadPoolExecutorMain {
                 1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>()
         );
         Callable<String> callable = () -> "test";
-        threadPoolExecutor.submit(callable);
+        try {
+            threadPoolExecutor.submit(callable);
+        } finally {
+            threadPoolExecutor.shutdown();
+        }
     }
 }
