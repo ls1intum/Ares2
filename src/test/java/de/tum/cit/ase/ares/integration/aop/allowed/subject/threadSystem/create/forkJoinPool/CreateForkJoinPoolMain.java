@@ -24,9 +24,9 @@ public class CreateForkJoinPoolMain {
      * Tests ForkJoinPool.submit(Runnable) method
      */
     public static void submitRunnable() {
-        @SuppressWarnings("resource")
-        ForkJoinPool forkJoinPool = new ForkJoinPool();
-        forkJoinPool.submit(new LegalThread());
+        try (ForkJoinPool forkJoinPool = new ForkJoinPool()) {
+            forkJoinPool.submit(new LegalThread());
+        }
     }
 
     /**
