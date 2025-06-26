@@ -22,15 +22,4 @@ public final class DeleteFilesDeleteMain {
         Files.deleteIfExists(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
     }
 
-    public static void accessFileSystemViaFilesCopy() throws IOException {
-        Path source = Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
-        Path target = Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
-        Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
-    }
-
-    public static void accessFileSystemViaFilesMove() throws IOException {
-        Path source = Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
-        Path target = Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
-        Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
-    }
 }

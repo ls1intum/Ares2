@@ -2,6 +2,9 @@ package de.tum.cit.ase.ares.api.architecture.java.wala;
 
 //<editor-fold desc="Imports">
 
+import com.google.common.collect.Iterables;
+import com.ibm.wala.ipa.callgraph.CGNode;
+import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
 import de.tum.cit.ase.ares.api.architecture.java.FileHandlerConstants;
@@ -10,6 +13,7 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Set;
 
 //</editor-fold>
@@ -24,11 +28,13 @@ import java.util.Set;
  * - Execute system commands
  * - Create threads
  */
-public class JavaWalaTestCaseCollection {
+public final class JavaWalaTestCaseCollection {
 
     //<editor-fold desc="Constructor">
     private JavaWalaTestCaseCollection() {
-        throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.general.utility.initialization", JavaWalaTestCaseCollection.class.getName()));
+        throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize(
+                "security.general.utility.initialization",
+                JavaWalaTestCaseCollection.class.getName()));
     }
     //</editor-fold>
 
@@ -43,6 +49,59 @@ public class JavaWalaTestCaseCollection {
     ) {
         return new WalaRule(ruleName, FileTools.readMethodsFromGivenPath(methodsFilePath));
     }
+
+    /* -----------------------------------------------------------
+     *  Small reusable decorator that ignores WALA-paths consisting
+     *  solely of JDK housekeeping helpers.
+     * --------------------------------------------------------- */
+    private static WalaRule wrapIgnoringJdkHelpers(WalaRule base) {
+
+        return new WalaRule(base.ruleName, base.forbiddenMethods) {
+
+            @Override
+            public void check(CallGraph cg) {
+
+                List<CGNode> path = ReachabilityChecker.findReachableMethods(
+                        cg,
+                        cg.getEntrypointNodes().iterator(),
+                        n -> base.forbiddenMethods.stream()
+                                .anyMatch(sig -> n.getMethod()
+                                        .getSignature()
+                                        .startsWith(sig)));
+
+                if (path == null || Iterables.isEmpty(path)) {
+                    return;                 // nothing forbidden reached
+                }
+
+                CGNode forbidden = path.getLast();
+
+                /* Is the API one helpers legitimately call? */
+                boolean helperApi = ALLOWED_HELPER_APIS.stream()
+                        .anyMatch(sig -> forbidden.getMethod()
+                                .getSignature()
+                                .startsWith(sig));
+
+                /* Does the call chain contain at least one helper frame? */
+                boolean helperSeen = path.stream().anyMatch(n -> {
+                    String cls = n.getMethod()
+                            .getDeclaringClass()
+                            .getName()
+                            .toString();
+                    return JDK_THREAD_HELPERS.stream().anyMatch(cls::startsWith);
+                });
+
+                if (helperApi && helperSeen) {
+                    return;                 // housekeeping path – ignore
+                }
+
+                /* Otherwise: genuine violation. */
+                base.check(cg);
+            }
+        };
+    }
+
+
+
     //</editor-fold>
 
     //<editor-fold desc="Dynamic rules">
@@ -71,12 +130,33 @@ public class JavaWalaTestCaseCollection {
     //<editor-fold desc="Thread Creation related rule">
 
     /**
-     * This method checks if any class in the given package creates threads.
+     * Ignore helper classes from the JDK that are known to create threads. (e.g. move from
      */
-    public static final WalaRule NO_CLASS_MUST_CREATE_THREADS = createNoClassShouldHaveMethodRule(
-            JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.manipulate.threads"),
-            FileHandlerConstants.WALA_THREAD_MANIPULATION_METHODS
+    private static final List<String> JDK_THREAD_HELPERS = List.of(
+            /* descriptor & binary forms */          "Lsun/nio/fs/", "sun/nio/fs/",
+            "Lsun/nio/ch/Poller", "sun/nio/ch/Poller",
+            "Ljava/nio/file/Files", "java/nio/file/Files",
+            "Ljava/lang/ClassLoader", "java/lang/ClassLoader"
     );
+
+    /* thread interface that a helper may call legitimately */
+    private static final List<String> ALLOWED_HELPER_APIS = List.of(
+            "java.lang.Thread.<init>",
+            "java.lang.Thread.interrupt",
+            "java.lang.ClassLoader.getSystemClassLoader"
+    );
+
+    /**
+     * This method checks if any class in the given package creates threads. It ignores helper threads created by the JDK.
+     * (e.g. for Files.move)
+     */
+    public static final WalaRule NO_CLASS_MUST_CREATE_THREADS =
+            wrapIgnoringJdkHelpers(
+                    createNoClassShouldHaveMethodRule(
+                            JavaInstrumentationAdviceFileSystemToolbox.localize(
+                                    "security.architecture.manipulate.threads"),
+                            FileHandlerConstants.WALA_THREAD_MANIPULATION_METHODS)
+            );
     //</editor-fold>
 
     //<editor-fold desc="Command Execution related rule">
@@ -143,11 +223,12 @@ public class JavaWalaTestCaseCollection {
     /**
      * This method checks if any class in the given package uses class loaders.
      */
-    public static final WalaRule NO_CLASS_MUST_USE_CLASSLOADERS = createNoClassShouldHaveMethodRule(
-            JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.class.loading"),
-            FileHandlerConstants.WALA_CLASSLOADER_METHODS
-    );
+    public static final WalaRule NO_CLASS_MUST_USE_CLASSLOADERS =
+            wrapIgnoringJdkHelpers(
+                    createNoClassShouldHaveMethodRule(
+                            JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.class.loading"),
+                            FileHandlerConstants.WALA_CLASSLOADER_METHODS)
+            );
     //</editor-fold>
     //</editor-fold>
-
 }

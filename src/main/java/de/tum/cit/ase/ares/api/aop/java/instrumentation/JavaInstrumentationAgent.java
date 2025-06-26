@@ -87,6 +87,7 @@ public class JavaInstrumentationAgent {
                                     JavaAOPTestCaseSettings.class.getName(),
                                     ClassFileLocator.ForClassLoader.read(JavaAOPTestCaseSettings.class)
                             )
+                            // TODO: add other toolbox classes as needed
                     ));
         } catch (Exception e) {
             throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.agent.installation.error", "Putting the Toolbox on the BootClassLoader failed", e));
