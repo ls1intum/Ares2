@@ -9,7 +9,10 @@ import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.f
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.thirdPartyPackage.DeleteThirdPartyPackageMain;
 import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdpartypackage.ThirdPartyPackagePenguin;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 /**
  * Tests every JDK delete entry‑point
@@ -19,10 +22,21 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
     private static final String FILE_DELETE_WITHIN_PATH  = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/fileDelete";
     private static final String FILES_DELETE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/filesDelete";
     private static final String THIRD_PARTY_WITHIN_PATH  = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/thirdPartyPackage";
+    private static final Path NOT_TRUSTED_FILE_PATH = Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/nottrusteddir/nottrusted.txt");
 
 
-
+    /**
+     * Ensure the test artefact exists before each test so that deletion calls
+     * have a real target. The directory is created if missing; the file is
+     * (re)‑created empty if it was removed by a previous test.
+     */
     @BeforeEach
+    void createNotTrustedFile() throws IOException {
+        Files.createDirectories(NOT_TRUSTED_FILE_PATH.getParent());
+        if (Files.notExists(NOT_TRUSTED_FILE_PATH)) {
+            Files.createFile(NOT_TRUSTED_FILE_PATH);
+        }
+    }
 
 
     /* -------------------------------------------------------------------- */
@@ -85,7 +99,6 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
     /*  Path → File → delete()                                              */
     /* -------------------------------------------------------------------- */
 
-    @Disabled
     @PublicTest
     @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
     void test_pathToFileDelete_archunit_aspectj() {

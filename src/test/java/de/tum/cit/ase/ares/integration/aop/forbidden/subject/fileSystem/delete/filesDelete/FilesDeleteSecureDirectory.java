@@ -8,6 +8,11 @@ import java.nio.file.SecureDirectoryStream;
 
 public final class FilesDeleteSecureDirectory {
 
+
+    private static final String NOT_TRUSTED_FILE = "src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/nottrusteddir/nottrusted.txt";
+    private static final String NOT_TRUSTED_FILE_DIR = "src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/nottrusteddir";
+
+
     private FilesDeleteSecureDirectory() {
         throw new SecurityException(
                 "Ares Security Error (Reason: Ares-Code; Stage: Test): "
@@ -16,8 +21,8 @@ public final class FilesDeleteSecureDirectory {
 
     /** {@link SecureDirectoryStream#deleteFile}} */
     public static void accessFileSystemViaSecureDirectoryStreamDeleteFile() throws IOException {
-        Path dir  = Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject");
-        Path file = Path.of("nottrusted.txt");                          // relative to dir
+        Path dir  = Path.of(NOT_TRUSTED_FILE);
+        Path file = Path.of(NOT_TRUSTED_FILE_DIR);                          // relative to dir
 
         try (DirectoryStream<Path> ds = Files.newDirectoryStream(dir)) {
             if (ds instanceof SecureDirectoryStream<Path> sds) {
@@ -31,7 +36,7 @@ public final class FilesDeleteSecureDirectory {
 
     /** {@link SecureDirectoryStream#deleteDirectory)} */
     public static void accessFileSystemViaSecureDirectoryStreamDeleteDirectory() throws IOException {
-        Path dir     = Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject");
+        Path dir     = Path.of(NOT_TRUSTED_FILE_DIR);
         Path subDir  = Path.of("tempEmptyDir");
 
         Files.createDirectories(dir.resolve(subDir));                   // ensure it exists

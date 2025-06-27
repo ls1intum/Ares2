@@ -23,6 +23,6 @@ public class ThirdPartyPackagePenguin {
     }
 
     public static void deleteFile() throws IOException {
-        Files.delete(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
+        Files.delete(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/nottrusteddir/nottrusted.txt"));
     }
 }

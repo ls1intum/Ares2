@@ -10,6 +10,9 @@ import java.nio.file.StandardOpenOption;
 
 public final class FilesDeleteOnClose {
 
+    private static final String NOT_TRUSTED_FILE = "src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/nottrusteddir/nottrusted.txt";
+
+
     private FilesDeleteOnClose() {
         throw new SecurityException(
                 "Ares Security Error (Reason: Ares-Code; Stage: Test): "
@@ -22,7 +25,7 @@ public final class FilesDeleteOnClose {
      */
     public static void accessFileSystemViaDeleteOnClose() throws IOException {
         Path p = Path.of(
-                "src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/tempDeleteOnClose.txt");
+                NOT_TRUSTED_FILE);
 
         try (SeekableByteChannel ch = Files.newByteChannel(
                 p,

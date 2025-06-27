@@ -5,6 +5,9 @@ import java.nio.file.Path;
 
 public final class FileDeleteMain {
 
+
+    private static final String NOT_TRUSTED_FILE = "src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/nottrusteddir/nottrusted.txt";
+
     private FileDeleteMain() {
         throw new SecurityException(
                 "Ares Security Error (Reason: Ares-Code; Stage: Test): "
@@ -13,13 +16,13 @@ public final class FileDeleteMain {
 
     /** {@link java.io.File#delete()} */
     public static void accessFileSystemViaFileDelete() {
-        new File("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt")
+        new File(NOT_TRUSTED_FILE)
                 .delete();
     }
 
     /** {@link java.io.File#deleteOnExit()} */
     public static void accessFileSystemViaFileDeleteOnExit() {
-        new File("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt")
+        new File(NOT_TRUSTED_FILE)
                 .deleteOnExit();
     }
 
@@ -29,7 +32,7 @@ public final class FileDeleteMain {
      */
     public static void accessFileSystemViaPathToFileDelete() {
         Path path = Path.of(
-                "src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
+                NOT_TRUSTED_FILE);
         path.toFile().delete();
     }
 }

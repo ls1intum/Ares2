@@ -5,6 +5,7 @@ regardingTheSupervisedCode:
   theFollowingClassesAreTestClasses:
     - "de.tum.cit.ase.ares.integration.aop.forbidden.FileSystemAccessAspectJTest"
     - "de.tum.cit.ase.ares.integration.aop.allowed.FileSystemAccessTest"
+    - "de.tum.cit.ase.ares.integration.aop.forbidden.FileSystemAccessDeleteTest"
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions:
       - readAllFiles: false
