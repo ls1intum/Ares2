@@ -46,7 +46,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
     @PublicTest
     @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
     void test_fileDelete_archunit_aspectj() {
-        assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaFileDelete, FileDeleteMain.class);
+        assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaFileDelete, FileDeleteMain.class);
     }
 
     @PublicTest
@@ -58,7 +58,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
     @PublicTest
     @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
     void test_fileDelete_wala_aspectj() {
-        assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaFileDelete, FileDeleteMain.class);
+        assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaFileDelete, FileDeleteMain.class);
     }
 
     @PublicTest
@@ -74,7 +74,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
     @PublicTest
     @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
     void test_fileDeleteOnExit_archunit_aspectj() {
-        assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaFileDeleteOnExit, FileDeleteMain.class);
+        assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaFileDeleteOnExit, FileDeleteMain.class);
     }
 
     @PublicTest
@@ -86,7 +86,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
     @PublicTest
     @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
     void test_fileDeleteOnExit_wala_aspectj() {
-        assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaFileDeleteOnExit, FileDeleteMain.class);
+        assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaFileDeleteOnExit, FileDeleteMain.class);
     }
 
     @PublicTest
@@ -102,7 +102,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
     @PublicTest
     @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
     void test_pathToFileDelete_archunit_aspectj() {
-        assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaPathToFileDelete, FileDeleteMain.class);
+        assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaPathToFileDelete, FileDeleteMain.class);
     }
 
     @PublicTest
@@ -114,7 +114,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
     @PublicTest
     @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
     void test_pathToFileDelete_wala_aspectj() {
-        assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaPathToFileDelete, FileDeleteMain.class);
+        assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaPathToFileDelete, FileDeleteMain.class);
     }
 
     @PublicTest
