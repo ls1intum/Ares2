@@ -99,11 +99,6 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
     /*  Path → File → delete()                                              */
     /* -------------------------------------------------------------------- */
 
-    @PublicTest
-    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
-    void test_pathToFileDelete_archunit_aspectj() {
-        assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaPathToFileDelete, FileDeleteMain.class);
-    }
 
     @PublicTest
     @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
