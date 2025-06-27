@@ -28,12 +28,13 @@ import java.util.Set;
  * - Execute system commands
  * - Create threads
  */
-public final class JavaWalaTestCaseCollection {
+public class JavaWalaTestCaseCollection {
 
     //<editor-fold desc="Constructor">
     private JavaWalaTestCaseCollection() {
-        throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize(
-                "security.general.utility.initialization",
+        throw new
+                SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize
+                ("security.general.utility.initialization",
                 JavaWalaTestCaseCollection.class.getName()));
     }
     //</editor-fold>
@@ -129,6 +130,8 @@ public final class JavaWalaTestCaseCollection {
 
     //<editor-fold desc="Thread Creation related rule">
 
+
+    // TODO: these values should be imported through CSV parser
     /**
      * Ignore helper classes from the JDK that are known to create threads. (e.g. move from
      */

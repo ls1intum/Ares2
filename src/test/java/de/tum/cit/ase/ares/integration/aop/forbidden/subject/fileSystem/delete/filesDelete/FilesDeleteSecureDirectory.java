@@ -21,8 +21,8 @@ public final class FilesDeleteSecureDirectory {
 
     /** {@link SecureDirectoryStream#deleteFile}} */
     public static void accessFileSystemViaSecureDirectoryStreamDeleteFile() throws IOException {
-        Path dir  = Path.of(NOT_TRUSTED_FILE);
-        Path file = Path.of(NOT_TRUSTED_FILE_DIR);                          // relative to dir
+        Path dir  = Path.of(NOT_TRUSTED_FILE_DIR);
+        Path file = Path.of(NOT_TRUSTED_FILE);                          // relative to dir
 
         try (DirectoryStream<Path> ds = Files.newDirectoryStream(dir)) {
             if (ds instanceof SecureDirectoryStream<Path> sds) {
