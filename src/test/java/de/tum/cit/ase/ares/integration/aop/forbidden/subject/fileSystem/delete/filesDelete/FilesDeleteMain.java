@@ -3,12 +3,11 @@ package de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 
-public final class DeleteFilesDeleteMain {
+public final class FilesDeleteMain {
 
-    private DeleteFilesDeleteMain() {
-        throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+    private FilesDeleteMain() {
+        throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): FilesDeleteMain is a utility class and should not be instantiated.");
     }
 
     /**

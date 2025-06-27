@@ -2,172 +2,267 @@ package de.tum.cit.ase.ares.integration.aop.forbidden;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
-import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.file.FileDeleteMain;
-import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.filesDelete.DeleteFilesDeleteMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.fileDelete.FileDeleteMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.filesDelete.FilesDeleteMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.filesDelete.FilesDeleteOnClose;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.filesDelete.FilesDeleteSecureDirectory;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.thirdPartyPackage.DeleteThirdPartyPackageMain;
 import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdpartypackage.ThirdPartyPackagePenguin;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 
+/**
+ * Tests every JDK delete entry‑point
+ */
 class FileSystemAccessDeleteTest extends SystemAccessTest {
 
-    private static final String FILE_DELETE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/fileDelete";
+    private static final String FILE_DELETE_WITHIN_PATH  = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/fileDelete";
     private static final String FILES_DELETE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/filesDelete";
-    private static final String THIRD_PARTY_PACKAGE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/thirdPartyPackage";
+    private static final String THIRD_PARTY_WITHIN_PATH  = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/thirdPartyPackage";
 
-    // <editor-fold desc="accessFileSystemViaFileDelete">
+
+
+    @BeforeEach
+
+
+    /* -------------------------------------------------------------------- */
+    /*  java.io.File : delete()                                             */
+    /* -------------------------------------------------------------------- */
+
     @PublicTest
     @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
-    void test_accessFileSystemViaFileDeleteMavenArchunitAspectJ() {
-        // Read, as File.new has the parameter
-        assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaFileDelete,
-                FileDeleteMain.class);
+    void test_fileDelete_archunit_aspectj() {
+        assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaFileDelete, FileDeleteMain.class);
     }
 
     @PublicTest
     @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
-    void test_accessFileSystemViaFileDeleteMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaFileDelete,
-                FileDeleteMain.class);
+    void test_fileDelete_archunit_instrumentation() {
+        assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaFileDelete, FileDeleteMain.class);
     }
 
     @PublicTest
     @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
-    void test_accessFileSystemViaFileDeleteMavenWalaAspectJ() {
-        // Read, as File.new has the parameter
-        assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaFileDelete,
-                FileDeleteMain.class);
+    void test_fileDelete_wala_aspectj() {
+        assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaFileDelete, FileDeleteMain.class);
     }
 
     @PublicTest
     @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
-    void test_accessFileSystemViaFileDeleteMavenWalaInstrumentation() {
-        assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaFileDelete,
-                FileDeleteMain.class);
+    void test_fileDelete_wala_instrumentation() {
+        assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaFileDelete, FileDeleteMain.class);
     }
-    // </editor-fold>
 
-    //<editor-fold desc="accessFileSystemViaFileDeleteOnExit">
+    /* -------------------------------------------------------------------- */
+    /*  java.io.File : deleteOnExit()                                       */
+    /* -------------------------------------------------------------------- */
+
     @PublicTest
     @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
-    void test_accessFileSystemViaFileDeleteOnExitMavenArchunitAspectJ() {
-        // Read, as File.new has the parameter
-        assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaFileDeleteOnExit,
-                FileDeleteMain.class);
+    void test_fileDeleteOnExit_archunit_aspectj() {
+        assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaFileDeleteOnExit, FileDeleteMain.class);
     }
 
     @PublicTest
     @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
-    void test_accessFileSystemViaFileDeleteOnExitMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaFileDeleteOnExit,
-                FileDeleteMain.class);
+    void test_fileDeleteOnExit_archunit_instrumentation() {
+        assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaFileDeleteOnExit, FileDeleteMain.class);
     }
 
     @PublicTest
     @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
-    void test_accessFileSystemViaFileDeleteOnExitMavenWalaAspectJ() {
-        // Read, as File.new has the parameter
-        assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaFileDeleteOnExit,
-                FileDeleteMain.class);
+    void test_fileDeleteOnExit_wala_aspectj() {
+        assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaFileDeleteOnExit, FileDeleteMain.class);
     }
 
     @PublicTest
     @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
-    void test_accessFileSystemViaFileDeleteOnExitMavenWalaInstrumentation() {
-        assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaFileDeleteOnExit,
-                FileDeleteMain.class);
+    void test_fileDeleteOnExit_wala_instrumentation() {
+        assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaFileDeleteOnExit, FileDeleteMain.class);
     }
-    // </editor-fold>
 
-    // <editor-fold desc="accessFileSystemViaFilesDelete">
+    /* -------------------------------------------------------------------- */
+    /*  Path → File → delete()                                              */
+    /* -------------------------------------------------------------------- */
+
+    @Disabled
+    @PublicTest
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
+    void test_pathToFileDelete_archunit_aspectj() {
+        assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaPathToFileDelete, FileDeleteMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
+    void test_pathToFileDelete_archunit_instrumentation() {
+        assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaPathToFileDelete, FileDeleteMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
+    void test_pathToFileDelete_wala_aspectj() {
+        assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaPathToFileDelete, FileDeleteMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
+    void test_pathToFileDelete_wala_instrumentation() {
+        assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaPathToFileDelete, FileDeleteMain.class);
+    }
+
+    /* -------------------------------------------------------------------- */
+    /*  java.nio.file.Files : delete(Path)                                  */
+    /* -------------------------------------------------------------------- */
+
     @PublicTest
     @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
-    void test_accessFileSystemViaFilesDeleteMavenArchunitAspectJ() {
-        assertAresSecurityExceptionDelete(DeleteFilesDeleteMain::accessFileSystemViaFilesDelete,
-                DeleteFilesDeleteMain.class);
+    void test_filesDelete_archunit_aspectj() {
+        assertAresSecurityExceptionDelete(FilesDeleteMain::accessFileSystemViaFilesDelete, FilesDeleteMain.class);
     }
 
     @PublicTest
     @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
-    void test_accessFileSystemViaFilesDeleteMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionDelete(DeleteFilesDeleteMain::accessFileSystemViaFilesDelete,
-                DeleteFilesDeleteMain.class);
+    void test_filesDelete_archunit_instrumentation() {
+        assertAresSecurityExceptionDelete(FilesDeleteMain::accessFileSystemViaFilesDelete, FilesDeleteMain.class);
     }
 
     @PublicTest
     @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
-    void test_accessFileSystemViaFilesDeleteMavenWalaAspectJ() {
-        assertAresSecurityExceptionDelete(DeleteFilesDeleteMain::accessFileSystemViaFilesDelete,
-                DeleteFilesDeleteMain.class);
+    void test_filesDelete_wala_aspectj() {
+        assertAresSecurityExceptionDelete(FilesDeleteMain::accessFileSystemViaFilesDelete, FilesDeleteMain.class);
     }
 
     @PublicTest
     @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
-    void test_accessFileSystemViaFilesDeleteMavenWalaInstrumentation() {
-        assertAresSecurityExceptionDelete(DeleteFilesDeleteMain::accessFileSystemViaFilesDelete,
-                DeleteFilesDeleteMain.class);
+    void test_filesDelete_wala_instrumentation() {
+        assertAresSecurityExceptionDelete(FilesDeleteMain::accessFileSystemViaFilesDelete, FilesDeleteMain.class);
     }
 
-    // </editor-fold>
-
-    // <editor-fold desc="accessFileSystemViaFilesDeleteIfExists">
+    /* -------------------------------------------------------------------- */
+    /*  java.nio.file.Files : deleteIfExists(Path)                          */
+    /* -------------------------------------------------------------------- */
 
     @PublicTest
     @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
-    void test_accessFileSystemViaFilesDeleteIfExistsMavenArchunitAspectJ() {
-        assertAresSecurityExceptionDelete(DeleteFilesDeleteMain::accessFileSystemViaFilesDeleteIfExists,
-                DeleteFilesDeleteMain.class);
+    void test_filesDeleteIfExists_archunit_aspectj() {
+        assertAresSecurityExceptionDelete(FilesDeleteMain::accessFileSystemViaFilesDeleteIfExists, FilesDeleteMain.class);
     }
 
     @PublicTest
     @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
-    void test_accessFileSystemViaFilesDeleteIfExistsMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionDelete(DeleteFilesDeleteMain::accessFileSystemViaFilesDeleteIfExists,
-                DeleteFilesDeleteMain.class);
+    void test_filesDeleteIfExists_archunit_instrumentation() {
+        assertAresSecurityExceptionDelete(FilesDeleteMain::accessFileSystemViaFilesDeleteIfExists, FilesDeleteMain.class);
     }
 
     @PublicTest
     @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
-    void test_accessFileSystemViaFilesDeleteIfExistsMavenWalaAspectJ() {
-        assertAresSecurityExceptionDelete(DeleteFilesDeleteMain::accessFileSystemViaFilesDeleteIfExists,
-                DeleteFilesDeleteMain.class);
+    void test_filesDeleteIfExists_wala_aspectj() {
+        assertAresSecurityExceptionDelete(FilesDeleteMain::accessFileSystemViaFilesDeleteIfExists, FilesDeleteMain.class);
     }
 
     @PublicTest
     @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
-    void test_accessFileSystemViaFilesDeleteIfExistsMavenWalaInstrumentation() {
-        assertAresSecurityExceptionDelete(DeleteFilesDeleteMain::accessFileSystemViaFilesDeleteIfExists,
-                DeleteFilesDeleteMain.class);
+    void test_filesDeleteIfExists_wala_instrumentation() {
+        assertAresSecurityExceptionDelete(FilesDeleteMain::accessFileSystemViaFilesDeleteIfExists, FilesDeleteMain.class);
     }
 
-    // </editor-fold>
+    /* -------------------------------------------------------------------- */
+    /*  DELETE_ON_CLOSE via Channels                                        */
+    /* -------------------------------------------------------------------- */
 
-
-    // <editor-fold desc="accessFileSystemViaThirdPartyPackage">
     @PublicTest
-    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = THIRD_PARTY_PACKAGE_WITHIN_PATH)
-    void test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ() {
-        assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
-                ThirdPartyPackagePenguin.class);
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
+    void test_deleteOnClose_archunit_aspectj() {
+        assertAresSecurityExceptionDelete(FilesDeleteOnClose::accessFileSystemViaDeleteOnClose, FilesDeleteOnClose.class);
     }
 
     @PublicTest
-    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = THIRD_PARTY_PACKAGE_WITHIN_PATH)
-    void test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
-                ThirdPartyPackagePenguin.class);
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
+    void test_deleteOnClose_archunit_instrumentation() {
+        assertAresSecurityExceptionDelete(FilesDeleteOnClose::accessFileSystemViaDeleteOnClose, FilesDeleteOnClose.class);
     }
 
     @PublicTest
-    @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = THIRD_PARTY_PACKAGE_WITHIN_PATH)
-    void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ() {
-        assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
-                ThirdPartyPackagePenguin.class);
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
+    void test_deleteOnClose_wala_aspectj() {
+        assertAresSecurityExceptionDelete(FilesDeleteOnClose::accessFileSystemViaDeleteOnClose, FilesDeleteOnClose.class);
     }
 
     @PublicTest
-    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = THIRD_PARTY_PACKAGE_WITHIN_PATH)
-    void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation() {
-        assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
-                ThirdPartyPackagePenguin.class);
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
+    void test_deleteOnClose_wala_instrumentation() {
+        assertAresSecurityExceptionDelete(FilesDeleteOnClose::accessFileSystemViaDeleteOnClose, FilesDeleteOnClose.class);
     }
-    // </editor-fold>
+
+    /* -------------------------------------------------------------------- */
+    /*  SecureDirectoryStream.deleteFile() – WALA variants                  */
+    /* -------------------------------------------------------------------- */
+
+    @PublicTest
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
+    void test_sdsDeleteFile_wala_aspectj() {
+        assertAresSecurityExceptionDelete(FilesDeleteSecureDirectory::accessFileSystemViaSecureDirectoryStreamDeleteFile, FilesDeleteSecureDirectory.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
+    void test_sdsDeleteFile_wala_instrumentation() {
+        assertAresSecurityExceptionDelete(FilesDeleteSecureDirectory::accessFileSystemViaSecureDirectoryStreamDeleteFile, FilesDeleteSecureDirectory.class);
+    }
+
+    /* -------------------------------------------------------------------- */
+    /*  SecureDirectoryStream.deleteDirectory()                             */
+    /* -------------------------------------------------------------------- */
+
+    @PublicTest
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
+    void test_sdsDeleteDirectory_archunit_aspectj() {
+        assertAresSecurityExceptionDelete(FilesDeleteSecureDirectory::accessFileSystemViaSecureDirectoryStreamDeleteDirectory, FilesDeleteSecureDirectory.class);
+    }
+
+    @PublicTest
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
+    void test_sdsDeleteDirectory_archunit_instrumentation() {
+        assertAresSecurityExceptionDelete(FilesDeleteSecureDirectory::accessFileSystemViaSecureDirectoryStreamDeleteDirectory, FilesDeleteSecureDirectory.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
+    void test_sdsDeleteDirectory_wala_aspectj() {
+        assertAresSecurityExceptionDelete(FilesDeleteSecureDirectory::accessFileSystemViaSecureDirectoryStreamDeleteDirectory, FilesDeleteSecureDirectory.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
+    void test_sdsDeleteDirectory_wala_instrumentation() {
+        assertAresSecurityExceptionDelete(FilesDeleteSecureDirectory::accessFileSystemViaSecureDirectoryStreamDeleteDirectory, FilesDeleteSecureDirectory.class);
+    }
+
+    /* -------------------------------------------------------------------- */
+    /*  Third‑party wrapper call                                            */
+    /* -------------------------------------------------------------------- */
+
+    @PublicTest
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = THIRD_PARTY_WITHIN_PATH)
+    void test_thirdPartyDelete_archunit_aspectj() {
+        assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ThirdPartyPackagePenguin.class);
+    }
+
+    @PublicTest
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = THIRD_PARTY_WITHIN_PATH)
+    void test_thirdPartyDelete_archunit_instrumentation() {
+        assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ThirdPartyPackagePenguin.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = THIRD_PARTY_WITHIN_PATH)
+    void test_thirdPartyDelete_wala_aspectj() {
+        assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ThirdPartyPackagePenguin.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = THIRD_PARTY_WITHIN_PATH)
+    void test_thirdPartyDelete_wala_instrumentation() {
+        assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ThirdPartyPackagePenguin.class);
+    }
 }
