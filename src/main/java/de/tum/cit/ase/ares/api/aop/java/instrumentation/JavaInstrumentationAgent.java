@@ -6,6 +6,7 @@ import java.util.Map;
 
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceCommandSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceThreadSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationBindingDefinitions;
@@ -75,6 +76,9 @@ public class JavaInstrumentationAgent {
                                     JavaInstrumentationAdviceThreadSystemToolbox.class.getName(),
                                     ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceThreadSystemToolbox.class)
                             ),
+                            Map.entry(JavaInstrumentationAdviceCommandSystemToolbox.class.getName(),
+                                    ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceCommandSystemToolbox.class)
+                            ),
                             Map.entry(
                                     IgnoreValues.class.getName(),
                                     ClassFileLocator.ForClassLoader.read(IgnoreValues.class)
@@ -87,7 +91,7 @@ public class JavaInstrumentationAgent {
                                     JavaAOPTestCaseSettings.class.getName(),
                                     ClassFileLocator.ForClassLoader.read(JavaAOPTestCaseSettings.class)
                             )
-                            // TODO: add other toolbox classes as needed
+
                     ));
         } catch (Exception e) {
             throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.agent.installation.error", "Putting the Toolbox on the BootClassLoader failed", e));
