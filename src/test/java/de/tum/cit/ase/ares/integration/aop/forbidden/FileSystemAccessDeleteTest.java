@@ -2,7 +2,9 @@ package de.tum.cit.ase.ares.integration.aop.forbidden;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
+import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.delete.fileSystemProvider.DeleteFileSystemProviderMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.fileDelete.FileDeleteMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.filesDelete.DeleteThroughFileSystemProvider;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.filesDelete.FilesDeleteMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.filesDelete.FilesDeleteOnClose;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.filesDelete.FilesDeleteSecureDirectory;
@@ -385,5 +387,41 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
     @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = THIRD_PARTY_WITHIN_PATH)
     void test_thirdPartyDelete_wala_instrumentation() {
         assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ThirdPartyPackagePenguin.class);
+    }
+
+    @PublicTest
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE,
+            withinPath = FILES_DELETE_WITHIN_PATH)
+    void fileSystemProviderDelete_archunit_aspectj() {
+        assertAresSecurityExceptionDelete(
+                DeleteThroughFileSystemProvider::accessFileSystemViaFileSystemProvider,
+                DeleteThroughFileSystemProvider.class);
+    }
+
+    @PublicTest
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE,
+            withinPath = FILES_DELETE_WITHIN_PATH)
+    void fileSystemProviderDelete_archunit_instrumentation() {
+        assertAresSecurityExceptionDelete(
+                DeleteThroughFileSystemProvider::accessFileSystemViaFileSystemProvider,
+                DeleteThroughFileSystemProvider.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE,
+            withinPath = FILES_DELETE_WITHIN_PATH)
+    void fileSystemProviderDelete_wala_aspectj() {
+        assertAresSecurityExceptionDelete(
+                DeleteFileSystemProviderMain::accessFileSystemViaFileSystemProvider,
+                DeleteThroughFileSystemProvider.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE,
+            withinPath = FILES_DELETE_WITHIN_PATH)
+    void fileSystemProviderDelete_wala_instrumentation() {
+        assertAresSecurityExceptionDelete(
+                DeleteThroughFileSystemProvider::accessFileSystemViaFileSystemProvider,
+                DeleteThroughFileSystemProvider.class);
     }
 }
