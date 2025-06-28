@@ -16,9 +16,6 @@ public final class FilesDeleteOnClose {
     }
 
 
-
-
-
     /**
      * Open a channel with {@link StandardOpenOption#DELETE_ON_CLOSE}.
      * Any file open in channel will be deleted when the channel is closed.

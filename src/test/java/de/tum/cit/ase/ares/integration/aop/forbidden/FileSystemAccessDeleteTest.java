@@ -210,6 +210,9 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
         }, FilesDeleteOnClose.class);
     }
 
+
+    @Disabled("This test is disabled because testing in this manner is not possible. The trusted code opens the channel and closing it is seen as allowed delete." +
+            "Alternatively, creating the channel in the student code would violate read and not really test deleteOnClose()")
     @PublicTest
     @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE,
             withinPath = FILES_DELETE_WITHIN_PATH)
@@ -227,6 +230,8 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
         }, FilesDeleteOnClose.class);
     }
 
+
+    @Disabled("This test is disabled because AspectJ does not test for parameterless methods.")
     @PublicTest
     @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE,
             withinPath = FILES_DELETE_WITHIN_PATH)

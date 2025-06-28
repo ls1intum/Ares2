@@ -31,8 +31,8 @@ import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.overwrite.
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.overwrite.thirdPartyPackage.WriteThirdPartyPackageMain;
 
 // Imports for delete operations
-import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.delete.fileDelete.DeleteFileDeleteMain;
-import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.delete.filesDelete.DeleteFilesDeleteMain;
+import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.delete.fileDelete.FileDeleteMain;
+import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.delete.filesDelete.FilesDeleteMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.delete.fileSystemProvider.DeleteFileSystemProviderMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.delete.thirdPartyPackage.DeleteThirdPartyPackageMain;
 
@@ -1004,49 +1004,49 @@ class FileSystemAccessTest {
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedReadOverwriteDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/delete/fileDelete")
         void test_accessFileSystemViaFileDeleteMavenArchunitAspectJ() {
-            assertNoAresSecurityException(DeleteFileDeleteMain::accessFileSystemViaFileDelete);
+            assertNoAresSecurityException(FileDeleteMain::accessFileSystemViaFileDelete);
         }
 
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/delete/fileDelete")
         void test_accessFileSystemViaFileDeleteMavenArchunitInstrumentation() {
-            assertNoAresSecurityException(DeleteFileDeleteMain::accessFileSystemViaFileDelete);
+            assertNoAresSecurityException(FileDeleteMain::accessFileSystemViaFileDelete);
         }
 
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedReadOverwriteDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/delete/fileDelete")
         void test_accessFileSystemViaFileDeleteMavenWalaAspectJ() {
-            assertNoAresSecurityException(DeleteFileDeleteMain::accessFileSystemViaFileDelete);
+            assertNoAresSecurityException(FileDeleteMain::accessFileSystemViaFileDelete);
         }
 
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/delete/fileDelete")
         void test_accessFileSystemViaFileDeleteMavenWalaInstrumentation() {
-            assertNoAresSecurityException(DeleteFileDeleteMain::accessFileSystemViaFileDelete);
+            assertNoAresSecurityException(FileDeleteMain::accessFileSystemViaFileDelete);
         }
 
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedReadOverwriteDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/delete/fileDelete")
         void test_accessFileSystemViaFileDeleteOnExitMavenArchunitAspectJ() {
-            assertNoAresSecurityException(DeleteFileDeleteMain::accessFileSystemViaFileDeleteOnExit);
+            assertNoAresSecurityException(FileDeleteMain::accessFileSystemViaFileDeleteOnExit);
         }
 
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/delete/fileDelete")
         void test_accessFileSystemViaFileDeleteOnExitMavenArchunitInstrumentation() {
-            assertNoAresSecurityException(DeleteFileDeleteMain::accessFileSystemViaFileDeleteOnExit);
+            assertNoAresSecurityException(FileDeleteMain::accessFileSystemViaFileDeleteOnExit);
         }
 
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedReadOverwriteDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/delete/fileDelete")
         void test_accessFileSystemViaFileDeleteOnExitMavenWalaAspectJ() {
-            assertNoAresSecurityException(DeleteFileDeleteMain::accessFileSystemViaFileDeleteOnExit);
+            assertNoAresSecurityException(FileDeleteMain::accessFileSystemViaFileDeleteOnExit);
         }
 
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/delete/fileDelete")
         void test_accessFileSystemViaFileDeleteOnExitMavenWalaInstrumentation() {
-            assertNoAresSecurityException(DeleteFileDeleteMain::accessFileSystemViaFileDeleteOnExit);
+            assertNoAresSecurityException(FileDeleteMain::accessFileSystemViaFileDeleteOnExit);
         }
         // </editor-fold>
 
@@ -1054,49 +1054,49 @@ class FileSystemAccessTest {
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/delete/filesDelete")
         void test_accessFileSystemViaFilesDeleteMavenArchunitAspectJ() {
-            assertNoAresSecurityException(DeleteFilesDeleteMain::accessFileSystemViaFilesDelete);
+            assertNoAresSecurityException(FilesDeleteMain::accessFileSystemViaFilesDelete);
         }
 
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/delete/filesDelete")
         void test_accessFileSystemViaFilesDeleteMavenArchunitInstrumentation() {
-            assertNoAresSecurityException(DeleteFilesDeleteMain::accessFileSystemViaFilesDelete);
+            assertNoAresSecurityException(FilesDeleteMain::accessFileSystemViaFilesDelete);
         }
 
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/delete/filesDelete")
         void test_accessFileSystemViaFilesDeleteMavenWalaAspectJ() {
-            assertNoAresSecurityException(DeleteFilesDeleteMain::accessFileSystemViaFilesDelete);
+            assertNoAresSecurityException(FilesDeleteMain::accessFileSystemViaFilesDelete);
         }
 
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/delete/filesDelete")
         void test_accessFileSystemViaFilesDeleteMavenWalaInstrumentation() {
-            assertNoAresSecurityException(DeleteFilesDeleteMain::accessFileSystemViaFilesDelete);
+            assertNoAresSecurityException(FilesDeleteMain::accessFileSystemViaFilesDelete);
         }
 
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/delete/filesDelete")
         void test_accessFileSystemViaFilesDeleteIfExistsMavenArchunitAspectJ() {
-            assertNoAresSecurityException(DeleteFilesDeleteMain::accessFileSystemViaFilesDeleteIfExists);
+            assertNoAresSecurityException(FilesDeleteMain::accessFileSystemViaFilesDeleteIfExists);
         }
 
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/delete/filesDelete")
         void test_accessFileSystemViaFilesDeleteIfExistsMavenArchunitInstrumentation() {
-            assertNoAresSecurityException(DeleteFilesDeleteMain::accessFileSystemViaFilesDeleteIfExists);
+            assertNoAresSecurityException(FilesDeleteMain::accessFileSystemViaFilesDeleteIfExists);
         }
 
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/delete/filesDelete")
         void test_accessFileSystemViaFilesDeleteIfExistsMavenWalaAspectJ() {
-            assertNoAresSecurityException(DeleteFilesDeleteMain::accessFileSystemViaFilesDeleteIfExists);
+            assertNoAresSecurityException(FilesDeleteMain::accessFileSystemViaFilesDeleteIfExists);
         }
 
         @PublicTest
         @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/delete/filesDelete")
         void test_accessFileSystemViaFilesDeleteIfExistsMavenWalaInstrumentation() {
-            assertNoAresSecurityException(DeleteFilesDeleteMain::accessFileSystemViaFilesDeleteIfExists);
+            assertNoAresSecurityException(FilesDeleteMain::accessFileSystemViaFilesDeleteIfExists);
         }
         // </editor-fold>
 
