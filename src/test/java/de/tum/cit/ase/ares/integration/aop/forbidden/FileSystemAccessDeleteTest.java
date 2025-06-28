@@ -299,6 +299,8 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
     /* -------------------------------------------------------------------- */
 
 
+    @Disabled("This test is disabled because testing in this manner is not possible. The trusted code opens the stream and closing it is seen as allowed delete." +
+            "Alternatively, creating the stream in the student code would violate read and not really test secureDirectoryStream.deleteDirectory()")
     @PublicTest
     @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE,
             withinPath = FILES_DELETE_WITHIN_PATH)
