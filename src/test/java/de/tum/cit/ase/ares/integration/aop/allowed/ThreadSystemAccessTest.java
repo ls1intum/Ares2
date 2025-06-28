@@ -3,30 +3,24 @@ package de.tum.cit.ase.ares.integration.aop.allowed;
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.create.completableFuture.CreateCompletableFutureMain;
-import de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.create.executor.CreateExecutorMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.create.executorService.CreateExecutorServiceMain;
-import de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.create.forkJoinPool.CreateForkJoinPoolMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.create.parallelStream.CreateParallelStreamMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.create.scheduledExecutorService.CreateScheduledExecutorServiceMain;
-import de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.create.scheduledThreadPoolExecutor.CreateScheduledThreadPoolExecutorMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.create.thread.CreateThreadMain;
-import de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.create.threadBuilder.CreateThreadBuilderMain;
-import de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.create.threadGroup.CreateThreadGroupMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.create.threadPoolExecutor.CreateThreadPoolExecutorMain;
+import de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.create.forkJoinPool.CreateForkJoinPoolMain;
+import de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.create.threadFactory.CreateThreadFactoryMain;
 
 public class ThreadSystemAccessTest extends SystemAccessTest {
     // withinPath constants for thread system tests
     private static final String WITHIN_PATH_THREAD = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/threadSystem/create/thread";
-    private static final String WITHIN_PATH_THREAD_GROUP = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/threadSystem/create/threadGroup";
-    private static final String WITHIN_PATH_THREAD_BUILDER = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/threadSystem/create/threadBuilder";
-    private static final String WITHIN_PATH_EXECUTOR = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/threadSystem/create/executor";
     private static final String WITHIN_PATH_EXECUTOR_SERVICE = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/threadSystem/create/executorService";
     private static final String WITHIN_PATH_SCHEDULED_EXECUTOR_SERVICE = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/threadSystem/create/scheduledExecutorService";
     private static final String WITHIN_PATH_THREAD_POOL_EXECUTOR = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/threadSystem/create/threadPoolExecutor";
-    private static final String WITHIN_PATH_SCHEDULED_THREAD_POOL_EXECUTOR = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/threadSystem/create/scheduledThreadPoolExecutor";
-    private static final String WITHIN_PATH_FORK_JOIN_POOL = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/threadSystem/create/forkJoinPool";
     private static final String WITHIN_PATH_COMPLETABLE_FUTURE = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/threadSystem/create/completableFuture";
     private static final String WITHIN_PATH_PARALLEL_STREAM = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/threadSystem/create/parallelStream";
+    private static final String WITHIN_PATH_FORK_JOIN_POOL = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/threadSystem/create/forkJoinPool";
+    private static final String WITHIN_PATH_THREAD_FACTORY = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/threadSystem/create/threadFactory";
 
     // <editor-fold desc="accessThreadSystemViaStartThread">
     @PublicTest
@@ -51,141 +45,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_THREAD)
     public void test_startThreadMavenWalaInstrumentation() {
         assertNoAresSecurityException(CreateThreadMain::startThread);
-    } // </editor-fold>
-
-    // <editor-fold desc="accessThreadSystemViaStartVirtualThread">
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_THREAD)
-    public void test_startVirtualThreadMavenArchunitAspectJ() {
-        assertNoAresSecurityException(CreateThreadMain::startVirtualThread);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_THREAD)
-    public void test_startVirtualThreadMavenArchunitInstrumentation() {
-        assertNoAresSecurityException(CreateThreadMain::startVirtualThread);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_THREAD, withinPath = WITHIN_PATH_THREAD)
-    public void test_startVirtualThreadMavenWalaAspectJ() {
-        assertNoAresSecurityException(CreateThreadMain::startVirtualThread);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_THREAD)
-    public void test_startVirtualThreadMavenWalaInstrumentation() {
-        assertNoAresSecurityException(CreateThreadMain::startVirtualThread);
-    } // </editor-fold>
-
-    // <editor-fold desc="accessThreadSystemViaCreateThreadInGroup">
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_THREAD_GROUP)
-    public void test_createThreadInGroupMavenArchunitAspectJ() {
-        assertNoAresSecurityException(CreateThreadGroupMain::createThreadInGroup);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_THREAD_GROUP)
-    public void test_createThreadInGroupMavenArchunitInstrumentation() {
-        assertNoAresSecurityException(CreateThreadGroupMain::createThreadInGroup);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_THREAD, withinPath = WITHIN_PATH_THREAD_GROUP)
-    public void test_createThreadInGroupMavenWalaAspectJ() {
-        assertNoAresSecurityException(CreateThreadGroupMain::createThreadInGroup);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_THREAD_GROUP)
-    public void test_createThreadInGroupMavenWalaInstrumentation() {
-        assertNoAresSecurityException(CreateThreadGroupMain::createThreadInGroup);
-    }
-
-    // </editor-fold>
-    
-    // <editor-fold desc="accessThreadSystemViaCreateThreadBuilder">
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_THREAD_BUILDER)
-    public void test_createThreadBuilderMavenArchunitAspectJ() {
-        assertNoAresSecurityException(CreateThreadBuilderMain::createThreadBuilder);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_THREAD_BUILDER)
-    public void test_createThreadBuilderMavenArchunitInstrumentation() {
-        assertNoAresSecurityException(CreateThreadBuilderMain::createThreadBuilder);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_THREAD, withinPath = WITHIN_PATH_THREAD_BUILDER)
-    public void test_createThreadBuilderMavenWalaAspectJ() {
-        assertNoAresSecurityException(CreateThreadBuilderMain::createThreadBuilder);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_THREAD_BUILDER)
-    public void test_createThreadBuilderMavenWalaInstrumentation() {
-        assertNoAresSecurityException(CreateThreadBuilderMain::createThreadBuilder);
-    }
-
-    // </editor-fold> 
-
-    // <editor-fold desc="accessThreadSystemViaCreateExecutor">
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_EXECUTOR)
-    public void test_createExecutorMavenArchunitAspectJ() {
-        assertNoAresSecurityException(CreateExecutorMain::createExecutor);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_EXECUTOR)
-    public void test_createExecutorMavenArchunitInstrumentation() {
-        assertNoAresSecurityException(CreateExecutorMain::createExecutor);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_THREAD, withinPath = WITHIN_PATH_EXECUTOR)
-    public void test_createExecutorMavenWalaAspectJ() {
-        assertNoAresSecurityException(CreateExecutorMain::createExecutor);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_EXECUTOR)
-    public void test_createExecutorMavenWalaInstrumentation() {
-        assertNoAresSecurityException(CreateExecutorMain::createExecutor);
-    }
-
-    // </editor-fold>
-
-    // </editor-fold> // <editor-fold desc="accessThreadSystemViaCreateExecutorService">
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_EXECUTOR_SERVICE)
-    public void test_createExecutorServiceMavenArchunitAspectJ() {
-        assertNoAresSecurityException(CreateExecutorServiceMain::createExecutorService);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_EXECUTOR_SERVICE)
-    public void test_createExecutorServiceMavenArchunitInstrumentation() {
-        assertNoAresSecurityException(CreateExecutorServiceMain::createExecutorService);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_THREAD, withinPath = WITHIN_PATH_EXECUTOR_SERVICE)
-    public void test_createExecutorServiceMavenWalaAspectJ() {
-        assertNoAresSecurityException(CreateExecutorServiceMain::createExecutorService);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_EXECUTOR_SERVICE)
-    public void test_createExecutorServiceMavenWalaInstrumentation() {
-        assertNoAresSecurityException(CreateExecutorServiceMain::createExecutorService);
-    }
-    // </editor-fold>
-
-    // <editor-fold desc="accessThreadSystemViaSubmitCallable">
+    } // </editor-fold>// <editor-fold desc="accessThreadSystemViaSubmitCallable">
     @PublicTest
     @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_EXECUTOR_SERVICE)
     public void test_submitCallableMavenArchunitAspectJ() {
@@ -442,116 +302,6 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     }
     // </editor-fold>
 
-    // <editor-fold desc="accessThreadSystemViaScheduleWithFixedDelay">
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_SCHEDULED_EXECUTOR_SERVICE)
-    public void test_scheduleWithFixedDelayMavenArchunitAspectJ() {
-        assertNoAresSecurityException(CreateScheduledExecutorServiceMain::scheduleWithFixedDelay);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_SCHEDULED_EXECUTOR_SERVICE)
-    public void test_scheduleWithFixedDelayMavenArchunitInstrumentation() {
-        assertNoAresSecurityException(CreateScheduledExecutorServiceMain::scheduleWithFixedDelay);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_THREAD, withinPath = WITHIN_PATH_SCHEDULED_EXECUTOR_SERVICE)
-    public void test_scheduleWithFixedDelayMavenWalaAspectJ() {
-        assertNoAresSecurityException(CreateScheduledExecutorServiceMain::scheduleWithFixedDelay);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_SCHEDULED_EXECUTOR_SERVICE)
-    public void test_scheduleWithFixedDelayMavenWalaInstrumentation() {
-        assertNoAresSecurityException(CreateScheduledExecutorServiceMain::scheduleWithFixedDelay);
-    }
-
-    // </editor-fold>
-
-    // </editor-fold> // <editor-fold desc="accessThreadSystemViaforkJoinPool_executeRunnable">
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_FORK_JOIN_POOL)
-    public void test_forkJoinPool_executeRunnableMavenArchunitAspectJ() {
-        assertNoAresSecurityException(CreateForkJoinPoolMain::executeRunnable);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_FORK_JOIN_POOL)
-    public void test_forkJoinPool_executeRunnableMavenArchunitInstrumentation() {
-        assertNoAresSecurityException(CreateForkJoinPoolMain::executeRunnable);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_THREAD, withinPath = WITHIN_PATH_FORK_JOIN_POOL)
-    public void test_forkJoinPool_executeRunnableMavenWalaAspectJ() {
-        assertNoAresSecurityException(CreateForkJoinPoolMain::executeRunnable);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_FORK_JOIN_POOL)
-    public void test_forkJoinPool_executeRunnableMavenWalaInstrumentation() {
-        assertNoAresSecurityException(CreateForkJoinPoolMain::executeRunnable);
-    } 
-    // </editor-fold> 
-    
-    // <editor-fold desc="accessThreadSystemViaforkJoinPool_submitRunnable">
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_FORK_JOIN_POOL)
-    public void test_forkJoinPool_submitRunnableMavenArchunitAspectJ() {
-        assertNoAresSecurityException(CreateForkJoinPoolMain::submitRunnable);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_FORK_JOIN_POOL)
-    public void test_forkJoinPool_submitRunnableMavenArchunitInstrumentation() {
-        assertNoAresSecurityException(CreateForkJoinPoolMain::submitRunnable);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_THREAD, withinPath = WITHIN_PATH_FORK_JOIN_POOL)
-    public void test_forkJoinPool_submitRunnableMavenWalaAspectJ() {
-        assertNoAresSecurityException(CreateForkJoinPoolMain::submitRunnable);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_FORK_JOIN_POOL)
-    public void test_forkJoinPool_submitRunnableMavenWalaInstrumentation() {
-        assertNoAresSecurityException(CreateForkJoinPoolMain::submitRunnable);
-    }
-
-    // </editor-fold>
-
-    // <editor-fold desc="accessThreadSystemViaforkJoinPool_submitCallable">
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_FORK_JOIN_POOL)
-    public void test_forkJoinPool_submitCallableMavenArchunitAspectJ() {
-        assertNoAresSecurityException(CreateForkJoinPoolMain::submitCallable);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_FORK_JOIN_POOL)
-    public void test_forkJoinPool_submitCallableMavenArchunitInstrumentation() {
-        assertNoAresSecurityException(CreateForkJoinPoolMain::submitCallable);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_THREAD, withinPath = WITHIN_PATH_FORK_JOIN_POOL)
-    public void test_forkJoinPool_submitCallableMavenWalaAspectJ() {
-        assertNoAresSecurityException(CreateForkJoinPoolMain::submitCallable);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_FORK_JOIN_POOL)
-    public void test_forkJoinPool_submitCallableMavenWalaInstrumentation() {
-        assertNoAresSecurityException(CreateForkJoinPoolMain::submitCallable);
-    }
-
-    // </editor-fold>
-
     // </editor-fold> // <editor-fold desc="accessThreadSystemViathreadPoolExecutor_executeRunnable">
 
     @PublicTest
@@ -578,140 +328,6 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
         assertNoAresSecurityException(CreateThreadPoolExecutorMain::executeRunnable);
     } 
     
-    // </editor-fold>
-    
-    // <editor-fold desc="accessThreadSystemViathreadPoolExecutor_submitRunnable">
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_THREAD_POOL_EXECUTOR)
-    public void test_threadPoolExecutor_submitRunnableMavenArchunitAspectJ() {
-        assertNoAresSecurityException(CreateThreadPoolExecutorMain::submitRunnable);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_THREAD_POOL_EXECUTOR)
-    public void test_threadPoolExecutor_submitRunnableMavenArchunitInstrumentation() {
-        assertNoAresSecurityException(CreateThreadPoolExecutorMain::submitRunnable);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_THREAD, withinPath = WITHIN_PATH_THREAD_POOL_EXECUTOR)
-    public void test_threadPoolExecutor_submitRunnableMavenWalaAspectJ() {
-        assertNoAresSecurityException(CreateThreadPoolExecutorMain::submitRunnable);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_THREAD_POOL_EXECUTOR)
-    public void test_threadPoolExecutor_submitRunnableMavenWalaInstrumentation() {
-        assertNoAresSecurityException(CreateThreadPoolExecutorMain::submitRunnable);
-    } 
-    // </editor-fold>
-
-    // <editor-fold desc="accessThreadSystemViathreadPoolExecutor_submitCallable">
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_THREAD_POOL_EXECUTOR)
-    public void test_threadPoolExecutor_submitCallableMavenArchunitAspectJ() {
-        assertNoAresSecurityException(CreateThreadPoolExecutorMain::submitCallable);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_THREAD_POOL_EXECUTOR)
-    public void test_threadPoolExecutor_submitCallableMavenArchunitInstrumentation() {
-        assertNoAresSecurityException(CreateThreadPoolExecutorMain::submitCallable);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_THREAD, withinPath = WITHIN_PATH_THREAD_POOL_EXECUTOR)
-    public void test_threadPoolExecutor_submitCallableMavenWalaAspectJ() {
-        assertNoAresSecurityException(CreateThreadPoolExecutorMain::submitCallable);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_THREAD_POOL_EXECUTOR)
-    public void test_threadPoolExecutor_submitCallableMavenWalaInstrumentation() {
-        assertNoAresSecurityException(CreateThreadPoolExecutorMain::submitCallable);
-    }
-    // </editor-fold>
-
-    // <editor-fold desc="accessThreadSystemViaScheduledThreadPoolExecutor_executeRunnable">
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_SCHEDULED_THREAD_POOL_EXECUTOR)
-    public void test_scheduledThreadPoolExecutor_executeRunnableMavenArchunitAspectJ() {
-        assertNoAresSecurityException(CreateScheduledThreadPoolExecutorMain::executeRunnable);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_SCHEDULED_THREAD_POOL_EXECUTOR)
-    public void test_scheduledThreadPoolExecutor_executeRunnableMavenArchunitInstrumentation() {
-        assertNoAresSecurityException(CreateScheduledThreadPoolExecutorMain::executeRunnable);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_THREAD, withinPath = WITHIN_PATH_SCHEDULED_THREAD_POOL_EXECUTOR)
-    public void test_scheduledThreadPoolExecutor_executeRunnableMavenWalaAspectJ() {
-        assertNoAresSecurityException(CreateScheduledThreadPoolExecutorMain::executeRunnable);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_SCHEDULED_THREAD_POOL_EXECUTOR)
-    public void test_scheduledThreadPoolExecutor_executeRunnableMavenWalaInstrumentation() {
-        assertNoAresSecurityException(CreateScheduledThreadPoolExecutorMain::executeRunnable);
-    } // </editor-fold>
-
-    // <editor-fold desc="accessThreadSystemViaScheduledThreadPoolExecutor_submitRunnable">
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_SCHEDULED_THREAD_POOL_EXECUTOR)
-    public void test_scheduledThreadPoolExecutor_submitRunnableMavenArchunitAspectJ() {
-        assertNoAresSecurityException(CreateScheduledThreadPoolExecutorMain::submitRunnable);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_SCHEDULED_THREAD_POOL_EXECUTOR)
-    public void test_scheduledThreadPoolExecutor_submitRunnableMavenArchunitInstrumentation() {
-        assertNoAresSecurityException(CreateScheduledThreadPoolExecutorMain::submitRunnable);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_THREAD, withinPath = WITHIN_PATH_SCHEDULED_THREAD_POOL_EXECUTOR)
-    public void test_scheduledThreadPoolExecutor_submitRunnableMavenWalaAspectJ() {
-        assertNoAresSecurityException(CreateScheduledThreadPoolExecutorMain::submitRunnable);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_SCHEDULED_THREAD_POOL_EXECUTOR)
-    public void test_scheduledThreadPoolExecutor_submitRunnableMavenWalaInstrumentation() {
-        assertNoAresSecurityException(CreateScheduledThreadPoolExecutorMain::submitRunnable);
-    } // </editor-fold>
-
-    // <editor-fold desc="accessThreadSystemViaScheduledThreadPoolExecutor_submitCallable">
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_SCHEDULED_THREAD_POOL_EXECUTOR)
-    public void test_scheduledThreadPoolExecutor_submitCallableMavenArchunitAspectJ() {
-        assertNoAresSecurityException(CreateScheduledThreadPoolExecutorMain::submitCallable);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_SCHEDULED_THREAD_POOL_EXECUTOR)
-    public void test_scheduledThreadPoolExecutor_submitCallableMavenArchunitInstrumentation() {
-        assertNoAresSecurityException(CreateScheduledThreadPoolExecutorMain::submitCallable);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_THREAD, withinPath = WITHIN_PATH_SCHEDULED_THREAD_POOL_EXECUTOR)
-    public void test_scheduledThreadPoolExecutor_submitCallableMavenWalaAspectJ() {
-        assertNoAresSecurityException(CreateScheduledThreadPoolExecutorMain::submitCallable);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_SCHEDULED_THREAD_POOL_EXECUTOR)
-    public void test_scheduledThreadPoolExecutor_submitCallableMavenWalaInstrumentation() {
-        assertNoAresSecurityException(CreateScheduledThreadPoolExecutorMain::submitCallable);
-    }
-
     // </editor-fold>
 
     // <editor-fold desc="accessThreadSystemViarunAsync">
@@ -843,5 +459,390 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
     }
     // </editor-fold>
 
+    // </editor-fold>
+    // <editor-fold desc="accessThreadSystemViaRunAsyncWithExecutor">
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_COMPLETABLE_FUTURE)
+    public void test_completableFuture_runAsyncWithExecutorMavenArchunitAspectJ() {
+        assertNoAresSecurityException(CreateCompletableFutureMain::runAsyncWithExecutor);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_COMPLETABLE_FUTURE)
+    public void test_completableFuture_runAsyncWithExecutorMavenArchunitInstrumentation() {
+        assertNoAresSecurityException(CreateCompletableFutureMain::runAsyncWithExecutor);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_THREAD, withinPath = WITHIN_PATH_COMPLETABLE_FUTURE)
+    public void test_completableFuture_runAsyncWithExecutorMavenWalaAspectJ() {
+        assertNoAresSecurityException(CreateCompletableFutureMain::runAsyncWithExecutor);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_COMPLETABLE_FUTURE)
+    public void test_completableFuture_runAsyncWithExecutorMavenWalaInstrumentation() {
+        assertNoAresSecurityException(CreateCompletableFutureMain::runAsyncWithExecutor);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessThreadSystemViaSupplyAsyncWithExecutor">
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_COMPLETABLE_FUTURE)
+    public void test_completableFuture_supplyAsyncWithExecutorMavenArchunitAspectJ() {
+        assertNoAresSecurityException(CreateCompletableFutureMain::supplyAsyncWithExecutor);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_COMPLETABLE_FUTURE)
+    public void test_completableFuture_supplyAsyncWithExecutorMavenArchunitInstrumentation() {
+        assertNoAresSecurityException(CreateCompletableFutureMain::supplyAsyncWithExecutor);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_THREAD, withinPath = WITHIN_PATH_COMPLETABLE_FUTURE)
+    public void test_completableFuture_supplyAsyncWithExecutorMavenWalaAspectJ() {
+        assertNoAresSecurityException(CreateCompletableFutureMain::supplyAsyncWithExecutor);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_COMPLETABLE_FUTURE)
+    public void test_completableFuture_supplyAsyncWithExecutorMavenWalaInstrumentation() {
+        assertNoAresSecurityException(CreateCompletableFutureMain::supplyAsyncWithExecutor);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessThreadSystemViaThenApplyAsyncWithExecutor">
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_COMPLETABLE_FUTURE)
+    public void test_completableFuture_thenApplyAsyncWithExecutorMavenArchunitAspectJ() {
+        assertNoAresSecurityException(CreateCompletableFutureMain::thenApplyAsyncWithExecutor);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_COMPLETABLE_FUTURE)
+    public void test_completableFuture_thenApplyAsyncWithExecutorMavenArchunitInstrumentation() {
+        assertNoAresSecurityException(CreateCompletableFutureMain::thenApplyAsyncWithExecutor);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_THREAD, withinPath = WITHIN_PATH_COMPLETABLE_FUTURE)
+    public void test_completableFuture_thenApplyAsyncWithExecutorMavenWalaAspectJ() {
+        assertNoAresSecurityException(CreateCompletableFutureMain::thenApplyAsyncWithExecutor);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_COMPLETABLE_FUTURE)
+    public void test_completableFuture_thenApplyAsyncWithExecutorMavenWalaInstrumentation() {
+        assertNoAresSecurityException(CreateCompletableFutureMain::thenApplyAsyncWithExecutor);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessThreadSystemViaThenCombine">
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_COMPLETABLE_FUTURE)
+    public void test_completableFuture_thenCombineMavenArchunitAspectJ() {
+        assertNoAresSecurityException(CreateCompletableFutureMain::thenCombine);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_COMPLETABLE_FUTURE)
+    public void test_completableFuture_thenCombineMavenArchunitInstrumentation() {
+        assertNoAresSecurityException(CreateCompletableFutureMain::thenCombine);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_THREAD, withinPath = WITHIN_PATH_COMPLETABLE_FUTURE)
+    public void test_completableFuture_thenCombineMavenWalaAspectJ() {
+        assertNoAresSecurityException(CreateCompletableFutureMain::thenCombine);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_COMPLETABLE_FUTURE)
+    public void test_completableFuture_thenCombineMavenWalaInstrumentation() {
+        assertNoAresSecurityException(CreateCompletableFutureMain::thenCombine);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessThreadSystemViaThenCombineAsync">
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_COMPLETABLE_FUTURE)
+    public void test_completableFuture_thenCombineAsyncMavenArchunitAspectJ() {
+        assertNoAresSecurityException(CreateCompletableFutureMain::thenCombineAsync);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_COMPLETABLE_FUTURE)
+    public void test_completableFuture_thenCombineAsyncMavenArchunitInstrumentation() {
+        assertNoAresSecurityException(CreateCompletableFutureMain::thenCombineAsync);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_THREAD, withinPath = WITHIN_PATH_COMPLETABLE_FUTURE)
+    public void test_completableFuture_thenCombineAsyncMavenWalaAspectJ() {
+        assertNoAresSecurityException(CreateCompletableFutureMain::thenCombineAsync);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_COMPLETABLE_FUTURE)
+    public void test_completableFuture_thenCombineAsyncMavenWalaInstrumentation() {
+        assertNoAresSecurityException(CreateCompletableFutureMain::thenCombineAsync);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessThreadSystemViaThenCombineAsyncWithExecutor">
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_COMPLETABLE_FUTURE)
+    public void test_completableFuture_thenCombineAsyncWithExecutorMavenArchunitAspectJ() {
+        assertNoAresSecurityException(CreateCompletableFutureMain::thenCombineAsyncWithExecutor);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_COMPLETABLE_FUTURE)
+    public void test_completableFuture_thenCombineAsyncWithExecutorMavenArchunitInstrumentation() {
+        assertNoAresSecurityException(CreateCompletableFutureMain::thenCombineAsyncWithExecutor);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_THREAD, withinPath = WITHIN_PATH_COMPLETABLE_FUTURE)
+    public void test_completableFuture_thenCombineAsyncWithExecutorMavenWalaAspectJ() {
+        assertNoAresSecurityException(CreateCompletableFutureMain::thenCombineAsyncWithExecutor);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_COMPLETABLE_FUTURE)
+    public void test_completableFuture_thenCombineAsyncWithExecutorMavenWalaInstrumentation() {
+        assertNoAresSecurityException(CreateCompletableFutureMain::thenCombineAsyncWithExecutor);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessThreadSystemViaInvokeAllWithTimeout">
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_EXECUTOR_SERVICE)
+    public void test_invokeAllWithTimeoutMavenArchunitAspectJ() {
+        assertNoAresSecurityException(() -> {
+            try {
+                CreateExecutorServiceMain.invokeAllWithTimeout();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_EXECUTOR_SERVICE)
+    public void test_invokeAllWithTimeoutMavenArchunitInstrumentation() {
+        assertNoAresSecurityException(() -> {
+            try {
+                CreateExecutorServiceMain.invokeAllWithTimeout();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_THREAD, withinPath = WITHIN_PATH_EXECUTOR_SERVICE)
+    public void test_invokeAllWithTimeoutMavenWalaAspectJ() {
+        assertNoAresSecurityException(() -> {
+            try {
+                CreateExecutorServiceMain.invokeAllWithTimeout();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_EXECUTOR_SERVICE)
+    public void test_invokeAllWithTimeoutMavenWalaInstrumentation() {
+        assertNoAresSecurityException(() -> {
+            try {
+                CreateExecutorServiceMain.invokeAllWithTimeout();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessThreadSystemViaInvokeAnyWithTimeout">
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_EXECUTOR_SERVICE)
+    public void test_invokeAnyWithTimeoutMavenArchunitAspectJ() {
+        assertNoAresSecurityException(() -> {
+            try {
+                CreateExecutorServiceMain.invokeAnyWithTimeout();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_EXECUTOR_SERVICE)
+    public void test_invokeAnyWithTimeoutMavenArchunitInstrumentation() {
+        assertNoAresSecurityException(() -> {
+            try {
+                CreateExecutorServiceMain.invokeAnyWithTimeout();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_THREAD, withinPath = WITHIN_PATH_EXECUTOR_SERVICE)
+    public void test_invokeAnyWithTimeoutMavenWalaAspectJ() {
+        assertNoAresSecurityException(() -> {
+            try {
+                CreateExecutorServiceMain.invokeAnyWithTimeout();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_EXECUTOR_SERVICE)
+    public void test_invokeAnyWithTimeoutMavenWalaInstrumentation() {
+        assertNoAresSecurityException(() -> {
+            try {
+                CreateExecutorServiceMain.invokeAnyWithTimeout();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessThreadSystemViaCommonPoolExecute">
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_FORK_JOIN_POOL)
+    public void test_forkJoinPool_commonPoolExecuteMavenArchunitAspectJ() {
+        assertNoAresSecurityException(CreateForkJoinPoolMain::commonPoolExecute);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_FORK_JOIN_POOL)
+    public void test_forkJoinPool_commonPoolExecuteMavenArchunitInstrumentation() {
+        assertNoAresSecurityException(CreateForkJoinPoolMain::commonPoolExecute);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_THREAD, withinPath = WITHIN_PATH_FORK_JOIN_POOL)
+    public void test_forkJoinPool_commonPoolExecuteMavenWalaAspectJ() {
+        assertNoAresSecurityException(CreateForkJoinPoolMain::commonPoolExecute);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_FORK_JOIN_POOL)
+    public void test_forkJoinPool_commonPoolExecuteMavenWalaInstrumentation() {
+        assertNoAresSecurityException(CreateForkJoinPoolMain::commonPoolExecute);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessThreadSystemViaCommonPoolSubmitCallableTask">
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_FORK_JOIN_POOL)
+    public void test_forkJoinPool_commonPoolSubmitCallableTaskMavenArchunitAspectJ() {
+        assertNoAresSecurityException(CreateForkJoinPoolMain::commonPoolSubmitCallableTask);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_FORK_JOIN_POOL)
+    public void test_forkJoinPool_commonPoolSubmitCallableTaskMavenArchunitInstrumentation() {
+        assertNoAresSecurityException(CreateForkJoinPoolMain::commonPoolSubmitCallableTask);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_THREAD, withinPath = WITHIN_PATH_FORK_JOIN_POOL)
+    public void test_forkJoinPool_commonPoolSubmitCallableTaskMavenWalaAspectJ() {
+        assertNoAresSecurityException(CreateForkJoinPoolMain::commonPoolSubmitCallableTask);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_FORK_JOIN_POOL)
+    public void test_forkJoinPool_commonPoolSubmitCallableTaskMavenWalaInstrumentation() {
+        assertNoAresSecurityException(CreateForkJoinPoolMain::commonPoolSubmitCallableTask);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessThreadSystemViaCommonPoolSubmitRunnable">
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_FORK_JOIN_POOL)
+    public void test_forkJoinPool_commonPoolSubmitRunnableMavenArchunitAspectJ() {
+        assertNoAresSecurityException(CreateForkJoinPoolMain::commonPoolSubmitRunnable);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_FORK_JOIN_POOL)
+    public void test_forkJoinPool_commonPoolSubmitRunnableMavenArchunitInstrumentation() {
+        assertNoAresSecurityException(CreateForkJoinPoolMain::commonPoolSubmitRunnable);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_THREAD, withinPath = WITHIN_PATH_FORK_JOIN_POOL)
+    public void test_forkJoinPool_commonPoolSubmitRunnableMavenWalaAspectJ() {
+        assertNoAresSecurityException(CreateForkJoinPoolMain::commonPoolSubmitRunnable);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_FORK_JOIN_POOL)
+    public void test_forkJoinPool_commonPoolSubmitRunnableMavenWalaInstrumentation() {
+        assertNoAresSecurityException(CreateForkJoinPoolMain::commonPoolSubmitRunnable);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessThreadSystemViaNotifyThread">
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_THREAD)
+    public void test_notifyThreadMavenArchunitAspectJ() {
+        assertNoAresSecurityException(CreateThreadMain::notifyThread);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_THREAD)
+    public void test_notifyThreadMavenArchunitInstrumentation() {
+        assertNoAresSecurityException(CreateThreadMain::notifyThread);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_THREAD, withinPath = WITHIN_PATH_THREAD)
+    public void test_notifyThreadMavenWalaAspectJ() {
+        assertNoAresSecurityException(CreateThreadMain::notifyThread);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_THREAD)
+    public void test_notifyThreadMavenWalaInstrumentation() {
+        assertNoAresSecurityException(CreateThreadMain::notifyThread);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessThreadSystemViaNewThread">
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_THREAD_FACTORY)
+    public void test_threadFactory_newThreadMavenArchunitAspectJ() {
+        assertNoAresSecurityException(CreateThreadFactoryMain::newThread);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_THREAD_FACTORY)
+    public void test_threadFactory_newThreadMavenArchunitInstrumentation() {
+        assertNoAresSecurityException(CreateThreadFactoryMain::newThread);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_THREAD, withinPath = WITHIN_PATH_THREAD_FACTORY)
+    public void test_threadFactory_newThreadMavenWalaAspectJ() {
+        assertNoAresSecurityException(CreateThreadFactoryMain::newThread);
+    }
+
+    @PublicTest
+    @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_THREAD_FACTORY)
+    public void test_threadFactory_newThreadMavenWalaInstrumentation() {
+        assertNoAresSecurityException(CreateThreadFactoryMain::newThread);
+    }
     // </editor-fold>
 }

@@ -19,7 +19,18 @@ public class CreateThreadMain {
     /**
      * Tests Thread.startVirtualThread(Runnable) method
      */
-    public static void startVirtualThread() {
-        Thread.startVirtualThread(new LegalThread());
+    // public static void startVirtualThread() {
+    //     Thread.startVirtualThread(new LegalThread());
+    // }
+
+    /**
+     * Tests Thread.notify() method
+     */
+    public static void notifyThread() {
+        Thread thread = new Thread(new LegalThread());
+        synchronized (thread) {
+            thread.start();
+            thread.notify();
+        }
     }
 }

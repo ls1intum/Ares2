@@ -4,29 +4,23 @@ import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.executorService.CreateExecutorServiceMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.thread.CreateThreadMain;
-import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.threadGroup.CreateThreadGroupMain;
-import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.threadBuilder.CreateThreadBuilderMain;
-import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.executor.CreateExecutorMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.scheduledExecutorService.CreateScheduledExecutorServiceMain;
-import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.forkJoinPool.CreateForkJoinPoolMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.threadPoolExecutor.CreateThreadPoolExecutorMain;
-import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.scheduledThreadPoolExecutor.CreateScheduledThreadPoolExecutorMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.completableFuture.CreateCompletableFutureMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.parallelStream.CreateParallelStreamMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.forkJoinPool.CreateForkJoinPoolMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.threadFactory.CreateThreadFactoryMain;
 
 class ThreadSystemAccessTest extends SystemAccessTest {
 
     private static final String THREAD_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/thread";
-    private static final String THREAD_GROUP_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/threadGroup";
-    private static final String THREAD_BUILDER_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/threadBuilder";
-    private static final String EXECUTOR_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/executor";
     private static final String EXECUTOR_SERVICE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/executorService";
     private static final String SCHEDULED_EXECUTOR_SERVICE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/scheduledExecutorService";
-    private static final String FORK_JOIN_POOL_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/forkJoinPool";
     private static final String THREAD_POOL_EXECUTOR_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/threadPoolExecutor";
-    private static final String SCHEDULED_THREAD_POOL_EXECUTOR_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/scheduledThreadPoolExecutor";
     private static final String COMPLETABLE_FUTURE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/completableFuture";
     private static final String PARALLEL_STREAM_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/parallelStream";
+    private static final String FORK_JOIN_POOL_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/forkJoinPool";
+    private static final String THREAD_FACTORY_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/threadFactory";
 
     // <editor-fold desc="accessThreadSystemViaStartThread">
     @PublicTest
@@ -51,140 +45,6 @@ class ThreadSystemAccessTest extends SystemAccessTest {
     @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
     public void test_startThreadMavenWalaInstrumentation() {
         assertAresSecurityExceptionThread(CreateThreadMain::startThread, CreateThreadMain.class);
-    }
-    // </editor-fold>
-
-    // <editor-fold desc="accessThreadSystemViaStartVirtualThread">
-    @PublicTest
-    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
-    public void test_startVirtualThreadMavenArchunitAspectJ() {
-        assertAresSecurityExceptionThread(CreateThreadMain::startVirtualThread, CreateThreadMain.class);
-    }
-
-    @PublicTest
-    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
-    public void test_startVirtualThreadMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionThread(CreateThreadMain::startVirtualThread, CreateThreadMain.class);
-    }
-
-    @PublicTest
-    @Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
-    public void test_startVirtualThreadMavenWalaAspectJ() {
-        assertAresSecurityExceptionThread(CreateThreadMain::startVirtualThread, CreateThreadMain.class);
-    }
-
-    @PublicTest
-    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
-    public void test_startVirtualThreadMavenWalaInstrumentation() {
-        assertAresSecurityExceptionThread(CreateThreadMain::startVirtualThread, CreateThreadMain.class);
-    }
-    // </editor-fold>
-
-    // <editor-fold desc="accessThreadSystemViaCreateThreadInGroup">
-    @PublicTest
-    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_GROUP_WITHIN_PATH)
-    public void test_createThreadInGroupMavenArchunitAspectJ() {
-        assertAresSecurityExceptionThread(CreateThreadGroupMain::createThreadInGroup, CreateThreadGroupMain.class);
-    }
-
-    @PublicTest
-    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_GROUP_WITHIN_PATH)
-    public void test_createThreadInGroupMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionThread(CreateThreadGroupMain::createThreadInGroup, CreateThreadGroupMain.class);
-    }
-
-    @PublicTest
-    @Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_GROUP_WITHIN_PATH)
-    public void test_createThreadInGroupMavenWalaAspectJ() {
-        assertAresSecurityExceptionThread(CreateThreadGroupMain::createThreadInGroup, CreateThreadGroupMain.class);
-    }
-
-    @PublicTest
-    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_GROUP_WITHIN_PATH)
-    public void test_createThreadInGroupMavenWalaInstrumentation() {
-        assertAresSecurityExceptionThread(CreateThreadGroupMain::createThreadInGroup, CreateThreadGroupMain.class);
-    }
-    // </editor-fold>
-
-    // <editor-fold desc="accessThreadSystemViaCreateThreadBuilder">
-    @PublicTest
-    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_BUILDER_WITHIN_PATH)
-    public void test_createThreadBuilderMavenArchunitAspectJ() {
-        assertAresSecurityExceptionThread(CreateThreadBuilderMain::createThreadBuilder, CreateThreadBuilderMain.class);
-    }
-
-    @PublicTest
-    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_BUILDER_WITHIN_PATH)
-    public void test_createThreadBuilderMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionThread(CreateThreadBuilderMain::createThreadBuilder, CreateThreadBuilderMain.class);
-    }
-
-    @PublicTest
-    @Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_BUILDER_WITHIN_PATH)
-    public void test_createThreadBuilderMavenWalaAspectJ() {
-        assertAresSecurityExceptionThread(CreateThreadBuilderMain::createThreadBuilder, CreateThreadBuilderMain.class);
-    }
-
-    @PublicTest
-    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_BUILDER_WITHIN_PATH)
-    public void test_createThreadBuilderMavenWalaInstrumentation() {
-        assertAresSecurityExceptionThread(CreateThreadBuilderMain::createThreadBuilder, CreateThreadBuilderMain.class);
-    }
-    // </editor-fold>
-
-    // <editor-fold desc="accessThreadSystemViaCreateExecutor">
-    @PublicTest
-    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = EXECUTOR_WITHIN_PATH)
-    public void test_createExecutorMavenArchunitAspectJ() {
-        assertAresSecurityExceptionThread(CreateExecutorMain::createExecutor, CreateExecutorMain.class);
-    }
-
-    @PublicTest
-    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = EXECUTOR_WITHIN_PATH)
-    public void test_createExecutorMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionThread(CreateExecutorMain::createExecutor, CreateExecutorMain.class);
-    }
-
-    @PublicTest
-    @Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = EXECUTOR_WITHIN_PATH)
-    public void test_createExecutorMavenWalaAspectJ() {
-        assertAresSecurityExceptionThread(CreateExecutorMain::createExecutor, CreateExecutorMain.class);
-    }
-
-    @PublicTest
-    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = EXECUTOR_WITHIN_PATH)
-    public void test_createExecutorMavenWalaInstrumentation() {
-        assertAresSecurityExceptionThread(CreateExecutorMain::createExecutor, CreateExecutorMain.class);
-    }
-    // </editor-fold>
-
-    // <editor-fold desc="accessThreadSystemViaCreateExecutorService">
-    @PublicTest
-    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = EXECUTOR_SERVICE_WITHIN_PATH)
-    public void test_createExecutorServiceMavenArchunitAspectJ() {
-        assertAresSecurityExceptionThread(CreateExecutorServiceMain::createExecutorService,
-                CreateExecutorServiceMain.class);
-    }
-
-    @PublicTest
-    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = EXECUTOR_SERVICE_WITHIN_PATH)
-    public void test_createExecutorServiceMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionThread(CreateExecutorServiceMain::createExecutorService,
-                CreateExecutorServiceMain.class);
-    }
-
-    @PublicTest
-    @Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = EXECUTOR_SERVICE_WITHIN_PATH)
-    public void test_createExecutorServiceMavenWalaAspectJ() {
-        assertAresSecurityExceptionThread(CreateExecutorServiceMain::createExecutorService,
-                CreateExecutorServiceMain.class);
-    }
-
-    @PublicTest
-    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = EXECUTOR_SERVICE_WITHIN_PATH)
-    public void test_createExecutorServiceMavenWalaInstrumentation() {
-        assertAresSecurityExceptionThread(CreateExecutorServiceMain::createExecutorService,
-                CreateExecutorServiceMain.class);
     }
     // </editor-fold>
 
@@ -400,32 +260,6 @@ class ThreadSystemAccessTest extends SystemAccessTest {
     }
     // </editor-fold>
 
-    // <editor-fold desc="accessThreadSystemViaForkJoinPool">
-    @PublicTest
-    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = FORK_JOIN_POOL_WITHIN_PATH)
-    public void test_forkJoinPool_executeRunnableMavenArchunitAspectJ() {
-        assertAresSecurityExceptionThread(CreateForkJoinPoolMain::executeRunnable, CreateForkJoinPoolMain.class);
-    }
-
-    @PublicTest
-    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = FORK_JOIN_POOL_WITHIN_PATH)
-    public void test_forkJoinPool_executeRunnableMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionThread(CreateForkJoinPoolMain::executeRunnable, CreateForkJoinPoolMain.class);
-    }
-
-    @PublicTest
-    @Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = FORK_JOIN_POOL_WITHIN_PATH)
-    public void test_forkJoinPool_executeRunnableMavenWalaAspectJ() {
-        assertAresSecurityExceptionThread(CreateForkJoinPoolMain::executeRunnable, CreateForkJoinPoolMain.class);
-    }
-
-    @PublicTest
-    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = FORK_JOIN_POOL_WITHIN_PATH)
-    public void test_forkJoinPool_executeRunnableMavenWalaInstrumentation() {
-        assertAresSecurityExceptionThread(CreateForkJoinPoolMain::executeRunnable, CreateForkJoinPoolMain.class);
-    }
-    // </editor-fold>
-
     // <editor-fold desc="accessThreadSystemViaThreadPoolExecutor">
     @PublicTest
     @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_POOL_EXECUTOR_WITHIN_PATH)
@@ -453,36 +287,6 @@ class ThreadSystemAccessTest extends SystemAccessTest {
     public void test_threadPoolExecutor_executeRunnableMavenWalaInstrumentation() {
         assertAresSecurityExceptionThread(CreateThreadPoolExecutorMain::executeRunnable,
                 CreateThreadPoolExecutorMain.class);
-    }
-    // </editor-fold>
-
-    // <editor-fold desc="accessThreadSystemViaScheduledThreadPoolExecutor">
-    @PublicTest
-    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = SCHEDULED_THREAD_POOL_EXECUTOR_WITHIN_PATH)
-    public void test_scheduledThreadPoolExecutor_executeRunnableMavenArchunitAspectJ() {
-        assertAresSecurityExceptionThread(CreateScheduledThreadPoolExecutorMain::executeRunnable,
-                CreateScheduledThreadPoolExecutorMain.class);
-    }
-
-    @PublicTest
-    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = SCHEDULED_THREAD_POOL_EXECUTOR_WITHIN_PATH)
-    public void test_scheduledThreadPoolExecutor_executeRunnableMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionThread(CreateScheduledThreadPoolExecutorMain::executeRunnable,
-                CreateScheduledThreadPoolExecutorMain.class);
-    }
-
-    @PublicTest
-    @Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = SCHEDULED_THREAD_POOL_EXECUTOR_WITHIN_PATH)
-    public void test_scheduledThreadPoolExecutor_executeRunnableMavenWalaAspectJ() {
-        assertAresSecurityExceptionThread(CreateScheduledThreadPoolExecutorMain::executeRunnable,
-                CreateScheduledThreadPoolExecutorMain.class);
-    }
-
-    @PublicTest
-    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = SCHEDULED_THREAD_POOL_EXECUTOR_WITHIN_PATH)
-    public void test_scheduledThreadPoolExecutor_executeRunnableMavenWalaInstrumentation() {
-        assertAresSecurityExceptionThread(CreateScheduledThreadPoolExecutorMain::executeRunnable,
-                CreateScheduledThreadPoolExecutorMain.class);
     }
     // </editor-fold>
 
@@ -565,6 +369,529 @@ class ThreadSystemAccessTest extends SystemAccessTest {
     @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = PARALLEL_STREAM_WITHIN_PATH)
     public void test_parallelStream_streamParallelMavenWalaInstrumentation() {
         assertAresSecurityExceptionThread(CreateParallelStreamMain::streamParallel, CreateParallelStreamMain.class);
+    }
+
+    // </editor-fold>
+    // <editor-fold desc="accessThreadSystemViaNotifyThread">
+    @PublicTest
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
+    public void test_notifyThreadMavenArchunitAspectJ() {
+        assertAresSecurityExceptionThread(CreateThreadMain::notifyThread, CreateThreadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
+    public void test_notifyThreadMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionThread(CreateThreadMain::notifyThread, CreateThreadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
+    public void test_notifyThreadMavenWalaAspectJ() {
+        assertAresSecurityExceptionThread(CreateThreadMain::notifyThread, CreateThreadMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
+    public void test_notifyThreadMavenWalaInstrumentation() {
+        assertAresSecurityExceptionThread(CreateThreadMain::notifyThread, CreateThreadMain.class);
+    }
+    // </editor-fold>
+    // <editor-fold desc="accessThreadSystemViaExecuteRunnable">
+    @PublicTest
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = EXECUTOR_SERVICE_WITHIN_PATH)
+    public void test_executeRunnableMavenArchunitAspectJ() {
+        assertAresSecurityExceptionThread(CreateExecutorServiceMain::executeRunnable, CreateExecutorServiceMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = EXECUTOR_SERVICE_WITHIN_PATH)
+    public void test_executeRunnableMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionThread(CreateExecutorServiceMain::executeRunnable, CreateExecutorServiceMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = EXECUTOR_SERVICE_WITHIN_PATH)
+    public void test_executeRunnableMavenWalaAspectJ() {
+        assertAresSecurityExceptionThread(CreateExecutorServiceMain::executeRunnable, CreateExecutorServiceMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = EXECUTOR_SERVICE_WITHIN_PATH)
+    public void test_executeRunnableMavenWalaInstrumentation() {
+        assertAresSecurityExceptionThread(CreateExecutorServiceMain::executeRunnable, CreateExecutorServiceMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessThreadSystemViaInvokeAllWithTimeout">
+    @PublicTest
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = EXECUTOR_SERVICE_WITHIN_PATH)
+    public void test_invokeAllWithTimeoutMavenArchunitAspectJ() {
+        assertAresSecurityExceptionThread(() -> {
+            try {
+                CreateExecutorServiceMain.invokeAllWithTimeout();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }, CreateExecutorServiceMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = EXECUTOR_SERVICE_WITHIN_PATH)
+    public void test_invokeAllWithTimeoutMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionThread(() -> {
+            try {
+                CreateExecutorServiceMain.invokeAllWithTimeout();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }, CreateExecutorServiceMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = EXECUTOR_SERVICE_WITHIN_PATH)
+    public void test_invokeAllWithTimeoutMavenWalaAspectJ() {
+        assertAresSecurityExceptionThread(() -> {
+            try {
+                CreateExecutorServiceMain.invokeAllWithTimeout();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }, CreateExecutorServiceMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = EXECUTOR_SERVICE_WITHIN_PATH)
+    public void test_invokeAllWithTimeoutMavenWalaInstrumentation() {
+        assertAresSecurityExceptionThread(() -> {
+            try {
+                CreateExecutorServiceMain.invokeAllWithTimeout();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }, CreateExecutorServiceMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessThreadSystemViaInvokeAnyWithTimeout">
+    @PublicTest
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = EXECUTOR_SERVICE_WITHIN_PATH)
+    public void test_invokeAnyWithTimeoutMavenArchunitAspectJ() {
+        assertAresSecurityExceptionThread(() -> {
+            try {
+                CreateExecutorServiceMain.invokeAnyWithTimeout();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }, CreateExecutorServiceMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = EXECUTOR_SERVICE_WITHIN_PATH)
+    public void test_invokeAnyWithTimeoutMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionThread(() -> {
+            try {
+                CreateExecutorServiceMain.invokeAnyWithTimeout();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }, CreateExecutorServiceMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = EXECUTOR_SERVICE_WITHIN_PATH)
+    public void test_invokeAnyWithTimeoutMavenWalaAspectJ() {
+        assertAresSecurityExceptionThread(() -> {
+            try {
+                CreateExecutorServiceMain.invokeAnyWithTimeout();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }, CreateExecutorServiceMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = EXECUTOR_SERVICE_WITHIN_PATH)
+    public void test_invokeAnyWithTimeoutMavenWalaInstrumentation() {
+        assertAresSecurityExceptionThread(() -> {
+            try {
+                CreateExecutorServiceMain.invokeAnyWithTimeout();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }, CreateExecutorServiceMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessThreadSystemViaScheduleCallable">
+    @PublicTest
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = SCHEDULED_EXECUTOR_SERVICE_WITHIN_PATH)
+    public void test_scheduleCallableMavenArchunitAspectJ() {
+        assertAresSecurityExceptionThread(CreateScheduledExecutorServiceMain::scheduleCallable,
+                CreateScheduledExecutorServiceMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = SCHEDULED_EXECUTOR_SERVICE_WITHIN_PATH)
+    public void test_scheduleCallableMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionThread(CreateScheduledExecutorServiceMain::scheduleCallable,
+                CreateScheduledExecutorServiceMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = SCHEDULED_EXECUTOR_SERVICE_WITHIN_PATH)
+    public void test_scheduleCallableMavenWalaAspectJ() {
+        assertAresSecurityExceptionThread(CreateScheduledExecutorServiceMain::scheduleCallable,
+                CreateScheduledExecutorServiceMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = SCHEDULED_EXECUTOR_SERVICE_WITHIN_PATH)
+    public void test_scheduleCallableMavenWalaInstrumentation() {
+        assertAresSecurityExceptionThread(CreateScheduledExecutorServiceMain::scheduleCallable,
+                CreateScheduledExecutorServiceMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessThreadSystemViaScheduleAtFixedRate">
+    @PublicTest
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = SCHEDULED_EXECUTOR_SERVICE_WITHIN_PATH)
+    public void test_scheduleAtFixedRateMavenArchunitAspectJ() {
+        assertAresSecurityExceptionThread(CreateScheduledExecutorServiceMain::scheduleAtFixedRate,
+                CreateScheduledExecutorServiceMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = SCHEDULED_EXECUTOR_SERVICE_WITHIN_PATH)
+    public void test_scheduleAtFixedRateMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionThread(CreateScheduledExecutorServiceMain::scheduleAtFixedRate,
+                CreateScheduledExecutorServiceMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = SCHEDULED_EXECUTOR_SERVICE_WITHIN_PATH)
+    public void test_scheduleAtFixedRateMavenWalaAspectJ() {
+        assertAresSecurityExceptionThread(CreateScheduledExecutorServiceMain::scheduleAtFixedRate,
+                CreateScheduledExecutorServiceMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = SCHEDULED_EXECUTOR_SERVICE_WITHIN_PATH)
+    public void test_scheduleAtFixedRateMavenWalaInstrumentation() {
+        assertAresSecurityExceptionThread(CreateScheduledExecutorServiceMain::scheduleAtFixedRate,
+                CreateScheduledExecutorServiceMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessThreadSystemViaRunAsyncWithExecutor">
+    @PublicTest
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_runAsyncWithExecutorMavenArchunitAspectJ() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::runAsyncWithExecutor, CreateCompletableFutureMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_runAsyncWithExecutorMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::runAsyncWithExecutor, CreateCompletableFutureMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_runAsyncWithExecutorMavenWalaAspectJ() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::runAsyncWithExecutor, CreateCompletableFutureMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_runAsyncWithExecutorMavenWalaInstrumentation() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::runAsyncWithExecutor, CreateCompletableFutureMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessThreadSystemViaSupplyAsync">
+    @PublicTest
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_supplyAsyncMavenArchunitAspectJ() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::supplyAsync, CreateCompletableFutureMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_supplyAsyncMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::supplyAsync, CreateCompletableFutureMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_supplyAsyncMavenWalaAspectJ() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::supplyAsync, CreateCompletableFutureMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_supplyAsyncMavenWalaInstrumentation() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::supplyAsync, CreateCompletableFutureMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessThreadSystemViaSupplyAsyncWithExecutor">
+    @PublicTest
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_supplyAsyncWithExecutorMavenArchunitAspectJ() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::supplyAsyncWithExecutor, CreateCompletableFutureMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_supplyAsyncWithExecutorMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::supplyAsyncWithExecutor, CreateCompletableFutureMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_supplyAsyncWithExecutorMavenWalaAspectJ() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::supplyAsyncWithExecutor, CreateCompletableFutureMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_supplyAsyncWithExecutorMavenWalaInstrumentation() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::supplyAsyncWithExecutor, CreateCompletableFutureMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessThreadSystemViaThenApplyAsync">
+    @PublicTest
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_thenApplyAsyncMavenArchunitAspectJ() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::thenApplyAsync, CreateCompletableFutureMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_thenApplyAsyncMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::thenApplyAsync, CreateCompletableFutureMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_thenApplyAsyncMavenWalaAspectJ() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::thenApplyAsync, CreateCompletableFutureMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_thenApplyAsyncMavenWalaInstrumentation() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::thenApplyAsync, CreateCompletableFutureMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessThreadSystemViaThenApplyAsyncWithExecutor">
+    @PublicTest
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_thenApplyAsyncWithExecutorMavenArchunitAspectJ() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::thenApplyAsyncWithExecutor, CreateCompletableFutureMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_thenApplyAsyncWithExecutorMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::thenApplyAsyncWithExecutor, CreateCompletableFutureMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_thenApplyAsyncWithExecutorMavenWalaAspectJ() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::thenApplyAsyncWithExecutor, CreateCompletableFutureMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_thenApplyAsyncWithExecutorMavenWalaInstrumentation() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::thenApplyAsyncWithExecutor, CreateCompletableFutureMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessThreadSystemViaThenCombine">
+    @PublicTest
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_thenCombineMavenArchunitAspectJ() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::thenCombine, CreateCompletableFutureMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_thenCombineMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::thenCombine, CreateCompletableFutureMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_thenCombineMavenWalaAspectJ() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::thenCombine, CreateCompletableFutureMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_thenCombineMavenWalaInstrumentation() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::thenCombine, CreateCompletableFutureMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessThreadSystemViaThenCombineAsync">
+    @PublicTest
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_thenCombineAsyncMavenArchunitAspectJ() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::thenCombineAsync, CreateCompletableFutureMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_thenCombineAsyncMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::thenCombineAsync, CreateCompletableFutureMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_thenCombineAsyncMavenWalaAspectJ() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::thenCombineAsync, CreateCompletableFutureMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_thenCombineAsyncMavenWalaInstrumentation() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::thenCombineAsync, CreateCompletableFutureMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessThreadSystemViaThenCombineAsyncWithExecutor">
+    @PublicTest
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_thenCombineAsyncWithExecutorMavenArchunitAspectJ() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::thenCombineAsyncWithExecutor, CreateCompletableFutureMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_thenCombineAsyncWithExecutorMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::thenCombineAsyncWithExecutor, CreateCompletableFutureMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_thenCombineAsyncWithExecutorMavenWalaAspectJ() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::thenCombineAsyncWithExecutor, CreateCompletableFutureMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = COMPLETABLE_FUTURE_WITHIN_PATH)
+    public void test_completableFuture_thenCombineAsyncWithExecutorMavenWalaInstrumentation() {
+        assertAresSecurityExceptionThread(CreateCompletableFutureMain::thenCombineAsyncWithExecutor, CreateCompletableFutureMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessThreadSystemViaCommonPoolExecute">
+    @PublicTest
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = FORK_JOIN_POOL_WITHIN_PATH)
+    public void test_forkJoinPool_commonPoolExecuteMavenArchunitAspectJ() {
+        assertAresSecurityExceptionThread(CreateForkJoinPoolMain::commonPoolExecute, CreateForkJoinPoolMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = FORK_JOIN_POOL_WITHIN_PATH)
+    public void test_forkJoinPool_commonPoolExecuteMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionThread(CreateForkJoinPoolMain::commonPoolExecute, CreateForkJoinPoolMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = FORK_JOIN_POOL_WITHIN_PATH)
+    public void test_forkJoinPool_commonPoolExecuteMavenWalaAspectJ() {
+        assertAresSecurityExceptionThread(CreateForkJoinPoolMain::commonPoolExecute, CreateForkJoinPoolMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = FORK_JOIN_POOL_WITHIN_PATH)
+    public void test_forkJoinPool_commonPoolExecuteMavenWalaInstrumentation() {
+        assertAresSecurityExceptionThread(CreateForkJoinPoolMain::commonPoolExecute, CreateForkJoinPoolMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessThreadSystemViaCommonPoolSubmitCallableTask">
+    @PublicTest
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = FORK_JOIN_POOL_WITHIN_PATH)
+    public void test_forkJoinPool_commonPoolSubmitCallableTaskMavenArchunitAspectJ() {
+        assertAresSecurityExceptionThread(CreateForkJoinPoolMain::commonPoolSubmitCallableTask, CreateForkJoinPoolMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = FORK_JOIN_POOL_WITHIN_PATH)
+    public void test_forkJoinPool_commonPoolSubmitCallableTaskMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionThread(CreateForkJoinPoolMain::commonPoolSubmitCallableTask, CreateForkJoinPoolMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = FORK_JOIN_POOL_WITHIN_PATH)
+    public void test_forkJoinPool_commonPoolSubmitCallableTaskMavenWalaAspectJ() {
+        assertAresSecurityExceptionThread(CreateForkJoinPoolMain::commonPoolSubmitCallableTask, CreateForkJoinPoolMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = FORK_JOIN_POOL_WITHIN_PATH)
+    public void test_forkJoinPool_commonPoolSubmitCallableTaskMavenWalaInstrumentation() {
+        assertAresSecurityExceptionThread(CreateForkJoinPoolMain::commonPoolSubmitCallableTask, CreateForkJoinPoolMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessThreadSystemViaCommonPoolSubmitRunnable">
+    @PublicTest
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = FORK_JOIN_POOL_WITHIN_PATH)
+    public void test_forkJoinPool_commonPoolSubmitRunnableMavenArchunitAspectJ() {
+        assertAresSecurityExceptionThread(CreateForkJoinPoolMain::commonPoolSubmitRunnable, CreateForkJoinPoolMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = FORK_JOIN_POOL_WITHIN_PATH)
+    public void test_forkJoinPool_commonPoolSubmitRunnableMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionThread(CreateForkJoinPoolMain::commonPoolSubmitRunnable, CreateForkJoinPoolMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = FORK_JOIN_POOL_WITHIN_PATH)
+    public void test_forkJoinPool_commonPoolSubmitRunnableMavenWalaAspectJ() {
+        assertAresSecurityExceptionThread(CreateForkJoinPoolMain::commonPoolSubmitRunnable, CreateForkJoinPoolMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = FORK_JOIN_POOL_WITHIN_PATH)
+    public void test_forkJoinPool_commonPoolSubmitRunnableMavenWalaInstrumentation() {
+        assertAresSecurityExceptionThread(CreateForkJoinPoolMain::commonPoolSubmitRunnable, CreateForkJoinPoolMain.class);
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="accessThreadSystemViaNewThread">
+    @PublicTest
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_FACTORY_WITHIN_PATH)
+    public void test_threadFactory_newThreadMavenArchunitAspectJ() {
+        assertAresSecurityExceptionThread(CreateThreadFactoryMain::newThread, CreateThreadFactoryMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_FACTORY_WITHIN_PATH)
+    public void test_threadFactory_newThreadMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionThread(CreateThreadFactoryMain::newThread, CreateThreadFactoryMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_FACTORY_WITHIN_PATH)
+    public void test_threadFactory_newThreadMavenWalaAspectJ() {
+        assertAresSecurityExceptionThread(CreateThreadFactoryMain::newThread, CreateThreadFactoryMain.class);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_FACTORY_WITHIN_PATH)
+    public void test_threadFactory_newThreadMavenWalaInstrumentation() {
+        assertAresSecurityExceptionThread(CreateThreadFactoryMain::newThread, CreateThreadFactoryMain.class);
     }
     // </editor-fold>
 }

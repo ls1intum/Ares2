@@ -332,11 +332,24 @@ public class JavaInstrumentationPointcutDefinitions {
             //java.lang
             Map.entry("java.lang.Thread", List.of("start", "startVirtualThread")),
             Map.entry("java.lang.Thread.Builder", List.of("run")),
+            Map.entry("java.lang.Thread.Builder.OfPlatform", List.of("start")),
             Map.entry("java.lang.ThreadGroup", List.of("newThread")),
             // java.util
-            Map.entry("java.util.concurrent.ExecutorService", List.of("submit", "invokeAll", "invokeAny")),
+            Map.entry("java.util.Collection", List.of("parallelStream")),
+            Map.entry("java.util.stream.Stream", List.of("parallel")),
+            Map.entry("java.util.stream.BaseStream", List.of("parallel")),
+            Map.entry("java.util.concurrent.Executor", List.of("execute")),
+            Map.entry("java.util.concurrent.ExecutorService", List.of("submit", "invokeAll", "invokeAny", "execute")),
+            Map.entry("java.util.concurrent.AbstractExecutorService", List.of("submit", "invokeAll", "invokeAny")),
             Map.entry("java.util.concurrent.ThreadPoolExecutor", List.of("submit", "execute")),
-            Map.entry("java.util.concurrent.CompletableFuture", List.of("runAsync", "supplyAsync", "thenApplyAsync"))
+            Map.entry("java.util.concurrent.ScheduledExecutorService", List.of("schedule", "scheduleAtFixedRate", "scheduleWithFixedDelay")),
+            Map.entry("java.util.concurrent.ScheduledThreadPoolExecutor", List.of("schedule", "scheduleAtFixedRate", "scheduleWithFixedDelay")),
+            Map.entry("java.util.concurrent.CompletableFuture", List.of("runAsync", "supplyAsync", "thenApplyAsync", "thenCombineAsync")),
+            Map.entry("java.util.concurrent.ForkJoinPool", List.of("submit", "execute")),
+            Map.entry("java.util.concurrent.ThreadFactory", List.of("newThread")),
+            Map.entry("java.util.concurrent.Executors$DelegatedExecutorService", List.of("submit", "invokeAll", "invokeAny")),
+            Map.entry("java.util.concurrent.Executors$DefaultThreadFactory", List.of("newThread")),
+            Map.entry("java.util.concurrent.ExecutorCompletionService", List.of("submit"))
     );
     //</editor-fold>
 

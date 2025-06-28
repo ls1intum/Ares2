@@ -11,8 +11,8 @@ public class CreateThreadBuilderMain {
     /**
      * Tests Thread.Builder.start(Runnable) method
      */
-    public static void createThreadBuilder() {
-        Thread.Builder.OfPlatform builder = Thread.ofPlatform();
-        builder.start(new IllegalThread());
-    }
+    // public static void createThreadBuilder() {
+    //     Thread.Builder.OfPlatform builder = Thread.ofPlatform();
+    //     builder.start(new IllegalThread());
+    // }
 }

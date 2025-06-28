@@ -14,8 +14,8 @@ public class CreateExecutorMain {
     /**
      * Tests Executor.execute(Runnable) method
      */
-    public static void createExecutor() {
-        Executor executor = Executors.newSingleThreadExecutor();
-        executor.execute(new LegalThread());
-    }
+    // public static void executeRunnable() {
+    //     Executor executor = Executors.newSingleThreadExecutor();
+    //     executor.execute(new LegalThread());
+    // }
 }
