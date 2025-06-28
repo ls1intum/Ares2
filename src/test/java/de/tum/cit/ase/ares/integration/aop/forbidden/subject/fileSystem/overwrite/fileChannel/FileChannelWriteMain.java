@@ -9,6 +9,11 @@ import java.nio.file.StandardOpenOption;
 
 public class FileChannelWriteMain {
 
+    private static final String NOT_TRUSTED_FILE_DIR =
+            "src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/nottrusteddir";
+    private static final String NOT_TRUSTED_FILE = NOT_TRUSTED_FILE_DIR + "/nottrusted.txt";
+    private static final String NOT_TRUSTED_COPY = NOT_TRUSTED_FILE_DIR + "/nottrusted-copy.txt";
+
     private FileChannelWriteMain() {
         throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
     }
@@ -18,7 +23,7 @@ public class FileChannelWriteMain {
      */
     public static void accessFileSystemViaNIOChannel() throws IOException {
         try (FileChannel channel = FileChannel.open(
-                Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"),
+                Path.of(NOT_TRUSTED_FILE),
                 StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
             ByteBuffer buffer = ByteBuffer.wrap("Hello, world!".getBytes());
             channel.write(buffer);
@@ -31,7 +36,7 @@ public class FileChannelWriteMain {
      */
     public static void accessFileSystemViaFileChannelWrite() throws IOException {
         try (FileChannel channel = FileChannel.open(
-                Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"),
+                Path.of(NOT_TRUSTED_FILE),
                 StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
             ByteBuffer buffer = ByteBuffer.wrap("Using write(ByteBuffer) method".getBytes());
             int bytesWritten = channel.write(buffer);
@@ -44,12 +49,12 @@ public class FileChannelWriteMain {
      */
     public static void accessFileSystemViaFileChannelWriteBuffers() throws IOException {
         try (FileChannel channel = FileChannel.open(
-                Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"),
+                Path.of(NOT_TRUSTED_FILE),
                 StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
             ByteBuffer[] buffers = new ByteBuffer[] {
-                ByteBuffer.wrap("First buffer. ".getBytes()),
-                ByteBuffer.wrap("Second buffer. ".getBytes()),
-                ByteBuffer.wrap("Third buffer.".getBytes())
+                    ByteBuffer.wrap("First buffer. ".getBytes()),
+                    ByteBuffer.wrap("Second buffer. ".getBytes()),
+                    ByteBuffer.wrap("Third buffer.".getBytes())
             };
 
             long bytesWritten = channel.write(buffers, 0, buffers.length);
@@ -62,7 +67,7 @@ public class FileChannelWriteMain {
      */
     public static void accessFileSystemViaFileChannelWritePosition() throws IOException {
         try (FileChannel channel = FileChannel.open(
-                Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"),
+                Path.of(NOT_TRUSTED_FILE),
                 StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
             // First write some content
             channel.write(ByteBuffer.wrap("Initial content. ".getBytes()));
@@ -79,7 +84,7 @@ public class FileChannelWriteMain {
      */
     public static void accessFileSystemViaFileChannelTruncate() throws IOException {
         try (FileChannel channel = FileChannel.open(
-                Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"),
+                Path.of(NOT_TRUSTED_FILE),
                 StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.READ)) {
 
             // Write some content
@@ -95,8 +100,8 @@ public class FileChannelWriteMain {
      * Access the file system using NIO {@link FileChannel#transferTo(long, long, WritableByteChannel)} to transfer data to another channel.
      */
     public static void accessFileSystemViaFileChannelTransferTo() throws IOException {
-        Path sourcePath = Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
-        Path targetPath = Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted-copy.txt");
+        Path sourcePath = Path.of(NOT_TRUSTED_FILE);
+        Path targetPath = Path.of(NOT_TRUSTED_COPY);
 
         // First create source file with content
         try (FileChannel sourceChannel = FileChannel.open(
