@@ -410,5 +410,12 @@ abstract class SystemAccessTest {
         assertGeneralErrorMessageWithThread(securityException.getMessage(), "illegally create",
                 "illegal create", clazz);
     }
+
+    protected void assertAresRuntimeExceptionThread(Executable executable, Class<?> clazz) {
+        RuntimeException runtimeException = Assertions.assertThrows(RuntimeException.class, executable,
+                ERROR_MESSAGE);
+        assertGeneralErrorMessageWithThread(runtimeException.getMessage(), "illegally create",
+                "illegal create", clazz);
+    }
     //</editor-fold>
 }

@@ -17,7 +17,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ForkJoinTask;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -340,23 +345,31 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions {
         if (actualClassname == null) {
             return false;
         }
-        if (threadClassAllowedToBeCreated == null && threadNumberAllowedToBeCreated == null) {
+        if (threadClassAllowedToBeCreated == null || threadNumberAllowedToBeCreated == null) {
             return true;
         }
-        int threadClassAllowedToBeCreatedLength = threadClassAllowedToBeCreated == null ? 0 : threadClassAllowedToBeCreated.length;
         int starIndex = -1;
-        for (int i = 0; i < threadClassAllowedToBeCreatedLength; i++) {
+        for (int i = 0; i < threadClassAllowedToBeCreated.length; i++) {
             String allowedClassName = threadClassAllowedToBeCreated[i];
             if ("*".equals(allowedClassName)) {
                 starIndex = i;
             }
+
+            // Handle special case for Lambda-Expression
+            if ("Lambda-Expression".equals(allowedClassName) && "Lambda-Expression".equals(actualClassname)) {
+                return handleFoundClassIsForbidden(threadNumberAllowedToBeCreated, i);
+            }
+
+            // Skip Class.forName if either is Lambda-Expression (they don't match)
+            if ("Lambda-Expression".equals(allowedClassName) || "Lambda-Expression".equals(actualClassname)) {
+                continue;
+            }
+
             try {
                 Class<?> allowedClass = Class.forName(allowedClassName, true, ClassLoader.getSystemClassLoader());
                 Class<?> actualClass = Class.forName(actualClassname, true, ClassLoader.getSystemClassLoader());
                 if (allowedClass.isAssignableFrom(actualClass)) {
                     return handleFoundClassIsForbidden(threadNumberAllowedToBeCreated, i);
-                } else {
-                    return true;
                 }
             } catch (ClassNotFoundException | IllegalStateException | NullPointerException ignored) {
             }
@@ -364,7 +377,7 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions {
         if (starIndex != -1) {
             return handleFoundClassIsForbidden(threadNumberAllowedToBeCreated, starIndex);
         }
-        return false;
+        return true;
     }
     //</editor-fold>
 
@@ -386,16 +399,80 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions {
         if (!variableClass.isSynthetic()) {
             return false;
         }
-        try {
-            // Step 2: locate the hidden writeReplace() method
-            Method writeReplace = variableClass.getDeclaredMethod("writeReplace");
-            writeReplace.setAccessible(true);
-            // Step 3: ensure it returns a SerializedLambda
-            Class<?> returnType = writeReplace.getReturnType();
-            return SerializedLambda.class.isAssignableFrom(returnType);
-        } catch (NoSuchMethodException e) {
-            // If writeReplace is missing, this synthetic class is not a lambda
+        String className = variableClass.getName();
+
+        // Check for common lambda patterns
+        return className.contains("$$Lambda") ||
+                className.contains("$Lambda$") ||
+                className.matches(".*\\$\\$Lambda\\$.*");
+    }
+
+    /**
+     * Checks if a variable is an instance of Thread.FieldHolder using reflection.
+     *
+     * <p>Description: Uses reflection to safely check if the variable is an instance
+     * of Thread.FieldHolder, avoiding direct instanceof checks that might fail in
+     * instrumentation contexts.
+     *
+     * @param variableValue the variable to check
+     * @return true if the variable is a Thread.FieldHolder instance, false otherwise
+     * @since 2.0.0
+     * @author Markus Paulsen
+     */
+    private static boolean isThreadFieldHolder(@Nullable Object variableValue) {
+        if (variableValue == null) {
             return false;
+        }
+
+        try {
+            @Nonnull Class<?> variableClass = variableValue.getClass();
+            @Nonnull String className = variableClass.getName();
+
+            // Check if the class name matches Thread.FieldHolder pattern
+            return className.equals("java.lang.Thread$FieldHolder") ||
+                    className.endsWith("$FieldHolder") && className.startsWith("java.lang.Thread");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Extracts the task field value from a Thread.FieldHolder instance using reflection.
+     *
+     * <p>Description: Uses reflection to safely access the task field from a
+     * Thread.FieldHolder instance, handling potential access restrictions.
+     *
+     * @param threadFieldHolder the Thread.FieldHolder instance
+     * @return the value of the task field as a String
+     * @throws InvalidPathException if extraction fails
+     * @since 2.0.0
+     * @author Markus Paulsen
+     */
+    @Nonnull
+    private static String getTaskFromThreadFieldHolder(@Nonnull Object threadFieldHolder) {
+        try {
+            @Nonnull Class<?> fieldHolderClass = threadFieldHolder.getClass();
+            Class<?> unsafeClass = Class.forName("sun.misc.Unsafe");
+            Field unsafeField = unsafeClass.getDeclaredField("theUnsafe");
+            unsafeField.setAccessible(true);
+            Object unsafe = unsafeField.get(null);
+            Method objectFieldOffsetMethod = unsafeClass.getMethod("objectFieldOffset", Field.class);
+            Field taskField = fieldHolderClass.getDeclaredField("task");
+            long offset = (Long) objectFieldOffsetMethod.invoke(unsafe, taskField);
+            Method getObjectMethod = unsafeClass.getMethod("getObject", Object.class, long.class);
+            @Nullable Object taskValue = getObjectMethod.invoke(unsafe, threadFieldHolder, offset);
+            if (taskValue == null) {
+                throw new InvalidPathException(threadFieldHolder.toString(),
+                        localize("security.advice.transform.path.exception"));
+            }
+            @Nonnull Class<?> taskClass = taskValue.getClass();
+            return isReallyLambda(taskClass) ? "Lambda-Expression" : taskClass.getName();
+        } catch (NoSuchFieldException | IllegalAccessException | NullPointerException |
+                 InaccessibleObjectException e) {
+            throw new InvalidPathException(threadFieldHolder.toString(),
+                    localize("security.advice.transform.path.exception"));
+        } catch (ClassNotFoundException | InvocationTargetException | NoSuchMethodException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -410,7 +487,9 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions {
     private static String variableToClassname(@Nullable Object variableValue) {
         if (variableValue == null) {
             throw new InvalidPathException("null", localize("security.advice.transform.path.exception"));
-        } else if (variableValue instanceof Runnable || variableValue instanceof Callable<?> || variableValue instanceof ForkJoinTask<?>) {
+        } else if (isThreadFieldHolder(variableValue)) {
+            return getTaskFromThreadFieldHolder(variableValue);
+        } else if (variableValue instanceof Runnable || variableValue instanceof Callable<?> || variableValue instanceof ForkJoinTask<?> || variableValue instanceof CompletableFuture<?> || variableValue instanceof Supplier<?> || variableValue instanceof Function<?, ?> || variableValue instanceof BiFunction<?, ?, ?> || variableValue instanceof CompletionStage<?>) {
             @Nonnull Class<?> variableClass = variableValue.getClass();
             return isReallyLambda(variableClass) ? "Lambda-Expression" : variableClass.getName();
         } else {

@@ -344,7 +344,7 @@ public class JavaInstrumentationPointcutDefinitions {
             Map.entry("java.util.concurrent.ThreadPoolExecutor", List.of("submit", "execute")),
             Map.entry("java.util.concurrent.ScheduledExecutorService", List.of("schedule", "scheduleAtFixedRate", "scheduleWithFixedDelay")),
             Map.entry("java.util.concurrent.ScheduledThreadPoolExecutor", List.of("schedule", "scheduleAtFixedRate", "scheduleWithFixedDelay")),
-            Map.entry("java.util.concurrent.CompletableFuture", List.of("runAsync", "supplyAsync", "thenApplyAsync", "thenCombineAsync")),
+            Map.entry("java.util.concurrent.CompletableFuture", List.of("runAsync", "supplyAsync", "thenApplyAsync", "thenCombineAsync", "thenCombine")),
             Map.entry("java.util.concurrent.ForkJoinPool", List.of("submit", "execute")),
             Map.entry("java.util.concurrent.ThreadFactory", List.of("newThread")),
             Map.entry("java.util.concurrent.Executors$DelegatedExecutorService", List.of("submit", "invokeAll", "invokeAny")),

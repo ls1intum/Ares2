@@ -5,4 +5,3 @@ java.lang.reflect.AccessibleObject.checkAccess(Ljava/lang/Class;Ljava/lang/Class
 java.lang.invoke.MethodHandles.privateLookupIn(Ljava/lang/Class;Ljava/lang/invoke/MethodHandles$Lookup;)
 java.lang.invoke.MethodHandles.reflectAs(Ljava/lang/Class;Ljava/lang/invoke/MethodHandle;)
 jdk.internal.reflect.ReflectionFactory.getReflectionFactory()
-java.lang.reflect.Method.invoke(Ljava/lang/Object;[Ljava/lang/Object;)

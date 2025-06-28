@@ -12,7 +12,8 @@ public class CreateThreadMain {
      * Tests Thread.start() method
      */
     public static void startThread() {
-        Thread thread = new Thread(new IllegalThread());
+        Runnable r = new IllegalThread();
+        Thread thread = new Thread(r);
         thread.start();
     }
 

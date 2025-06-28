@@ -184,7 +184,7 @@ class ThreadSystemAccessTest extends SystemAccessTest {
     @PublicTest
     @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = EXECUTOR_SERVICE_WITHIN_PATH)
     public void test_invokeAnyMavenArchunitAspectJ() {
-        assertAresSecurityExceptionThread(() -> {
+        assertAresRuntimeExceptionThread(() -> {
             try {
                 CreateExecutorServiceMain.invokeAny();
             } catch (Exception e) {
@@ -196,7 +196,7 @@ class ThreadSystemAccessTest extends SystemAccessTest {
     @PublicTest
     @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = EXECUTOR_SERVICE_WITHIN_PATH)
     public void test_invokeAnyMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionThread(() -> {
+        assertAresRuntimeExceptionThread(() -> {
             try {
                 CreateExecutorServiceMain.invokeAny();
             } catch (Exception e) {
@@ -208,7 +208,7 @@ class ThreadSystemAccessTest extends SystemAccessTest {
     @PublicTest
     @Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = EXECUTOR_SERVICE_WITHIN_PATH)
     public void test_invokeAnyMavenWalaAspectJ() {
-        assertAresSecurityExceptionThread(() -> {
+        assertAresRuntimeExceptionThread(() -> {
             try {
                 CreateExecutorServiceMain.invokeAny();
             } catch (Exception e) {
@@ -220,7 +220,7 @@ class ThreadSystemAccessTest extends SystemAccessTest {
     @PublicTest
     @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = EXECUTOR_SERVICE_WITHIN_PATH)
     public void test_invokeAnyMavenWalaInstrumentation() {
-        assertAresSecurityExceptionThread(() -> {
+        assertAresRuntimeExceptionThread(() -> {
             try {
                 CreateExecutorServiceMain.invokeAny();
             } catch (Exception e) {
@@ -477,7 +477,7 @@ class ThreadSystemAccessTest extends SystemAccessTest {
     @PublicTest
     @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = EXECUTOR_SERVICE_WITHIN_PATH)
     public void test_invokeAnyWithTimeoutMavenArchunitAspectJ() {
-        assertAresSecurityExceptionThread(() -> {
+        assertAresRuntimeExceptionThread(() -> {
             try {
                 CreateExecutorServiceMain.invokeAnyWithTimeout();
             } catch (Exception e) {
@@ -489,7 +489,7 @@ class ThreadSystemAccessTest extends SystemAccessTest {
     @PublicTest
     @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = EXECUTOR_SERVICE_WITHIN_PATH)
     public void test_invokeAnyWithTimeoutMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionThread(() -> {
+        assertAresRuntimeExceptionThread(() -> {
             try {
                 CreateExecutorServiceMain.invokeAnyWithTimeout();
             } catch (Exception e) {
@@ -501,7 +501,7 @@ class ThreadSystemAccessTest extends SystemAccessTest {
     @PublicTest
     @Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = EXECUTOR_SERVICE_WITHIN_PATH)
     public void test_invokeAnyWithTimeoutMavenWalaAspectJ() {
-        assertAresSecurityExceptionThread(() -> {
+        assertAresRuntimeExceptionThread(() -> {
             try {
                 CreateExecutorServiceMain.invokeAnyWithTimeout();
             } catch (Exception e) {
@@ -513,7 +513,7 @@ class ThreadSystemAccessTest extends SystemAccessTest {
     @PublicTest
     @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = EXECUTOR_SERVICE_WITHIN_PATH)
     public void test_invokeAnyWithTimeoutMavenWalaInstrumentation() {
-        assertAresSecurityExceptionThread(() -> {
+        assertAresRuntimeExceptionThread(() -> {
             try {
                 CreateExecutorServiceMain.invokeAnyWithTimeout();
             } catch (Exception e) {
