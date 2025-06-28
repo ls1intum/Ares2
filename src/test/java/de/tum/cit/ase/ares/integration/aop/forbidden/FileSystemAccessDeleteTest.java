@@ -2,7 +2,6 @@ package de.tum.cit.ase.ares.integration.aop.forbidden;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
-import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.delete.fileSystemProvider.DeleteFileSystemProviderMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.fileDelete.FileDeleteMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.filesDelete.DeleteThroughFileSystemProvider;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.filesDelete.FilesDeleteMain;
@@ -389,38 +388,63 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
         assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ThirdPartyPackagePenguin.class);
     }
 
+
+
+    @Disabled("This test is disabled because testing in this manner is not possible. FileSystemProvider.installedProviders() " +
+            "gets a violation whule trying to access java.net.URL.openConnection().")
     @PublicTest
     @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE,
             withinPath = FILES_DELETE_WITHIN_PATH)
     void fileSystemProviderDelete_archunit_aspectj() {
-        assertAresSecurityExceptionDelete(
+        // here we can test for read violations because we can assume that the student will need to import
+        // and scan through the file system provider to access the delete method.
+        // (FileSystemProvider.installedProviders() needs to be called)
+        assertAresSecurityExceptionRead(
                 DeleteThroughFileSystemProvider::accessFileSystemViaFileSystemProvider,
                 DeleteThroughFileSystemProvider.class);
     }
 
+
+    @Disabled("This test is disabled because testing in this manner is not possible. FileSystemProvider.installedProviders() " +
+            "gets a violation whule trying to access java.net.URL.openConnection().")
     @PublicTest
     @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE,
             withinPath = FILES_DELETE_WITHIN_PATH)
     void fileSystemProviderDelete_archunit_instrumentation() {
-        assertAresSecurityExceptionDelete(
+        // here we can test for read violations because we can assume that the student will need to import
+        // and scan through the file system provider to access the delete method.
+        // (FileSystemProvider.installedProviders() needs to be called)
+        assertAresSecurityExceptionRead(
                 DeleteThroughFileSystemProvider::accessFileSystemViaFileSystemProvider,
-                DeleteThroughFileSystemProvider.class);
+                DeleteThroughFileSystemProvider.class, NOT_TRUSTED_FILE_PATH);
     }
 
+
+    @Disabled("This test is disabled because testing in this manner is not possible. FileSystemProvider.installedProviders() " +
+            "gets a violation whule trying to access java.net.URL.openConnection().")
     @PublicTest
     @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE,
             withinPath = FILES_DELETE_WITHIN_PATH)
     void fileSystemProviderDelete_wala_aspectj() {
-        assertAresSecurityExceptionDelete(
-                DeleteFileSystemProviderMain::accessFileSystemViaFileSystemProvider,
+        // here we can test for read violations because we can assume that the student will need to import
+        // and scan through the file system provider to access the delete method.
+        // (FileSystemProvider.installedProviders() needs to be called)
+        assertAresSecurityExceptionRead(
+                DeleteThroughFileSystemProvider::accessFileSystemViaFileSystemProvider,
                 DeleteThroughFileSystemProvider.class);
     }
 
+
+    @Disabled("This test is disabled because testing in this manner is not possible. FileSystemProvider.installedProviders() " +
+            "gets a violation whule trying to access java.net.URL.openConnection().")
     @PublicTest
     @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE,
             withinPath = FILES_DELETE_WITHIN_PATH)
     void fileSystemProviderDelete_wala_instrumentation() {
-        assertAresSecurityExceptionDelete(
+        // here we can test for read violations because we can assume that the student will need to import
+        // and scan through the file system provider to access the delete method.
+        // (FileSystemProvider.installedProviders() needs to be called)
+        assertAresSecurityExceptionRead(
                 DeleteThroughFileSystemProvider::accessFileSystemViaFileSystemProvider,
                 DeleteThroughFileSystemProvider.class);
     }
