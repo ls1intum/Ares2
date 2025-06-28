@@ -56,7 +56,7 @@ public final class WriteFilesWriteMain {
      */
     public static void accessFileSystemViaFilesWrite() throws IOException {
         byte[] content = "Hello, world!".getBytes();
-        Files.write(NOT_TRUSTED_FILE, content);
+        Files.write(NOT_TRUSTED_FILE, content, StandardOpenOption.TRUNCATE_EXISTING);
     }
 
     /**
@@ -93,11 +93,10 @@ public final class WriteFilesWriteMain {
      * Access the file system using the {@link Files#copy(InputStream, Path, CopyOption...)} method.
      */
     public static void accessFileSystemViaFilesCopyFromInputStream() throws IOException {
-        try (InputStream in = WriteFilesWriteMain.class.getResourceAsStream("/tempMethods.txt")) {
-            if (in != null) {
-                Files.copy(in, NOT_TRUSTED_FILE, StandardCopyOption.REPLACE_EXISTING);
-            }
-        }
+
+        Path source = Path.of("/tempMethods.txt");
+        Path target = NOT_TRUSTED_FILE;
+        Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
     }
 
     /**

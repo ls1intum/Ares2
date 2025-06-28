@@ -142,12 +142,27 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
             (call(* java.nio.channels.FileChannel.write(..)) ||
                     call(* java.nio.channels.FileChannel.force(..)));
 
+
+    pointcut writerMethods():
+             (call(java.io.Writer.new(..)) ||
+                    call(* java.io.Writer.append(..)) ||
+                    call(* java.io.Writer.write(..)) ||
+                    call(* java.io.Writer.flush(..)) ||
+                    call(* java.io.Writer.close(..)));
+
     pointcut fileWriterMethods():
             (call(java.io.FileWriter.new(..)) ||
                     call(* java.io.FileWriter.append(..)) ||
                     call(* java.io.FileWriter.write(..)) ||
                     call(* java.io.FileWriter.flush(..)) ||
                     call(* java.io.FileWriter.close(..)));
+
+    pointcut bufferedWriterMethods():
+            call(java.io.BufferedWriter.new(..)) ||
+            call(* java.io.BufferedWriter.append(..)) ||
+            call(* java.io.BufferedWriter.write(..))  ||
+            call(* java.io.BufferedWriter.flush(..)) ||
+            call(* java.io.BufferedWriter.close(..));
 
     pointcut fileHandlerMethods():
             (call(java.util.logging.FileHandler.new(..)) ||
