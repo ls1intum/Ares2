@@ -1,5 +1,6 @@
 sun.nio.ch.UnixAsynchronousSocketChannelImpl.implConnect(Ljava/net/SocketAddress;Ljava/lang/Object;Ljava/nio/channels/CompletionHandler)
 sun.nio.ch.WindowsAsynchronousSocketChannelImpl.implConnect(Ljava/net/SocketAddress;Ljava/lang/Object;Ljava/nio/channels/CompletionHandler)
+java.net.URL.<init>(Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;Ljava/net/URLStreamHandler;)
 java.net.ProxySelector.setDefault(Ljava/net/ProxySelector;)
 java.net.ProxySelector.getDefault()
 java.net.CookieHandler.setDefault(Ljava/net/CookieHandler;)
