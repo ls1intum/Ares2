@@ -11,6 +11,7 @@ public final class FilesDeleteSecureDirectory {
 
     private static final String NOT_TRUSTED_FILE = "src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/nottrusteddir/nottrusted.txt";
     private static final String NOT_TRUSTED_FILE_DIR = "src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/nottrusteddir";
+    private static final String NOT_TRUSTED_FILE_DIR_CHILD_DIR = "src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/nottrusteddir/tempEmptyDir";
 
 
     private FilesDeleteSecureDirectory() {
@@ -20,33 +21,24 @@ public final class FilesDeleteSecureDirectory {
     }
 
     /** {@link SecureDirectoryStream#deleteFile}} */
-    public static void accessFileSystemViaSecureDirectoryStreamDeleteFile() throws IOException {
+    public static void accessFileSystemViaSecureDirectoryStreamDeleteFile(SecureDirectoryStream<Path> secureDirectoryStream) throws IOException {
         Path dir  = Path.of(NOT_TRUSTED_FILE_DIR);
-        Path file = Path.of(NOT_TRUSTED_FILE);                          // relative to dir
-
-        try (DirectoryStream<Path> ds = Files.newDirectoryStream(dir)) {
-            if (ds instanceof SecureDirectoryStream<Path> sds) {
-                sds.deleteFile(file);                                   // constant-time, race-safe
-            } else {
-                // Provider doesn’t support SDS → fall back.
-                Files.delete(dir.resolve(file));
-            }
+        Path file = Path.of(NOT_TRUSTED_FILE);
+        if (secureDirectoryStream != null) {
+            secureDirectoryStream.deleteFile(file);
+        } else {
+            Files.delete(dir.resolve(file));
         }
     }
 
     /** {@link SecureDirectoryStream#deleteDirectory)} */
-    public static void accessFileSystemViaSecureDirectoryStreamDeleteDirectory() throws IOException {
-        Path dir     = Path.of(NOT_TRUSTED_FILE_DIR);
-        Path subDir  = Path.of("tempEmptyDir");
+    public static void accessFileSystemViaSecureDirectoryStreamDeleteDirectory(SecureDirectoryStream<Path> secureDirectoryStream) throws IOException {
+        Path subDir  = Path.of(NOT_TRUSTED_FILE_DIR_CHILD_DIR);
 
-        Files.createDirectories(dir.resolve(subDir));                   // ensure it exists
-
-        try (DirectoryStream<Path> ds = Files.newDirectoryStream(dir)) {
-            if (ds instanceof SecureDirectoryStream<Path> sds) {
-                sds.deleteDirectory(subDir);                            // must be empty
-            } else {
-                Files.delete(dir.resolve(subDir));
-            }
+        if (secureDirectoryStream != null) {
+            secureDirectoryStream.deleteDirectory(subDir);
+        } else {
+            Files.delete(subDir);
         }
     }
 }

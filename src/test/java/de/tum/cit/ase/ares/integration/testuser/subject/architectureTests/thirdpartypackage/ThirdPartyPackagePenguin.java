@@ -13,10 +13,12 @@ public class ThirdPartyPackagePenguin {
         return Files.readString(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
     }
 
-    public static Path overwriteFile() throws IOException {
+    public static Path  overwriteFile(Path pathToUntrustedFile) throws IOException {
         byte[] content = "Hello, world!".getBytes();
-        return Files.write(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"), content);
+        return Files.write(pathToUntrustedFile, content);
     }
+
+
 
     public static Process executeFile() throws IOException {
         return Runtime.getRuntime().exec("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
