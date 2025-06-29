@@ -55,7 +55,8 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
      */
     @Nonnull
     private static final List<String> FILE_SYSTEM_IGNORE_CALLSTACK = List.of(
-            "java.lang.ClassLoader"
+            "java.lang.ClassLoader",
+            "jdk.internal.loader.NativeLibraries"
     );
 
     /**

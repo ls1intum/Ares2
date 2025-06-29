@@ -20,6 +20,9 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
 
     pointcut fileWriteMethods():
             (call(* java.io.File.canWrite(..)) ||
+                    call(java.io.RandomAccessFile.new(..)) ||
+                    call(java.util.zip.GZIPOutputStream.new(..)) ||
+                    call(java.util.zip.InflaterOutputStream.new(..)) ||
                     call(* java.io.File.createNewFile(..)) ||
                     call(* java.io.File.createTempFile(..)) ||
                     call(* java.io.File.setExecutable(..)) ||
@@ -139,7 +142,8 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.nio.channels.FileChannel.size(..)));
 
     pointcut fileChannelWriteMethods():
-            (call(* java.nio.channels.FileChannel.write(..)) ||
+            (call(* java.nio.channels.FileChannel.open(..)) ||
+            call(* java.nio.channels.FileChannel.write(..)) ||
                     call(* java.nio.channels.FileChannel.force(..)));
 
 
