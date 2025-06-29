@@ -399,8 +399,8 @@ class FileAccessCommonOverwriteTest extends SystemAccessTest {
 
     @AfterEach
     void cleanUpNotTrustedFiles() throws IOException {
-        Files.deleteIfExists(NOT_TRUSTED_DIR.resolve(NOT_TRUSTED_FILE_PATH));
-        Files.deleteIfExists(NOT_TRUSTED_DIR.resolve(NOT_TRUSTED_GZ));
+        Files.deleteIfExists(NOT_TRUSTED_FILE_PATH);
+        Files.deleteIfExists(NOT_TRUSTED_GZ);
 
         try (var stream = Files.list(NOT_TRUSTED_DIR)) {
             if (stream.findAny().isEmpty()) {
