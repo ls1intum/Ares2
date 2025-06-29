@@ -7,7 +7,6 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 
-import java.io.BufferedReader;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;

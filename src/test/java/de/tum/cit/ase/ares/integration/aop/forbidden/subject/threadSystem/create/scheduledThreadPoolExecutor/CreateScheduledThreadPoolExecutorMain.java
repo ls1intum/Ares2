@@ -1,10 +1,5 @@
 package de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.scheduledThreadPoolExecutor;
 
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.Callable;
-
-import de.tum.cit.ase.ares.integration.aop.forbidden.subject.IllegalThread;
-
 public class CreateScheduledThreadPoolExecutorMain {
 
     private CreateScheduledThreadPoolExecutorMain() {

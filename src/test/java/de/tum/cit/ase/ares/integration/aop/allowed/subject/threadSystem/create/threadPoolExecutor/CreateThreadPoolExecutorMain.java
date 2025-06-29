@@ -3,7 +3,6 @@ package de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.create.
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.Callable;
 
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.LegalThread;
 

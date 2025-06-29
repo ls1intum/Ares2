@@ -1,7 +1,5 @@
 package de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.threadBuilder;
 
-import de.tum.cit.ase.ares.integration.aop.forbidden.subject.IllegalThread;
-
 public class CreateThreadBuilderMain {
 
     private CreateThreadBuilderMain() {

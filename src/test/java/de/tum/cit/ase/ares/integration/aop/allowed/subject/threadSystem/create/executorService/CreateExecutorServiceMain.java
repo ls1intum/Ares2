@@ -2,7 +2,6 @@ package de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.create.
 
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.LegalThread;
 
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Callable;

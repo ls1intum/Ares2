@@ -1,10 +1,5 @@
 package de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.executor;
 
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-
-import de.tum.cit.ase.ares.integration.aop.forbidden.subject.IllegalThread;
-
 public class CreateExecutorMain {
 
     private CreateExecutorMain() {

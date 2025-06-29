@@ -2,7 +2,6 @@ package de.tum.cit.ase.ares.api.aop.java.javaAOPTestCaseToolbox;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
-import de.tum.cit.ase.ares.api.aop.java.javaAOPTestCaseToolbox.JavaAOPAdviceSettingTriple;
 
 public class JavaAOPAdviceSettingTripleTest {
 

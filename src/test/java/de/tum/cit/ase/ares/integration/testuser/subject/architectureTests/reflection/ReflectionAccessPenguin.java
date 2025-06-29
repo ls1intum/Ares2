@@ -1,14 +1,7 @@
 package de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.reflection;
 
-import de.tum.cit.ase.ares.api.util.ReflectionTestUtils;
-import org.junit.platform.commons.util.ReflectionUtils;
-
-import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Member;
 import java.lang.reflect.Method;
-
-import static org.junit.platform.commons.util.ReflectionUtils.invokeMethod;
 
 public class ReflectionAccessPenguin {
 

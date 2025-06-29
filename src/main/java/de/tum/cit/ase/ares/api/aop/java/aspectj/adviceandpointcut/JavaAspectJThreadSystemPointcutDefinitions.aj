@@ -22,6 +22,8 @@ public aspect JavaAspectJThreadSystemPointcutDefinitions {
             call(* java.util.concurrent.ScheduledThreadPoolExecutor.scheduleWithFixedDelay(..)) ||
             call(* java.util.concurrent.ForkJoinPool.execute(..)) ||
             call(* java.util.concurrent.ForkJoinPool.submit(..)) ||
+            call(* java.util.concurrent.ForkJoinPool.invoke(..)) ||
+            call(* java.util.concurrent.ForkJoinPool.commonPool()) ||
             call(* java.util.concurrent.CompletableFuture.runAsync(..)) ||
             call(* java.util.concurrent.CompletableFuture.supplyAsync(..)) ||
             call(* java.util.concurrent.CompletableFuture.thenApplyAsync(..)) ||
@@ -37,7 +39,9 @@ public aspect JavaAspectJThreadSystemPointcutDefinitions {
 
     pointcut threadCreateMethodsWithoutParameters(): (
             call(* java.lang.Thread.start()) ||
-                    call(* java.util.Collection.parallelStream()) ||
-                    call(* java.util.stream.BaseStream.parallel())
+            call(* java.lang.Thread.notify()) ||
+            call(* java.lang.Thread.notifyAll()) ||
+            call(* java.util.Collection.parallelStream()) ||
+            call(* java.util.stream.BaseStream.parallel())
             );
 }

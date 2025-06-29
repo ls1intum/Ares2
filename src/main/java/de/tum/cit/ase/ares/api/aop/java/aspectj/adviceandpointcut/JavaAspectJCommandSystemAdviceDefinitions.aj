@@ -32,7 +32,11 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions {
      * to avoid false positives from test harness or localization utilities.
      */
     @Nonnull
-    private static final List<String> COMMAND_SYSTEM_IGNORE_CALLSTACK = List.of();
+    private static final List<String> COMMAND_SYSTEM_IGNORE_CALLSTACK = List.of(
+            "java.lang.ClassLoader",
+            "de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension",
+            "de.tum.cit.ase.ares.api.jqwik.JqwikSecurityExtension"
+    );
 
     /**
      * Map of methods with attribute index exceptions for command system ignore logic.

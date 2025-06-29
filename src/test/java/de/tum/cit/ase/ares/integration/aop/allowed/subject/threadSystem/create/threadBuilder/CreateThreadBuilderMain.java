@@ -1,7 +1,5 @@
 package de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.create.threadBuilder;
 
-import de.tum.cit.ase.ares.integration.aop.allowed.subject.LegalThread;
-
 public class CreateThreadBuilderMain {
 
     private CreateThreadBuilderMain() {

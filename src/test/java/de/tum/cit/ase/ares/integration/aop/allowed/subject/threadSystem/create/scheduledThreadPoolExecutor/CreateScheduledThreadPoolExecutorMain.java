@@ -1,10 +1,5 @@
 package de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.create.scheduledThreadPoolExecutor;
 
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.Callable;
-
-import de.tum.cit.ase.ares.integration.aop.allowed.subject.LegalThread;
-
 public class CreateScheduledThreadPoolExecutorMain {
 
     private CreateScheduledThreadPoolExecutorMain() {

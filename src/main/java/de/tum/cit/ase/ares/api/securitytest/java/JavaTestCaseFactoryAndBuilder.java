@@ -2,35 +2,24 @@ package de.tum.cit.ase.ares.api.securitytest.java;
 
 //<editor-fold desc="Imports">
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Preconditions;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
-import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
-import de.tum.cit.ase.ares.api.policy.policySubComponents.SupervisedCode;
 import de.tum.cit.ase.ares.api.securitytest.TestCaseAbstractFactoryAndBuilder;
-import de.tum.cit.ase.ares.api.securitytest.java.creator.Creator;
 import de.tum.cit.ase.ares.api.securitytest.java.creator.JavaCreator;
 import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialDataReader;
-import de.tum.cit.ase.ares.api.securitytest.java.executer.Executer;
 import de.tum.cit.ase.ares.api.securitytest.java.executer.JavaExecuter;
 import de.tum.cit.ase.ares.api.securitytest.java.projectScanner.JavaProjectScanner;
-import de.tum.cit.ase.ares.api.securitytest.java.projectScanner.ProjectScanner;
 import de.tum.cit.ase.ares.api.securitytest.java.writer.JavaWriter;
-import de.tum.cit.ase.ares.api.securitytest.java.writer.Writer;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 //</editor-fold>
 
 /**

@@ -2,8 +2,6 @@ package de.tum.cit.ase.ares.integration.testuser.subject;
 
 import java.io.*;
 import java.net.*;
-import java.nio.file.Path;
-import java.security.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 
