@@ -25,7 +25,6 @@ class FileAccessCommonOverwriteTest extends SystemAccessTest {
     private static final Path NOT_TRUSTED_DIR = Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/nottrusteddir");
     private static final Path NOT_TRUSTED_GZ    = Path.of(NOT_TRUSTED_DIR + "/nottrusted.txt.gz");
     private static final Path NOT_TRUSTED_FILE_PATH = Path.of(NOT_TRUSTED_DIR + "/nottrusted.txt");
-    private static final Path NOT_TRUSTED_COPY_PATH = Path.of(NOT_TRUSTED_DIR + "/nottrusted-copy.txt");
 
     private static final String FILES_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/files";
     private static final String BUFFERED_WRITER_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/writer/bufferedWriter";
@@ -41,9 +40,7 @@ class FileAccessCommonOverwriteTest extends SystemAccessTest {
     @BeforeEach
     void ensureNotTrustedFilesExist() throws IOException {
         Files.createDirectories(NOT_TRUSTED_DIR);
-        if (Files.notExists(NOT_TRUSTED_COPY_PATH)) {
-            Files.createFile(NOT_TRUSTED_COPY_PATH);
-        }
+
         if (Files.notExists(NOT_TRUSTED_FILE_PATH)) {
             Files.createFile(NOT_TRUSTED_FILE_PATH);
         }
@@ -173,6 +170,14 @@ class FileAccessCommonOverwriteTest extends SystemAccessTest {
     @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = FILE_CHANNEL_WITHIN_PATH)
     void test_accessFileSystemViaNIOChannelMavenWalaAspectJ() {
         assertAresSecurityExceptionOverwrite(FileChannelWriteMain::accessFileSystemViaNIOChannel,
+                FileChannelWriteMain.class, NOT_TRUSTED_FILE_PATH);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = FILE_CHANNEL_WITHIN_PATH)
+    void test_accessFileSystemViaNIOChannelMavenWalaInstrumentation() {
+        // first file is opened so we test for read access
+        assertAresSecurityExceptionRead(FileChannelWriteMain::accessFileSystemViaNIOChannel,
                 FileChannelWriteMain.class, NOT_TRUSTED_FILE_PATH);
     }
 
@@ -359,12 +364,41 @@ class FileAccessCommonOverwriteTest extends SystemAccessTest {
                 ZipOutputStreamWriteMain.class, NOT_TRUSTED_FILE_PATH);
     }
 
+    @PublicTest
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = RANDOM_ACCESS_FILE_WITHIN_PATH)
+    void test_accessFileSystemViaRandomAccessFileWriteByteArrayMavenArchunitAspectJ() {
+        // first file is opened so we test for read access
+        assertAresSecurityExceptionRead(RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteByteArray,
+                RandomAccessFileWriteMain.class, NOT_TRUSTED_FILE_PATH);
+    }
+
+    @PublicTest
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = RANDOM_ACCESS_FILE_WITHIN_PATH)
+    void test_accessFileSystemViaRandomAccessFileWriteByteArrayMavenArchunitInstrumentation() {
+        assertAresSecurityExceptionOverwrite(RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteByteArray,
+                RandomAccessFileWriteMain.class, NOT_TRUSTED_FILE_PATH);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = RANDOM_ACCESS_FILE_WITHIN_PATH)
+    void test_accessFileSystemViaRandomAccessFileWriteByteArrayMavenWalaAspectJ() {
+        // first file is opened so we test for read access
+        assertAresSecurityExceptionRead(RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteByteArray,
+                RandomAccessFileWriteMain.class, NOT_TRUSTED_FILE_PATH);
+    }
+
+    @PublicTest
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = RANDOM_ACCESS_FILE_WITHIN_PATH)
+    void test_accessFileSystemViaRandomAccessFileWriteByteArrayMavenWalaInstrumentation() {
+        assertAresSecurityExceptionOverwrite(RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteByteArray,
+                RandomAccessFileWriteMain.class, NOT_TRUSTED_FILE_PATH);
+    }
+
 
 
 
     @AfterEach
     void cleanUpNotTrustedFiles() throws IOException {
-        Files.deleteIfExists(NOT_TRUSTED_DIR.resolve(NOT_TRUSTED_COPY_PATH));
         Files.deleteIfExists(NOT_TRUSTED_DIR.resolve(NOT_TRUSTED_FILE_PATH));
         Files.deleteIfExists(NOT_TRUSTED_DIR.resolve(NOT_TRUSTED_GZ));
 
