@@ -136,17 +136,22 @@ public class JavaWalaTestCaseCollection {
      * Ignore helper classes from the JDK that are known to create threads. (e.g. move from
      */
     private static final List<String> JDK_THREAD_HELPERS = List.of(
-            /* descriptor & binary forms */          "Lsun/nio/fs/", "sun/nio/fs/",
-            "Lsun/nio/ch/Poller", "sun/nio/ch/Poller",
+            /* descriptor & binary forms */
+            "Lsun/nio/fs/", "sun/nio/fs/",
+            "Lsun/nio/ch/", "sun/nio/ch/",
             "Ljava/nio/file/Files", "java/nio/file/Files",
-            "Ljava/lang/ClassLoader", "java/lang/ClassLoader"
+            "Ljava/lang/ClassLoader", "java/lang/ClassLoader",
+            "Ljdk/internal/loader/NativeLibraries", "jdk/internal/loader/NativeLibraries"
     );
 
-    /* thread interface that a helper may call legitimately */
     private static final List<String> ALLOWED_HELPER_APIS = List.of(
             "java.lang.Thread.<init>",
             "java.lang.Thread.interrupt",
-            "java.lang.ClassLoader.getSystemClassLoader"
+            "java.lang.ClassLoader.getSystemClassLoader",
+            "java.lang.ClassLoader.loadLibrary",
+            "java.lang.Runtime.load",
+            "java.lang.Runtime.loadLibrary",
+            "java.io.File.getName"
     );
 
     /**

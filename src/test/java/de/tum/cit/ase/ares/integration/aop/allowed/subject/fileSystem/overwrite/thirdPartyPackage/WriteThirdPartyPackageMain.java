@@ -2,6 +2,7 @@ package de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.overwrite
 
 import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdpartypackage.ThirdPartyPackagePenguin;
 import java.io.IOException;
+import java.nio.file.Path;
 
 public class WriteThirdPartyPackageMain {
 
@@ -14,7 +15,6 @@ public class WriteThirdPartyPackageMain {
      * @param text The text to write to the trusted file
      */
     public static void accessFileSystemViaThirdPartyPackage(String text) throws IOException {
-        String filePath = "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt";
-        ThirdPartyPackagePenguin.overwriteFile();
+        ThirdPartyPackagePenguin.overwriteFile(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"));
     }
 }

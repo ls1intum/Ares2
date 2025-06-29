@@ -3,25 +3,28 @@ package de.tum.cit.ase.ares.integration.aop.forbidden;
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.fileDelete.FileDeleteMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.filesDelete.DeleteThroughFileSystemProvider;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.filesDelete.FilesDeleteMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.filesDelete.FilesDeleteOnClose;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.filesDelete.FilesDeleteSecureDirectory;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.delete.thirdPartyPackage.DeleteThirdPartyPackageMain;
 import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdpartypackage.ThirdPartyPackagePenguin;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.channels.SeekableByteChannel;
+import java.nio.file.*;
 
 /**
  * Tests every JDK delete entry‑point
  */
 class FileSystemAccessDeleteTest extends SystemAccessTest {
 
-    private static final String FILE_DELETE_WITHIN_PATH  = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/fileDelete";
+    private static final String FILE_DELETE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/fileDelete";
     private static final String FILES_DELETE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/filesDelete";
-    private static final String THIRD_PARTY_WITHIN_PATH  = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/thirdPartyPackage";
+    private static final String THIRD_PARTY_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/thirdPartyPackage";
+    private static final Path NOT_TRUSTED_DIR = Path.of("src/test/java/…/fileSystem/delete/nottrusteddir");
     private static final Path NOT_TRUSTED_FILE_PATH = Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/nottrusteddir/nottrusted.txt");
 
 
@@ -38,6 +41,12 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
         }
     }
 
+    private SecureDirectoryStream<Path> openSecureDirectoryStream() throws IOException {
+        DirectoryStream<Path> ds = Files.newDirectoryStream(NOT_TRUSTED_DIR);
+        if (ds instanceof SecureDirectoryStream<Path> secureDirectoryStream) return secureDirectoryStream;
+        throw new UnsupportedOperationException("FS lacks secureDirectoryStream support");
+    }
+
 
     /* -------------------------------------------------------------------- */
     /*  java.io.File : delete()                                             */
@@ -46,7 +55,8 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
     @PublicTest
     @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
     void test_fileDelete_archunit_aspectj() {
-        assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaFileDelete, FileDeleteMain.class);
+        // This method of deleting files requires a read  before, hence we test for read related errors.
+        assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaFileDelete, FileDeleteMain.class, NOT_TRUSTED_FILE_PATH);
     }
 
     @PublicTest
@@ -58,7 +68,9 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
     @PublicTest
     @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
     void test_fileDelete_wala_aspectj() {
-        assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaFileDelete, FileDeleteMain.class);
+        // This method of deleting files requires a read  before, hence we test for read related errors.
+        assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaFileDelete, FileDeleteMain.class,
+                NOT_TRUSTED_FILE_PATH);
     }
 
     @PublicTest
@@ -74,7 +86,8 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
     @PublicTest
     @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
     void test_fileDeleteOnExit_archunit_aspectj() {
-        assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaFileDeleteOnExit, FileDeleteMain.class);
+        // This method of deleting files requires a read  before, hence we test for read violation.
+        assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaFileDeleteOnExit, FileDeleteMain.class, NOT_TRUSTED_FILE_PATH);
     }
 
     @PublicTest
@@ -86,7 +99,8 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
     @PublicTest
     @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
     void test_fileDeleteOnExit_wala_aspectj() {
-        assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaFileDeleteOnExit, FileDeleteMain.class);
+        // This method of deleting files requires a read  before, hence we test for read violation.
+        assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaFileDeleteOnExit, FileDeleteMain.class, NOT_TRUSTED_FILE_PATH);
     }
 
     @PublicTest
@@ -106,6 +120,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
         assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaPathToFileDelete, FileDeleteMain.class);
     }
 
+    @Disabled("This test is disabled because aspectj does not test for parameterless methods ")
     @PublicTest
     @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
     void test_pathToFileDelete_wala_aspectj() {
@@ -178,72 +193,171 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
     /*  DELETE_ON_CLOSE via Channels                                        */
     /* -------------------------------------------------------------------- */
 
+    @Disabled("This test is disabled because AspectJ does not test for parameterless methods.")
     @PublicTest
-    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE,
+            withinPath = FILES_DELETE_WITHIN_PATH)
     void test_deleteOnClose_archunit_aspectj() {
-        assertAresSecurityExceptionDelete(FilesDeleteOnClose::accessFileSystemViaDeleteOnClose, FilesDeleteOnClose.class);
+        assertAresSecurityExceptionDelete(() -> {
+            try (java.nio.channels.SeekableByteChannel ch =
+                         java.nio.file.Files.newByteChannel(
+                                 NOT_TRUSTED_FILE_PATH,
+                                 java.nio.file.StandardOpenOption.CREATE,
+                                 java.nio.file.StandardOpenOption.WRITE,
+                                 java.nio.file.StandardOpenOption.DELETE_ON_CLOSE)) {
+
+                FilesDeleteOnClose.closeChannelToDeleteFileInChannel(ch);
+            }
+        }, FilesDeleteOnClose.class);
     }
 
+
+    @Disabled("This test is disabled because testing in this manner is not possible. The trusted code opens the channel and closing it is seen as allowed delete." +
+            "Alternatively, creating the channel in the student code would violate read and not really test deleteOnClose()")
     @PublicTest
-    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE,
+            withinPath = FILES_DELETE_WITHIN_PATH)
     void test_deleteOnClose_archunit_instrumentation() {
-        assertAresSecurityExceptionDelete(FilesDeleteOnClose::accessFileSystemViaDeleteOnClose, FilesDeleteOnClose.class);
+        assertAresSecurityExceptionDelete(() -> {
+            try (java.nio.channels.SeekableByteChannel ch =
+                         java.nio.file.Files.newByteChannel(
+                                 NOT_TRUSTED_FILE_PATH,
+                                 java.nio.file.StandardOpenOption.CREATE,
+                                 java.nio.file.StandardOpenOption.WRITE,
+                                 java.nio.file.StandardOpenOption.DELETE_ON_CLOSE)) {
+
+                FilesDeleteOnClose.closeChannelToDeleteFileInChannel(ch);
+            }
+        }, FilesDeleteOnClose.class);
     }
 
+
+    @Disabled("This test is disabled because AspectJ does not test for parameterless methods.")
     @PublicTest
-    @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE,
+            withinPath = FILES_DELETE_WITHIN_PATH)
     void test_deleteOnClose_wala_aspectj() {
-        assertAresSecurityExceptionDelete(FilesDeleteOnClose::accessFileSystemViaDeleteOnClose, FilesDeleteOnClose.class);
+        assertAresSecurityExceptionDelete(() -> {
+            try (java.nio.channels.SeekableByteChannel ch =
+                         java.nio.file.Files.newByteChannel(
+                                 NOT_TRUSTED_FILE_PATH,
+                                 java.nio.file.StandardOpenOption.CREATE,
+                                 java.nio.file.StandardOpenOption.WRITE,
+                                 java.nio.file.StandardOpenOption.DELETE_ON_CLOSE)) {
+
+                FilesDeleteOnClose.closeChannelToDeleteFileInChannel(ch);
+            }
+        }, FilesDeleteOnClose.class);
     }
 
+
+    @Disabled("This test is disabled because testing in this manner is not possible. The trusted code opens the channel and closing it is seen as allowed delete." +
+            "Alternatively, creating the channel in the student code would violate read and not really test deleteOnClose()")
     @PublicTest
-    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE,
+            withinPath = FILES_DELETE_WITHIN_PATH)
     void test_deleteOnClose_wala_instrumentation() {
-        assertAresSecurityExceptionDelete(FilesDeleteOnClose::accessFileSystemViaDeleteOnClose, FilesDeleteOnClose.class);
+        assertAresSecurityExceptionDelete(() -> {
+
+            // Trusted test code opens the channel
+            SeekableByteChannel ch = Files.newByteChannel(
+                    NOT_TRUSTED_FILE_PATH,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.WRITE,
+                    StandardOpenOption.DELETE_ON_CLOSE);
+
+            // student code triggers the delete
+            FilesDeleteOnClose.closeChannelToDeleteFileInChannel(ch);
+
+        }, FilesDeleteOnClose.class);
     }
 
     /* -------------------------------------------------------------------- */
     /*  SecureDirectoryStream.deleteFile() – WALA variants                  */
     /* -------------------------------------------------------------------- */
 
+    @Disabled("This test is disabled because AspectJ does not test for parameterless methods.")
     @PublicTest
     @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
     void test_sdsDeleteFile_wala_aspectj() {
-        assertAresSecurityExceptionDelete(FilesDeleteSecureDirectory::accessFileSystemViaSecureDirectoryStreamDeleteFile, FilesDeleteSecureDirectory.class);
+        assertAresSecurityExceptionDelete(() -> {
+            try (SecureDirectoryStream<Path> secureDirectoryStream = openSecureDirectoryStream()) {
+                FilesDeleteSecureDirectory.accessFileSystemViaSecureDirectoryStreamDeleteFile(secureDirectoryStream);
+            }
+        }, FilesDeleteSecureDirectory.class);
     }
 
+
+    @Disabled("This test is disabled because testing in this manner is not possible. The trusted code opens the stream and closing it is seen as allowed delete." +
+            "Alternatively, creating the stream in the student code would violate read and not really test secureDirectoryStream.deleteFile()")
     @PublicTest
     @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
     void test_sdsDeleteFile_wala_instrumentation() {
-        assertAresSecurityExceptionDelete(FilesDeleteSecureDirectory::accessFileSystemViaSecureDirectoryStreamDeleteFile, FilesDeleteSecureDirectory.class);
+        assertAresSecurityExceptionDelete(() -> {
+            try (SecureDirectoryStream<Path> secureDirectoryStream = openSecureDirectoryStream()) {
+                FilesDeleteSecureDirectory.accessFileSystemViaSecureDirectoryStreamDeleteDirectory(secureDirectoryStream);
+            }
+        }, FilesDeleteSecureDirectory.class);
     }
 
     /* -------------------------------------------------------------------- */
     /*  SecureDirectoryStream.deleteDirectory()                             */
     /* -------------------------------------------------------------------- */
 
+
+    @Disabled("This test is disabled because testing in this manner is not possible. The trusted code opens the stream and closing it is seen as allowed delete." +
+            "Alternatively, creating the stream in the student code would violate read and not really test secureDirectoryStream.deleteDirectory()")
     @PublicTest
-    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE,
+            withinPath = FILES_DELETE_WITHIN_PATH)
     void test_sdsDeleteDirectory_archunit_aspectj() {
-        assertAresSecurityExceptionDelete(FilesDeleteSecureDirectory::accessFileSystemViaSecureDirectoryStreamDeleteDirectory, FilesDeleteSecureDirectory.class);
+        assertAresSecurityExceptionDelete(() -> {
+            try (SecureDirectoryStream<Path> secureDirectoryStream = openSecureDirectoryStream()) {
+                FilesDeleteSecureDirectory.accessFileSystemViaSecureDirectoryStreamDeleteDirectory(secureDirectoryStream);
+            }
+        }, FilesDeleteSecureDirectory.class);
     }
 
+
+    @Disabled("This test is disabled because testing in this manner is not possible. The trusted code opens the stream and closing it is seen as allowed delete." +
+            "Alternatively, creating the stream in the student code would violate read and not really test secureDirectoryStream.deleteDirectory()")
     @PublicTest
-    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE,
+            withinPath = FILES_DELETE_WITHIN_PATH)
     void test_sdsDeleteDirectory_archunit_instrumentation() {
-        assertAresSecurityExceptionDelete(FilesDeleteSecureDirectory::accessFileSystemViaSecureDirectoryStreamDeleteDirectory, FilesDeleteSecureDirectory.class);
+        assertAresSecurityExceptionDelete(() -> {
+            try (SecureDirectoryStream<Path> secureDirectoryStream = openSecureDirectoryStream()) {
+                FilesDeleteSecureDirectory.accessFileSystemViaSecureDirectoryStreamDeleteDirectory(secureDirectoryStream);
+            }
+        }, FilesDeleteSecureDirectory.class);
     }
 
+
+    @Disabled("This test is disabled because testing in this manner is not possible. The trusted code opens the stream and closing it is seen as allowed delete." +
+            "Alternatively, creating the stream in the student code would violate read and not really test secureDirectoryStream.deleteDirectory()")
     @PublicTest
-    @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE,
+            withinPath = FILES_DELETE_WITHIN_PATH)
     void test_sdsDeleteDirectory_wala_aspectj() {
-        assertAresSecurityExceptionDelete(FilesDeleteSecureDirectory::accessFileSystemViaSecureDirectoryStreamDeleteDirectory, FilesDeleteSecureDirectory.class);
+        assertAresSecurityExceptionDelete(() -> {
+            try (SecureDirectoryStream<Path> secureDirectoryStream = openSecureDirectoryStream()) {
+                FilesDeleteSecureDirectory.accessFileSystemViaSecureDirectoryStreamDeleteDirectory(secureDirectoryStream);
+            }
+        }, FilesDeleteSecureDirectory.class);
     }
 
+
+    @Disabled("This test is disabled because testing in this manner is not possible. The trusted code opens the stream and closing it is seen as allowed delete." +
+            "Alternatively, creating the stream in the student code would violate read and not really test secureDirectoryStream.deleteDirectory()")
     @PublicTest
-    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE,
+            withinPath = FILES_DELETE_WITHIN_PATH)
     void test_sdsDeleteDirectory_wala_instrumentation() {
-        assertAresSecurityExceptionDelete(FilesDeleteSecureDirectory::accessFileSystemViaSecureDirectoryStreamDeleteDirectory, FilesDeleteSecureDirectory.class);
+        assertAresSecurityExceptionDelete(() -> {
+            try (SecureDirectoryStream<Path> secureDirectoryStream = openSecureDirectoryStream()) {
+                FilesDeleteSecureDirectory.accessFileSystemViaSecureDirectoryStreamDeleteDirectory(secureDirectoryStream);
+            }
+        }, FilesDeleteSecureDirectory.class);
     }
 
     /* -------------------------------------------------------------------- */
@@ -272,5 +386,66 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
     @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = THIRD_PARTY_WITHIN_PATH)
     void test_thirdPartyDelete_wala_instrumentation() {
         assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ThirdPartyPackagePenguin.class);
+    }
+
+
+
+    @Disabled("This test is disabled because testing in this manner is not possible. FileSystemProvider.installedProviders() " +
+            "gets a violation whule trying to access java.net.URL.openConnection().")
+    @PublicTest
+    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE,
+            withinPath = FILES_DELETE_WITHIN_PATH)
+    void fileSystemProviderDelete_archunit_aspectj() {
+        // here we can test for read violations because we can assume that the student will need to import
+        // and scan through the file system provider to access the delete method.
+        // (FileSystemProvider.installedProviders() needs to be called)
+        assertAresSecurityExceptionRead(
+                DeleteThroughFileSystemProvider::accessFileSystemViaFileSystemProvider,
+                DeleteThroughFileSystemProvider.class);
+    }
+
+
+    @Disabled("This test is disabled because testing in this manner is not possible. FileSystemProvider.installedProviders() " +
+            "gets a violation whule trying to access java.net.URL.openConnection().")
+    @PublicTest
+    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE,
+            withinPath = FILES_DELETE_WITHIN_PATH)
+    void fileSystemProviderDelete_archunit_instrumentation() {
+        // here we can test for read violations because we can assume that the student will need to import
+        // and scan through the file system provider to access the delete method.
+        // (FileSystemProvider.installedProviders() needs to be called)
+        assertAresSecurityExceptionRead(
+                DeleteThroughFileSystemProvider::accessFileSystemViaFileSystemProvider,
+                DeleteThroughFileSystemProvider.class, NOT_TRUSTED_FILE_PATH);
+    }
+
+
+    @Disabled("This test is disabled because testing in this manner is not possible. FileSystemProvider.installedProviders() " +
+            "gets a violation whule trying to access java.net.URL.openConnection().")
+    @PublicTest
+    @Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE,
+            withinPath = FILES_DELETE_WITHIN_PATH)
+    void fileSystemProviderDelete_wala_aspectj() {
+        // here we can test for read violations because we can assume that the student will need to import
+        // and scan through the file system provider to access the delete method.
+        // (FileSystemProvider.installedProviders() needs to be called)
+        assertAresSecurityExceptionRead(
+                DeleteThroughFileSystemProvider::accessFileSystemViaFileSystemProvider,
+                DeleteThroughFileSystemProvider.class);
+    }
+
+
+    @Disabled("This test is disabled because testing in this manner is not possible. FileSystemProvider.installedProviders() " +
+            "gets a violation whule trying to access java.net.URL.openConnection().")
+    @PublicTest
+    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE,
+            withinPath = FILES_DELETE_WITHIN_PATH)
+    void fileSystemProviderDelete_wala_instrumentation() {
+        // here we can test for read violations because we can assume that the student will need to import
+        // and scan through the file system provider to access the delete method.
+        // (FileSystemProvider.installedProviders() needs to be called)
+        assertAresSecurityExceptionRead(
+                DeleteThroughFileSystemProvider::accessFileSystemViaFileSystemProvider,
+                DeleteThroughFileSystemProvider.class);
     }
 }
