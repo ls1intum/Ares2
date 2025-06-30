@@ -24,7 +24,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
     private static final String FILE_DELETE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/fileDelete";
     private static final String FILES_DELETE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/filesDelete";
     private static final String THIRD_PARTY_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/thirdPartyPackage";
-    private static final Path NOT_TRUSTED_DIR = Path.of("src/test/java/…/fileSystem/delete/nottrusteddir");
+    private static final Path NOT_TRUSTED_DIR = Path.of("test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/nottrusteddir");
     private static final Path NOT_TRUSTED_FILE_PATH = Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/nottrusteddir/nottrusted.txt");
 
 
