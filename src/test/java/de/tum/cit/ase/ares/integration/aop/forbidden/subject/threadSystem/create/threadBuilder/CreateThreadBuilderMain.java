@@ -1,7 +1,5 @@
 package de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.threadBuilder;
 
-import de.tum.cit.ase.ares.integration.aop.forbidden.subject.IllegalThread;
-
 public class CreateThreadBuilderMain {
 
     private CreateThreadBuilderMain() {
@@ -11,8 +9,8 @@ public class CreateThreadBuilderMain {
     /**
      * Tests Thread.Builder.start(Runnable) method
      */
-    public static void createThreadBuilder() {
-        Thread.Builder.OfPlatform builder = Thread.ofPlatform();
-        builder.start(new IllegalThread());
-    }
+    // public static void createThreadBuilder() {
+    //     Thread.Builder.OfPlatform builder = Thread.ofPlatform();
+    //     builder.start(new IllegalThread());
+    // }
 }

@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.architecture.java.wala;
 
 import com.google.common.collect.Iterables;
+import com.ibm.wala.classLoader.IMethod;
 import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.ibm.wala.shrike.shrikeCT.InvalidClassFileException;
@@ -30,12 +31,14 @@ public class WalaRule {
             return;
         }
         try {
+            IMethod.SourcePosition sourcePosition = reachableNodes.getLast().getMethod().getSourcePosition(0);
+            int lineNumber = sourcePosition != null ? sourcePosition.getFirstLine() : -1;
             throw new AssertionError(JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.method.call.message",
                     ruleName,
                     reachableNodes.getLast().getMethod().getSignature(),
                     reachableNodes.get(reachableNodes.size() - 2).getMethod().getSignature(),
                     reachableNodes.getLast().getMethod().getDeclaringClass().getName().getClassName().toString(),
-                    reachableNodes.getLast().getMethod().getSourcePosition(0).getFirstLine(),
+                    lineNumber,
                     reachableNodes.getFirst().getMethod().getSignature()
             ));
         } catch (InvalidClassFileException e) {

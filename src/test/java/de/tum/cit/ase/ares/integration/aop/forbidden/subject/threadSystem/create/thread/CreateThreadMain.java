@@ -12,14 +12,28 @@ public class CreateThreadMain {
      * Tests Thread.start() method
      */
     public static void startThread() {
-        Thread thread = new Thread(new IllegalThread());
+        Runnable r = new IllegalThread();
+        Thread thread = new Thread(r);
         thread.start();
     }
 
     /**
      * Tests Thread.startVirtualThread(Runnable) method
+     * COMMENTED OUT: Not in the original list of 20 methods
      */
-    public static void startVirtualThread() {
-        Thread.startVirtualThread(new IllegalThread());
+    // public static void startVirtualThread() {
+    //     Thread.startVirtualThread(new IllegalThread());
+    // }
+
+    /**
+     * Tests Thread.notify() method
+     */
+    public static void notifyThread() {
+        IllegalThread illegalThread = new IllegalThread();
+        Thread thread = new Thread(illegalThread);
+        synchronized (illegalThread) {
+            thread.start();
+            illegalThread.notify();
+        }
     }
 }

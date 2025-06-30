@@ -18,7 +18,9 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
 import javax.annotation.Nonnull;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -43,21 +45,26 @@ import java.util.stream.Stream;
 @SuppressWarnings("FieldCanBeLocal")
 public class JavaCreator implements Creator {
 
+    // Cache for storing supplier results based on classPath
+    private static final Map<String, Object> cache = new ConcurrentHashMap<>();
+
     //<editor-fold desc="Helper methods">
 
     // TODO Markus: Move to a better place
+
     /**
-     * Caches the result of a supplier to avoid recomputation.
+     * Caches the result of a supplier to avoid recomputation based on a classPath key.
      *
      * @since 2.0.0
      * @author Markus Paulsen
+     * @param classPath the classPath key to use for caching; must not be null
      * @param supplier the supplier to cache the result for; must not be null
      * @param <T> the type of the result
      * @return a supplier that returns the cached result; never null
      */
-    public static <T> Supplier<T> cacheResult(@Nonnull Supplier<T> supplier) {
-        @Nonnull final Object[] cache = {null};
-        return () -> (T) (cache[0] == null ? (cache[0] = supplier.get()) : cache[0]);
+    @SuppressWarnings("unchecked")
+    public static <T> Supplier<T> cacheResult(@Nonnull String classPath, @Nonnull Supplier<T> supplier) {
+        return () -> (T) cache.computeIfAbsent(classPath, k -> supplier.get());
     }
 
     /**
@@ -282,9 +289,9 @@ public class JavaCreator implements Creator {
     ) {
 
         //<editor-fold desc="Extraction">
-        @Nonnull String classPath = buildMode.getClasspath(projectPath);
-        @Nonnull JavaClasses javaClasses = cacheResult(() -> architectureMode.getJavaClasses(classPath)).get();
-        @Nonnull CallGraph callGraph = cacheResult(() -> architectureMode.getCallGraph(classPath)).get();
+        @Nonnull String classPath = cacheResult(projectPath + "_classPath", () -> buildMode.getClasspath(projectPath)).get();
+        @Nonnull JavaClasses javaClasses = cacheResult(projectPath + "_javaClasses", () -> architectureMode.getJavaClasses(classPath)).get();
+        @Nonnull CallGraph callGraph = cacheResult(projectPath + "_callGraph", () -> architectureMode.getCallGraph(classPath)).get();
         //</editor-fold>
 
         //<editor-fold desc="Preparation">

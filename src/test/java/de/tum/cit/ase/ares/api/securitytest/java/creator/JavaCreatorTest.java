@@ -83,7 +83,7 @@ public class JavaCreatorTest {
             when(mockSupplier.get()).thenReturn("cached_value");
 
             // Act
-            Supplier<String> cachedSupplier = JavaCreator.cacheResult(mockSupplier);
+            Supplier<String> cachedSupplier = JavaCreator.cacheResult("cached_value", mockSupplier);
             String firstCall = cachedSupplier.get();
             String secondCall = cachedSupplier.get();
 
@@ -102,7 +102,7 @@ public class JavaCreatorTest {
             when(mockSupplier.get()).thenReturn(null);
 
             // Act
-            Supplier<String> cachedSupplier = JavaCreator.cacheResult(mockSupplier);
+            Supplier<String> cachedSupplier = JavaCreator.cacheResult("cached_value", mockSupplier);
             String result = cachedSupplier.get();
 
             // Assert

@@ -2,7 +2,6 @@ package de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.create.
 
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.LegalThread;
 
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Callable;
@@ -15,26 +14,22 @@ public class CreateExecutorServiceMain {
         throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
     }
 
-    public static void createExecutorService() {
-        @SuppressWarnings("resource")
-        ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
-                1,
-                1,
-                0L,
-                java.util.concurrent.TimeUnit.MILLISECONDS,
-                new java.util.concurrent.LinkedBlockingQueue<>()
-        );
-        threadPoolExecutor.submit(new LegalThread());
+    /**
+     * Tests ExecutorService.execute(java.lang.Runnable) method
+     */
+    public static void executeRunnable() {
+        try (ExecutorService executorService = Executors.newSingleThreadExecutor()) {
+            executorService.execute(new LegalThread());
+        }
     }
 
     /**
-     * Tests ExecutorService.submit(Callable) method
+     * Tests ExecutorService.submit(Runnable) method
      */
-    public static void submitCallable() {
+    public static void submitRunnable() {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         try {
-            Callable<String> callable = () -> "test";
-            executorService.submit(callable);
+            executorService.submit(new LegalThread());
         } finally {
             executorService.shutdown();
         }
@@ -54,12 +49,13 @@ public class CreateExecutorServiceMain {
     }
 
     /**
-     * Tests ExecutorService.submit(Runnable) method
+     * Tests ExecutorService.submit(Callable) method
      */
-    public static void submitRunnable() {
+    public static void submitCallable() {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         try {
-            executorService.submit(new LegalThread());
+            Callable<String> callable = () -> "test";
+            executorService.submit(callable);
         } finally {
             executorService.shutdown();
         }
@@ -82,6 +78,22 @@ public class CreateExecutorServiceMain {
     }
 
     /**
+     * Tests ExecutorService.invokeAll(Collection, long, TimeUnit) method
+     */
+    public static void invokeAllWithTimeout() throws InterruptedException {
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        try {
+            Collection<Callable<String>> tasks = Arrays.asList(
+                    () -> "task1",
+                    () -> "task2"
+            );
+            executorService.invokeAll(tasks, 1000, java.util.concurrent.TimeUnit.MILLISECONDS);
+        } finally {
+            executorService.shutdown();
+        }
+    }
+
+    /**
      * Tests ExecutorService.invokeAny(Collection) method
      */
     public static void invokeAny() throws Exception {
@@ -92,6 +104,22 @@ public class CreateExecutorServiceMain {
                     () -> "task2"
             );
             executorService.invokeAny(tasks);
+        } finally {
+            executorService.shutdown();
+        }
+    }
+
+    /**
+     * Tests ExecutorService.invokeAny(Collection, long, TimeUnit) method
+     */
+    public static void invokeAnyWithTimeout() throws Exception {
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        try {
+            Collection<Callable<String>> tasks = Arrays.asList(
+                    () -> "task1",
+                    () -> "task2"
+            );
+            executorService.invokeAny(tasks, 1000, java.util.concurrent.TimeUnit.MILLISECONDS);
         } finally {
             executorService.shutdown();
         }

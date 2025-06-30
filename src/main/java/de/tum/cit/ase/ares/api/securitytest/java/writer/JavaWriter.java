@@ -55,7 +55,6 @@ public class JavaWriter implements Writer {
             @Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
             @Nullable Path testFolderPath
     ) {
-        var x = 0;
         return Stream.concat(
                 FileTools.copyFormatStringFiles(
                         architectureMode.filesToCopy(),

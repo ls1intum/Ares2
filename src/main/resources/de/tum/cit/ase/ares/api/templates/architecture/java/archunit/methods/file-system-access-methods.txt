@@ -19,7 +19,9 @@ java.io.FileInputStream
 java.io.FileOutputStream
 java.io.FilePermission
 java.io.FileReader
-java.io.FileSystem
+java.io.FileSystem.<init>()
+java.io.FileSystem.getFileStores()
+java.io.FileSystem.getRootDirectories()
 java.io.FileWriter
 java.io.PrintStream.<init>(java.io.File)
 java.io.PrintStream.<init>(java.io.File, java.lang.String)

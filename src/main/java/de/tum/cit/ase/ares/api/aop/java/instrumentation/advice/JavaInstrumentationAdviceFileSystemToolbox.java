@@ -56,7 +56,9 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
     @Nonnull
     private static final List<String> FILE_SYSTEM_IGNORE_CALLSTACK = List.of(
             "java.lang.ClassLoader",
-            "jdk.internal.loader.NativeLibraries"
+            "jdk.internal.loader.NativeLibraries",
+            "de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension",
+            "de.tum.cit.ase.ares.api.jqwik.JqwikSecurityExtension"
     );
 
     /**
@@ -495,7 +497,7 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
         } else {
             try {
                 Path observedPath = variableToPath(observedVariable);
-                if (checkIfPathIsForbidden(observedPath, allowedPaths)) {
+                if (checkIfPathIsForbidden(observedPath, allowedPaths) && observedPath != null) {
                     return observedPath.toString();
                 }
             } catch (InvalidPathException ignored) {

@@ -94,8 +94,8 @@ public final class WriteFilesWriteMain {
      */
     public static void accessFileSystemViaFilesCopyFromInputStream() throws IOException {
 
-        Path source = Path.of("/tempMethods.txt");
-        Path target = NOT_TRUSTED_FILE;
+        Path source = NOT_TRUSTED_FILE;
+        Path target = NOT_TRUSTED_COPY;
         Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
     }
 

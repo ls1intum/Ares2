@@ -7,7 +7,9 @@ import de.tum.cit.ase.ares.integration.aop.forbidden.subject.commandSystem.execu
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 
+@TestInstance(TestInstance.Lifecycle.PER_METHOD)
 class CommandSystemAccessTest extends SystemAccessTest {
 
     private static final String RUNTIME_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/commandSystem/execute/runtime";

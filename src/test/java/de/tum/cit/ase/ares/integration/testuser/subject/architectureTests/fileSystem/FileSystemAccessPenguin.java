@@ -1,14 +1,10 @@
 package de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.fileSystem;
 
-import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdpartypackage.ThirdPartyPackagePenguin;
-
-import javax.swing.*;
 import java.awt.*;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.*;
-import java.nio.file.spi.FileSystemProvider;
 
 import java.util.Scanner;
 import java.util.logging.FileHandler;

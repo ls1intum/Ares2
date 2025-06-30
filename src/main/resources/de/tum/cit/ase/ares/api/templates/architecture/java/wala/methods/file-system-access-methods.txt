@@ -193,9 +193,12 @@ sun.nio.fs.WindowsAclFileAttributeView.checkAccess(Lsun/nio/fs/WindowsPath;ZZ)
 sun.nio.fs.WindowsChannelFactory.open(Ljava/lang/String;Ljava/lang/String;Lsun/nio/fs/WindowsChannelFactory$Flags;J)
 sun.nio.fs.WindowsPath.checkWrite()
 sun.awt.windows.WPrinterJob.getPrintToFileEnabled()
-java.nio.file.FileSystem
+java.nio.file.FileSystem.close()
+java.nio.file.FileSystem.getFileStores()
+java.nio.file.FileSystem.getPath(Ljava/lang/String;[Ljava/lang/String;)
+java.nio.file.FileSystem.getRootDirectories()
+java.nio.file.FileSystem.newWatchService()
 java.nio.file.FileSystems
-sun.nio.fs.DefaultFileSystemProvider
 java.io.BufferedWriter.<init>(Ljava/io/Writer;I)
 java.io.BufferedWriter.<init>(Ljava/io/Writer)
 java.util.zip.GZIPOutputStream.<init>(Ljava/io/OutputStream;Z)

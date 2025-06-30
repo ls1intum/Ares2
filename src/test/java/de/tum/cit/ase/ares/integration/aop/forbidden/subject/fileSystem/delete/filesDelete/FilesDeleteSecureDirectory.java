@@ -25,7 +25,7 @@ public final class FilesDeleteSecureDirectory {
         Path dir  = Path.of(NOT_TRUSTED_FILE_DIR);
         Path file = Path.of(NOT_TRUSTED_FILE);
         if (secureDirectoryStream != null) {
-            secureDirectoryStream.deleteFile(file);
+            secureDirectoryStream.deleteFile(file.getFileName());
         } else {
             Files.delete(dir.resolve(file));
         }
