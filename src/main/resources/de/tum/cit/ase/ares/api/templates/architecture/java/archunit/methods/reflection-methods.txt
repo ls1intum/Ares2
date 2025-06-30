@@ -3,6 +3,7 @@ sun.misc.Unsafe
 java.lang.reflect
 java.lang.invoke
 jdk.internal.reflect.ReflectionFactory.newConstructorAccessor(java.lang.reflect.Constructor)
+java.lang.reflect.Method.invoke(java.lang.Object, [Ljava.lang.Object;)
 jdk.internal.reflect.ReflectionFactory.newFieldAccessor(java.lang.reflect.Field, boolean)
 java.lang.reflect.Field.getBoolean(java.lang.Object)
 java.lang.reflect.Field.setShort(java.lang.Object, short)
