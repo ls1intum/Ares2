@@ -9,7 +9,8 @@ import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdp
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-public class FileSystemAccessReadTest extends SystemAccessTest {    private static final String FILE_READER_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/reader/fileReader";
+public class FileSystemAccessReadTest extends SystemAccessTest {
+    private static final String FILE_READER_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/reader/fileReader";
     private static final String THIRD_PARTY_PACKAGE_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/thirdPartyPackage";
     private static final String FILES_READ_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead";
     
@@ -23,7 +24,9 @@ public class FileSystemAccessReadTest extends SystemAccessTest {    private stat
     @Test
     public void test_accessFileSystemViaFilesReadMavenArchunitAspectJ_test() {
         executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadMavenArchunitAspectJ");
-    }    @Disabled
+    }
+
+    @Disabled
     @PublicTest
     @Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = FILES_READ_PATH)
     public void test_accessFileSystemViaFilesReadMavenArchunitAspectJ() {
@@ -33,7 +36,9 @@ public class FileSystemAccessReadTest extends SystemAccessTest {    private stat
     @Test
     public void test_accessFileSystemViaFilesReadMavenArchunitInstrumentation_test() {
         executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadMavenArchunitInstrumentation");
-    }    @Disabled
+    }
+
+    @Disabled
     @PublicTest
     @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = FILES_READ_PATH)
     public void test_accessFileSystemViaFilesReadMavenArchunitInstrumentation() {
@@ -43,7 +48,9 @@ public class FileSystemAccessReadTest extends SystemAccessTest {    private stat
     @Test
     public void test_accessFileSystemViaFilesReadMavenWalaAspectJ_test() {
         executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadMavenWalaAspectJ");
-    }    @Disabled
+    }
+
+    @Disabled
     @PublicTest
     @Policy(value = WALA_ASPECTJ_POLICY, withinPath = FILES_READ_PATH)
     public void test_accessFileSystemViaFilesReadMavenWalaAspectJ() {
@@ -53,7 +60,9 @@ public class FileSystemAccessReadTest extends SystemAccessTest {    private stat
     @Test
     public void test_accessFileSystemViaFilesReadMavenWalaInstrumentation_test() {
         executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFilesReadMavenWalaInstrumentation");
-    }    @Disabled
+    }
+
+    @Disabled
     @PublicTest
     @Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = FILES_READ_PATH)
     public void test_accessFileSystemViaFilesReadMavenWalaInstrumentation() {
@@ -66,7 +75,9 @@ public class FileSystemAccessReadTest extends SystemAccessTest {    private stat
     @Test
     public void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ_test() {
         executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ");
-    }    @Disabled
+    }
+
+    @Disabled
     @PublicTest
     @Policy(value = WALA_ASPECTJ_POLICY, withinPath = THIRD_PARTY_PACKAGE_PATH)
     public void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ() {
@@ -77,7 +88,9 @@ public class FileSystemAccessReadTest extends SystemAccessTest {    private stat
     @Test
     public void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation_test() {
         executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation");
-    }    @Disabled
+    }
+
+    @Disabled
     @PublicTest
     @Policy(value = WALA_INSTRUMENTATION_POLICY_EVERYTHING_FORBIDDEN, withinPath = THIRD_PARTY_PACKAGE_PATH)
     public void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation() {
@@ -90,7 +103,9 @@ public class FileSystemAccessReadTest extends SystemAccessTest {    private stat
     @Test
     public void test_accessFileSystemViaFileReaderReadCharArrayMavenArchunitAspectJ_test() {
         executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFileReaderReadCharArrayMavenArchunitAspectJ");
-    }    @Disabled
+    }
+
+    @Disabled
     @PublicTest
     @Policy(value = ARCHUNIT_ASPECTJ_POLICY_EVERYTHING_FORBIDDEN, withinPath = FILE_READER_PATH)
     public void test_accessFileSystemViaFileReaderReadCharArrayMavenArchunitAspectJ() {
@@ -101,7 +116,9 @@ public class FileSystemAccessReadTest extends SystemAccessTest {    private stat
     @Test
     public void test_accessFileSystemViaFileReaderReadCharArrayMavenArchunitInstrumentation_test() {
         executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_accessFileSystemViaFileReaderReadCharArrayMavenArchunitInstrumentation");
-    }    @Disabled
+    }
+
+    @Disabled
     @PublicTest
     @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_EVERYTHING_FORBIDDEN, withinPath = FILE_READER_PATH)
     public void test_accessFileSystemViaFileReaderReadCharArrayMavenArchunitInstrumentation() {
