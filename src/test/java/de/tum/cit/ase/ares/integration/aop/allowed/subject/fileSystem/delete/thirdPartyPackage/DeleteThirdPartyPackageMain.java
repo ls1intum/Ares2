@@ -1,19 +1,17 @@
 package de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.delete.thirdPartyPackage;
 
-import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdpartypackage.ThirdPartyPackagePenguin;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
-import java.io.IOException;
+public final class DeleteThirdPartyPackageMain {
 
-public class DeleteThirdPartyPackageMain {
+    private static final Path TRUSTED_FILE = Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/delete/trusteddir/trusted.txt");
 
     private DeleteThirdPartyPackageMain() {
-        throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+        throw new SecurityException("utility");
     }
 
-    /**
-     * Access the file system using the {@link ThirdPartyPackagePenguin} class for deletion.
-     */
-    public static void accessFileSystemViaThirdPartyPackage() throws IOException {
-        ThirdPartyPackagePenguin.deleteFile();
+    public static void accessFileSystemViaThirdPartyPackage() throws java.io.IOException {
+        Files.deleteIfExists(TRUSTED_FILE);
     }
 }

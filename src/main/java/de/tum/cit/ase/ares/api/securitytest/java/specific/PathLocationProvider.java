@@ -37,7 +37,7 @@ public class PathLocationProvider implements LocationProvider {
      */
     @Override
     @Nonnull
-    public Set<Location> get(@Nonnull Class<?> testClass) {
+    public Set<Location> get(Class<?> testClass) {
         @Nonnull Class<?> protectedTestClass = Preconditions.checkNotNull(testClass, "testClass must not be null");
         if (!protectedTestClass.isAnnotationPresent(StudentCompiledClassesPath.class)) {
             throw new SecurityException(

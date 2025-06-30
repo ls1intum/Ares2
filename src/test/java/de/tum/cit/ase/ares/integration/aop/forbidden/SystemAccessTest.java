@@ -274,6 +274,18 @@ abstract class SystemAccessTest {
 
     /**
      * Test that the given executable throws a SecurityException with the expected
+     * message for file system read operations.
+     *
+     * @param executable The executable that should throw a SecurityException
+     * @param clazz      The class that performed the read operation
+     */
+    protected void assertAresSecurityExceptionRead(Executable executable, Class<?> clazz, Path expectedPath) {
+        SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable, ERROR_MESSAGE);
+        assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally read", "illegal read", clazz);
+    }
+
+    /**
+     * Test that the given executable throws a SecurityException with the expected
      * message for file system overwrite operations.
      *
      * @param executable The executable that should throw a SecurityException
@@ -283,6 +295,13 @@ abstract class SystemAccessTest {
         SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable, ERROR_MESSAGE);
         Path expectedPath = Paths.get("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration",
                 "aop", "forbidden", "subject", "nottrusted.txt");
+        assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally overwrite", "illegal overwrite", clazz);
+    }
+
+    protected void assertAresSecurityExceptionOverwrite(Executable executable, Class<?> clazz, Path expectedPath
+    ) {
+        SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable, ERROR_MESSAGE);
+
         assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally overwrite", "illegal overwrite", clazz);
     }
 
@@ -408,7 +427,14 @@ abstract class SystemAccessTest {
         SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable,
                 ERROR_MESSAGE);
         assertGeneralErrorMessageWithThread(securityException.getMessage(), "illegally create",
-                "illegal erstellt", clazz);
+                "illegal create", clazz);
+    }
+
+    protected void assertAresRuntimeExceptionThread(Executable executable, Class<?> clazz) {
+        RuntimeException runtimeException = Assertions.assertThrows(RuntimeException.class, executable,
+                ERROR_MESSAGE);
+        assertGeneralErrorMessageWithThread(runtimeException.getMessage(), "illegally create",
+                "illegal create", clazz);
     }
     //</editor-fold>
 }

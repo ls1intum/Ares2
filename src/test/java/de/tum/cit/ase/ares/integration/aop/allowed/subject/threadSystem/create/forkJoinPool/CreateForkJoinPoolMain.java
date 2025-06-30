@@ -4,7 +4,6 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Callable;
 
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.LegalThread;
-import de.tum.cit.ase.ares.integration.aop.forbidden.subject.IllegalThread;
 
 public class CreateForkJoinPoolMain {
 
@@ -13,30 +12,24 @@ public class CreateForkJoinPoolMain {
     }
 
     /**
-     * Tests ForkJoinPool.execute(Runnable) method
+     * Tests ForkJoinPool.commonPool().execute(Runnable) method
      */
-    public static void executeRunnable() {
-        try (ForkJoinPool forkJoinPool = new ForkJoinPool()) {
-            forkJoinPool.execute(new IllegalThread());
-        }
+    public static void commonPoolExecute() {
+        ForkJoinPool.commonPool().execute(new LegalThread());
     }
 
     /**
-     * Tests ForkJoinPool.submit(Runnable) method
+     * Tests ForkJoinPool.commonPool().submit(Callable) method
      */
-    public static void submitRunnable() {
-        try (ForkJoinPool forkJoinPool = new ForkJoinPool()) {
-            forkJoinPool.submit(new LegalThread());
-        }
+    public static void commonPoolSubmitCallableTask() {
+        Callable<String> callable = () -> "test";
+        ForkJoinPool.commonPool().submit(callable);
     }
 
     /**
-     * Tests ForkJoinPool.submit(Callable) method
+     * Tests ForkJoinPool.commonPool().submit(Runnable) method
      */
-    public static void submitCallable() {
-        try (ForkJoinPool forkJoinPool = new ForkJoinPool()) {
-            Callable<String> callable = () -> "test";
-            forkJoinPool.submit(callable);
-        }
+    public static void commonPoolSubmitRunnable() {
+        ForkJoinPool.commonPool().submit(new LegalThread());
     }
 }

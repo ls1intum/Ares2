@@ -22,7 +22,7 @@ public class CreateParallelStreamMain {
      * Tests Stream.parallel() method
      */
     public static void streamParallel() {
-        Stream<String> stream = Arrays.asList("a", "b", "c").stream();
+        Stream<String> stream = Stream.of("a", "b", "c");
         stream.parallel().forEach(System.out::println);
     }
 }

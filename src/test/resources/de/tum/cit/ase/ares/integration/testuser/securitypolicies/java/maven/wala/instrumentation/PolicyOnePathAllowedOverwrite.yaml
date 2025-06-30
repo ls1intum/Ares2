@@ -4,6 +4,11 @@ regardingTheSupervisedCode:
   theMainClassInsideThisPackageIs: "Main"
   theFollowingClassesAreTestClasses:
     - "de.tum.cit.ase.ares.integration.architecture.forbidden.FileSystemAccessOverwriteTest"
+    - "de.tum.cit.ase.ares.integration.aop.forbidden.FileAccessCommonOverwriteTest"
+    - "de.tum.cit.ase.ares.integration.aop.forbidden.FileSystemAccessOverwriteTest"
+    - "de.tum.cit.ase.ares.integration.aop.allowed.SystemAccessTest"
+    - "de.tum.cit.ase.ares.integration.aop.forbidden.SystemAccessTest"
+    - "de.tum.cit.ase.ares.integration.architecture.forbidden.SystemAccessTest"
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions:
       - readAllFiles: false

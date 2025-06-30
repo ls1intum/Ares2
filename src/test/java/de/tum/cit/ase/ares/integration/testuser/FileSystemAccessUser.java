@@ -1,12 +1,7 @@
 package de.tum.cit.ase.ares.integration.testuser;
 
-import static org.junit.Assert.fail;
-
 import java.io.IOException;
-import java.nio.file.*;
 import java.util.concurrent.TimeUnit;
-
-import de.tum.cit.ase.ares.api.jupiter.BenchmarkExtension;
 import org.junit.jupiter.api.MethodOrderer.MethodName;
 import org.junit.jupiter.api.TestMethodOrder;
 
@@ -15,7 +10,6 @@ import de.tum.cit.ase.ares.api.MirrorOutput.MirrorOutputPolicy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
 import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.fileSystem.FileSystemAccessPenguin;
-import org.junit.jupiter.api.extension.ExtendWith;
 
 @UseLocale("en")
 @MirrorOutput(MirrorOutputPolicy.DISABLED)

@@ -1,10 +1,5 @@
 package de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.create.scheduledThreadPoolExecutor;
 
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.Callable;
-
-import de.tum.cit.ase.ares.integration.aop.allowed.subject.LegalThread;
-
 public class CreateScheduledThreadPoolExecutorMain {
 
     private CreateScheduledThreadPoolExecutorMain() {
@@ -14,37 +9,37 @@ public class CreateScheduledThreadPoolExecutorMain {
     /**
      * Tests ScheduledThreadPoolExecutor.execute(Runnable) method
      */
-    public static void executeRunnable() {
-        ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
-        try {
-            scheduledThreadPoolExecutor.execute(new LegalThread());
-        } finally {
-            scheduledThreadPoolExecutor.shutdown();
-        }
-    }
+    // public static void executeRunnable() {
+    //     ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
+    //     try {
+    //         scheduledThreadPoolExecutor.execute(new LegalThread());
+    //     } finally {
+    //         scheduledThreadPoolExecutor.shutdown();
+    //     }
+    // }
 
     /**
      * Tests ScheduledThreadPoolExecutor.submit(Runnable) method
      */
-    public static void submitRunnable() {
-        ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
-        try {
-            scheduledThreadPoolExecutor.submit(new LegalThread());
-        } finally {
-            scheduledThreadPoolExecutor.shutdown();
-        }
-    }
+    // public static void submitRunnable() {
+    //     ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
+    //     try {
+    //         scheduledThreadPoolExecutor.submit(new LegalThread());
+    //     } finally {
+    //         scheduledThreadPoolExecutor.shutdown();
+    //     }
+    // }
 
     /**
      * Tests ScheduledThreadPoolExecutor.submit(Callable) method
      */
-    public static void submitCallable() {
-        ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
-        Callable<String> callable = () -> "test";
-        try {
-            scheduledThreadPoolExecutor.submit(callable);
-        } finally {
-            scheduledThreadPoolExecutor.shutdown();
-        }
-    }
+    // public static void submitCallable() {
+    //     ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
+    //     Callable<String> callable = () -> "test";
+    //     try {
+    //         scheduledThreadPoolExecutor.submit(callable);
+    //     } finally {
+    //         scheduledThreadPoolExecutor.shutdown();
+    //     }
+    // }
 }

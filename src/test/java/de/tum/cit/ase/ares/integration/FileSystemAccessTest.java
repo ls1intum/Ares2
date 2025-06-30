@@ -23,9 +23,6 @@ import org.slf4j.LoggerFactory;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.util.Map;
-import java.util.TreeMap;
 
 /**
  * This test class tests the file system access of the test user.

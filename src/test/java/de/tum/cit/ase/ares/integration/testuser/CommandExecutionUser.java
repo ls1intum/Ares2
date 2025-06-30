@@ -5,10 +5,7 @@ import de.tum.cit.ase.ares.api.jupiter.Public;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
 import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.TestMethodOrder;
-
-import java.io.IOException;
 
 @Public
 @UseLocale("en")
@@ -23,7 +20,6 @@ public class CommandExecutionUser {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/commandexecution")
     void testExecuteCommand() {
-        var x = 0;
         // do nothing
     }
 }

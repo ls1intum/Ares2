@@ -3,7 +3,6 @@ package de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.create.
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.Callable;
 
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.LegalThread;
 
@@ -21,33 +20,29 @@ public class CreateThreadPoolExecutorMain {
                 1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>()
         )) {
             threadPoolExecutor.execute(new LegalThread());
-            threadPoolExecutor.shutdown();
-            threadPoolExecutor.awaitTermination(1, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
         }
     }
 
     /**
      * Tests ThreadPoolExecutor.submit(Runnable) method
      */
-    public static void submitRunnable() {
-        @SuppressWarnings("resource")
-        ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
-                1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>()
-        );
-        threadPoolExecutor.submit(new LegalThread());
-    }
+    // public static void submitRunnable() {
+    //     try (ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
+    //             1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>()
+    //     )) {
+    //         threadPoolExecutor.submit(new LegalThread());
+    //     }
+    // }
 
     /**
      * Tests ThreadPoolExecutor.submit(Callable) method
      */
-    public static void submitCallable() {
-        @SuppressWarnings("resource")
-        ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
-                1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>()
-        );
-        Callable<String> callable = () -> "test";
-        threadPoolExecutor.submit(callable);
-    }
+    // public static void submitCallable() {
+    //     try (ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
+    //             1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>()
+    //     )) {
+    //         Callable<String> callable = () -> "test";
+    //         threadPoolExecutor.submit(callable);
+    //     }
+    // }
 }

@@ -1,7 +1,5 @@
 package de.tum.cit.ase.ares.api.internal;
 
-import static de.tum.cit.ase.ares.api.localization.Messages.localized;
-
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 

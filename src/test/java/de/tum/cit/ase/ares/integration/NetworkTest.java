@@ -9,7 +9,6 @@ import org.junit.platform.testkit.engine.Events;
 
 import de.tum.cit.ase.ares.integration.testuser.NetworkUser;
 import de.tum.cit.ase.ares.testutilities.*;
-import de.tum.cit.ase.ares.testutilities.CustomConditions.Option;
 
 @UserBased(NetworkUser.class)
 class NetworkTest {
