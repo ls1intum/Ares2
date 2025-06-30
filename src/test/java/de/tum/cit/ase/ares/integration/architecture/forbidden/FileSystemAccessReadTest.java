@@ -2,9 +2,9 @@ package de.tum.cit.ase.ares.integration.architecture.forbidden;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
-import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.reader.fileReader.FileReaderReadMain;
-import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.files.FilesReadMain;
-import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.thirdPartyPackage.ReadThirdPartyPackageMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.oldMethods.reader.fileReader.FileReaderReadMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.oldMethods.files.FilesReadMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.oldMethods.thirdPartyPackage.ReadThirdPartyPackageMain;
 import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdpartypackage.ThirdPartyPackagePenguin;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
