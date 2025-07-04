@@ -1,5 +1,7 @@
 package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -47,6 +49,34 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
     @Nonnull
     public static CommandPermission createRestrictive(@Nonnull String executeTheCommand) {
         return builder().executeTheCommand(Objects.requireNonNull(executeTheCommand, "executeTheCommand must not be null")).withTheseArguments(new ArrayList<>()).build();
+    }
+
+    /**
+     * Creates a CommandPermission from a string command.
+     * This method is used by Jackson for JSON/YAML deserialization.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @param command the command string
+     * @return a new CommandPermission instance with empty arguments
+     */
+    @JsonCreator
+    @Nonnull
+    public static CommandPermission fromString(String command) {
+        return createRestrictive(command);
+    }
+
+    /**
+     * Returns the command as a string for JSON/YAML serialization.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     * @return the command string
+     */
+    @JsonValue
+    @Nonnull
+    public String toString() {
+        return executeTheCommand;
     }
 
     /**

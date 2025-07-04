@@ -9,7 +9,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.nio.file.InvalidPathException;
+import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -312,27 +312,26 @@ public class JavaInstrumentationAdviceCommandSystemToolbox {
     //<editor-fold desc="Forbidden handling">
 
     /**
-     * Checks if a class name is outside of the allowed paths whitelist.
+     * Checks if a class name is outside of the allowed commands whitelist.
      *
-     * <p>Description: Returns true if allowedPaths not null or if the given path does not match one of the allowedPatterns.
+     * <p>Description: Returns true if allowedCommands not null or if the given command does not match one of the allowedPatterns.
      *
      * @since 2.0.0
      * @author Markus
      * @param actualFullCommand the class name of the command being requested
      * @param commandsAllowedToBeExecuted the command classes that are allowed to be created
      * @param argumentsAllowedToBePassed the number of commands allowed to be created
-     * @return true if path is forbidden; false otherwise
+     * @return true if command is forbidden; false otherwise
      */
-    private static boolean checkIfCommandIsForbidden(@Nullable String actualFullCommand, @Nullable String[] commandsAllowedToBeExecuted, @Nullable String[][] argumentsAllowedToBePassed) {
-        if (actualFullCommand == null) {
+    private static boolean checkIfCommandIsForbidden(@Nullable String[] actualFullCommand, @Nullable String[] commandsAllowedToBeExecuted, @Nullable String[][] argumentsAllowedToBePassed) {
+        if (actualFullCommand == null || actualFullCommand.length == 0) {
             return false;
         }
         if (commandsAllowedToBeExecuted == null || commandsAllowedToBeExecuted.length == 0 || argumentsAllowedToBePassed == null || argumentsAllowedToBePassed.length == 0) {
             return true;
         }
-        @Nonnull String[] actualCommandSplit = actualFullCommand.split(" ");
-        @Nullable String actualCommand = actualCommandSplit[0];
-        @Nullable String[] actualArguments = actualCommandSplit.length > 1 ? Arrays.copyOfRange(actualCommandSplit, 1, actualCommandSplit.length) : new String[0];
+        @Nullable String actualCommand = actualFullCommand[0];
+        @Nullable String[] actualArguments = actualFullCommand.length > 1 ? Arrays.copyOfRange(actualFullCommand, 1, actualFullCommand.length) : new String[0];
         for (int i = 0; i < commandsAllowedToBeExecuted.length; i++) {
             @Nonnull String allowedCommand = commandsAllowedToBeExecuted[i];
             @Nullable String[] allowedArguments = argumentsAllowedToBePassed[i];
@@ -352,13 +351,15 @@ public class JavaInstrumentationAdviceCommandSystemToolbox {
      * @return the command string representation of the variable value
      */
     @Nonnull
-    private static String variableToCommand(@Nullable Object variableValue) {
+    private static String[] variableToCommand(@Nullable Object variableValue) {
         if (variableValue == null) {
-            throw new InvalidPathException("null", localize("security.advice.transform.path.exception"));
-        } else if (variableValue instanceof String && ((String) variableValue).isEmpty()) {
-            return (String) variableValue;
+            throw new InvalidParameterException("Value is null.");
+        } else if (variableValue instanceof String[] && ((String[]) variableValue).length != 0) {
+            return (String[]) variableValue;
+        } else if (variableValue instanceof List<?> && !((List<?>) variableValue).isEmpty() && ((List<?>) variableValue).stream().allMatch(e -> e instanceof String)) {
+            return ((List<String>) variableValue).toArray(new String[0]);
         } else {
-            throw new InvalidPathException(variableValue.toString(), localize("security.advice.transform.path.exception"));
+            throw new InvalidParameterException();
         }
     }
     //</editor-fold>
@@ -366,10 +367,10 @@ public class JavaInstrumentationAdviceCommandSystemToolbox {
     //<editor-fold desc="Violation analysis">
 
     /**
-     * Analyzes a variable to determine if it violates allowed paths.
+     * Analyzes a variable to determine if it violates allowed commands.
      *
      * <p>Description: Recursively checks if the variable or its elements (if an array or List)
-     * are in violation of the allowed paths. Returns true if any element is forbidden.
+     * are in violation of the allowed commands. Returns true if any element is forbidden.
      *
      * @since 2.0.0
      * @author Markus
@@ -382,84 +383,63 @@ public class JavaInstrumentationAdviceCommandSystemToolbox {
         if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
             return false;
         } else if (observedVariable.getClass().isArray()) {
-            for (int i = 0; i < Array.getLength(observedVariable); i++) {
-                Object element = Array.get(observedVariable, i);
-                if (analyseViolation(element, commandsAllowedToBeExecuted, argumentsAllowedToBePassed)) {
-                    return true;
-                }
-            }
-            return false;
-        } else if (observedVariable instanceof List<?>) {
-            for (Object element : (List<?>) observedVariable) {
-                if (analyseViolation(element, commandsAllowedToBeExecuted, argumentsAllowedToBePassed)) {
-                    return true;
-                }
-            }
-            return false;
-        } else {
             try {
-                String observedClassname = variableToCommand(observedVariable);
-                return checkIfCommandIsForbidden(observedClassname, commandsAllowedToBeExecuted, argumentsAllowedToBePassed);
-            } catch (InvalidPathException ignored) {
+                String[] observedCommand = variableToCommand(observedVariable);
+                return checkIfCommandIsForbidden(observedCommand, commandsAllowedToBeExecuted, argumentsAllowedToBePassed);
+            } catch (InvalidParameterException ignored) {
+                return false;
+            }
+        } else if (observedVariable instanceof List<?>) {
+            try {
+                String[] observedCommand = variableToCommand(observedVariable);
+                return checkIfCommandIsForbidden(observedCommand, commandsAllowedToBeExecuted, argumentsAllowedToBePassed);
+            } catch (InvalidParameterException ignored) {
                 return false;
             }
         }
+        return false;
     }
 
     /**
-     * Extracts and returns the first violating path string from an array or list variable.
+     * Extracts and returns the first violating command string from an array or list variable.
      *
-     * <p>Description: Iterates through the variable’s elements (array or List), converts each to a Path if possible,
-     * and returns the string of the first path that does not satisfy the allowedPaths whitelist.
+     * <p>Description: Iterates through the variable’s elements (array or List), converts each to a Command if possible,
+     * and returns the string of the first command that does not satisfy the allowedCommands whitelist.
      *
      * @since 2.0.0
      * @author Markus
      * @param observedVariable     the array or List to inspect
      * @param commandsAllowedToBeExecuted the command classes that are allowed to be created
      * @param argumentsAllowedToBePassed the number of commands allowed to be created
-     * @return the first violating path as a String, or null if none found
+     * @return the first violating command as a String, or null if none found
      */
     @Nullable
-    private static String extractViolationPath(@Nullable Object observedVariable, @Nullable String[] commandsAllowedToBeExecuted, @Nullable String[][] argumentsAllowedToBePassed) {
+    private static String[] extractViolationCommand(@Nullable Object observedVariable, @Nullable String[] commandsAllowedToBeExecuted, @Nullable String[][] argumentsAllowedToBePassed) {
         if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
             return null;
         } else if (observedVariable.getClass().isArray()) {
-            for (int i = 0; i < Array.getLength(observedVariable); i++) {
-                Object element = Array.get(observedVariable, i);
-                String violationPath = extractViolationPath(element, commandsAllowedToBeExecuted, argumentsAllowedToBePassed);
-                if (violationPath != null) {
-                    return violationPath;
-                }
+            String[] violationCommand = extractViolationCommand(observedVariable, commandsAllowedToBeExecuted, argumentsAllowedToBePassed);
+            if (violationCommand != null) {
+                return violationCommand;
             }
             return null;
         } else if (observedVariable instanceof List<?>) {
-            for (Object element : (List<?>) observedVariable) {
-                String violationPath = extractViolationPath(element, commandsAllowedToBeExecuted, argumentsAllowedToBePassed);
-                if (violationPath != null) {
-                    return violationPath;
-                }
+            String[] violationCommand = extractViolationCommand(observedVariable, commandsAllowedToBeExecuted, argumentsAllowedToBePassed);
+            if (violationCommand != null) {
+                return violationCommand;
             }
             return null;
-        } else {
-            try {
-                String observedClassname = variableToCommand(observedVariable);
-                if (checkIfCommandIsForbidden(observedClassname, commandsAllowedToBeExecuted, argumentsAllowedToBePassed)) {
-                    return observedClassname;
-                }
-            } catch (InvalidPathException ignored) {
-                return null;
-            }
         }
         return null;
     }
 
     /**
-     * Checks an array of observedVariables against allowed file system paths.
+     * Checks an array of observedVariables against allowed file system commands.
      *
      * <p>Description: Iterates through the filtered observedVariables (excluding those matching ignoreVariables). For each
-     * non-null variable, if it is an array or a List (excluding byte[]/Byte[]), each element is converted to a Path
-     * and tested against allowedPaths. Otherwise, the variable itself is converted to a Path and tested. The first
-     * violating path found is returned.
+     * non-null variable, if it is an array or a List (excluding byte[]/Byte[]), each element is converted to a Command
+     * and tested against allowedCommands. Otherwise, the variable itself is converted to a Command and tested. The first
+     * violating command found is returned.
      *
      * @since 2.0.0
      * @author Markus
@@ -467,9 +447,9 @@ public class JavaInstrumentationAdviceCommandSystemToolbox {
      * @param commandsAllowedToBeExecuted whitelist of allowed command classes
      * @param argumentsAllowedToBePassed the number of commands allowed to be created
      * @param ignoreVariables criteria determining which observedVariables to skip
-     * @return the first path (as String) that is not allowed, or null if none violate
+     * @return the first command (as String) that is not allowed, or null if none violate
      */
-    private static String checkIfVariableCriteriaIsViolated(
+    private static String[] checkIfVariableCriteriaIsViolated(
             @Nonnull Object[] observedVariables,
             @Nullable String[] commandsAllowedToBeExecuted,
             @Nullable String[][] argumentsAllowedToBePassed,
@@ -477,7 +457,7 @@ public class JavaInstrumentationAdviceCommandSystemToolbox {
     ) {
         for (@Nullable Object observedVariable : filterVariables(observedVariables, ignoreVariables)) {
             if (analyseViolation(observedVariable, commandsAllowedToBeExecuted, argumentsAllowedToBePassed)) {
-                return extractViolationPath(observedVariable, commandsAllowedToBeExecuted, argumentsAllowedToBePassed);
+                return extractViolationCommand(observedVariable, commandsAllowedToBeExecuted, argumentsAllowedToBePassed);
             }
         }
         return null;
@@ -540,13 +520,13 @@ public class JavaInstrumentationAdviceCommandSystemToolbox {
         }
         //</editor-fold>
         //<editor-fold desc="Check parameters">
-        @Nullable String commandIllegallyExecutedThroughParameter = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, commandsAllowedToBeExecuted, argumentsAllowedToBePassed, COMMAND_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
+        @Nullable String[] commandIllegallyExecutedThroughParameter = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, commandsAllowedToBeExecuted, argumentsAllowedToBePassed, COMMAND_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
         if (commandIllegallyExecutedThroughParameter != null) {
             throw new SecurityException(localize("security.advice.illegal.method.execution", commandSystemMethodToCheck, action, commandIllegallyExecutedThroughParameter, fullMethodSignature));
         }
         //</editor-fold>
         //<editor-fold desc="Check attributes">
-        @Nullable String commandIllegallyExecutedThroughAttribute = (attributes == null || attributes.length == 0) ? null : checkIfVariableCriteriaIsViolated(new Object[]{declaringTypeName}, commandsAllowedToBeExecuted, argumentsAllowedToBePassed, COMMAND_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
+        @Nullable String[] commandIllegallyExecutedThroughAttribute = (attributes == null || attributes.length == 0) ? null : checkIfVariableCriteriaIsViolated(attributes, commandsAllowedToBeExecuted, argumentsAllowedToBePassed, COMMAND_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
         if (commandIllegallyExecutedThroughAttribute != null) {
             throw new SecurityException(localize("security.advice.illegal.method.execution", commandSystemMethodToCheck, action, commandIllegallyExecutedThroughAttribute, fullMethodSignature));
         }

@@ -16,4 +16,55 @@ public class ExecuteRuntimeMain {
         Runtime runtime = Runtime.getRuntime();
         return runtime.exec(command);
     }
+
+    /**
+     * Execute a command using the {@link Runtime} class without parameters.
+     */
+    @SuppressWarnings("deprecation")
+    public static Process executeCommandViaRuntime() throws IOException {
+        Runtime runtime = Runtime.getRuntime();
+        return runtime.exec("echo hello");
+    }
+
+    /**
+     * Execute a command using the {@link Runtime} class with arguments.
+     */
+    @SuppressWarnings("deprecation")
+    public static Process executeCommandViaRuntimeWithArgs() throws IOException {
+        Runtime runtime = Runtime.getRuntime();
+        return runtime.exec("echo hello", new String[]{"world"});
+    }
+
+    /**
+     * Execute a command using the {@link Runtime} class with file parameter.
+     */
+    @SuppressWarnings("deprecation")
+    public static Process executeCommandViaRuntimeWithFile() throws IOException {
+        Runtime runtime = Runtime.getRuntime();
+        return runtime.exec("echo hello", new String[]{"world"}, new java.io.File("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject"));
+    }
+
+    /**
+     * Execute a command using the {@link Runtime} class with array parameter.
+     */
+    public static Process executeCommandViaRuntimeArray() throws IOException {
+        Runtime runtime = Runtime.getRuntime();
+        return runtime.exec(new String[]{"echo", "hello"});
+    }
+
+    /**
+     * Execute a command using the {@link Runtime} class with array and arguments.
+     */
+    public static Process executeCommandViaRuntimeArrayWithArgs() throws IOException {
+        Runtime runtime = Runtime.getRuntime();
+        return runtime.exec(new String[]{"echo", "hello"}, new String[]{"world"});
+    }
+
+    /**
+     * Execute a command using the {@link Runtime} class with array and file.
+     */
+    public static Process executeCommandViaRuntimeArrayWithFile() throws IOException {
+        Runtime runtime = Runtime.getRuntime();
+        return runtime.exec(new String[]{"echo", "hello"}, new String[]{"world"}, new java.io.File("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject"));
+    }
 }

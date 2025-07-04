@@ -15,4 +15,11 @@ public class ExecuteProcessBuilderMain {
         ProcessBuilder processBuilder = new ProcessBuilder(filePath);
         processBuilder.start();
     }
+
+    /**
+     * Access the file system using the {@link ProcessBuilder} class for execution with default command.
+     */
+    public static void accessFileSystemViaProcessBuilder() throws IOException {
+        accessFileSystemViaProcessBuilder("echo");
+    }
 }

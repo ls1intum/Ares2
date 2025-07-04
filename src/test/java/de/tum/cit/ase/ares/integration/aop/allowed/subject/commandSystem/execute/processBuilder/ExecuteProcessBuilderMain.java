@@ -15,4 +15,12 @@ public class ExecuteProcessBuilderMain {
         ProcessBuilder processBuilder = new ProcessBuilder(command);
         return processBuilder.start();
     }
+
+    /**
+     * Execute a command using the {@link ProcessBuilder} class with default command.
+     */
+    public static Process executeCommandViaProcessBuilder() throws IOException {
+        ProcessBuilder processBuilder = new ProcessBuilder("echo", "hello");
+        return processBuilder.start();
+    }
 }

@@ -16,4 +16,11 @@ public class ExecuteThirdPartyPackageMain {
     public static void accessFileSystemViaThirdPartyPackage(String filePath) throws IOException {
         ThirdPartyPackagePenguin.executeFile();
     }
+
+    /**
+     * Access the file system using the {@link ThirdPartyPackagePenguin} class for execution with default file.
+     */
+    public static void accessFileSystemViaThirdPartyPackage() throws IOException {
+        accessFileSystemViaThirdPartyPackage("test.txt");
+    }
 }

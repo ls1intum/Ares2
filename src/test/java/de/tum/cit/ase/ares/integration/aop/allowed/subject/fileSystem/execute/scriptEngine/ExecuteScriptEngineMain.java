@@ -23,4 +23,11 @@ public class ExecuteScriptEngineMain {
             engine.eval(reader);
         }
     }
+
+    /**
+     * Access the file system using the {@link ScriptEngine} for execution with default script.
+     */
+    public static void accessFileSystemViaScriptEngine() throws IOException, ScriptException {
+        accessFileSystemViaScriptEngine("test.js");
+    }
 }
