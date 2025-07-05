@@ -163,7 +163,8 @@ public class JavaWalaTestCaseCollection {
             "java.lang.Class.getDeclaredField",
             "java.lang.reflect.Method.invoke",
             "java.lang.Class.checkMemberAccess",
-            "java.lang.Thread.getContextClassLoader"
+            "java.lang.Thread.getContextClassLoader",
+            "java.lang.Class.getClassLoader"
     );
 
     /**
