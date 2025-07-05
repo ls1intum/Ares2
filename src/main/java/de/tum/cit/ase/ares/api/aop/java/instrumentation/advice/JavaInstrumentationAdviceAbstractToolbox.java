@@ -252,14 +252,13 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
                 break;
             // All variables except the one at the given index are ignored
             case ALL_EXCEPT:
-case ALL_EXCEPT:
-    if (ignoreVariables.getIndex() < 0 || ignoreVariables.getIndex() >= newVariables.size()) {
-        throw new IllegalArgumentException("Invalid index: " + ignoreVariables.getIndex());
-    }
-    @Nonnull Object toKeep = newVariables.get(ignoreVariables.getIndex());
-    newVariables.clear();
-    newVariables.add(toKeep);
-    break;
+                if (ignoreVariables.getIndex() < 0 || ignoreVariables.getIndex() >= newVariables.size()) {
+                    throw new IllegalArgumentException("Invalid index: " + ignoreVariables.getIndex());
+                }
+                @Nonnull Object toKeep = newVariables.get(ignoreVariables.getIndex());
+                newVariables.clear();
+                newVariables.add(toKeep);
+                break;
             case NONE_EXCEPT:
                 newVariables.remove(ignoreVariables.getIndex());
                 break;
