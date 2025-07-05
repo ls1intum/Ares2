@@ -23,11 +23,6 @@ public class RuntimeExecuteMain {
         return runtime.exec("forbidden-command", new String[]{"x"});
     }
 
-    public static Process executeCommandViaRuntimeWithFile() throws IOException {
-        Runtime runtime = Runtime.getRuntime();
-        return runtime.exec("forbidden-command", new String[]{"x"}, new File("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject"));
-    }
-
     public static Process executeCommandViaRuntimeArray() throws IOException {
        Runtime runtime = Runtime.getRuntime();
        return runtime.exec(new String[]{"forbidden-command"});
@@ -36,10 +31,5 @@ public class RuntimeExecuteMain {
     public static Process executeCommandViaRuntimeArrayWithArgs() throws IOException {
         Runtime runtime = Runtime.getRuntime();
         return runtime.exec("forbidden-command", new String[]{"x"});
-    }
-
-    public static Process executeCommandViaRuntimeArrayWithFile() throws IOException {
-        Runtime runtime = Runtime.getRuntime();
-        return runtime.exec("forbidden-command", new String[]{"x"}, new File("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject"));
     }
 }

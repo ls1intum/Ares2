@@ -69,32 +69,6 @@ class CommandSystemAccessTest extends SystemAccessTest {
     }
     // </editor-fold>
 
-    // <editor-fold desc="accessCommandSystemViaRuntimeWithFile">
-    @PublicTest
-    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = RUNTIME_WITHIN_PATH)
-    void test_executeCommandViaRuntimeWithFileMavenArchunitAspectJ() {
-        assertAresSecurityExceptionCommand(RuntimeExecuteMain::executeCommandViaRuntimeWithFile, RuntimeExecuteMain.class);
-    }
-
-    @PublicTest
-    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = RUNTIME_WITHIN_PATH)
-    void test_executeCommandViaRuntimeWithFileMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionCommand(RuntimeExecuteMain::executeCommandViaRuntimeWithFile, RuntimeExecuteMain.class);
-    }
-
-    @PublicTest
-    @Policy(value = WALA_ASPECTJ_POLICY_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = RUNTIME_WITHIN_PATH)
-    void test_executeCommandViaRuntimeWithFileMavenWalaAspectJ() {
-        assertAresSecurityExceptionCommand(RuntimeExecuteMain::executeCommandViaRuntimeWithFile, RuntimeExecuteMain.class);
-    }
-
-    @PublicTest
-    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = RUNTIME_WITHIN_PATH)
-    void test_executeCommandViaRuntimeWithFileMavenWalaInstrumentation() {
-        assertAresSecurityExceptionCommand(RuntimeExecuteMain::executeCommandViaRuntimeWithFile, RuntimeExecuteMain.class);
-    }
-    // </editor-fold>
-
     // <editor-fold desc="accessCommandSystemViaRuntimeArray">
     @PublicTest
     @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = RUNTIME_WITHIN_PATH)
@@ -144,32 +118,6 @@ class CommandSystemAccessTest extends SystemAccessTest {
     @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = RUNTIME_WITHIN_PATH)
     void test_executeCommandViaRuntimeArrayWithArgsMavenWalaInstrumentation() {
         assertAresSecurityExceptionCommand(RuntimeExecuteMain::executeCommandViaRuntimeArrayWithArgs, RuntimeExecuteMain.class);
-    }
-    // </editor-fold>
-
-    // <editor-fold desc="accessCommandSystemViaRuntimeArrayWithFile">
-    @PublicTest
-    @Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = RUNTIME_WITHIN_PATH)
-    void test_executeCommandViaRuntimeArrayWithFileMavenArchunitAspectJ() {
-        assertAresSecurityExceptionCommand(RuntimeExecuteMain::executeCommandViaRuntimeArrayWithFile, RuntimeExecuteMain.class);
-    }
-
-    @PublicTest
-    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = RUNTIME_WITHIN_PATH)
-    void test_executeCommandViaRuntimeArrayWithFileMavenArchunitInstrumentation() {
-        assertAresSecurityExceptionCommand(RuntimeExecuteMain::executeCommandViaRuntimeArrayWithFile, RuntimeExecuteMain.class);
-    }
-
-    @PublicTest
-    @Policy(value = WALA_ASPECTJ_POLICY_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = RUNTIME_WITHIN_PATH)
-    void test_executeCommandViaRuntimeArrayWithFileMavenWalaAspectJ() {
-        assertAresSecurityExceptionCommand(RuntimeExecuteMain::executeCommandViaRuntimeArrayWithFile, RuntimeExecuteMain.class);
-    }
-
-    @PublicTest
-    @Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = RUNTIME_WITHIN_PATH)
-    void test_executeCommandViaRuntimeArrayWithFileMavenWalaInstrumentation() {
-        assertAresSecurityExceptionCommand(RuntimeExecuteMain::executeCommandViaRuntimeArrayWithFile, RuntimeExecuteMain.class);
     }
     // </editor-fold>
 

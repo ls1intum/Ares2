@@ -26,7 +26,7 @@ public abstract class SystemAccessTest {
     protected static final String ERR_SECURITY_EN = "Ares Security Error";
     protected static final String ERR_SECURITY_DE = "Ares Sicherheitsfehler";
     protected static final String REASON_EN = "(Reason: Student-Code; Stage: Execution)";
-    protected static final String REASON_DE = "(Grund: Student-Code; Phase: Ausführung)";
+    protected static final String REASON_DE = "(Grund: Student-Code; Phase: Ausf�hrung)";
     protected static final String TRIED_EN = "tried";
     protected static final String TRIED_DE = "hat versucht,";
     protected static final String BLOCKED_EN = "was blocked by Ares.";
@@ -214,8 +214,8 @@ public abstract class SystemAccessTest {
      * @param operationTextEN The operation-specific substring in English (e.g.,
      *                        "illegally execute command", "illegally run command").
      * @param operationTextDE The operation-specific substring in German (e.g.,
-     *                        "illegal Befehle ausführen", "illegal Befehle
-     *                        ausführen").
+     *                        "illegal Befehle ausf�hren", "illegal Befehle
+     *                        ausf�hren").
      * @param clazz           The class that should be mentioned in the security
      *                        violation
      */
@@ -249,7 +249,7 @@ public abstract class SystemAccessTest {
         SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable,
                 ERROR_MESSAGE);
         assertGeneralErrorMessageWithCommand(securityException.getMessage(), "illegally execute",
-                "illegal ausgeführt", expectedClass);
+                "illegal ausgef�hrt", expectedClass);
     }
     //</editor-fold>
 

@@ -232,7 +232,6 @@ public class JavaInstrumentationPointcutDefinitions {
             // java.util
             Map.entry("java.util.Scanner", List.of("findInLine", "findWithinHorizon", "next", "nextBigDecimal", "nextBigInteger", "nextBoolean", "nextByte", "nextDouble", "nextFloat", "nextInt", "nextLine", "nextLong", "nextShort", "skip")),
             // java.net
-            Map.entry("java.net.URL", List.of("openConnection", "openStream")),
             Map.entry("java.net.URLConnection", List.of("connect", "getContent", "getInputStream")),
             Map.entry("java.net.JarURLConnection", List.of("getInputStream")),
             Map.entry("java.net.URLClassLoader", List.of("getResourceAsStream")),

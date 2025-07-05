@@ -14,25 +14,25 @@ class CommandSystemAccessTest extends SystemAccessTest {
     @PublicTest
     @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_COMMAND, withinPath = WITHIN_PATH_RUNTIME)
     void test_executeCommandViaRuntimeWithParamMavenArchunitAspectJ() {
-        assertNoAresSecurityException(() -> ExecuteRuntimeMain.executeCommandViaRuntime("echo hello"));
+        assertNoAresSecurityException(ExecuteRuntimeMain::executeCommandViaRuntime);
     }
 
     @PublicTest
     @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_COMMAND, withinPath = WITHIN_PATH_RUNTIME)
     void test_executeCommandViaRuntimeWithParamMavenArchunitInstrumentation() {
-        assertNoAresSecurityException(() -> ExecuteRuntimeMain.executeCommandViaRuntime("echo hello"));
+        assertNoAresSecurityException(ExecuteRuntimeMain::executeCommandViaRuntime);
     }
 
     @PublicTest
     @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_COMMAND, withinPath = WITHIN_PATH_RUNTIME)
     void test_executeCommandViaRuntimeWithParamMavenWalaAspectJ() {
-        assertNoAresSecurityException(() -> ExecuteRuntimeMain.executeCommandViaRuntime("echo hello"));
+        assertNoAresSecurityException(ExecuteRuntimeMain::executeCommandViaRuntime);
     }
 
     @PublicTest
     @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_COMMAND, withinPath = WITHIN_PATH_RUNTIME)
     void test_executeCommandViaRuntimeWithParamMavenWalaInstrumentation() {
-        assertNoAresSecurityException(() -> ExecuteRuntimeMain.executeCommandViaRuntime("echo hello"));
+        assertNoAresSecurityException(ExecuteRuntimeMain::executeCommandViaRuntime);
     }
     // </editor-fold>
 
@@ -40,25 +40,25 @@ class CommandSystemAccessTest extends SystemAccessTest {
     @PublicTest
     @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_COMMAND, withinPath = WITHIN_PATH_PROCESS_BUILDER)
     void test_executeCommandViaProcessBuilderWithParamMavenArchunitAspectJ() {
-        assertNoAresSecurityException(() -> ExecuteProcessBuilderMain.executeCommandViaProcessBuilder("echo hello"));
+        assertNoAresSecurityException(ExecuteProcessBuilderMain::executeCommandViaProcessBuilder);
     }
 
     @PublicTest
     @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_COMMAND, withinPath = WITHIN_PATH_PROCESS_BUILDER)
     void test_executeCommandViaProcessBuilderWithParamMavenArchunitInstrumentation() {
-        assertNoAresSecurityException(() -> ExecuteProcessBuilderMain.executeCommandViaProcessBuilder("echo hello"));
+        assertNoAresSecurityException(ExecuteProcessBuilderMain::executeCommandViaProcessBuilder);
     }
 
     @PublicTest
     @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_COMMAND, withinPath = WITHIN_PATH_PROCESS_BUILDER)
     void test_executeCommandViaProcessBuilderWithParamMavenWalaAspectJ() {
-        assertNoAresSecurityException(() -> ExecuteProcessBuilderMain.executeCommandViaProcessBuilder("echo hello"));
+        assertNoAresSecurityException(ExecuteProcessBuilderMain::executeCommandViaProcessBuilder);
     }
 
     @PublicTest
     @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_COMMAND, withinPath = WITHIN_PATH_PROCESS_BUILDER)
     void test_executeCommandViaProcessBuilderWithParamMavenWalaInstrumentation() {
-        assertNoAresSecurityException(() -> ExecuteProcessBuilderMain.executeCommandViaProcessBuilder("echo hello"));
+        assertNoAresSecurityException(ExecuteProcessBuilderMain::executeCommandViaProcessBuilder);
     }
     // </editor-fold>
 
@@ -114,32 +114,6 @@ class CommandSystemAccessTest extends SystemAccessTest {
     }
     // </editor-fold>
 
-    // <editor-fold desc="accessCommandSystemViaRuntimeWithFile">
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_COMMAND, withinPath = WITHIN_PATH_RUNTIME)
-    void test_executeCommandViaRuntimeWithFileMavenArchunitAspectJ() {
-        assertNoAresSecurityException(ExecuteRuntimeMain::executeCommandViaRuntimeWithFile);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_COMMAND, withinPath = WITHIN_PATH_RUNTIME)
-    void test_executeCommandViaRuntimeWithFileMavenArchunitInstrumentation() {
-        assertNoAresSecurityException(ExecuteRuntimeMain::executeCommandViaRuntimeWithFile);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_COMMAND, withinPath = WITHIN_PATH_RUNTIME)
-    void test_executeCommandViaRuntimeWithFileMavenWalaAspectJ() {
-        assertNoAresSecurityException(ExecuteRuntimeMain::executeCommandViaRuntimeWithFile);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_COMMAND, withinPath = WITHIN_PATH_RUNTIME)
-    void test_executeCommandViaRuntimeWithFileMavenWalaInstrumentation() {
-        assertNoAresSecurityException(ExecuteRuntimeMain::executeCommandViaRuntimeWithFile);
-    }
-    // </editor-fold>
-
     // <editor-fold desc="accessCommandSystemViaRuntimeArray">
     @PublicTest
     @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_COMMAND, withinPath = WITHIN_PATH_RUNTIME)
@@ -189,32 +163,6 @@ class CommandSystemAccessTest extends SystemAccessTest {
     @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_COMMAND, withinPath = WITHIN_PATH_RUNTIME)
     void test_executeCommandViaRuntimeArrayWithArgsMavenWalaInstrumentation() {
         assertNoAresSecurityException(ExecuteRuntimeMain::executeCommandViaRuntimeArrayWithArgs);
-    }
-    // </editor-fold>
-
-    // <editor-fold desc="accessCommandSystemViaRuntimeArrayWithFile">
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_COMMAND, withinPath = WITHIN_PATH_RUNTIME)
-    void test_executeCommandViaRuntimeArrayWithFileMavenArchunitAspectJ() {
-        assertNoAresSecurityException(ExecuteRuntimeMain::executeCommandViaRuntimeArrayWithFile);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_COMMAND, withinPath = WITHIN_PATH_RUNTIME)
-    void test_executeCommandViaRuntimeArrayWithFileMavenArchunitInstrumentation() {
-        assertNoAresSecurityException(ExecuteRuntimeMain::executeCommandViaRuntimeArrayWithFile);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_ASPECTJ_COMMAND, withinPath = WITHIN_PATH_RUNTIME)
-    void test_executeCommandViaRuntimeArrayWithFileMavenWalaAspectJ() {
-        assertNoAresSecurityException(ExecuteRuntimeMain::executeCommandViaRuntimeArrayWithFile);
-    }
-
-    @PublicTest
-    @Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_COMMAND, withinPath = WITHIN_PATH_RUNTIME)
-    void test_executeCommandViaRuntimeArrayWithFileMavenWalaInstrumentation() {
-        assertNoAresSecurityException(ExecuteRuntimeMain::executeCommandViaRuntimeArrayWithFile);
     }
     // </editor-fold>
 

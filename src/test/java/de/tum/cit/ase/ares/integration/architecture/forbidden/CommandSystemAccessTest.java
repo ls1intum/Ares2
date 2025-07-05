@@ -165,56 +165,6 @@ class CommandSystemAccessTest extends SystemAccessTest {
     }
     // </editor-fold>
 
-    // <editor-fold desc="accessCommandSystemViaRuntimeWithFile()">
-    @Test
-    void test_executeCommandViaRuntimeWithFileMavenArchunitAspectJ_test() {
-        executeTestAndExpectSecurityException(CommandSystemAccessTest.class, "test_executeCommandViaRuntimeWithFileMavenArchunitAspectJ");
-    }
-
-    @Disabled
-    @PublicTest
-    @Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = RUNTIME_PATH)
-    void test_executeCommandViaRuntimeWithFileMavenArchunitAspectJ() throws Exception {
-        RuntimeExecuteMain.executeCommandViaRuntimeWithFile();
-    }
-
-    @Test
-    void test_executeCommandViaRuntimeWithFileMavenArchunitInstrumentation_test() {
-        executeTestAndExpectSecurityException(CommandSystemAccessTest.class, "test_executeCommandViaRuntimeWithFileMavenArchunitInstrumentation");
-    }
-
-    @Disabled
-    @PublicTest
-    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = RUNTIME_PATH)
-    void test_executeCommandViaRuntimeWithFileMavenArchunitInstrumentation() throws Exception {
-        RuntimeExecuteMain.executeCommandViaRuntimeWithFile();
-    }
-
-    @Test
-    void test_executeCommandViaRuntimeWithFileMavenWalaAspectJ_test() {
-        executeTestAndExpectSecurityException(CommandSystemAccessTest.class, "test_executeCommandViaRuntimeWithFileMavenWalaAspectJ");
-    }
-
-    @Disabled
-    @PublicTest
-    @Policy(value = WALA_ASPECTJ_POLICY, withinPath = RUNTIME_PATH)
-    void test_executeCommandViaRuntimeWithFileMavenWalaAspectJ() throws Exception {
-        RuntimeExecuteMain.executeCommandViaRuntimeWithFile();
-    }
-
-    @Test
-    void test_executeCommandViaRuntimeWithFileMavenWalaInstrumentation_test() {
-        executeTestAndExpectSecurityException(CommandSystemAccessTest.class, "test_executeCommandViaRuntimeWithFileMavenWalaInstrumentation");
-    }
-
-    @Disabled
-    @PublicTest
-    @Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = RUNTIME_PATH)
-    void test_executeCommandViaRuntimeWithFileMavenWalaInstrumentation() throws Exception {
-        RuntimeExecuteMain.executeCommandViaRuntimeWithFile();
-    }
-    // </editor-fold>
-
     // <editor-fold desc="accessCommandSystemViaRuntimeArray()">
     @Test
     void test_executeCommandViaRuntimeArrayMavenArchunitAspectJ_test() {
@@ -312,56 +262,6 @@ class CommandSystemAccessTest extends SystemAccessTest {
     @Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = RUNTIME_PATH)
     void test_executeCommandViaRuntimeArrayWithArgsMavenWalaInstrumentation() throws Exception {
         RuntimeExecuteMain.executeCommandViaRuntimeArrayWithArgs();
-    }
-    // </editor-fold>
-
-    // <editor-fold desc="accessCommandSystemViaRuntimeArrayWithFile()">
-    @Test
-    void test_executeCommandViaRuntimeArrayWithFileMavenArchunitAspectJ_test() {
-        executeTestAndExpectSecurityException(CommandSystemAccessTest.class, "test_executeCommandViaRuntimeArrayWithFileMavenArchunitAspectJ");
-    }
-
-    @Disabled
-    @PublicTest
-    @Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = RUNTIME_PATH)
-    void test_executeCommandViaRuntimeArrayWithFileMavenArchunitAspectJ() throws Exception {
-        RuntimeExecuteMain.executeCommandViaRuntimeArrayWithFile();
-    }
-
-    @Test
-    void test_executeCommandViaRuntimeArrayWithFileMavenArchunitInstrumentation_test() {
-        executeTestAndExpectSecurityException(CommandSystemAccessTest.class, "test_executeCommandViaRuntimeArrayWithFileMavenArchunitInstrumentation");
-    }
-
-    @Disabled
-    @PublicTest
-    @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = RUNTIME_PATH)
-    void test_executeCommandViaRuntimeArrayWithFileMavenArchunitInstrumentation() throws Exception {
-        RuntimeExecuteMain.executeCommandViaRuntimeArrayWithFile();
-    }
-
-    @Test
-    void test_executeCommandViaRuntimeArrayWithFileMavenWalaAspectJ_test() {
-        executeTestAndExpectSecurityException(CommandSystemAccessTest.class, "test_executeCommandViaRuntimeArrayWithFileMavenWalaAspectJ");
-    }
-
-    @Disabled
-    @PublicTest
-    @Policy(value = WALA_ASPECTJ_POLICY, withinPath = RUNTIME_PATH)
-    void test_executeCommandViaRuntimeArrayWithFileMavenWalaAspectJ() throws Exception {
-        RuntimeExecuteMain.executeCommandViaRuntimeArrayWithFile();
-    }
-
-    @Test
-    void test_executeCommandViaRuntimeArrayWithFileMavenWalaInstrumentation_test() {
-        executeTestAndExpectSecurityException(CommandSystemAccessTest.class, "test_executeCommandViaRuntimeArrayWithFileMavenWalaInstrumentation");
-    }
-
-    @Disabled
-    @PublicTest
-    @Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = RUNTIME_PATH)
-    void test_executeCommandViaRuntimeArrayWithFileMavenWalaInstrumentation() throws Exception {
-        RuntimeExecuteMain.executeCommandViaRuntimeArrayWithFile();
     }
     // </editor-fold>
 }

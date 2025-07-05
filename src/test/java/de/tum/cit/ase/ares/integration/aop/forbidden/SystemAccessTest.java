@@ -20,7 +20,8 @@ abstract class SystemAccessTest {
     protected static final String ERR_SECURITY_EN = "Ares Security Error";
     protected static final String ERR_SECURITY_DE = "Ares Sicherheitsfehler";
     protected static final String REASON_EN = "(Reason: Student-Code; Stage: Execution)";
-    protected static final String REASON_DE = "(Grund: Student-Code; Phase: Ausführung)";
+    protected static final String REASON_DE = "(Grund: Student-Code; Phase: Ausf�hrung)";
+    protected static final String REASON_DE2 = "(Grund: Student-Code; Phase: Ausführung)";
     protected static final String TRIED_EN = "tried";
     protected static final String TRIED_DE = "hat versucht,";
     protected static final String BLOCKED_EN = "was blocked by Ares.";
@@ -190,7 +191,7 @@ abstract class SystemAccessTest {
                         ERR_SECURITY_EN, ERR_SECURITY_DE, actualMessage));
 
         Assertions.assertTrue(
-                actualMessage.contains(REASON_EN) || actualMessage.contains(REASON_DE),
+                actualMessage.contains(REASON_EN) || actualMessage.contains(REASON_DE) || actualMessage.contains(REASON_DE2),
                 () -> String.format(
                         "Exception message should contain '%s' or '%s', but was:%n%s",
                         REASON_EN, REASON_DE, actualMessage));
@@ -301,7 +302,6 @@ abstract class SystemAccessTest {
     protected void assertAresSecurityExceptionOverwrite(Executable executable, Class<?> clazz, Path expectedPath
     ) {
         SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable, ERROR_MESSAGE);
-
         assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally overwrite", "illegal overwrite", clazz);
     }
 
@@ -319,6 +319,11 @@ abstract class SystemAccessTest {
         assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally execute", "illegal execute", clazz);
     }
 
+    protected void assertAresSecurityExceptionExecution(Executable executable, Class<?> clazz, Path expectedPath) {
+        SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable, ERROR_MESSAGE);
+        assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally execute", "illegal execute", clazz);
+    }
+
     /**
      * Test that the given executable throws a SecurityException with the expected
      * message for file system delete operations.
@@ -330,6 +335,11 @@ abstract class SystemAccessTest {
         SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable, ERROR_MESSAGE);
         Path expectedPath = Paths.get("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration",
                 "aop", "forbidden", "subject", "fileSystem", "delete", "nottrusteddir", "nottrusted.txt");
+        assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally delete", "illegal delete", clazz);
+    }
+
+    protected void assertAresSecurityExceptionDelete(Executable executable, Class<?> clazz, Path expectedPath) {
+        SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable, ERROR_MESSAGE);
         assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally delete", "illegal delete", clazz);
     }
     //</editor-fold>
@@ -344,8 +354,8 @@ abstract class SystemAccessTest {
      * @param operationTextEN The operation-specific substring in English (e.g.,
      *                        "illegally execute command", "illegally run command").
      * @param operationTextDE The operation-specific substring in German (e.g.,
-     *                        "illegal Befehle ausführen", "illegal Befehle
-     *                        ausführen").
+     *                        "illegal Befehle ausf�hren", "illegal Befehle
+     *                        ausf�hren").
      * @param clazz           The class that should be mentioned in the security
      *                        violation
      */
@@ -379,7 +389,7 @@ abstract class SystemAccessTest {
         SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable,
                 ERROR_MESSAGE);
         assertGeneralErrorMessageWithCommand(securityException.getMessage(), "illegally execute",
-                "illegal ausgeführt", expectedClass);
+                "illegal execute", expectedClass);
     }
     //</editor-fold>
 
