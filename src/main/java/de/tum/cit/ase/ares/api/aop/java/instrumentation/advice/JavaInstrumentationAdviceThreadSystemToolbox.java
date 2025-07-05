@@ -8,6 +8,7 @@ import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.InvalidPathException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -17,6 +18,7 @@ import java.util.concurrent.ForkJoinTask;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.Nonnull;
@@ -464,9 +466,9 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
         //<editor-fold desc="Check attributes">
         // Create combined array with declaringTypeName and attributes
         Object[] attributesToCheck = attributes == null ? new Object[]{declaringTypeName} :
-                java.util.stream.Stream.concat(
-                        java.util.stream.Stream.of(declaringTypeName),
-                        java.util.Arrays.stream(attributes)
+                Stream.concat(
+                        Stream.of(declaringTypeName),
+                        Arrays.stream(attributes)
                 ).toArray();
 
         @Nullable String threadIllegallyInteractedThroughAttribute = (attributesToCheck.length == 0) ? null : checkIfVariableCriteriaIsViolated(attributesToCheck, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated, THREAD_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
