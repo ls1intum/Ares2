@@ -165,7 +165,8 @@ public class JavaWalaTestCaseCollection {
             "java.lang.Class.checkMemberAccess",
             "java.lang.Thread.getContextClassLoader",
             "java.lang.Thread.getStackTrace",
-            "java.io.File.<init>"
+            "java.io.File.<init>",
+            "java.lang.Class.getClassLoader"
     );
 
     /**
