@@ -285,7 +285,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
         //<editor-fold desc="Check parameters">
         @Nullable String illegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, allowedPaths, FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE));
         if (illegallyInteractedThroughParameter != null) {
-            throw new SecurityException(localize("security.advice.illegal.method.execution", systemMethodToCheck, action, illegallyInteractedThroughParameter, fullMethodSignature));
+            throw new SecurityException(localize("security.advice.illegal.file.execution", systemMethodToCheck, action, illegallyInteractedThroughParameter, fullMethodSignature));
         }
         //</editor-fold>
     }

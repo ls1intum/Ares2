@@ -416,7 +416,7 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
         //<editor-fold desc="Check parameters">
         @Nullable String illegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, allowedThreadClasses, allowedThreadNumbers, THREAD_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE));
         if (illegallyInteractedThroughParameter != null) {
-            throw new SecurityException(localize("security.advice.illegal.method.execution", systemMethodToCheck, action, illegallyInteractedThroughParameter, fullMethodSignature));
+            throw new SecurityException(localize("security.advice.illegal.thread.execution", systemMethodToCheck, action, illegallyInteractedThroughParameter, fullMethodSignature));
         }
         //</editor-fold>
     }

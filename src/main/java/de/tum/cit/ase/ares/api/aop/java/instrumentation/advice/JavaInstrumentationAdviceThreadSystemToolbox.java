@@ -458,7 +458,7 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
         //<editor-fold desc="Check parameters">
         @Nullable String threadIllegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated, THREAD_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
         if (threadIllegallyInteractedThroughParameter != null) {
-            throw new SecurityException(localize("security.advice.illegal.method.execution", threadSystemMethodToCheck, action, threadIllegallyInteractedThroughParameter, fullMethodSignature));
+            throw new SecurityException(localize("security.advice.illegal.thread.execution", threadSystemMethodToCheck, action, threadIllegallyInteractedThroughParameter, fullMethodSignature));
         }
         //</editor-fold>
         //<editor-fold desc="Check attributes">
@@ -471,7 +471,7 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 
         @Nullable String threadIllegallyInteractedThroughAttribute = (attributesToCheck.length == 0) ? null : checkIfVariableCriteriaIsViolated(attributesToCheck, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated, THREAD_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
         if (threadIllegallyInteractedThroughAttribute != null) {
-            throw new SecurityException(localize("security.advice.illegal.method.execution", threadSystemMethodToCheck, action, threadIllegallyInteractedThroughAttribute, fullMethodSignature));
+            throw new SecurityException(localize("security.advice.illegal.thread.execution", threadSystemMethodToCheck, action, threadIllegallyInteractedThroughAttribute, fullMethodSignature));
         }
         //</editor-fold>
     }
