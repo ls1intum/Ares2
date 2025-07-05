@@ -261,6 +261,9 @@ case ALL_EXCEPT:
     newVariables.add(toKeep);
     break;
             case NONE_EXCEPT:
+                if (ignoreVariables.getIndex() < 0 || ignoreVariables.getIndex() >= newVariables.size()) {
+                    throw new IllegalArgumentException("Invalid index: " + ignoreVariables.getIndex());
+                }
                 newVariables.remove(ignoreVariables.getIndex());
                 break;
         }
