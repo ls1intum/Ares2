@@ -626,13 +626,13 @@ public class JavaInstrumentationAdviceFileSystemToolbox {
         //<editor-fold desc="Check parameters">
         @Nullable String pathIllegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, allowedPaths, FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
         if (pathIllegallyInteractedThroughParameter != null) {
-            throw new SecurityException(localize("security.advice.illegal.method.execution", fileSystemMethodToCheck, action, pathIllegallyInteractedThroughParameter, fullMethodSignature));
+            throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck, action, pathIllegallyInteractedThroughParameter, fullMethodSignature));
         }
         //</editor-fold>
         //<editor-fold desc="Check attributes">
         @Nullable String pathIllegallyInteractedThroughAttribute = (attributes == null || attributes.length == 0) ? null : checkIfVariableCriteriaIsViolated(attributes, allowedPaths, FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
         if (pathIllegallyInteractedThroughAttribute != null) {
-            throw new SecurityException(localize("security.advice.illegal.method.execution", fileSystemMethodToCheck, action, pathIllegallyInteractedThroughAttribute, fullMethodSignature));
+            throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck, action, pathIllegallyInteractedThroughAttribute, fullMethodSignature));
         }
         //</editor-fold>
     }

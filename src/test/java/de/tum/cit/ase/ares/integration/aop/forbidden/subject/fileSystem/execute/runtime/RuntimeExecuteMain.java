@@ -12,4 +12,9 @@ public class RuntimeExecuteMain {
         Runtime runtime = Runtime.getRuntime();
         return runtime.exec("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
     }
+
+    public static Process accessFileSystemViaRuntimeArray() throws IOException {
+        Runtime runtime = Runtime.getRuntime();
+        return runtime.exec(new String[]{"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"});
+    }
 }

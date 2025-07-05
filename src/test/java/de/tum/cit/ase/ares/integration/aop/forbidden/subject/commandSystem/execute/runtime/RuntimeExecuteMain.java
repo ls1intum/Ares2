@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.integration.aop.forbidden.subject.commandSystem.execute.runtime;
 
+import java.io.File;
 import java.io.IOException;
 
 public class RuntimeExecuteMain {
@@ -15,5 +16,20 @@ public class RuntimeExecuteMain {
     public static Process executeCommandViaRuntime() throws IOException {
         Runtime runtime = Runtime.getRuntime();
         return runtime.exec("forbidden-command");
+    }
+
+    public static Process executeCommandViaRuntimeWithArgs() throws IOException {
+        Runtime runtime = Runtime.getRuntime();
+        return runtime.exec("forbidden-command", new String[]{"x"});
+    }
+
+    public static Process executeCommandViaRuntimeArray() throws IOException {
+       Runtime runtime = Runtime.getRuntime();
+       return runtime.exec(new String[]{"forbidden-command"});
+    }
+
+    public static Process executeCommandViaRuntimeArrayWithArgs() throws IOException {
+        Runtime runtime = Runtime.getRuntime();
+        return runtime.exec("forbidden-command", new String[]{"x"});
     }
 }

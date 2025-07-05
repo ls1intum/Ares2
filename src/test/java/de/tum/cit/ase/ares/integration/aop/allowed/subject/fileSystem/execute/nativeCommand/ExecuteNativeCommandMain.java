@@ -15,4 +15,11 @@ public class ExecuteNativeCommandMain {
     public static void accessFileSystemViaNativeCommand(String filePath) throws IOException {
         Runtime.getRuntime().exec(filePath);
     }
+
+    /**
+     * Access the file system by executing native commands with default command.
+     */
+    public static void accessFileSystemViaNativeCommand() throws IOException {
+        accessFileSystemViaNativeCommand("echo test");
+    }
 }

@@ -6,6 +6,7 @@ import java.util.Map;
 
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceCommandSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceThreadSystemToolbox;
@@ -65,36 +66,92 @@ public class JavaInstrumentationAgent {
             Factory unsafeFactory
     ) {
         try {
-            unsafeFactory
-                    .make(null, null)
-                    .injectRaw(Map.ofEntries(
-                            Map.entry(
-                                    JavaInstrumentationAdviceFileSystemToolbox.class.getName(),
-                                    ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceFileSystemToolbox.class)
-                            ),
-                            Map.entry(
-                                    JavaInstrumentationAdviceThreadSystemToolbox.class.getName(),
-                                    ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceThreadSystemToolbox.class)
-                            ),
-                            Map.entry(JavaInstrumentationAdviceCommandSystemToolbox.class.getName(),
-                                    ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceCommandSystemToolbox.class)
-                            ),
-                            Map.entry(
-                                    IgnoreValues.class.getName(),
-                                    ClassFileLocator.ForClassLoader.read(IgnoreValues.class)
-                            ),
-                            Map.entry(
-                                    IgnoreValues.Type.class.getName(),
-                                    ClassFileLocator.ForClassLoader.read(IgnoreValues.Type.class)
-                            ),
-                            Map.entry(
-                                    JavaAOPTestCaseSettings.class.getName(),
-                                    ClassFileLocator.ForClassLoader.read(JavaAOPTestCaseSettings.class)
-                            )
-
-                    ));
+            ClassInjector classInjector = null;
+            
+            // Try different injection strategies
+            try {
+                classInjector = unsafeFactory.make(null, null);
+            } catch (Exception e) {
+                // Fallback to a safer injection strategy
+                classInjector = ClassInjector.UsingReflection.ofSystemClassLoader();
+            }
+            
+            if (classInjector != null) {
+                // Load classes in dependency order to ensure proper initialization
+                
+                // Step 1: Load fundamental classes first (no dependencies)
+                injectClassesSafely(classInjector, Map.ofEntries(
+                        Map.entry(
+                                IgnoreValues.Type.class.getName(),
+                                ClassFileLocator.ForClassLoader.read(IgnoreValues.Type.class)
+                        )
+                ));
+                
+                // Step 2: Load classes that depend on fundamental classes
+                injectClassesSafely(classInjector, Map.ofEntries(
+                        Map.entry(
+                                IgnoreValues.class.getName(),
+                                ClassFileLocator.ForClassLoader.read(IgnoreValues.class)
+                        ),
+                        Map.entry(
+                                JavaAOPTestCaseSettings.class.getName(),
+                                ClassFileLocator.ForClassLoader.read(JavaAOPTestCaseSettings.class)
+                        )
+                ));
+                
+                // Step 3: Load the abstract toolbox (depends on basic classes)
+                injectClassesSafely(classInjector, Map.ofEntries(
+                        Map.entry(
+                                JavaInstrumentationAdviceAbstractToolbox.class.getName(),
+                                ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceAbstractToolbox.class)
+                        )
+                ));
+                
+                // Step 4: Load concrete toolbox implementations (depend on abstract toolbox)
+                injectClassesSafely(classInjector, Map.ofEntries(
+                        Map.entry(
+                                JavaInstrumentationAdviceFileSystemToolbox.class.getName(),
+                                ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceFileSystemToolbox.class)
+                        ),
+                        Map.entry(
+                                JavaInstrumentationAdviceThreadSystemToolbox.class.getName(),
+                                ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceThreadSystemToolbox.class)
+                        ),
+                        Map.entry(JavaInstrumentationAdviceCommandSystemToolbox.class.getName(),
+                                ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceCommandSystemToolbox.class)
+                        )
+                ));
+            }
         } catch (Exception e) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.agent.installation.error", "Putting the Toolbox on the BootClassLoader failed", e));
+            throw new SecurityException("Putting the Toolbox on the BootClassLoader failed: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Safely inject classes with retry mechanism and proper error handling.
+     */
+    private static void injectClassesSafely(ClassInjector classInjector, Map<String, byte[]> classes) {
+        int maxRetries = 3;
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                classInjector.injectRaw(classes);
+                // Verify classes are loaded by trying to access them
+                for (String className : classes.keySet()) {
+                    Class.forName(className, false, ClassLoader.getSystemClassLoader());
+                }
+                return; // Success
+            } catch (Exception e) {
+                if (attempt == maxRetries) {
+                    throw new RuntimeException("Failed to inject classes after " + maxRetries + " attempts: " + classes.keySet(), e);
+                }
+                // Wait a bit before retry
+                try {
+                    Thread.sleep(50 * attempt); // Progressive backoff
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Interrupted during class injection", ie);
+                }
+            }
         }
     }
 

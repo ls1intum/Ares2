@@ -10,6 +10,9 @@ regardingTheSupervisedCode:
     regardingFileSystemInteractions: [ ]
     regardingNetworkConnections: [ ]
     regardingCommandExecutions:
-      - "echo"
-    regardingThreadCreations: [ ]
+      - executeTheCommand: "echo"
+        withTheseArguments: [ "hello" ]
+    regardingThreadCreations:
+      - createTheFollowingNumberOfThreads: 100
+        ofThisClass: "java.lang.ProcessHandleImpl$1"
     regardingPackageImports: [ ]

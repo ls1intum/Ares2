@@ -410,7 +410,7 @@ public class JavaInstrumentationAdviceThreadSystemToolbox {
                 illegallyInteractedThread = (attributes == null || attributes.length == 0) ? null : checkIfVariableCriteriaIsViolated(new Object[]{declaringTypeName}, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated);
             }
             if (illegallyInteractedThread != null) {
-                throw new SecurityException(localize("security.advice.illegal.method.execution", threadSystemMethodToCheck, action, illegallyInteractedThread, fullMethodSignature));
+                throw new SecurityException(localize("security.advice.illegal.thread.execution", threadSystemMethodToCheck, action, illegallyInteractedThread, fullMethodSignature));
             }
         }
     }

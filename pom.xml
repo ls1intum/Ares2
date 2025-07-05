@@ -574,6 +574,8 @@
                                         </Premain-Class>
                                         <Can-Redefine-Classes>true</Can-Redefine-Classes>
                                         <Can-Retransform-Classes>true</Can-Retransform-Classes>
+                                        <Can-Set-Native-Method-Prefix>true</Can-Set-Native-Method-Prefix>
+                                        <Boot-Class-Path></Boot-Class-Path>
                                     </manifestEntries>
                                 </transformer>
                             </transformers>

@@ -66,7 +66,7 @@ class FileSystemAccessTest {
                 "Exception message should contain 'Ares Security Error'" + System.lineSeparator() + actualMessage + "or 'Ares Sicherheitsfehler'" + System.lineSeparator() + actualMessage);
         assertTrue(actualMessage.contains("Student-Code"),
                 "Exception message should contain 'Student-Code'" + System.lineSeparator() + actualMessage);
-        assertTrue(actualMessage.contains("Execution") || actualMessage.contains("Ausführung"),
+        assertTrue(actualMessage.contains("Execution") || actualMessage.contains("Ausf�hrung"),
                 "Exception message should contain 'Execution'" + System.lineSeparator() + actualMessage);
         assertTrue(actualMessage.contains(new File(System.getProperty("user.dir"), "pom123.xml").getAbsolutePath()),
                 "Exception message should contain the forbidden file location: " + (new File(System.getProperty("user.dir"), "pom123.xml").getAbsolutePath()) + System.lineSeparator() + actualMessage);
