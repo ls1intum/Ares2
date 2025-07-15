@@ -23,7 +23,6 @@ import java.util.Objects;
  * @param regardingPackageImports permitted package imports; must not be null.
  * @param regardingTimeouts permitted timeout parameters, must not be null
  */
-@Nonnull
 public record ResourceAccesses(
         @Nonnull List<FilePermission> regardingFileSystemInteractions,
         @Nonnull List<NetworkPermission> regardingNetworkConnections,

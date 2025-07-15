@@ -1,6 +1,5 @@
 package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
-import javax.annotation.Nonnull;
 
 /**
  * Enumerates the supported programming language configurations.
@@ -12,7 +11,6 @@ import javax.annotation.Nonnull;
  * @since 2.0.0
  * @author Markus Paulsen
  */
-@Nonnull
 public enum ProgrammingLanguageConfiguration {
     JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ,
     JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION,

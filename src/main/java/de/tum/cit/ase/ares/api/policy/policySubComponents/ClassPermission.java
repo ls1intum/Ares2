@@ -16,7 +16,6 @@ import java.util.Objects;
  * @since 2.0.0
  * @param className the name of the class that recieves elevated privilegues; must not be null.
  */
-@Nonnull
 public record ClassPermission(@Nonnull String className) {
 
     /**

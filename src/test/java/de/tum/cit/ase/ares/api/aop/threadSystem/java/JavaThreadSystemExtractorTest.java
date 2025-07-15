@@ -35,8 +35,14 @@ public class JavaThreadSystemExtractorTest {
                 ThreadPermission.builder().createTheFollowingNumberOfThreads(1).ofThisClass("C1").build(),
                 ThreadPermission.builder().createTheFollowingNumberOfThreads(10).ofThisClass("C2").build()
         );
-        Assertions.assertEquals(List.of("0", "1", "10"), JavaThreadSystemExtractor.extractThreadNumbers(configs));
-        Assertions.assertEquals(List.of("C0", "C1", "C2"), JavaThreadSystemExtractor.extractThreadClasses(configs));
+
+        List<String> expectedThreadNumbers = List.of("0", "1", "10");
+        List<String> actualThreadNumbers = JavaThreadSystemExtractor.extractThreadNumbers(configs);
+        Assertions.assertEquals(expectedThreadNumbers, actualThreadNumbers);
+
+        List<String> expectedThreadClasses = List.of("C0", "C1", "C2");
+        List<String> actualThreadClasses = JavaThreadSystemExtractor.extractThreadClasses(configs);
+        Assertions.assertEquals(expectedThreadClasses, actualThreadClasses);
     }
 
     /**
@@ -55,7 +61,13 @@ public class JavaThreadSystemExtractorTest {
                 ThreadPermission.builder().createTheFollowingNumberOfThreads(10).ofThisClass("C2").build()
         );
         JavaThreadSystemExtractor extractor = new JavaThreadSystemExtractor(supplier);
-        Assertions.assertEquals(List.of(0, 1, 10), extractor.getPermittedNumberOfThreads());
-        Assertions.assertEquals(List.of("C0", "C1", "C2"), extractor.getPermittedThreadClasses());
+
+        List<Integer> expectedThreadNumbers = List.of(0, 1, 10);
+        List<Integer> actualThreadNumbers = extractor.getPermittedNumberOfThreads();
+        Assertions.assertEquals(expectedThreadNumbers, actualThreadNumbers);
+
+        List<String> expectedThreadClasses = List.of("C0", "C1", "C2");
+        List<String> actualThreadClasses = extractor.getPermittedThreadClasses();
+        Assertions.assertEquals(expectedThreadClasses, actualThreadClasses);
     }
 }

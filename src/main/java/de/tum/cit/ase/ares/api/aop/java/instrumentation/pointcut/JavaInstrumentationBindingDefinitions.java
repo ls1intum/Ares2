@@ -5,6 +5,8 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentati
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationCreateThreadConstructorAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationCreateThreadMethodAdvice;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationExecuteCommandConstructorAdvice;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationExecuteCommandMethodAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathConstructorAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathMethodAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathConstructorAdvice;
@@ -365,6 +367,52 @@ public class JavaInstrumentationBindingDefinitions {
             );
         } catch (Exception e) {
             throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.create.thread.constructor.binding.error"), e);
+        }
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Execute Command">
+    /**
+     * This method creates a binding for the execute command pointcut. It applies the instrumentation advice
+     * for command execution operations defined in the corresponding pointcuts, ensuring that security-related
+     * advice is applied when methods that execute commands are invoked. This safeguards against unauthorized
+     * or harmful command execution operations.
+     *
+     * @param builder                 The builder used to create the binding.
+     * @param typeDescription         The description of the class whose methods are being instrumented.
+     * @param classLoader             The class loader responsible for loading the class.
+     * @param javaModule       The Java module being ignored (for compatibility reasons).
+     * @param protectionDomain The protection domain being ignored (for compatibility reasons).
+     * @return The builder with the binding applied for command execution operations.
+     * @throws SecurityException If the binding could not be created for the execute command, preventing the enforcement of security policies for command execution operations.
+     */
+    public static DynamicType.Builder<?> createExecuteCommandMethodBinding(
+            DynamicType.Builder<?> builder, TypeDescription typeDescription,
+            ClassLoader classLoader, JavaModule javaModule,
+            ProtectionDomain protectionDomain
+    ) {
+        try {
+            return createMethodBinding(
+                    builder, typeDescription, classLoader, javaModule, protectionDomain,
+                    JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteCommands, JavaInstrumentationExecuteCommandMethodAdvice.class
+            );
+        } catch (Exception e) {
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.execute.command.method.binding.error"), e);
+        }
+    }
+
+    public static DynamicType.Builder<?> createExecuteCommandConstructorBinding(
+            DynamicType.Builder<?> builder, TypeDescription typeDescription,
+            ClassLoader classLoader, JavaModule javaModule,
+            ProtectionDomain protectionDomain
+    ) {
+        try {
+            return createConstructorBinding(
+                    builder, typeDescription, classLoader, javaModule, protectionDomain,
+                    JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteCommands, JavaInstrumentationExecuteCommandConstructorAdvice.class
+            );
+        } catch (Exception e) {
+            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.execute.command.constructor.binding.error"), e);
         }
     }
     //</editor-fold>

@@ -1,24 +1,28 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 
-import java.lang.invoke.SerializedLambda;
+//<editor-fold desc="imports">
+
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-
 import java.nio.file.InvalidPathException;
-
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ForkJoinTask;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.annotation.Nonnull;
+//</editor-fold>
 
 /**
  * Utility class for Java instrumentation thread system security advice.
@@ -38,17 +42,9 @@ import javax.annotation.Nullable;
  * @author Markus Paulsen
  * @version 2.0.0
  */
-public class JavaInstrumentationAdviceThreadSystemToolbox {
+public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrumentationAdviceAbstractToolbox {
 
     //<editor-fold desc="Constants">
-    /**
-     * List of call stack classes to ignore during thread system checks.
-     *
-     * <p>Description: Contains class name prefixes that should be skipped when analyzing the call stack
-     * to avoid false positives from test harness or localization utilities.
-     */
-    @Nonnull
-    private static final List<String> THREAD_SYSTEM_IGNORE_CALLSTACK = List.of();
 
     /**
      * Map of methods with attribute index exceptions for thread system ignore logic.
@@ -87,246 +83,9 @@ public class JavaInstrumentationAdviceThreadSystemToolbox {
     }
     //</editor-fold>
 
-    //<editor-fold desc="Tool methods">
-
-    /**
-     * Retrieves the value of a specified static field from the settings class.
-     *
-     * <p>Description: Uses reflection to access a static field in JavaAOPTestCaseSettings,
-     * allowing retrieval of security-related configuration values for instrumentation and tests.
-     *
-     * @param fieldName the name of the field to retrieve
-     * @param <T> the type of the field's value
-     * @return the value of the specified field
-     * @since 2.0.0
-     * @author Markus Paulsen
-     */
-    @SuppressWarnings("unchecked")
-    @Nullable
-    private static <T> T getValueFromSettings(@Nonnull String fieldName) {
-        try {
-            // Take bootloader as class loader in order to get the JavaAOPTestCaseSettings class at bootloader time for instrumentation
-            @Nonnull Class<?> adviceSettingsClass = Objects.requireNonNull(Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, null), "adviceSettingsClass must not be null");
-            @Nonnull Field field = Objects.requireNonNull(adviceSettingsClass.getDeclaredField(Objects.requireNonNull(fieldName, "fieldName must not be null")), "field must not be null");
-            field.setAccessible(true);
-            @Nullable T value = (T) field.get(null);
-            field.setAccessible(false);
-            return value;
-
-        } catch (LinkageError e) {
-            throw new SecurityException(localize("security.advice.linkage.exception", fieldName), e);
-        } catch (ClassNotFoundException e) {
-            throw new SecurityException(localize("security.advice.class.not.found.exception", fieldName), e);
-        } catch (NoSuchFieldException e) {
-            throw new SecurityException(localize("security.advice.no.such.field.exception", fieldName), e);
-        } catch (NullPointerException e) {
-            throw new SecurityException(localize("security.advice.null.pointer.exception", fieldName), e);
-        } catch (InaccessibleObjectException e) {
-            throw new SecurityException(localize("security.advice.inaccessible.object.exception", fieldName), e);
-        } catch (IllegalAccessException e) {
-            throw new SecurityException(localize("security.advice.illegal.access.exception", fieldName), e);
-        } catch (IllegalArgumentException e) {
-            throw new SecurityException(localize("security.advice.illegal.argument.exception", fieldName), e);
-        }
-    }
-
-    /**
-     * Sets the value of a specified static field in the settings class.
-     *
-     * <p>Description: Uses reflection to modify a static field in JavaAOPTestCaseSettings,
-     * allowing updates to security-related configuration values for instrumentation and tests.
-     *
-     * @param fieldName the name of the field to modify
-     * @param newValue the new value to assign to the field
-     * @param <T> the type of the field's value
-     * @since 2.0.0
-     * @author Markus Paulsen
-     */
-    private static <T> void setValueToSettings(@Nonnull String fieldName, @Nullable T newValue) {
-        try {
-            // Take bootloader as class loader in order to get the JavaAOPTestCaseSettings class at bootloader time for instrumentation
-            @Nonnull Class<?> adviceSettingsClass = Objects.requireNonNull(Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, null), "adviceSettingsClass must not be null");
-            @Nonnull Field field = Objects.requireNonNull(adviceSettingsClass.getDeclaredField(Objects.requireNonNull(fieldName, "fieldName must not be null")), "field must not be null");
-            field.setAccessible(true);
-            field.set(null, newValue);
-            field.setAccessible(false);
-        } catch (LinkageError e) {
-            throw new SecurityException(localize("security.advice.linkage.exception", fieldName), e);
-        } catch (ClassNotFoundException e) {
-            throw new SecurityException(localize("security.advice.class.not.found.exception", fieldName), e);
-        } catch (NoSuchFieldException e) {
-            throw new SecurityException(localize("security.advice.no.such.field.exception", fieldName), e);
-        } catch (NullPointerException e) {
-            throw new SecurityException(localize("security.advice.null.pointer.exception", fieldName), e);
-        } catch (InaccessibleObjectException e) {
-            throw new SecurityException(localize("security.advice.inaccessible.object.exception", fieldName), e);
-        } catch (IllegalAccessException e) {
-            throw new SecurityException(localize("security.advice.illegal.access.exception", fieldName), e);
-        } catch (IllegalArgumentException e) {
-            throw new SecurityException(localize("security.advice.illegal.argument.exception", fieldName), e);
-        }
-    }
-
-    /**
-     * Decrements the value at a specified index in an integer array setting.
-     *
-     * <p>Description: Retrieves an integer array from settings, decrements the value
-     * at the given position, and updates the array back to the settings class.
-     *
-     * @param settingsArray the name of the array field in settings
-     * @param position the index position of the value to decrement
-     * @since 2.0.0
-     * @author Markus Paulsen
-     */
-    private static void decrementSettingsArrayValue(@Nonnull String settingsArray, int position) {
-        @Nullable int[] array = getValueFromSettings(settingsArray);
-        if (array != null && position >= 0 && position < array.length) {
-            @Nonnull int[] clone = array.clone();
-            clone[position]--;
-            setValueToSettings(settingsArray, clone);
-        }
-    }
-
-    /**
-     * Retrieves a localized message based on a key and optional arguments.
-     *
-     * <p>Description: Attempts to fetch a localized string from the Messages class using reflection.
-     * Falls back to the key if localization fails.
-     *
-     * @param key the localization key identifying the message
-     * @param args optional arguments to format the localized message
-     * @return the localized message string, or the key itself if localization fails
-     * @since 2.0.0
-     * @author Markus Paulsen
-     */
-    @Nonnull
-    public static String localize(@Nonnull String key, @Nullable Object... args) {
-        try {
-            @Nonnull Class<?> messagesClass = Class.forName(
-                    "de.tum.cit.ase.ares.api.localization.Messages",
-                    true,
-                    Thread.currentThread().getContextClassLoader()
-            );
-            @Nonnull Method localized = messagesClass.getDeclaredMethod(
-                    "localized", String.class, Object[].class
-            );
-            @Nullable Object result = localized.invoke(null, key, args);
-            if (result instanceof String str) {
-                return str;
-            } else {
-                throw new IllegalStateException("Method does not return a String");
-            }
-        } catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException |
-                 IllegalAccessException e) {
-            // Fallback: Return the key if localization fails
-            return key;
-        }
-    }
-    //</editor-fold>
-
     //<editor-fold desc="Thread system methods">
 
-    //<editor-fold desc="Callstack criteria methods">
-
-    /**
-     * Determines if a call stack element is in the allow list.
-     *
-     * <p>Description: Checks whether the class name of the provided stack trace element
-     * starts with any of the allowed class name prefixes.
-     *
-     * @param allowedClasses the array of allowed class name prefixes
-     * @param elementToCheck the stack trace element to check
-     * @return true if the element is allowed, false otherwise
-     * @since 2.0.0
-     * @author Markus Paulsen
-     */
-    private static boolean checkIfCallstackElementIsAllowed(@Nonnull String[] allowedClasses, @Nonnull StackTraceElement elementToCheck) {
-        String className = elementToCheck.getClassName();
-        for (@Nonnull String allowedClass : allowedClasses) {
-            if (className.startsWith(allowedClass)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Checks the current call stack for violations of restricted packages.
-     *
-     * <p>Description: Examines the stack trace to find the first element whose class name
-     * starts with the restricted package but is not in the allowed classes list,
-     * skipping any classes in the ignore list.
-     *
-     * @param restrictedPackage the prefix of restricted package names
-     * @param allowedClasses the array of allowed class name prefixes
-     * @return the fully qualified method name that violates criteria, or null if none
-     * @since 2.0.0
-     * @author Markus Paulsen
-     */
-    @Nullable
-    private static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses) {
-        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-        for (@Nonnull StackTraceElement element : stackTrace) {
-            String className = element.getClassName();
-            boolean ignoreFound = false;
-            for (@Nonnull String allowedClass : THREAD_SYSTEM_IGNORE_CALLSTACK) {
-                if (className.startsWith(allowedClass)) {
-                    ignoreFound = true;
-                    break;
-                }
-            }
-            if (ignoreFound) {
-                break;
-            }
-            if (className.startsWith(restrictedPackage) && !checkIfCallstackElementIsAllowed(allowedClasses, element)) {
-                return className + "." + element.getMethodName();
-            }
-        }
-        return null;
-    }
-    //</editor-fold>
-
     //<editor-fold desc="Variable criteria methods">
-
-    //<editor-fold desc="Filter variables">
-
-    /**
-     * Filters variables based on the IgnoreValues criteria.
-     *
-     * <p>Description: Returns a new array of variables, excluding those that match the ignore criteria.
-     * If all variables are ignored, returns an empty array. If all except one variable is ignored,
-     * returns an array with only that variable.
-     *
-     * @param variables the original array of variables
-     * @param ignoreVariables criteria determining which variables to skip
-     * @return a filtered array of variables
-     * @since 2.0.0
-     * @author Markus Paulsen
-     */
-    @Nonnull
-    private static Object[] filterVariables(@Nonnull Object[] variables, @Nonnull IgnoreValues ignoreVariables) {
-        @Nonnull ArrayList<Object> newVariables = new ArrayList<>(Arrays.asList(variables.clone()));
-        switch (ignoreVariables.getType()) {
-            // No variable is ignored
-            case NONE:
-                break;
-            // All variables are ignored
-            case ALL:
-                newVariables.clear();
-                break;
-            // All variables except the one at the given index are ignored
-            case ALL_EXCEPT:
-                @Nonnull Object toKeep = newVariables.get(ignoreVariables.getIndex());
-                newVariables.clear();
-                newVariables.add(toKeep);
-                break;
-            case NONE_EXCEPT:
-                newVariables.remove(ignoreVariables.getIndex());
-                break;
-        }
-        return newVariables.toArray();
-    }
-    //</editor-fold>
 
     //<editor-fold desc="Forbidden handling">
 
@@ -336,17 +95,17 @@ public class JavaInstrumentationAdviceThreadSystemToolbox {
      * <code>false</code> (indicating it was allowed). If the count is zero or below, it returns
      * <code>true</code> (indicating the class is disallowed because the quota is exhausted).
      *
-     * @param threadNumberAllowedToBeCreated An array of permissible thread counts, parallel to
+     * @param allowedThreadNumbers An array of permissible thread counts, parallel to
      *                                       the class array that determines which classes can create threads.
      * @param index                          The index corresponding to the class being checked.
      * @return <code>true</code> if no more threads can be created (disallowed), or
      *         <code>false</code> if the class is allowed to create another thread and the count was decremented.
      */
-    private static boolean handleFoundClassIsForbidden(@Nullable int[] threadNumberAllowedToBeCreated, int index) {
-        if (threadNumberAllowedToBeCreated == null) {
+    private static boolean handleFoundClassIsForbidden(@Nullable int[] allowedThreadNumbers, int index) {
+        if (allowedThreadNumbers == null) {
             return true;
         }
-        boolean threadDisallowed = threadNumberAllowedToBeCreated[index] <= 0;
+        boolean threadDisallowed = allowedThreadNumbers[index] <= 0;
         if (!threadDisallowed) {
             decrementSettingsArrayValue("threadNumberAllowedToBeCreated", index);
         }
@@ -361,39 +120,44 @@ public class JavaInstrumentationAdviceThreadSystemToolbox {
      * @since 2.0.0
      * @author Markus
      * @param actualClassname the class name of the thread being requested
-     * @param threadClassAllowedToBeCreated the thread classes that are allowed to be created
-     * @param threadNumberAllowedToBeCreated the number of threads allowed to be created
+     * @param allowedThreadClasses the thread classes that are allowed to be created
+     * @param allowedThreadNumbers the number of threads allowed to be created
      * @return true if path is forbidden; false otherwise
      */
-    private static boolean checkIfThreadIsForbidden(@Nullable String actualClassname, @Nullable String[] threadClassAllowedToBeCreated, @Nullable int[] threadNumberAllowedToBeCreated) {
+    private static boolean checkIfThreadIsForbidden(@Nullable String actualClassname, @Nullable String[] allowedThreadClasses, @Nullable int[] allowedThreadNumbers) {
         if (actualClassname == null) {
             return false;
         }
-        if (threadClassAllowedToBeCreated == null && threadNumberAllowedToBeCreated == null) {
+        if (allowedThreadClasses == null || allowedThreadClasses.length == 0 || allowedThreadNumbers == null || allowedThreadNumbers.length == 0) {
             return true;
         }
-        int threadClassAllowedToBeCreatedLength = threadClassAllowedToBeCreated == null ? 0 : threadClassAllowedToBeCreated.length;
+        boolean actualIsLambda = "Lambda-Expression".equals(actualClassname);
         int starIndex = -1;
-        for (int i = 0; i < threadClassAllowedToBeCreatedLength; i++) {
-            String allowedClassName = threadClassAllowedToBeCreated[i];
+        for (int i = 0; i < allowedThreadClasses.length; i++) {
+            @Nonnull String allowedClassName = allowedThreadClasses[i];
+            boolean allowedIsLambda = "Lambda-Expression".equals(allowedClassName);
             if ("*".equals(allowedClassName)) {
                 starIndex = i;
+            }
+            if (allowedIsLambda && actualIsLambda) {
+                return handleFoundClassIsForbidden(allowedThreadNumbers, i);
+            }
+            if (allowedIsLambda || actualIsLambda) {
+                continue;
             }
             try {
                 Class<?> allowedClass = Class.forName(allowedClassName, true, ClassLoader.getSystemClassLoader());
                 Class<?> actualClass = Class.forName(actualClassname, true, ClassLoader.getSystemClassLoader());
                 if (allowedClass.isAssignableFrom(actualClass)) {
-                    return handleFoundClassIsForbidden(threadNumberAllowedToBeCreated, i);
-                } else {
-                    return true;
+                    return handleFoundClassIsForbidden(allowedThreadNumbers, i);
                 }
             } catch (ClassNotFoundException | IllegalStateException | NullPointerException ignored) {
             }
         }
         if (starIndex != -1) {
-            return handleFoundClassIsForbidden(threadNumberAllowedToBeCreated, starIndex);
+            return handleFoundClassIsForbidden(allowedThreadNumbers, starIndex);
         }
-        return false;
+        return true;
     }
     //</editor-fold>
 
@@ -415,16 +179,80 @@ public class JavaInstrumentationAdviceThreadSystemToolbox {
         if (!variableClass.isSynthetic()) {
             return false;
         }
-        try {
-            // Step 2: locate the hidden writeReplace() method
-            Method writeReplace = variableClass.getDeclaredMethod("writeReplace");
-            writeReplace.setAccessible(true);
-            // Step 3: ensure it returns a SerializedLambda
-            Class<?> returnType = writeReplace.getReturnType();
-            return SerializedLambda.class.isAssignableFrom(returnType);
-        } catch (NoSuchMethodException e) {
-            // If writeReplace is missing, this synthetic class is not a lambda
+        String className = variableClass.getName();
+
+        // Check for common lambda patterns
+        return className.contains("$$Lambda") ||
+                className.contains("$Lambda$") ||
+                className.matches(".*\\$\\$Lambda\\$.*");
+    }
+
+    /**
+     * Checks if a variable is an instance of Thread.FieldHolder using reflection.
+     *
+     * <p>Description: Uses reflection to safely check if the variable is an instance
+     * of Thread.FieldHolder, avoiding direct instanceof checks that might fail in
+     * instrumentation contexts.
+     *
+     * @param variableValue the variable to check
+     * @return true if the variable is a Thread.FieldHolder instance, false otherwise
+     * @since 2.0.0
+     * @author Markus Paulsen
+     */
+    private static boolean isThreadFieldHolder(@Nullable Object variableValue) {
+        if (variableValue == null) {
             return false;
+        }
+
+        try {
+            @Nonnull Class<?> variableClass = variableValue.getClass();
+            @Nonnull String className = variableClass.getName();
+
+            // Check if the class name matches Thread.FieldHolder pattern
+            return className.equals("java.lang.Thread$FieldHolder") ||
+                    className.endsWith("$FieldHolder") && className.startsWith("java.lang.Thread");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Extracts the task field value from a Thread.FieldHolder instance using reflection.
+     *
+     * <p>Description: Uses reflection to safely access the task field from a
+     * Thread.FieldHolder instance, handling potential access restrictions.
+     *
+     * @param threadFieldHolder the Thread.FieldHolder instance
+     * @return the value of the task field as a String
+     * @throws InvalidPathException if extraction fails
+     * @since 2.0.0
+     * @author Markus Paulsen
+     */
+    @Nonnull
+    private static String getTaskFromThreadFieldHolder(@Nonnull Object threadFieldHolder) {
+        try {
+            @Nonnull Class<?> fieldHolderClass = threadFieldHolder.getClass();
+            Class<?> unsafeClass = Class.forName("sun.misc.Unsafe");
+            Field unsafeField = unsafeClass.getDeclaredField("theUnsafe");
+            unsafeField.setAccessible(true);
+            Object unsafe = unsafeField.get(null);
+            Method objectFieldOffsetMethod = unsafeClass.getMethod("objectFieldOffset", Field.class);
+            Field taskField = fieldHolderClass.getDeclaredField("task");
+            long offset = (Long) objectFieldOffsetMethod.invoke(unsafe, taskField);
+            Method getObjectMethod = unsafeClass.getMethod("getObject", Object.class, long.class);
+            @Nullable Object taskValue = getObjectMethod.invoke(unsafe, threadFieldHolder, offset);
+            if (taskValue == null) {
+                throw new InvalidPathException(threadFieldHolder.toString(),
+                        localize("security.advice.transform.path.exception"));
+            }
+            @Nonnull Class<?> taskClass = taskValue.getClass();
+            return isReallyLambda(taskClass) ? "Lambda-Expression" : taskClass.getName();
+        } catch (NoSuchFieldException | IllegalAccessException | NullPointerException |
+                 InaccessibleObjectException e) {
+            throw new InvalidPathException(threadFieldHolder.toString(),
+                    localize("security.advice.transform.path.exception"));
+        } catch (ClassNotFoundException | InvocationTargetException | NoSuchMethodException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -435,16 +263,23 @@ public class JavaInstrumentationAdviceThreadSystemToolbox {
      * Otherwise, returns the class name of the variable.
      *
      */
-    @Nonnull
+    @Nullable
     private static String variableToClassname(@Nullable Object variableValue) {
-        if (variableValue == null) {
-            throw new InvalidPathException("null", localize("security.advice.transform.path.exception"));
-        } else if (variableValue instanceof Runnable || variableValue instanceof Callable<?> || variableValue instanceof ForkJoinTask<?>) {
-            @Nonnull Class<?> variableClass = variableValue.getClass();
-            return isReallyLambda(variableClass) ? "Lambda-Expression" : variableClass.getName();
-        } else {
-            throw new InvalidPathException(variableValue.toString(), localize("security.advice.transform.path.exception"));
+        try {
+            if (variableValue == null) {
+                return null;
+            } else if (isThreadFieldHolder(variableValue)) {
+                return getTaskFromThreadFieldHolder(variableValue);
+            } else if (variableValue instanceof Runnable || variableValue instanceof Callable<?> || variableValue instanceof ForkJoinTask<?> || variableValue instanceof CompletableFuture<?> || variableValue instanceof Supplier<?> || variableValue instanceof Function<?, ?> || variableValue instanceof BiFunction<?, ?, ?> || variableValue instanceof CompletionStage<?>) {
+                @Nonnull Class<?> variableClass = variableValue.getClass();
+                return isReallyLambda(variableClass) ? "Lambda-Expression" : variableClass.getName();
+            } else {
+                return null;
+            }
+        } catch (InvalidPathException ignored) {
+            return null;
         }
+
     }
     //</editor-fold>
 
@@ -463,31 +298,29 @@ public class JavaInstrumentationAdviceThreadSystemToolbox {
      * @param threadNumberAllowedToBeCreated the number of threads allowed to be created
      * @return true if a violation is found, false otherwise
      */
-    private static boolean analyseViolation(@Nullable Object observedVariable, @Nullable String[] threadClassAllowedToBeCreated, @Nullable int[] threadNumberAllowedToBeCreated) {
+    private static boolean analyseViolation(@Nullable Object observedVariable, @Nullable String[] allowedThreadClasses, @Nullable int[] allowedThreadNumbers) {
         if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
             return false;
         } else if (observedVariable.getClass().isArray()) {
             for (int i = 0; i < Array.getLength(observedVariable); i++) {
                 Object element = Array.get(observedVariable, i);
-                if (analyseViolation(element, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated)) {
+                boolean violation = analyseViolation(element, allowedThreadClasses, allowedThreadNumbers);
+                if (violation) {
                     return true;
                 }
             }
             return false;
         } else if (observedVariable instanceof List<?>) {
             for (Object element : (List<?>) observedVariable) {
-                if (analyseViolation(element, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated)) {
+                boolean violation = analyseViolation(element, allowedThreadClasses, allowedThreadNumbers);
+                if (violation) {
                     return true;
                 }
             }
             return false;
         } else {
-            try {
-                String observedClassname = variableToClassname(observedVariable);
-                return checkIfThreadIsForbidden(observedClassname, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated);
-            } catch (InvalidPathException ignored) {
-                return false;
-            }
+            String observedClassname = variableToClassname(observedVariable);
+            return checkIfThreadIsForbidden(observedClassname, allowedThreadClasses, allowedThreadNumbers);
         }
     }
 
@@ -505,13 +338,13 @@ public class JavaInstrumentationAdviceThreadSystemToolbox {
      * @return the first violating path as a String, or null if none found
      */
     @Nullable
-    private static String extractViolationPath(@Nullable Object observedVariable, @Nullable String[] threadClassAllowedToBeCreated, @Nullable int[] threadNumberAllowedToBeCreated) {
+    private static String extractViolationPath(@Nullable Object observedVariable, @Nullable String[] allowedThreadClasses, @Nullable int[] allowedThreadNumbers) {
         if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
             return null;
         } else if (observedVariable.getClass().isArray()) {
             for (int i = 0; i < Array.getLength(observedVariable); i++) {
                 Object element = Array.get(observedVariable, i);
-                String violationPath = extractViolationPath(element, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated);
+                String violationPath = extractViolationPath(element, allowedThreadClasses, allowedThreadNumbers);
                 if (violationPath != null) {
                     return violationPath;
                 }
@@ -519,7 +352,7 @@ public class JavaInstrumentationAdviceThreadSystemToolbox {
             return null;
         } else if (observedVariable instanceof List<?>) {
             for (Object element : (List<?>) observedVariable) {
-                String violationPath = extractViolationPath(element, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated);
+                String violationPath = extractViolationPath(element, allowedThreadClasses, allowedThreadNumbers);
                 if (violationPath != null) {
                     return violationPath;
                 }
@@ -528,7 +361,7 @@ public class JavaInstrumentationAdviceThreadSystemToolbox {
         } else {
             try {
                 String observedClassname = variableToClassname(observedVariable);
-                if (checkIfThreadIsForbidden(observedClassname, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated)) {
+                if (checkIfThreadIsForbidden(observedClassname, allowedThreadClasses, allowedThreadNumbers)) {
                     return observedClassname;
                 }
             } catch (InvalidPathException ignored) {
@@ -627,13 +460,20 @@ public class JavaInstrumentationAdviceThreadSystemToolbox {
         //<editor-fold desc="Check parameters">
         @Nullable String threadIllegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated, THREAD_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
         if (threadIllegallyInteractedThroughParameter != null) {
-            throw new SecurityException(localize("security.advice.illegal.method.execution", threadSystemMethodToCheck, action, threadIllegallyInteractedThroughParameter, fullMethodSignature));
+            throw new SecurityException(localize("security.advice.illegal.thread.execution", threadSystemMethodToCheck, action, threadIllegallyInteractedThroughParameter, fullMethodSignature));
         }
         //</editor-fold>
         //<editor-fold desc="Check attributes">
-        @Nullable String threadIllegallyInteractedThroughAttribute = (attributes == null || attributes.length == 0) ? null : checkIfVariableCriteriaIsViolated(new Object[]{declaringTypeName}, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated, THREAD_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
+        // Create combined array with declaringTypeName and attributes
+        Object[] attributesToCheck = attributes == null ? new Object[]{declaringTypeName} :
+                Stream.concat(
+                        Stream.of(declaringTypeName),
+                        Arrays.stream(attributes)
+                ).toArray();
+
+        @Nullable String threadIllegallyInteractedThroughAttribute = (attributesToCheck.length == 0) ? null : checkIfVariableCriteriaIsViolated(attributesToCheck, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated, THREAD_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
         if (threadIllegallyInteractedThroughAttribute != null) {
-            throw new SecurityException(localize("security.advice.illegal.method.execution", threadSystemMethodToCheck, action, threadIllegallyInteractedThroughAttribute, fullMethodSignature));
+            throw new SecurityException(localize("security.advice.illegal.thread.execution", threadSystemMethodToCheck, action, threadIllegallyInteractedThroughAttribute, fullMethodSignature));
         }
         //</editor-fold>
     }

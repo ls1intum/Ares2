@@ -1,0 +1,36 @@
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_WALA_AND_ASPECTJ
+  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.cit.ase.ares.integration.aop.allowed.SystemAccessTest"
+    - "de.tum.cit.ase.ares.integration.aop.forbidden.SystemAccessTest"
+    - "de.tum.cit.ase.ares.integration.architecture.forbidden.SystemAccessTest"
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions: []
+    regardingNetworkConnections: []
+    regardingCommandExecutions: []
+    regardingThreadCreations:
+      - createTheFollowingNumberOfThreads: 100
+        ofThisClass: "java.lang.Thread"
+      - createTheFollowingNumberOfThreads: 100
+        ofThisClass: "java.util.concurrent.CompletableFuture$AsyncRun"
+      - createTheFollowingNumberOfThreads: 100
+        ofThisClass: "java.util.concurrent.CompletableFuture$AsyncSupply"
+      - createTheFollowingNumberOfThreads: 100
+        ofThisClass: "java.util.concurrent.ForkJoinWorkerThread"
+      - createTheFollowingNumberOfThreads: 100
+        ofThisClass: "java.util.concurrent.ThreadPoolExecutor$Worker"
+      - createTheFollowingNumberOfThreads: 100
+        ofThisClass: "java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask"
+      - createTheFollowingNumberOfThreads: 100
+        ofThisClass: "de.tum.cit.ase.ares.integration.aop.allowed.subject.LegalThread"
+      - createTheFollowingNumberOfThreads: 100
+        ofThisClass: "Lambda-Expression"
+      - createTheFollowingNumberOfThreads: 100
+        ofThisClass: "java.util.concurrent.FutureTask"
+      - createTheFollowingNumberOfThreads: 100
+        ofThisClass: "java.util.concurrent.CompletableFuture"
+      - createTheFollowingNumberOfThreads: 100
+        ofThisClass: "java.util.concurrent.ExecutorCompletionService$QueueingFuture"
+    regardingPackageImports: []

@@ -1,15 +1,11 @@
 package de.tum.cit.ase.ares.integration;
 
 import static de.tum.cit.ase.ares.testutilities.CustomConditions.*;
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.nio.file.Path;
 
 import org.junit.ComparisonFailure;
 import org.junit.platform.testkit.engine.Events;
 import org.opentest4j.AssertionFailedError;
 
-import de.tum.cit.ase.ares.api.security.ConfigurationException;
 import de.tum.cit.ase.ares.integration.testuser.SecurityUser;
 import de.tum.cit.ase.ares.testutilities.*;
 

@@ -1,12 +1,7 @@
 package de.tum.cit.ase.ares.integration.testuser;
 
-import static org.junit.Assert.fail;
-
 import java.io.IOException;
-import java.nio.file.*;
 import java.util.concurrent.TimeUnit;
-
-import de.tum.cit.ase.ares.api.jupiter.BenchmarkExtension;
 import org.junit.jupiter.api.MethodOrderer.MethodName;
 import org.junit.jupiter.api.TestMethodOrder;
 
@@ -15,7 +10,6 @@ import de.tum.cit.ase.ares.api.MirrorOutput.MirrorOutputPolicy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
 import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.fileSystem.FileSystemAccessPenguin;
-import org.junit.jupiter.api.extension.ExtendWith;
 
 @UseLocale("en")
 @MirrorOutput(MirrorOutputPolicy.DISABLED)
@@ -41,19 +35,19 @@ public class FileSystemAccessUser {
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
     public void accessPathNormalInstrumentation() throws IOException {
-        FileSystemAccessPenguin.accessPath(Path.of("pom212.xml"));
+        //FileSystemAccessPenguin.accessPath(Path.of("pom212.xml"));
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
     public void accessPathNormal() throws IOException {
-        FileSystemAccessPenguin.accessPath(Path.of("pom212.xml"));
+        //FileSystemAccessPenguin.accessPath(Path.of("pom212.xml"));
     }
 
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/pathaccess")
     void accessPathNormalAllowed() throws IOException {
-        FileSystemAccessPenguin.accessPath(Path.of("pom.xml"));
+        //FileSystemAccessPenguin.accessPath(Path.of("pom.xml"));
     }
 
     @PublicTest

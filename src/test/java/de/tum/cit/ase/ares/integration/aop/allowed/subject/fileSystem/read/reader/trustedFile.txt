@@ -1,0 +1,1 @@
+This is a trusted file for testing Reader access.

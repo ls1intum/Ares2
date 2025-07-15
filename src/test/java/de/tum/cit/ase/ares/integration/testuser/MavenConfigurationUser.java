@@ -5,7 +5,6 @@ import de.tum.cit.ase.ares.api.jupiter.Public;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
 import de.tum.cit.ase.ares.api.util.DependencyManager;
-import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,10 +29,10 @@ public class MavenConfigurationUser {
                     ".xml"
             ).toFile();
 
-            FileOutputStream fos = new FileOutputStream(copiedFile);
-            // copy the content of the POM file to the temporary file
-            fos.write(Files.readAllBytes(new File(POM_XML_PATH).toPath()));
-
+            try (FileOutputStream fos = new FileOutputStream(copiedFile)) {
+                // copy the content of the POM file to the temporary file
+                fos.write(Files.readAllBytes(new File(POM_XML_PATH).toPath()));
+            }
             DependencyManager.addDependenciesAndPluginsForMaven(copiedFile.getAbsolutePath());
 
             copiedFile.deleteOnExit();

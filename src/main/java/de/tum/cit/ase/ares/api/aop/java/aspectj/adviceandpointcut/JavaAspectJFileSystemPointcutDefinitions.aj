@@ -2,15 +2,6 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
 
 public aspect JavaAspectJFileSystemPointcutDefinitions {
 
-    // These are the FileSystem related methods which we want to ban
-
-    // new Scheme:
-    // - methodsWhichCanReadFiles
-    // - methodsWhichCanOverwriteFiles
-    // - methodsWhichCanExecuteFiles
-    // - methodsWhichCanDeleteFiles
-    // - methodsWhichCanCreateThreads
-
     pointcut fileReadMethods():
             (call(* java.io.File.canRead(..)) ||
                     call(java.io.File.new(..)) ||
@@ -29,6 +20,9 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
 
     pointcut fileWriteMethods():
             (call(* java.io.File.canWrite(..)) ||
+                    call(java.io.RandomAccessFile.new(..)) ||
+                    call(java.util.zip.GZIPOutputStream.new(..)) ||
+                    call(java.util.zip.InflaterOutputStream.new(..)) ||
                     call(* java.io.File.createNewFile(..)) ||
                     call(* java.io.File.createTempFile(..)) ||
                     call(* java.io.File.setExecutable(..)) ||
@@ -79,7 +73,6 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.nio.file.Files.newInputStream(..)) ||
                     call(* java.nio.file.Files.probeContentType(..)) ||
                     call(* java.nio.file.Files.isReadable(..))||
-                    call(* java.nio.channels.FileChannel.open(..)) ||
                     call(* java.io.DataInputStream.read(..)) ||
                     call(* java.io.DataInputStream.readFully(..)) ||
                     call(* java.io.ObjectInputStream.readObject(..)) ||
@@ -115,11 +108,9 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
             (call(* java.nio.file.Files.delete(..)) ||
                     call(* java.nio.file.Files.deleteIfExists(..)) ||
                     call(* java.nio.file.Files.isDirectory(..)) ||
-                    call(* java.nio.file.Files.isRegularFile(..)) ||
                     call(* java.nio.file.Files.isSameFile(..)) ||
                     call(* java.nio.file.Files.isSymbolicLink(..)) ||
-                    call(* java.nio.file.Files.notExists(..)) ||
-                    call(* java.nio.file.Files.size(..)));
+                    call(* java.nio.file.Files.notExists(..)));
 
     pointcut fileSystemReadMethods():
             (call(* java.nio.file.FileSystem.getFileStores(..)) ||
@@ -128,7 +119,6 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.nio.file.FileSystem.getRootDirectories(..)) ||
                     call(* java.nio.file.FileSystem.provider(..)) ||
                     call(* java.nio.file.FileSystem.supportedFileAttributeViews(..)) ||
-                    call(* java.nio.file.FileSystem.isOpen(..)) ||
                     call(* java.nio.file.FileSystem.isReadOnly(..)));
 
     pointcut fileSystemWriteMethods():
@@ -143,8 +133,7 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(java.lang.ProcessBuilder.new(..));
 
     pointcut fileChannelExecuteMethods():
-            (call(* java.nio.channels.AsynchronousFileChannel.open()) ||
-                    call(* java.nio.channels.FileChannel.position(..)) ||
+            (call(* java.nio.channels.FileChannel.position(..)) ||
                     call(* java.nio.channels.FileChannel.tryLock(..)) ||
                     call(* java.nio.channels.AsynchronousFileChannel.tryLock()));
 
@@ -153,8 +142,17 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.nio.channels.FileChannel.size(..)));
 
     pointcut fileChannelWriteMethods():
-            (call(* java.nio.channels.FileChannel.write(..)) ||
+            (call(* java.nio.channels.FileChannel.open(..)) ||
+            call(* java.nio.channels.FileChannel.write(..)) ||
                     call(* java.nio.channels.FileChannel.force(..)));
+
+
+    pointcut writerMethods():
+             (call(java.io.Writer.new(..)) ||
+                    call(* java.io.Writer.append(..)) ||
+                    call(* java.io.Writer.write(..)) ||
+                    call(* java.io.Writer.flush(..)) ||
+                    call(* java.io.Writer.close(..)));
 
     pointcut fileWriterMethods():
             (call(java.io.FileWriter.new(..)) ||
@@ -162,6 +160,13 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.io.FileWriter.write(..)) ||
                     call(* java.io.FileWriter.flush(..)) ||
                     call(* java.io.FileWriter.close(..)));
+
+    pointcut bufferedWriterMethods():
+            call(java.io.BufferedWriter.new(..)) ||
+            call(* java.io.BufferedWriter.append(..)) ||
+            call(* java.io.BufferedWriter.write(..))  ||
+            call(* java.io.BufferedWriter.flush(..)) ||
+            call(* java.io.BufferedWriter.close(..));
 
     pointcut fileHandlerMethods():
             (call(java.util.logging.FileHandler.new(..)) ||

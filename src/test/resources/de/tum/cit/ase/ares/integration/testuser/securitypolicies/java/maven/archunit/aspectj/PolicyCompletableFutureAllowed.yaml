@@ -1,0 +1,28 @@
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.cit.ase.ares.integration.aop.allowed.SystemAccessTest"
+    - "de.tum.cit.ase.ares.integration.aop.forbidden.SystemAccessTest"
+    - "de.tum.cit.ase.ares.integration.architecture.forbidden.SystemAccessTest"
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions: []
+    regardingNetworkConnections: []
+    regardingCommandExecutions: []
+    regardingThreadCreations:
+      - createTheFollowingNumberOfThreads: 10
+        ofThisClass: "java.util.concurrent.CompletableFuture$AsyncRun"
+      - createTheFollowingNumberOfThreads: 10
+        ofThisClass: "java.util.concurrent.CompletableFuture$AsyncSupply"
+      - createTheFollowingNumberOfThreads: 10
+        ofThisClass: "java.util.concurrent.ForkJoinWorkerThread"
+      - createTheFollowingNumberOfThreads: 5
+        ofThisClass: "java.util.concurrent.ThreadPoolExecutor$Worker"
+      - createTheFollowingNumberOfThreads: 1
+        ofThisClass: "de.tum.cit.ase.ares.integration.aop.allowed.subject.LegalThread"
+      - createTheFollowingNumberOfThreads: 100
+        ofThisClass: "java.util.concurrent.CompletableFuture"
+      - createTheFollowingNumberOfThreads: 100
+        ofThisClass: "Lambda-Expression"
+    regardingPackageImports: []

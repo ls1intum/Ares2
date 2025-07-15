@@ -98,7 +98,11 @@ public class SecurityPolicyReaderAndDirector {
                 .fromNullable(securityPolicyFilePath)
                 .transform(securityPolicyFilePath -> {
                     securityPolicyReader = SecurityPolicyReader.selectSecurityPolicyReader(this.securityPolicyFilePath);
-                    return securityPolicyReader.readSecurityPolicyFrom(securityPolicyFilePath);
+                    if(securityPolicyReader != null) {
+                        return securityPolicyReader.readSecurityPolicyFrom(securityPolicyFilePath);
+                    } else {
+                        throw new IllegalArgumentException("No suitable SecurityPolicyReader found for the provided file path: " + securityPolicyFilePath);
+                    }
                 })
                 .orNull();
         this.securityTestCaseFactoryAndBuilder = Optional

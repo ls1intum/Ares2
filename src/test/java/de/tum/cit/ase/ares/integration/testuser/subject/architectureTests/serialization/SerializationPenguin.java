@@ -8,11 +8,15 @@ public class SerializationPenguin {
 
     public void serializePenguin() throws IOException {
         // do nothing
-        new ObjectOutputStream(null);
+        try (ObjectOutputStream oos = new ObjectOutputStream(null)) {
+            // no operation
+        }
     }
 
     public void deserializePenguin() throws IOException {
         // do nothing
-        new ObjectInputStream(null);
+        try (ObjectInputStream ois = new ObjectInputStream(null)) {
+            // no operation
+        }
     }
 }

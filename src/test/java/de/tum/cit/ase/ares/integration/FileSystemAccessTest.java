@@ -23,9 +23,6 @@ import org.slf4j.LoggerFactory;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.util.Map;
-import java.util.TreeMap;
 
 /**
  * This test class tests the file system access of the test user.
@@ -69,7 +66,7 @@ class FileSystemAccessTest {
                 "Exception message should contain 'Ares Security Error'" + System.lineSeparator() + actualMessage + "or 'Ares Sicherheitsfehler'" + System.lineSeparator() + actualMessage);
         assertTrue(actualMessage.contains("Student-Code"),
                 "Exception message should contain 'Student-Code'" + System.lineSeparator() + actualMessage);
-        assertTrue(actualMessage.contains("Execution") || actualMessage.contains("Ausführung"),
+        assertTrue(actualMessage.contains("Execution") || actualMessage.contains("Ausf�hrung"),
                 "Exception message should contain 'Execution'" + System.lineSeparator() + actualMessage);
         assertTrue(actualMessage.contains(new File(System.getProperty("user.dir"), "pom123.xml").getAbsolutePath()),
                 "Exception message should contain the forbidden file location: " + (new File(System.getProperty("user.dir"), "pom123.xml").getAbsolutePath()) + System.lineSeparator() + actualMessage);
@@ -83,7 +80,7 @@ class FileSystemAccessTest {
      */
     private void assertAresSecurityExceptionRead(Executable executable) {
         SecurityException se = assertThrows(SecurityException.class, executable, errorMessage);
-        assertGeneralErrorMessage(se.getMessage(), "illegally read from", "illegal read von");
+        assertGeneralErrorMessage(se.getMessage(), "illegally read", "illegal read");
     }
 
     /**
@@ -92,7 +89,7 @@ class FileSystemAccessTest {
      */
     private void assertAresSecurityExceptionWrite(Executable executable) {
         SecurityException se = assertThrows(SecurityException.class, executable, errorMessage);
-        assertGeneralErrorMessage(se.getMessage(), "illegally overwrite from", "illegal overwrite von");
+        assertGeneralErrorMessage(se.getMessage(), "illegally overwrite", "illegal overwrite");
     }
 
     /**
@@ -101,7 +98,7 @@ class FileSystemAccessTest {
      */
     private void assertAresSecurityExceptionExecution(Executable executable) {
         SecurityException se = assertThrows(SecurityException.class, executable, errorMessage);
-        assertGeneralErrorMessage(se.getMessage(), "illegally execute from", "illegal execute von");
+        assertGeneralErrorMessage(se.getMessage(), "illegally execute", "illegal execute");
     }
 
     /**
@@ -111,7 +108,7 @@ class FileSystemAccessTest {
      */
     private void assertAresSecurityExceptionDelete(Executable executable) {
         SecurityException se = assertThrows(SecurityException.class, executable, errorMessage);
-        assertGeneralErrorMessage(se.getMessage(), "illegally delete from", "illegal delete von");
+        assertGeneralErrorMessage(se.getMessage(), "illegally delete", "illegal delete");
     }
     //</editor-fold>
 

@@ -35,8 +35,14 @@ public class JavaCommandSystemExtractorTest {
                 CommandPermission.builder().executeTheCommand("cmd1").withTheseArguments(List.of("a1")).build(),
                 CommandPermission.builder().executeTheCommand("cmd2").withTheseArguments(List.of("a2", "b2")).build()
         );
-        Assertions.assertEquals(List.of("cmd0", "cmd1", "cmd2"), JavaCommandSystemExtractor.extractCommands(configs));
-        Assertions.assertEquals(List.of("new String[] {}", "new String[] {\"a1\"}", "new String[] {\"a2\",\"b2\"}"), JavaCommandSystemExtractor.extractArguments(configs));
+
+        List<String> expectedCommands = List.of("cmd0", "cmd1", "cmd2");
+        List<String> actualCommands = JavaCommandSystemExtractor.extractCommands(configs);
+        Assertions.assertEquals(expectedCommands, actualCommands);
+
+        List<String> expectedArguments = List.of("new String[] {}", "new String[] {\"a1\"}", "new String[] {\"a2\",\"b2\"}");
+        List<String> actualArguments = JavaCommandSystemExtractor.extractArguments(configs);
+        Assertions.assertEquals(expectedArguments, actualArguments);
     }
 
     /**
@@ -56,7 +62,12 @@ public class JavaCommandSystemExtractorTest {
         );
         JavaCommandSystemExtractor extractor = new JavaCommandSystemExtractor(supplier);
 
-        Assertions.assertEquals(List.of("cmd0", "cmd1", "cmd2"), extractor.getPermittedCommands());
-        Assertions.assertEquals(List.of(List.of(), List.of("a1"), List.of("a2", "b2")), extractor.getPermittedArguments());
+        List<String> expectedCommands = List.of("cmd0", "cmd1", "cmd2");
+        List<String> actualCommands = extractor.getPermittedCommands();
+        Assertions.assertEquals(expectedCommands, actualCommands);
+
+        List<List<String>> expectedArguments = List.of(List.of(), List.of("a1"), List.of("a2", "b2"));
+        List<List<String>> actualArguments = extractor.getPermittedArguments();
+        Assertions.assertEquals(expectedArguments, actualArguments);
     }
 }

@@ -1,10 +1,8 @@
 package de.tum.cit.ase.ares.integration;
 
-import static de.tum.cit.ase.ares.testutilities.CustomConditions.testFailedWith;
 
 import org.junit.platform.testkit.engine.Events;
 
-import de.tum.cit.ase.ares.api.security.ConfigurationException;
 import de.tum.cit.ase.ares.integration.testuser.ValidationUser;
 import de.tum.cit.ase.ares.testutilities.*;
 

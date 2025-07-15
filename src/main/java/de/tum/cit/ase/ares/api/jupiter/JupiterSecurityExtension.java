@@ -13,7 +13,6 @@ import org.apiguardian.api.API.Status;
 import org.junit.jupiter.api.extension.*;
 import org.junit.platform.commons.function.Try;
 
-import javax.annotation.Nonnull;
 
 import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
 import static de.tum.cit.ase.ares.api.internal.TestGuardUtils.hasAnnotation;

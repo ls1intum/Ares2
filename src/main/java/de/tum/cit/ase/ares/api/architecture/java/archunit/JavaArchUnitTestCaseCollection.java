@@ -63,13 +63,13 @@ public class JavaArchUnitTestCaseCollection {
                 throw new IOException("Resource not found: " + sourceFilePath);
             }
 
-            Scanner scanner = new Scanner(sourceStream, StandardCharsets.UTF_8);
-
-            // Check if the scanner has any content
-            if (scanner.hasNext()) {
-                return scanner.useDelimiter("\\A").next();
-            } else {
-                return "";  // Return an empty string if the file is empty
+            try (Scanner scanner = new Scanner(sourceStream, StandardCharsets.UTF_8)) {
+                // Check if the scanner has any content
+                if (scanner.hasNext()) {
+                    return scanner.useDelimiter("\\A").next();
+                } else {
+                    return "";  // Return an empty string if the file is empty
+                }
             }
 
         } catch (IOException e) {

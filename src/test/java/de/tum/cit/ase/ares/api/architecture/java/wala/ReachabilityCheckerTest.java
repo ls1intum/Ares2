@@ -3,7 +3,6 @@ package de.tum.cit.ase.ares.api.architecture.java.wala;
 import com.ibm.wala.ipa.callgraph.CallGraph; 
 import com.ibm.wala.ipa.cha.ClassHierarchy; 
 import org.junit.jupiter.api.Test; 
-import java.lang.reflect.InvocationTargetException;
 import java.util.Collections; 
 import java.util.Iterator; 
 import java.util.function.Predicate; 
