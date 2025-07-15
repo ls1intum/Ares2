@@ -138,6 +138,7 @@ public class TestCaseAbstractFactoryAndBuilderTest {
                     anyString(),
                     anyList(),
                     anyList(),
+                    anyList(),
                     any(ResourceAccesses.class),
                     eq(projectPath)
             );
@@ -165,6 +166,7 @@ public class TestCaseAbstractFactoryAndBuilderTest {
                     anyList(),
                     anyString(),
                     anyString(),
+                    anyList(),
                     anyList(),
                     anyList(),
                     any(ResourceAccesses.class),
@@ -402,6 +404,7 @@ public class TestCaseAbstractFactoryAndBuilderTest {
                     anyList(),
                     anyString(),
                     anyString(),
+                    anyList(),
                     anyList(),
                     anyList(),
                     any(ResourceAccesses.class),
