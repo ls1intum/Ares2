@@ -5,6 +5,7 @@ import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
+import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.Phobos;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
@@ -119,7 +120,7 @@ public class JavaWriter implements Writer {
     @Nonnull
     private List<Path> createPhobosFiles(
             @Nonnull String packageName,
-            @Nonnull List<JavaAOPTestCase> javaAOPTestCases,
+            @Nonnull List<JavaPhobosTestCase> javaPhobosTestCases,
             @Nullable Path testFolderPath
     ) {
         return Stream.concat(
@@ -130,7 +131,7 @@ public class JavaWriter implements Writer {
                 ).stream(),
                 Stream.of(FileTools.createThreePartedFormatStringFile(
                         Phobos.threePartedFileHeader(),
-                        Phobos.threePartedFileBody(javaAOPTestCases, testFolderPath),
+                        Phobos.threePartedFileBody(javaPhobosTestCases, testFolderPath),
                         Phobos.threePartedFileFooter(),
                         Phobos.targetToCopyTo(testFolderPath, packageName),
                         Phobos.fileValue(packageName)
@@ -157,6 +158,7 @@ public class JavaWriter implements Writer {
      * @param mainClassInPackageName the name of the main class; must not be null
      * @param javaArchitectureTestCases the list of architecture test cases; must not be null
      * @param javaAOPTestCases the list of AOP test cases; must not be null
+     * @param javaPhobosTestCases the list of Phobos test cases; must not be null
      * @param testFolderPath the directory of the project; may be null
      * @return a list of paths to the created files
      */
@@ -172,6 +174,7 @@ public class JavaWriter implements Writer {
             @Nonnull String mainClassInPackageName,
             @Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
             @Nonnull List<JavaAOPTestCase> javaAOPTestCases,
+            @Nonnull List<JavaPhobosTestCase> javaPhobosTestCases,
             @Nullable Path testFolderPath
     ) {
         return Stream.of(
@@ -191,12 +194,12 @@ public class JavaWriter implements Writer {
                                 mainClassInPackageName,
                                 javaAOPTestCases,
                                 testFolderPath
-                        ).stream()//,
-                        /*createPhobosFiles(
+                        ).stream(),
+                        createPhobosFiles(
                                 packageName,
-                                javaAOPTestCases,
+                                javaPhobosTestCases,
                                 testFolderPath
-                        ).stream()*/
+                        ).stream()
                 )
                 .flatMap(s -> s)
                 .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);

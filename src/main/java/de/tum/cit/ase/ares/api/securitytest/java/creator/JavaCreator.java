@@ -11,6 +11,9 @@ import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupport
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
+import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
+import de.tum.cit.ase.ares.api.phobos.PhobosTestCase;
+import de.tum.cit.ase.ares.api.phobos.java.JavaPhobosTestCaseSupported;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
@@ -195,6 +198,18 @@ public class JavaCreator implements Creator {
                 .build();
     }
 
+
+    private PhobosTestCase createPhobosTestCase(ResourceAccesses resourceAccesses, JavaPhobosTestCaseSupported supported) {
+
+        @Nonnull Supplier<List<?>> resourceAccessSupplier = List.of((Supplier<List<?>>) resourceAccesses::regardingFileSystemInteractions, resourceAccesses::regardingNetworkConnections,  resourceAccesses::regardingTimeouts).get(supported.ordinal());
+
+        return JavaPhobosTestCase.builder()
+                .javaPhobosTestCaseSupported(supported)
+                .resourceAccessSupplier(resourceAccessSupplier)
+                .build();
+
+    }
+
     /**
      * Adds fixed architecture test cases that are always required.
      *
@@ -234,6 +249,7 @@ public class JavaCreator implements Creator {
     private void addVariableTestCases(
             @Nonnull List<ArchitectureTestCase> javaArchitectureTestCases,
             @Nonnull List<AOPTestCase> javaAOPTestCases,
+            @Nonnull List<PhobosTestCase> javaPhobosTestCases,
             @Nonnull JavaClasses classes,
             @Nonnull CallGraph callGraph,
             @Nonnull Set<PackagePermission> allowedPackages,
@@ -241,9 +257,16 @@ public class JavaCreator implements Creator {
             @Nonnull ResourceAccesses resourceAccesses
     ) {
         javaAOPTestCases.addAll(JavaAOPTestCaseSupported
-                // The choice of using TERMINATE_JVM was taken randomly for getting an instance of JavaAOPTestCaseSupported (otherwise we cannot operate over an interface)
-                .FILESYSTEM_INTERACTION.getDynamic().stream().map(fixedCase -> createAOPTestCase(resourceAccesses, javaArchitectureTestCases, (JavaAOPTestCaseSupported) fixedCase, classes, callGraph, allowedPackages, allowedClasses)).toList());
+                // The choice of using FILESYSTEM_INTERACTION was taken randomly for getting an instance of JavaAOPTestCaseSupported (otherwise we cannot operate over an interface)
+                .FILESYSTEM_INTERACTION.getDynamic().stream().map(variableCase -> createAOPTestCase(resourceAccesses, javaArchitectureTestCases, (JavaAOPTestCaseSupported) variableCase, classes, callGraph, allowedPackages, allowedClasses)).toList());
+
+
+        javaPhobosTestCases.addAll(JavaPhobosTestCaseSupported
+                // The choice of using FILESYSTEM_INTERACTION was taken randomly for getting an instance of JavaPhobosTestCaseSupported (otherwise we cannot operate over an interface)
+                .FILESYSTEM_INTERACTION.getPhobosTestCases().stream().map(variableCase -> createPhobosTestCase(resourceAccesses, (JavaPhobosTestCaseSupported) variableCase)).toList());
+
     }
+
     //</editor-fold>
 
     //<editor-fold desc="Create security test cases methods">
@@ -277,6 +300,7 @@ public class JavaCreator implements Creator {
             @Nonnull String mainClassInPackageName,
             @Nonnull List<ArchitectureTestCase> architectureTestCases,
             @Nonnull List<AOPTestCase> aopTestCases,
+            @Nonnull List<PhobosTestCase> phobosTestCases,
             @Nonnull ResourceAccesses resourceAccesses,
             @Nonnull Path projectPath
     ) {
@@ -293,7 +317,7 @@ public class JavaCreator implements Creator {
         //</editor-fold>
 
         //<editor-fold desc="Create variable rules code">
-        addVariableTestCases(architectureTestCases, aopTestCases, javaClasses, callGraph, allowedPackages, allowedClasses, resourceAccesses);
+        addVariableTestCases(architectureTestCases, aopTestCases, phobosTestCases, javaClasses, callGraph, allowedPackages, allowedClasses, resourceAccesses);
         //</editor-fold>
 
         //<editor-fold desc="Create fixed rules code">

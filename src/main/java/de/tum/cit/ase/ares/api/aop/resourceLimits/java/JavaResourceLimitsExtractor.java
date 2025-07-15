@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.api.aop.resourceLimits.java;
 
+import de.tum.cit.ase.ares.api.aop.resourceLimits.ResourceLimitsExtractor;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceLimitsPermission;
 
 import javax.annotation.Nonnull;
@@ -7,7 +8,7 @@ import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Supplier;
 
-public class JavaResourceLimitsExtractor {
+public class JavaResourceLimitsExtractor implements ResourceLimitsExtractor {
 
 
     @Nonnull
@@ -52,11 +53,15 @@ public class JavaResourceLimitsExtractor {
 
         for (ResourceLimitsPermission p : (List<ResourceLimitsPermission>) resourceAccessSupplier.get()) {
             for (Method m : p.getClass().getMethods()) {
-                if (m.getParameterCount() != 0 || m.getReturnType() != long.class) continue;
+                if (m.getParameterCount() != 0 || m.getReturnType() != long.class) {
+                    continue;
+                }
                 String name = m.getName();
                 try {
                     long val = (long) m.invoke(p);
-                    if (val < 0) continue;
+                    if (val < 0) {
+                        continue;
+                    }
                     min.merge(name, val, Math::min);
                 } catch (ReflectiveOperationException e) {
                    continue;

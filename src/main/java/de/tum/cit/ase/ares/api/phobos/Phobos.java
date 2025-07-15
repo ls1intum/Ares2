@@ -1,9 +1,9 @@
 package de.tum.cit.ase.ares.api.phobos;
 
 import com.opencsv.exceptions.CsvException;
-import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
-import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSupported;
+
 import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaCSVFileLoader;
+import de.tum.cit.ase.ares.api.phobos.java.JavaPhobosTestCaseSupported;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.NetworkPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceLimitsPermission;
@@ -97,7 +97,7 @@ public class Phobos {
     ) {
         return getCopyConfigurationEntries().stream()
                 .map(entry -> entry.get(2).split("/"))
-                .map(FileTools::resolveOnPackage)
+                .map(path -> FileTools.resolveOn(testFolderPath, packageName))
                 .toList();
     }
 
@@ -130,19 +130,19 @@ public class Phobos {
      *
      * @since 2.0.0
      * @author Ajayvir Singh
-     * @param javaAOPTestCases the list of Java AOP test cases
+     * @param javaPhobosTestCases the list of Java AOP test cases
      * @param testFolderPath   the path to the test folder, can be null
      * @return a string representing the body of the three-parted file
      */
     public static String threePartedFileBody(
-            @Nonnull List<JavaAOPTestCase> javaAOPTestCases,
+            @Nonnull List<JavaPhobosTestCase> javaPhobosTestCases,
             @Nullable Path testFolderPath
     ) {
         List<FilePermission> filePermissions =
-                extractPermissions(javaAOPTestCases, JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION);
+                extractPermissions(javaPhobosTestCases, JavaPhobosTestCaseSupported.FILESYSTEM_INTERACTION);
         List<NetworkPermission> networkPermissions =
-                extractPermissions(javaAOPTestCases, JavaAOPTestCaseSupported.NETWORK_CONNECTION);
-        List<ResourceLimitsPermission> resourceLimitsPermissions = extractPermissions(javaAOPTestCases, JavaAOPTestCaseSupported.TIMEOUT);
+                extractPermissions(javaPhobosTestCases, JavaPhobosTestCaseSupported.NETWORK_CONNECTION);
+        List<ResourceLimitsPermission> resourceLimitsPermissions = extractPermissions(javaPhobosTestCases, JavaPhobosTestCaseSupported.TIMEOUT);
 
         return JavaPhobosTestCase.writePhobosSecurityTestCaseFile(filePermissions, networkPermissions, resourceLimitsPermissions);
 
@@ -158,10 +158,10 @@ public class Phobos {
      * @param supported the type of supported permissions to extract
      * @return a list of permissions extracted from the test cases
      */
-    private static <T> List<T> extractPermissions(List<JavaAOPTestCase> testCases, JavaAOPTestCaseSupported supported) {
+    private static <T> List<T> extractPermissions(List<JavaPhobosTestCase> testCases, JavaPhobosTestCaseSupported supported) {
         return testCases.stream()
-                .filter(testCase -> testCase.getAopTestCaseSupported() == supported)
-                .map(JavaAOPTestCase::getResourceAccessSupplier)
+                .filter(testCase -> testCase.getPhobosTestCaseSupported() == supported)
+                .map(JavaPhobosTestCase::getResourceAccessSupplier)
                 .map(Supplier::get)
                 .map(permissions -> (List<T>) permissions)
                 .flatMap(Collection::stream)

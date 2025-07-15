@@ -7,6 +7,7 @@ import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
+import de.tum.cit.ase.ares.api.phobos.PhobosTestCase;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
 import org.junit.jupiter.api.BeforeEach;
@@ -126,6 +127,7 @@ public class JavaCreatorTest {
             String mainClassName = "Main";
             List<ArchitectureTestCase> architectureTestCases = new ArrayList<>();
             List<AOPTestCase> aopTestCases = new ArrayList<>();
+            List<PhobosTestCase> phobosTestCases = new ArrayList<>();
 
             String classpath = "/test/classpath";
             when(buildMode.getClasspath(tempDir)).thenReturn(classpath);
@@ -137,7 +139,7 @@ public class JavaCreatorTest {
             assertDoesNotThrow(() -> javaCreator.createTestCases(
                     buildMode, architectureMode, aopMode, essentialPackages,
                     essentialClasses, testClasses, packageName, mainClassName,
-                    architectureTestCases, aopTestCases, resourceAccesses, tempDir
+                    architectureTestCases, aopTestCases, phobosTestCases ,resourceAccesses, tempDir
             ));
 
             // Assert
@@ -158,6 +160,7 @@ public class JavaCreatorTest {
             String mainClassName = "Main";
             List<ArchitectureTestCase> architectureTestCases = new ArrayList<>();
             List<AOPTestCase> aopTestCases = new ArrayList<>();
+            List<PhobosTestCase> phobosTestCases = new ArrayList<>();
 
             String classpath = "/test/classpath";
             when(buildMode.getClasspath(tempDir)).thenReturn(classpath);
@@ -169,7 +172,7 @@ public class JavaCreatorTest {
             assertDoesNotThrow(() -> javaCreator.createTestCases(
                     buildMode, architectureMode, aopMode, essentialPackages,
                     essentialClasses, testClasses, packageName, mainClassName,
-                    architectureTestCases, aopTestCases, resourceAccesses, tempDir
+                    architectureTestCases, aopTestCases, phobosTestCases, resourceAccesses, tempDir
             ));
         }
 
@@ -184,6 +187,7 @@ public class JavaCreatorTest {
             String mainClassName = "Main";
             List<ArchitectureTestCase> architectureTestCases = new ArrayList<>();
             List<AOPTestCase> aopTestCases = new ArrayList<>();
+            List<PhobosTestCase> phobosTestCases = new ArrayList<>();
 
             String classpath = "/test/classpath";
             when(buildMode.getClasspath(tempDir)).thenReturn(classpath);
@@ -195,7 +199,7 @@ public class JavaCreatorTest {
             assertDoesNotThrow(() -> javaCreator.createTestCases(
                     buildMode, architectureMode, aopMode, essentialPackages,
                     essentialClasses, testClasses, packageName, mainClassName,
-                    architectureTestCases, aopTestCases, resourceAccesses, tempDir
+                    architectureTestCases, aopTestCases, phobosTestCases, resourceAccesses, tempDir
             ));
         }
 
@@ -210,6 +214,7 @@ public class JavaCreatorTest {
             String mainClassName = "Main";
             List<ArchitectureTestCase> architectureTestCases = new ArrayList<>();
             List<AOPTestCase> aopTestCases = new ArrayList<>();
+            List<PhobosTestCase> phobosTestCases = new ArrayList<>();
 
             String classpath = "/test/classpath";
             when(buildMode.getClasspath(tempDir)).thenReturn(classpath);
@@ -221,13 +226,13 @@ public class JavaCreatorTest {
             javaCreator.createTestCases(
                     buildMode, architectureMode, aopMode, essentialPackages,
                     essentialClasses, testClasses, packageName, mainClassName,
-                    architectureTestCases, aopTestCases, resourceAccesses, tempDir
+                    architectureTestCases, aopTestCases, phobosTestCases, resourceAccesses, tempDir
             );
 
             javaCreator.createTestCases(
                     buildMode, architectureMode, aopMode, essentialPackages,
                     essentialClasses, testClasses, packageName, mainClassName,
-                    new ArrayList<>(), new ArrayList<>(), resourceAccesses, tempDir
+                    new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), resourceAccesses, tempDir
             );
 
             // Assert - Each method should be called twice due to new cache instances
@@ -247,6 +252,7 @@ public class JavaCreatorTest {
             String mainClassName = "Main";
             List<ArchitectureTestCase> architectureTestCases = new ArrayList<>();
             List<AOPTestCase> aopTestCases = new ArrayList<>();
+            List<PhobosTestCase> phobosTestCases = new ArrayList<>();
 
             String classpath = "/test/classpath";
             when(buildMode.getClasspath(tempDir)).thenReturn(classpath);
@@ -258,7 +264,7 @@ public class JavaCreatorTest {
             javaCreator.createTestCases(
                     buildMode, architectureMode, aopMode, essentialPackages,
                     essentialClasses, testClasses, packageName, mainClassName,
-                    architectureTestCases, aopTestCases, resourceAccesses, tempDir
+                    architectureTestCases, aopTestCases, phobosTestCases, resourceAccesses, tempDir
             );
 
             // Assert - The lists should be modified (exact contents depend on implementation details)
@@ -301,6 +307,7 @@ public class JavaCreatorTest {
             String mainClassName = "Main";
             List<ArchitectureTestCase> architectureTestCases = new ArrayList<>();
             List<AOPTestCase> aopTestCases = new ArrayList<>();
+            List<PhobosTestCase> phobosTestCases = new ArrayList<>();
 
             // Mock buildMode to throw exception to test error handling
             when(buildMode.getClasspath(tempDir)).thenThrow(new IllegalArgumentException("Invalid path"));
@@ -309,7 +316,7 @@ public class JavaCreatorTest {
             assertThrows(IllegalArgumentException.class, () -> javaCreator.createTestCases(
                     buildMode, architectureMode, aopMode, essentialPackages,
                     essentialClasses, testClasses, packageName, mainClassName,
-                    architectureTestCases, aopTestCases, resourceAccesses, tempDir
+                    architectureTestCases, aopTestCases, phobosTestCases, resourceAccesses, tempDir
             ));
         }
 
@@ -324,6 +331,7 @@ public class JavaCreatorTest {
             String mainClassName = "Main";
             List<ArchitectureTestCase> architectureTestCases = new ArrayList<>();
             List<AOPTestCase> aopTestCases = new ArrayList<>();
+            List<PhobosTestCase> phobosTestCases = new ArrayList<>();
 
             when(buildMode.getClasspath(tempDir)).thenThrow(new RuntimeException("Build error"));
 
@@ -331,7 +339,7 @@ public class JavaCreatorTest {
             assertThrows(RuntimeException.class, () -> javaCreator.createTestCases(
                     buildMode, architectureMode, aopMode, essentialPackages,
                     essentialClasses, testClasses, packageName, mainClassName,
-                    architectureTestCases, aopTestCases, resourceAccesses, tempDir
+                    architectureTestCases, aopTestCases, phobosTestCases, resourceAccesses, tempDir
             ));
         }
     }
