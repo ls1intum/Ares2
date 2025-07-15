@@ -1,0 +1,7 @@
+Source,Value,Target
+templates/phobos/BasePhobos.cfg,1,phobos/BasePhobos.cfg
+templates/phobos/TailPhobos.cfg,1,phobos/TailPhobos.cfg
+templates/phobos/java/BaseLanguage-java.cfg,1,phobos/java/BaseLanguage-java.cfg
+templates/phobos/libnetblocker.so,1,phobos/libnetblocker.so
+templates/phobos/allowedList.cfg,1,phobos/allowedList.cfg
+templates/phobos/phobos_wrapper.sh,1,phobos/phobos_wrapper.sh
