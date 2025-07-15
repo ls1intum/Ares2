@@ -10,10 +10,7 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceLimitsPermissi
 import de.tum.cit.ase.ares.api.aop.networkSystem.java.JavaNetworkSystemExtractor;
 
 import javax.annotation.Nonnull;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Supplier;
 
 /**
@@ -68,20 +65,18 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 
         Set<String> readOnlyPaths = collectReadOnlyPaths(fileSystemExtractor);
         Set<String> writePaths = collectWritePaths(fileSystemExtractor);
-        Set<String> allowHosts = collectAllowHosts(networkConnectionExtractor);
-        Set<Integer> allowPorts = collectAllowPorts(networkConnectionExtractor);
+        Set<String> allowHostsAndPorts = collectAllowHostsAndPorts(networkConnectionExtractor);
         Map<String, Long> resourceLimits = resourceLimitsExtractor.collectResourceLimits();
 
         StringBuilder cfg = new StringBuilder();
         appendFilesystemSection(cfg, "readonly", readOnlyPaths);
         appendFilesystemSection(cfg, "write", writePaths);
-        appendNetworkSection(cfg, "network", allowHosts, allowPorts);
+        appendNetworkSection(cfg, "network", allowHostsAndPorts);
         appendLimitsSection(cfg, "limits", resourceLimits);
 
 
         return cfg.toString();
     }
-
 
     /**
      * Creates a supplier that returns a list of the specified type.
@@ -159,7 +154,7 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 
 
     /**
-     * // TODO: hosts and ports should have the same length -> first host = first port, second host = second port, etc.
+     *
      * HOSTS: ["example1.com", "example2.com"]
      * PORTS: [80, 444]
      */
@@ -180,65 +175,85 @@ public class JavaPhobosTestCase extends PhobosTestCase {
         return resourceAccessSupplier;
     }
 
+
     /**
-     * Collects allowed network ports from the provided JavaNetworkSystemExtractor.
+     * Collects allowed network hosts from the provided JavaNetworkSystemExtractor.
      *
-     * @param net the JavaNetworkSystemExtractor to extract ports from, must not be null.
-     * @return a set of allowed network ports.
+     * <p>The extractor must deliver <em>parallel</em> host- and port-lists:<br>
+     * first host = first port<br>
+     * Any other configuration is considered invalid and triggers an
+     * {@link IllegalStateException}.</p>
+     *
+     * <p>The resulting set contains strings of the form
+     * {@code "host"} (when the mapped port is {@code 0}) or
+     * {@code "host:port"}; order is preserved so that later code that relies
+     * on declaration order (e.g. an <code>LD_PRELOAD</code> helper) still
+     * works.</p>
+     *
+     * @param net the JavaNetworkSystemExtractor, must not be {@code null}
+     * @return an ordered set of <code>host[:port]</code> strings
+     * @throws IllegalStateException if the host and port lists differ in length
+     * @throws NullPointerException  if {@code net} is {@code null}
      */
-    private static Set<Integer> collectAllowPorts(JavaNetworkSystemExtractor net) {
-        Set<Integer> ports = new LinkedHashSet<>(net.getPermittedNetworkPorts("connect"));
-        ports.addAll(net.getPermittedNetworkPorts("send"));
-        return ports;
+    private static Set<String> collectAllowHostsAndPorts(JavaNetworkSystemExtractor net) {
+        Objects.requireNonNull(net, "extractor must not be null");
+
+        Set<String> allowed = new LinkedHashSet<>();
+
+        for (String verb : List.of("connect", "send")) {          // add "receive" if/when needed
+            List<String> hosts = net.getPermittedNetworkHosts(verb);
+            List<Integer> ports = net.getPermittedNetworkPorts(verb);
+
+            if (hosts.size() != ports.size()) {
+                throw new IllegalStateException(String.format(
+                        "Mismatching host/port lists for '%s' (hosts=%d, ports=%d)",
+                        verb, hosts.size(), ports.size()));
+            }
+
+            for (int i = 0; i < hosts.size(); i++) {
+                String host = hosts.get(i);
+                int port    = ports.get(i);
+                allowed.add(port == 0 ? host : host + ':' + port);
+            }
+        }
+
+        return allowed;
     }
 
     /**
-     * Appends and formats a section for network permissions to the provided StringBuilder.
-     * e.g.
+     * Appends a formatted “[network…]” policy section to {@code out}.
+     * The {@code hostsAndPorts} set must already contain fully formatted
+     * {@code host[:port]} strings (exactly what {@link #collectAllowHostsAndPorts} returns).
+     * Example output: <pre>
      * [network]
      * deny *
-     * allow host1
+     * allow example1.com
+     * allow example2.com:444
+     * </pre>
      *
-     * @param out     the StringBuilder to append to, must not be null.
-     * @param header  the header for the section, must not be null.
-     * @param hosts   the set of allowed network hosts, must not be null.
-     * @param ports   the set of allowed network ports, must not be null.
+     * @param out            StringBuilder to append to, must not be {@code null}
+     * @param header         section header (without brackets), e.g. {@code "network"}, must not be {@code null}
+     * @param hostsAndPorts  ordered set of {@code host[:port]} strings, must not be {@code null}
      */
     private static void appendNetworkSection(StringBuilder out,
-                                             String header, Set<String> hosts,
-                                             Set<Integer> ports) {
+                                             String header,
+                                             Set<String> hostsAndPorts) {
 
+        Objects.requireNonNull(out,           "out must not be null");
+        Objects.requireNonNull(header,        "header must not be null");
+        Objects.requireNonNull(hostsAndPorts, "hostsAndPorts must not be null");
 
-        if (hosts.isEmpty()) {
+        if (hostsAndPorts.isEmpty()) {
             return;
         }
 
-        out.append('[').append(header).append("]\n");
-        out.append("deny *\n");
+        out.append('[').append(header).append("]\n")
+                .append("deny *\n");
 
-
-        List<String> outputHosts = hosts.stream()
+        hostsAndPorts.stream()
                 .sorted()
-                .toList();
+                .forEach(hp -> out.append("allow ").append(hp).append('\n'));
 
-        List<Integer> outputPorts = ports.stream()
-                .sorted()
-                .toList();
-
-        if (ports.isEmpty()) {
-            outputHosts.forEach(h -> out.append("allow ").append(h).append('\n'));
-        } else {
-
-            for (String h : outputHosts) {
-                for (Integer p : outputPorts) {
-                    if (p == 0) {
-                        out.append("allow ").append(h).append('\n');
-                    } else {
-                        out.append("allow ").append(h).append(':').append(p).append('\n');
-                    }
-                }
-            }
-        }
         out.append('\n');
     }
 
