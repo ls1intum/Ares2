@@ -153,22 +153,6 @@ public class JavaPhobosTestCase extends PhobosTestCase {
     }
 
 
-    /**
-     *
-     * HOSTS: ["example1.com", "example2.com"]
-     * PORTS: [80, 444]
-     */
-    /**
-     * Collects allowed network hosts from the provided JavaNetworkSystemExtractor.
-     *
-     * @param net the JavaNetworkSystemExtractor to extract hosts from, must not be null.
-     * @return a set of allowed network hosts.
-     */
-    private static Set<String> collectAllowHosts(JavaNetworkSystemExtractor net) {
-        Set<String> hosts = new LinkedHashSet<>(net.getPermittedNetworkHosts("connect"));
-        hosts.addAll(net.getPermittedNetworkHosts("send"));
-        return hosts;
-    }
 
     @Nonnull
     public Supplier<List<?>> getResourceAccessSupplier() {

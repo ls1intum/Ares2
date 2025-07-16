@@ -47,7 +47,7 @@ public abstract class PhobosTestCase {
             @Nonnull NetworkSystemExtractor networkConnectionExtractor,
             @Nonnull ResourceLimitsExtractor resourceLimitsExtractor
     ) {
-        this.phobosTestCaseSupported = Preconditions.checkNotNull(phobosTestCaseSupported, "aopTestCaseSupported must not be null");
+        this.phobosTestCaseSupported = Preconditions.checkNotNull(phobosTestCaseSupported, "phobosTestCaseSupported must not be null");
         this.fileSystemExtractor = Preconditions.checkNotNull(fileSystemExtractor, "fileSystemExtractor must not be null");
         this.networkConnectionExtractor = Preconditions.checkNotNull(networkConnectionExtractor, "networkConnectionExtractor must not be null");
         this.resourceLimitsExtractor = Preconditions.checkNotNull(resourceLimitsExtractor, "resourceLimitsExtractor must not be null");

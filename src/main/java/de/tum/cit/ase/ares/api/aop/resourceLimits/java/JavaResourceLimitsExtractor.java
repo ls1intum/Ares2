@@ -24,7 +24,6 @@ public class JavaResourceLimitsExtractor implements ResourceLimitsExtractor {
     }
 
 
-
     /**
      * Retrieves the tightest timeout limit given by the Java security policy (in case multiple timeouts are configured).
      *
@@ -32,14 +31,23 @@ public class JavaResourceLimitsExtractor implements ResourceLimitsExtractor {
      */
     @Nonnull
     public Long getTightestTimeout() {
-        OptionalLong min =
-                ((List<ResourceLimitsPermission>) resourceAccessSupplier.get())
-                        .stream()
-                        .mapToLong(ResourceLimitsPermission::timeout)
-                        .min();
-        return min.isPresent() ? min.getAsLong() : ResourceLimitsPermission.createRestrictive().timeout();
-    }
+        List<?> rawList = resourceAccessSupplier.get();
+        if (rawList.isEmpty()) {
+            return ResourceLimitsPermission.createRestrictive().timeout();
+        }
 
+        // Validate that all elements are ResourceLimitsPermission instances
+        for (Object item : rawList) {
+            if (!(item instanceof ResourceLimitsPermission)) {
+                throw new IllegalStateException("Expected ResourceLimitsPermission but got: " + item.getClass().getName());
+            }
+        }
+
+        OptionalLong min = rawList.stream()
+                .map(ResourceLimitsPermission.class::cast).mapToLong(ResourceLimitsPermission::timeout)
+                .min();
+        return min.getAsLong();
+    }
 
 
     /**
@@ -50,21 +58,25 @@ public class JavaResourceLimitsExtractor implements ResourceLimitsExtractor {
     @Nonnull
     public Map<String, Long> collectResourceLimits() {
         Map<String, Long> min = new LinkedHashMap<>();
-
-        for (ResourceLimitsPermission p : (List<ResourceLimitsPermission>) resourceAccessSupplier.get()) {
+        List<?> rawList = resourceAccessSupplier.get();
+        for (Object obj : rawList) {
+            if (!(obj instanceof ResourceLimitsPermission p)) {
+                continue; // Skip non-ResourceLimitsPermission objects
+            }
             for (Method m : p.getClass().getMethods()) {
-                if (m.getParameterCount() != 0 || m.getReturnType() != long.class) {
+                // Only process public methods with no parameters that return long
+                if (m.getParameterCount() != 0 ||
+                        m.getReturnType() != long.class ||
+                        !java.lang.reflect.Modifier.isPublic(m.getModifiers())) {
                     continue;
                 }
                 String name = m.getName();
                 try {
                     long val = (long) m.invoke(p);
-                    if (val < 0) {
-                        continue;
-                    }
+                    if (val < 0) continue;
                     min.merge(name, val, Math::min);
                 } catch (ReflectiveOperationException e) {
-                   continue;
+                    throw new RuntimeException();
                 }
             }
         }
