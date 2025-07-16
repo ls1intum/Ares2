@@ -56,11 +56,11 @@ public class JavaArchUnitTestCaseCollection {
      */
     public static String readFile(Path sourceFilePath) {
         try {
-
-            InputStream sourceStream = JavaArchUnitTestCaseCollection.class.getResourceAsStream("/" + sourceFilePath.toString());
+            // we need to replace backslashes with forward slashes for resource loading
+            InputStream sourceStream = JavaArchUnitTestCaseCollection.class.getResourceAsStream("/" + sourceFilePath.toString().replace('\\', '/'));
 
             if (sourceStream == null) {
-                throw new IOException("Resource not found: " + sourceFilePath);
+                throw new IOException("Resource not found: " +  sourceFilePath);
             }
 
             try (Scanner scanner = new Scanner(sourceStream, StandardCharsets.UTF_8)) {

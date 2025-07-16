@@ -93,8 +93,8 @@ public class JavaCSVFileLoader implements JavaFileLoader {
      *
      * @return the path to the CSV file containing the copy configuration.
      */
-    private Path getPhobosCopyPaths() {
-        return FileTools.resolveOnPackage("configuration/PhobosCopyFiles.csv");
+    private File getPhobosCopyPaths() throws IOException {
+        return FileTools.getResourceAsFile("de/tum/cit/ase/ares/api/configuration/copyFiles/PhobosCopyFiles.csv");
     }
 
 
@@ -103,8 +103,8 @@ public class JavaCSVFileLoader implements JavaFileLoader {
      *
      * @return the path to the CSV file containing the edit configuration.
      */
-    private Path getPhobosEditPaths() {
-        return FileTools.resolveOnPackage("configuration/PhobosEditFiles.csv");
+    private File getPhobosEditPaths() throws IOException {
+        return FileTools.getResourceAsFile("de/tum/cit/ase/ares/api/configuration/editFiles/PhobosEditFiles.csv");
     }
 
     /**
@@ -148,7 +148,7 @@ public class JavaCSVFileLoader implements JavaFileLoader {
      */
     @Override
     public List<List<String>> loadCopyData() throws IOException, CsvException {
-        return FileTools.readCSVFile(getPhobosCopyPaths().toFile());
+        return FileTools.readCSVFile(getPhobosCopyPaths());
     }
 
 
@@ -159,7 +159,7 @@ public class JavaCSVFileLoader implements JavaFileLoader {
      */
     @Override
     public List<List<String>> loadEditData() throws IOException, CsvException {
-        return FileTools.readCSVFile(getPhobosEditPaths().toFile());
+        return FileTools.readCSVFile(getPhobosEditPaths());
     }
 
 }

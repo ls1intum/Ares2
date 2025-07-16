@@ -92,12 +92,12 @@ public class Phobos {
      * @return a list of paths where files should be copied to
      */
     public static List<Path> targetsToCopyTo(
-            @Nullable Path testFolderPath,
+            @Nonnull Path testFolderPath,
             @Nonnull String packageName
     ) {
         return getCopyConfigurationEntries().stream()
                 .map(entry -> entry.get(2).split("/"))
-                .map(path -> FileTools.resolveOn(testFolderPath, packageName))
+                .map(path -> FileTools.resolveOn(testFolderPath, packageName, path))
                 .toList();
     }
 

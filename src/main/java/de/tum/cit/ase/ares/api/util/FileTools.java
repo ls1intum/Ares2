@@ -67,7 +67,10 @@ public class FileTools {
      */
     public static List<Path> copyFiles(List<Path> sourceFilePaths, List<Path> targetFilePaths) {
         return IntStream.range(0, sourceFilePaths.size()).mapToObj(i -> {
-            try (InputStream sourceStream = FileTools.class.getResourceAsStream("/" + sourceFilePaths.get(i).toString())) {
+            // we need to replace backslashes with forward slashes for resource loading
+            try (InputStream sourceStream =
+                         FileTools.class.getResourceAsStream("/" +
+                                 sourceFilePaths.get(i).toString().replace('\\', '/'))) {
                 if (sourceStream == null) {
                     throw new IOException("Resource not found: " + sourceFilePaths.get(i));
                 }
@@ -82,6 +85,7 @@ public class FileTools {
             } catch (FileAlreadyExistsException e) {
                 throw new SecurityException("Ares Security Error (Stage: Creation): File already exists at target location.", e);
             } catch (IOException e) {
+
                 throw new SecurityException("Ares Security Error (Stage: Creation): IO error occurred during file copy.", e);
             }
             return targetFilePaths.get(i);
@@ -97,7 +101,7 @@ public class FileTools {
      *
      * @param sourceFilePaths the source file paths.
      * @param targetFilePaths the target file paths.
-     * @param formatValues the format values for formatting the files.
+     * @param formatValues    the format values for formatting the files.
      * @return a list of copied paths.
      * @throws SecurityException if an error occurs during the process.
      */
@@ -105,17 +109,16 @@ public class FileTools {
         List<Path> copiedFiles = copyFiles(sourceFilePaths, targetFilePaths);
         for (int i = 0; i < copiedFiles.size(); i++) {
             try {
-                String formatedFile;
-                try {
-                    formatedFile = String.format(Files.readString(copiedFiles.get(i)), (String[]) formatValues.get(i));
-                } catch (IllegalFormatException e) {
-                    throw new SecurityException("Ares Security Error (Stage: Creation): Illegal format in " + copiedFiles.get(i).toAbsolutePath() + ".", e);
+
+                if(formatValues.isEmpty()){
+                    // it is better to no
+                    continue; // nothing to replace
                 }
-                Files.writeString(
-                        copiedFiles.get(i),
-                        formatedFile,
-                        StandardOpenOption.WRITE
-                );
+
+                Files.writeString(copiedFiles.get(i), String.format(Files.readString(copiedFiles.get(i)), (String[]) formatValues.get(i)), StandardOpenOption.WRITE);
+            } catch (IllegalFormatException e) {
+                throw new SecurityException("Ares Security Error (Stage: Creation): Illegal format in "
+                        + copiedFiles.get(i).toAbsolutePath(), e);
             } catch (IOException e) {
                 throw new SecurityException(localize("security.file-tools.read.content.failure"), e);
             }
@@ -141,7 +144,8 @@ public class FileTools {
     public static String readFile(Path sourceFilePath) {
         try {
 
-            InputStream sourceStream = FileTools.class.getResourceAsStream("/" + sourceFilePath.toString());
+            // we need to replace backslashes with forward slashes for resource loading
+            InputStream sourceStream = FileTools.class.getResourceAsStream("/" + sourceFilePath.toString().replace('\\', '/'));
 
             if (sourceStream == null) {
                 throw new IOException("Resource not found: " + sourceFilePath);
@@ -188,7 +192,7 @@ public class FileTools {
      * Loads data from the corresponding Rule file.
      */
     public static List<String> readRuleFile(Path sourceRulePath) throws IOException {
-        return Files.readAllLines(getResourceAsFile(sourceRulePath.toString()).toPath());
+        return Files.readAllLines(getResourceAsFile(sourceRulePath.toString().replace('\\', '/')).toPath());
     }
     //</editor-fold>
 
@@ -241,7 +245,7 @@ public class FileTools {
     /**
      * Resolves a path based on the target and additional path parts.
      *
-     * @param target the base path to resolve.
+     * @param target           the base path to resolve.
      * @param furtherPathParts additional path parts.
      * @return the resolved path.
      */
@@ -251,7 +255,7 @@ public class FileTools {
                 .reduce(target, Path::resolve, Path::resolve);
     }
 
-    public static Path resolveOn(@Nonnull Path projectPath, @Nonnull String packageName, String... furtherPathParts){
+    public static Path resolveOn(@Nonnull Path projectPath, @Nonnull String packageName, String... furtherPathParts) {
         String[] packageParts = packageName.split("\\.");
         String[] allParts = Stream.concat(Arrays.stream(packageParts), Arrays.stream(furtherPathParts))
                 .toArray(String[]::new);
@@ -361,6 +365,7 @@ public class FileTools {
 
     /**
      * Reads the content of a file and returns it as a set of strings.
+     *
      * @param filePath The path to the file
      * @return a set of strings representing the content of the file
      */
@@ -376,13 +381,15 @@ public class FileTools {
 
     /**
      * Reads the content of a resource file and returns a File
+     *
      * @param resourcePath The path to the resource file
      * @return The File object representing the resource file
      * @implNote This method creates a temporary file that will be deleted when the JVM exits
      */
     public static File getResourceAsFile(String resourcePath) throws IOException {
         // Load the resource as an InputStream
-        try (InputStream inputStream = FileTools.class.getClassLoader().getResourceAsStream(resourcePath)) {
+        // Replace backslashes with forward slashes for resource loading
+        try (InputStream inputStream = FileTools.class.getClassLoader().getResourceAsStream(resourcePath.replace('\\', '/'))) {
             if (inputStream == null) {
                 throw new SecurityException(localize("file.tools.resource.not.found", resourcePath));
             }
