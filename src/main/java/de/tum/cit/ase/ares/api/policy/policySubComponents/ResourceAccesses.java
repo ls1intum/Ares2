@@ -204,10 +204,12 @@ public record ResourceAccesses(
          * @return the updated Builder.
          */
         @Nonnull
-        public Builder regardingTimeouts(@Nonnull List<ResourceLimitsPermission> regardingTimeouts) {
-            this.regardingTimeouts = new ArrayList<>();
-            return this;
-        }
+    @Nonnull
+    public Builder regardingTimeouts(@Nonnull List<ResourceLimitsPermission> regardingTimeouts) {
+-        this.regardingTimeouts = new ArrayList<>();
++        this.regardingTimeouts = new ArrayList<>(Objects.requireNonNull(regardingTimeouts, "Timeout list must not be null"));
+        return this;
+    }
 
         /**
          * Builds a new ResourceAccesses instance.
