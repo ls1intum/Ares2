@@ -12,6 +12,8 @@ import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
@@ -59,15 +61,15 @@ public class FileTools {
 
     private static Path resolveSourceDirectory() {
         try {
-            return resolveOnPath(Path.of(
-                    Class.forName("de.tum.cit.ase.ares.api.util.FileTools")
-                            .getProtectionDomain()
-                            .getCodeSource()
-                            .getLocation()
-                            .getPath()
-            ), "de", "tum", "cit", "ase", "ares", "api");
+            URL url = Class.forName("de.tum.cit.ase.ares.api.util.FileTools")
+                    .getProtectionDomain()
+                    .getCodeSource()
+                    .getLocation();
+
+            Path classesDir = Path.of(url.toURI()).toAbsolutePath().normalize();
+            return resolveOnPath(classesDir, "de", "tum", "cit", "ase", "ares", "api");
         }
-        catch (ClassNotFoundException e) {
+        catch (ClassNotFoundException | URISyntaxException e) {
             throw new SecurityException(e.getMessage());
         }
     }
