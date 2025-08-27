@@ -80,7 +80,9 @@ public class JavaWriterTest {
                 when(architectureMode.fsTargetsToCopyTo(any())).thenReturn(List.of());
                 when(architectureMode.nonFSTargetsToCopyTo(any())).thenReturn(List.of());
                 when(architectureMode.placeholderValues()).thenReturn(List.of());
-                when(architectureMode.formatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                // provide format values actually used by JavaWriter
+                when(architectureMode.fsFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(architectureMode.nonFSFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
                 when(architectureMode.threePartedFileHeader()).thenReturn(tempDir.resolve("header.java"));
                 when(architectureMode.threePartedFileBody(any())).thenReturn("body");
                 when(architectureMode.threePartedFileFooter()).thenReturn(tempDir.resolve("footer.java"));
@@ -93,7 +95,8 @@ public class JavaWriterTest {
                 when(aopMode.fsTargetsToCopyTo(any())).thenReturn(List.of());
                 when(aopMode.nonFSTargetsToCopyTo(any())).thenReturn(List.of());
                 when(aopMode.placeholderValues()).thenReturn(List.of());
-                when(aopMode.formatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(aopMode.fsFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(aopMode.nonFSFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
                 when(aopMode.threePartedFileHeader()).thenReturn(tempDir.resolve("header.java"));
                 when(aopMode.threePartedFileBody(any(), any(), any(), any())).thenReturn("body");
                 when(aopMode.threePartedFileFooter()).thenReturn(tempDir.resolve("footer.java"));
@@ -126,7 +129,8 @@ public class JavaWriterTest {
                 verify(architectureMode).fsTargetsToCopyTo(any());
                 verify(architectureMode).nonFSTargetsToCopyTo(any());
                 verify(architectureMode).placeholderValues();
-                verify(architectureMode).formatValues(packageName, mainClassInPackageName);
+                verify(architectureMode).fsFormatValues(packageName, mainClassInPackageName);
+                verify(architectureMode).nonFSFormatValues(packageName, mainClassInPackageName);
                 verify(architectureMode).threePartedFileHeader();
                 verify(architectureMode).threePartedFileBody(javaArchitectureTestCases);
                 verify(architectureMode).threePartedFileFooter();
@@ -138,7 +142,8 @@ public class JavaWriterTest {
                 verify(aopMode).fsTargetsToCopyTo(any());
                 verify(aopMode).nonFSTargetsToCopyTo(any());
                 verify(aopMode).placeholderValues();
-                verify(aopMode).formatValues(packageName, mainClassInPackageName);
+                verify(aopMode).fsFormatValues(packageName, mainClassInPackageName);
+                verify(aopMode).nonFSFormatValues(packageName, mainClassInPackageName);
                 verify(aopMode).threePartedFileHeader();
                 verify(aopMode).threePartedFileFooter();
                 verify(aopMode).targetToCopyTo(any());
@@ -164,7 +169,8 @@ public class JavaWriterTest {
                 when(architectureMode.fsTargetsToCopyTo(any())).thenReturn(List.of());
                 when(architectureMode.nonFSTargetsToCopyTo(any())).thenReturn(List.of());
                 when(architectureMode.placeholderValues()).thenReturn(List.of());
-                when(architectureMode.formatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(architectureMode.fsFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(architectureMode.nonFSFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
                 when(architectureMode.threePartedFileHeader()).thenReturn(tempDir.resolve("header.java"));
                 when(architectureMode.threePartedFileBody(emptyArchTestCases)).thenReturn("body");
                 when(architectureMode.threePartedFileFooter()).thenReturn(tempDir.resolve("footer.java"));
@@ -176,7 +182,8 @@ public class JavaWriterTest {
                 when(aopMode.fsTargetsToCopyTo(any())).thenReturn(List.of());
                 when(aopMode.nonFSTargetsToCopyTo(any())).thenReturn(List.of());
                 when(aopMode.placeholderValues()).thenReturn(List.of());
-                when(aopMode.formatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(aopMode.fsFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(aopMode.nonFSFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
                 when(aopMode.threePartedFileHeader()).thenReturn(tempDir.resolve("header.java"));
                 when(aopMode.threePartedFileBody(any(), any(), any(), eq(emptyAOPTestCases))).thenReturn("body");
                 when(aopMode.threePartedFileFooter()).thenReturn(tempDir.resolve("footer.java"));
@@ -215,7 +222,8 @@ public class JavaWriterTest {
                 when(architectureMode.fsTargetsToCopyTo(any())).thenReturn(List.of());
                 when(architectureMode.nonFSTargetsToCopyTo(any())).thenReturn(List.of());
                 when(architectureMode.placeholderValues()).thenReturn(List.of());
-                when(architectureMode.formatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(architectureMode.fsFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(architectureMode.nonFSFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
                 when(architectureMode.threePartedFileHeader()).thenReturn(tempDir.resolve("header.java"));
                 when(architectureMode.threePartedFileBody(any())).thenReturn("body");
                 when(architectureMode.threePartedFileFooter()).thenReturn(tempDir.resolve("footer.java"));
@@ -227,7 +235,8 @@ public class JavaWriterTest {
                 when(aopMode.fsTargetsToCopyTo(any())).thenReturn(List.of());
                 when(aopMode.nonFSTargetsToCopyTo(any())).thenReturn(List.of());
                 when(aopMode.placeholderValues()).thenReturn(List.of());
-                when(aopMode.formatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(aopMode.fsFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(aopMode.nonFSFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
                 when(aopMode.threePartedFileHeader()).thenReturn(tempDir.resolve("header.java"));
                 when(aopMode.threePartedFileBody(any(), any(), any(), any())).thenReturn("body");
                 when(aopMode.threePartedFileFooter()).thenReturn(tempDir.resolve("footer.java"));
@@ -269,7 +278,8 @@ public class JavaWriterTest {
                 when(architectureMode.fsTargetsToCopyTo(any())).thenReturn(List.of());
                 when(architectureMode.nonFSTargetsToCopyTo(any())).thenReturn(List.of());
                 when(architectureMode.placeholderValues()).thenReturn(List.of());
-                when(architectureMode.formatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(architectureMode.fsFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(architectureMode.nonFSFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
                 when(architectureMode.threePartedFileHeader()).thenReturn(tempDir.resolve("header.java"));
                 when(architectureMode.threePartedFileBody(any())).thenReturn("body");
                 when(architectureMode.threePartedFileFooter()).thenReturn(tempDir.resolve("footer.java"));
@@ -281,7 +291,8 @@ public class JavaWriterTest {
                 when(aopMode.fsTargetsToCopyTo(any())).thenReturn(List.of());
                 when(aopMode.nonFSTargetsToCopyTo(any())).thenReturn(List.of());
                 when(aopMode.placeholderValues()).thenReturn(List.of());
-                when(aopMode.formatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(aopMode.fsFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(aopMode.nonFSFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
                 when(aopMode.threePartedFileHeader()).thenReturn(tempDir.resolve("header.java"));
                 when(aopMode.threePartedFileBody(any(), any(), any(), any())).thenReturn("body");
                 when(aopMode.threePartedFileFooter()).thenReturn(tempDir.resolve("footer.java"));
