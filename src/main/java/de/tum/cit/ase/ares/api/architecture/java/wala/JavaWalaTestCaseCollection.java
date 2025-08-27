@@ -48,7 +48,7 @@ public class JavaWalaTestCaseCollection {
             String ruleName,
             Path methodsFilePath
     ) {
-        return new WalaRule(ruleName, FileTools.readMethodsFromGivenPath(methodsFilePath));
+        return new WalaRule(ruleName, FileTools.readMethodsFile(FileTools.readFile(methodsFilePath)));
     }
 
     /* -----------------------------------------------------------

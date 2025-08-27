@@ -1,6 +1,6 @@
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION
-  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase"
+  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.aresUI"
   theMainClassInsideThisPackageIs: "Main"
   theFollowingClassesAreTestClasses:
     - "de.tum.cit.ase.example.ExampleTest"

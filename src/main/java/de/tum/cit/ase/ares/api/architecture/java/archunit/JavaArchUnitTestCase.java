@@ -14,6 +14,7 @@ import de.tum.cit.ase.ares.api.util.FileTools;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Set;
@@ -51,12 +52,9 @@ public class JavaArchUnitTestCase extends JavaArchitectureTestCase {
     @Nonnull
     public String writeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
         try {
-            String testWithPlaceholders = FileTools.readRuleFile(
-                    Paths.get("de", "tum", "cit", "ase", "ares", "api",
-                            "templates", "architecture", "java", "archunit", "rules", ((JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported).name() + ".txt")
-            ).stream().reduce("", (acc, line) -> acc + line + "\n");
-
-
+            String testWithPlaceholders = FileTools.readRuleFile(FileTools.readFile(FileTools.resolveFileOnSourceDirectory(
+                    "templates", "architecture", "java", "archunit", "rules", ((JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported).name() + ".txt"
+            ))).stream().reduce("", (acc, line) -> acc + line + "\n");
             return testWithPlaceholders
                     .replace("${allowedPackages}", allowedPackagesAsCode())
                     .replace("${javaClasses}", javaClassesAsCode());

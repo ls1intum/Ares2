@@ -44,7 +44,7 @@ public class SecurityPolicyJavaDirector extends SecurityPolicyDirector {
      */
     @Nonnull
     public static final Path DEFAULT_ESSENTIAL_PACKAGES_PATH = Preconditions.checkNotNull(
-            FileTools.resolveOnPackage("configuration/essentialFiles/java/EssentialPackages.yaml")
+            FileTools.resolveFileOnSourceDirectory("configuration", "essentialFiles", "java", "EssentialPackages.yaml")
     );
 
     /**
@@ -52,10 +52,11 @@ public class SecurityPolicyJavaDirector extends SecurityPolicyDirector {
      */
     @Nonnull
     public static final Path DEFAULT_ESSENTIAL_CLASSES_PATH = Preconditions.checkNotNull(
-            FileTools.resolveOnPackage("configuration/essentialFiles/java/EssentialClasses.yaml")
+            FileTools.resolveFileOnSourceDirectory("configuration", "essentialFiles", "java", "EssentialClasses.yaml")
     );
 
     //<editor-fold desc="Constructor">
+
     /**
      * Constructs a new SecurityPolicyJavaDirector with provided dependencies.
      *
@@ -75,6 +76,7 @@ public class SecurityPolicyJavaDirector extends SecurityPolicyDirector {
     //</editor-fold>
 
     //<editor-fold desc="Create security test cases methods">
+
     /**
      * Generates a JavaTestCaseFactoryAndBuilder with the provided configuration.
      *

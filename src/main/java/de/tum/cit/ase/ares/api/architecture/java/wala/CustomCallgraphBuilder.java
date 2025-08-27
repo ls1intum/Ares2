@@ -83,7 +83,7 @@ public class CustomCallgraphBuilder {
             // Build analysis scope from current classpath and exclusion list
             scope = Java9AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(
                     System.getProperty("java.class.path"),
-                    FileTools.getResourceAsFile("de/tum/cit/ase/ares/api/templates/architecture/java/exclusions.txt")
+                    FileTools.readFile(FileTools.resolveFileOnSourceDirectory("templates","architecture","java","exclusions.txt"))
             );
             // Construct class hierarchy from scope
             classHierarchy = ClassHierarchyFactory.make(scope);

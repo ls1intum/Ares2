@@ -1,0 +1,9 @@
+Source,Value,Target
+architecture/ArchitectureTestCaseSupported.java,1,ares/api/architecture/ArchitectureTestCaseSupported.java
+architecture/java/JavaArchitectureTestCaseSupported.java,2,ares/api/architecture/java/JavaArchitectureTestCaseSupported.java
+architecture/java/FileHandlerConstants.java,3,ares/api/architecture/java/FileHandlerConstants.java
+architecture/java/archunit/JavaArchUnitTestCaseCollection.java,4,ares/api/architecture/java/archunit/JavaArchUnitTestCaseCollection.java
+architecture/java/archunit/TransitivelyAccessesMethodsCondition.java,1,ares/api/architecture/java/archunit/TransitivelyAccessesMethodsCondition.java
+localization/Messages.java,3,ares/api/localization/Messages.java
+policy/policySubComponents/PackagePermission.java,1,ares/api/policy/policySubComponents/PackagePermission.java
+util/LruCache.java,1,ares/api/util/LruCache.java

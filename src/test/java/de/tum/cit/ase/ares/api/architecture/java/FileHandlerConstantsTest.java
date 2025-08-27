@@ -8,33 +8,17 @@ import static org.junit.jupiter.api.Assertions.*;
 public class FileHandlerConstantsTest {
 
     @Test
-    void testResolveOnTarget_withMultipleParts() {
-        Path base = Paths.get("base", "folder");
-        Path resolved = FileHandlerConstants.resolveOnTarget(base, "child", "grandchild");
-        Path expected = Paths.get("base", "folder", "child", "grandchild");
-        assertEquals(expected, resolved, "resolveOnTarget should correctly resolve multiple path parts");
-    }
-
-    @Test
-    void testResolveOnTarget_withNoFurtherParts() {
-        Path base = Paths.get("onlyBase");
-        Path resolved = FileHandlerConstants.resolveOnTarget(base);
-        Path expected = Paths.get("onlyBase");
-        assertEquals(expected, resolved, "resolveOnTarget with no further parts should return the base path unchanged");
-    }
-
-    @Test
-    void testResolveOnPackage_withAdditionalParts() {
-        Path resolved = FileHandlerConstants.resolveOnPackage("templates", "file.txt");
-        Path expected = Paths.get("de", "tum", "cit", "ase", "ares", "api", "templates", "file.txt");
-        assertEquals(expected, resolved, "resolveOnPackage should prepend the package path before further path parts");
-    }
-
-    @Test
-    void testResolveOnPackage_withNoAdditionalParts() {
-        Path resolved = FileHandlerConstants.resolveOnPackage();
-        Path expected = Paths.get("de", "tum", "cit", "ase", "ares", "api");
-        assertEquals(expected, resolved, "resolveOnPackage with no additional parts should return the package base path");
+    void testClassCannotBeInstantiated() {
+        // Constructor is private and throws SecurityException
+        assertThrows(SecurityException.class, () -> {
+            var ctor = FileHandlerConstants.class.getDeclaredConstructor();
+            ctor.setAccessible(true);
+            try {
+                ctor.newInstance();
+            } finally {
+                ctor.setAccessible(false);
+            }
+        });
     }
 
     @Test

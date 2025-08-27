@@ -61,7 +61,8 @@ public class EssentialDataYAMLReader implements EssentialDataReader {
         Class<T> protectedValueType = Preconditions.checkNotNull(valueType, "valueType cannot be null");
         String protectedErrorMessagePrefix = Preconditions.checkNotNull(errorMessagePrefix, "errorMessagePrefix cannot be null");
         try {
-            File yamlFile = FileTools.getResourceAsFile(protectedPath.toString());
+            // Fix: Use the path directly to create a File object instead of calling FileTools.readFile()
+            File yamlFile = protectedPath.toFile();
             return Objects.requireNonNull(yamlMapper.readValue(yamlFile, protectedValueType),
                     () -> protectedErrorMessagePrefix + ".mapping.result.null");
         } catch (StreamReadException e) {

@@ -51,10 +51,9 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
     @Nonnull
     public String writeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
         try {
-            return FileTools.readRuleFile(
-                    Paths.get("de", "tum", "cit", "ase", "ares", "api",
-                            "templates", "architecture", "java", "wala", "rules", ((JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported).name() + ".txt")
-            ).stream().reduce("", (acc, line) -> acc + line + "\n");
+            return FileTools.readRuleFile(FileTools.readFile(FileTools.resolveFileOnSourceDirectory(
+                    "templates", "architecture", "java", "wala", "rules", ((JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported).name() + ".txt"
+            ))).stream().reduce("", (acc, line) -> acc + line + "\n");
         } catch (AssertionError | IOException e) {
             throw new SecurityException("Ares Security Error (Reason: Student-Code; Stage: Execution): Illegal Statement found: " + e.getMessage());
         }
