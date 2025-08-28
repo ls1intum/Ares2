@@ -83,7 +83,7 @@ public class JavaAOPTestCaseToolbox {
                 })
                 .collect(Collectors.joining(", "));
         // No trailing semicolon/newline to match expected output
-        return String.format("private static String[][] %s = new String[][] {%s}", adviceSetting, stringArrayArrayValue);
+        return String.format("private static String[][] %s = new String[][] {%s};%n", adviceSetting, stringArrayArrayValue);
     }
 
     private static String formatInnerStringArray(Object inner) {
