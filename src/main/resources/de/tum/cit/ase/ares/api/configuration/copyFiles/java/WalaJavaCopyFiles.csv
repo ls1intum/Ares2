@@ -2,3 +2,4 @@ Source,Value,Target
 templates/architecture/ArchitectureTestCaseSupported.java,1,,ares/api/architecture/ArchitectureTestCaseSupported.java
 templates/architecture/java/JavaArchitectureTestCaseSupported.java,2,,ares/api/architecture/java/JavaArchitectureTestCaseSupported.java
 templates/architecture/java/FileHandlerConstants.java,2,,ares/api/architecture/java/FileHandlerConstants.java
+util/FileTools.java,11,ares/api/util/FileTools.java

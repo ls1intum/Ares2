@@ -6,4 +6,5 @@ architecture/java/archunit/JavaArchUnitTestCaseCollection.java,4,ares/api/archit
 architecture/java/archunit/TransitivelyAccessesMethodsCondition.java,1,ares/api/architecture/java/archunit/TransitivelyAccessesMethodsCondition.java
 localization/Messages.java,3,ares/api/localization/Messages.java
 policy/policySubComponents/PackagePermission.java,1,ares/api/policy/policySubComponents/PackagePermission.java
+util/FileTools.java,11,ares/api/util/FileTools.java
 util/LruCache.java,1,ares/api/util/LruCache.java

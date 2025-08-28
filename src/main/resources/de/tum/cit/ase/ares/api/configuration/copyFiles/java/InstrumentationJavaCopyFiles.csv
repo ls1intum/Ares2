@@ -1,7 +1,9 @@
 Source,Value,Target
 aop/java/instrumentation/advice/IgnoreValues.java,1,ares/api/aop/java/instrumentation/advice/IgnoreValues.java
+aop/java/instrumentation/advice/JavaInstrumentationAdviceAbstractToolbox.java,7,ares/api/aop/java/instrumentation/advice/JavaInstrumentationAdviceAbstractToolbox.java
 aop/java/instrumentation/advice/JavaInstrumentationAdviceFileSystemToolbox.java,1,ares/api/aop/java/instrumentation/advice/JavaInstrumentationAdviceFileSystemToolbox.java
 aop/java/instrumentation/advice/JavaInstrumentationAdviceThreadSystemToolbox.java,1,ares/api/aop/java/instrumentation/advice/JavaInstrumentationAdviceThreadSystemToolbox.java
+aop/java/instrumentation/advice/JavaInstrumentationAdviceCommandSystemToolbox.java,1,ares/api/aop/java/instrumentation/advice/JavaInstrumentationAdviceCommandSystemToolbox.java
 aop/java/instrumentation/advice/JavaInstrumentationReadPathMethodAdvice.java,1,ares/api/aop/java/instrumentation/advice/JavaInstrumentationReadPathMethodAdvice.java
 aop/java/instrumentation/advice/JavaInstrumentationOverwritePathMethodAdvice.java,1,ares/api/aop/java/instrumentation/advice/JavaInstrumentationOverwritePathMethodAdvice.java
 aop/java/instrumentation/advice/JavaInstrumentationExecutePathMethodAdvice.java,1,ares/api/aop/java/instrumentation/advice/JavaInstrumentationExecutePathMethodAdvice.java
@@ -12,6 +14,8 @@ aop/java/instrumentation/advice/JavaInstrumentationOverwritePathConstructorAdvic
 aop/java/instrumentation/advice/JavaInstrumentationExecutePathConstructorAdvice.java,1,ares/api/aop/java/instrumentation/advice/JavaInstrumentationExecutePathConstructorAdvice.java
 aop/java/instrumentation/advice/JavaInstrumentationDeletePathConstructorAdvice.java,1,ares/api/aop/java/instrumentation/advice/JavaInstrumentationDeletePathConstructorAdvice.java
 aop/java/instrumentation/advice/JavaInstrumentationCreateThreadConstructorAdvice.java,1,ares/api/aop/java/instrumentation/advice/JavaInstrumentationCreateThreadConstructorAdvice.java
+aop/java/instrumentation/advice/JavaInstrumentationExecuteCommandConstructorAdvice.java,1,ares/api/aop/java/instrumentation/advice/JavaInstrumentationExecuteCommandConstructorAdvice.java
+aop/java/instrumentation/advice/JavaInstrumentationExecuteCommandMethodAdvice.java,1,ares/api/aop/java/instrumentation/advice/JavaInstrumentationExecuteCommandMethodAdvice.java
 aop/java/instrumentation/pointcut/JavaInstrumentationBindingDefinitions.java,16,ares/api/aop/java/instrumentation/pointcut/JavaInstrumentationBindingDefinitions.java
 aop/java/instrumentation/pointcut/JavaInstrumentationPointcutDefinitions.java,2,ares/api/aop/java/instrumentation/pointcut/JavaInstrumentationPointcutDefinitions.java
 aop/java/instrumentation/JavaInstrumentationAgent.java,9,ares/api/aop/java/instrumentation/JavaInstrumentationAgent.java
