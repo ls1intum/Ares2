@@ -8,7 +8,6 @@ import com.google.common.base.Preconditions;
 import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialClasses;
 import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialDataReader;
 import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialPackages;
-import de.tum.cit.ase.ares.api.util.FileTools;
 
 import javax.annotation.Nonnull;
 import java.io.File;

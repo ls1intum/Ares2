@@ -1,13 +1,14 @@
 package %s.ares.api.architecture.java.archunit;
 
 //<editor-fold desc="Imports">
-import org.junit.jupiter.api.Test;
 import com.tngtech.archunit.core.domain.JavaClasses;
+import %s.ares.api.policy.policySubComponents.PackagePermission;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Set;
-import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
-import com.tngtech.archunit.core.importer.ClassFileImporter;
 
-
+import org.junit.jupiter.api.Test;
 //</editor-fold>
 
 /**
@@ -20,5 +21,5 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
  */
 public class JavaArchUnitTestCase {
 
-    JavaClasses javaClasses;
-    Set<PackagePermission> allowedPackages;
+    @Nonnull Set<PackagePermission> allowedPackages;
+    @Nonnull JavaClasses javaClasses;

@@ -155,11 +155,6 @@ public class JavaAOPTestCase extends AOPTestCase {
      * @throws SecurityException if there is any error during field access or value assignment.
      */
     public static void setJavaAdviceSettingValue(@Nonnull String adviceSetting, @Nullable Object value, @Nonnull String architectureMode, @Nonnull String aopMode) {
-        /*while (!settingsExist()) {
-            try {
-                TimeUnit.MILLISECONDS.sleep(100);
-            } catch (InterruptedException ignored) {}
-        }*/
         try {
             @Nullable ClassLoader customClassLoader = Thread.currentThread().getContextClassLoader();
             // Use the current context class loader during tests to ensure the class can be found

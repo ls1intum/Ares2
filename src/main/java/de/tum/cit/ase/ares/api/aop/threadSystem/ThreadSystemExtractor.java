@@ -11,7 +11,7 @@ public interface ThreadSystemExtractor {
      * @return a list of permitted thread numbers, must not be null.
      */
     @Nonnull
-    public abstract List<Integer> getPermittedNumberOfThreads();
+    List<Integer> getPermittedNumberOfThreads();
 
     /**
      * Retrieves the list of permitted thread classes based on the security policy.
@@ -19,5 +19,5 @@ public interface ThreadSystemExtractor {
      * @return a list of permitted thread classes, must not be null.
      */
     @Nonnull
-    public abstract List<String> getPermittedThreadClasses();
+    List<String> getPermittedThreadClasses();
 }

@@ -6,9 +6,7 @@ import java.nio.file.*;
 import org.opentest4j.AssertionFailedError;
 
 public class MaliciousExceptionA extends AssertionFailedError {
-	/**
-	 * @author Christian Femers
-	 */
+
 	private static final long serialVersionUID = 1L;
 
 	@Override

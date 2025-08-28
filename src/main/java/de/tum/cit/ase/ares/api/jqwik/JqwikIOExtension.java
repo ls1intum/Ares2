@@ -28,8 +28,7 @@ public final class JqwikIOExtension implements AroundPropertyHook {
 	}
 
 	@Override
-	public PropertyExecutionResult aroundProperty(PropertyLifecycleContext context, PropertyExecutor property)
-			throws Throwable {
+	public PropertyExecutionResult aroundProperty(PropertyLifecycleContext context, PropertyExecutor property) {
 		IOExtensionUtils ioExtensionUtils = new IOExtensionUtils(JqwikContext.of(context));
 		ioExtensionUtils.beforeTestExecution();
 		// register controller if possible

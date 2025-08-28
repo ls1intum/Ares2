@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -214,8 +213,8 @@ public enum ArchitectureMode {
     @Nonnull
     public String[] formatValues(@Nonnull String packageName) {
         return switch (this) {
-            case ARCHUNIT -> FileTools.generatePackageNameArray(packageName, 2);
-            case WALA -> FileTools.generatePackageNameArray(packageName, 2);
+            case ARCHUNIT -> FileTools.generatePackageNameArray(packageName, 3);
+            case WALA -> FileTools.generatePackageNameArray(packageName, 3);
         };
     }
 

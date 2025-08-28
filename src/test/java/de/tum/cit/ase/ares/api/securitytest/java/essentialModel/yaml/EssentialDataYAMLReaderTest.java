@@ -103,7 +103,7 @@ public class EssentialDataYAMLReaderTest {
             Path wrongStructureFile = tempDir.resolve("wrong_structure.yaml");
             Files.writeString(wrongStructureFile, """
                 wrongField: value
-                anotherWrongField: 
+                anotherWrongField:
                   - item1
                   - item2
                 """);
@@ -191,7 +191,7 @@ public class EssentialDataYAMLReaderTest {
             Path wrongStructureFile = tempDir.resolve("wrong_structure_classes.yaml");
             Files.writeString(wrongStructureFile, """
                 wrongField: value
-                anotherWrongField: 
+                anotherWrongField:
                   - item1
                   - item2
                 """);

@@ -18,7 +18,7 @@ public class JavaCSVFileLoader implements JavaFileLoader {
      * @param mode the selected architecture mode.
      * @return the path to the CSV file containing the copy configuration.
      */
-    public File getCopyPaths(ArchitectureMode mode, boolean formatStringFileRequested) throws IOException {
+    public File getCopyPaths(ArchitectureMode mode, boolean formatStringFileRequested) {
         if(formatStringFileRequested) {
             return switch (mode) {
                 case ARCHUNIT ->
@@ -42,7 +42,7 @@ public class JavaCSVFileLoader implements JavaFileLoader {
      * @param mode the selected AOP mode.
      * @return the path to the CSV file containing the copy configuration.
      */
-    public File getCopyPaths(AOPMode mode, boolean formatStringFileRequested) throws IOException {
+    public File getCopyPaths(AOPMode mode, boolean formatStringFileRequested) {
         if(formatStringFileRequested) {
             return switch (mode) {
                 case INSTRUMENTATION ->
@@ -66,7 +66,7 @@ public class JavaCSVFileLoader implements JavaFileLoader {
      * @param mode the selected architecture mode.
      * @return the path to the CSV file containing the edit configuration.
      */
-    public File getEditPaths(ArchitectureMode mode) throws IOException {
+    public File getEditPaths(ArchitectureMode mode) {
         return switch (mode) {
             case ARCHUNIT ->
                 FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration","editFiles","java","ArchunitEditFiles.csv"));
@@ -83,7 +83,7 @@ public class JavaCSVFileLoader implements JavaFileLoader {
      * @param mode the selected AOP mode.
      * @return the path to the CSV file containing the edit configuration.
      */
-    public File getEditPaths(AOPMode mode) throws IOException {
+    public File getEditPaths(AOPMode mode) {
         return switch (mode) {
             case INSTRUMENTATION ->
                 FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration","editFiles","java","InstrumentationEditFiles.csv"));

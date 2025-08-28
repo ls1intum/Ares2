@@ -69,8 +69,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
         if (allowedPaths == null) {
             return true;
         }
-        for (int i = 0; i < allowedPaths.length; i++) {
-            @Nonnull Path allowedPath = variableToPath(allowedPaths[i]);
+        for (String path : allowedPaths) {
+            @Nonnull Path allowedPath = variableToPath(path);
             try {
                 @Nonnull Path realPath = actualPath.toRealPath(LinkOption.NOFOLLOW_LINKS);
                 if (allowedPath != null && realPath.startsWith(allowedPath)) {

@@ -16,7 +16,7 @@ public class FileChannelReadMain {
     /**
      * Access the file system using NIO {@link FileChannel} for reading.
      *
-     * @return
+     * @return number of bytes read
      */
     public static int accessFileSystemViaNIOChannel() throws IOException {
         try (FileChannel channel = FileChannel.open(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"), StandardOpenOption.READ)) {
@@ -28,7 +28,7 @@ public class FileChannelReadMain {
     /**
      * Access the file system using FileChannel.read(ByteBuffer dst).
      *
-     * @return
+     * @return number of bytes read
      */
     public static int accessFileSystemViaFileChannelRead() throws IOException {
         try (FileChannel channel = FileChannel.open(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"), StandardOpenOption.READ)) {
@@ -40,7 +40,7 @@ public class FileChannelReadMain {
     /**
      * Access the file system using FileChannel.read(ByteBuffer[] dsts, int offset, int length).
      *
-     * @return
+     * @return number of bytes read
      */
     public static long accessFileSystemViaFileChannelReadArray() throws IOException {
         try (FileChannel channel = FileChannel.open(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"), StandardOpenOption.READ)) {
@@ -52,7 +52,7 @@ public class FileChannelReadMain {
     /**
      * Access the file system using FileChannel.map(MapMode mode, long position, long size).
      *
-     * @return
+     * @return the mapped byte buffer
      */
     public static MappedByteBuffer accessFileSystemViaFileChannelMap() throws IOException {
         try (FileChannel channel = FileChannel.open(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"), StandardOpenOption.READ)) {
@@ -63,7 +63,7 @@ public class FileChannelReadMain {
     /**
      * Access the file system using FileChannel.transferFrom(ReadableByteChannel src, long position, long count).
      *
-     * @return
+     * @return number of bytes transferred
      */
     public static long accessFileSystemViaFileChannelTransferFrom() throws IOException {
         Path sourcePath = Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");

@@ -11,7 +11,7 @@ public final class Messages {
 
 	private static final String BUNDLE_NAME = "de.tum.cit.ase.ares.api.localization.messages"; //$NON-NLS-1$
 
-	private static Map<Locale, ResourceBundle> resourceBundleCache = Collections.synchronizedMap(new LruCache<>(100));
+	private static final Map<Locale, ResourceBundle> resourceBundleCache = Collections.synchronizedMap(new LruCache<>(100));
 
 	private Messages() {
 	}

@@ -252,7 +252,7 @@ public class SecurityPolicyReaderAndDirectorTest {
                  MockedStatic<SecurityPolicyDirector> directorMock = mockStatic(SecurityPolicyDirector.class)) {
 
                 // Arrange
-                List<Path> expectedPaths = Arrays.asList(tempDir.resolve("test1.java"));
+                List<Path> expectedPaths = List.of(tempDir.resolve("test1.java"));
                 
                 readerMock.when(() -> SecurityPolicyReader.selectSecurityPolicyReader(securityPolicyFilePath))
                         .thenReturn(mockSecurityPolicyReader);

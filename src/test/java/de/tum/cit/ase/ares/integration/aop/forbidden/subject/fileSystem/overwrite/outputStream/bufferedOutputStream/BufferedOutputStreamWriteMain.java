@@ -3,7 +3,6 @@ package de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwri
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.Path;
 
 public class BufferedOutputStreamWriteMain {
 

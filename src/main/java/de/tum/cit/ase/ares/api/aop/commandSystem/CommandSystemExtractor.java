@@ -11,7 +11,7 @@ public interface CommandSystemExtractor {
      * @return a list of permitted commands, must not be null.
      */
     @Nonnull
-    public abstract List<String> getPermittedCommands();
+    List<String> getPermittedCommands();
 
     /**
      * Retrieves the list of arguments permitted for execution with commands.
@@ -19,5 +19,5 @@ public interface CommandSystemExtractor {
      * @return a list of arguments permitted for command execution, must not be null.
      */
     @Nonnull
-    public abstract List<List<String>> getPermittedArguments();
+    List<List<String>> getPermittedArguments();
 }

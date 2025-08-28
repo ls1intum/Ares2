@@ -4,7 +4,6 @@ import java.io.FileReader;
 import java.io.FilterReader;
 import java.io.IOException;
 import java.io.PushbackReader;
-import java.nio.CharBuffer;
 
 @SuppressWarnings("unused")
 public class FilterReaderReadMain {

@@ -11,8 +11,8 @@ import java.util.List;
 import java.util.Set;
 
 public class WalaRule {
-    String ruleName;
-    Set<String> forbiddenMethods;
+    final String ruleName;
+    final Set<String> forbiddenMethods;
 
     public WalaRule(String ruleName, Set<String> forbiddenMethods) {
         this.ruleName = ruleName;

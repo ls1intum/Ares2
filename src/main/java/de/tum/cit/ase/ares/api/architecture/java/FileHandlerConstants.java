@@ -3,10 +3,7 @@ package de.tum.cit.ase.ares.api.architecture.java;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
-import java.io.File;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.stream.Stream;
 
 /**
  * Constants for the paths storing the methods that are not allowed to be used in the Java architecture.

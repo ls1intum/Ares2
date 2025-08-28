@@ -41,7 +41,6 @@ public final class SecurityPenguin {
 		throw new MaliciousInvocationTargetException();
 	}
 
-	@SuppressWarnings("resource")
 	public static void newClassLoader() throws IOException {
 		new URLClassLoader(new URL[0]).close();
 	}
@@ -58,7 +57,6 @@ public final class SecurityPenguin {
 		return ab.get();
 	}
 
-	@SuppressWarnings("resource")
 	public static String tryExecuteGit() {
 		try {
 			return new String(Runtime.getRuntime().exec("git --help").getInputStream().readAllBytes())
@@ -78,7 +76,6 @@ public final class SecurityPenguin {
 
 	//REMOVED: Setting the SecurityManager to null
 
-	@SuppressWarnings("resource")
 	public static void trySetSystemOut() {
 		System.setOut(new PrintStream(OutputStream.nullOutputStream()));
 	}

@@ -14,7 +14,6 @@ import de.tum.cit.ase.ares.api.util.FileTools;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.Set;
 //</editor-fold>
 

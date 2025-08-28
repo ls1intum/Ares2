@@ -41,7 +41,7 @@ public @interface WithIOManager {
 	 * {@link System#in} are unchanged. Not recommended. Consider a custom but
 	 * functional {@link IOManager} implementation first.
 	 */
-	public final class None implements IOManager<Void> {
+	final class None implements IOManager<Void> {
 
 		@Override
 		public void beforeTestExecution(AresIOContext context) {

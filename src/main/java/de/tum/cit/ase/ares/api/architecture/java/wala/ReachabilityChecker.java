@@ -10,6 +10,7 @@ import com.ibm.wala.ipa.cha.ClassHierarchy;
 import com.ibm.wala.ipa.cha.ClassHierarchyException;
 import com.ibm.wala.ipa.cha.ClassHierarchyFactory;
 import com.ibm.wala.types.ClassLoaderReference;
+import com.ibm.wala.util.debug.UnimplementedError;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
 
 import java.io.IOException;
@@ -84,9 +85,7 @@ public class ReachabilityChecker {
                             .map(methodReference -> new DefaultEntrypoint(methodReference, applicationClassHierarchy))
                             .toList()
             );
-        } catch (ClassHierarchyException | IOException e) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.class.hierarchy.error"));
-        } catch (com.ibm.wala.util.debug.UnimplementedError e) {
+        } catch (ClassHierarchyException | IOException | UnimplementedError e) {
             throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.class.hierarchy.error"));
         }
     }
