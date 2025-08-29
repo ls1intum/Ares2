@@ -8,7 +8,7 @@ public class Main {
     public static void main(String[] args) {
         SecurityPolicyReaderAndDirector securityPolicyReaderAndDirector = new SecurityPolicyReaderAndDirector(
                 Path.of("/Users", "markuspaulsen", "Documents", "Ares2", "src", "main", "resources", "ExampleConfiguration.yaml"),
-                Path.of("/Users", "markuspaulsen", "Documents", "Ares2UI", "src", "main", "java")
+                Path.of("/Users", "markuspaulsen", "Documents", "Ares2UI")
         ).createTestCases();
         securityPolicyReaderAndDirector.writeTestCases(
                 Path.of("/Users", "markuspaulsen", "Documents", "Ares2UI", "src", "test", "java")

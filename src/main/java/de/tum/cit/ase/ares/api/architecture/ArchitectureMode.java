@@ -269,7 +269,7 @@ public enum ArchitectureMode {
     public CallGraph getCallGraph(String classPath) {
         return switch (this) {
             case ARCHUNIT -> null;
-            case WALA -> new CustomCallgraphBuilder().buildCallGraph(classPath);
+            case WALA -> new CustomCallgraphBuilder(classPath).buildCallGraph(classPath);
         };
     }
     //</editor-fold>

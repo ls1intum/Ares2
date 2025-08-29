@@ -76,13 +76,13 @@ public class CustomCallgraphBuilder {
      * @since 2.0.0
      * @author Sarp Sahinalp
      */
-    public CustomCallgraphBuilder() {
+    public CustomCallgraphBuilder(String classPath) {
         // Prepare importer for class file URLs
         classFileImporter = new ClassFileImporter();
         try {
             // Build analysis scope from current classpath and exclusion list
             scope = Java9AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(
-                    System.getProperty("java.class.path"),
+                    classPath + ":" + System.getProperty("java.class.path"),
                     FileTools.readFile(FileTools.resolveFileOnSourceDirectory("templates","architecture","java","exclusions.txt"))
             );
             // Construct class hierarchy from scope
