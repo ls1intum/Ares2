@@ -1,0 +1,5 @@
+@Test
+public void filesystemsShouldNotBeAccessed() {
+    callGraph = ${callGraph};
+    JavaWalaTestCaseCollection.NO_CLASS_MUST_ACCESS_FILE_SYSTEM.check(callGraph);
+}

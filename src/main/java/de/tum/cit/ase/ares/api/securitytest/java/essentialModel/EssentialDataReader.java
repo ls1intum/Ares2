@@ -1,6 +1,6 @@
 package de.tum.cit.ase.ares.api.securitytest.java.essentialModel;
 
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
+import de.tum.cit.ase.ares.api.localization.Messages;
 
 import javax.annotation.Nonnull;
 import java.nio.file.Path;
@@ -48,6 +48,6 @@ public interface EssentialDataReader {
      * @param e the exception that triggered the error
      */
     default void throwReaderErrorMessage(String errorMessageIdentifier, String errorMessageParameter, Exception e) {
-        throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize(errorMessageIdentifier, errorMessageParameter), e);
+        throw new SecurityException(Messages.localized(errorMessageIdentifier, errorMessageParameter), e);
     }
 }

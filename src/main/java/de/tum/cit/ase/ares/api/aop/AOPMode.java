@@ -14,7 +14,7 @@ import com.opencsv.exceptions.CsvException;
 
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSupported;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox;
 import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaCSVFileLoader;
 
 import de.tum.cit.ase.ares.api.policy.policySubComponents.CommandPermission;
@@ -291,13 +291,13 @@ public enum AOPMode {
             classloaderMethod.invoke(null);
             classloaderMethod.setAccessible(false);
         } catch (ClassNotFoundException e) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.creation.reset.class.not.found.exception"), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.creation.reset.class.not.found.exception"), e);
         } catch (NoSuchMethodException e) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.creation.reset.no.method.exception"), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.creation.reset.no.method.exception"), e);
         } catch (IllegalAccessException e) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.creation.reset.illegal.access.exception"), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.creation.reset.illegal.access.exception"), e);
         } catch (InvocationTargetException e) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.creation.reset.invocation.target.exception"), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.creation.reset.invocation.target.exception"), e);
         }
     }
     //</editor-fold>

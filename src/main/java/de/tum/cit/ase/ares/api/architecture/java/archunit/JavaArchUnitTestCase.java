@@ -44,6 +44,40 @@ public class JavaArchUnitTestCase extends JavaArchitectureTestCase {
     //<editor-fold desc="Write security test case methods">
 
     /**
+     * Formats the Set<PackagePermission> structure as a Java-literal Set.of(PackagePermission(...), ...).
+     */
+    private String allowedPackagesAsCode() {
+        if (allowedPackages.isEmpty()) {
+            return "Set.of()";
+        }
+        String inner = allowedPackages.stream()
+                .map(pp -> String.format(
+                        "new %s(\"%s\")",
+                        PackagePermission.class.getSimpleName(),
+                        pp.importTheFollowingPackage()
+                ))
+                .collect(Collectors.joining(", "));
+        return "Set.of(" + inner + ")";
+    }
+
+    /**
+     * Formats the JavaClasses structure as a Java-literal ClassFileImporter.importPackages(...) String.
+     */
+    private String javaClassesAsCode() {
+        Set<String> packages = javaClasses.stream()
+                .map(JavaClass::getPackageName)
+                .collect(Collectors.toCollection(HashSet::new));
+
+        if (packages.isEmpty()) {
+            return "new ClassFileImporter().importPackages()";
+        }
+        String packagesAsString = packages.stream()
+                .map(p -> "\"" + p + "\"")
+                .collect(Collectors.joining(", "));
+        return "new ClassFileImporter().importPackages(" + packagesAsString + ")";
+    }
+
+    /**
      * Returns the content of the architecture test case file in the Java programming language.
      */
     @Override
@@ -120,41 +154,6 @@ public class JavaArchUnitTestCase extends JavaArchitectureTestCase {
     public static JavaArchUnitTestCase.Builder archunitBuilder() {
         return new JavaArchUnitTestCase.Builder();
     }
-
-    /**
-     * Formats the Set<PackagePermission> structure as a Java-literal Set.of(PackagePermission(...), ...).
-     */
-    private String allowedPackagesAsCode() {
-        if (allowedPackages.isEmpty()) {
-            return "Set.of()";
-        }
-        String inner = allowedPackages.stream()
-                .map(pp -> String.format(
-                        "new %s(\"%s\")",
-                        PackagePermission.class.getSimpleName(),
-                        pp.importTheFollowingPackage()
-                ))
-                .collect(Collectors.joining(", "));
-        return "Set.of(" + inner + ")";
-    }
-
-    /**
-     * Formats the JavaClasses structure as a Java-literal ClassFileImporter.importPackages(...) String.
-     */
-    private String javaClassesAsCode() {
-        Set<String> packages = javaClasses.stream()
-                .map(JavaClass::getPackageName)
-                .collect(Collectors.toCollection(HashSet::new));
-
-        if (packages.isEmpty()) {
-            return "new ClassFileImporter().importPackages()";
-        }
-        String packagesAsString = packages.stream()
-                .map(p -> "\"" + p + "\"")
-                .collect(Collectors.joining(", "));
-        return "new ClassFileImporter().importPackages(" + packagesAsString + ")";
-    }
-
 
     /**
      * Builder for the Java architecture test case.

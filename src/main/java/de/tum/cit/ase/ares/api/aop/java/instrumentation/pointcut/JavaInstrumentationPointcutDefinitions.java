@@ -1,6 +1,6 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut;
 
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -27,7 +27,7 @@ public class JavaInstrumentationPointcutDefinitions {
      * This constructor is private to prevent instantiation of this utility class.
      */
     private JavaInstrumentationPointcutDefinitions() {
-        throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.general.utility.initialization"));
+        throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.general.utility.initialization"));
     }
     //</editor-fold>
 

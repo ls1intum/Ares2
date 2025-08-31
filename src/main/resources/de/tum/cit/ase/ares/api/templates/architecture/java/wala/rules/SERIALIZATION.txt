@@ -1,0 +1,5 @@
+@Test
+public void serialisationNotBeAccessed() {
+    callGraph = ${callGraph};
+    JavaWalaTestCaseCollection.NO_CLASS_MUST_SERIALIZE.check(callGraph);
+}

@@ -288,6 +288,14 @@
                 <directory>src/main/java</directory>
                 <includes>
                     <include>**/*.java</include>
+                    <include>**/*.aj</include>
+                    <include>**/*.properties</include>
+                    <include>**/*.yaml</include>
+                    <include>**/*.yml</include>
+                    <include>**/*.xml</include>
+                    <include>**/*.csv</include>
+                    <include>**/*.txt</include>
+                    <include>**/*.md</include>
                 </includes>
                 <filtering>false</filtering>
             </resource>

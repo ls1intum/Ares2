@@ -90,7 +90,7 @@ public class FileHandlerConstantsTest {
     @Test
     void testWalaJvmMethodsConstant() {
         Path expected = Paths.get("de", "tum", "cit", "ase", "ares", "api", "templates", "architecture", "java", "wala", "methods", "jvm-termination-methods.txt");
-        assertEquals(expected, FileHandlerConstants.WALA_JVM_METHODS, "WALA_JVM_METHODS constant should point to the correct relative path");
+        assertEquals(expected, FileHandlerConstants.WALA_JVM_TERMINATION_METHODS, "WALA_JVM_METHODS constant should point to the correct relative path");
     }
 
     @Test

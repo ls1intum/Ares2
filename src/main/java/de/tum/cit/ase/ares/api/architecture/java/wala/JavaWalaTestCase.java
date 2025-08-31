@@ -4,6 +4,7 @@ package de.tum.cit.ase.ares.api.architecture.java.wala;
 
 import com.google.common.base.Preconditions;
 import com.ibm.wala.ipa.callgraph.CallGraph;
+import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
@@ -14,7 +15,9 @@ import de.tum.cit.ase.ares.api.util.FileTools;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 //</editor-fold>
 
 /**
@@ -44,15 +47,62 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
     //<editor-fold desc="Write security test case methods">
 
     /**
+     * Formats the Set<PackagePermission> structure as a Java-literal Set.of(PackagePermission(...), ...).
+     */
+    private String allowedPackagesAsCode() {
+        if (allowedPackages.isEmpty()) {
+            return "Set.of()";
+        }
+        String inner = allowedPackages.stream()
+                .map(pp -> String.format(
+                        "new %s(\"%s\")",
+                        PackagePermission.class.getSimpleName(),
+                        pp.importTheFollowingPackage()
+                ))
+                .collect(Collectors.joining(", "));
+        return "Set.of(" + inner + ")";
+    }
+
+    /**
+     * Formats the JavaClasses structure as a Java-literal ClassFileImporter.importPackages(...) String.
+     */
+    private String javaClassesAsCode() {
+        Set<String> packages = javaClasses.stream()
+                .map(JavaClass::getPackageName)
+                .collect(Collectors.toCollection(HashSet::new));
+
+        if (packages.isEmpty()) {
+            return "new ClassFileImporter().importPackages()";
+        }
+        String packagesAsString = packages.stream()
+                .map(p -> "\"" + p + "\"")
+                .collect(Collectors.joining(", "));
+        return "new ClassFileImporter().importPackages(" + packagesAsString + ")";
+    }
+
+    /**
+     * Formats the CallGraph structure as a Java-literal expression that builds a WALA CallGraph.
+     */
+    private String callGraphAsCode() {
+        String classPathExpr = "System.getProperty(\"java.class.path\")";
+        return "new de.tum.cit.ase.ares.api.architecture.java.wala.CustomCallgraphBuilder(" + classPathExpr + ")" +
+                ".buildCallGraph(" + classPathExpr + ")";
+    }
+
+    /**
      * Returns the content of the architecture test case file in the Java programming language.
      */
     @Override
     @Nonnull
     public String writeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
         try {
-            return FileTools.readRuleFile(FileTools.readFile(FileTools.resolveFileOnSourceDirectory(
+            String testWithPlaceholders =  FileTools.readRuleFile(FileTools.readFile(FileTools.resolveFileOnSourceDirectory(
                     "templates", "architecture", "java", "wala", "rules", ((JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported).name() + ".txt"
             ))).stream().reduce("", (acc, line) -> acc + line + "\n");
+            return testWithPlaceholders
+                    .replace("${allowedPackages}", allowedPackagesAsCode())
+                    .replace("${javaClasses}", javaClassesAsCode())
+                    .replace("${callGraph}", callGraphAsCode());
         } catch (AssertionError | IOException e) {
             throw new SecurityException("Ares Security Error (Reason: Student-Code; Stage: Execution): Illegal Statement found: " + e.getMessage());
         }
@@ -74,14 +124,15 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
                 case NETWORK_CONNECTION -> JavaWalaTestCaseCollection
                         .NO_CLASS_MUST_ACCESS_NETWORK
                         .check(callGraph);
-                case THREAD_CREATION -> JavaWalaTestCaseCollection
-                        .NO_CLASS_MUST_CREATE_THREADS
-                        .check(callGraph);
                 case COMMAND_EXECUTION -> JavaWalaTestCaseCollection
                         .NO_CLASS_MUST_EXECUTE_COMMANDS
                         .check(callGraph);
+                case THREAD_CREATION -> JavaWalaTestCaseCollection
+                        .NO_CLASS_MUST_CREATE_THREADS
+                        .check(callGraph);
                 case PACKAGE_IMPORT -> JavaWalaTestCaseCollection
-                        .noClassMustImportForbiddenPackages(javaClasses, allowedPackages);
+                        .noClassMustImportForbiddenPackages(allowedPackages)
+                        .check(javaClasses);
                 case REFLECTION -> JavaWalaTestCaseCollection
                         .NO_CLASS_MUST_USE_REFLECTION
                         .check(callGraph);

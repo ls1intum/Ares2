@@ -23,6 +23,6 @@ import org.junit.jupiter.api.Test;
  */
 public class JavaWalaTestCase {
 
-    @Nonnull Set<PackagePermission> allowedPackages,
-    @Nonnull JavaClasses javaClasses,
-    @Nonnull CallGraph callGraph
+    @Nonnull Set<PackagePermission> allowedPackages;
+    @Nonnull JavaClasses javaClasses;
+    @Nonnull CallGraph callGraph;

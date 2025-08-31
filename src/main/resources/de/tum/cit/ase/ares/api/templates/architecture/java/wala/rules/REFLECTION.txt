@@ -1,0 +1,5 @@
+@Test
+public void reflectionShouldNotBeAccessed() {
+    callGraph = ${callGraph};
+    JavaWalaTestCaseCollection.NO_CLASS_MUST_USE_REFLECTION.check(callGraph);
+}

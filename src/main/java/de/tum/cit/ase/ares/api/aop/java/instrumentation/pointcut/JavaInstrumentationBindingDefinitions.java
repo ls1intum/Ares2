@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut;
 
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceThreadSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationCreateThreadConstructorAdvice;
@@ -43,7 +44,7 @@ public class JavaInstrumentationBindingDefinitions {
      * This class is a utility class and should not be instantiated.
      */
     private JavaInstrumentationBindingDefinitions() {
-        throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.general.utility.initialization"));
+        throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.general.utility.initialization"));
     }
     //</editor-fold>
 
@@ -78,7 +79,7 @@ public class JavaInstrumentationBindingDefinitions {
             // Invoke the transformer rather than builder.visit(...)
             return transformer.transform(builder, typeDescription, classLoader, javaModule, protectionDomain);
         } catch (Exception e) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.binding.error"), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.binding.error"), e);
         }
     }
 
@@ -98,7 +99,7 @@ public class JavaInstrumentationBindingDefinitions {
             return transformer.transform(builder, typeDescription, classLoader, javaModule, protectionDomain);
 
         } catch (Exception e) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.binding.error"), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.binding.error"), e);
         }
     }
 
@@ -162,7 +163,7 @@ public class JavaInstrumentationBindingDefinitions {
                     JavaInstrumentationPointcutDefinitions.methodsWhichCanReadFiles, JavaInstrumentationReadPathMethodAdvice.class
             );
         } catch (Exception e) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.read.method.binding.error"), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.read.method.binding.error"), e);
         }
     }
 
@@ -177,7 +178,7 @@ public class JavaInstrumentationBindingDefinitions {
                     JavaInstrumentationPointcutDefinitions.methodsWhichCanReadFiles, JavaInstrumentationReadPathConstructorAdvice.class
             );
         } catch (Exception e) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.read.constructor.binding.error"), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.read.constructor.binding.error"), e);
         }
     }
     //</editor-fold>
@@ -208,7 +209,7 @@ public class JavaInstrumentationBindingDefinitions {
                     JavaInstrumentationPointcutDefinitions.methodsWhichCanOverwriteFiles, JavaInstrumentationOverwritePathMethodAdvice.class
             );
         } catch (Exception e) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.overwrite.method.binding.error"), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.overwrite.method.binding.error"), e);
         }
 
     }
@@ -224,7 +225,7 @@ public class JavaInstrumentationBindingDefinitions {
                     JavaInstrumentationPointcutDefinitions.methodsWhichCanOverwriteFiles, JavaInstrumentationOverwritePathConstructorAdvice.class
             );
         } catch (Exception e) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.overwrite.constructor.binding.error"), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.overwrite.constructor.binding.error"), e);
         }
 
     }
@@ -256,7 +257,7 @@ public class JavaInstrumentationBindingDefinitions {
                     JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteFiles, JavaInstrumentationExecutePathMethodAdvice.class
             );
         } catch (Exception e) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.execute.method.binding.error"), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.execute.method.binding.error"), e);
         }
     }
 
@@ -271,7 +272,7 @@ public class JavaInstrumentationBindingDefinitions {
                     JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteFiles, JavaInstrumentationExecutePathConstructorAdvice.class
             );
         } catch (Exception e) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.execute.constructor.binding.error"), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.execute.constructor.binding.error"), e);
         }
     }
     //</editor-fold>
@@ -302,7 +303,7 @@ public class JavaInstrumentationBindingDefinitions {
                     JavaInstrumentationPointcutDefinitions.methodsWhichCanDeleteFiles, JavaInstrumentationDeletePathMethodAdvice.class
             );
         } catch (Exception e) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.delete.method.binding.error"), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.delete.method.binding.error"), e);
         }
     }
 
@@ -317,7 +318,7 @@ public class JavaInstrumentationBindingDefinitions {
                     JavaInstrumentationPointcutDefinitions.methodsWhichCanDeleteFiles, JavaInstrumentationDeletePathConstructorAdvice.class
             );
         } catch (Exception e) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.delete.constructor.binding.error"), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.delete.constructor.binding.error"), e);
         }
     }
     //</editor-fold>
@@ -348,7 +349,7 @@ public class JavaInstrumentationBindingDefinitions {
                     JavaInstrumentationPointcutDefinitions.methodsWhichCanCreateThreads, JavaInstrumentationCreateThreadMethodAdvice.class
             );
         } catch (Exception e) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.create.thread.method.binding.error"), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.create.thread.method.binding.error"), e);
         }
     }
 
@@ -363,7 +364,7 @@ public class JavaInstrumentationBindingDefinitions {
                     JavaInstrumentationPointcutDefinitions.methodsWhichCanCreateThreads, JavaInstrumentationCreateThreadConstructorAdvice.class
             );
         } catch (Exception e) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.create.thread.constructor.binding.error"), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.create.thread.constructor.binding.error"), e);
         }
     }
     //</editor-fold>
@@ -394,7 +395,7 @@ public class JavaInstrumentationBindingDefinitions {
                     JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteCommands, JavaInstrumentationExecuteCommandMethodAdvice.class
             );
         } catch (Exception e) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.execute.command.method.binding.error"), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.execute.command.method.binding.error"), e);
         }
     }
 
@@ -409,7 +410,7 @@ public class JavaInstrumentationBindingDefinitions {
                     JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteCommands, JavaInstrumentationExecuteCommandConstructorAdvice.class
             );
         } catch (Exception e) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.execute.command.constructor.binding.error"), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.execute.command.constructor.binding.error"), e);
         }
     }
     //</editor-fold>

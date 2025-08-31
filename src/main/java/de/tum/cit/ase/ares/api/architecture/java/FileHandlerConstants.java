@@ -27,7 +27,7 @@ public class FileHandlerConstants {
     public static final Path WALA_CLASSLOADER_METHODS = FileTools.resolveFileOnSourceDirectory("templates", "architecture" , "java", "wala", "methods", "classloader-methods.txt");
     public static final Path WALA_FILESYSTEM_METHODS = FileTools.resolveFileOnSourceDirectory("templates", "architecture" , "java", "wala", "methods", "file-system-access-methods.txt");
     public static final Path WALA_NETWORK_METHODS = FileTools.resolveFileOnSourceDirectory("templates", "architecture" , "java", "wala", "methods", "network-access-methods.txt");
-    public static final Path WALA_JVM_METHODS = FileTools.resolveFileOnSourceDirectory("templates", "architecture" , "java", "wala", "methods", "jvm-termination-methods.txt");
+    public static final Path WALA_JVM_TERMINATION_METHODS = FileTools.resolveFileOnSourceDirectory("templates", "architecture" , "java", "wala", "methods", "jvm-termination-methods.txt");
     public static final Path WALA_REFLECTION_METHODS = FileTools.resolveFileOnSourceDirectory("templates", "architecture" , "java", "wala", "methods", "reflection-methods.txt");
     public static final Path WALA_COMMAND_EXECUTION_METHODS = FileTools.resolveFileOnSourceDirectory("templates", "architecture" , "java", "wala", "methods", "command-execution-methods.txt");
     public static final Path WALA_SERIALIZATION_METHODS = FileTools.resolveFileOnSourceDirectory("templates", "architecture" , "java", "wala", "methods", "serializable-methods.txt");

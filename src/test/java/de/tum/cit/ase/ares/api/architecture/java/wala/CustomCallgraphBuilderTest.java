@@ -104,8 +104,8 @@ public class CustomCallgraphBuilderTest {
 
     @Test
     void testTryResolve_NonExistent() throws Exception {
-        CustomCallgraphBuilder builder = new CustomCallgraphBuilder();
-        
+        CustomCallgraphBuilder builder = new CustomCallgraphBuilder("target/test-classes");
+
         Method method = CustomCallgraphBuilder.class.getDeclaredMethod("tryResolve", String.class);
         method.setAccessible(true);
         @SuppressWarnings("unchecked")
@@ -116,14 +116,14 @@ public class CustomCallgraphBuilderTest {
 
     @Test
     void testGetImmediateSubclasses_NonExistent() {
-        CustomCallgraphBuilder builder = new CustomCallgraphBuilder();
+        CustomCallgraphBuilder builder = new CustomCallgraphBuilder("target/test-classes");
         Set<JavaClass> subclasses = builder.getImmediateSubclasses("non.existent.ClassName");
         Assertions.assertTrue(subclasses.isEmpty());
     }
 
     @Test
     void testBuildCallGraph_InvalidPath() {
-        CustomCallgraphBuilder builder = new CustomCallgraphBuilder();
+        CustomCallgraphBuilder builder = new CustomCallgraphBuilder("target/test-classes");
         Assertions.assertThrows(SecurityException.class, () -> {
             builder.buildCallGraph("invalid/path/to/classes");
         });
