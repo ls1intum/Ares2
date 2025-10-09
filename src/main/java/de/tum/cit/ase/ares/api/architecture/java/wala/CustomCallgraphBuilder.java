@@ -41,7 +41,7 @@ import java.util.stream.Collectors;
 public class CustomCallgraphBuilder {
 
     /**
-     * Importer for reading .class files from URLs into ArchUnit domain model.
+     * Importer for reading .class files from URLs into Archunit domain model.
      *
      * <p>Description: Used to import individual class files skipping Java runtime modules.
      */
@@ -153,7 +153,7 @@ public class CustomCallgraphBuilder {
         return Optional.ofNullable(
                         CustomCallgraphBuilder.class.getResource(convertTypeNameToClassName(typeName))
                 )
-                // Import using ArchUnit, excluding jrt modules
+                // Import using Archunit, excluding jrt modules
                 .map(location -> classFileImporter.withImportOption(loc -> !loc.contains("jrt")).importUrl(location))
                 // Extract JavaClass by name, handle missing
                 .map(imported -> {
@@ -190,7 +190,7 @@ public class CustomCallgraphBuilder {
         if (clazz == null) {
             return Collections.emptySet();
         }
-        // Map subclasses to ArchUnit JavaClass instances
+        // Map subclasses to Archunit JavaClass instances
         return classHierarchy.getImmediateSubclasses(clazz)
                 .stream()
                 .map(IClass::getName) // get name object

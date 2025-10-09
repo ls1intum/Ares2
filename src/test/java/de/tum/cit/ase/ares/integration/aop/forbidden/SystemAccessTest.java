@@ -31,33 +31,33 @@ abstract class SystemAccessTest {
     // <editor-fold desc="Archunit AspectJ Policy Files">
 
     /**
-     * Base path for ArchUnit AspectJ policy - One path allowed read
+     * Base path for Archunit AspectJ policy - One path allowed read
      */
     protected static final String ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml";
 
     /**
-     * Base path for ArchUnit AspectJ policy - One path allowed overwrite
+     * Base path for Archunit AspectJ policy - One path allowed overwrite
      */
     protected static final String ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedOverwrite.yaml";
 
     /**
-     * Base path for ArchUnit AspectJ policy - One path allowed execute, one command
+     * Base path for Archunit AspectJ policy - One path allowed execute, one command
      * execution allowed
      */
     protected static final String ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml";
 
     /**
-     * Base path for ArchUnit AspectJ policy - One path allowed delete
+     * Base path for Archunit AspectJ policy - One path allowed delete
      */
     protected static final String ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedDelete.yaml";
 
     /**
-     * Base path for ArchUnit AspectJ policy - One command execution allowed
+     * Base path for Archunit AspectJ policy - One command execution allowed
      */
     protected static final String ARCHUNIT_ASPECTJ_POLICY_ONE_COMMAND_ALLOWED_EXECUTION = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOneCommandExecutionAllowed.yaml";
 
     /**
-     * Base path for ArchUnit AspectJ policy - One thread allowed create
+     * Base path for Archunit AspectJ policy - One thread allowed create
      */
     protected static final String ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOneThreadAllowedCreate.yaml";
 
@@ -66,33 +66,33 @@ abstract class SystemAccessTest {
     // <editor-fold desc="Archunit Instrumentation Policy Files">
 
     /**
-     * Base path for ArchUnit Instrumentation policy - One path allowed read
+     * Base path for Archunit Instrumentation policy - One path allowed read
      */
     protected static final String ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml";
 
     /**
-     * Base path for ArchUnit Instrumentation policy - One path allowed overwrite
+     * Base path for Archunit Instrumentation policy - One path allowed overwrite
      */
     protected static final String ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedOverwrite.yaml";
 
     /**
-     * Base path for ArchUnit Instrumentation policy - One path allowed execute, one
+     * Base path for Archunit Instrumentation policy - One path allowed execute, one
      * command execution allowed
      */
     protected static final String ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml";
 
     /**
-     * Base path for ArchUnit Instrumentation policy - One path allowed delete
+     * Base path for Archunit Instrumentation policy - One path allowed delete
      */
     protected static final String ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedDelete.yaml";
 
     /**
-     * Base path for ArchUnit Instrumentation policy - One command execution allowed
+     * Base path for Archunit Instrumentation policy - One command execution allowed
      */
     protected static final String ARCHUNIT_INSTRUMENTATION_POLICY_ONE_COMMAND_ALLOWED_EXECUTION = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOneCommandExecutionAllowed.yaml";
 
     /**
-     * Base path for ArchUnit Instrumentation policy - One thread allowed create
+     * Base path for Archunit Instrumentation policy - One thread allowed create
      */
     protected static final String ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOneThreadAllowedCreate.yaml";
 

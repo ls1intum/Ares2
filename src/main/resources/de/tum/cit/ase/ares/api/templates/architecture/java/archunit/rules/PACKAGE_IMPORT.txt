@@ -2,5 +2,5 @@
 public void packageImportShouldNotBeAccessed() {
     allowedPackages = ${allowedPackages};
     javaClasses = ${javaClasses};
-    JavaArchUnitTestCaseCollection.noClassMustImportForbiddenPackages(allowedPackages).check(javaClasses);
+    JavaArchunitTestCaseCollection.noClassMustImportForbiddenPackages(allowedPackages).check(javaClasses);
 }

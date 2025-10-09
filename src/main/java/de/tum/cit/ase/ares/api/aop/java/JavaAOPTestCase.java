@@ -268,13 +268,13 @@ public class JavaAOPTestCase extends AOPTestCase {
     @Override
     public void executeAOPTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
         switch ((JavaAOPTestCaseSupported) aopTestCaseSupported) {
-            case JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION -> Map.of(
+            case FILESYSTEM_INTERACTION -> Map.of(
                     "pathsAllowedToBeRead", fileSystemExtractor.getPermittedFilePaths("read").toArray(String[]::new),
                     "pathsAllowedToBeOverwritten", fileSystemExtractor.getPermittedFilePaths("overwrite").toArray(String[]::new),
                     "pathsAllowedToBeExecuted", fileSystemExtractor.getPermittedFilePaths("execute").toArray(String[]::new),
                     "pathsAllowedToBeDeleted", fileSystemExtractor.getPermittedFilePaths("delete").toArray(String[]::new)
             ).forEach((k, v) -> JavaAOPTestCase.setJavaAdviceSettingValue(k, v, architectureMode, aopMode));
-            case JavaAOPTestCaseSupported.NETWORK_CONNECTION -> Map.of(
+            case NETWORK_CONNECTION -> Map.of(
                     "hostsAllowedToBeConnectedTo", networkConnectionExtractor.getPermittedNetworkHosts("connect").toArray(String[]::new),
                     "portsAllowedToBeConnectedTo", networkConnectionExtractor.getPermittedNetworkPorts("connect").stream().mapToInt(Integer::intValue).toArray(),
                     "hostsAllowedToBeSentTo", networkConnectionExtractor.getPermittedNetworkHosts("send").toArray(String[]::new),
@@ -282,11 +282,11 @@ public class JavaAOPTestCase extends AOPTestCase {
                     "hostsAllowedToBeReceivedFrom", networkConnectionExtractor.getPermittedNetworkHosts("receive").toArray(String[]::new),
                     "portsAllowedToBeReceivedFrom", networkConnectionExtractor.getPermittedNetworkPorts("receive").stream().mapToInt(Integer::intValue).toArray()
             ).forEach((k, v) -> JavaAOPTestCase.setJavaAdviceSettingValue(k, v, architectureMode, aopMode));
-            case JavaAOPTestCaseSupported.COMMAND_EXECUTION -> Map.of(
+            case COMMAND_EXECUTION -> Map.of(
                     "commandsAllowedToBeExecuted", commandExecutionExtractor.getPermittedCommands().toArray(String[]::new),
                     "argumentsAllowedToBePassed", commandExecutionExtractor.getPermittedArguments().stream().map(innerList -> innerList.toArray(new String[0])).toArray(String[][]::new)
             ).forEach((k, v) -> JavaAOPTestCase.setJavaAdviceSettingValue(k, v, architectureMode, aopMode));
-            case JavaAOPTestCaseSupported.THREAD_CREATION -> Map.of(
+            case THREAD_CREATION -> Map.of(
                     "threadNumberAllowedToBeCreated", threadCreationExtractor.getPermittedNumberOfThreads().stream().mapToInt(Integer::intValue).toArray(),
                     "threadClassAllowedToBeCreated", threadCreationExtractor.getPermittedThreadClasses().toArray(String[]::new)
             ).forEach((k, v) -> JavaAOPTestCase.setJavaAdviceSettingValue(k, v, architectureMode, aopMode));

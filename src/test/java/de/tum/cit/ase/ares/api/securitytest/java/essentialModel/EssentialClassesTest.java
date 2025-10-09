@@ -47,7 +47,7 @@ public class EssentialClassesTest {
             // Assert
             assertNotNull(essentialClasses);
             assertEquals(javaClasses, essentialClasses.essentialJavaClasses());
-            assertEquals(archUnitClasses, essentialClasses.essentialArchUnitClasses());
+            assertEquals(archUnitClasses, essentialClasses.essentialArchunitClasses());
             assertEquals(walaClasses, essentialClasses.essentialWalaClasses());
             assertEquals(aspectJClasses, essentialClasses.essentialAspectJClasses());
             assertEquals(instrumentationClasses, essentialClasses.essentialInstrumentationClasses());
@@ -66,8 +66,8 @@ public class EssentialClassesTest {
         }
 
         @Test
-        @DisplayName("Should throw NullPointerException when essentialArchUnitClasses is null")
-        void shouldThrowNullPointerExceptionWhenEssentialArchUnitClassesIsNull() {
+        @DisplayName("Should throw NullPointerException when essentialArchunitClasses is null")
+        void shouldThrowNullPointerExceptionWhenEssentialArchunitClassesIsNull() {
             // Act & Assert
             assertThrows(NullPointerException.class, () -> new EssentialClasses(
                     javaClasses, null, walaClasses, aspectJClasses,
@@ -140,7 +140,7 @@ public class EssentialClassesTest {
             // Assert
             assertNotNull(essentialClasses);
             assertTrue(essentialClasses.essentialJavaClasses().isEmpty());
-            assertTrue(essentialClasses.essentialArchUnitClasses().isEmpty());
+            assertTrue(essentialClasses.essentialArchunitClasses().isEmpty());
             assertTrue(essentialClasses.essentialWalaClasses().isEmpty());
             assertTrue(essentialClasses.essentialAspectJClasses().isEmpty());
             assertTrue(essentialClasses.essentialInstrumentationClasses().isEmpty());
@@ -248,7 +248,7 @@ public class EssentialClassesTest {
             // Act
             EssentialClasses essentialClasses = EssentialClasses.builder()
                     .essentialJavaClasses(javaClasses)
-                    .essentialArchUnitClasses(archUnitClasses)
+                    .essentialArchunitClasses(archUnitClasses)
                     .essentialWalaClasses(walaClasses)
                     .essentialAspectJClasses(aspectJClasses)
                     .essentialInstrumentationClasses(instrumentationClasses)
@@ -259,7 +259,7 @@ public class EssentialClassesTest {
             // Assert
             assertNotNull(essentialClasses);
             assertEquals(javaClasses, essentialClasses.essentialJavaClasses());
-            assertEquals(archUnitClasses, essentialClasses.essentialArchUnitClasses());
+            assertEquals(archUnitClasses, essentialClasses.essentialArchunitClasses());
             assertEquals(walaClasses, essentialClasses.essentialWalaClasses());
             assertEquals(aspectJClasses, essentialClasses.essentialAspectJClasses());
             assertEquals(instrumentationClasses, essentialClasses.essentialInstrumentationClasses());
@@ -273,7 +273,7 @@ public class EssentialClassesTest {
             // Act & Assert
             assertThrows(NullPointerException.class, () -> EssentialClasses.builder()
                     .essentialJavaClasses(null)
-                    .essentialArchUnitClasses(archUnitClasses)
+                    .essentialArchunitClasses(archUnitClasses)
                     .essentialWalaClasses(walaClasses)
                     .essentialAspectJClasses(aspectJClasses)
                     .essentialInstrumentationClasses(instrumentationClasses)
@@ -287,7 +287,7 @@ public class EssentialClassesTest {
         void shouldThrowNullPointerExceptionWhenBuildingWithMissingEssentialJavaClasses() {
             // Act & Assert
             assertThrows(NullPointerException.class, () -> EssentialClasses.builder()
-                    .essentialArchUnitClasses(archUnitClasses)
+                    .essentialArchunitClasses(archUnitClasses)
                     .essentialWalaClasses(walaClasses)
                     .essentialAspectJClasses(aspectJClasses)
                     .essentialInstrumentationClasses(instrumentationClasses)
@@ -304,7 +304,7 @@ public class EssentialClassesTest {
 
             // Act & Assert
             assertSame(builder, builder.essentialJavaClasses(javaClasses));
-            assertSame(builder, builder.essentialArchUnitClasses(archUnitClasses));
+            assertSame(builder, builder.essentialArchunitClasses(archUnitClasses));
             assertSame(builder, builder.essentialWalaClasses(walaClasses));
             assertSame(builder, builder.essentialAspectJClasses(aspectJClasses));
             assertSame(builder, builder.essentialInstrumentationClasses(instrumentationClasses));
@@ -318,7 +318,7 @@ public class EssentialClassesTest {
             EssentialClasses.Builder builder = EssentialClasses.builder();
 
             assertThrows(NullPointerException.class, () -> builder.essentialJavaClasses(null));
-            assertThrows(NullPointerException.class, () -> builder.essentialArchUnitClasses(null));
+            assertThrows(NullPointerException.class, () -> builder.essentialArchunitClasses(null));
             assertThrows(NullPointerException.class, () -> builder.essentialWalaClasses(null));
             assertThrows(NullPointerException.class, () -> builder.essentialAspectJClasses(null));
             assertThrows(NullPointerException.class, () -> builder.essentialInstrumentationClasses(null));

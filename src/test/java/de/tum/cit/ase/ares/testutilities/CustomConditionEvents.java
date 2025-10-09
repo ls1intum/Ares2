@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Custom condition events used in ArchUnit tests
+ * Custom condition events used in Archunit tests
  */
 public class CustomConditionEvents implements ConditionEvents {
     private final List<ConditionEvent> violations = new ArrayList<>();

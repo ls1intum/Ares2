@@ -7,7 +7,7 @@ import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.lang.ArchRule;
 import de.tum.cit.ase.ares.api.architecture.java.FileHandlerConstants;
-import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitTestCaseCollection;
+import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchunitTestCaseCollection;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 import de.tum.cit.ase.ares.api.util.FileTools;
@@ -191,7 +191,7 @@ public class JavaWalaTestCaseCollection {
      * This method checks if any class in the given package imports forbidden packages.
      */
     public static ArchRule noClassMustImportForbiddenPackages(Set<PackagePermission> allowedPackages) {
-        return JavaArchUnitTestCaseCollection
+        return JavaArchunitTestCaseCollection
                 .noClassMustImportForbiddenPackages(allowedPackages);
     }
     //</editor-fold>

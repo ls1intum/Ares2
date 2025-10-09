@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.DatabindException;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.google.common.base.Preconditions;
 import de.tum.cit.ase.ares.api.localization.Messages;
+import de.tum.cit.ase.ares.api.util.FileTools;
 import org.apache.commons.io.FileUtils;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.reader.SecurityPolicyReader;
@@ -35,6 +36,7 @@ import java.util.Objects;
 public class SecurityPolicyYAMLReader extends SecurityPolicyReader {
 
     //<editor-fold desc="Constructor">
+
     /**
      * Constructs a new SecurityPolicyYAMLReader with the specified YAML factory and object mapper.
      *
@@ -48,6 +50,7 @@ public class SecurityPolicyYAMLReader extends SecurityPolicyReader {
     //</editor-fold>
 
     //<editor-fold desc="Read policy methods">
+
     /**
      * Reads a SecurityPolicy from the specified YAML file path.
      *
@@ -59,21 +62,18 @@ public class SecurityPolicyYAMLReader extends SecurityPolicyReader {
     @Override
     @Nonnull
     public SecurityPolicy readSecurityPolicyFrom(@Nonnull Path securityPolicyPath) {
-        Preconditions.checkNotNull(securityPolicyPath, "Security policy path must not be null");
-        Preconditions.checkArgument(FileUtils.isFileNewer(securityPolicyPath.toFile(), 0), Messages.localized("security.policy.file.not.found", securityPolicyPath));
-        Preconditions.checkArgument(Files.isReadable(securityPolicyPath), Messages.localized("security.policy.file.not.readable", securityPolicyPath));
-        @Nonnull File yamlFile = Preconditions.checkNotNull(securityPolicyPath.toFile(), "The security policy file must not be null.");
+        @Nonnull Path path = Preconditions.checkNotNull(securityPolicyPath, "The security policy path must not be null");
         @Nonnull Class<SecurityPolicy> yamlClass = Preconditions.checkNotNull(SecurityPolicy.class, "The security policy class must not be null.");
         try {
-            return objectMapper.readValue(yamlFile, yamlClass);
+            return FileTools.readYamlFile(FileTools.readFile(path), yamlClass);
         } catch (StreamReadException e) {
-            throw new SecurityException(Messages.localized("security.policy.read.failed", securityPolicyPath.toString()), e);
+            throw new SecurityException(Messages.localized("security.policy.read.failed", path.toString()), e);
         } catch (DatabindException e) {
-            throw new SecurityException(Messages.localized("security.policy.data.bind.failed", securityPolicyPath.toString()), e);
+            throw new SecurityException(Messages.localized("security.policy.data.bind.failed", path.toString()), e);
         } catch (UnsupportedOperationException e) {
-            throw new SecurityException(Messages.localized("security.policy.unsupported.operation"), e);
+            throw new SecurityException(Messages.localized("security.policy.unsupported.operation", path.toString()), e);
         } catch (IOException e) {
-            throw new SecurityException(Messages.localized("security.policy.io.exception", securityPolicyPath.toString()), e);
+            throw new SecurityException(Messages.localized("security.policy.io.exception", path.toString()), e);
         }
     }
     //</editor-fold>

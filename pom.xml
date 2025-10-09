@@ -7,55 +7,55 @@
     <version>2.0.0-Beta-5</version>
     <properties>
         <!-- 0. General Project Settings -->
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <!-- 1. Testing: 1.1 JUnit -->
-        <junit-jupiter-version>5.10.2</junit-jupiter-version>
-        <junit-pioneer-version>2.2.0</junit-pioneer-version>
-        <junit-platform-version>1.10.2</junit-platform-version>
+        <junit-jupiter-version>6.0.0</junit-jupiter-version>
+        <junit-platform-version>6.0.0</junit-platform-version>
+        <junit-pioneer-version>2.3.0</junit-pioneer-version>
         <!-- 1. Testing: 1.2 jqwik -->
-        <jqwik-version>1.8.4</jqwik-version>
+        <jqwik-version>1.9.3</jqwik-version>
         <!-- 1. Testing: 1.3 AssertJ -->
-        <assertj-version>3.25.3</assertj-version>
+        <assertj-version>3.27.6</assertj-version>
         <!-- 1. Testing: 1.4 Mockito -->
         <mockito-version>5.2.0</mockito-version>
         <!-- 1. Testing: 1.5 Hamcrest -->
-        <hamcrest-version>2.2</hamcrest-version>
-        <!-- 2. Architecture: 2.1 ArchUnit -->
-        <archunit-version>1.3.0</archunit-version>
+        <hamcrest-version>3.0</hamcrest-version>
+        <!-- 2. Architecture: 2.1 Archunit -->
+        <archunit-version>1.4.1</archunit-version>
         <!-- 2. Architecture: 2.2 Wala -->
-        <wala-version>1.6.7</wala-version>
+        <wala-version>1.6.12</wala-version>
         <!-- 3. AOP: 3.1 AspectJ -->
-        <aspectj-version>1.9.22</aspectj-version>
+        <aspectj-version>1.9.24</aspectj-version>
         <aspectj-path>
             ${user.home}${file.separator}.m2${file.separator}repository${file.separator}org${file.separator}aspectj${file.separator}aspectjrt${file.separator}${aspectj-version}${file.separator}aspectjrt-${aspectj-version}.jar
         </aspectj-path>
         <!-- 3. AOP: 3.2 Byte Buddy -->
-        <byte-buddy-version>1.14.19</byte-buddy-version>
+        <byte-buddy-version>1.17.7</byte-buddy-version>
         <byte-buddy-path>
             ${project.build.directory}${file.separator}${project.artifactId}-${project.version}-agent.jar
         </byte-buddy-path>
         <!-- 4. AST: 4.1 JavaParser -->
-        <java-parser-version>3.25.9</java-parser-version>
+        <java-parser-version>3.27.0</java-parser-version>
         <!-- 5. Formats: 5.1 JSON -->
-        <json-version>20240303</json-version>
+        <json-version>20250517</json-version>
         <!-- 5. Formats: 5.2 YAML and XML-->
-        <yaml-version>2.17.2</yaml-version>
+        <yaml-version>2.20.0</yaml-version>
         <!-- 6. Large Tooling Libraries -->
-        <guava-version>33.4.0-jre</guava-version>
-        <commons-io-version>2.18.0</commons-io-version>
-        <vavr-version>0.10.6</vavr-version>
+        <guava-version>33.5.0-jre</guava-version>
+        <commons-io-version>2.20.0</commons-io-version>
+        <vavr-version>0.10.7</vavr-version>
         <!-- 7. Small Tooling Libraries -->
         <java-string-similarity-version>2.0.0</java-string-similarity-version>
         <jgrapht-core-version>1.5.2</jgrapht-core-version>
         <!-- 8. Logging  -->
-        <logback-version>1.5.3</logback-version>
+        <logback-version>1.5.18</logback-version>
         <!-- 8. API  -->
         <apiguardian-api-version>1.1.2</apiguardian-api-version>
         <!-- Others -->
-        <spotless.version>2.43.0</spotless.version>
+        <spotless.version>3.0.0</spotless.version>
         <!-- if JaCoCo is not executed -->
         <argLine></argLine>
         <!-- full certificate fingerprint: 23E62BB282A473EE4DDA2F8763EFD39363D21A8D -->
@@ -150,7 +150,7 @@
             <artifactId>hamcrest</artifactId>
             <version>${hamcrest-version}</version>
         </dependency>-->
-        <!-- 2. Architecture: 2.1 ArchUnit -->
+        <!-- 2. Architecture: 2.1 Archunit -->
         <dependency>
             <groupId>com.tngtech.archunit</groupId>
             <artifactId>archunit-junit5</artifactId>
@@ -275,6 +275,12 @@
             <artifactId>apiguardian-api</artifactId>
             <version>${apiguardian-api-version}</version>
         </dependency>
+        <!-- Add JSR-305 for javax.annotation.Nonnull/Nullable -->
+        <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
+            <version>3.0.2</version>
+        </dependency>
     </dependencies>
     <build>
         <resources>
@@ -394,9 +400,9 @@
                 </dependencies>
                 <configuration>
                     <forceAjcCompile>true</forceAjcCompile>
-                    <complianceLevel>21</complianceLevel>
-                    <source>21</source>
-                    <target>21</target>
+                    <complianceLevel>17</complianceLevel>
+                    <source>17</source>
+                    <target>17</target>
                     <showWeaveInfo>true</showWeaveInfo>
                     <weaveTest>true</weaveTest>
                 </configuration>

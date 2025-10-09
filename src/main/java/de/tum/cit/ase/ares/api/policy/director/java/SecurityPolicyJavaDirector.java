@@ -130,21 +130,21 @@ public class SecurityPolicyJavaDirector extends SecurityPolicyDirector {
         }
         @Nonnull ProgrammingLanguageConfiguration config = Preconditions.checkNotNull(securityPolicy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed());
         return switch (config) {
-            case ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ ->
+            case JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ ->
                     generateFactoryAndBuilder(BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, securityPolicy, projectFolderPath);
-            case ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION ->
+            case JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION ->
                     generateFactoryAndBuilder(BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.INSTRUMENTATION, securityPolicy, projectFolderPath);
-            case ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_WALA_AND_ASPECTJ ->
+            case JAVA_USING_MAVEN_WALA_AND_ASPECTJ ->
                     generateFactoryAndBuilder(BuildMode.MAVEN, ArchitectureMode.WALA, AOPMode.ASPECTJ, securityPolicy, projectFolderPath);
-            case ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_WALA_AND_INSTRUMENTATION ->
+            case JAVA_USING_MAVEN_WALA_AND_INSTRUMENTATION ->
                     generateFactoryAndBuilder(BuildMode.MAVEN, ArchitectureMode.WALA, AOPMode.INSTRUMENTATION, securityPolicy, projectFolderPath);
-            case ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_ARCHUNIT_AND_ASPECTJ ->
+            case JAVA_USING_GRADLE_ARCHUNIT_AND_ASPECTJ ->
                     generateFactoryAndBuilder(BuildMode.GRADLE, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, securityPolicy, projectFolderPath);
-            case ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION ->
+            case JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION ->
                     generateFactoryAndBuilder(BuildMode.GRADLE, ArchitectureMode.ARCHUNIT, AOPMode.INSTRUMENTATION, securityPolicy, projectFolderPath);
-            case ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_WALA_AND_ASPECTJ ->
+            case JAVA_USING_GRADLE_WALA_AND_ASPECTJ ->
                     generateFactoryAndBuilder(BuildMode.GRADLE, ArchitectureMode.WALA, AOPMode.ASPECTJ, securityPolicy, projectFolderPath);
-            case ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_WALA_AND_INSTRUMENTATION ->
+            case JAVA_USING_GRADLE_WALA_AND_INSTRUMENTATION ->
                     generateFactoryAndBuilder(BuildMode.GRADLE, ArchitectureMode.WALA, AOPMode.INSTRUMENTATION, securityPolicy, projectFolderPath);
         };
     }

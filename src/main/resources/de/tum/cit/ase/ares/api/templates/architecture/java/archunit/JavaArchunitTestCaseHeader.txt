@@ -3,6 +3,7 @@ package %s.ares.api.architecture.java.archunit;
 //<editor-fold desc="Imports">
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
+import com.tngtech.archunit.core.importer.ImportOption;
 import %s.ares.api.policy.policySubComponents.PackagePermission;
 
 import javax.annotation.Nonnull;
@@ -13,14 +14,14 @@ import org.junit.jupiter.api.Test;
 //</editor-fold>
 
 /**
- * Architecture test case for the Java programming language using ArchUnit and concrete product of the abstract factory design pattern.
+ * Architecture test case for the Java programming language using Archunit and concrete product of the abstract factory design pattern.
  *
  * @author Sarp Sahinalp
  * @version 2.0.0
  * @see <a href="https://refactoring.guru/design-patterns/abstract-factory">Abstract Factory Design Pattern</a>
  * @since 2.0.0
  */
-public class JavaArchUnitTestCase {
+public class JavaArchunitTestCase {
 
     @Nonnull Set<PackagePermission> allowedPackages;
     @Nonnull JavaClasses javaClasses;

@@ -22,49 +22,49 @@ public class FileHandlerConstantsTest {
     }
 
     @Test
-    void testArchUnitFilesystemMethodsConstant() {
+    void testArchunitFilesystemMethodsConstant() {
         Path expected = Paths.get("de", "tum", "cit", "ase", "ares", "api", "templates", "architecture", "java", "archunit", "methods", "file-system-access-methods.txt");
         assertEquals(expected, FileHandlerConstants.ARCHUNIT_FILESYSTEM_METHODS, "ARCHUNIT_FILESYSTEM_METHODS constant should point to the correct relative path");
     }
 
     @Test
-    void testArchUnitNetworkMethodsConstant() {
+    void testArchunitNetworkMethodsConstant() {
         Path expected = Paths.get("de", "tum", "cit", "ase", "ares", "api", "templates", "architecture", "java", "archunit", "methods", "network-access-methods.txt");
         assertEquals(expected, FileHandlerConstants.ARCHUNIT_NETWORK_METHODS, "ARCHUNIT_NETWORK_METHODS constant should point to the correct relative path");
     }
 
     @Test
-    void testArchUnitJvmTerminationMethodsConstant() {
+    void testArchunitJvmTerminationMethodsConstant() {
         Path expected = Paths.get("de", "tum", "cit", "ase", "ares", "api", "templates", "architecture", "java", "archunit", "methods", "jvm-termination-methods.txt");
         assertEquals(expected, FileHandlerConstants.ARCHUNIT_JVM_TERMINATION_METHODS, "ARCHUNIT_JVM_TERMINATION_METHODS constant should point to the correct relative path");
     }
 
     @Test
-    void testArchUnitReflectionMethodsConstant() {
+    void testArchunitReflectionMethodsConstant() {
         Path expected = Paths.get("de", "tum", "cit", "ase", "ares", "api", "templates", "architecture", "java", "archunit", "methods", "reflection-methods.txt");
         assertEquals(expected, FileHandlerConstants.ARCHUNIT_REFLECTION_METHODS, "ARCHUNIT_REFLECTION_METHODS constant should point to the correct relative path");
     }
 
     @Test
-    void testArchUnitCommandExecutionMethodsConstant() {
+    void testArchunitCommandExecutionMethodsConstant() {
         Path expected = Paths.get("de", "tum", "cit", "ase", "ares", "api", "templates", "architecture", "java", "archunit", "methods", "command-execution-methods.txt");
         assertEquals(expected, FileHandlerConstants.ARCHUNIT_COMMAND_EXECUTION_METHODS, "ARCHUNIT_COMMAND_EXECUTION_METHODS constant should point to the correct relative path");
     }
 
     @Test
-    void testArchUnitThreadManipulationMethodsConstant() {
+    void testArchunitThreadManipulationMethodsConstant() {
         Path expected = Paths.get("de", "tum", "cit", "ase", "ares", "api", "templates", "architecture", "java", "archunit", "methods", "thread-manipulation-methods.txt");
         assertEquals(expected, FileHandlerConstants.ARCHUNIT_THREAD_MANIPULATION_METHODS, "ARCHUNIT_THREAD_MANIPULATION_METHODS constant should point to the correct relative path");
     }
 
     @Test
-    void testArchUnitSerializationMethodsConstant() {
+    void testArchunitSerializationMethodsConstant() {
         Path expected = Paths.get("de", "tum", "cit", "ase", "ares", "api", "templates", "architecture", "java", "archunit", "methods", "serializable-methods.txt");
         assertEquals(expected, FileHandlerConstants.ARCHUNIT_SERIALIZATION_METHODS, "ARCHUNIT_SERIALIZATION_METHODS constant should point to the correct relative path");
     }
 
     @Test
-    void testArchUnitClassLoaderMethodsConstant() {
+    void testArchunitClassLoaderMethodsConstant() {
         Path expected = Paths.get("de", "tum", "cit", "ase", "ares", "api", "templates", "architecture", "java", "archunit", "methods", "classloader-methods.txt");
         assertEquals(expected, FileHandlerConstants.ARCHUNIT_CLASSLOADER_METHODS, "ARCHUNIT_CLASSLOADER_METHODS constant should point to the correct relative path");
     }

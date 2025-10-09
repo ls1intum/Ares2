@@ -12,7 +12,7 @@ import java.nio.file.Path;
  */
 public class FileHandlerConstants {
 
-    //<editor-fold desc="Java ArchUnit Methods">
+    //<editor-fold desc="Java Archunit Methods">
     public static final Path ARCHUNIT_FILESYSTEM_METHODS = FileTools.resolveFileOnSourceDirectory("templates", "architecture" , "java", "archunit", "methods", "file-system-access-methods.txt");
     public static final Path ARCHUNIT_NETWORK_METHODS = FileTools.resolveFileOnSourceDirectory("templates", "architecture" , "java", "archunit", "methods", "network-access-methods.txt");
     public static final Path ARCHUNIT_JVM_TERMINATION_METHODS = FileTools.resolveFileOnSourceDirectory("templates", "architecture" , "java", "archunit", "methods", "jvm-termination-methods.txt");

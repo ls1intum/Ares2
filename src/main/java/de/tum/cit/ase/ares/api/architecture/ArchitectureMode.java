@@ -16,7 +16,7 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
 import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaCSVFileLoader;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
-import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitTestCase;
+import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchunitTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.wala.CustomCallgraphBuilder;
 import de.tum.cit.ase.ares.api.architecture.java.wala.JavaWalaTestCase;
 import de.tum.cit.ase.ares.api.util.FileTools;
@@ -37,7 +37,7 @@ import de.tum.cit.ase.ares.api.util.FileTools;
 public enum ArchitectureMode {
 
     /**
-     * ArchUnit mode for analysing Java code with TNGs ArchUnit.
+     * Archunit mode for analysing Java code with TNGs Archunit.
      */
     ARCHUNIT,
 
@@ -174,8 +174,8 @@ public enum ArchitectureMode {
     public String threePartedFileBody(List<?> testCases) {
         return switch (this) {
             case ARCHUNIT -> String.join("\n",
-                    convertToJavaArchUnitTestCases((List<JavaArchitectureTestCase>) testCases).stream()
-                            .map(javaArchUnitTestCase -> javaArchUnitTestCase.writeArchitectureTestCase("ARCHUNIT", ""))
+                    convertToJavaArchunitTestCases((List<JavaArchitectureTestCase>) testCases).stream()
+                            .map(javaArchunitTestCase -> javaArchunitTestCase.writeArchitectureTestCase("ARCHUNIT", ""))
                             .toList()
 
             );
@@ -242,7 +242,7 @@ public enum ArchitectureMode {
     //<editor-fold desc="Other methods">
 
     /**
-     * Imports and analyzes Java classes from the specified class path using ArchUnit's ClassFileImporter.
+     * Imports and analyzes Java classes from the specified class path using Archunit's ClassFileImporter.
      * This method enables static code analysis by creating a collection of Java class metadata.
      *
      * @since 2.0.0
@@ -275,8 +275,8 @@ public enum ArchitectureMode {
     //</editor-fold>
 
     //<editor-fold desc="Static methods">
-    private static JavaArchUnitTestCase convertToJavaArchUnitTestCase(JavaArchitectureTestCase testCase) {
-        return JavaArchUnitTestCase.archunitBuilder()
+    private static JavaArchunitTestCase convertToJavaArchunitTestCase(JavaArchitectureTestCase testCase) {
+        return JavaArchunitTestCase.archunitBuilder()
                 .javaArchitectureTestCaseSupported((JavaArchitectureTestCaseSupported) testCase.getArchitectureTestCaseSupported())
                 .allowedPackages(testCase.getAllowedPackages())
                 .javaClasses(testCase.getJavaClasses())
@@ -292,8 +292,8 @@ public enum ArchitectureMode {
                 .build();
     }
 
-    private static List<JavaArchUnitTestCase> convertToJavaArchUnitTestCases(List<JavaArchitectureTestCase> testCases) {
-        return new ArrayList<>(testCases.stream().map(ArchitectureMode::convertToJavaArchUnitTestCase).toList());
+    private static List<JavaArchunitTestCase> convertToJavaArchunitTestCases(List<JavaArchitectureTestCase> testCases) {
+        return new ArrayList<>(testCases.stream().map(ArchitectureMode::convertToJavaArchunitTestCase).toList());
     }
 
     private static List<JavaWalaTestCase> convertToJavaWalaTestCases(List<JavaArchitectureTestCase> testCases) {

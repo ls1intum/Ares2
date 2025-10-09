@@ -16,7 +16,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class JavaArchUnitTestCaseCollectionTest {
+public class JavaArchunitTestCaseCollectionTest {
 
     private static Path tempMethodsFile;
 
@@ -33,30 +33,23 @@ public class JavaArchUnitTestCaseCollectionTest {
     }
 
     @Test
-    void readFile_nonexistentPath_throwsSecurityException() {
-        Path invalidPath = Paths.get("nonexistentfile.txt");
-        assertThrows(SecurityException.class,
-            () -> JavaArchUnitTestCaseCollection.readFile(invalidPath));
-    }
-
-    @Test
     void noClassMustImportForbiddenPackages_returnsRuleWithExpectedDescription() {
         Set<PackagePermission> allowedPackages = new HashSet<>();
         allowedPackages.add(new PackagePermission("com.allowed"));
-        ArchRule rule = JavaArchUnitTestCaseCollection.noClassMustImportForbiddenPackages(allowedPackages);
+        ArchRule rule = JavaArchunitTestCaseCollection.noClassMustImportForbiddenPackages(allowedPackages);
         String expectedDescription = Messages.localized("security.architecture.package.import");
         assertEquals(expectedDescription, rule.getDescription());
     }
 
     @Test
     void staticRules_areNotNull() {
-        assertNotNull(JavaArchUnitTestCaseCollection.NO_CLASS_MUST_ACCESS_FILE_SYSTEM);
-        assertNotNull(JavaArchUnitTestCaseCollection.NO_CLASS_MUST_ACCESS_NETWORK);
-        assertNotNull(JavaArchUnitTestCaseCollection.NO_CLASS_MUST_CREATE_THREADS);
-        assertNotNull(JavaArchUnitTestCaseCollection.NO_CLASS_MUST_EXECUTE_COMMANDS);
-        assertNotNull(JavaArchUnitTestCaseCollection.NO_CLASS_MUST_USE_REFLECTION);
-        assertNotNull(JavaArchUnitTestCaseCollection.NO_CLASS_MUST_TERMINATE_JVM);
-        assertNotNull(JavaArchUnitTestCaseCollection.NO_CLASS_MUST_SERIALIZE);
-        assertNotNull(JavaArchUnitTestCaseCollection.NO_CLASS_MUST_USE_CLASSLOADERS);
+        assertNotNull(JavaArchunitTestCaseCollection.NO_CLASS_MUST_ACCESS_FILE_SYSTEM);
+        assertNotNull(JavaArchunitTestCaseCollection.NO_CLASS_MUST_ACCESS_NETWORK);
+        assertNotNull(JavaArchunitTestCaseCollection.NO_CLASS_MUST_CREATE_THREADS);
+        assertNotNull(JavaArchunitTestCaseCollection.NO_CLASS_MUST_EXECUTE_COMMANDS);
+        assertNotNull(JavaArchunitTestCaseCollection.NO_CLASS_MUST_USE_REFLECTION);
+        assertNotNull(JavaArchunitTestCaseCollection.NO_CLASS_MUST_TERMINATE_JVM);
+        assertNotNull(JavaArchunitTestCaseCollection.NO_CLASS_MUST_SERIALIZE);
+        assertNotNull(JavaArchunitTestCaseCollection.NO_CLASS_MUST_USE_CLASSLOADERS);
     }
 }

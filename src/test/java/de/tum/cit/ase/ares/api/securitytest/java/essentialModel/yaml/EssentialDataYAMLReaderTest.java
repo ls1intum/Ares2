@@ -41,7 +41,7 @@ public class EssentialDataYAMLReaderTest {
             // Assert
             assertNotNull(result);
             assertNotNull(result.essentialJavaPackages());
-            assertNotNull(result.essentialArchUnitPackages());
+            assertNotNull(result.essentialArchunitPackages());
             assertNotNull(result.essentialWalaPackages());
             assertNotNull(result.essentialAspectJPackages());
             assertNotNull(result.essentialInstrumentationPackages());
@@ -88,7 +88,7 @@ public class EssentialDataYAMLReaderTest {
             Files.writeString(malformedFile, """
                 essentialJavaPackages:
                   - java
-                essentialArchUnitPackages: [
+                essentialArchunitPackages: [
                 # This is malformed YAML - missing closing bracket
                 """);
 
@@ -129,7 +129,7 @@ public class EssentialDataYAMLReaderTest {
             // Assert
             assertNotNull(result);
             assertNotNull(result.essentialJavaClasses());
-            assertNotNull(result.essentialArchUnitClasses());
+            assertNotNull(result.essentialArchunitClasses());
             assertNotNull(result.essentialWalaClasses());
             assertNotNull(result.essentialAspectJClasses());
             assertNotNull(result.essentialInstrumentationClasses());
@@ -137,7 +137,7 @@ public class EssentialDataYAMLReaderTest {
             assertNotNull(result.essentialJUnitClasses());
             
             // Check specific classes
-            assertTrue(result.essentialArchUnitClasses().contains("de.tum.cit.ase.ares.api.architecture.java.archunit"));
+            assertTrue(result.essentialArchunitClasses().contains("de.tum.cit.ase.ares.api.architecture.java.archunit"));
             assertTrue(result.essentialWalaClasses().contains("de.tum.cit.ase.ares.api.architecture.java.wala"));
             assertTrue(result.essentialAspectJClasses().contains("de.tum.cit.ase.ares.api.aop.java.aspectj"));
             assertTrue(result.essentialInstrumentationClasses().contains("de.tum.cit.ase.ares.api.aop.java.instrumentation"));
@@ -176,7 +176,7 @@ public class EssentialDataYAMLReaderTest {
             Path malformedFile = tempDir.resolve("malformed_classes.yaml");
             Files.writeString(malformedFile, """
                 essentialJavaClasses: []
-                essentialArchUnitClasses: [
+                essentialArchunitClasses: [
                 # This is malformed YAML - missing closing bracket
                 """);
 
@@ -235,7 +235,7 @@ public class EssentialDataYAMLReaderTest {
             Path emptyPackagesFile = tempDir.resolve("empty_packages.yaml");
             Files.writeString(emptyPackagesFile, """
                 essentialJavaPackages: []
-                essentialArchUnitPackages: []
+                essentialArchunitPackages: []
                 essentialWalaPackages: []
                 essentialAspectJPackages: []
                 essentialInstrumentationPackages: []
@@ -246,7 +246,7 @@ public class EssentialDataYAMLReaderTest {
             Path emptyClassesFile = tempDir.resolve("empty_classes.yaml");
             Files.writeString(emptyClassesFile, """
                 essentialJavaClasses: []
-                essentialArchUnitClasses: []
+                essentialArchunitClasses: []
                 essentialWalaClasses: []
                 essentialAspectJClasses: []
                 essentialInstrumentationClasses: []
@@ -280,7 +280,7 @@ public class EssentialDataYAMLReaderTest {
                 essentialJavaPackages:
                   - "java.util"
                   - "java.io"
-                essentialArchUnitPackages: []
+                essentialArchunitPackages: []
                 essentialWalaPackages: []
                 essentialAspectJPackages: []
                 essentialInstrumentationPackages: []
@@ -308,7 +308,7 @@ public class EssentialDataYAMLReaderTest {
             for (int i = 0; i < 1000; i++) {
                 content.append("  - \"java.package").append(i).append("\"\n");
             }
-            content.append("essentialArchUnitPackages: []\n");
+            content.append("essentialArchunitPackages: []\n");
             content.append("essentialWalaPackages: []\n");
             content.append("essentialAspectJPackages: []\n");
             content.append("essentialInstrumentationPackages: []\n");

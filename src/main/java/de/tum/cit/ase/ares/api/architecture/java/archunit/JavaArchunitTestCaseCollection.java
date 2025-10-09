@@ -9,6 +9,7 @@ import com.tngtech.archunit.lang.syntax.ArchRuleDefinition;
 import de.tum.cit.ase.ares.api.architecture.java.FileHandlerConstants;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
+import de.tum.cit.ase.ares.api.util.FileTools;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,7 +24,7 @@ import java.util.Set;
 //</editor-fold>
 
 /**
- * Collection of security test cases that analyze Java applications using ArchUnit framework.
+ * Collection of security test cases that analyze Java applications using Archunit framework.
  * This class provides static methods to verify that analyzed code does not:
  * - Use reflection
  * - Access file system
@@ -32,70 +33,15 @@ import java.util.Set;
  * - Execute system commands
  * - Create threads
  */
-public class JavaArchUnitTestCaseCollection {
+public class JavaArchunitTestCaseCollection {
 
     //<editor-fold desc="Constructor">
-    private JavaArchUnitTestCaseCollection() {
-        throw new SecurityException(Messages.localized("security.general.utility.initialization", JavaArchUnitTestCaseCollection.class.getName()));
+    private JavaArchunitTestCaseCollection() {
+        throw new SecurityException(Messages.localized("security.general.utility.initialization", JavaArchunitTestCaseCollection.class.getName()));
     }
     //</editor-fold>
 
     //<editor-fold desc="Tool methods">
-    // Taken from FileTools, as we do not want to load the whole class in pre-compile mode
-    /**
-     * Reads the content of a file from the specified path.
-     * <p>
-     * This method reads the content of a file from the given source file path and returns it as a string.
-     * Various exceptions that might occur during the file read process are caught and wrapped in a
-     * {@link SecurityException}.
-     * </p>
-     *
-     * @param sourceFilePath the {@link Path} of the file to read.
-     * @return the content of the file as a {@link String}.
-     * @throws SecurityException if an error occurs during the file read process.
-     */
-    public static String readFile(Path sourceFilePath) {
-        try {
-
-            InputStream sourceStream = JavaArchUnitTestCaseCollection.class.getResourceAsStream("/" + sourceFilePath.toString());
-
-            if (sourceStream == null) {
-                throw new IOException("Resource not found: " + sourceFilePath);
-            }
-
-            try (Scanner scanner = new Scanner(sourceStream, StandardCharsets.UTF_8)) {
-                // Check if the scanner has any content
-                if (scanner.hasNext()) {
-                    return scanner.useDelimiter("\\A").next();
-                } else {
-                    return "";  // Return an empty string if the file is empty
-                }
-            }
-
-        } catch (IOException e) {
-            throw new SecurityException(Messages.localized("security.file-tools.read.content.failure"), e);
-        } catch (OutOfMemoryError e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Out of memory while reading content.", e);
-        } catch (IllegalFormatException e) {
-            throw new SecurityException("Ares Security Error (Stage: Creation): Illegal format in content.", e);
-        }
-    }
-
-    // Taken from FileTools, as we do not want to load the whole class in pre-compile mode
-    /**
-     * Reads the content of a file and returns it as a set of strings.
-     * @param filePath The path to the file
-     * @return a set of strings representing the content of the file
-     */
-    public static Set<String> readMethodsFromGivenPath(Path filePath) {
-        String fileContent = readFile(filePath);
-        String normalizedContent = fileContent.replace("\r\n", "\n").replace("\r", "\n");
-        List<String> methods = Arrays.stream(normalizedContent.split("\n"))
-                // Filter out comments
-                .filter(str -> !str.startsWith("#"))
-                .toList();
-        return new HashSet<>(methods);
-    }
 
     private static ArchRule createNoClassShouldHaveMethodRule(
             String ruleName,
@@ -108,7 +54,7 @@ public class JavaArchUnitTestCaseCollection {
                     @Override
                     public boolean test(JavaAccess<?> javaAccess) {
                         if (forbiddenMethods == null) {
-                            forbiddenMethods = readMethodsFromGivenPath(methodsFilePath);
+                            forbiddenMethods = FileTools.readMethodsFile(methodsFilePath.toFile());
                         }
                         return forbiddenMethods
                                 .stream()
