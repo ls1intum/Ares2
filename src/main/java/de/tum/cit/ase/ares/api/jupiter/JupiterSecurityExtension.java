@@ -38,7 +38,7 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
                             .projectFolderPath(
                                     !policy.withinPath().isBlank()
                                             ? JupiterSecurityExtension.testAndGetPolicyWithinPath(policy)
-                                            : Path.of("classes"))
+                                            : Path.of(""))
                             .build()
                             .createTestCases()
                             .executeTestCases());

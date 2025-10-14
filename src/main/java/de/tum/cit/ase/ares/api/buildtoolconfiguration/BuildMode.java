@@ -54,8 +54,8 @@ public enum BuildMode {
     //<editor-fold desc="Other methods">
     public String getBuildDirectory() {
         return switch (this) {
-            case MAVEN -> "target/classes";
-            case GRADLE -> "build/classes";
+            case MAVEN -> "target/classes/java/main";
+            case GRADLE -> "build/classes/java/main";
         };
     }
 

@@ -54,7 +54,7 @@ public class JavaArchunitTestCaseCollection {
                     @Override
                     public boolean test(JavaAccess<?> javaAccess) {
                         if (forbiddenMethods == null) {
-                            forbiddenMethods = FileTools.readMethodsFile(methodsFilePath.toFile());
+                            forbiddenMethods = FileTools.readMethodsFile(FileTools.readFile(methodsFilePath));
                         }
                         return forbiddenMethods
                                 .stream()

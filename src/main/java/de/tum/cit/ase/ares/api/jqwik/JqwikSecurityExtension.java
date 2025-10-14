@@ -48,7 +48,7 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
                             .projectFolderPath(
                                     !policy.withinPath().isBlank()
                                             ? JupiterSecurityExtension.testAndGetPolicyWithinPath(policy)
-                                            : Path.of("classes"))
+                                            : Path.of(""))
                             .build()
                             .createTestCases()
                             .executeTestCases());

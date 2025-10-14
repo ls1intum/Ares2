@@ -138,6 +138,24 @@ public class JavaInstrumentationPointcutDefinitions {
     }
 
     /**
+     * Methods listed here (by declaring class -> method name) will be excluded from the
+     * matcher produced by {@link #getMethodsMatcher(TypeDescription, Map)}. This allows
+     * fine-grained suppression of specific methods from otherwise instrumented classes.
+     *
+     * Keys are fully qualified class names; values are simple method names.
+     * Initially empty; add entries as needed, e.g.:
+     * Map.ofEntries(Map.entry("java.lang.Runtime", List.of("exec")))
+     */
+    public static final Map<String, List<String>> ignoredMethodsByClass = Map.ofEntries(
+            Map.entry("java.io.ByteArrayInputStream", List.of("read")),
+            Map.entry("java.io.RandomAccessFile", List.of("readFully", "read")),
+            Map.entry("java.lang.ClassLoader", List.of("getResource", "getResourceAsStream")),
+            Map.entry("java.net.URLClassLoader", List.of("getResourceAsStream")),
+            Map.entry("java.util.zip.InflaterInputStream", List.of("read")),
+            Map.entry("java.util.zip.ZipFile$ZipFileInputStream", List.of("read"))
+    );
+
+    /**
      * Creates a method matcher for the given type description and pointcut map.
      *
      * <p>This matcher will select methods whose names appear in the pointcut list for
@@ -199,6 +217,26 @@ public class JavaInstrumentationPointcutDefinitions {
                 }
             }
         }
+        // Subtract ignored methods for this type hierarchy
+        if (!ignoredMethodsByClass.isEmpty()) {
+            Set<String> ignored = new TreeSet<>();
+            for (Map.Entry<String, List<String>> entry : ignoredMethodsByClass.entrySet()) {
+                String key = entry.getKey();
+                List<String> values = entry.getValue();
+                ElementMatcher.Junction<TypeDescription> keyClassMatcher = ElementMatchers.named(key);
+                ElementMatcher.Junction<TypeDescription> keySuperClassMatcher = ElementMatchers.hasSuperType(keyClassMatcher);
+                ElementMatcher.Junction<TypeDescription> keyMatcher = keyClassMatcher.or(keySuperClassMatcher);
+                if (keyMatcher.matches(typeDescription)) {
+                    for (String name : values) {
+                        if (!"<init>".equals(name)) {
+                            ignored.add(name);
+                        }
+                    }
+                }
+            }
+            pointcutNames.removeAll(ignored);
+        }
+
         if (pointcutNames.isEmpty()) {
             return ElementMatchers.none();
         } else {
@@ -232,7 +270,6 @@ public class JavaInstrumentationPointcutDefinitions {
             // java.util
             Map.entry("java.util.Scanner", List.of("findInLine", "findWithinHorizon", "next", "nextBigDecimal", "nextBigInteger", "nextBoolean", "nextByte", "nextDouble", "nextFloat", "nextInt", "nextLine", "nextLong", "nextShort", "skip")),
             // java.net
-            Map.entry("java.net.URLConnection", List.of("connect", "getContent", "getInputStream")),
             Map.entry("java.net.JarURLConnection", List.of("getInputStream")),
             Map.entry("java.net.URLClassLoader", List.of("getResourceAsStream")),
             // java.lang
