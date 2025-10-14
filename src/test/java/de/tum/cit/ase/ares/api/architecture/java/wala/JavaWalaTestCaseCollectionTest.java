@@ -2,6 +2,7 @@ package de.tum.cit.ase.ares.api.architecture.java.wala;
 
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
+import com.tngtech.archunit.lang.ArchRule;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
@@ -46,16 +47,16 @@ public class JavaWalaTestCaseCollectionTest {
     @Test
     void noClassMustImportForbiddenPackages_NullJavaClasses_ThrowsNullPointerException() {
         Set<PackagePermission> allowed = new HashSet<>();
-        Assertions.assertThrows(NullPointerException.class, () -> {
-            JavaWalaTestCaseCollection.noClassMustImportForbiddenPackages(null, allowed);
-        });
+        ArchRule rule = JavaWalaTestCaseCollection.noClassMustImportForbiddenPackages(allowed);
+        // Expect NPE when evaluating rule against null JavaClasses
+        Assertions.assertThrows(NullPointerException.class, () -> rule.check(null));
     }
 
     @Test
     void noClassMustImportForbiddenPackages_NullAllowedPackages_ThrowsNullPointerException() {
         JavaClasses classes = new ClassFileImporter().importPackages("java.lang");
-        Assertions.assertThrows(NullPointerException.class, () -> {
-            JavaWalaTestCaseCollection.noClassMustImportForbiddenPackages(classes, null);
-        });
+        ArchRule rule = JavaWalaTestCaseCollection.noClassMustImportForbiddenPackages(null);
+        // Expect NPE during rule evaluation because allowed set is null inside predicate
+        Assertions.assertThrows(NullPointerException.class, () -> rule.check(classes));
     }
 }

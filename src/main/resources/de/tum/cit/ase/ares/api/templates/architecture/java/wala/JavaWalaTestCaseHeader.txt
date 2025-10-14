@@ -1,0 +1,28 @@
+package %s.ares.api.architecture.java.wala;
+
+//<editor-fold desc="Imports">
+import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.importer.ClassFileImporter;
+import com.ibm.wala.ipa.callgraph.CallGraph;
+import %s.ares.api.policy.policySubComponents.PackagePermission;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.Set;
+
+import org.junit.jupiter.api.Test;
+//</editor-fold>
+
+/**
+ * Architecture test case for the Java programming language using Wala and concrete product of the abstract factory design pattern.
+ *
+ * @author Sarp Sahinalp
+ * @version 2.0.0
+ * @see <a href="https://refactoring.guru/design-patterns/abstract-factory">Abstract Factory Design Pattern</a>
+ * @since 2.0.0
+ */
+public class JavaWalaTestCase {
+
+    @Nonnull Set<PackagePermission> allowedPackages;
+    @Nonnull JavaClasses javaClasses;
+    @Nonnull CallGraph callGraph;

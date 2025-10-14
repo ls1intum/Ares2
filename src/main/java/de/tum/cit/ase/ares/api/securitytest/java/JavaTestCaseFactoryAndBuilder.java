@@ -42,7 +42,6 @@ import java.util.Objects;
  * @version 3.0.0
  * @since 2.0.0
  */
-@SuppressWarnings("FieldCanBeLocal")
 public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBuilder {
 
     //<editor-fold desc="Constructor">

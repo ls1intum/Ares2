@@ -8,9 +8,9 @@ import java.io.IOException;
 import java.util.List;
 
 public interface JavaFileLoader {
-    List<List<String>> loadCopyData(ArchitectureMode mode) throws IOException, CsvException;
+    List<List<String>> loadCopyData(ArchitectureMode mode, boolean formatStringFileRequested) throws IOException, CsvException;
 
-    List<List<String>> loadCopyData(AOPMode mode) throws IOException, CsvException;
+    List<List<String>> loadCopyData(AOPMode mode, boolean formatStringFileRequested) throws IOException, CsvException;
 
     List<List<String>> loadEditData(ArchitectureMode mode) throws IOException, CsvException;
 

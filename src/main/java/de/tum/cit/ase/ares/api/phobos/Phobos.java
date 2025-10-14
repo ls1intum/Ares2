@@ -46,7 +46,7 @@ public class Phobos {
     public static List<Path> filesToCopy() {
         return getCopyConfigurationEntries().stream()
                 .map(entry -> entry.getFirst().split("/"))
-                .map(FileTools::resolveOnPackage)
+                .map(FileTools::resolveFileOnSourceDirectory)
                 .toList();
 
     }
@@ -87,17 +87,15 @@ public class Phobos {
      *
      * @since 2.0.0
      * @author Ajayvir Singh
-     * @param testFolderPath the path of the test folder, can be null
-     * @param packageName    the name of the package
+     * @param targetPath the path of the test folder, can be null
      * @return a list of paths where files should be copied to
      */
     public static List<Path> targetsToCopyTo(
-            @Nonnull Path testFolderPath,
-            @Nonnull String packageName
+            @Nonnull Path targetPath
     ) {
         return getCopyConfigurationEntries().stream()
                 .map(entry -> entry.get(2).split("/"))
-                .map(path -> FileTools.resolveOn(testFolderPath, packageName, path))
+                .map(path -> FileTools.resolveFileOnTargetDirectory(targetPath, path))
                 .toList();
     }
 
@@ -189,13 +187,12 @@ public class Phobos {
      *
      * @since 2.0.0
      * @author Ajayvir Singh
-     * @param testFolderPath the path of the test folder, can be null
-     * @param packageName    the name of the package
+     * @param targetPath the path of the test folder, can be null
      * @return the resolved target path
      */
-    public static Path targetToCopyTo(Path testFolderPath, String packageName) {
+    public static Path targetToCopyTo(Path targetPath) {
         return getEditConfigurationEntries().stream().map(entry -> entry.get(2).split("/"))
-                .map(FileTools::resolveOnPackage)
+                .map(path -> FileTools.resolveFileOnTargetDirectory(targetPath, path))
                 .toList().getFirst();
     }
 }

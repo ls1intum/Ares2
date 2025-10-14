@@ -50,7 +50,7 @@ public final class OutputTester implements LineAcceptor {
 
 	@Override
 	public void acceptOutput(CharBuffer output) {
-		if (output.length() == 0)
+		if (output.isEmpty())
 			return;
 		DynamicLine currentLine;
 		if (getCurrentLine().map(Line::isComplete).orElse(true)) {

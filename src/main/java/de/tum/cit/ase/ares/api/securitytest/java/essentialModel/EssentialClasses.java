@@ -10,7 +10,7 @@ import java.util.Objects;
 /**
  * Represents the essential classes required for the security test.
  *
- * <p>Description: This record encapsulates lists of essential class names for Java, ArchUnit, Wala, AspectJ, Instrumentation, Ares and JUnit.
+ * <p>Description: This record encapsulates lists of essential class names for Java, Archunit, Wala, AspectJ, Instrumentation, Ares and JUnit.
  * It provides a method to aggregate all these classes into a single list.</p>
  *
  * <p>Design Rationale: Grouping essential class lists into a record leverages immutability and clear data encapsulation,
@@ -20,7 +20,7 @@ import java.util.Objects;
  * @author Markus Paulsen
  * @version 2.0.0
  * @param essentialJavaClasses the essential Java classes
- * @param essentialArchUnitClasses the essential ArchUnit classes
+ * @param essentialArchunitClasses the essential Archunit classes
  * @param essentialWalaClasses the essential Wala classes
  * @param essentialAspectJClasses the essential AspectJ classes
  * @param essentialInstrumentationClasses the essential Instrumentation classes
@@ -29,7 +29,7 @@ import java.util.Objects;
  */
 public record EssentialClasses(
         @Nonnull List<String> essentialJavaClasses,
-        @Nonnull List<String> essentialArchUnitClasses,
+        @Nonnull List<String> essentialArchunitClasses,
         @Nonnull List<String> essentialWalaClasses,
         @Nonnull List<String> essentialAspectJClasses,
         @Nonnull List<String> essentialInstrumentationClasses,
@@ -44,7 +44,7 @@ public record EssentialClasses(
      */
     public EssentialClasses {
         Objects.requireNonNull(essentialJavaClasses, "essentialJavaClasses must not be null");
-        Objects.requireNonNull(essentialArchUnitClasses, "essentialArchUnitClasses must not be null");
+        Objects.requireNonNull(essentialArchunitClasses, "essentialArchunitClasses must not be null");
         Objects.requireNonNull(essentialWalaClasses, "essentialWalaClasses must not be null");
         Objects.requireNonNull(essentialAspectJClasses, "essentialAspectJClasses must not be null");
         Objects.requireNonNull(essentialInstrumentationClasses, "essentialInstrumentationClasses must not be null");
@@ -63,7 +63,7 @@ public record EssentialClasses(
     public List<String> getEssentialClasses() {
         return Streams.concat(
                 essentialJavaClasses.stream(),
-                essentialArchUnitClasses.stream(),
+                essentialArchunitClasses.stream(),
                 essentialWalaClasses.stream(),
                 essentialAspectJClasses.stream(),
                 essentialInstrumentationClasses.stream(),
@@ -91,10 +91,10 @@ public record EssentialClasses(
         private List<String> essentialJavaClasses;
 
         /**
-         * Essential ArchUnit classes.
+         * Essential Archunit classes.
          */
         @Nullable
-        private List<String> essentialArchUnitClasses;
+        private List<String> essentialArchunitClasses;
 
         /**
          * Essential Wala classes.
@@ -139,14 +139,14 @@ public record EssentialClasses(
         }
 
         /**
-         * Configures the essential ArchUnit classes.
+         * Configures the essential Archunit classes.
          *
-         * @param essentialArchUnitClasses the essential ArchUnit classes
+         * @param essentialArchunitClasses the essential Archunit classes
          * @return the builder instance
          */
         @Nonnull
-        public Builder essentialArchUnitClasses(@Nonnull List<String> essentialArchUnitClasses) {
-            this.essentialArchUnitClasses = Objects.requireNonNull(essentialArchUnitClasses, "essentialArchUnitClasses must not be null");
+        public Builder essentialArchunitClasses(@Nonnull List<String> essentialArchunitClasses) {
+            this.essentialArchunitClasses = Objects.requireNonNull(essentialArchunitClasses, "essentialArchunitClasses must not be null");
             return this;
         }
 
@@ -219,7 +219,7 @@ public record EssentialClasses(
         public EssentialClasses build() {
             return new EssentialClasses(
                     Objects.requireNonNull(essentialJavaClasses, "essentialJavaClasses must not be null"),
-                    Objects.requireNonNull(essentialArchUnitClasses, "essentialArchUnitClasses must not be null"),
+                    Objects.requireNonNull(essentialArchunitClasses, "essentialArchunitClasses must not be null"),
                     Objects.requireNonNull(essentialWalaClasses, "essentialWalaClasses must not be null"),
                     Objects.requireNonNull(essentialAspectJClasses, "essentialAspectJClasses must not be null"),
                     Objects.requireNonNull(essentialInstrumentationClasses, "essentialInstrumentationClasses must not be null"),

@@ -1,0 +1,5 @@
+@Test
+public void commandSystemShouldNotBeAccessed() {
+    callGraph = ${callGraph};
+    JavaWalaTestCaseCollection.NO_CLASS_MUST_EXECUTE_COMMANDS.check(callGraph);
+}

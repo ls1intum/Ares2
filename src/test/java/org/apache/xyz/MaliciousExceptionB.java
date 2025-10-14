@@ -10,7 +10,7 @@ public class MaliciousExceptionB extends AssertionFailedError {
 
 	private static final long serialVersionUID = 1L;
 
-	private AtomicBoolean ab;
+	private final AtomicBoolean ab;
 
 	public MaliciousExceptionB(AtomicBoolean ab) {
 		this.ab = ab;

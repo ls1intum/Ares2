@@ -69,7 +69,7 @@ public abstract class TestCaseAbstractFactoryAndBuilder {
     protected final BuildMode buildMode;
 
     /**
-     * The architecture mode used in the project (e.g., ArchUnit or Wala).
+     * The architecture mode used in the project (e.g., Archunit or Wala).
      */
     @Nonnull
     protected final ArchitectureMode architectureMode;

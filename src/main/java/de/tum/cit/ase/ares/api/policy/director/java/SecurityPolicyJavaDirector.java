@@ -44,7 +44,7 @@ public class SecurityPolicyJavaDirector extends SecurityPolicyDirector {
      */
     @Nonnull
     public static final Path DEFAULT_ESSENTIAL_PACKAGES_PATH = Preconditions.checkNotNull(
-            FileTools.resolveOnPackage("configuration/essentialFiles/java/EssentialPackages.yaml")
+            FileTools.resolveFileOnSourceDirectory("configuration", "essentialFiles", "java", "EssentialPackages.yaml")
     );
 
     /**
@@ -52,10 +52,11 @@ public class SecurityPolicyJavaDirector extends SecurityPolicyDirector {
      */
     @Nonnull
     public static final Path DEFAULT_ESSENTIAL_CLASSES_PATH = Preconditions.checkNotNull(
-            FileTools.resolveOnPackage("configuration/essentialFiles/java/EssentialClasses.yaml")
+            FileTools.resolveFileOnSourceDirectory("configuration", "essentialFiles", "java", "EssentialClasses.yaml")
     );
 
     //<editor-fold desc="Constructor">
+
     /**
      * Constructs a new SecurityPolicyJavaDirector with provided dependencies.
      *
@@ -75,6 +76,7 @@ public class SecurityPolicyJavaDirector extends SecurityPolicyDirector {
     //</editor-fold>
 
     //<editor-fold desc="Create security test cases methods">
+
     /**
      * Generates a JavaTestCaseFactoryAndBuilder with the provided configuration.
      *
@@ -128,21 +130,21 @@ public class SecurityPolicyJavaDirector extends SecurityPolicyDirector {
         }
         @Nonnull ProgrammingLanguageConfiguration config = Preconditions.checkNotNull(securityPolicy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed());
         return switch (config) {
-            case ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ ->
+            case JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ ->
                     generateFactoryAndBuilder(BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, securityPolicy, projectFolderPath);
-            case ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION ->
+            case JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION ->
                     generateFactoryAndBuilder(BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.INSTRUMENTATION, securityPolicy, projectFolderPath);
-            case ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_WALA_AND_ASPECTJ ->
+            case JAVA_USING_MAVEN_WALA_AND_ASPECTJ ->
                     generateFactoryAndBuilder(BuildMode.MAVEN, ArchitectureMode.WALA, AOPMode.ASPECTJ, securityPolicy, projectFolderPath);
-            case ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_WALA_AND_INSTRUMENTATION ->
+            case JAVA_USING_MAVEN_WALA_AND_INSTRUMENTATION ->
                     generateFactoryAndBuilder(BuildMode.MAVEN, ArchitectureMode.WALA, AOPMode.INSTRUMENTATION, securityPolicy, projectFolderPath);
-            case ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_ARCHUNIT_AND_ASPECTJ ->
+            case JAVA_USING_GRADLE_ARCHUNIT_AND_ASPECTJ ->
                     generateFactoryAndBuilder(BuildMode.GRADLE, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, securityPolicy, projectFolderPath);
-            case ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION ->
+            case JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION ->
                     generateFactoryAndBuilder(BuildMode.GRADLE, ArchitectureMode.ARCHUNIT, AOPMode.INSTRUMENTATION, securityPolicy, projectFolderPath);
-            case ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_WALA_AND_ASPECTJ ->
+            case JAVA_USING_GRADLE_WALA_AND_ASPECTJ ->
                     generateFactoryAndBuilder(BuildMode.GRADLE, ArchitectureMode.WALA, AOPMode.ASPECTJ, securityPolicy, projectFolderPath);
-            case ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_WALA_AND_INSTRUMENTATION ->
+            case JAVA_USING_GRADLE_WALA_AND_INSTRUMENTATION ->
                     generateFactoryAndBuilder(BuildMode.GRADLE, ArchitectureMode.WALA, AOPMode.INSTRUMENTATION, securityPolicy, projectFolderPath);
         };
     }

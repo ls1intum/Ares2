@@ -12,5 +12,5 @@ public interface FileSystemExtractor {
      * @return a list of permitted file paths for the specified file permission type.
      */
     @Nonnull
-    public abstract List<String> getPermittedFilePaths(@Nonnull String filePermission);
+    List<String> getPermittedFilePaths(@Nonnull String filePermission);
 }

@@ -1,0 +1,6 @@
+@Test
+public void packageImportShouldNotBeAccessed() {
+    allowedPackages = ${allowedPackages};
+    javaClasses = ${javaClasses};
+    JavaWalaTestCaseCollection.noClassMustImportForbiddenPackages(allowedPackages).check(javaClasses);
+}

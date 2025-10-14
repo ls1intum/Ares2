@@ -183,7 +183,7 @@ public class JavaInstrumentationAgent {
                     .transform(transformer)
                     .installOn(inst);
         } catch (Exception e) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.instrumentation.agent.installation.error", String.join(", ", methodsMap.keySet())), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.agent.installation.error", String.join(", ", methodsMap.keySet())), e);
         }
     }
 }

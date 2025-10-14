@@ -21,9 +21,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
     @Nonnull
     protected static final List<String> IGNORE_CALLSTACK = List.of(
             "java.lang.ClassLoader",
-            "de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension",
-            "de.tum.cit.ase.ares.api.jqwik.JqwikSecurityExtension",
-            "de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationBindingDefinitions"
+            "de.tum.cit.ase.ares.api."
     );
     //</editor-fold>
 
@@ -206,15 +204,15 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
         for (@Nonnull StackTraceElement element : stackTrace) {
             String className = element.getClassName();
-            boolean ignoreFound = false;
-            for (@Nonnull String allowedClass : IGNORE_CALLSTACK) {
-                if (className.startsWith(allowedClass)) {
-                    ignoreFound = true;
+            boolean isIgnorable = false;
+            for (@Nonnull String ignore : IGNORE_CALLSTACK) {
+                if (className.startsWith(ignore)) {
+                    isIgnorable = true;
                     break;
                 }
             }
-            if (ignoreFound) {
-                break;
+            if (isIgnorable) {
+                continue; // skip internal frames instead of aborting scan
             }
             if (className.startsWith(restrictedPackage) && !checkIfCallstackElementIsAllowed(allowedClasses, element)) {
                 return className + "." + element.getMethodName();

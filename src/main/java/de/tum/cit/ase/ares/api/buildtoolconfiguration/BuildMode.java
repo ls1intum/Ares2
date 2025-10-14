@@ -54,13 +54,13 @@ public enum BuildMode {
     //<editor-fold desc="Other methods">
     public String getBuildDirectory() {
         return switch (this) {
-            case MAVEN -> "target";
-            case GRADLE -> "build";
+            case MAVEN -> "target/classes/java/main";
+            case GRADLE -> "build/classes/java/main";
         };
     }
 
     public String getClasspath(Path projectPath) {
-        return Paths.get(getBuildDirectory(), projectPath != null ? projectPath.toString() : null).toString();
+        return Paths.get(projectPath != null ? projectPath.toString() : null, getBuildDirectory()).toString();
     }
     //</editor-fold>
 }

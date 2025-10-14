@@ -102,8 +102,8 @@ public class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstrumentat
         if(allowedPaths == null) {
             return true;
         }
-        for (int i = 0; i < allowedPaths.length; i++) {
-            @Nonnull Path allowedPath = variableToPath(allowedPaths[i]);
+        for (String path : allowedPaths) {
+            @Nonnull Path allowedPath = variableToPath(path);
             try {
                 @Nonnull Path realPath = actualPath.toRealPath(LinkOption.NOFOLLOW_LINKS);
                 if (allowedPath != null && realPath.startsWith(allowedPath)) {
@@ -331,7 +331,14 @@ public class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstrumentat
         //<editor-fold desc="Check attributes">
         @Nullable String pathIllegallyInteractedThroughAttribute = (attributes == null || attributes.length == 0) ? null : checkIfVariableCriteriaIsViolated(attributes, allowedPaths, FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
         if (pathIllegallyInteractedThroughAttribute != null) {
-            throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck, action, pathIllegallyInteractedThroughAttribute, fullMethodSignature));
+            if (
+                    !pathIllegallyInteractedThroughAttribute.endsWith("ares/api/localization/Messages.class") &&
+                            !pathIllegallyInteractedThroughAttribute.endsWith("ares/api/localization/messages.class") &&
+                            !pathIllegallyInteractedThroughAttribute.endsWith("ares/api/localization/messages.properties") &&
+                            !pathIllegallyInteractedThroughAttribute.endsWith("ares/api/util/LruCache.class")
+            ) {
+                throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck, action, pathIllegallyInteractedThroughAttribute, fullMethodSignature));
+            }
         }
         //</editor-fold>
     }

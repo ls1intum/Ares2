@@ -16,7 +16,7 @@ public class JupiterLocaleExtension implements BeforeAllCallback, AfterAllCallba
 	private static final String OLD_LOCALE_KEY = "old-locale"; //$NON-NLS-1$
 
 	@Override
-	public void beforeAll(ExtensionContext context) throws Exception {
+	public void beforeAll(ExtensionContext context) {
 		var annot = AnnotationSupport.findAnnotation(context.getElement(), UseLocale.class);
 		if (annot.isEmpty())
 			return;
@@ -26,7 +26,7 @@ public class JupiterLocaleExtension implements BeforeAllCallback, AfterAllCallba
 	}
 
 	@Override
-	public void afterAll(ExtensionContext context) throws Exception {
+	public void afterAll(ExtensionContext context) {
 		var oldLocale = getStore(context).remove(OLD_LOCALE_KEY, Locale.class);
 		if (oldLocale != null)
 			Locale.setDefault(oldLocale);

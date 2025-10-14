@@ -38,12 +38,4 @@ public class CreateScheduledExecutorServiceMain {
             scheduledExecutorService.scheduleAtFixedRate(new IllegalThread(), 1, 2, TimeUnit.SECONDS);
         }
     }
-
-    /**
-     * Tests ScheduledExecutorService.scheduleWithFixedDelay(Runnable, long, long, TimeUnit) method
-     */
-    // public static void scheduleWithFixedDelay() {
-    //     ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
-    //     scheduledExecutorService.scheduleWithFixedDelay(new IllegalThread(), 1, 2, TimeUnit.SECONDS);
-    // }
 }

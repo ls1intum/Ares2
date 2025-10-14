@@ -152,7 +152,7 @@ public abstract class StructuralTestProvider {
 		 * match. A note: for technical reasons, we get in case of no observed
 		 * modifiers, a string array with an empty string.
 		 */
-		if (Arrays.equals(observedModifiers, new String[] { "" }) && expectedModifiers.length() == 0) //$NON-NLS-1$
+		if (Arrays.equals(observedModifiers, new String[] { "" }) && expectedModifiers.isEmpty()) //$NON-NLS-1$
 			return true;
 		/*
 		 * Otherwise check if all expected necessary modifiers are contained in the
@@ -206,7 +206,7 @@ public abstract class StructuralTestProvider {
 		 * match. A note: for technical reasons, we get in case of no observed
 		 * annotations, a string array with an empty string.
 		 */
-		if (observedAnnotations.length == 0 && expectedAnnotations.length() == 0)
+		if (observedAnnotations.length == 0 && expectedAnnotations.isEmpty())
 			return true;
 		/*
 		 * If the number of the annotations does not match, then the annotations per se
@@ -248,7 +248,7 @@ public abstract class StructuralTestProvider {
 		 * If both the observed and expected elements have no parameters, then they
 		 * match.
 		 */
-		if (observedParameters.length == 0 && expectedParameters.length() == 0)
+		if (observedParameters.length == 0 && expectedParameters.isEmpty())
 			return true;
 		/*
 		 * If the number of parameters do not match, then the parameters cannot match

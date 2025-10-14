@@ -72,7 +72,7 @@ public class CustomDFSPathFinder {
      *
      * <p>Description: List of false-positive file system interaction methods to exclude from paths.
      */
-    private static final Set<String> toExcludeMethodsFromPath = FileTools.readMethodsFromGivenPath(FileHandlerConstants.FALSE_POSITIVES_FILE_SYSTEM_INTERACTIONS);
+    private static final Set<String> toExcludeMethodsFromPath = FileTools.readMethodsFile(FileTools.readFile(FileHandlerConstants.FALSE_POSITIVES_FILE_SYSTEM_INTERACTIONS));
 
     /**
      * Stack for DFS traversal.

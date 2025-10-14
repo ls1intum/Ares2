@@ -1,5 +1,5 @@
 essentialJavaClasses: []
-essentialArchUnitClasses:
+essentialArchunitClasses:
   - de.tum.cit.ase.ares.api.architecture.java.archunit
 essentialWalaClasses:
   - de.tum.cit.ase.ares.api.architecture.java.wala

@@ -22,27 +22,4 @@ public class CreateThreadPoolExecutorMain {
             threadPoolExecutor.execute(new LegalThread());
         }
     }
-
-    /**
-     * Tests ThreadPoolExecutor.submit(Runnable) method
-     */
-    // public static void submitRunnable() {
-    //     try (ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
-    //             1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>()
-    //     )) {
-    //         threadPoolExecutor.submit(new LegalThread());
-    //     }
-    // }
-
-    /**
-     * Tests ThreadPoolExecutor.submit(Callable) method
-     */
-    // public static void submitCallable() {
-    //     try (ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
-    //             1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>()
-    //     )) {
-    //         Callable<String> callable = () -> "test";
-    //         threadPoolExecutor.submit(callable);
-    //     }
-    // }
 }

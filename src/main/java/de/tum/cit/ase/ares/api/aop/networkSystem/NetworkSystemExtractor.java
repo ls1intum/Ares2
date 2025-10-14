@@ -12,7 +12,7 @@ public interface NetworkSystemExtractor {
      * @return a list of permitted network hosts for the specified network permission type.
      */
     @Nonnull
-    public abstract List<String> getPermittedNetworkHosts(@Nonnull String networkPermission);
+    List<String> getPermittedNetworkHosts(@Nonnull String networkPermission);
 
     /**
      * Retrieves the list of network ports that are permitted for the given permission type.
@@ -21,5 +21,5 @@ public interface NetworkSystemExtractor {
      * @return a list of permitted network ports for the specified network permission type.
      */
     @Nonnull
-    public abstract List<Integer> getPermittedNetworkPorts(@Nonnull String networkPermission);
+    List<Integer> getPermittedNetworkPorts(@Nonnull String networkPermission);
 }

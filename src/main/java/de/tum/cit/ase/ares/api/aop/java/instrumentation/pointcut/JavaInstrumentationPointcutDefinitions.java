@@ -1,6 +1,6 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut;
 
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -27,7 +27,7 @@ public class JavaInstrumentationPointcutDefinitions {
      * This constructor is private to prevent instantiation of this utility class.
      */
     private JavaInstrumentationPointcutDefinitions() {
-        throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.general.utility.initialization"));
+        throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.general.utility.initialization"));
     }
     //</editor-fold>
 
@@ -138,6 +138,22 @@ public class JavaInstrumentationPointcutDefinitions {
     }
 
     /**
+     * Methods listed here (by declaring class -> method name) will be excluded from the
+     * matcher produced by {@link #getMethodsMatcher(TypeDescription, Map)}. This allows
+     * fine-grained suppression of specific methods from otherwise instrumented classes.
+     *
+     * Keys are fully qualified class names; values are simple method names.
+     * Initially empty; add entries as needed, e.g.:
+     * Map.ofEntries(Map.entry("java.lang.Runtime", List.of("exec")))
+     */
+    public static final Map<String, List<String>> ignoredMethodsByClass = Map.ofEntries(
+            Map.entry("java.io.ByteArrayInputStream", List.of("read")),
+            Map.entry("java.io.RandomAccessFile", List.of("readFully", "read")),
+            Map.entry("java.util.zip.InflaterInputStream", List.of("read")),
+            Map.entry("java.util.zip.ZipFile$ZipFileInputStream", List.of("read"))
+    );
+
+    /**
      * Creates a method matcher for the given type description and pointcut map.
      *
      * <p>This matcher will select methods whose names appear in the pointcut list for
@@ -199,6 +215,26 @@ public class JavaInstrumentationPointcutDefinitions {
                 }
             }
         }
+        // Subtract ignored methods for this type hierarchy
+        if (!ignoredMethodsByClass.isEmpty()) {
+            Set<String> ignored = new TreeSet<>();
+            for (Map.Entry<String, List<String>> entry : ignoredMethodsByClass.entrySet()) {
+                String key = entry.getKey();
+                List<String> values = entry.getValue();
+                ElementMatcher.Junction<TypeDescription> keyClassMatcher = ElementMatchers.named(key);
+                ElementMatcher.Junction<TypeDescription> keySuperClassMatcher = ElementMatchers.hasSuperType(keyClassMatcher);
+                ElementMatcher.Junction<TypeDescription> keyMatcher = keyClassMatcher.or(keySuperClassMatcher);
+                if (keyMatcher.matches(typeDescription)) {
+                    for (String name : values) {
+                        if (!"<init>".equals(name)) {
+                            ignored.add(name);
+                        }
+                    }
+                }
+            }
+            pointcutNames.removeAll(ignored);
+        }
+
         if (pointcutNames.isEmpty()) {
             return ElementMatchers.none();
         } else {
@@ -232,9 +268,7 @@ public class JavaInstrumentationPointcutDefinitions {
             // java.util
             Map.entry("java.util.Scanner", List.of("findInLine", "findWithinHorizon", "next", "nextBigDecimal", "nextBigInteger", "nextBoolean", "nextByte", "nextDouble", "nextFloat", "nextInt", "nextLine", "nextLong", "nextShort", "skip")),
             // java.net
-            Map.entry("java.net.URLConnection", List.of("connect", "getContent", "getInputStream")),
             Map.entry("java.net.JarURLConnection", List.of("getInputStream")),
-            Map.entry("java.net.URLClassLoader", List.of("getResourceAsStream")),
             // java.lang
             Map.entry("java.lang.ClassLoader", List.of("getResource", "getResourceAsStream", "getResources")),
             // java.awt

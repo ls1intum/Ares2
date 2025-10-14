@@ -31,7 +31,7 @@ public class ReadScannerMain {
      * Access the file system using Scanner(File source, String charsetName) constructor.
      */
     public static void accessFileSystemViaScannerFileCharsetName() throws IOException {
-        try (Scanner scanner = new Scanner(new File("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"), "UTF-8")) {
+        try (Scanner scanner = new Scanner(new File("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"), StandardCharsets.UTF_8)) {
             while (scanner.hasNextLine()) {
                 scanner.nextLine();
             }
@@ -64,7 +64,7 @@ public class ReadScannerMain {
      * Access the file system using Scanner(Path source, String charsetName) constructor.
      */
     public static void accessFileSystemViaScannerPathCharsetName() throws IOException {
-        try (Scanner scanner = new Scanner(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"), "UTF-8")) {
+        try (Scanner scanner = new Scanner(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"), StandardCharsets.UTF_8)) {
             while (scanner.hasNextLine()) {
                 scanner.nextLine();
             }

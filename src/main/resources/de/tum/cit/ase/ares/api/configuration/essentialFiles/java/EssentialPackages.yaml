@@ -1,6 +1,6 @@
 essentialJavaPackages:
   - java
-essentialArchUnitPackages: []
+essentialArchunitPackages: []
 essentialWalaPackages: []
 essentialAspectJPackages:
   - org.aspectj

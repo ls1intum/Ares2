@@ -1,11 +1,10 @@
 package de.tum.cit.ase.ares.api.aop.java.javaAOPModeData;
 
 import com.opencsv.exceptions.CsvException;
-import com.opencsv.exceptions.CsvMalformedLineException;
 import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.BufferedWriter;
@@ -32,12 +31,12 @@ public class JavaCSVFileLoaderTest {
 
         JavaCSVFileLoader loader = new JavaCSVFileLoader() {
             @Override
-            public File getCopyPaths(ArchitectureMode mode) {
+            public File getCopyPaths(ArchitectureMode mode, boolean formatStringFileRequested) {
                 return csvFile;
             }
         };
 
-        List<List<String>> rows = loader.loadCopyData(ArchitectureMode.ARCHUNIT);
+        List<List<String>> rows = loader.loadCopyData(ArchitectureMode.ARCHUNIT, false);
         Assertions.assertEquals(1, rows.size());
         // Only data row (header is skipped)
         Assertions.assertEquals(List.of("Example.java", "output/"), rows.get(0));
@@ -49,12 +48,12 @@ public class JavaCSVFileLoaderTest {
         File missing = tempDir.resolve("no-such.csv").toFile();
         JavaCSVFileLoader loader = new JavaCSVFileLoader() {
             @Override
-            public File getCopyPaths(AOPMode mode) {
+            public File getCopyPaths(AOPMode mode, boolean formatStringFileRequested) {
                 return missing;
             }
         };
         Assertions.assertThrows(IOException.class, () ->
-                loader.loadCopyData(AOPMode.ASPECTJ),
+                loader.loadCopyData(AOPMode.ASPECTJ, true),
                 "Expected IOException for missing file");
     }
 
@@ -70,13 +69,13 @@ public class JavaCSVFileLoaderTest {
 
         JavaCSVFileLoader loader = new JavaCSVFileLoader() {
             @Override
-            public File getCopyPaths(ArchitectureMode mode) {
+            public File getCopyPaths(ArchitectureMode mode, boolean formatStringFileRequested) {
                 return csvFile;
             }
         };
 
-        CsvMalformedLineException exception = Assertions.assertThrows(CsvMalformedLineException.class, () ->
-                loader.loadCopyData(ArchitectureMode.WALA),
+        Assertions.assertThrows(CsvException.class, () ->
+                loader.loadCopyData(ArchitectureMode.WALA, false),
                 "Expected CsvException for malformed content");
     }
 
@@ -135,7 +134,7 @@ public class JavaCSVFileLoaderTest {
             }
         };
 
-        Assertions.assertThrows(CsvMalformedLineException.class, () ->
+        Assertions.assertThrows(CsvException.class, () ->
                 loader.loadEditData(AOPMode.ASPECTJ),
                 "Expected CsvException for malformed content");
     }

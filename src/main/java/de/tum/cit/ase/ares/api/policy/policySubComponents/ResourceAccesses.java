@@ -134,7 +134,7 @@ public record ResourceAccesses(
          */
         @Nonnull
         public Builder regardingFileSystemInteractions(@Nonnull List<FilePermission> regardingFileSystemInteractions) {
-            this.regardingFileSystemInteractions = new ArrayList<>(Objects.requireNonNull(regardingFileSystemInteractions,"File system interactions list must not be null"));
+            this.regardingFileSystemInteractions = new ArrayList<>(Objects.requireNonNull(regardingFileSystemInteractions, "File system interactions list must not be null"));
             return this;
         }
 
@@ -148,7 +148,7 @@ public record ResourceAccesses(
          */
         @Nonnull
         public Builder regardingNetworkConnections(@Nonnull List<NetworkPermission> regardingNetworkConnections) {
-            this.regardingNetworkConnections = new ArrayList<>(Objects.requireNonNull(regardingNetworkConnections,"Network connections list must not be null"));
+            this.regardingNetworkConnections = new ArrayList<>(Objects.requireNonNull(regardingNetworkConnections, "Network connections list must not be null"));
             return this;
         }
 
@@ -162,7 +162,7 @@ public record ResourceAccesses(
          */
         @Nonnull
         public Builder regardingCommandExecutions(@Nonnull List<CommandPermission> regardingCommandExecutions) {
-            this.regardingCommandExecutions = new ArrayList<>(Objects.requireNonNull(regardingCommandExecutions,"Command executions list must not be null"));
+            this.regardingCommandExecutions = new ArrayList<>(Objects.requireNonNull(regardingCommandExecutions, "Command executions list must not be null"));
             return this;
         }
 
@@ -176,7 +176,7 @@ public record ResourceAccesses(
          */
         @Nonnull
         public Builder regardingThreadCreations(@Nonnull List<ThreadPermission> regardingThreadCreations) {
-            this.regardingThreadCreations = new ArrayList<>(Objects.requireNonNull(regardingThreadCreations,"Thread creations list must not be null"));
+            this.regardingThreadCreations = new ArrayList<>(Objects.requireNonNull(regardingThreadCreations, "Thread creations list must not be null"));
             return this;
         }
 
@@ -190,7 +190,7 @@ public record ResourceAccesses(
          */
         @Nonnull
         public Builder regardingPackageImports(@Nonnull List<PackagePermission> regardingPackageImports) {
-            this.regardingPackageImports = new ArrayList<>(Objects.requireNonNull(regardingPackageImports,"Package imports list must not be null"));
+            this.regardingPackageImports = new ArrayList<>(Objects.requireNonNull(regardingPackageImports, "Package imports list must not be null"));
             return this;
         }
 
@@ -204,12 +204,10 @@ public record ResourceAccesses(
          * @return the updated Builder.
          */
         @Nonnull
-    @Nonnull
-    public Builder regardingTimeouts(@Nonnull List<ResourceLimitsPermission> regardingTimeouts) {
--        this.regardingTimeouts = new ArrayList<>();
-+        this.regardingTimeouts = new ArrayList<>(Objects.requireNonNull(regardingTimeouts, "Timeout list must not be null"));
-        return this;
-    }
+        public Builder regardingTimeouts(@Nonnull List<ResourceLimitsPermission> regardingTimeouts) {
+            this.regardingTimeouts = new ArrayList<>(Objects.requireNonNull(regardingTimeouts, "Timeout list must not be null"));
+            return this;
+        }
 
         /**
          * Builds a new ResourceAccesses instance.

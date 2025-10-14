@@ -10,7 +10,8 @@ import com.ibm.wala.ipa.cha.ClassHierarchy;
 import com.ibm.wala.ipa.cha.ClassHierarchyException;
 import com.ibm.wala.ipa.cha.ClassHierarchyFactory;
 import com.ibm.wala.types.ClassLoaderReference;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
+import com.ibm.wala.util.debug.UnimplementedError;
+import de.tum.cit.ase.ares.api.localization.Messages;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -24,7 +25,7 @@ import java.util.function.Predicate;
 public class ReachabilityChecker {
     //<editor-fold desc="Constructor">
     private ReachabilityChecker() {
-        throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.general.utility.initialization", ReachabilityChecker.class.getName()));
+        throw new SecurityException(Messages.localized("security.general.utility.initialization", ReachabilityChecker.class.getName()));
     }
     //</editor-fold>
 
@@ -38,13 +39,13 @@ public class ReachabilityChecker {
      */
     public static List<CGNode> findReachableMethods(CallGraph callGraph, Iterator<CGNode> startNodes, Predicate<CGNode> targetNodeFilter) {
         if (callGraph == null) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.common.not.null", "CallGraph"));
+            throw new SecurityException(Messages.localized("security.common.not.null", "CallGraph"));
         }
         if (startNodes == null) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.common.not.null", "startNodes"));
+            throw new SecurityException(Messages.localized("security.common.not.null", "startNodes"));
         }
         if (targetNodeFilter == null) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.common.not.null", "targetNodeFilter"));
+            throw new SecurityException(Messages.localized("security.common.not.null", "targetNodeFilter"));
         }
         return new CustomDFSPathFinder(callGraph, startNodes, targetNodeFilter).find();
     }
@@ -66,10 +67,10 @@ public class ReachabilityChecker {
      */
     public static List<DefaultEntrypoint> getEntryPointsFromStudentSubmission(String classPath, ClassHierarchy applicationClassHierarchy) {
         if (classPath == null || classPath.trim().isEmpty()) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.common.not.null", "classPath"));
+            throw new SecurityException(Messages.localized("security.common.not.null", "classPath"));
         }
         if (applicationClassHierarchy == null) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.common.not.null", "ClassHierarchy"));
+            throw new SecurityException(Messages.localized("security.common.not.null", "ClassHierarchy"));
         }
         try {
             return new ArrayList<>(
@@ -84,10 +85,8 @@ public class ReachabilityChecker {
                             .map(methodReference -> new DefaultEntrypoint(methodReference, applicationClassHierarchy))
                             .toList()
             );
-        } catch (ClassHierarchyException | IOException e) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.class.hierarchy.error"));
-        } catch (com.ibm.wala.util.debug.UnimplementedError e) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.class.hierarchy.error"));
+        } catch (ClassHierarchyException | IOException | UnimplementedError e) {
+            throw new SecurityException(Messages.localized("security.architecture.class.hierarchy.error"));
         }
     }
 }

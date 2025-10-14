@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 //</editor-fold>
 
 /**
- * An ArchUnit condition that checks if classes transitively access methods matching a predicate.
+ * An Archunit condition that checks if classes transitively access methods matching a predicate.
  *
  * <p>Description: This class extends ArchCondition to analyze class dependencies and detect
  * methods that match specific criteria through transitive dependencies. It tracks access paths
@@ -70,7 +70,7 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
     public TransitivelyAccessesMethodsCondition(DescribedPredicate<? super JavaAccess<?>> checkIfAccessIsViolating) {
         // Provides this condition with a description of the predicate
         super(checkIfAccessIsViolating.getDescription());
-        this.checkIfAccessIsViolating = Preconditions.checkNotNull(checkIfAccessIsViolating, "checkIfAccessIsViolating cannot be null");
+        this.checkIfAccessIsViolating = Preconditions.checkNotNull(checkIfAccessIsViolating, "checkIfAccessIsViolating must not be null");
     }
     //</editor-fold>
 

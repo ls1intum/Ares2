@@ -2,11 +2,13 @@ package de.tum.cit.ase.ares.integration;
 
 import static de.tum.cit.ase.ares.testutilities.CustomConditions.*;
 
+import de.tum.cit.ase.ares.testutilities.TestTest;
+import de.tum.cit.ase.ares.testutilities.UserBased;
+import de.tum.cit.ase.ares.testutilities.UserTestResults;
 import org.junit.platform.testkit.engine.Events;
 import org.opentest4j.*;
 
 import de.tum.cit.ase.ares.integration.testuser.DynamicsUser;
-import de.tum.cit.ase.ares.testutilities.*;
 import de.tum.cit.ase.ares.testutilities.CustomConditions.Option;
 
 @UserBased(DynamicsUser.class)

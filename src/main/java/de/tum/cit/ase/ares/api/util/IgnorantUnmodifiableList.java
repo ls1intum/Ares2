@@ -100,7 +100,7 @@ public final class IgnorantUnmodifiableList<E> extends AbstractList<E> implement
 
 	@Override
 	public boolean containsAll(Collection<?> c) {
-		return list.containsAll(c);
+		return new HashSet<>(list).containsAll(c);
 	}
 
 	@Override

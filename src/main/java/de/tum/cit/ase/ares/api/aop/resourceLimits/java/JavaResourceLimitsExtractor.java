@@ -76,8 +76,7 @@ public class JavaResourceLimitsExtractor implements ResourceLimitsExtractor {
                     if (val < 0) continue;
                     min.merge(name, val, Math::min);
                 } catch (ReflectiveOperationException e) {
--                    throw new RuntimeException();
-+                    throw new RuntimeException("Failed to invoke method '" + name + "' on ResourceLimitsPermission: " + e.getMessage(), e);
+                    throw new RuntimeException("Failed to invoke method '" + name + "' on ResourceLimitsPermission: " + e.getMessage(), e);
                 }
             }
         }

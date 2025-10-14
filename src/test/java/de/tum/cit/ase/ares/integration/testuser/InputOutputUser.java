@@ -46,7 +46,6 @@ public class InputOutputUser {
 		}
 
 		@Override
-		@SuppressWarnings("resource")
 		public void beforeTestExecution(AresIOContext context) {
 			current = new StringBuilder();
 			var output = new ByteArrayOutputStream() {

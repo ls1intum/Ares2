@@ -17,7 +17,7 @@ import com.ibm.wala.types.ClassLoaderReference;
 import com.ibm.wala.types.TypeReference;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
 import java.io.IOException;
@@ -41,7 +41,7 @@ import java.util.stream.Collectors;
 public class CustomCallgraphBuilder {
 
     /**
-     * Importer for reading .class files from URLs into ArchUnit domain model.
+     * Importer for reading .class files from URLs into Archunit domain model.
      *
      * <p>Description: Used to import individual class files skipping Java runtime modules.
      */
@@ -76,20 +76,20 @@ public class CustomCallgraphBuilder {
      * @since 2.0.0
      * @author Sarp Sahinalp
      */
-    public CustomCallgraphBuilder() {
+    public CustomCallgraphBuilder(String classPath) {
         // Prepare importer for class file URLs
         classFileImporter = new ClassFileImporter();
         try {
             // Build analysis scope from current classpath and exclusion list
             scope = Java9AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(
-                    System.getProperty("java.class.path"),
-                    FileTools.getResourceAsFile("de/tum/cit/ase/ares/api/templates/architecture/java/exclusions.txt")
+                    classPath + ":" + System.getProperty("java.class.path"),
+                    FileTools.readFile(FileTools.resolveFileOnSourceDirectory("templates","architecture","java","exclusions.txt"))
             );
             // Construct class hierarchy from scope
             classHierarchy = ClassHierarchyFactory.make(scope);
         } catch (ClassHierarchyException | IOException e) {
             // Fail fast if hierarchy cannot be built
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.class.hierarchy.error"));
+            throw new SecurityException(Messages.localized("security.architecture.class.hierarchy.error"));
         }
     }
 
@@ -106,7 +106,7 @@ public class CustomCallgraphBuilder {
     private static String convertTypeNameToClassName(String typeName) {
         if (typeName == null || typeName.isEmpty()) {
             // Prevent invalid names
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.class.type.resolution.error"));
+            throw new SecurityException(Messages.localized("security.architecture.class.type.resolution.error"));
         }
         // Replace dots with slashes and add .class suffix
         return "/" + typeName.replace(".", "/") + ".class";
@@ -125,7 +125,7 @@ public class CustomCallgraphBuilder {
     private static String convertTypeNameToWalaName(String typeName) {
         if (typeName == null || typeName.isEmpty()) {
             // Prevent invalid names
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.class.type.resolution.error"));
+            throw new SecurityException(Messages.localized("security.architecture.class.type.resolution.error"));
         }
         // Prefix with L and replace dots with slashes
         return "L" + typeName.replace('.', '/');
@@ -153,7 +153,7 @@ public class CustomCallgraphBuilder {
         return Optional.ofNullable(
                         CustomCallgraphBuilder.class.getResource(convertTypeNameToClassName(typeName))
                 )
-                // Import using ArchUnit, excluding jrt modules
+                // Import using Archunit, excluding jrt modules
                 .map(location -> classFileImporter.withImportOption(loc -> !loc.contains("jrt")).importUrl(location))
                 // Extract JavaClass by name, handle missing
                 .map(imported -> {
@@ -190,7 +190,7 @@ public class CustomCallgraphBuilder {
         if (clazz == null) {
             return Collections.emptySet();
         }
-        // Map subclasses to ArchUnit JavaClass instances
+        // Map subclasses to Archunit JavaClass instances
         return classHierarchy.getImmediateSubclasses(clazz)
                 .stream()
                 .map(IClass::getName) // get name object
@@ -236,7 +236,7 @@ public class CustomCallgraphBuilder {
             return callGraph;
         } catch (Exception e) {
             // Wrap builder failures as security exceptions
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.build.call.graph.error"));
+            throw new SecurityException(Messages.localized("security.architecture.build.call.graph.error"));
         }
     }
 }

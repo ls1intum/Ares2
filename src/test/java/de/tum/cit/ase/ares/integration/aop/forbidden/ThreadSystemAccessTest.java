@@ -7,7 +7,6 @@ import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.scheduledExecutorService.CreateScheduledExecutorServiceMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.threadPoolExecutor.CreateThreadPoolExecutorMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.completableFuture.CreateCompletableFutureMain;
-import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.parallelStream.CreateParallelStreamMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.forkJoinPool.CreateForkJoinPoolMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.threadFactory.CreateThreadFactoryMain;
 import org.junit.jupiter.api.Disabled;

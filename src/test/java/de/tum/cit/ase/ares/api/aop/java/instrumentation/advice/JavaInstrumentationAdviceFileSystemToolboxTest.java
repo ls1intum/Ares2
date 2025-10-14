@@ -38,7 +38,7 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
     @Test
     void testLocalizeFallback() {
         String key = "security.advice.test.key";
-        String result = JavaInstrumentationAdviceFileSystemToolbox.localize(key, "arg1", "arg2");
+        String result = JavaInstrumentationAdviceAbstractToolbox.localize(key, "arg1", "arg2");
         key = "!security.advice.test.key!";
         assertEquals(key, result);
     }

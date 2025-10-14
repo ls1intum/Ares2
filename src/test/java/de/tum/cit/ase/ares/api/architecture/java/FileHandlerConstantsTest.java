@@ -8,79 +8,63 @@ import static org.junit.jupiter.api.Assertions.*;
 public class FileHandlerConstantsTest {
 
     @Test
-    void testResolveOnTarget_withMultipleParts() {
-        Path base = Paths.get("base", "folder");
-        Path resolved = FileHandlerConstants.resolveOnTarget(base, "child", "grandchild");
-        Path expected = Paths.get("base", "folder", "child", "grandchild");
-        assertEquals(expected, resolved, "resolveOnTarget should correctly resolve multiple path parts");
+    void testClassCannotBeInstantiated() {
+        // Constructor is private and throws SecurityException
+        assertThrows(SecurityException.class, () -> {
+            var ctor = FileHandlerConstants.class.getDeclaredConstructor();
+            ctor.setAccessible(true);
+            try {
+                ctor.newInstance();
+            } finally {
+                ctor.setAccessible(false);
+            }
+        });
     }
 
     @Test
-    void testResolveOnTarget_withNoFurtherParts() {
-        Path base = Paths.get("onlyBase");
-        Path resolved = FileHandlerConstants.resolveOnTarget(base);
-        Path expected = Paths.get("onlyBase");
-        assertEquals(expected, resolved, "resolveOnTarget with no further parts should return the base path unchanged");
-    }
-
-    @Test
-    void testResolveOnPackage_withAdditionalParts() {
-        Path resolved = FileHandlerConstants.resolveOnPackage("templates", "file.txt");
-        Path expected = Paths.get("de", "tum", "cit", "ase", "ares", "api", "templates", "file.txt");
-        assertEquals(expected, resolved, "resolveOnPackage should prepend the package path before further path parts");
-    }
-
-    @Test
-    void testResolveOnPackage_withNoAdditionalParts() {
-        Path resolved = FileHandlerConstants.resolveOnPackage();
-        Path expected = Paths.get("de", "tum", "cit", "ase", "ares", "api");
-        assertEquals(expected, resolved, "resolveOnPackage with no additional parts should return the package base path");
-    }
-
-    @Test
-    void testArchUnitFilesystemMethodsConstant() {
+    void testArchunitFilesystemMethodsConstant() {
         Path expected = Paths.get("de", "tum", "cit", "ase", "ares", "api", "templates", "architecture", "java", "archunit", "methods", "file-system-access-methods.txt");
         assertEquals(expected, FileHandlerConstants.ARCHUNIT_FILESYSTEM_METHODS, "ARCHUNIT_FILESYSTEM_METHODS constant should point to the correct relative path");
     }
 
     @Test
-    void testArchUnitNetworkMethodsConstant() {
+    void testArchunitNetworkMethodsConstant() {
         Path expected = Paths.get("de", "tum", "cit", "ase", "ares", "api", "templates", "architecture", "java", "archunit", "methods", "network-access-methods.txt");
         assertEquals(expected, FileHandlerConstants.ARCHUNIT_NETWORK_METHODS, "ARCHUNIT_NETWORK_METHODS constant should point to the correct relative path");
     }
 
     @Test
-    void testArchUnitJvmTerminationMethodsConstant() {
+    void testArchunitJvmTerminationMethodsConstant() {
         Path expected = Paths.get("de", "tum", "cit", "ase", "ares", "api", "templates", "architecture", "java", "archunit", "methods", "jvm-termination-methods.txt");
         assertEquals(expected, FileHandlerConstants.ARCHUNIT_JVM_TERMINATION_METHODS, "ARCHUNIT_JVM_TERMINATION_METHODS constant should point to the correct relative path");
     }
 
     @Test
-    void testArchUnitReflectionMethodsConstant() {
+    void testArchunitReflectionMethodsConstant() {
         Path expected = Paths.get("de", "tum", "cit", "ase", "ares", "api", "templates", "architecture", "java", "archunit", "methods", "reflection-methods.txt");
         assertEquals(expected, FileHandlerConstants.ARCHUNIT_REFLECTION_METHODS, "ARCHUNIT_REFLECTION_METHODS constant should point to the correct relative path");
     }
 
     @Test
-    void testArchUnitCommandExecutionMethodsConstant() {
+    void testArchunitCommandExecutionMethodsConstant() {
         Path expected = Paths.get("de", "tum", "cit", "ase", "ares", "api", "templates", "architecture", "java", "archunit", "methods", "command-execution-methods.txt");
         assertEquals(expected, FileHandlerConstants.ARCHUNIT_COMMAND_EXECUTION_METHODS, "ARCHUNIT_COMMAND_EXECUTION_METHODS constant should point to the correct relative path");
     }
 
     @Test
-    void testArchUnitThreadManipulationMethodsConstant() {
+    void testArchunitThreadManipulationMethodsConstant() {
         Path expected = Paths.get("de", "tum", "cit", "ase", "ares", "api", "templates", "architecture", "java", "archunit", "methods", "thread-manipulation-methods.txt");
         assertEquals(expected, FileHandlerConstants.ARCHUNIT_THREAD_MANIPULATION_METHODS, "ARCHUNIT_THREAD_MANIPULATION_METHODS constant should point to the correct relative path");
     }
 
     @Test
-    void testArchUnitSerializationMethodsConstant() {
+    void testArchunitSerializationMethodsConstant() {
         Path expected = Paths.get("de", "tum", "cit", "ase", "ares", "api", "templates", "architecture", "java", "archunit", "methods", "serializable-methods.txt");
         assertEquals(expected, FileHandlerConstants.ARCHUNIT_SERIALIZATION_METHODS, "ARCHUNIT_SERIALIZATION_METHODS constant should point to the correct relative path");
     }
 
     @Test
-    void testArchUnitClassLoaderMethodsConstant() {
+    void testArchunitClassLoaderMethodsConstant() {
         Path expected = Paths.get("de", "tum", "cit", "ase", "ares", "api", "templates", "architecture", "java", "archunit", "methods", "classloader-methods.txt");
         assertEquals(expected, FileHandlerConstants.ARCHUNIT_CLASSLOADER_METHODS, "ARCHUNIT_CLASSLOADER_METHODS constant should point to the correct relative path");
     }
@@ -106,7 +90,7 @@ public class FileHandlerConstantsTest {
     @Test
     void testWalaJvmMethodsConstant() {
         Path expected = Paths.get("de", "tum", "cit", "ase", "ares", "api", "templates", "architecture", "java", "wala", "methods", "jvm-termination-methods.txt");
-        assertEquals(expected, FileHandlerConstants.WALA_JVM_METHODS, "WALA_JVM_METHODS constant should point to the correct relative path");
+        assertEquals(expected, FileHandlerConstants.WALA_JVM_TERMINATION_METHODS, "WALA_JVM_METHODS constant should point to the correct relative path");
     }
 
     @Test
