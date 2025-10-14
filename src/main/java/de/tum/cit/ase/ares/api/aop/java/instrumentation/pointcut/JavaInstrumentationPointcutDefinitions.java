@@ -149,8 +149,6 @@ public class JavaInstrumentationPointcutDefinitions {
     public static final Map<String, List<String>> ignoredMethodsByClass = Map.ofEntries(
             Map.entry("java.io.ByteArrayInputStream", List.of("read")),
             Map.entry("java.io.RandomAccessFile", List.of("readFully", "read")),
-            Map.entry("java.lang.ClassLoader", List.of("getResource", "getResourceAsStream")),
-            Map.entry("java.net.URLClassLoader", List.of("getResourceAsStream")),
             Map.entry("java.util.zip.InflaterInputStream", List.of("read")),
             Map.entry("java.util.zip.ZipFile$ZipFileInputStream", List.of("read"))
     );
@@ -271,7 +269,6 @@ public class JavaInstrumentationPointcutDefinitions {
             Map.entry("java.util.Scanner", List.of("findInLine", "findWithinHorizon", "next", "nextBigDecimal", "nextBigInteger", "nextBoolean", "nextByte", "nextDouble", "nextFloat", "nextInt", "nextLine", "nextLong", "nextShort", "skip")),
             // java.net
             Map.entry("java.net.JarURLConnection", List.of("getInputStream")),
-            Map.entry("java.net.URLClassLoader", List.of("getResourceAsStream")),
             // java.lang
             Map.entry("java.lang.ClassLoader", List.of("getResource", "getResourceAsStream", "getResources")),
             // java.awt
