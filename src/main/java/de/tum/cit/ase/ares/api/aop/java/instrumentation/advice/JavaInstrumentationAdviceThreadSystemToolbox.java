@@ -298,13 +298,13 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
      * @param threadNumberAllowedToBeCreated the number of threads allowed to be created
      * @return true if a violation is found, false otherwise
      */
-    private static boolean analyseViolation(@Nullable Object observedVariable, @Nullable String[] allowedThreadClasses, @Nullable int[] allowedThreadNumbers) {
+    private static boolean analyseViolation(@Nullable Object observedVariable, @Nullable String[] threadClassAllowedToBeCreated, @Nullable int[] threadNumberAllowedToBeCreated) {
         if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
             return false;
         } else if (observedVariable.getClass().isArray()) {
             for (int i = 0; i < Array.getLength(observedVariable); i++) {
                 Object element = Array.get(observedVariable, i);
-                boolean violation = analyseViolation(element, allowedThreadClasses, allowedThreadNumbers);
+                boolean violation = analyseViolation(element, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated);
                 if (violation) {
                     return true;
                 }
@@ -312,7 +312,7 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
             return false;
         } else if (observedVariable instanceof List<?>) {
             for (Object element : (List<?>) observedVariable) {
-                boolean violation = analyseViolation(element, allowedThreadClasses, allowedThreadNumbers);
+                boolean violation = analyseViolation(element, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated);
                 if (violation) {
                     return true;
                 }
@@ -320,7 +320,7 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
             return false;
         } else {
             String observedClassname = variableToClassname(observedVariable);
-            return checkIfThreadIsForbidden(observedClassname, allowedThreadClasses, allowedThreadNumbers);
+            return checkIfThreadIsForbidden(observedClassname, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated);
         }
     }
 
@@ -338,13 +338,13 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
      * @return the first violating path as a String, or null if none found
      */
     @Nullable
-    private static String extractViolationPath(@Nullable Object observedVariable, @Nullable String[] allowedThreadClasses, @Nullable int[] allowedThreadNumbers) {
+    private static String extractViolationPath(@Nullable Object observedVariable, @Nullable String[] threadClassAllowedToBeCreated, @Nullable int[] threadNumberAllowedToBeCreated) {
         if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
             return null;
         } else if (observedVariable.getClass().isArray()) {
             for (int i = 0; i < Array.getLength(observedVariable); i++) {
                 Object element = Array.get(observedVariable, i);
-                String violationPath = extractViolationPath(element, allowedThreadClasses, allowedThreadNumbers);
+                String violationPath = extractViolationPath(element, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated);
                 if (violationPath != null) {
                     return violationPath;
                 }
@@ -352,7 +352,7 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
             return null;
         } else if (observedVariable instanceof List<?>) {
             for (Object element : (List<?>) observedVariable) {
-                String violationPath = extractViolationPath(element, allowedThreadClasses, allowedThreadNumbers);
+                String violationPath = extractViolationPath(element, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated);
                 if (violationPath != null) {
                     return violationPath;
                 }
@@ -361,7 +361,7 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
         } else {
             try {
                 String observedClassname = variableToClassname(observedVariable);
-                if (checkIfThreadIsForbidden(observedClassname, allowedThreadClasses, allowedThreadNumbers)) {
+                if (checkIfThreadIsForbidden(observedClassname, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated)) {
                     return observedClassname;
                 }
             } catch (InvalidPathException ignored) {

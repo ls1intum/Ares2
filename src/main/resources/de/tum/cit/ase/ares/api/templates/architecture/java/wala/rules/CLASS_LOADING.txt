@@ -1,0 +1,5 @@
+@Test
+public void classLoadingShouldNotBeAccessed() {
+    callGraph = ${callGraph};
+    JavaWalaTestCaseCollection.NO_CLASS_MUST_USE_CLASSLOADERS.check(callGraph);
+}

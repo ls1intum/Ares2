@@ -21,27 +21,4 @@ public class CreateThreadPoolExecutorMain {
             threadPoolExecutor.execute(new IllegalThread());
         }
     }
-
-    /**
-     * Tests ThreadPoolExecutor.submit(Runnable) method
-     */
-    // public static void submitRunnable() {
-    //     try (ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
-    //             1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>()
-    //     )) {
-    //         threadPoolExecutor.submit(new IllegalThread());
-    //     }
-    // }
-
-    /**
-     * Tests ThreadPoolExecutor.submit(Callable) method
-     */
-    // public static void submitCallable() {
-    //     try (ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
-    //             1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>()
-    //     )) {
-    //         Callable<String> callable = () -> "test";
-    //         threadPoolExecutor.submit(callable);
-    //     }
-    // }
 }

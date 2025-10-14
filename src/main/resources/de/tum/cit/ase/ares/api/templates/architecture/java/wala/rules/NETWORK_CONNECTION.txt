@@ -1,0 +1,5 @@
+@Test
+public void networkSystemShouldNotBeAccessed() {
+    callGraph = ${callGraph};
+    JavaWalaTestCaseCollection.NO_CLASS_MUST_ACCESS_NETWORK.check(callGraph);
+}

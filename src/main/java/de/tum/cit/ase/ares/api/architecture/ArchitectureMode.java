@@ -16,7 +16,7 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
 import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaCSVFileLoader;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
-import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitTestCase;
+import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchunitTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.wala.CustomCallgraphBuilder;
 import de.tum.cit.ase.ares.api.architecture.java.wala.JavaWalaTestCase;
 import de.tum.cit.ase.ares.api.util.FileTools;
@@ -37,7 +37,7 @@ import de.tum.cit.ase.ares.api.util.FileTools;
 public enum ArchitectureMode {
 
     /**
-     * ArchUnit mode for analysing Java code with TNGs ArchUnit.
+     * Archunit mode for analysing Java code with TNGs Archunit.
      */
     ARCHUNIT,
 
@@ -47,13 +47,22 @@ public enum ArchitectureMode {
     WALA;
 
     //<editor-fold desc="Load configuration">
-    public List<List<String>> getCopyConfigurationEntries() {
+    public List<List<String>> getCopyFSConfigurationEntries() {
         try {
-            return (new JavaCSVFileLoader()).loadCopyData(this);
+            return (new JavaCSVFileLoader()).loadCopyData(this, true);
         } catch (IOException | CsvException e) {
             throw new RuntimeException(e);
         }
     }
+
+    public List<List<String>> getCopyNonFSConfigurationEntries() {
+        try {
+            return (new JavaCSVFileLoader()).loadCopyData(this, false);
+        } catch (IOException | CsvException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 
     public List<List<String>> getEditConfigurationEntries() {
         try {
@@ -66,56 +75,71 @@ public enum ArchitectureMode {
 
     //<editor-fold desc="Multi-file methods">
 
-    /**
-     * Retrieves the list of resource file paths to copy for the selected architecture mode.
-     *
-     * @since 2.0.0
-     * @author Markus Paulsen
-     * @return a list of paths representing the resource files to copy.
-     */
     @Nonnull
-    public List<Path> filesToCopy() {
-        return getCopyConfigurationEntries().stream()
+    public List<Path> fsFilesToCopy() {
+        return getCopyFSConfigurationEntries().stream()
                 .map(entry -> entry.getFirst().split("/"))
-                .map(FileTools::resolveOnPackage)
+                .map(FileTools::resolveFileOnSourceDirectory)
                 .toList();
     }
 
-    /**
-     * Retrieves the file value arrays based on the provided package name and main class name.
-     *
-     * @since 2.0.0
-     * @author Markus Paulsen
-     * @param packageName the base package name.
-     * @param mainClassInPackageName the main class name within the package.
-     * @return a list of string arrays representing file values.
-     */
     @Nonnull
-    public List<String[]> formatValues(@Nonnull String packageName, @Nonnull String mainClassInPackageName) {
-        return getCopyConfigurationEntries().stream()
+    public List<Path> nonFSFilesToCopy() {
+        return getCopyNonFSConfigurationEntries().stream()
+                .map(entry -> entry.getFirst().split("/"))
+                .map(FileTools::resolveFileOnSourceDirectory)
+                .toList();
+    }
+
+    @Nonnull
+    public List<String[]> placeholderValues() {
+        return getCopyNonFSConfigurationEntries().stream()
                 .map(entry -> entry.get(1))
                 .map(Integer::parseInt)
-                .map(entry -> switch (entry){
+                .map(entry -> switch (entry) {
+                    case 0 -> new String[]{"de.tum.cit.ase", "de.tum.cit.ase", "Main"};
+                    default -> FileTools.generatePackageNameArray("de.tum.cit.ase", entry);
+                })
+                .toList();
+    }
+
+    @Nonnull
+    public List<String[]> fsFormatValues(@Nonnull String packageName, @Nonnull String mainClassInPackageName) {
+        return getCopyFSConfigurationEntries().stream()
+                .map(entry -> entry.get(1))
+                .map(Integer::parseInt)
+                .map(entry -> switch (entry) {
                     case 0 -> new String[]{packageName, packageName, mainClassInPackageName};
                     default -> FileTools.generatePackageNameArray(packageName, entry);
                 })
                 .toList();
     }
 
-    /**
-     * Determines the target paths where resource files should be copied for the selected architecture mode.
-     *
-     * @since 2.0.0
-     * @author Markus Paulsen
-     * @param projectPath the project path.
-     * @param packageName the base package name.
-     * @return a list of paths representing the target locations.
-     */
     @Nonnull
-    public List<Path> targetsToCopyTo(@Nonnull Path projectPath, @Nonnull String packageName) {
-        return getCopyConfigurationEntries().stream()
+    public List<String[]> nonFSFormatValues(@Nonnull String packageName, @Nonnull String mainClassInPackageName) {
+        return getCopyNonFSConfigurationEntries().stream()
+                .map(entry -> entry.get(1))
+                .map(Integer::parseInt)
+                .map(entry -> switch (entry) {
+                    case 0 -> new String[]{packageName, packageName, mainClassInPackageName};
+                    default -> FileTools.generatePackageNameArray(packageName, entry);
+                })
+                .toList();
+    }
+
+    @Nonnull
+    public List<Path> fsTargetsToCopyTo(@Nonnull Path targetPath) {
+        return getCopyFSConfigurationEntries().stream()
                 .map(entry -> entry.get(2).split("/"))
-                .map( path -> FileTools.resolveOn(projectPath, packageName, path))
+                .map(path -> FileTools.resolveFileOnTargetDirectory(targetPath, path))
+                .toList();
+    }
+
+    @Nonnull
+    public List<Path> nonFSTargetsToCopyTo(@Nonnull Path targetPath) {
+        return getCopyNonFSConfigurationEntries().stream()
+                .map(entry -> entry.get(2).split("/"))
+                .map(path -> FileTools.resolveFileOnTargetDirectory(targetPath, path))
                 .toList();
     }
     //</editor-fold>
@@ -133,7 +157,7 @@ public enum ArchitectureMode {
     public Path threePartedFileHeader() {
         return getEditConfigurationEntries().stream()
                 .map(entry -> entry.getFirst().split("/"))
-                .map(FileTools::resolveOnPackage)
+                .map(FileTools::resolveFileOnSourceDirectory)
                 .toList().getFirst();
     }
 
@@ -150,8 +174,8 @@ public enum ArchitectureMode {
     public String threePartedFileBody(List<?> testCases) {
         return switch (this) {
             case ARCHUNIT -> String.join("\n",
-                    convertToJavaArchUnitTestCases((List<JavaArchitectureTestCase>) testCases).stream()
-                            .map(javaArchUnitTestCase -> javaArchUnitTestCase.writeArchitectureTestCase("ARCHUNIT", ""))
+                    convertToJavaArchunitTestCases((List<JavaArchitectureTestCase>) testCases).stream()
+                            .map(javaArchunitTestCase -> javaArchunitTestCase.writeArchitectureTestCase("ARCHUNIT", ""))
                             .toList()
 
             );
@@ -174,7 +198,7 @@ public enum ArchitectureMode {
     public Path threePartedFileFooter() {
         return getEditConfigurationEntries().stream()
                 .map(entry -> entry.get(1).split("/"))
-                .map(FileTools::resolveOnPackage)
+                .map(FileTools::resolveFileOnSourceDirectory)
                 .toList().getFirst();
     }
 
@@ -189,8 +213,8 @@ public enum ArchitectureMode {
     @Nonnull
     public String[] formatValues(@Nonnull String packageName) {
         return switch (this) {
-            case ARCHUNIT -> FileTools.generatePackageNameArray(packageName, 2);
-            case WALA -> FileTools.generatePackageNameArray(packageName, 2);
+            case ARCHUNIT -> FileTools.generatePackageNameArray(packageName, 3);
+            case WALA -> FileTools.generatePackageNameArray(packageName, 3);
         };
     }
 
@@ -199,15 +223,14 @@ public enum ArchitectureMode {
      *
      * @since 2.0.0
      * @author Markus Paulsen
-     * @param projectPath the project path.
-     * @param packageName the base package name.
+     * @param targetPath the project path.
      * @return the target path for the main architecture test case file.
      */
     @Nonnull
-    public Path targetToCopyTo(@Nonnull Path projectPath, @Nonnull String packageName) {
+    public Path targetToCopyTo(@Nonnull Path targetPath) {
         return getEditConfigurationEntries().stream()
                 .map(entry -> entry.get(2).split("/"))
-                .map(path -> FileTools.resolveOn(projectPath, packageName, path))
+                .map(path -> FileTools.resolveFileOnTargetDirectory(targetPath, path))
                 .toList().getFirst();
     }
     //</editor-fold>
@@ -219,7 +242,7 @@ public enum ArchitectureMode {
     //<editor-fold desc="Other methods">
 
     /**
-     * Imports and analyzes Java classes from the specified class path using ArchUnit's ClassFileImporter.
+     * Imports and analyzes Java classes from the specified class path using Archunit's ClassFileImporter.
      * This method enables static code analysis by creating a collection of Java class metadata.
      *
      * @since 2.0.0
@@ -246,14 +269,14 @@ public enum ArchitectureMode {
     public CallGraph getCallGraph(String classPath) {
         return switch (this) {
             case ARCHUNIT -> null;
-            case WALA -> new CustomCallgraphBuilder().buildCallGraph(classPath);
+            case WALA -> new CustomCallgraphBuilder(classPath).buildCallGraph(classPath);
         };
     }
     //</editor-fold>
 
     //<editor-fold desc="Static methods">
-    private static JavaArchUnitTestCase convertToJavaArchUnitTestCase(JavaArchitectureTestCase testCase) {
-        return JavaArchUnitTestCase.archunitBuilder()
+    private static JavaArchunitTestCase convertToJavaArchunitTestCase(JavaArchitectureTestCase testCase) {
+        return JavaArchunitTestCase.archunitBuilder()
                 .javaArchitectureTestCaseSupported((JavaArchitectureTestCaseSupported) testCase.getArchitectureTestCaseSupported())
                 .allowedPackages(testCase.getAllowedPackages())
                 .javaClasses(testCase.getJavaClasses())
@@ -269,8 +292,8 @@ public enum ArchitectureMode {
                 .build();
     }
 
-    private static List<JavaArchUnitTestCase> convertToJavaArchUnitTestCases(List<JavaArchitectureTestCase> testCases) {
-        return new ArrayList<>(testCases.stream().map(ArchitectureMode::convertToJavaArchUnitTestCase).toList());
+    private static List<JavaArchunitTestCase> convertToJavaArchunitTestCases(List<JavaArchitectureTestCase> testCases) {
+        return new ArrayList<>(testCases.stream().map(ArchitectureMode::convertToJavaArchunitTestCase).toList());
     }
 
     private static List<JavaWalaTestCase> convertToJavaWalaTestCases(List<JavaArchitectureTestCase> testCases) {

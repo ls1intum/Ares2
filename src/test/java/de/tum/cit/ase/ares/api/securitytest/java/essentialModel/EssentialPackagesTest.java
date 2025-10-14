@@ -47,7 +47,7 @@ public class EssentialPackagesTest {
             // Assert
             assertNotNull(essentialPackages);
             assertEquals(javaPackages, essentialPackages.essentialJavaPackages());
-            assertEquals(archUnitPackages, essentialPackages.essentialArchUnitPackages());
+            assertEquals(archUnitPackages, essentialPackages.essentialArchunitPackages());
             assertEquals(walaPackages, essentialPackages.essentialWalaPackages());
             assertEquals(aspectJPackages, essentialPackages.essentialAspectJPackages());
             assertEquals(instrumentationPackages, essentialPackages.essentialInstrumentationPackages());
@@ -66,8 +66,8 @@ public class EssentialPackagesTest {
         }
 
         @Test
-        @DisplayName("Should throw NullPointerException when essentialArchUnitPackages is null")
-        void shouldThrowNullPointerExceptionWhenEssentialArchUnitPackagesIsNull() {
+        @DisplayName("Should throw NullPointerException when essentialArchunitPackages is null")
+        void shouldThrowNullPointerExceptionWhenEssentialArchunitPackagesIsNull() {
             // Act & Assert
             assertThrows(NullPointerException.class, () -> new EssentialPackages(
                     javaPackages, null, walaPackages, aspectJPackages,
@@ -140,7 +140,7 @@ public class EssentialPackagesTest {
             // Assert
             assertNotNull(essentialPackages);
             assertTrue(essentialPackages.essentialJavaPackages().isEmpty());
-            assertTrue(essentialPackages.essentialArchUnitPackages().isEmpty());
+            assertTrue(essentialPackages.essentialArchunitPackages().isEmpty());
             assertTrue(essentialPackages.essentialWalaPackages().isEmpty());
             assertTrue(essentialPackages.essentialAspectJPackages().isEmpty());
             assertTrue(essentialPackages.essentialInstrumentationPackages().isEmpty());
@@ -248,7 +248,7 @@ public class EssentialPackagesTest {
             // Act
             EssentialPackages essentialPackages = EssentialPackages.builder()
                     .essentialJavaPackages(javaPackages)
-                    .essentialArchUnitPackages(archUnitPackages)
+                    .essentialArchunitPackages(archUnitPackages)
                     .essentialWalaPackages(walaPackages)
                     .essentialAspectJPackages(aspectJPackages)
                     .essentialInstrumentationPackages(instrumentationPackages)
@@ -259,7 +259,7 @@ public class EssentialPackagesTest {
             // Assert
             assertNotNull(essentialPackages);
             assertEquals(javaPackages, essentialPackages.essentialJavaPackages());
-            assertEquals(archUnitPackages, essentialPackages.essentialArchUnitPackages());
+            assertEquals(archUnitPackages, essentialPackages.essentialArchunitPackages());
             assertEquals(walaPackages, essentialPackages.essentialWalaPackages());
             assertEquals(aspectJPackages, essentialPackages.essentialAspectJPackages());
             assertEquals(instrumentationPackages, essentialPackages.essentialInstrumentationPackages());
@@ -273,7 +273,7 @@ public class EssentialPackagesTest {
             // Act & Assert
             assertThrows(NullPointerException.class, () -> EssentialPackages.builder()
                     .essentialJavaPackages(null)
-                    .essentialArchUnitPackages(archUnitPackages)
+                    .essentialArchunitPackages(archUnitPackages)
                     .essentialWalaPackages(walaPackages)
                     .essentialAspectJPackages(aspectJPackages)
                     .essentialInstrumentationPackages(instrumentationPackages)
@@ -287,7 +287,7 @@ public class EssentialPackagesTest {
         void shouldThrowNullPointerExceptionWhenBuildingWithMissingEssentialJavaPackages() {
             // Act & Assert
             assertThrows(NullPointerException.class, () -> EssentialPackages.builder()
-                    .essentialArchUnitPackages(archUnitPackages)
+                    .essentialArchunitPackages(archUnitPackages)
                     .essentialWalaPackages(walaPackages)
                     .essentialAspectJPackages(aspectJPackages)
                     .essentialInstrumentationPackages(instrumentationPackages)
@@ -304,7 +304,7 @@ public class EssentialPackagesTest {
 
             // Act & Assert
             assertSame(builder, builder.essentialJavaPackages(javaPackages));
-            assertSame(builder, builder.essentialArchUnitPackages(archUnitPackages));
+            assertSame(builder, builder.essentialArchunitPackages(archUnitPackages));
             assertSame(builder, builder.essentialWalaPackages(walaPackages));
             assertSame(builder, builder.essentialAspectJPackages(aspectJPackages));
             assertSame(builder, builder.essentialInstrumentationPackages(instrumentationPackages));
@@ -318,7 +318,7 @@ public class EssentialPackagesTest {
             EssentialPackages.Builder builder = EssentialPackages.builder();
 
             assertThrows(NullPointerException.class, () -> builder.essentialJavaPackages(null));
-            assertThrows(NullPointerException.class, () -> builder.essentialArchUnitPackages(null));
+            assertThrows(NullPointerException.class, () -> builder.essentialArchunitPackages(null));
             assertThrows(NullPointerException.class, () -> builder.essentialWalaPackages(null));
             assertThrows(NullPointerException.class, () -> builder.essentialAspectJPackages(null));
             assertThrows(NullPointerException.class, () -> builder.essentialInstrumentationPackages(null));

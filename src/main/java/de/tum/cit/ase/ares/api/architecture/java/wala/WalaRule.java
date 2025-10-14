@@ -5,14 +5,14 @@ import com.ibm.wala.classLoader.IMethod;
 import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.ibm.wala.shrike.shrikeCT.InvalidClassFileException;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
+import de.tum.cit.ase.ares.api.localization.Messages;
 
 import java.util.List;
 import java.util.Set;
 
 public class WalaRule {
-    String ruleName;
-    Set<String> forbiddenMethods;
+    final String ruleName;
+    final Set<String> forbiddenMethods;
 
     public WalaRule(String ruleName, Set<String> forbiddenMethods) {
         this.ruleName = ruleName;
@@ -33,7 +33,7 @@ public class WalaRule {
         try {
             IMethod.SourcePosition sourcePosition = reachableNodes.getLast().getMethod().getSourcePosition(0);
             int lineNumber = sourcePosition != null ? sourcePosition.getFirstLine() : -1;
-            throw new AssertionError(JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.method.call.message",
+            throw new AssertionError(Messages.localized("security.architecture.method.call.message",
                     ruleName,
                     reachableNodes.getLast().getMethod().getSignature(),
                     reachableNodes.get(reachableNodes.size() - 2).getMethod().getSignature(),
@@ -42,7 +42,7 @@ public class WalaRule {
                     reachableNodes.getFirst().getMethod().getSignature()
             ));
         } catch (InvalidClassFileException e) {
-            throw new SecurityException(JavaInstrumentationAdviceFileSystemToolbox.localize("security.architecture.invalid.class.file"));
+            throw new SecurityException(Messages.localized("security.architecture.invalid.class.file"));
         }
     }
 }

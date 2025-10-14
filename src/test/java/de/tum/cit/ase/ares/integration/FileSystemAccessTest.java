@@ -52,7 +52,6 @@ class FileSystemAccessTest {
     private final String weAccessPath = "weAccessPath";
 
     private final String errorMessage = "No Security Exception was thrown. Check if the policy is correctly applied.";
-    ;
 
     /**
      * Common helper that verifies the expected general parts of the error message.

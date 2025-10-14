@@ -18,13 +18,22 @@ public class JavaCSVFileLoader implements JavaFileLoader {
      * @param mode the selected architecture mode.
      * @return the path to the CSV file containing the copy configuration.
      */
-    public File getCopyPaths(ArchitectureMode mode) throws IOException {
-        return switch (mode) {
-            case ARCHUNIT ->
-                    FileTools.getResourceAsFile("de/tum/cit/ase/ares/api/configuration/copyFiles/java/ArchunitCopyFiles.csv");
-            case WALA ->
-                    FileTools.getResourceAsFile("de/tum/cit/ase/ares/api/configuration/copyFiles/java/WalaCopyFiles.csv");
-        };
+    public File getCopyPaths(ArchitectureMode mode, boolean formatStringFileRequested) {
+        if(formatStringFileRequested) {
+            return switch (mode) {
+                case ARCHUNIT ->
+                        FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration","copyFiles","java","ArchunitTemplateCopyFiles.csv"));
+                case WALA ->
+                        FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration","copyFiles","java","WalaTemplateCopyFiles.csv"));
+            };
+        } else {
+            return switch (mode) {
+                case ARCHUNIT ->
+                        FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration","copyFiles","java","ArchunitJavaCopyFiles.csv"));
+                case WALA ->
+                        FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration","copyFiles","java","WalaJavaCopyFiles.csv"));
+            };
+        }
     }
 
     /**
@@ -33,13 +42,22 @@ public class JavaCSVFileLoader implements JavaFileLoader {
      * @param mode the selected AOP mode.
      * @return the path to the CSV file containing the copy configuration.
      */
-    public File getCopyPaths(AOPMode mode) throws IOException {
-        return switch (mode) {
-            case INSTRUMENTATION ->
-                    FileTools.getResourceAsFile("de/tum/cit/ase/ares/api/configuration/copyFiles/java/InstrumentationCopyFiles.csv");
-            case ASPECTJ ->
-                    FileTools.getResourceAsFile("de/tum/cit/ase/ares/api/configuration/copyFiles/java/AspectJCopyFiles.csv");
-        };
+    public File getCopyPaths(AOPMode mode, boolean formatStringFileRequested) {
+        if(formatStringFileRequested) {
+            return switch (mode) {
+                case INSTRUMENTATION ->
+                        FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration","copyFiles","java","InstrumentationTemplateCopyFiles.csv"));
+                case ASPECTJ ->
+                        FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration","copyFiles","java","AspectJTemplateCopyFiles.csv"));
+            };
+        } else {
+            return switch (mode) {
+                case INSTRUMENTATION ->
+                        FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration","copyFiles","java","InstrumentationJavaCopyFiles.csv"));
+                case ASPECTJ ->
+                        FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration","copyFiles","java","AspectJAJCopyFiles.csv"));
+            };
+        }
     }
 
     /**
@@ -48,13 +66,13 @@ public class JavaCSVFileLoader implements JavaFileLoader {
      * @param mode the selected architecture mode.
      * @return the path to the CSV file containing the edit configuration.
      */
-    public File getEditPaths(ArchitectureMode mode) throws IOException {
+    public File getEditPaths(ArchitectureMode mode) {
         return switch (mode) {
             case ARCHUNIT ->
-                FileTools.getResourceAsFile("de/tum/cit/ase/ares/api/configuration/editFiles/java/ArchunitEditFiles.csv");
+                FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration","editFiles","java","ArchunitEditFiles.csv"));
 
             case WALA ->
-                FileTools.getResourceAsFile("de/tum/cit/ase/ares/api/configuration/editFiles/java/WalaEditFiles.csv");
+                FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration","editFiles","java","WalaEditFiles.csv"));
 
         };
     }
@@ -65,13 +83,13 @@ public class JavaCSVFileLoader implements JavaFileLoader {
      * @param mode the selected AOP mode.
      * @return the path to the CSV file containing the edit configuration.
      */
-    public File getEditPaths(AOPMode mode) throws IOException {
+    public File getEditPaths(AOPMode mode) {
         return switch (mode) {
             case INSTRUMENTATION ->
-                FileTools.getResourceAsFile("de/tum/cit/ase/ares/api/configuration/editFiles/java/InstrumentationEditFiles.csv");
+                FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration","editFiles","java","InstrumentationEditFiles.csv"));
 
             case ASPECTJ ->
-                FileTools.getResourceAsFile("de/tum/cit/ase/ares/api/configuration/editFiles/java/AspectJEditFiles.csv");
+                FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration","editFiles","java","AspectJEditFiles.csv"));
         };
     }
 
@@ -82,8 +100,8 @@ public class JavaCSVFileLoader implements JavaFileLoader {
      * @return the copy configuration.
      */
     @Override
-    public List<List<String>> loadCopyData(ArchitectureMode mode) throws IOException, CsvException {
-        return FileTools.readCSVFile(getCopyPaths(mode));
+    public List<List<String>> loadCopyData(ArchitectureMode mode, boolean fs) throws IOException, CsvException {
+        return FileTools.readCSVFile(getCopyPaths(mode, fs));
     }
 
     /**
@@ -93,8 +111,8 @@ public class JavaCSVFileLoader implements JavaFileLoader {
      * @return the copy configuration.
      */
     @Override
-    public List<List<String>> loadCopyData(AOPMode mode) throws IOException, CsvException {
-        return FileTools.readCSVFile(getCopyPaths(mode));
+    public List<List<String>> loadCopyData(AOPMode mode, boolean fs) throws IOException, CsvException {
+        return FileTools.readCSVFile(getCopyPaths(mode, fs));
     }
 
     /**

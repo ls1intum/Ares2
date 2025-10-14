@@ -1,0 +1,9 @@
+Source,Value,Target
+aop/java/instrumentation/advice/IgnoreValues.java,1,ares/api/aop/java/instrumentation/advice/IgnoreValues.java
+aop/java/aspectj/adviceandpointcut/JavaAspectJAbstractAdviceDefinitions.aj,8,ares/api/aop/java/aspectj/adviceandpointcut/JavaAspectJAbstractAdviceDefinitions.aj
+aop/java/aspectj/adviceandpointcut/JavaAspectJFileSystemAdviceDefinitions.aj,36,ares/api/aop/java/aspectj/adviceandpointcut/JavaAspectJFileSystemAdviceDefinitions.aj
+aop/java/aspectj/adviceandpointcut/JavaAspectJFileSystemPointcutDefinitions.aj,1,ares/api/aop/java/aspectj/adviceandpointcut/JavaAspectJFileSystemPointcutDefinitions.aj
+aop/java/aspectj/adviceandpointcut/JavaAspectJCommandSystemAdviceDefinitions.aj,3,ares/api/aop/java/aspectj/adviceandpointcut/JavaAspectJCommandSystemAdviceDefinitions.aj
+aop/java/aspectj/adviceandpointcut/JavaAspectJCommandSystemPointcutDefinitions.aj,1,ares/api/aop/java/aspectj/adviceandpointcut/JavaAspectJCommandSystemPointcutDefinitions.aj
+aop/java/aspectj/adviceandpointcut/JavaAspectJThreadSystemAdviceDefinitions.aj,4,ares/api/aop/java/aspectj/adviceandpointcut/JavaAspectJThreadSystemAdviceDefinitions.aj
+aop/java/aspectj/adviceandpointcut/JavaAspectJThreadSystemPointcutDefinitions.aj,1,ares/api/aop/java/aspectj/adviceandpointcut/JavaAspectJThreadSystemPointcutDefinitions.aj

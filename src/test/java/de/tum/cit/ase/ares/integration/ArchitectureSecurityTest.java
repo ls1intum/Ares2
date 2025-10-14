@@ -16,9 +16,9 @@ public class ArchitectureSecurityTest {
 
     // <editor-fold desc="File System Rules">
     @TestTest
-    void testArchUnitFileAccess() {
+    void testArchunitFileAccess() {
         tests.assertThatEvents().haveExactly(1,
-                testFailedWith("testArchUnitFileAccess", SecurityException.class));
+                testFailedWith("testArchunitFileAccess", SecurityException.class));
     }
 
     @TestTest
@@ -30,9 +30,9 @@ public class ArchitectureSecurityTest {
 
     // <editor-fold desc="Network Rules">
     @TestTest
-    void testArchUnitNetworkAccess() {
+    void testArchunitNetworkAccess() {
         tests.assertThatEvents().haveExactly(1,
-                testFailedWith("testArchUnitNetworkAccess", SecurityException.class));
+                testFailedWith("testArchunitNetworkAccess", SecurityException.class));
     }
 
     @TestTest
@@ -44,9 +44,9 @@ public class ArchitectureSecurityTest {
 
     // <editor-fold desc="Command Execution Rules">
     @TestTest
-    void testArchUnitCommandExecution() {
+    void testArchunitCommandExecution() {
         tests.assertThatEvents().haveExactly(1,
-                testFailedWith("testArchUnitCommandExecution", SecurityException.class));
+                testFailedWith("testArchunitCommandExecution", SecurityException.class));
     }
 
     @TestTest
@@ -58,9 +58,9 @@ public class ArchitectureSecurityTest {
 
     // <editor-fold desc="Thread Creation Rules">
     @TestTest
-    void testArchUnitThreadCreation() {
+    void testArchunitThreadCreation() {
         tests.assertThatEvents().haveExactly(1,
-                testFailedWith("testArchUnitThreadCreation", SecurityException.class));
+                testFailedWith("testArchunitThreadCreation", SecurityException.class));
     }
 
     @TestTest
@@ -72,9 +72,9 @@ public class ArchitectureSecurityTest {
 
     // <editor-fold desc="Package Import Rules">
     @TestTest
-    void testArchUnitPackageImport() {
+    void testArchunitPackageImport() {
         tests.assertThatEvents().haveExactly(1,
-                testFailedWith("testArchUnitPackageImport", SecurityException.class));
+                testFailedWith("testArchunitPackageImport", SecurityException.class));
     }
 
     @TestTest
@@ -86,9 +86,9 @@ public class ArchitectureSecurityTest {
 
     // <editor-fold desc="JVMTermination Rules">
     @TestTest
-    void testArchUnitJVMTermination() {
+    void testArchunitJVMTermination() {
         tests.assertThatEvents().haveExactly(1,
-                testFailedWith("testArchUnitJVMTermination", SecurityException.class));
+                testFailedWith("testArchunitJVMTermination", SecurityException.class));
     }
 
     @TestTest
@@ -100,9 +100,9 @@ public class ArchitectureSecurityTest {
 
     // <editor-fold desc="Reflection Rules">
     @TestTest
-    void testArchUnitReflection() {
+    void testArchunitReflection() {
         tests.assertThatEvents().haveExactly(1,
-                testFailedWith("testArchUnitReflection", SecurityException.class));
+                testFailedWith("testArchunitReflection", SecurityException.class));
     }
 
     @TestTest
@@ -114,9 +114,9 @@ public class ArchitectureSecurityTest {
 
     // <editor-fold desc="Serialization Rules">
     @TestTest
-    void testArchUnitSerialization() {
+    void testArchunitSerialization() {
         tests.assertThatEvents().haveExactly(1,
-                testFailedWith("testArchUnitSerialization", SecurityException.class));
+                testFailedWith("testArchunitSerialization", SecurityException.class));
     }
 
     @TestTest
@@ -128,9 +128,9 @@ public class ArchitectureSecurityTest {
 
     // <editor-fold desc="Classloading Rules">
     @TestTest
-    void testArchUnitClassloading() {
+    void testArchunitClassloading() {
         tests.assertThatEvents().haveExactly(1,
-                testFailedWith("testArchUnitClassloading", SecurityException.class));
+                testFailedWith("testArchunitClassloading", SecurityException.class));
     }
 
     @TestTest
@@ -143,12 +143,12 @@ public class ArchitectureSecurityTest {
     // <editor-fold desc="Third Party Package Access Rules">
 
     /**
-     * This test is disabled because it is not possible to test the access to third-party packages with ArchUnit
+     * This test is disabled because it is not possible to test the access to third-party packages with Archunit
      */
 //    @TestTest
-//    void testArchUnitThirdPartyPackageAccess() {
+//    void testArchunitThirdPartyPackageAccess() {
 //        tests.assertThatEvents().haveExactly(1,
-//                testFailedWith("testArchUnitThirdPartyPackageAccess", SecurityException.class));
+//                testFailedWith("testArchunitThirdPartyPackageAccess", SecurityException.class));
 //    }
 
     @TestTest

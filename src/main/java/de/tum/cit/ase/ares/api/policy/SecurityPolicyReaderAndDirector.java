@@ -2,17 +2,14 @@ package de.tum.cit.ase.ares.api.policy;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.io.MoreFiles;
 import de.tum.cit.ase.ares.api.policy.director.SecurityPolicyDirector;
 import de.tum.cit.ase.ares.api.policy.reader.SecurityPolicyReader;
 import de.tum.cit.ase.ares.api.securitytest.TestCaseAbstractFactoryAndBuilder;
-import org.apache.commons.io.FilenameUtils;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Security policy file reader and test case director.

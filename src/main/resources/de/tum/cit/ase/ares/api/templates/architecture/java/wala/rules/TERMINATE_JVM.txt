@@ -1,0 +1,5 @@
+@Test
+public void terminateJVMShouldNotBeAccessed() {
+    callGraph = ${callGraph};
+    JavaWalaTestCaseCollection.NO_CLASS_MUST_TERMINATE_JVM.check(callGraph);
+}

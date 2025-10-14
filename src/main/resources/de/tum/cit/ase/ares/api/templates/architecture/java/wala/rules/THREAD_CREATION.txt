@@ -1,0 +1,5 @@
+@Test
+public void threadSystemShouldNotBeAccessed() {
+    callGraph = ${callGraph};
+    JavaWalaTestCaseCollection.NO_CLASS_MUST_CREATE_THREADS.check(callGraph);
+}

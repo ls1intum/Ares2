@@ -27,10 +27,6 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
                                             Optional<ReflectiveInvocationContext<?>> invocationContext) throws Throwable {
         JupiterContext testContext = JupiterContext.of(extensionContext);
 
-        /**
-         * Check if the test method has the {@link Policy} annotation. If it does, read
-         * the policy file and run the security test cases.
-         */
         if (hasAnnotation(testContext, Policy.class)) {
             findAnnotation(testContext.testMethod(), Policy.class)
                     .ifPresent(policy -> SecurityPolicyReaderAndDirector.builder()
@@ -42,7 +38,7 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
                             .projectFolderPath(
                                     !policy.withinPath().isBlank()
                                             ? JupiterSecurityExtension.testAndGetPolicyWithinPath(policy)
-                                            : Path.of("classes"))
+                                            : Path.of(""))
                             .build()
                             .createTestCases()
                             .executeTestCases());

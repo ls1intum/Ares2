@@ -116,7 +116,7 @@ public class SecurityPolicyJavaDirectorTest {
         // Create mock EssentialPackages
         EssentialPackages mockEssentialPackages = EssentialPackages.builder()
                 .essentialJavaPackages(List.of("java.lang", "java.util"))
-                .essentialArchUnitPackages(List.of("com.tngtech.archunit"))
+                .essentialArchunitPackages(List.of("com.tngtech.archunit"))
                 .essentialWalaPackages(List.of("com.ibm.wala"))
                 .essentialAspectJPackages(List.of("org.aspectj"))
                 .essentialInstrumentationPackages(List.of("java.lang.instrument"))
@@ -127,7 +127,7 @@ public class SecurityPolicyJavaDirectorTest {
         // Create mock EssentialClasses
         EssentialClasses mockEssentialClasses = EssentialClasses.builder()
                 .essentialJavaClasses(List.of("java.lang.Object", "java.lang.String"))
-                .essentialArchUnitClasses(List.of("com.tngtech.archunit.core.domain.JavaClass"))
+                .essentialArchunitClasses(List.of("com.tngtech.archunit.core.domain.JavaClass"))
                 .essentialWalaClasses(List.of("com.ibm.wala.classLoader.IClass"))
                 .essentialAspectJClasses(List.of("org.aspectj.lang.ProceedingJoinPoint"))
                 .essentialInstrumentationClasses(List.of("java.lang.instrument.Instrumentation"))
@@ -282,7 +282,7 @@ public class SecurityPolicyJavaDirectorTest {
 
         @Test
         @DisplayName("Should create test cases for MAVEN_ARCHUNIT_ASPECTJ configuration")
-        void shouldCreateTestCasesForMavenArchUnitAspectJConfiguration() {
+        void shouldCreateTestCasesForMavenArchunitAspectJConfiguration() {
             // Arrange
             SecurityPolicy securityPolicy = SecurityPolicy.builder()
                     .regardingTheSupervisedCode(supervisedCodeWithValidConfig)
@@ -298,7 +298,7 @@ public class SecurityPolicyJavaDirectorTest {
 
         @Test
         @DisplayName("Should create test cases for MAVEN_ARCHUNIT_INSTRUMENTATION configuration")
-        void shouldCreateTestCasesForMavenArchUnitInstrumentationConfiguration() {
+        void shouldCreateTestCasesForMavenArchunitInstrumentationConfiguration() {
             // Arrange
             SupervisedCode supervisedCode = createSupervisedCodeWithConfig(
                     ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION);
@@ -352,7 +352,7 @@ public class SecurityPolicyJavaDirectorTest {
 
         @Test
         @DisplayName("Should create test cases for GRADLE_ARCHUNIT_ASPECTJ configuration")
-        void shouldCreateTestCasesForGradleArchUnitAspectJConfiguration() {
+        void shouldCreateTestCasesForGradleArchunitAspectJConfiguration() {
             // Arrange
             SupervisedCode supervisedCode = createSupervisedCodeWithConfig(
                     ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_ARCHUNIT_AND_ASPECTJ);
@@ -370,7 +370,7 @@ public class SecurityPolicyJavaDirectorTest {
 
         @Test
         @DisplayName("Should create test cases for GRADLE_ARCHUNIT_INSTRUMENTATION configuration")
-        void shouldCreateTestCasesForGradleArchUnitInstrumentationConfiguration() {
+        void shouldCreateTestCasesForGradleArchunitInstrumentationConfiguration() {
             // Arrange
             SupervisedCode supervisedCode = createSupervisedCodeWithConfig(
                     ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION);

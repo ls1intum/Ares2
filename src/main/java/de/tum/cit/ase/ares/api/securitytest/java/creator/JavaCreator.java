@@ -42,7 +42,6 @@ import java.util.stream.Stream;
  * @author Markus Paulsen
  * @version 2.0.0
  */
-@SuppressWarnings("FieldCanBeLocal")
 public class JavaCreator implements Creator {
 
     // Cache for storing supplier results based on classPath

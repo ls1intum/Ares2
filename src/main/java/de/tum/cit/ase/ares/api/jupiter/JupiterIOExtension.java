@@ -22,13 +22,13 @@ public class JupiterIOExtension implements BeforeEachCallback, AfterEachCallback
 	}
 
 	@Override
-	public void beforeEach(ExtensionContext context) throws Exception {
+	public void beforeEach(ExtensionContext context) {
 		ioTesterManager = new IOExtensionUtils(JupiterContext.of(context));
 		ioTesterManager.beforeTestExecution();
 	}
 
 	@Override
-	public void afterEach(ExtensionContext context) throws Exception {
+	public void afterEach(ExtensionContext context) {
 		// If this is null, there was an exception in before, so ignore it here
 		if (ioTesterManager != null)
 			ioTesterManager.afterTestExecution();

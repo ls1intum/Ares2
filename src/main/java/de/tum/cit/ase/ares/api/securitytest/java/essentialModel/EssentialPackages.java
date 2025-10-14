@@ -10,7 +10,7 @@ import java.util.Objects;
 /**
  * Represents the essential packages required for the security test.
  *
- * <p>Description: This record encapsulates lists of essential package names for Java, ArchUnit, Wala, AspectJ, Instrumentation, Ares and JUnit.
+ * <p>Description: This record encapsulates lists of essential package names for Java, Archunit, Wala, AspectJ, Instrumentation, Ares and JUnit.
  * It provides a method to aggregate all these packages into a single list.</p>
  *
  * <p>Design Rationale: Grouping essential package lists into a record leverages immutability and clear data encapsulation,
@@ -20,7 +20,7 @@ import java.util.Objects;
  * @author Markus Paulsen
  * @version 2.0.0
  * @param essentialJavaPackages the essential Java packages
- * @param essentialArchUnitPackages the essential ArchUnit packages
+ * @param essentialArchunitPackages the essential Archunit packages
  * @param essentialWalaPackages the essential Wala packages
  * @param essentialAspectJPackages the essential AspectJ packages
  * @param essentialInstrumentationPackages the essential Instrumentation packages
@@ -29,7 +29,7 @@ import java.util.Objects;
  */
 public record EssentialPackages(
         @Nonnull List<String> essentialJavaPackages,
-        @Nonnull List<String> essentialArchUnitPackages,
+        @Nonnull List<String> essentialArchunitPackages,
         @Nonnull List<String> essentialWalaPackages,
         @Nonnull List<String> essentialAspectJPackages,
         @Nonnull List<String> essentialInstrumentationPackages,
@@ -44,7 +44,7 @@ public record EssentialPackages(
      */
     public EssentialPackages {
         Objects.requireNonNull(essentialJavaPackages, "essentialJavaPackages must not be null");
-        Objects.requireNonNull(essentialArchUnitPackages, "essentialArchUnitPackages must not be null");
+        Objects.requireNonNull(essentialArchunitPackages, "essentialArchunitPackages must not be null");
         Objects.requireNonNull(essentialWalaPackages, "essentialWalaPackages must not be null");
         Objects.requireNonNull(essentialAspectJPackages, "essentialAspectJPackages must not be null");
         Objects.requireNonNull(essentialInstrumentationPackages, "essentialInstrumentationPackages must not be null");
@@ -63,7 +63,7 @@ public record EssentialPackages(
     public List<String> getEssentialPackages() {
         return Streams.concat(
                 essentialJavaPackages.stream(),
-                essentialArchUnitPackages.stream(),
+                essentialArchunitPackages.stream(),
                 essentialWalaPackages.stream(),
                 essentialAspectJPackages.stream(),
                 essentialInstrumentationPackages.stream(),
@@ -91,10 +91,10 @@ public record EssentialPackages(
         private List<String> essentialJavaPackages;
 
         /**
-         * Essential ArchUnit packages.
+         * Essential Archunit packages.
          */
         @Nullable
-        private List<String> essentialArchUnitPackages;
+        private List<String> essentialArchunitPackages;
 
         /**
          * Essential Wala packages.
@@ -139,14 +139,14 @@ public record EssentialPackages(
         }
 
         /**
-         * Configures the essential ArchUnit packages.
+         * Configures the essential Archunit packages.
          *
-         * @param essentialArchUnitPackages the essential ArchUnit packages
+         * @param essentialArchunitPackages the essential Archunit packages
          * @return the Builder instance
          */
         @Nonnull
-        public Builder essentialArchUnitPackages(@Nonnull List<String> essentialArchUnitPackages) {
-            this.essentialArchUnitPackages = Objects.requireNonNull(essentialArchUnitPackages, "essentialArchUnitPackages must not be null");
+        public Builder essentialArchunitPackages(@Nonnull List<String> essentialArchunitPackages) {
+            this.essentialArchunitPackages = Objects.requireNonNull(essentialArchunitPackages, "essentialArchunitPackages must not be null");
             return this;
         }
 
@@ -219,7 +219,7 @@ public record EssentialPackages(
         public EssentialPackages build() {
             return new EssentialPackages(
                     Objects.requireNonNull(essentialJavaPackages, "essentialJavaPackages must not be null"),
-                    Objects.requireNonNull(essentialArchUnitPackages, "essentialArchUnitPackages must not be null"),
+                    Objects.requireNonNull(essentialArchunitPackages, "essentialArchunitPackages must not be null"),
                     Objects.requireNonNull(essentialWalaPackages, "essentialWalaPackages must not be null"),
                     Objects.requireNonNull(essentialAspectJPackages, "essentialAspectJPackages must not be null"),
                     Objects.requireNonNull(essentialInstrumentationPackages, "essentialInstrumentationPackages must not be null"),

@@ -18,14 +18,6 @@ public class CreateThreadMain {
     }
 
     /**
-     * Tests Thread.startVirtualThread(Runnable) method
-     * COMMENTED OUT: Not in the original list of 20 methods
-     */
-    // public static void startVirtualThread() {
-    //     Thread.startVirtualThread(new IllegalThread());
-    // }
-
-    /**
      * Tests Thread.notify() method
      */
     public static void notifyThread() {

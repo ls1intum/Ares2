@@ -35,14 +35,14 @@ public abstract class SystemAccessTest {
 
     //<editor-fold desc="Archunit AspectJ Policy Files">
     /**
-     * Base path for ArchUnit AspectJ policy
+     * Base path for Archunit AspectJ policy
      */
     protected static final String ARCHUNIT_ASPECTJ_POLICY = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyEverythingForbidden.yaml";
     //</editor-fold>
 
     //<editor-fold desc="Archunit Instrumentation Policy Files">
     /**
-     * Base path for ArchUnit Instrumentation policy
+     * Base path for Archunit Instrumentation policy
      */
     protected static final String ARCHUNIT_INSTRUMENTATION_POLICY = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyEverythingForbidden.yaml";
     //</editor-fold>

@@ -141,8 +141,6 @@ class FileSystemAccessTest {
             // Verify that the reading was correct
             Assertions.assertEquals(TRUSTED_FILE_CONTENT, content != null ? content.trim() : null,
                     ERROR_FILE_CONTENT_MISMATCH);
-        } catch (SecurityException e) {
-            Assertions.fail(ERROR_SECURITY_EXCEPTION, e);
         } catch (Exception e) {
             Assertions.fail(ERROR_SECURITY_EXCEPTION, e);
         }
@@ -196,8 +194,6 @@ class FileSystemAccessTest {
             
             // Verify that the writing was correct
             verifyOutputFileCreatedWithCorrectContent(outputFilePath);
-        } catch (SecurityException e) {
-            Assertions.fail(ERROR_SECURITY_EXCEPTION, e);
         } catch (Exception e) {
             Assertions.fail(ERROR_SECURITY_EXCEPTION, e);
         }

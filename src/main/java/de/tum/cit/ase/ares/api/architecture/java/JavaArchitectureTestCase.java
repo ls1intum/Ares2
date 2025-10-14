@@ -5,7 +5,7 @@ import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCaseSupported;
-import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchUnitTestCase;
+import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchunitTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.wala.JavaWalaTestCase;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
@@ -18,7 +18,7 @@ import java.util.Set;
  * Architecture test case for the Java programming language.
  *
  * <p>Description: This class provides methods to write and execute architecture test cases that verify code compliance with security policies.
- * It supports different static analysis approaches including ArchUnit and WALA, with appropriate delegation to specialized
+ * It supports different static analysis approaches including Archunit and WALA, with appropriate delegation to specialized
  * implementations based on the selected architecture mode.</p>
  *
  * <p>Design Rationale: Implements a shared interface for architecture testing strategies in different programming languages, facilitating
@@ -58,7 +58,7 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 
     /**
      * Parses the error message of an assertion error to provide more descriptive security violation messages.
-     * Extracts relevant information from ArchUnit's error messages and creates a standardized security exception.
+     * Extracts relevant information from Archunit's error messages and creates a standardized security exception.
      *
      * @since 2.0.0
      * @author Sarp Sahinalp
@@ -96,7 +96,7 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
     @Override
     public String writeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
         return switch (architectureMode) {
-            case "ARCHUNIT" -> JavaArchUnitTestCase.builder()
+            case "ARCHUNIT" -> JavaArchunitTestCase.builder()
                     .javaArchitectureTestCaseSupported((JavaArchitectureTestCaseSupported) architectureTestCaseSupported)
                     .allowedPackages(allowedPackages)
                     .javaClasses(javaClasses)
@@ -136,7 +136,7 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
         JavaClasses protectedJavaClasses = Preconditions.checkNotNull(javaClasses, "javaClasses must not be null");
 
         switch (architectureMode) {
-            case "ARCHUNIT" -> JavaArchUnitTestCase.archunitBuilder()
+            case "ARCHUNIT" -> JavaArchunitTestCase.archunitBuilder()
                     .javaArchitectureTestCaseSupported(protectedJavaArchitectureTestCaseSupported)
                     .allowedPackages(protectedAllowedPackages)
                     .javaClasses(protectedJavaClasses)

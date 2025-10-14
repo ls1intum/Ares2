@@ -15,7 +15,7 @@ public class ArchitectureSecurityUser {
     // <editor-fold desc="File System Rules">
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
-    void testArchUnitFileAccess() {
+    void testArchunitFileAccess() {
         // do nothing
     }
 
@@ -29,7 +29,7 @@ public class ArchitectureSecurityUser {
     // <editor-fold desc="Network Rules">
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/network")
-    void testArchUnitNetworkAccess() {
+    void testArchunitNetworkAccess() {
         // do nothing
     }
 
@@ -43,7 +43,7 @@ public class ArchitectureSecurityUser {
     // <editor-fold desc="Command Execution Rules">
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/commandexecution")
-    void testArchUnitCommandExecution() {
+    void testArchunitCommandExecution() {
         // do nothing
     }
 
@@ -57,7 +57,7 @@ public class ArchitectureSecurityUser {
     // <editor-fold desc="Thread Creation Rules">
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/thread_manipulation")
-    void testArchUnitThreadCreation() {
+    void testArchunitThreadCreation() {
         // do nothing
     }
 
@@ -71,7 +71,7 @@ public class ArchitectureSecurityUser {
     // <editor-fold desc="Package Import Rules">
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/packageImport")
-    void testArchUnitPackageImport() {
+    void testArchunitPackageImport() {
         // do nothing
     }
 
@@ -85,7 +85,7 @@ public class ArchitectureSecurityUser {
     // <editor-fold desc="JVMTermination Rules">
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/jvmTermination")
-    void testArchUnitJVMTermination() {
+    void testArchunitJVMTermination() {
         // do nothing
     }
 
@@ -99,7 +99,7 @@ public class ArchitectureSecurityUser {
     // <editor-fold desc="Reflection Rules">
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/reflection")
-    void testArchUnitReflection() {
+    void testArchunitReflection() {
         // do nothing
     }
 
@@ -113,7 +113,7 @@ public class ArchitectureSecurityUser {
     // <editor-fold desc="Serialization Rules">
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/serialization")
-    void testArchUnitSerialization() {
+    void testArchunitSerialization() {
         // do nothing
     }
 
@@ -127,7 +127,7 @@ public class ArchitectureSecurityUser {
     // <editor-fold desc="Classloading Rules">
     @PublicTest
     @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/classloading")
-    void testArchUnitClassloading() {
+    void testArchunitClassloading() {
         // do nothing
     }
 
@@ -141,11 +141,11 @@ public class ArchitectureSecurityUser {
     // <editor-fold desc="Third Party Package Access Rules">
 
     /**
-     * ArchUnit does not support third party package access rules, as it is too slow in that case
+     * Archunit does not support third party package access rules, as it is too slow in that case
      */
 //    @PublicTest
 //    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/thirdPartyAccess")
-//    void testArchUnitThirdPartyPackageAccess() {
+//    void testArchunitThirdPartyPackageAccess() {
 //        // do nothing
 //    }
 

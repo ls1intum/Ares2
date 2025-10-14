@@ -21,14 +21,6 @@ import de.tum.cit.ase.ares.api.localization.UseLocale;
 @UseLocale("de")
 @SuppressWarnings("static-method")
 @Deadline("2200-01-01 16:00")
-/**
- * This is needed because jqwik makes use of the common pool since version
- * 1.3.5, and the test code run there might need to be whitelisted, which in
- * turn requires the thread (here the common pool) to be whitelisted. This also
- * causes the more complicated situation concerning the configuration below.
- * <p>
- * Also see {@link de.tum.cit.ase.ares.api.jqwik} on why it is all threads here.
- */
 @TrustedThreads(TrustScope.ALL_THREADS)
 /*
  * In extended trust scope, we might need to whitelist the JDK, because file

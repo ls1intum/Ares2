@@ -55,17 +55,24 @@ public class JavaWriter implements Writer {
             @Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
             @Nullable Path testFolderPath
     ) {
-        return Stream.concat(
-                FileTools.copyFormatStringFiles(
-                        architectureMode.filesToCopy(),
-                        architectureMode.targetsToCopyTo(testFolderPath, packageName),
-                        architectureMode.formatValues(packageName, mainClassInPackageName)
-                ).stream(),
+        var x = 0;
+        return Stream.concat(Stream.concat(
+                        FileTools.copyAndFormatFSFiles(
+                                architectureMode.fsFilesToCopy(),
+                                architectureMode.fsTargetsToCopyTo(FileTools.resolveOnPath(testFolderPath, packageName.split("\\."))),
+                                architectureMode.fsFormatValues(packageName, mainClassInPackageName)
+                        ).stream(),
+                        FileTools.copyAndFormatNonFSFiles(
+                                architectureMode.nonFSFilesToCopy(),
+                                architectureMode.nonFSTargetsToCopyTo(FileTools.resolveOnPath(testFolderPath, packageName.split("\\."))),
+                                architectureMode.placeholderValues(),
+                                architectureMode.nonFSFormatValues(packageName, mainClassInPackageName)
+                        ).stream()),
                 Stream.of(FileTools.createThreePartedFormatStringFile(
                         architectureMode.threePartedFileHeader(),
                         architectureMode.threePartedFileBody(javaArchitectureTestCases),
                         architectureMode.threePartedFileFooter(),
-                        architectureMode.targetToCopyTo(testFolderPath, packageName),
+                        architectureMode.targetToCopyTo(FileTools.resolveOnPath(testFolderPath, packageName.split("\\."))),
                         architectureMode.formatValues(packageName)
                 ))
         ).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
@@ -99,17 +106,23 @@ public class JavaWriter implements Writer {
                 essentialClasses.stream(),
                 testClasses.stream()
         ).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
-        return Stream.concat(
-                FileTools.copyFormatStringFiles(
-                        aopMode.filesToCopy(),
-                        aopMode.targetsToCopyTo(testFolderPath, packageName),
-                        aopMode.formatValues(packageName, mainClassInPackageName)
-                ).stream(),
+        return Stream.concat(Stream.concat(
+                        FileTools.copyAndFormatFSFiles(
+                                aopMode.fsFilesToCopy(),
+                                aopMode.fsTargetsToCopyTo(FileTools.resolveOnPath(testFolderPath, packageName.split("\\."))),
+                                aopMode.fsFormatValues(packageName, mainClassInPackageName)
+                        ).stream(),
+                        FileTools.copyAndFormatNonFSFiles(
+                                aopMode.nonFSFilesToCopy(),
+                                aopMode.nonFSTargetsToCopyTo(FileTools.resolveOnPath(testFolderPath, packageName.split("\\."))),
+                                aopMode.placeholderValues(),
+                                aopMode.nonFSFormatValues(packageName, mainClassInPackageName)
+                        ).stream()),
                 Stream.of(FileTools.createThreePartedFormatStringFile(
                         aopMode.threePartedFileHeader(),
                         aopMode.threePartedFileBody(aopMode.toString(), packageName, allowedClasses, javaAOPTestCases),
                         aopMode.threePartedFileFooter(),
-                        aopMode.targetToCopyTo(testFolderPath, packageName),
+                        aopMode.targetToCopyTo(FileTools.resolveOnPath(testFolderPath, packageName.split("\\."))),
                         aopMode.formatValues(packageName)
                 ))
         ).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
@@ -123,7 +136,7 @@ public class JavaWriter implements Writer {
             @Nullable Path testFolderPath
     ) {
         return Stream.concat(
-                FileTools.copyFormatStringFiles(
+                FileTools.copyAndFormatFSFiles(
                         Phobos.filesToCopy(),
                         Phobos.targetsToCopyTo(testFolderPath, packageName),
                         Phobos.fileValues(packageName)
@@ -174,6 +187,7 @@ public class JavaWriter implements Writer {
             @Nonnull List<JavaAOPTestCase> javaAOPTestCases,
             @Nullable Path testFolderPath
     ) {
+        var x = 0;
         return Stream.of(
                         createJavaArchitectureFiles(
                                 architectureMode,

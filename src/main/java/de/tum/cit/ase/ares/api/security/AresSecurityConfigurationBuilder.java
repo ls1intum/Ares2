@@ -49,7 +49,7 @@ public final class AresSecurityConfigurationBuilder {
 	private Optional<Class<?>> testClass;
 	private Optional<Method> testMethod;
 	private Path executionPath;
-	private Set<String> whitelistedClassNames;
+	private final Set<String> whitelistedClassNames;
 	private Set<PathRule> whitelistedPaths;
 	private Set<PathRule> blacklistedPaths;
 	private Set<PackageRule> blacklistedPackages;

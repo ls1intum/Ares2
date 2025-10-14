@@ -13,8 +13,8 @@ class IgnorantUnmodifiableListTest {
 	private static final String OBJ_B = "B";
 	private static final String OBJ_C = "C";
 
-	private List<String> source = List.of(OBJ_A, OBJ_B);
-	private List<String> original = new ArrayList<>(source);
+	private final List<String> source = List.of(OBJ_A, OBJ_B);
+	private final List<String> original = new ArrayList<>(source);
 	private List<String> list = IgnorantUnmodifiableList.wrapWith(original, (s, o) -> changeDetected = true);
 
 	private boolean changeDetected;

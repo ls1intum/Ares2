@@ -108,14 +108,7 @@ public class ThreadUser {
 	}
 
 
-
-	/**
-	 * This can be used to check for Threads that are not stoppable. This should
-	 * never happen, but it could. Note that this test beaks all further ones,
-	 * because the security manager will not be uninstalled and block everything. It
-	 * works by catching the {@link ThreadDeath}.
-	 */
-//	@PublicTest
+    //	@PublicTest
 //	void zz_unstoppable() {
 //		long t = System.currentTimeMillis();
 //		while (System.currentTimeMillis() - t < 1000) {

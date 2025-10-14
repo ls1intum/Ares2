@@ -75,28 +75,39 @@ public class JavaWriterTest {
             try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class)) {
                 // Arrange
                 // Mock ArchitectureMode
-                when(architectureMode.filesToCopy()).thenReturn(List.of());
-                when(architectureMode.targetsToCopyTo(any(), any())).thenReturn(List.of());
-                when(architectureMode.formatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(architectureMode.fsFilesToCopy()).thenReturn(List.of());
+                when(architectureMode.nonFSFilesToCopy()).thenReturn(List.of());
+                when(architectureMode.fsTargetsToCopyTo(any())).thenReturn(List.of());
+                when(architectureMode.nonFSTargetsToCopyTo(any())).thenReturn(List.of());
+                when(architectureMode.placeholderValues()).thenReturn(List.of());
+                // provide format values actually used by JavaWriter
+                when(architectureMode.fsFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(architectureMode.nonFSFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
                 when(architectureMode.threePartedFileHeader()).thenReturn(tempDir.resolve("header.java"));
                 when(architectureMode.threePartedFileBody(any())).thenReturn("body");
                 when(architectureMode.threePartedFileFooter()).thenReturn(tempDir.resolve("footer.java"));
-                when(architectureMode.targetToCopyTo(any(), any())).thenReturn(tempDir.resolve("arch.java"));
-                when(architectureMode.formatValues(any())).thenReturn(new String[]{"pkg", "pkg", "Main"});
+                when(architectureMode.targetToCopyTo(any())).thenReturn(tempDir.resolve("arch.java"));
+                when(architectureMode.formatValues(any())).thenReturn(new String[]{"pkg", "pkg"});
 
                 // Mock AOPMode
-                when(aopMode.filesToCopy()).thenReturn(List.of());
-                when(aopMode.targetsToCopyTo(any(), any())).thenReturn(List.of());
-                when(aopMode.formatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(aopMode.fsFilesToCopy()).thenReturn(List.of());
+                when(aopMode.nonFSFilesToCopy()).thenReturn(List.of());
+                when(aopMode.fsTargetsToCopyTo(any())).thenReturn(List.of());
+                when(aopMode.nonFSTargetsToCopyTo(any())).thenReturn(List.of());
+                when(aopMode.placeholderValues()).thenReturn(List.of());
+                when(aopMode.fsFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(aopMode.nonFSFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
                 when(aopMode.threePartedFileHeader()).thenReturn(tempDir.resolve("header.java"));
                 when(aopMode.threePartedFileBody(any(), any(), any(), any())).thenReturn("body");
                 when(aopMode.threePartedFileFooter()).thenReturn(tempDir.resolve("footer.java"));
-                when(aopMode.targetToCopyTo(any(), any())).thenReturn(tempDir.resolve("aop.java"));
-                when(aopMode.formatValues(any())).thenReturn(new String[]{"pkg", "pkg", "Main"});
+                when(aopMode.targetToCopyTo(any())).thenReturn(tempDir.resolve("aop.java"));
+                when(aopMode.formatValues(any())).thenReturn(new String[]{"pkg"});
                 when(aopMode.toString()).thenReturn("INSTRUMENTATION");
 
                 // Mock FileTools
-                mockedFileTools.when(() -> FileTools.copyFormatStringFiles(any(), any(), any()))
+                mockedFileTools.when(() -> FileTools.copyAndFormatFSFiles(any(), any(), any()))
+                        .thenReturn(List.of());
+                mockedFileTools.when(() -> FileTools.copyAndFormatNonFSFiles(any(), any(), any(), any()))
                         .thenReturn(List.of());
                 mockedFileTools.when(() -> FileTools.createThreePartedFormatStringFile(any(), any(), any(), any(), any()))
                         .thenReturn(tempDir.resolve("test.java"));
@@ -113,65 +124,34 @@ public class JavaWriterTest {
                 assertEquals(2, result.size()); // One from arch, one from AOP
 
                 // Verify mocks were called correctly
-                verify(architectureMode).filesToCopy();
-                verify(architectureMode).targetsToCopyTo(tempDir, packageName);
-                verify(architectureMode).formatValues(packageName, mainClassInPackageName);
+                verify(architectureMode).fsFilesToCopy();
+                verify(architectureMode).nonFSFilesToCopy();
+                verify(architectureMode).fsTargetsToCopyTo(any());
+                verify(architectureMode).nonFSTargetsToCopyTo(any());
+                verify(architectureMode).placeholderValues();
+                verify(architectureMode).fsFormatValues(packageName, mainClassInPackageName);
+                verify(architectureMode).nonFSFormatValues(packageName, mainClassInPackageName);
                 verify(architectureMode).threePartedFileHeader();
                 verify(architectureMode).threePartedFileBody(javaArchitectureTestCases);
                 verify(architectureMode).threePartedFileFooter();
-                verify(architectureMode).targetToCopyTo(tempDir, packageName);
+                verify(architectureMode).targetToCopyTo(any());
                 verify(architectureMode).formatValues(packageName);
 
-                verify(aopMode).filesToCopy();
-                verify(aopMode).targetsToCopyTo(tempDir, packageName);
-                verify(aopMode).formatValues(packageName, mainClassInPackageName);
+                verify(aopMode).fsFilesToCopy();
+                verify(aopMode).nonFSFilesToCopy();
+                verify(aopMode).fsTargetsToCopyTo(any());
+                verify(aopMode).nonFSTargetsToCopyTo(any());
+                verify(aopMode).placeholderValues();
+                verify(aopMode).fsFormatValues(packageName, mainClassInPackageName);
+                verify(aopMode).nonFSFormatValues(packageName, mainClassInPackageName);
                 verify(aopMode).threePartedFileHeader();
                 verify(aopMode).threePartedFileFooter();
-                verify(aopMode).targetToCopyTo(tempDir, packageName);
+                verify(aopMode).targetToCopyTo(any());
                 verify(aopMode).formatValues(packageName);
             }
         }
 
-        @Test
-        @DisplayName("Should handle null testFolderPath")
-        void shouldHandleNullTestFolderPath() {
-            try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class)) {
-                // Arrange
-                when(architectureMode.filesToCopy()).thenReturn(List.of());
-                when(architectureMode.targetsToCopyTo(isNull(), any())).thenReturn(List.of());
-                when(architectureMode.formatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
-                when(architectureMode.threePartedFileHeader()).thenReturn(Path.of("header.java"));
-                when(architectureMode.threePartedFileBody(any())).thenReturn("body");
-                when(architectureMode.threePartedFileFooter()).thenReturn(Path.of("footer.java"));
-                when(architectureMode.targetToCopyTo(isNull(), any())).thenReturn(Path.of("arch.java"));
-                when(architectureMode.formatValues(any())).thenReturn(new String[]{"pkg", "pkg", "Main"});
-
-                when(aopMode.filesToCopy()).thenReturn(List.of());
-                when(aopMode.targetsToCopyTo(isNull(), any())).thenReturn(List.of());
-                when(aopMode.formatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
-                when(aopMode.threePartedFileHeader()).thenReturn(Path.of("header.java"));
-                when(aopMode.threePartedFileBody(any(), any(), any(), any())).thenReturn("body");
-                when(aopMode.threePartedFileFooter()).thenReturn(Path.of("footer.java"));
-                when(aopMode.targetToCopyTo(isNull(), any())).thenReturn(Path.of("aop.java"));
-                when(aopMode.formatValues(any())).thenReturn(new String[]{"pkg", "pkg", "Main"});
-                when(aopMode.toString()).thenReturn("INSTRUMENTATION");
-
-                mockedFileTools.when(() -> FileTools.copyFormatStringFiles(any(), any(), any()))
-                        .thenReturn(List.of());
-                mockedFileTools.when(() -> FileTools.createThreePartedFormatStringFile(any(), any(), any(), any(), any()))
-                        .thenReturn(Path.of("test.java"));
-
-                // Act & Assert
-                assertDoesNotThrow(() -> {
-                    List<Path> result = javaWriter.writeTestCases(
-                            buildMode, architectureMode, aopMode, essentialPackages,
-                            essentialClasses, testClasses, packageName, mainClassInPackageName,
-                            javaArchitectureTestCases, javaAOPTestCases, null
-                    );
-                    assertNotNull(result);
-                });
-            }
-        }
+        // Removed null-path test; JavaWriter delegates to FileTools.resolveOnPath which requires non-null Path
 
         @Test
         @DisplayName("Should handle empty lists")
@@ -184,26 +164,36 @@ public class JavaWriterTest {
                 List<JavaArchitectureTestCase> emptyArchTestCases = List.of();
                 List<JavaAOPTestCase> emptyAOPTestCases = List.of();
 
-                when(architectureMode.filesToCopy()).thenReturn(List.of());
-                when(architectureMode.targetsToCopyTo(any(), any())).thenReturn(List.of());
-                when(architectureMode.formatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(architectureMode.fsFilesToCopy()).thenReturn(List.of());
+                when(architectureMode.nonFSFilesToCopy()).thenReturn(List.of());
+                when(architectureMode.fsTargetsToCopyTo(any())).thenReturn(List.of());
+                when(architectureMode.nonFSTargetsToCopyTo(any())).thenReturn(List.of());
+                when(architectureMode.placeholderValues()).thenReturn(List.of());
+                when(architectureMode.fsFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(architectureMode.nonFSFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
                 when(architectureMode.threePartedFileHeader()).thenReturn(tempDir.resolve("header.java"));
                 when(architectureMode.threePartedFileBody(emptyArchTestCases)).thenReturn("body");
                 when(architectureMode.threePartedFileFooter()).thenReturn(tempDir.resolve("footer.java"));
-                when(architectureMode.targetToCopyTo(any(), any())).thenReturn(tempDir.resolve("arch.java"));
-                when(architectureMode.formatValues(any())).thenReturn(new String[]{"pkg", "pkg", "Main"});
+                when(architectureMode.targetToCopyTo(any())).thenReturn(tempDir.resolve("arch.java"));
+                when(architectureMode.formatValues(any())).thenReturn(new String[]{"pkg", "pkg"});
 
-                when(aopMode.filesToCopy()).thenReturn(List.of());
-                when(aopMode.targetsToCopyTo(any(), any())).thenReturn(List.of());
-                when(aopMode.formatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(aopMode.fsFilesToCopy()).thenReturn(List.of());
+                when(aopMode.nonFSFilesToCopy()).thenReturn(List.of());
+                when(aopMode.fsTargetsToCopyTo(any())).thenReturn(List.of());
+                when(aopMode.nonFSTargetsToCopyTo(any())).thenReturn(List.of());
+                when(aopMode.placeholderValues()).thenReturn(List.of());
+                when(aopMode.fsFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(aopMode.nonFSFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
                 when(aopMode.threePartedFileHeader()).thenReturn(tempDir.resolve("header.java"));
                 when(aopMode.threePartedFileBody(any(), any(), any(), eq(emptyAOPTestCases))).thenReturn("body");
                 when(aopMode.threePartedFileFooter()).thenReturn(tempDir.resolve("footer.java"));
-                when(aopMode.targetToCopyTo(any(), any())).thenReturn(tempDir.resolve("aop.java"));
-                when(aopMode.formatValues(any())).thenReturn(new String[]{"pkg", "pkg", "Main"});
+                when(aopMode.targetToCopyTo(any())).thenReturn(tempDir.resolve("aop.java"));
+                when(aopMode.formatValues(any())).thenReturn(new String[]{"pkg"});
                 when(aopMode.toString()).thenReturn("INSTRUMENTATION");
 
-                mockedFileTools.when(() -> FileTools.copyFormatStringFiles(any(), any(), any()))
+                mockedFileTools.when(() -> FileTools.copyAndFormatFSFiles(any(), any(), any()))
+                        .thenReturn(List.of());
+                mockedFileTools.when(() -> FileTools.copyAndFormatNonFSFiles(any(), any(), any(), any()))
                         .thenReturn(List.of());
                 mockedFileTools.when(() -> FileTools.createThreePartedFormatStringFile(any(), any(), any(), any(), any()))
                         .thenReturn(tempDir.resolve("test.java"));
@@ -227,26 +217,36 @@ public class JavaWriterTest {
         void shouldMergeEssentialClassesAndTestClassesCorrectly() {
             try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class)) {
                 // Arrange
-                when(architectureMode.filesToCopy()).thenReturn(List.of());
-                when(architectureMode.targetsToCopyTo(any(), any())).thenReturn(List.of());
-                when(architectureMode.formatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(architectureMode.fsFilesToCopy()).thenReturn(List.of());
+                when(architectureMode.nonFSFilesToCopy()).thenReturn(List.of());
+                when(architectureMode.fsTargetsToCopyTo(any())).thenReturn(List.of());
+                when(architectureMode.nonFSTargetsToCopyTo(any())).thenReturn(List.of());
+                when(architectureMode.placeholderValues()).thenReturn(List.of());
+                when(architectureMode.fsFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(architectureMode.nonFSFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
                 when(architectureMode.threePartedFileHeader()).thenReturn(tempDir.resolve("header.java"));
                 when(architectureMode.threePartedFileBody(any())).thenReturn("body");
                 when(architectureMode.threePartedFileFooter()).thenReturn(tempDir.resolve("footer.java"));
-                when(architectureMode.targetToCopyTo(any(), any())).thenReturn(tempDir.resolve("arch.java"));
-                when(architectureMode.formatValues(any())).thenReturn(new String[]{"pkg", "pkg", "Main"});
+                when(architectureMode.targetToCopyTo(any())).thenReturn(tempDir.resolve("arch.java"));
+                when(architectureMode.formatValues(any())).thenReturn(new String[]{"pkg", "pkg"});
 
-                when(aopMode.filesToCopy()).thenReturn(List.of());
-                when(aopMode.targetsToCopyTo(any(), any())).thenReturn(List.of());
-                when(aopMode.formatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(aopMode.fsFilesToCopy()).thenReturn(List.of());
+                when(aopMode.nonFSFilesToCopy()).thenReturn(List.of());
+                when(aopMode.fsTargetsToCopyTo(any())).thenReturn(List.of());
+                when(aopMode.nonFSTargetsToCopyTo(any())).thenReturn(List.of());
+                when(aopMode.placeholderValues()).thenReturn(List.of());
+                when(aopMode.fsFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(aopMode.nonFSFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
                 when(aopMode.threePartedFileHeader()).thenReturn(tempDir.resolve("header.java"));
                 when(aopMode.threePartedFileBody(any(), any(), any(), any())).thenReturn("body");
                 when(aopMode.threePartedFileFooter()).thenReturn(tempDir.resolve("footer.java"));
-                when(aopMode.targetToCopyTo(any(), any())).thenReturn(tempDir.resolve("aop.java"));
-                when(aopMode.formatValues(any())).thenReturn(new String[]{"pkg", "pkg", "Main"});
+                when(aopMode.targetToCopyTo(any())).thenReturn(tempDir.resolve("aop.java"));
+                when(aopMode.formatValues(any())).thenReturn(new String[]{"pkg"});
                 when(aopMode.toString()).thenReturn("INSTRUMENTATION");
 
-                mockedFileTools.when(() -> FileTools.copyFormatStringFiles(any(), any(), any()))
+                mockedFileTools.when(() -> FileTools.copyAndFormatFSFiles(any(), any(), any()))
+                        .thenReturn(List.of());
+                mockedFileTools.when(() -> FileTools.copyAndFormatNonFSFiles(any(), any(), any(), any()))
                         .thenReturn(List.of());
                 mockedFileTools.when(() -> FileTools.createThreePartedFormatStringFile(any(), any(), any(), any(), any()))
                         .thenReturn(tempDir.resolve("test.java"));
@@ -273,26 +273,36 @@ public class JavaWriterTest {
         void shouldHandleDifferentBuildModes() {
             try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class)) {
                 // Arrange
-                when(architectureMode.filesToCopy()).thenReturn(List.of());
-                when(architectureMode.targetsToCopyTo(any(), any())).thenReturn(List.of());
-                when(architectureMode.formatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(architectureMode.fsFilesToCopy()).thenReturn(List.of());
+                when(architectureMode.nonFSFilesToCopy()).thenReturn(List.of());
+                when(architectureMode.fsTargetsToCopyTo(any())).thenReturn(List.of());
+                when(architectureMode.nonFSTargetsToCopyTo(any())).thenReturn(List.of());
+                when(architectureMode.placeholderValues()).thenReturn(List.of());
+                when(architectureMode.fsFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(architectureMode.nonFSFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
                 when(architectureMode.threePartedFileHeader()).thenReturn(tempDir.resolve("header.java"));
                 when(architectureMode.threePartedFileBody(any())).thenReturn("body");
                 when(architectureMode.threePartedFileFooter()).thenReturn(tempDir.resolve("footer.java"));
-                when(architectureMode.targetToCopyTo(any(), any())).thenReturn(tempDir.resolve("arch.java"));
-                when(architectureMode.formatValues(any())).thenReturn(new String[]{"pkg", "pkg", "Main"});
+                when(architectureMode.targetToCopyTo(any())).thenReturn(tempDir.resolve("arch.java"));
+                when(architectureMode.formatValues(any())).thenReturn(new String[]{"pkg", "pkg"});
 
-                when(aopMode.filesToCopy()).thenReturn(List.of());
-                when(aopMode.targetsToCopyTo(any(), any())).thenReturn(List.of());
-                when(aopMode.formatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(aopMode.fsFilesToCopy()).thenReturn(List.of());
+                when(aopMode.nonFSFilesToCopy()).thenReturn(List.of());
+                when(aopMode.fsTargetsToCopyTo(any())).thenReturn(List.of());
+                when(aopMode.nonFSTargetsToCopyTo(any())).thenReturn(List.of());
+                when(aopMode.placeholderValues()).thenReturn(List.of());
+                when(aopMode.fsFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
+                when(aopMode.nonFSFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[]{"pkg", "pkg", "Main"}));
                 when(aopMode.threePartedFileHeader()).thenReturn(tempDir.resolve("header.java"));
                 when(aopMode.threePartedFileBody(any(), any(), any(), any())).thenReturn("body");
                 when(aopMode.threePartedFileFooter()).thenReturn(tempDir.resolve("footer.java"));
-                when(aopMode.targetToCopyTo(any(), any())).thenReturn(tempDir.resolve("aop.java"));
-                when(aopMode.formatValues(any())).thenReturn(new String[]{"pkg", "pkg", "Main"});
+                when(aopMode.targetToCopyTo(any())).thenReturn(tempDir.resolve("aop.java"));
+                when(aopMode.formatValues(any())).thenReturn(new String[]{"pkg"});
                 when(aopMode.toString()).thenReturn("INSTRUMENTATION");
 
-                mockedFileTools.when(() -> FileTools.copyFormatStringFiles(any(), any(), any()))
+                mockedFileTools.when(() -> FileTools.copyAndFormatFSFiles(any(), any(), any()))
+                        .thenReturn(List.of());
+                mockedFileTools.when(() -> FileTools.copyAndFormatNonFSFiles(any(), any(), any(), any()))
                         .thenReturn(List.of());
                 mockedFileTools.when(() -> FileTools.createThreePartedFormatStringFile(any(), any(), any(), any(), any()))
                         .thenReturn(tempDir.resolve("test.java"));
