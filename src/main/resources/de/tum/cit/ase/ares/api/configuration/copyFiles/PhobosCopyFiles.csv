@@ -1,7 +1,10 @@
 Source,Value,Target
-templates/phobos/BasePhobos.cfg,0,ares/api/phobos/BasePhobos.cfg
-templates/phobos/TailPhobos.cfg,0,ares/api/phobos/TailPhobos.cfg
-templates/phobos/java/BaseLanguage-java.cfg,0,ares/api/phobos/java/BaseLanguage-java.cfg
-templates/phobos/libnetblocker.so,0,ares/api/phobos/libnetblocker.so
-templates/phobos/allowedList.cfg,0,ares/api/phobos/allowedList.cfg
-templates/phobos/phobos_wrapper.sh,0,ares/api/phobos/phobos_wrapper.sh
+templates/phobos/TailPhobos.cfg,0,/var/tmp/opt/core/config/TailPhobos.cfg
+templates/phobos/java/BaseLanguage-java.cfg,0,/var/tmp/opt/core/config/BaseLanguage-java.cfg
+templates/phobos/libnetblocker.so,0,/var/tmp/opt/core/libnetblocker.so
+templates/phobos/allowedList.cfg,0,/var/tmp/opt/core/phobos/allowedList.cfg
+templates/phobos/phobos.sh,0,/var/tmp/opt/core/phobos.sh
+templates/phobos/phobos-common.sh,0,/var/tmp/opt/core/phobos-common.sh
+templates/phobos/phobos-filesystem.sh,0,/var/tmp/opt/core/phobos-filesystem.sh
+templates/phobos/phobos-network.sh,0,/var/tmp/opt/core/phobos-network.sh
+templates/phobos/phobos-timeout.sh,0,/var/tmp/opt/core/phobos-timeout.sh
