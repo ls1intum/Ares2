@@ -71,7 +71,8 @@ public class JavaInstrumentationOverwritePathMethodAdvice {
                 methodName,
                 methodSignature,
                 attributes,
-                parameters
+                parameters,
+                instance
         );
         //</editor-fold>
     }

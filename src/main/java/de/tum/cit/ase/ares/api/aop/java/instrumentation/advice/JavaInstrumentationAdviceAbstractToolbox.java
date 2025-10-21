@@ -220,6 +220,49 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
         }
         return null;
     }
+
+    /**
+     * Finds the caller directly above the first method on the current call stack that belongs to the given restricted package.
+     *
+     * <p>Description: Iterates the stack trace, skipping frames in {@link #IGNORE_CALLSTACK}. When the first frame
+     * whose class starts with the provided restricted package is found, this method returns the fully qualified
+     * method name (className.methodName) of the next non-ignored frame above it (i.e., its caller). Returns null if
+     * none is found or if {@code restrictedPackage} is null.
+     *
+     * @param restrictedPackage the package prefix to search for
+     * @return the fully qualified method name of the caller above the first restricted frame, or null if none
+     * @since 2.0.2
+     */
+    @Nullable
+    protected static String findFirstMethodOutsideOfRestrictedPackage(@Nullable String restrictedPackage) {
+        if (restrictedPackage == null) {
+            return null;
+        }
+        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+        for (int i = 0; i < stackTrace.length; i++) {
+            StackTraceElement element = stackTrace[i];
+            String className = element.getClassName();
+            boolean isIgnorable = false;
+            for (String ignore : IGNORE_CALLSTACK) {
+                if (className.startsWith(ignore)) {
+                    isIgnorable = true;
+                    break;
+                }
+            }
+            if (isIgnorable) {
+                continue;
+            }
+            if (className.startsWith(restrictedPackage) && !className.startsWith("de.tum.cit.ase.ares.api.aop.java.instrumentation)")) {
+                if (i != 0) {
+                    return stackTrace[i-1].getClassName() + "." + stackTrace[i-1].getMethodName();
+                } else {
+                    return null;
+                }
+
+            }
+        }
+        return null;
+    }
     //</editor-fold>
 
     //<editor-fold desc="Filter variables">
@@ -242,14 +285,14 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
         @Nonnull ArrayList<Object> newVariables = new ArrayList<>(Arrays.asList(variables.clone()));
         switch (ignoreVariables.getType()) {
             // No variable is ignored
-            case NONE:
+            case "NONE":
                 break;
             // All variables are ignored
-            case ALL:
+            case "ALL":
                 newVariables.clear();
                 break;
             // All variables except the one at the given index are ignored
-            case ALL_EXCEPT:
+            case "ALL_EXCEPT":
                 if (ignoreVariables.getIndex() < 0 || ignoreVariables.getIndex() >= newVariables.size()) {
                     throw new IllegalArgumentException("Invalid index: " + ignoreVariables.getIndex());
                 }
@@ -257,7 +300,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
                 newVariables.clear();
                 newVariables.add(toKeep);
                 break;
-            case NONE_EXCEPT:
+            case "NONE_EXCEPT":
                 if (ignoreVariables.getIndex() < 0 || ignoreVariables.getIndex() >= newVariables.size()) {
                     throw new IllegalArgumentException("Invalid index: " + ignoreVariables.getIndex());
                 }

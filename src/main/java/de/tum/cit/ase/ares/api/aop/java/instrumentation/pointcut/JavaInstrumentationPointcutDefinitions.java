@@ -265,8 +265,6 @@ public class JavaInstrumentationPointcutDefinitions {
             Map.entry("java.nio.channels.FileChannel", List.of("map", "position", "read", "size", "transferFrom", "transferTo")),
             Map.entry("java.nio.channels.AsynchronousFileChannel", List.of("read", "size")),
             Map.entry("java.nio.file.spi.FileSystemProvider", List.of( "getFileAttributeView", "getFileStore", "getFileSystem", "getScheme", "isHidden", "isSameFile", "newByteChannel", "newDirectoryStream", "newFileChannel", "newFileSystem", "newInputStream", "readAttributes", "readSymbolicLink")),
-            // java.util
-            Map.entry("java.util.Scanner", List.of("findInLine", "findWithinHorizon", "next", "nextBigDecimal", "nextBigInteger", "nextBoolean", "nextByte", "nextDouble", "nextFloat", "nextInt", "nextLine", "nextLong", "nextShort", "skip")),
             // java.net
             Map.entry("java.net.JarURLConnection", List.of("getInputStream")),
             // java.lang
@@ -290,7 +288,8 @@ public class JavaInstrumentationPointcutDefinitions {
      */
     public static final Map<String, List<String>> methodsWhichCanOverwriteFiles = Map.ofEntries(
             // java.io
-            Map.entry("java.io.Writer", List.of("append", "flush", "write")),
+            // Issues with System.out and System.err, as they call Writer.write internally.
+            //Map.entry("java.io.Writer", List.of("append", "flush", "write")),
             Map.entry("java.io.OutputStream", List.of("flush", "write")),
             Map.entry("java.io.RandomAccessFile", List.of("write", "writeBoolean", "writeByte", "writeBytes", "writeChar", "writeChars", "writeDouble", "writeFloat", "writeInt", "writeLong", "writeShort", "writeUTF")),
             Map.entry("java.io.File", List.of("createNewFile", "createTempFile", "mkdir", "mkdirs", "renameTo", "setExecutable", "setLastModified", "setReadable", "setReadOnly", "setWritable")),

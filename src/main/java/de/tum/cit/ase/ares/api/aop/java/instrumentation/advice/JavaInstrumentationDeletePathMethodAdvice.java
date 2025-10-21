@@ -71,7 +71,8 @@ public class JavaInstrumentationDeletePathMethodAdvice {
                 methodName,
                 methodSignature,
                 attributes,
-                parameters
+                parameters,
+                instance
         );
         //</editor-fold>
     }

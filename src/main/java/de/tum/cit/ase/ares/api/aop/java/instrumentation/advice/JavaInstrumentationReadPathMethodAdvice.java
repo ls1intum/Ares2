@@ -71,7 +71,8 @@ public class JavaInstrumentationReadPathMethodAdvice {
                 methodName,
                 methodSignature,
                 attributes,
-                parameters
+                parameters,
+                instance
         );
         //</editor-fold>
     }

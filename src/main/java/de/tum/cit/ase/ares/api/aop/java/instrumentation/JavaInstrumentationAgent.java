@@ -80,12 +80,12 @@ public class JavaInstrumentationAgent {
                 // Load classes in dependency order to ensure proper initialization
                 
                 // Step 1: Load fundamental classes first (no dependencies)
-                injectClassesSafely(classInjector, Map.ofEntries(
+                /*injectClassesSafely(classInjector, Map.ofEntries(
                         Map.entry(
                                 IgnoreValues.Type.class.getName(),
                                 ClassFileLocator.ForClassLoader.read(IgnoreValues.Type.class)
                         )
-                ));
+                ));*/
                 
                 // Step 2: Load classes that depend on fundamental classes
                 injectClassesSafely(classInjector, Map.ofEntries(

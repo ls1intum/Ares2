@@ -28,7 +28,8 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
                     "readFile",
                     "(Ljava/lang/String;)V",
                     null,
-                    new Object[]{"/allowed/path"}
+                    new Object[]{"/allowed/path"},
+                    null
             ));
         } catch (Exception e) {
             fail("Exception should not have been thrown: " + e.getMessage());

@@ -296,17 +296,30 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
         if (commandSystemMethodToCheck == null) {
             return;
         }
+        @Nullable String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
         //</editor-fold>
         //<editor-fold desc="Check parameters">
         @Nullable String commandIllegallyExecutedThroughParameter = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, commandsAllowedToBeExecuted, argumentsAllowedToBePassed, COMMAND_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
         if (commandIllegallyExecutedThroughParameter != null) {
-            throw new SecurityException(localize("security.advice.illegal.command.execution", commandSystemMethodToCheck, action, commandIllegallyExecutedThroughParameter, fullMethodSignature));
+            throw new SecurityException(localize(
+                    "security.advice.illegal.command.execution",
+                    commandSystemMethodToCheck,
+                    action,
+                    commandIllegallyExecutedThroughParameter,
+                    fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+            ));
         }
         //</editor-fold>
         //<editor-fold desc="Check attributes">
         @Nullable String commandIllegallyExecutedThroughAttribute = (attributes == null || attributes.length == 0) ? null : checkIfVariableCriteriaIsViolated(attributes, commandsAllowedToBeExecuted, argumentsAllowedToBePassed, COMMAND_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
         if (commandIllegallyExecutedThroughAttribute != null) {
-            throw new SecurityException(localize("security.advice.illegal.command.execution", commandSystemMethodToCheck, action, commandIllegallyExecutedThroughAttribute, fullMethodSignature));
+            throw new SecurityException(localize(
+                    "security.advice.illegal.command.execution",
+                    commandSystemMethodToCheck,
+                    action,
+                    commandIllegallyExecutedThroughAttribute,
+                    fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+            ));
         }
         //</editor-fold>
     }

@@ -47,7 +47,8 @@ public class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstrumentat
     @Nonnull
     private static final Map<String, IgnoreValues> FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT = Map.ofEntries(
             Map.entry("java.io.File.delete", IgnoreValues.allExcept(1)),
-            Map.entry("java.io.File.deleteOnExit", IgnoreValues.allExcept(1))
+            Map.entry("java.io.File.deleteOnExit", IgnoreValues.allExcept(1)),
+            Map.entry("java.io.File.createNewFile", IgnoreValues.allExcept(1))
     );
 
     /**
@@ -103,7 +104,7 @@ public class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstrumentat
             return true;
         }
         for (String path : allowedPaths) {
-            @Nonnull Path allowedPath = variableToPath(path);
+            @Nullable Path allowedPath = variableToPath(path);
             try {
                 @Nonnull Path realPath = actualPath.toRealPath(LinkOption.NOFOLLOW_LINKS);
                 if (allowedPath != null && realPath.startsWith(allowedPath)) {
@@ -293,7 +294,8 @@ public class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstrumentat
             @Nonnull String methodName,
             @Nonnull String methodSignature,
             @Nullable Object[] attributes,
-            @Nullable Object[] parameters
+            @Nullable Object[] parameters,
+            @Nullable Object instance
     ) {
         //<editor-fold desc="Get information from settings">
         @Nullable final String aopMode = getValueFromSettings("aopMode");
@@ -321,11 +323,18 @@ public class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstrumentat
         if (fileSystemMethodToCheck == null) {
             return;
         }
+        @Nullable String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
         //</editor-fold>
         //<editor-fold desc="Check parameters">
         @Nullable String pathIllegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, allowedPaths, FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
         if (pathIllegallyInteractedThroughParameter != null) {
-            throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck, action, pathIllegallyInteractedThroughParameter, fullMethodSignature));
+            throw new SecurityException(localize(
+                    "security.advice.illegal.file.execution",
+                    fileSystemMethodToCheck,
+                    action,
+                    pathIllegallyInteractedThroughParameter,
+                    fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+            ));
         }
         //</editor-fold>
         //<editor-fold desc="Check attributes">
@@ -337,7 +346,15 @@ public class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstrumentat
                             !pathIllegallyInteractedThroughAttribute.endsWith("ares/api/localization/messages.properties") &&
                             !pathIllegallyInteractedThroughAttribute.endsWith("ares/api/util/LruCache.class")
             ) {
-                throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck, action, pathIllegallyInteractedThroughAttribute, fullMethodSignature));
+                String x = checkIfVariableCriteriaIsViolated(attributes, allowedPaths, FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
+                System.out.println(x);
+                throw new SecurityException(localize(
+                        "security.advice.illegal.file.execution",
+                        fileSystemMethodToCheck,
+                        action,
+                        pathIllegallyInteractedThroughAttribute,
+                        fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+                ));
             }
         }
         //</editor-fold>

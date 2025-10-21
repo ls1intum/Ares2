@@ -5,26 +5,26 @@ import java.util.Objects;
 
 public final class IgnoreValues {
 
-    public static final IgnoreValues NONE = new IgnoreValues(Type.NONE);
+    public static final IgnoreValues NONE = new IgnoreValues("NONE");
 
-    public static final IgnoreValues ALL = new IgnoreValues(Type.ALL);
+    public static final IgnoreValues ALL = new IgnoreValues("ALL");
 
-    public enum Type {
+    /*public enum Type {
         NONE,
         NONE_EXCEPT,
         ALL,
         ALL_EXCEPT
-    }
+    }*/
 
-    private final Type type;
+    private final String type;
 
     private final Integer index;
 
-    private IgnoreValues(Type type) {
+    private IgnoreValues(String type) {
         this(type, null);
     }
 
-    private IgnoreValues(@Nonnull Type type, Integer index) {
+    private IgnoreValues(@Nonnull String type, Integer index) {
         this.type = Objects.requireNonNull(type, "type must not be null");
         this.index = index;
     }
@@ -34,7 +34,7 @@ public final class IgnoreValues {
             throw new IllegalArgumentException("index must not be negative");
         }
 
-        return new IgnoreValues(Type.NONE_EXCEPT, index);
+        return new IgnoreValues("NONE_EXCEPT", index);
     }
 
     public static IgnoreValues allExcept(int index) {
@@ -42,10 +42,10 @@ public final class IgnoreValues {
             throw new IllegalArgumentException("index must not be negative");
         }
 
-        return new IgnoreValues(Type.ALL_EXCEPT, index);
+        return new IgnoreValues("ALL_EXCEPT", index);
     }
 
-    public Type getType() {
+    public String getType() {
         return type;
     }
 

@@ -29,7 +29,8 @@ class JavaInstrumentationExecutePathMethodAdviceTest {
                     METHOD_NAME,
                     METHOD_SIGNATURE,
                     ATTRIBUTES,
-                    PARAMETERS
+                    PARAMETERS,
+                    null
             )).thenAnswer(invocation -> null);
 
             // Act
@@ -38,7 +39,8 @@ class JavaInstrumentationExecutePathMethodAdviceTest {
                     METHOD_NAME,
                     METHOD_SIGNATURE,
                     INSTANCE,
-                    PARAMETERS
+                    PARAMETERS,
+                    null
             );
 
             // Assert
@@ -48,7 +50,8 @@ class JavaInstrumentationExecutePathMethodAdviceTest {
                     METHOD_NAME,
                     METHOD_SIGNATURE,
                     ATTRIBUTES,
-                    PARAMETERS
+                    PARAMETERS,
+                    null
             ));
         }
     }
