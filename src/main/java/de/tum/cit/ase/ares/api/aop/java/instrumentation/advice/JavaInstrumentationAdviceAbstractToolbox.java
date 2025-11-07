@@ -17,9 +17,16 @@ import javax.annotation.Nonnull;
 
 public abstract class JavaInstrumentationAdviceAbstractToolbox {
 
+    JavaInstrumentationAdviceAbstractToolbox() {
+        throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+                "security.instrumentation.utility.initialization",
+                "JavaInstrumentationAdviceAbstractToolbox"
+        ));
+    }
+
     //<editor-fold desc="Constants">
     @Nonnull
-    protected static final List<String> IGNORE_CALLSTACK = List.of(
+    public static final List<String> IGNORE_CALLSTACK = List.of(
             "java.lang.ClassLoader",
             "de.tum.cit.ase.ares.api."
     );
@@ -41,7 +48,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
      */
     @SuppressWarnings("unchecked")
     @Nullable
-    protected static <T> T getValueFromSettings(@Nonnull String fieldName) {
+    public static <T> T getValueFromSettings(@Nonnull String fieldName) {
         try {
             // Take standard class loader as class loader in order to get the JavaAOPTestCaseSettings class at compile time for aspectj
             @Nonnull Class<?> adviceSettingsClass = Objects.requireNonNull(Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings"), "adviceSettingsClass must not be null");
@@ -52,19 +59,19 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
             return value;
 
         } catch (LinkageError e) {
-            throw new SecurityException(localize("security.advice.linkage.exception", fieldName), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.linkage.exception", fieldName), e);
         } catch (ClassNotFoundException e) {
-            throw new SecurityException(localize("security.advice.class.not.found.exception", fieldName), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.class.not.found.exception", fieldName), e);
         } catch (NoSuchFieldException e) {
-            throw new SecurityException(localize("security.advice.no.such.field.exception", fieldName), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.no.such.field.exception", fieldName), e);
         } catch (NullPointerException e) {
-            throw new SecurityException(localize("security.advice.null.pointer.exception", fieldName), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.null.pointer.exception", fieldName), e);
         } catch (InaccessibleObjectException e) {
-            throw new SecurityException(localize("security.advice.inaccessible.object.exception", fieldName), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.inaccessible.object.exception", fieldName), e);
         } catch (IllegalAccessException e) {
-            throw new SecurityException(localize("security.advice.illegal.access.exception", fieldName), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.illegal.access.exception", fieldName), e);
         } catch (IllegalArgumentException e) {
-            throw new SecurityException(localize("security.advice.illegal.argument.exception", fieldName), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.illegal.argument.exception", fieldName), e);
         }
     }
 
@@ -80,7 +87,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
      * @since 2.0.0
      * @author Markus Paulsen
      */
-    protected static <T> void setValueToSettings(@Nonnull String fieldName, @Nullable T newValue) {
+    public static <T> void setValueToSettings(@Nonnull String fieldName, @Nullable T newValue) {
         try {
             // Take standard class loader as class loader in order to get the JavaAOPTestCaseSettings class at compile time for aspectj
             @Nonnull Class<?> adviceSettingsClass = Objects.requireNonNull(Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings"), "adviceSettingsClass must not be null");
@@ -89,19 +96,19 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
             field.set(null, newValue);
             field.setAccessible(false);
         } catch (LinkageError e) {
-            throw new SecurityException(localize("security.advice.linkage.exception", fieldName), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.linkage.exception", fieldName), e);
         } catch (ClassNotFoundException e) {
-            throw new SecurityException(localize("security.advice.class.not.found.exception", fieldName), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.class.not.found.exception", fieldName), e);
         } catch (NoSuchFieldException e) {
-            throw new SecurityException(localize("security.advice.no.such.field.exception", fieldName), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.no.such.field.exception", fieldName), e);
         } catch (NullPointerException e) {
-            throw new SecurityException(localize("security.advice.null.pointer.exception", fieldName), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.null.pointer.exception", fieldName), e);
         } catch (InaccessibleObjectException e) {
-            throw new SecurityException(localize("security.advice.inaccessible.object.exception", fieldName), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.inaccessible.object.exception", fieldName), e);
         } catch (IllegalAccessException e) {
-            throw new SecurityException(localize("security.advice.illegal.access.exception", fieldName), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.illegal.access.exception", fieldName), e);
         } catch (IllegalArgumentException e) {
-            throw new SecurityException(localize("security.advice.illegal.argument.exception", fieldName), e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.illegal.argument.exception", fieldName), e);
         }
     }
 
@@ -116,7 +123,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
      * @since 2.0.0
      * @author Markus Paulsen
      */
-    protected static void decrementSettingsArrayValue(@Nonnull String settingsArray, int position) {
+    public static void decrementSettingsArrayValue(@Nonnull String settingsArray, int position) {
         @Nullable int[] array = getValueFromSettings(settingsArray);
         if (array != null && position >= 0 && position < array.length) {
             @Nonnull int[] clone = array.clone();
@@ -152,7 +159,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
             if (result instanceof String str) {
                 return str;
             } else {
-                throw new IllegalStateException("Method does not return a String");
+                throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.localization.method.return.type"));
             }
         } catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException |
                  IllegalAccessException e) {
@@ -176,7 +183,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
      * @since 2.0.0
      * @author Markus Paulsen
      */
-    protected static boolean checkIfCallstackElementIsAllowed(@Nonnull String[] allowedClasses, @Nonnull StackTraceElement elementToCheck) {
+    public static boolean checkIfCallstackElementIsAllowed(@Nonnull String[] allowedClasses, @Nonnull StackTraceElement elementToCheck) {
         String className = elementToCheck.getClassName();
         for (@Nonnull String allowedClass : allowedClasses) {
             if (className.startsWith(allowedClass)) {
@@ -200,7 +207,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
      * @author Markus Paulsen
      */
     @Nullable
-    protected static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses) {
+    public static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses) {
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
         for (@Nonnull StackTraceElement element : stackTrace) {
             String className = element.getClassName();
@@ -234,7 +241,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
      * @since 2.0.2
      */
     @Nullable
-    protected static String findFirstMethodOutsideOfRestrictedPackage(@Nullable String restrictedPackage) {
+    public static String findFirstMethodOutsideOfRestrictedPackage(@Nullable String restrictedPackage) {
         if (restrictedPackage == null) {
             return null;
         }
@@ -281,7 +288,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
      * @author Markus Paulsen
      */
     @Nonnull
-    protected static Object[] filterVariables(@Nonnull Object[] variables, @Nonnull IgnoreValues ignoreVariables) {
+    public static Object[] filterVariables(@Nonnull Object[] variables, @Nonnull IgnoreValues ignoreVariables) {
         @Nonnull ArrayList<Object> newVariables = new ArrayList<>(Arrays.asList(variables.clone()));
         switch (ignoreVariables.getType()) {
             // No variable is ignored
@@ -294,7 +301,11 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
             // All variables except the one at the given index are ignored
             case "ALL_EXCEPT":
                 if (ignoreVariables.getIndex() < 0 || ignoreVariables.getIndex() >= newVariables.size()) {
-                    throw new IllegalArgumentException("Invalid index: " + ignoreVariables.getIndex());
+                    throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+                            "security.instrumentation.ignore.values.index.invalid",
+                            ignoreVariables.getIndex(),
+                            newVariables.size()
+                    ));
                 }
                 @Nonnull Object toKeep = newVariables.get(ignoreVariables.getIndex());
                 newVariables.clear();
@@ -302,7 +313,11 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
                 break;
             case "NONE_EXCEPT":
                 if (ignoreVariables.getIndex() < 0 || ignoreVariables.getIndex() >= newVariables.size()) {
-                    throw new IllegalArgumentException("Invalid index: " + ignoreVariables.getIndex());
+                    throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+                            "security.instrumentation.ignore.values.index.invalid",
+                            ignoreVariables.getIndex(),
+                            newVariables.size()
+                    ));
                 }
                 newVariables.remove(ignoreVariables.getIndex());
                 break;

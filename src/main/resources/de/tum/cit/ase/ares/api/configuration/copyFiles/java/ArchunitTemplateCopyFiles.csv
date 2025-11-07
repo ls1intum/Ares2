@@ -18,5 +18,3 @@ templates/architecture/java/archunit/methods/jvm-termination-methods.txt,0,ares/
 templates/architecture/java/archunit/methods/reflection-methods.txt,0,ares/api/templates/architecture/java/archunit/methods/reflection-methods.txt
 templates/architecture/java/archunit/methods/classloader-methods.txt,0,ares/api/templates/architecture/java/archunit/methods/classloader-methods.txt
 templates/architecture/java/archunit/methods/serializable-methods.txt,0,ares/api/templates/architecture/java/archunit/methods/serializable-methods.txt
-localization/messages.properties,0,ares/api/localization/messages.properties
-localization/messages_de.properties,0,ares/api/localization/messages_de.properties

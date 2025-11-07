@@ -155,7 +155,7 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
             if (result instanceof String str) {
                 return str;
             } else {
-                throw new IllegalStateException("Method does not return a String");
+                throw new SecurityException(localize("security.localization.method.return.type"));
             }
         } catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException |
                  IllegalAccessException e) {

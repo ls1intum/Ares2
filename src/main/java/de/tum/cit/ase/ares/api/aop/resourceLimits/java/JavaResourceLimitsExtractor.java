@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.aop.resourceLimits.java;
 
 import de.tum.cit.ase.ares.api.aop.resourceLimits.ResourceLimitsExtractor;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceLimitsPermission;
 
 import javax.annotation.Nonnull;
@@ -39,7 +40,12 @@ public class JavaResourceLimitsExtractor implements ResourceLimitsExtractor {
         // Validate that all elements are ResourceLimitsPermission instances
         for (Object item : rawList) {
             if (!(item instanceof ResourceLimitsPermission)) {
-                throw new IllegalStateException("Expected ResourceLimitsPermission but got: " + item.getClass().getName());
+                throw new SecurityException(
+                        Messages.localized(
+                                "security.resource.limits.permission.invalid.type",
+                                item.getClass().getName()
+                        )
+                );
             }
         }
 
@@ -76,7 +82,13 @@ public class JavaResourceLimitsExtractor implements ResourceLimitsExtractor {
                     if (val < 0) continue;
                     min.merge(name, val, Math::min);
                 } catch (ReflectiveOperationException e) {
-                    throw new RuntimeException("Failed to invoke method '" + name + "' on ResourceLimitsPermission: " + e.getMessage(), e);
+                    throw new SecurityException(
+                            Messages.localized(
+                                    "security.resource.limits.permission.invocation.error",
+                                    name,
+                                    String.valueOf(e.getMessage())
+                            ),
+                            e);
                 }
             }
         }

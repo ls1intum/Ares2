@@ -5,6 +5,7 @@ import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
+import de.tum.cit.ase.ares.api.localization.Localisation;
 import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.Phobos;
 import de.tum.cit.ase.ares.api.util.FileTools;
@@ -12,6 +13,7 @@ import de.tum.cit.ase.ares.api.util.FileTools;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
@@ -130,16 +132,27 @@ public class JavaWriter implements Writer {
     }
 
     @Nonnull
+    private List<Path> createLocalisationFiles(
+            @Nonnull String packageName,
+            @Nullable Path testFolderPath
+    ) {
+        Path resourcesFolderPath = Paths.get("/", testFolderPath.subpath(0,testFolderPath.toString().split("/").length-2).toString(), "resources");
+        return FileTools.copyFiles(
+                Localisation.filesToCopy(),
+                Localisation.targetsToCopyTo(resourcesFolderPath)
+        );
+    }
+
+    @Nonnull
     private List<Path> createPhobosFiles(
             @Nonnull String packageName,
             @Nonnull List<JavaPhobosTestCase> javaPhobosTestCases,
             @Nullable Path testFolderPath
     ) {
         return Stream.concat(
-                FileTools.copyAndFormatFSFiles(
+                FileTools.copyFiles(
                         Phobos.filesToCopy(),
-                        Phobos.targetsToCopyTo(testFolderPath),
-                        Phobos.fileValues(packageName)
+                        Phobos.targetsToCopyTo(testFolderPath)
                 ).stream(),
                 Stream.of(FileTools.createThreePartedFormatStringFile(
                         Phobos.threePartedFileHeader(),
@@ -206,6 +219,10 @@ public class JavaWriter implements Writer {
                                 packageName,
                                 mainClassInPackageName,
                                 javaAOPTestCases,
+                                testFolderPath
+                        ).stream(),
+                        createLocalisationFiles(
+                                packageName,
                                 testFolderPath
                         ).stream(),
                         createPhobosFiles(

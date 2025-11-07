@@ -196,7 +196,7 @@ public class JavaCreator implements Creator {
         return JavaAOPTestCase.builder()
                 // The AOP test case checks for the following aspect
                 .javaAOPTestCaseSupported(supported)
-                // The AOP test cases are built over the following ressources
+                // The AOP test cases are built over the following resources
                 .resourceAccessSupplier(resourceAccessSupplier)
                 // The following classes are allowed
                 .allowedClasses(allowedClasses)

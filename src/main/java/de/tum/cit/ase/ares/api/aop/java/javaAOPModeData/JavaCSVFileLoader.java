@@ -7,11 +7,12 @@ import de.tum.cit.ase.ares.api.util.FileTools;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.List;
 
 public class JavaCSVFileLoader implements JavaFileLoader {
 
+
+    //<editor-fold desc="getCopyPaths">
 
     /**
      * Retrieves the path to the CSV file containing the copy configuration for the selected architecture mode.
@@ -20,19 +21,19 @@ public class JavaCSVFileLoader implements JavaFileLoader {
      * @return the path to the CSV file containing the copy configuration.
      */
     public File getCopyPaths(ArchitectureMode mode, boolean formatStringFileRequested) {
-        if(formatStringFileRequested) {
+        if (formatStringFileRequested) {
             return switch (mode) {
                 case ARCHUNIT ->
-                        FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration","copyFiles","java","ArchunitTemplateCopyFiles.csv"));
+                        FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration", "copyFiles", "java", "ArchunitTemplateCopyFiles.csv"));
                 case WALA ->
-                        FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration","copyFiles","java","WalaTemplateCopyFiles.csv"));
+                        FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration", "copyFiles", "java", "WalaTemplateCopyFiles.csv"));
             };
         } else {
             return switch (mode) {
                 case ARCHUNIT ->
-                        FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration","copyFiles","java","ArchunitJavaCopyFiles.csv"));
+                        FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration", "copyFiles", "java", "ArchunitJavaCopyFiles.csv"));
                 case WALA ->
-                        FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration","copyFiles","java","WalaJavaCopyFiles.csv"));
+                        FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration", "copyFiles", "java", "WalaJavaCopyFiles.csv"));
             };
         }
     }
@@ -44,22 +45,43 @@ public class JavaCSVFileLoader implements JavaFileLoader {
      * @return the path to the CSV file containing the copy configuration.
      */
     public File getCopyPaths(AOPMode mode, boolean formatStringFileRequested) {
-        if(formatStringFileRequested) {
+        if (formatStringFileRequested) {
             return switch (mode) {
                 case INSTRUMENTATION ->
-                        FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration","copyFiles","java","InstrumentationTemplateCopyFiles.csv"));
+                        FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration", "copyFiles", "java", "InstrumentationTemplateCopyFiles.csv"));
                 case ASPECTJ ->
-                        FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration","copyFiles","java","AspectJTemplateCopyFiles.csv"));
+                        FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration", "copyFiles", "java", "AspectJTemplateCopyFiles.csv"));
             };
         } else {
             return switch (mode) {
                 case INSTRUMENTATION ->
-                        FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration","copyFiles","java","InstrumentationJavaCopyFiles.csv"));
+                        FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration", "copyFiles", "java", "InstrumentationJavaCopyFiles.csv"));
                 case ASPECTJ ->
-                        FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration","copyFiles","java","AspectJAJCopyFiles.csv"));
+                        FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration", "copyFiles", "java", "AspectJAJCopyFiles.csv"));
             };
         }
     }
+
+    /**
+     * Retrieves the path to the CSV file containing the copy configuration for Localisation.
+     *
+     * @return the path to the CSV file containing the copy configuration.
+     */
+    public File getLocalisationCopyPaths() {
+        return FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration", "copyFiles", "LocalisationCopyFiles.csv"));
+    }
+
+    /**
+     * Retrieves the path to the CSV file containing the copy configuration for the selected AOP mode.
+     *
+     * @return the path to the CSV file containing the copy configuration.
+     */
+    private File getPhobosCopyPaths() throws IOException {
+        return FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration", "copyFiles", "PhobosCopyFiles.csv"));
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="getEditPaths">
 
     /**
      * Retrieves the path to the CSV file containing the edit configuration for the selected architecture mode.
@@ -70,10 +92,10 @@ public class JavaCSVFileLoader implements JavaFileLoader {
     public File getEditPaths(ArchitectureMode mode) {
         return switch (mode) {
             case ARCHUNIT ->
-                FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration","editFiles","java","ArchunitEditFiles.csv"));
+                    FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration", "editFiles", "java", "ArchunitEditFiles.csv"));
 
             case WALA ->
-                FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration","editFiles","java","WalaEditFiles.csv"));
+                    FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration", "editFiles", "java", "WalaEditFiles.csv"));
 
         };
     }
@@ -87,12 +109,24 @@ public class JavaCSVFileLoader implements JavaFileLoader {
     public File getEditPaths(AOPMode mode) {
         return switch (mode) {
             case INSTRUMENTATION ->
-                FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration","editFiles","java","InstrumentationEditFiles.csv"));
+                    FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration", "editFiles", "java", "InstrumentationEditFiles.csv"));
 
             case ASPECTJ ->
-                FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration","editFiles","java","AspectJEditFiles.csv"));
+                    FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration", "editFiles", "java", "AspectJEditFiles.csv"));
         };
     }
+
+    /**
+     * Retrieves the path to the CSV file containing the edit configuration for Phobos.
+     *
+     * @return the path to the CSV file containing the edit configuration.
+     */
+    private File getPhobosEditPaths() throws IOException {
+        return FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration", "editFiles", "PhobosEditFiles.csv"));
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="loadCopyData">
 
     /**
      * Loads the copy configuration from the CSV file for the selected architecture mode.
@@ -105,26 +139,6 @@ public class JavaCSVFileLoader implements JavaFileLoader {
         return FileTools.readCSVFile(getCopyPaths(mode, fs));
     }
 
-
-    /**
-     * Retrieves the path to the CSV file containing the copy configuration for the selected AOP mode.
-     *
-     * @return the path to the CSV file containing the copy configuration.
-     */
-    private File getPhobosCopyPaths() throws IOException {
-        return FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration","copyFiles","PhobosCopyFiles.csv"));
-    }
-
-
-    /**
-     * Retrieves the path to the CSV file containing the edit configuration for Phobos.
-     *
-     * @return the path to the CSV file containing the edit configuration.
-     */
-    private File getPhobosEditPaths() throws IOException {
-        return FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration","editFiles","PhobosEditFiles.csv"));
-    }
-
     /**
      * Loads the copy configuration from the CSV file for the selected AOP mode.
      *
@@ -135,6 +149,22 @@ public class JavaCSVFileLoader implements JavaFileLoader {
     public List<List<String>> loadCopyData(AOPMode mode, boolean fs) throws IOException, CsvException {
         return FileTools.readCSVFile(getCopyPaths(mode, fs));
     }
+
+    public List<List<String>> loadLocalisationCopyData() throws IOException, CsvException {
+        return FileTools.readCSVFile(getLocalisationCopyPaths());
+    }
+
+    /**
+     * Loads the copy configuration from the CSV file for Phobos.
+     *
+     * @return the copy configuration.
+     */
+    public List<List<String>> loadPhobosCopyData() throws IOException, CsvException {
+        return FileTools.readCSVFile(getPhobosCopyPaths());
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="loadEditData">
 
     /**
      * Loads the edit configuration from the CSV file for the selected architecture mode.
@@ -158,26 +188,14 @@ public class JavaCSVFileLoader implements JavaFileLoader {
         return FileTools.readCSVFile(getEditPaths(mode));
     }
 
-
-    /**
-     * Loads the copy configuration from the CSV file for Phobos.
-     *
-     * @return the copy configuration.
-     */
-    @Override
-    public List<List<String>> loadCopyData() throws IOException, CsvException {
-        return FileTools.readCSVFile(getPhobosCopyPaths());
-    }
-
-
     /**
      * Loads the edit configuration from the CSV file for Phobos.
      *
      * @return the edit configuration.
      */
-    @Override
-    public List<List<String>> loadEditData() throws IOException, CsvException {
+    public List<List<String>> loadPhobosEditData() throws IOException, CsvException {
         return FileTools.readCSVFile(getPhobosEditPaths());
     }
+    //</editor-fold>
 
 }

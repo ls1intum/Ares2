@@ -58,7 +58,12 @@ public class JavaFileSystemExtractor implements FileSystemExtractor {
             case "execute" -> FilePermission::executeAllFiles;
             case "delete" -> FilePermission::deleteAllFiles;
             default ->
-                    throw new IllegalArgumentException(Messages.localized("security.advice.settings.invalid.file.permission", filePermission));
+                    throw new SecurityException(
+                            Messages.localized(
+                                    "security.advice.settings.invalid.file.permission",
+                                    filePermission
+                            )
+                    );
         };
         return ((List<FilePermission>) resourceAccessSupplier.get())
                 .stream()

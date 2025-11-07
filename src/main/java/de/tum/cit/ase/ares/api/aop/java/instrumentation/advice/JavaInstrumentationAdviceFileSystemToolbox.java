@@ -1,20 +1,27 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 
-//<editor-fold desc="imports">
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox.*;
 
+//<editor-fold desc="imports">
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
+import java.nio.file.OpenOption;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-import javax.annotation.Nullable;
 import javax.annotation.Nonnull;
-//</editor-fold>
+import javax.annotation.Nullable;
 
 /**
  * Utility class for Java instrumentation file system security advice.
@@ -37,7 +44,6 @@ import javax.annotation.Nonnull;
 public class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstrumentationAdviceAbstractToolbox {
 
     //<editor-fold desc="Constants">
-
     /**
      * Map of methods with attribute index exceptions for file system ignore logic.
      *
@@ -59,10 +65,12 @@ public class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstrumentat
      */
     @Nonnull
     private static final Map<String, IgnoreValues> FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT = Map.ofEntries();
+
+    private static final EnumSet<StandardOpenOption> CREATE_OPTIONS =
+            EnumSet.of(StandardOpenOption.CREATE, StandardOpenOption.CREATE_NEW);
     //</editor-fold>
 
     //<editor-fold desc="Constructor">
-
     /**
      * Private constructor to prevent instantiation of this utility class.
      *
@@ -73,9 +81,10 @@ public class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstrumentat
      * @author Markus Paulsen
      */
     private JavaInstrumentationAdviceFileSystemToolbox() {
-        throw new SecurityException(
-                "Ares Security Error (Reason: Ares-Code; Stage: Execution): JavaInstrumentationAdviceFileSystemToolbox is a utility class and should not be instantiated."
-        );
+        throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+                "security.instrumentation.utility.initialization",
+                "JavaInstrumentationAdviceFileSystemToolbox"
+        ));
     }
     //</editor-fold>
 
@@ -88,38 +97,77 @@ public class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstrumentat
     /**
      * Checks if a Path is outside of the allowed paths whitelist.
      *
-     * <p>Description: Returns true if allowedPaths not null or if the given actualPath does not match one of the allowedPatterns.
+     * <p>Description: Returns true if allowedPathsAsStrings not null or if the given actualPath does not match one of the allowedPatterns.
      *
      * @since 2.0.0
      * @author Markus
      * @param actualPath         the Path to test
-     * @param allowedPaths whitelist of allowed actualPath strings
+     * @param allowedPathsAsStrings whitelist of allowed actualPath strings
      * @return true if actualPath is forbidden; false otherwise
      */
-    private static boolean checkIfPathIsForbidden(@Nullable Path actualPath, @Nullable String[] allowedPaths) {
-        if(actualPath == null) {
+    private static boolean checkIfPathIsForbidden(@Nullable Path actualPath, @Nullable String[] allowedPathsAsStrings, boolean allowNonExistingPathsToBeConsidered) {
+        if (actualPath == null) {
             return false;
         }
-        if(allowedPaths == null) {
+        if (allowedPathsAsStrings == null || allowedPathsAsStrings.length == 0) {
             return true;
         }
-        for (String path : allowedPaths) {
-            @Nullable Path allowedPath = variableToPath(path);
+
+        Path candidate = actualPath.normalize().toAbsolutePath();
+        boolean actualExists = Files.exists(candidate);
+
+        if (actualExists) {
             try {
-                @Nonnull Path realPath = actualPath.toRealPath(LinkOption.NOFOLLOW_LINKS);
-                if (allowedPath != null && realPath.startsWith(allowedPath)) {
-                    return false;
+                candidate = candidate.toRealPath(LinkOption.NOFOLLOW_LINKS);
+            } catch (IOException ignored) {
+                if (!allowNonExistingPathsToBeConsidered) {
+                    return true;
                 }
-            } catch (IOException e) {
-                return false;
             }
         }
-        return true;
+
+        boolean hasAllowedPrefix = false;
+        for (String allowedPathsAsString : allowedPathsAsStrings) {
+            @Nullable Path allowedPath = variableToPath(allowedPathsAsString, allowNonExistingPathsToBeConsidered);
+            if (allowedPath == null) {
+                continue;
+            }
+            Path normalizedAllowedPath = allowedPath.normalize().toAbsolutePath();
+            if (!allowNonExistingPathsToBeConsidered) {
+                if (!Files.exists(normalizedAllowedPath)) {
+                    continue;
+                }
+                try {
+                    normalizedAllowedPath = normalizedAllowedPath.toRealPath(LinkOption.NOFOLLOW_LINKS);
+                } catch (IOException ignored) {
+                    continue;
+                }
+            } else if (Files.exists(normalizedAllowedPath)) {
+                try {
+                    normalizedAllowedPath = normalizedAllowedPath.toRealPath(LinkOption.NOFOLLOW_LINKS);
+                } catch (IOException ignored) {
+                    // use normalized path if real path resolution fails
+                }
+            }
+            if (candidate.startsWith(normalizedAllowedPath)) {
+                hasAllowedPrefix = true;
+                break;
+            }
+        }
+
+        if (allowNonExistingPathsToBeConsidered) {
+            return !hasAllowedPrefix;
+        }
+
+        if (!actualExists) {
+            return false;
+        }
+
+        return !hasAllowedPrefix;
     }
     //</editor-fold>
 
     //<editor-fold desc="Conversion handling">
-
     /**
      * Transforms variable values into a normalized absolute path.
      *
@@ -133,15 +181,19 @@ public class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstrumentat
      * @author Markus Paulsen
      */
     @Nullable
-    private static Path variableToPath(@Nullable Object variableValue) {
+    private static Path variableToPath(@Nullable Object variableValue, boolean allowNonExistingPathsToBeConsidered) {
         try {
             if (variableValue == null) {
                 return null;
             } else if (variableValue instanceof Path) {
                 return ((Path) variableValue).normalize().toAbsolutePath();
             } else if (variableValue instanceof String) {
+                // Easy fix for cases where an empty string or root '/'' is provided (often an incorrect entry)
+                if(variableValue.equals("") || variableValue.equals("/")) {
+                    return null;
+                }
                 Path absolutePath = Path.of((String) variableValue).normalize().toAbsolutePath();
-                if (Files.exists(absolutePath)) {
+                if (Files.exists(absolutePath) || allowNonExistingPathsToBeConsidered) {
                     return absolutePath;
                 } else {
                     return null;
@@ -170,13 +222,13 @@ public class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstrumentat
      * @param allowedPaths  whitelist of allowed path strings; if null, all paths are considered allowed
      * @return true if a violation is found, false otherwise
      */
-    private static boolean analyseViolation(@Nullable Object observedVariable, @Nullable String[] allowedPaths) {
+    private static boolean analyseViolation(@Nullable Object observedVariable, @Nullable String[] allowedPaths, boolean allowNonExistingPathsToBeConsidered) {
         if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
             return false;
         } else if (observedVariable.getClass().isArray()) {
             for (int i = 0; i < Array.getLength(observedVariable); i++) {
                 Object element = Array.get(observedVariable, i);
-                boolean violation = analyseViolation(element, allowedPaths);
+                boolean violation = analyseViolation(element, allowedPaths, allowNonExistingPathsToBeConsidered);
                 if (violation) {
                     return true;
                 }
@@ -184,15 +236,15 @@ public class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstrumentat
             return false;
         } else if (observedVariable instanceof List<?>) {
             for (Object element : (List<?>) observedVariable) {
-                boolean violation = analyseViolation(element, allowedPaths);
+                boolean violation = analyseViolation(element, allowedPaths, allowNonExistingPathsToBeConsidered);
                 if (violation) {
                     return true;
                 }
             }
             return false;
         } else {
-            Path observedPath = variableToPath(observedVariable);
-            return checkIfPathIsForbidden(observedPath, allowedPaths);
+            Path observedPath = variableToPath(observedVariable, allowNonExistingPathsToBeConsidered);
+            return checkIfPathIsForbidden(observedPath, allowedPaths, allowNonExistingPathsToBeConsidered);
         }
     }
 
@@ -209,13 +261,13 @@ public class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstrumentat
      * @return the first violating path as a String, or null if none found
      */
     @Nullable
-    private static String extractViolationPath(@Nullable Object observedVariable, @Nullable String[] allowedPaths) {
+    private static String extractViolationPath(@Nullable Object observedVariable, @Nullable String[] allowedPaths, boolean allowNonExistingPathsToBeConsidered) {
         if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
             return null;
         } else if (observedVariable.getClass().isArray()) {
             for (int i = 0; i < Array.getLength(observedVariable); i++) {
                 Object element = Array.get(observedVariable, i);
-                String violationPath = extractViolationPath(element, allowedPaths);
+                String violationPath = extractViolationPath(element, allowedPaths, allowNonExistingPathsToBeConsidered);
                 if (violationPath != null) {
                     return violationPath;
                 }
@@ -223,15 +275,15 @@ public class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstrumentat
             return null;
         } else if (observedVariable instanceof List<?>) {
             for (Object element : (List<?>) observedVariable) {
-                String violationPath = extractViolationPath(element, allowedPaths);
+                String violationPath = extractViolationPath(element, allowedPaths, allowNonExistingPathsToBeConsidered);
                 if (violationPath != null) {
                     return violationPath;
                 }
             }
             return null;
         } else {
-            Path observedPath = variableToPath(observedVariable);
-            if (checkIfPathIsForbidden(observedPath, allowedPaths)) {
+            Path observedPath = variableToPath(observedVariable, allowNonExistingPathsToBeConsidered);
+            if (checkIfPathIsForbidden(observedPath, allowedPaths, allowNonExistingPathsToBeConsidered)) {
                 return observedPath.toString();
             }
         }
@@ -256,20 +308,229 @@ public class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstrumentat
     private static String checkIfVariableCriteriaIsViolated(
             @Nonnull Object[] observedVariables,
             @Nullable String[] allowedPaths,
-            @Nonnull IgnoreValues ignoreVariables
+            @Nonnull IgnoreValues ignoreVariables,
+            boolean allowNonExistingPathsToBeConsidered
     ) {
         for (@Nullable Object observedVariable : filterVariables(observedVariables, ignoreVariables)) {
-            if (analyseViolation(observedVariable, allowedPaths)) {
-                return extractViolationPath(observedVariable, allowedPaths);
+            if (analyseViolation(observedVariable, allowedPaths, allowNonExistingPathsToBeConsidered)) {
+                return extractViolationPath(observedVariable, allowedPaths, allowNonExistingPathsToBeConsidered);
             }
         }
         return null;
     }
     //</editor-fold>
-
     //</editor-fold>
 
     //<editor-fold desc="Check methods">
+    /**
+     * Derives the list of file-system actions that need to be validated for a given invocation.
+     *
+     * <p>Description: Inspects the intercepted method arguments for {@link StandardOpenOption}
+     * instances and maps them onto the corresponding security actions (read, overwrite, create, delete).
+     * The returned list preserves insertion order and collapses duplicate actions while tracking whether
+     * non-existing paths should be allowed for each action.</p>
+     *
+     * @param defaultAction action associated with the pointcut configuration (e.g., {@code overwrite})
+     * @param parameters    intercepted method arguments that may contain {@link StandardOpenOption}s
+     * @return ordered list of action/allow-non-existing pairs to validate
+     *
+     * @since 2.0.0
+     */
+    private static List<Map.Entry<String, Boolean>> deriveActionChecks(@Nonnull String defaultAction, @Nullable Object[] parameters) {
+        Set<StandardOpenOption> options = extractStandardOpenOptions(parameters);
+        Map<String, Boolean> actions = new LinkedHashMap<>();
+        for (StandardOpenOption option : options) {
+            switch (option) {
+                case CREATE:
+                case CREATE_NEW:
+                    actions.merge("create", true, Boolean::logicalOr);
+                    break;
+                case WRITE:
+                case APPEND:
+                case TRUNCATE_EXISTING:
+                    actions.merge("overwrite", false, Boolean::logicalOr);
+                    break;
+                case READ:
+                    actions.merge("read", false, Boolean::logicalOr);
+                    break;
+                case DELETE_ON_CLOSE:
+                    actions.merge("delete", false, Boolean::logicalOr);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        if (actions.isEmpty()) {
+            actions.put(defaultAction, shouldAllowNonExistingByDefault(defaultAction));
+        }
+
+        List<Map.Entry<String, Boolean>> result = new ArrayList<>(actions.size());
+        actions.forEach((act, allowNonExistingPathsToBeConsidered) -> result.add(Map.entry(act, allowNonExistingPathsToBeConsidered)));
+        return result;
+    }
+
+    /**
+     * Determines whether the default action allows paths that do not yet exist.
+     *
+     * <p>Description: The create action is the only one that implicitly authorises interactions
+     * with non-existing paths. All other actions require the path to be present.</p>
+     *
+     * @param action action identifier to evaluate
+     * @return {@code true} if paths may be missing, {@code false} otherwise
+     *
+     * @since 2.0.0
+     */
+    private static boolean shouldAllowNonExistingByDefault(@Nonnull String action) {
+        return "create".equals(action);
+    }
+
+    /**
+     * Extracts all {@link StandardOpenOption}s from the provided method arguments.
+     *
+     * <p>Description: Traverses arrays, collections, and nested option containers to normalise the
+     * input into an {@link EnumSet} of distinct {@link StandardOpenOption} values.</p>
+     *
+     * @param parameters intercepted method arguments
+     * @return set of discovered {@link StandardOpenOption}s (empty if none found)
+     *
+     * @since 2.0.0
+     */
+    private static Set<StandardOpenOption> extractStandardOpenOptions(@Nullable Object[] parameters) {
+        EnumSet<StandardOpenOption> collectedOptions = EnumSet.noneOf(StandardOpenOption.class);
+        if (parameters == null) {
+            return collectedOptions;
+        }
+        for (@Nullable Object parameter : parameters) {
+            collectStandardOpenOptions(parameter, collectedOptions);
+        }
+        return collectedOptions;
+    }
+
+    /**
+     * Collects {@link StandardOpenOption}s from a single candidate object.
+     *
+     * <p>Description: Supports direct {@link StandardOpenOption} instances, the wider
+     * {@link OpenOption} abstraction, arrays, and {@link Collection} containers, recursing into nested
+     * structures where required.</p>
+     *
+     * @param candidate potential holder of {@link StandardOpenOption}s
+     * @param target    accumulation set for discovered options
+     *
+     * @since 2.0.0
+     */
+    private static void collectStandardOpenOptions(@Nullable Object candidate, @Nonnull EnumSet<StandardOpenOption> target) {
+        if (candidate == null) {
+            return;
+        }
+        if (candidate instanceof StandardOpenOption standardOpenOption) {
+            target.add(standardOpenOption);
+        } else if (candidate instanceof OpenOption openOption) {
+            if (openOption instanceof StandardOpenOption standardOpenOption) {
+                target.add(standardOpenOption);
+            }
+        } else if (candidate instanceof Collection<?> collection) {
+            for (Object element : collection) {
+                collectStandardOpenOptions(element, target);
+            }
+        } else if (candidate.getClass().isArray()) {
+            Class<?> componentType = candidate.getClass().getComponentType();
+            if (componentType != null && OpenOption.class.isAssignableFrom(componentType)) {
+                int length = Array.getLength(candidate);
+                for (int i = 0; i < length; i++) {
+                    collectStandardOpenOptions(Array.get(candidate, i), target);
+                }
+            }
+        }
+    }
+
+    /**
+     * Performs the security validation for a single derived file-system action.
+     *
+     * <p>Description: Reuses the previously gathered contextual information to evaluate both method
+     * parameters and instance attributes against the allowed path lists. When a violation is detected,
+     * a {@link SecurityException} is raised containing localisation-aware details.</p>
+     *
+     * @param action                      concrete file-system action under inspection
+     * @param allowNonExistingPathsToBeConsidered       whether non-existing paths are permitted
+     * @param declaringTypeName           fully qualified declaring type name
+     * @param methodName                  method being intercepted
+     * @param methodSignature             JVM method signature
+     * @param attributes                  instance attributes (if any)
+     * @param parameters                  intercepted method arguments
+     * @param instance                    instance on which the method is invoked
+     * @param restrictedPackage           package prefix under security scrutiny
+     * @param allowedClasses              classes allowed within the restricted package
+     * @param fileSystemMethodToCheck     offending method discovered in the restricted call stack
+     * @param studentCalledMethod         external method initiating the restricted call (may be null)
+     * @param fullMethodSignature         human-readable method signature for diagnostics
+     *
+     * @throws SecurityException if the interaction violates configured policies
+     *
+     * @since 2.0.0
+     */
+    private static void checkFileSystemInteractionForAction(
+            @Nonnull String action,
+            boolean allowNonExistingPathsToBeConsidered,
+            @Nonnull String declaringTypeName,
+            @Nonnull String methodName,
+            @Nonnull String methodSignature,
+            @Nullable Object[] attributes,
+            @Nullable Object[] parameters,
+            @Nullable Object instance,
+            @Nullable String restrictedPackage,
+            @Nullable String[] allowedClasses,
+            @Nonnull String fileSystemMethodToCheck,
+            @Nullable String studentCalledMethod,
+            @Nonnull String fullMethodSignature
+    ) {
+        //<editor-fold desc="Resolve allowed paths">
+        @Nullable final String[] allowedPaths = getValueFromSettings(
+                switch (action) {
+                    case "read" -> "pathsAllowedToBeRead";
+                    case "overwrite" -> "pathsAllowedToBeOverwritten";
+                    case "create" -> "pathsAllowedToBeOverwritten";
+                    case "execute" -> "pathsAllowedToBeExecuted";
+                    case "delete" -> "pathsAllowedToBeDeleted";
+                    default -> throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+                            "security.advice.file.system.unknown.action",
+                            action
+                    ));
+                }
+        );
+        //</editor-fold>
+        //<editor-fold desc="Check parameters">
+        @Nullable String pathIllegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, allowedPaths, FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE), allowNonExistingPathsToBeConsidered);
+        if (pathIllegallyInteractedThroughParameter != null) {
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+                    "security.advice.illegal.file.execution",
+                    fileSystemMethodToCheck,
+                    action,
+                    pathIllegallyInteractedThroughParameter,
+                    fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+            ));
+        }
+        //</editor-fold>
+        //<editor-fold desc="Check attributes">
+        @Nullable String pathIllegallyInteractedThroughAttribute = (attributes == null || attributes.length == 0) ? null : checkIfVariableCriteriaIsViolated(attributes, allowedPaths, FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE), allowNonExistingPathsToBeConsidered);
+        if (pathIllegallyInteractedThroughAttribute != null) {
+            if (
+                    !pathIllegallyInteractedThroughAttribute.endsWith("ares/api/localization/Messages.class") &&
+                            !pathIllegallyInteractedThroughAttribute.endsWith("ares/api/localization/messages.class") &&
+                            !pathIllegallyInteractedThroughAttribute.endsWith("ares/api/localization/messages.properties") &&
+                            !pathIllegallyInteractedThroughAttribute.endsWith("ares/api/util/LruCache.class")
+            ) {
+                throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+                        "security.advice.illegal.file.execution",
+                        fileSystemMethodToCheck,
+                        action,
+                        pathIllegallyInteractedThroughAttribute,
+                        fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+                ));
+            }
+        }
+        //</editor-fold>
+    }
 
     /**
      * Validates a file system interaction against security policies.
@@ -297,23 +558,13 @@ public class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstrumentat
             @Nullable Object[] parameters,
             @Nullable Object instance
     ) {
-        //<editor-fold desc="Get information from settings">
+        //<editor-fold desc="Check instrumentation mode early">
         @Nullable final String aopMode = getValueFromSettings("aopMode");
         if (aopMode == null || !aopMode.equals("INSTRUMENTATION")) {
             return;
         }
         @Nullable final String restrictedPackage = getValueFromSettings("restrictedPackage");
         @Nullable final String[] allowedClasses = getValueFromSettings("allowedListedClasses");
-
-        @Nullable final String[] allowedPaths = getValueFromSettings(
-                switch (action) {
-                    case "read" -> "pathsAllowedToBeRead";
-                    case "overwrite" -> "pathsAllowedToBeOverwritten";
-                    case "execute" -> "pathsAllowedToBeExecuted";
-                    case "delete" -> "pathsAllowedToBeDeleted";
-                    default -> throw new SecurityException("Unknown action: " + action);
-                }
-        );
         //</editor-fold>
         //<editor-fold desc="Get information from attributes">
         @Nonnull final String fullMethodSignature = declaringTypeName + "." + methodName + methodSignature;
@@ -325,41 +576,25 @@ public class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstrumentat
         }
         @Nullable String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
         //</editor-fold>
-        //<editor-fold desc="Check parameters">
-        @Nullable String pathIllegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, allowedPaths, FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
-        if (pathIllegallyInteractedThroughParameter != null) {
-            throw new SecurityException(localize(
-                    "security.advice.illegal.file.execution",
-                    fileSystemMethodToCheck,
-                    action,
-                    pathIllegallyInteractedThroughParameter,
-                    fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
-            ));
-        }
-        //</editor-fold>
-        //<editor-fold desc="Check attributes">
-        @Nullable String pathIllegallyInteractedThroughAttribute = (attributes == null || attributes.length == 0) ? null : checkIfVariableCriteriaIsViolated(attributes, allowedPaths, FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
-        if (pathIllegallyInteractedThroughAttribute != null) {
-            if (
-                    !pathIllegallyInteractedThroughAttribute.endsWith("ares/api/localization/Messages.class") &&
-                            !pathIllegallyInteractedThroughAttribute.endsWith("ares/api/localization/messages.class") &&
-                            !pathIllegallyInteractedThroughAttribute.endsWith("ares/api/localization/messages.properties") &&
-                            !pathIllegallyInteractedThroughAttribute.endsWith("ares/api/util/LruCache.class")
-            ) {
-                String x = checkIfVariableCriteriaIsViolated(attributes, allowedPaths, FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
-                System.out.println(x);
-                throw new SecurityException(localize(
-                        "security.advice.illegal.file.execution",
-                        fileSystemMethodToCheck,
-                        action,
-                        pathIllegallyInteractedThroughAttribute,
-                        fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
-                ));
-            }
-        }
-        //</editor-fold>
-    }
-    //</editor-fold>
 
+        List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action, parameters);
+        for (Map.Entry<String, Boolean> actionCheck : actionsToValidate) {
+            checkFileSystemInteractionForAction(
+                    actionCheck.getKey(),
+                    Boolean.TRUE.equals(actionCheck.getValue()),
+                    declaringTypeName,
+                    methodName,
+                    methodSignature,
+                    attributes,
+                    parameters,
+                    instance,
+                    restrictedPackage,
+                    allowedClasses,
+                    fileSystemMethodToCheck,
+                    studentCalledMethod,
+                    fullMethodSignature
+            );
+        }
+    }
     //</editor-fold>
 }

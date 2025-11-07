@@ -24,6 +24,15 @@ import net.bytebuddy.matcher.ElementMatchers;
  */
 public class JavaInstrumentationAgent {
 
+    private JavaInstrumentationAgent() {
+        throw new SecurityException(
+                JavaInstrumentationAdviceAbstractToolbox.localize(
+                        "security.instrumentation.utility.initialization",
+                        "JavaInstrumentationAgent"
+                )
+        );
+    }
+
     /**
      * This method is called before the application's main method is called.
      * It installs the agent builder for the different types of file operations.
@@ -38,6 +47,7 @@ public class JavaInstrumentationAgent {
 
         installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanReadFiles, JavaInstrumentationBindingDefinitions::createReadPathMethodBinding);
         installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanOverwriteFiles, JavaInstrumentationBindingDefinitions::createOverwritePathMethodBinding);
+        installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanCreateFiles, JavaInstrumentationBindingDefinitions::createCreatePathMethodBinding);
         installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteFiles, JavaInstrumentationBindingDefinitions::createExecutePathMethodBinding);
         installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanDeleteFiles, JavaInstrumentationBindingDefinitions::createDeletePathMethodBinding);
         installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanCreateThreads, JavaInstrumentationBindingDefinitions::createCreateThreadMethodBinding);
@@ -45,6 +55,7 @@ public class JavaInstrumentationAgent {
 
         installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanReadFiles, JavaInstrumentationBindingDefinitions::createReadPathConstructorBinding);
         installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanOverwriteFiles, JavaInstrumentationBindingDefinitions::createOverwritePathConstructorBinding);
+        installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanCreateFiles, JavaInstrumentationBindingDefinitions::createCreatePathConstructorBinding);
         installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteFiles, JavaInstrumentationBindingDefinitions::createExecutePathConstructorBinding);
         installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanDeleteFiles, JavaInstrumentationBindingDefinitions::createDeletePathConstructorBinding);
         installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanCreateThreads, JavaInstrumentationBindingDefinitions::createCreateThreadConstructorBinding);
@@ -79,15 +90,7 @@ public class JavaInstrumentationAgent {
             if (classInjector != null) {
                 // Load classes in dependency order to ensure proper initialization
                 
-                // Step 1: Load fundamental classes first (no dependencies)
-                /*injectClassesSafely(classInjector, Map.ofEntries(
-                        Map.entry(
-                                IgnoreValues.Type.class.getName(),
-                                ClassFileLocator.ForClassLoader.read(IgnoreValues.Type.class)
-                        )
-                ));*/
-                
-                // Step 2: Load classes that depend on fundamental classes
+                // Step 1: Load fundamental classes
                 injectClassesSafely(classInjector, Map.ofEntries(
                         Map.entry(
                                 IgnoreValues.class.getName(),
@@ -99,7 +102,7 @@ public class JavaInstrumentationAgent {
                         )
                 ));
                 
-                // Step 3: Load the abstract toolbox (depends on basic classes)
+                // Step 2: Load the abstract toolbox (depends on basic classes)
                 injectClassesSafely(classInjector, Map.ofEntries(
                         Map.entry(
                                 JavaInstrumentationAdviceAbstractToolbox.class.getName(),
@@ -107,7 +110,7 @@ public class JavaInstrumentationAgent {
                         )
                 ));
                 
-                // Step 4: Load concrete toolbox implementations (depend on abstract toolbox)
+                // Step 3: Load concrete toolbox implementations (depend on abstract toolbox)
                 injectClassesSafely(classInjector, Map.ofEntries(
                         Map.entry(
                                 JavaInstrumentationAdviceFileSystemToolbox.class.getName(),
@@ -123,7 +126,13 @@ public class JavaInstrumentationAgent {
                 ));
             }
         } catch (Exception e) {
-            throw new SecurityException("Putting the Toolbox on the BootClassLoader failed: " + e.getMessage(), e);
+            throw new SecurityException(
+                    JavaInstrumentationAdviceAbstractToolbox.localize(
+                            "security.instrumentation.agent.toolbox.installation.failed",
+                            String.valueOf(e.getMessage())
+                    ),
+                    e
+            );
         }
     }
     
@@ -142,14 +151,26 @@ public class JavaInstrumentationAgent {
                 return; // Success
             } catch (Exception e) {
                 if (attempt == maxRetries) {
-                    throw new RuntimeException("Failed to inject classes after " + maxRetries + " attempts: " + classes.keySet(), e);
+                    throw new SecurityException(
+                            JavaInstrumentationAdviceAbstractToolbox.localize(
+                                    "security.instrumentation.agent.class.injection.failure",
+                                    maxRetries,
+                                    classes.keySet().toString()
+                            ),
+                            e
+                    );
                 }
                 // Wait a bit before retry
                 try {
                     Thread.sleep(50 * attempt); // Progressive backoff
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
-                    throw new RuntimeException("Interrupted during class injection", ie);
+                    throw new SecurityException(
+                            JavaInstrumentationAdviceAbstractToolbox.localize(
+                                    "security.instrumentation.agent.class.injection.interrupted"
+                            ),
+                            ie
+                    );
                 }
             }
         }

@@ -379,7 +379,7 @@ public class FileTools {
      *         copied files.
      * @throws SecurityException if an error occurs during the file copy process.
      */
-    private static List<Path> copyFiles(List<Path> sourceFilePaths, List<Path> targetFilePaths) {
+    public static List<Path> copyFiles(List<Path> sourceFilePaths, List<Path> targetFilePaths) {
         return IntStream.range(0, sourceFilePaths.size()).mapToObj(i -> {
             try {
                 Path parentPath = targetFilePaths.get(i).getParent();

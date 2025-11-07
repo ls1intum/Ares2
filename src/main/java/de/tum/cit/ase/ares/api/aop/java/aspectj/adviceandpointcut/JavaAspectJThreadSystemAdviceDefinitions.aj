@@ -208,17 +208,15 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
             Method getObjectMethod = unsafeClass.getMethod("getObject", Object.class, long.class);
             @Nullable Object taskValue = getObjectMethod.invoke(unsafe, threadFieldHolder, offset);
             if (taskValue == null) {
-                throw new InvalidPathException(threadFieldHolder.toString(),
-                        localize("security.advice.transform.path.exception"));
+                throw new SecurityException(localize("security.advice.transform.path.exception.detail", threadFieldHolder));
             }
             @Nonnull Class<?> taskClass = taskValue.getClass();
             return isReallyLambda(taskClass) ? "Lambda-Expression" : taskClass.getName();
         } catch (NoSuchFieldException | IllegalAccessException | NullPointerException |
                  InaccessibleObjectException e) {
-            throw new InvalidPathException(threadFieldHolder.toString(),
-                    localize("security.advice.transform.path.exception"));
+            throw new SecurityException(localize("security.advice.transform.path.exception.detail", threadFieldHolder), e);
         } catch (ClassNotFoundException | InvocationTargetException | NoSuchMethodException e) {
-            throw new RuntimeException(e);
+            throw new SecurityException(localize("security.advice.transform.path.unexpected.error"), e);
         }
     }
 

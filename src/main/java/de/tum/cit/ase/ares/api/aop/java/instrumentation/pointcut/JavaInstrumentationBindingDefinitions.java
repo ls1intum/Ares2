@@ -14,6 +14,8 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentati
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathMethodAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathConstructorAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathMethodAdvice;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationCreatePathConstructorAdvice;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationCreatePathMethodAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathConstructorAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathMethodAdvice;
 import net.bytebuddy.agent.builder.AgentBuilder;
@@ -44,7 +46,63 @@ public class JavaInstrumentationBindingDefinitions {
      * This class is a utility class and should not be instantiated.
      */
     private JavaInstrumentationBindingDefinitions() {
-        throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.general.utility.initialization"));
+        throw new SecurityException(
+                JavaInstrumentationAdviceAbstractToolbox.localize(
+                        "security.general.utility.initialization"
+                )
+        );
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Create Path">
+    /**
+     * Creates method bindings for pointcuts that can create files or directories.
+     *
+     * @param builder             the current dynamic type builder
+     * @param typeDescription     description of the type being transformed
+     * @param classLoader         loader that defined the type
+     * @param javaModule          originating module (ignored)
+     * @param protectionDomain    originating protection domain (ignored)
+     * @return builder enriched with the binding
+     */
+    public static DynamicType.Builder<?> createCreatePathMethodBinding(
+            DynamicType.Builder<?> builder, TypeDescription typeDescription,
+            ClassLoader classLoader, JavaModule javaModule,
+            ProtectionDomain protectionDomain
+    ) {
+        try {
+            return createMethodBinding(
+                    builder, typeDescription, classLoader, javaModule, protectionDomain,
+                    JavaInstrumentationPointcutDefinitions.methodsWhichCanCreateFiles, JavaInstrumentationCreatePathMethodAdvice.class
+            );
+        } catch (Exception e) {
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.create.method.binding.error"), e);
+        }
+    }
+
+    /**
+     * Creates constructor bindings for pointcuts that can create files or directories.
+     *
+     * @param builder             the current dynamic type builder
+     * @param typeDescription     description of the type being transformed
+     * @param classLoader         loader that defined the type
+     * @param javaModule          originating module (ignored)
+     * @param protectionDomain    originating protection domain (ignored)
+     * @return builder enriched with the binding
+     */
+    public static DynamicType.Builder<?> createCreatePathConstructorBinding(
+            DynamicType.Builder<?> builder, TypeDescription typeDescription,
+            ClassLoader classLoader, JavaModule javaModule,
+            ProtectionDomain protectionDomain
+    ) {
+        try {
+            return createConstructorBinding(
+                    builder, typeDescription, classLoader, javaModule, protectionDomain,
+                    JavaInstrumentationPointcutDefinitions.methodsWhichCanCreateFiles, JavaInstrumentationCreatePathConstructorAdvice.class
+            );
+        } catch (Exception e) {
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.create.constructor.binding.error"), e);
+        }
     }
     //</editor-fold>
 
@@ -131,7 +189,13 @@ public class JavaInstrumentationBindingDefinitions {
                     ));
         }
         catch (Exception e) {
-            throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Could not add the related classes to the bootstrap loader.", e);
+            throw new SecurityException(
+                    JavaInstrumentationAdviceAbstractToolbox.localize(
+                            "security.instrumentation.binding.bootstrap.loader.failure",
+                            String.valueOf(e.getMessage())
+                    ),
+                    e
+            );
         }
 
     }

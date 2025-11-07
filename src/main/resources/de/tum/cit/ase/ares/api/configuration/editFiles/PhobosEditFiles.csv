@@ -1,2 +1,2 @@
 SourceHeader,SourceFooter,Target
-,,/var/tmp/opt/core/exercise_config/SpecificExercise.cfg
+templates/phobos/PhobosHeader.txt,templates/phobos/PhobosFooter.txt,../../../SpecificExercise.cfg

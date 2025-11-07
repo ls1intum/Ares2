@@ -1,5 +1,7 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox.*;
+
 //<editor-fold desc="imports">
 
 import java.util.Arrays;
@@ -67,9 +69,10 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
      * @author Markus Paulsen
      */
     private JavaInstrumentationAdviceCommandSystemToolbox() {
-        throw new SecurityException(
-                "Ares Security Error (Reason: Ares-Code; Stage: Execution): JavaInstrumentationAdviceCommandSystemToolbox is a utility class and should not be instantiated."
-        );
+        throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+                "security.instrumentation.utility.initialization",
+                "JavaInstrumentationAdviceCommandSystemToolbox"
+        ));
     }
     //</editor-fold>
 
@@ -285,7 +288,7 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
         int argumentsAllowedToBePassedSize = argumentsAllowedToBePassed == null ? 0 : argumentsAllowedToBePassed.length;
 
         if (commandsAllowedToBeExecutedSize != argumentsAllowedToBePassedSize) {
-            throw new SecurityException(localize("security.advice.command.allowed.size", argumentsAllowedToBePassedSize, commandsAllowedToBeExecutedSize));
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.command.allowed.size", argumentsAllowedToBePassedSize, commandsAllowedToBeExecutedSize));
         }
         //</editor-fold>
         //<editor-fold desc="Get information from attributes">
@@ -301,7 +304,7 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
         //<editor-fold desc="Check parameters">
         @Nullable String commandIllegallyExecutedThroughParameter = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, commandsAllowedToBeExecuted, argumentsAllowedToBePassed, COMMAND_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
         if (commandIllegallyExecutedThroughParameter != null) {
-            throw new SecurityException(localize(
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
                     "security.advice.illegal.command.execution",
                     commandSystemMethodToCheck,
                     action,
@@ -313,7 +316,7 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
         //<editor-fold desc="Check attributes">
         @Nullable String commandIllegallyExecutedThroughAttribute = (attributes == null || attributes.length == 0) ? null : checkIfVariableCriteriaIsViolated(attributes, commandsAllowedToBeExecuted, argumentsAllowedToBePassed, COMMAND_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
         if (commandIllegallyExecutedThroughAttribute != null) {
-            throw new SecurityException(localize(
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
                     "security.advice.illegal.command.execution",
                     commandSystemMethodToCheck,
                     action,

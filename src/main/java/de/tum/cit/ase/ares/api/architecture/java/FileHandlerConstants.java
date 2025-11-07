@@ -41,6 +41,11 @@ public class FileHandlerConstants {
 
 
     private FileHandlerConstants() {
-        throw new SecurityException(Messages.localized("security.general.utility.initialization", FileHandlerConstants.class.getName()));
+        throw new SecurityException(
+                Messages.localized(
+                        "security.general.utility.initialization",
+                        "FileHandlerConstants"
+                )
+        );
     }
 }

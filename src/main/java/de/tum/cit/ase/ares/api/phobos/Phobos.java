@@ -60,7 +60,7 @@ public class Phobos {
      */
     public static List<List<String>> getCopyConfigurationEntries() {
         try {
-            return (new JavaCSVFileLoader()).loadCopyData();
+            return (new JavaCSVFileLoader()).loadPhobosCopyData();
         } catch (IOException | CsvException e) {
             throw new RuntimeException(e);
         }
@@ -76,7 +76,7 @@ public class Phobos {
      */
     public static List<List<String>> getEditConfigurationEntries() {
         try {
-            return (new JavaCSVFileLoader()).loadEditData();
+            return (new JavaCSVFileLoader()).loadPhobosEditData();
         } catch (IOException | CsvException e) {
             throw new RuntimeException(e);
         }
@@ -120,7 +120,10 @@ public class Phobos {
      * @return the path to the header file
      */
     public static Path threePartedFileHeader() {
-        return Path.of("");
+        return getEditConfigurationEntries().stream()
+                .map(entry -> entry.getFirst().split("/"))
+                .map(FileTools::resolveFileOnSourceDirectory)
+                .toList().getFirst();
     }
 
     /**
@@ -174,7 +177,10 @@ public class Phobos {
      * @return the path to the footer file
      */
     public static Path threePartedFileFooter() {
-        return Path.of("");
+        return getEditConfigurationEntries().stream()
+                .map(entry -> entry.get(1).split("/"))
+                .map(FileTools::resolveFileOnSourceDirectory)
+                .toList().getFirst();
     }
 
 

@@ -1,5 +1,7 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox.*;
+
 //<editor-fold desc="imports">
 
 import java.lang.reflect.Array;
@@ -7,7 +9,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.nio.file.InvalidPathException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -77,9 +78,10 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
      * @author Markus Paulsen
      */
     private JavaInstrumentationAdviceThreadSystemToolbox() {
-        throw new SecurityException(
-                "Ares Security Error (Reason: Ares-Code; Stage: Execution): JavaInstrumentationAdviceThreadSystemToolbox is a utility class and should not be instantiated."
-        );
+        throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+                "security.instrumentation.utility.initialization",
+                "JavaInstrumentationAdviceThreadSystemToolbox"
+        ));
     }
     //</editor-fold>
 
@@ -224,7 +226,7 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
      *
      * @param threadFieldHolder the Thread.FieldHolder instance
      * @return the value of the task field as a String
-     * @throws InvalidPathException if extraction fails
+     * @throws SecurityException if extraction fails
      * @since 2.0.0
      * @author Markus Paulsen
      */
@@ -242,23 +244,27 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
             Method getObjectMethod = unsafeClass.getMethod("getObject", Object.class, long.class);
             @Nullable Object taskValue = getObjectMethod.invoke(unsafe, threadFieldHolder, offset);
             if (taskValue == null) {
-                throw new InvalidPathException(threadFieldHolder.toString(),
-                        localize("security.advice.transform.path.exception"));
+                throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+                        "security.advice.transform.path.exception.detail",
+                        threadFieldHolder
+                ));
             }
             @Nonnull Class<?> taskClass = taskValue.getClass();
             return isReallyLambda(taskClass) ? "Lambda-Expression" : taskClass.getName();
         } catch (NoSuchFieldException | IllegalAccessException | NullPointerException |
                  InaccessibleObjectException e) {
-            throw new InvalidPathException(threadFieldHolder.toString(),
-                    localize("security.advice.transform.path.exception"));
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+                    "security.advice.transform.path.exception.detail",
+                    threadFieldHolder
+            ), e);
         } catch (ClassNotFoundException | InvocationTargetException | NoSuchMethodException e) {
-            throw new RuntimeException(e);
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.transform.path.unexpected.error"), e);
         }
     }
 
     /** Converts a variable value to its class name.
      *
-     * <p>Description: If the variable is null, throws an InvalidPathException.
+     * <p>Description: Returns null when the value is null or cannot be resolved.
      * If the variable is a lambda expression, returns "Lambda-Expression".
      * Otherwise, returns the class name of the variable.
      *
@@ -276,7 +282,7 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
             } else {
                 return null;
             }
-        } catch (InvalidPathException ignored) {
+        } catch (SecurityException ignored) {
             return null;
         }
 
@@ -364,7 +370,7 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
                 if (checkIfThreadIsForbidden(observedClassname, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated)) {
                     return observedClassname;
                 }
-            } catch (InvalidPathException ignored) {
+            } catch (SecurityException ignored) {
                 return null;
             }
         }
@@ -445,7 +451,7 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
         int threadNumberAllowedToBeCreatedSize = threadNumberAllowedToBeCreated == null ? 0 : threadNumberAllowedToBeCreated.length;
 
         if (threadNumberAllowedToBeCreatedSize != threadClassAllowedToBeCreatedSize) {
-            throw new SecurityException(localize("security.advice.thread.allowed.size", threadNumberAllowedToBeCreatedSize, threadClassAllowedToBeCreatedSize));
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.thread.allowed.size", threadNumberAllowedToBeCreatedSize, threadClassAllowedToBeCreatedSize));
         }
         //</editor-fold>
         //<editor-fold desc="Get information from attributes">
@@ -461,7 +467,7 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
         //<editor-fold desc="Check parameters">
         @Nullable String threadIllegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated, THREAD_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
         if (threadIllegallyInteractedThroughParameter != null) {
-            throw new SecurityException(localize(
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
                     "security.advice.illegal.thread.execution",
                     threadSystemMethodToCheck,
                     action,
@@ -480,7 +486,7 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 
         @Nullable String threadIllegallyInteractedThroughAttribute = (attributesToCheck.length == 0) ? null : checkIfVariableCriteriaIsViolated(attributesToCheck, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated, THREAD_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
         if (threadIllegallyInteractedThroughAttribute != null) {
-            throw new SecurityException(localize(
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
                     "security.advice.illegal.thread.execution",
                     threadSystemMethodToCheck,
                     action,

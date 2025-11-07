@@ -24,6 +24,8 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.ThreadPermission;
 
 import de.tum.cit.ase.ares.api.util.FileTools;
 
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox.localize;
+
 /**
  * Enum representing the AOP modes for Java security test cases.
  *
@@ -54,7 +56,13 @@ public enum AOPMode {
         try {
             return (new JavaCSVFileLoader()).loadCopyData(this, true);
         } catch (IOException | CsvException e) {
-            throw new RuntimeException(e);
+            throw new SecurityException(
+                    localize(
+                            "security.aop.mode.configuration.copy.fs.load.failure",
+                            name()
+                    ),
+                    e
+            );
         }
     }
 
@@ -62,7 +70,13 @@ public enum AOPMode {
         try {
             return (new JavaCSVFileLoader()).loadCopyData(this, false);
         } catch (IOException | CsvException e) {
-            throw new RuntimeException(e);
+            throw new SecurityException(
+                    localize(
+                            "security.aop.mode.configuration.copy.nonfs.load.failure",
+                            name()
+                    ),
+                    e
+            );
         }
     }
 
@@ -70,7 +84,13 @@ public enum AOPMode {
         try {
             return (new JavaCSVFileLoader()).loadEditData(this);
         } catch (IOException | CsvException e) {
-            throw new RuntimeException(e);
+            throw new SecurityException(
+                    localize(
+                            "security.aop.mode.configuration.edit.load.failure",
+                            name()
+                    ),
+                    e
+            );
         }
     }
     //</editor-fold>
@@ -291,13 +311,13 @@ public enum AOPMode {
             classloaderMethod.invoke(null);
             classloaderMethod.setAccessible(false);
         } catch (ClassNotFoundException e) {
-            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.creation.reset.class.not.found.exception"), e);
+            throw new SecurityException(localize("security.creation.reset.class.not.found.exception"), e);
         } catch (NoSuchMethodException e) {
-            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.creation.reset.no.method.exception"), e);
+            throw new SecurityException(localize("security.creation.reset.no.method.exception"), e);
         } catch (IllegalAccessException e) {
-            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.creation.reset.illegal.access.exception"), e);
+            throw new SecurityException(localize("security.creation.reset.illegal.access.exception"), e);
         } catch (InvocationTargetException e) {
-            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.creation.reset.invocation.target.exception"), e);
+            throw new SecurityException(localize("security.creation.reset.invocation.target.exception"), e);
         }
     }
     //</editor-fold>

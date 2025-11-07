@@ -9,13 +9,6 @@ public final class IgnoreValues {
 
     public static final IgnoreValues ALL = new IgnoreValues("ALL");
 
-    /*public enum Type {
-        NONE,
-        NONE_EXCEPT,
-        ALL,
-        ALL_EXCEPT
-    }*/
-
     private final String type;
 
     private final Integer index;
@@ -31,7 +24,9 @@ public final class IgnoreValues {
 
     public static IgnoreValues noneExcept(int index) {
         if (index < 0) {
-            throw new IllegalArgumentException("index must not be negative");
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+                    "security.instrumentation.ignore.values.index.negative"
+            ));
         }
 
         return new IgnoreValues("NONE_EXCEPT", index);
@@ -39,7 +34,9 @@ public final class IgnoreValues {
 
     public static IgnoreValues allExcept(int index) {
         if (index < 0) {
-            throw new IllegalArgumentException("index must not be negative");
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+                    "security.instrumentation.ignore.values.index.negative"
+            ));
         }
 
         return new IgnoreValues("ALL_EXCEPT", index);
