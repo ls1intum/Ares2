@@ -9,9 +9,12 @@ public class Main {
         SecurityPolicyReaderAndDirector securityPolicyReaderAndDirector = new SecurityPolicyReaderAndDirector(
                 Path.of("/Users", "markuspaulsen", "Documents", "Ares2", "src", "main", "resources", "ExampleConfiguration.yaml"),
                 Path.of("/Users", "markuspaulsen", "Documents", "Ares2UI")
+                //Path.of("G:\\Programming\\ares2-test-classes\\ExampleConfiguration.yaml"),
+                //Path.of("G:\\Programming\\ares2-test-classes\\testing-ares-2-precompile")
         ).createTestCases();
         securityPolicyReaderAndDirector.writeTestCases(
                 Path.of("/Users", "markuspaulsen", "Documents", "Ares2UI", "src", "test", "java")
+                //Path.of("G:\\Programming\\ares2-test-classes\\testing-ares-2-precompile\\src\\test\\java")
         );
     }
 }
