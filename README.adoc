@@ -5,7 +5,7 @@
 :showtitle:
 :sectnums:
 :toc:
-:toclevels:
+:toclevels: 4
 :icons:
 
 = Ares2
@@ -476,7 +476,7 @@ project/
 ├── pom.xml
 ├── secret.txt
 ├── something.txt
-└── SecurityConfiguration.yaml   <- placed here
+└── SecurityConfiguration.yaml   ← placed here
 ----
 
 With the following minimal configuration file, virtually all actions are denied
@@ -608,7 +608,7 @@ project/
 ├── pom.xml
 ├── secret.txt
 ├── something.txt
-└── SecurityConfiguration.yaml   <- placed here
+└── SecurityConfiguration.yaml   ← placed here
 ----
 
 With the following minimal configuration file, virtually all actions are denied
@@ -932,73 +932,6 @@ annoyed or even enraged. To prevent that, please read on.
 
 ==== Path Access and Class Loading
 
-You can use `@WhitelistPath` and `@BlacklistPath` to control access to
-paths. By default, no access is granted, and so you need to use
-`@WhitelistPath` to give student code the permission to read and write
-files explicitly. You can specify exceptions using `@BlacklistPath`
-which will overpower the whitelisted paths.
-
-_The following examples will make use of `course1920xyz` as placeholder
-value for the real Artemis exercise name/id. Replace it with the real
-one when borrowing code snippets, or nothing will work as expected._
-
-Most importantly, this does not only apply to explicit file IO, but also
-to the `.class` files that the class loader reads, as needed. This
-already happens if one student class requires another one, that has not
-been loaded after that. You can recognize that in the standard error
-output:
-
-....
-[WARN] [main] BAD PATH ACCESS: K:\repo\course1920xyz-solution\bin\some\Thing.class (BL:false, WL:false)
-....
-
-This usually means the class loader could not load the class. The
-parentheses show, that the problem is the missing whitelisting.
-*Therefore, all test setups should have some whitelisting.*
-
-A number of examples how you can whitelist paths in Ares2:
-
-* `@WhitelistPath("")` will grant read access to the paths in the
-  directory of execution, which is usually where the `pom.xml` is.
-* `@WhitelistPath("pom.xml")` will allow students to read the `pom.xml`.
-* `@WhitelistPath("..")` will allow read access to the level above the
-  maven project. In Eclipse, that is the level of your workspace.
-* `@WhitelistPath(value = "../course1920xyz**", type = PathType.GLOB)`
-  grants read access to projects beginning with the exercise "id" used
-  by Artemis. Should you use the Eclipse feature "Referenced Projects"
-  (or the analog to that in your IDE) to link the student/solution project
-  to the tests, you will need a setting like this.
-* `@WhitelistPath(value = "data", level = PathActionLevel.DELETE)` will
-  allow students to read, write and delete files in the `data` directory
-  and subdirectories.
-* `@WhitelistPath("target")` allows reading files in target (Maven output folder)
-* `@BlacklistPath(value = "**Test*.{java,class}", type = PathType.GLOB)`
-  prevents access to classes in source code or compiled form that contain
-  `Test`. If you leave away the `*` after `Test`, nested classes are not
-  blacklisted. Student classes should not be called something with
-  "Test" then.
-
-That was not everything but already quite a lot. Take a look at the
-Javadoc of the annotations and enums used, if you want to know more.
-Before you give up, here is my recommendation how to start:
-
-[source,java]
-----
-@WhitelistPath(value = "../course1920xyz**", type = PathType.GLOB) // for manual assessment and development
-@WhitelistPath("target") // mainly for Artemis
-@BlacklistPath("target/test-classes") // prevent access to test-related classes and resources
-----
-
-Add a `@BlacklistPath` for other important classes, like your reference
-implementations of the solution to test against should you use that
-approach.
-
-_Note: the Artemis project starts with `course1920xyz`, but the build in
-Bamboo (by Artemis) will happen in a directory named after the build
-plan, which is in upper case and therefore, begins with `COURSE1920XYZ`.
-Make sure that you do not build multiple student solutions in the same
-directory on the same machine using the git clone (lower case) approach.
-Otherwise, adjust the whitelisting to your needs._
 
 
 ==== Testing the Exercise before Release
@@ -1025,20 +958,6 @@ extensions will be added together.
 
 ==== Threads and Concurrency
 
-By default, Ares2 will not allow non-whitelisted code to use threads at
-all. That includes thread pools, but excludes the common pool and its
-users, like parallel streams. To allow the use of Threads, use the
-annotation `@AllowThreads`. The number of active threads is also
-limited, the default value of that is 1000, but can be changed in the
-annotation. Please keep in mind that this limit should not be larger
-than 1000 to prevent performance and timeout chaos.
-
-New threads are for security reasons not directly whitelisted by Ares2
-and will not be allowed to do anything security critical. If you trust a
-thread (at least its entry point), you can explicitly request the thread
-to be whitelisted using
-`ArtemisSecurityManager.requestThreadWhitelisting(Thread)`. The thread
-calling the method and its stack must be whitelisted, of course.
 
 [#testing-console-interaction]
 ==== Testing Console Interaction
@@ -1096,17 +1015,6 @@ https://github.com/ls1intum/Ares/blob/main/src/main/java/de/tum/in/test/api/io/I
 
 ==== Networking
 
-Ares2 allows for local network connections by using the `@AllowLocalPort`
-annotation.
-
-There are plenty of configuration options, and the code can get complicated
-quickly due to the threads required to test network connections.
-One issue can be that waiting network connections block threads in such
-a way that they cannot be stopped (waiting in native code), so we
-recommend using timeouts for connections at least on one end consistently.
-
-For examples, have a look at the test
-https://github.com/ls1intum/Ares/blob/main/src/test/java/de/tum/in/test/integration/testuser/NetworkUser.java[`NetworkUser`].
 
 ==== Locale
 
