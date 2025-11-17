@@ -278,7 +278,7 @@ public class JavaProjectScanner implements ProjectScanner {
     @Nonnull
     public String scanForMainClassInPackage() {
         List<String> mainClasses = scanJavaFiles(this::extractMainClass).filter(Objects::nonNull).toList();
-        return mainClasses.stream().filter(name -> "Main".equals(name) || "Application".equals(name)).findFirst().orElse(!mainClasses.isEmpty() ? mainClasses.getFirst() : getDefaultMainClass());
+        return mainClasses.stream().filter(name -> "Main".equals(name) || "Application".equals(name)).findFirst().orElse(!mainClasses.isEmpty() ? mainClasses.get(0) : getDefaultMainClass());
     }
 
     /**

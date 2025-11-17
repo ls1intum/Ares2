@@ -80,7 +80,7 @@ public enum AOPMode {
     @Nonnull
     public List<Path> fsFilesToCopy() {
         return getCopyFSConfigurationEntries().stream()
-                .map(entry -> entry.getFirst().split("/"))
+                .map(entry -> entry.get(0).split("/"))
                 .map(FileTools::resolveFileOnSourceDirectory)
                 .toList();
     }
@@ -88,7 +88,7 @@ public enum AOPMode {
     @Nonnull
     public List<Path> nonFSFilesToCopy() {
         return getCopyNonFSConfigurationEntries().stream()
-                .map(entry -> entry.getFirst().split("/"))
+                .map(entry -> entry.get(0).split("/"))
                 .map(FileTools::resolveFileOnSourceDirectory)
                 .toList();
     }
@@ -158,9 +158,9 @@ public enum AOPMode {
     @Nonnull
     public Path threePartedFileHeader() {
         return getEditConfigurationEntries().stream()
-                .map(entry -> entry.getFirst().split("/"))
+                .map(entry -> entry.get(0).split("/"))
                 .map(FileTools::resolveFileOnSourceDirectory)
-                .toList().getFirst();
+                .toList().get(0);
     }
 
     /**
@@ -232,7 +232,7 @@ public enum AOPMode {
         return getEditConfigurationEntries().stream()
                 .map(entry -> entry.get(1).split("/"))
                 .map(FileTools::resolveFileOnSourceDirectory)
-                .toList().getFirst();
+                .toList().get(0);
     }
 
     /**
@@ -264,7 +264,7 @@ public enum AOPMode {
         return getEditConfigurationEntries().stream()
                 .map(entry -> entry.get(2).split("/"))
                 .map(path -> FileTools.resolveFileOnTargetDirectory(targetPath, path))
-                .toList().getFirst();
+                .toList().get(0);
     }
     //</editor-fold>
 

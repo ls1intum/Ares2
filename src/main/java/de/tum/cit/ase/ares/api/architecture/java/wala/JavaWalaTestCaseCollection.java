@@ -108,7 +108,7 @@ public class JavaWalaTestCaseCollection {
                     return;                 // nothing forbidden reached
                 }
 
-                CGNode forbidden = path.getLast();
+                CGNode forbidden = path.get(path.size() - 1);
 
                 /* Is the API one helpers legitimately call? */
                 boolean helperApi = ALLOWED_HELPER_APIS.stream()

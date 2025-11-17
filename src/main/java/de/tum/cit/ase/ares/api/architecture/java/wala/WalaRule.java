@@ -31,15 +31,15 @@ public class WalaRule {
             return;
         }
         try {
-            IMethod.SourcePosition sourcePosition = reachableNodes.getLast().getMethod().getSourcePosition(0);
+            IMethod.SourcePosition sourcePosition = reachableNodes.get(reachableNodes.size() -1).getMethod().getSourcePosition(0);
             int lineNumber = sourcePosition != null ? sourcePosition.getFirstLine() : -1;
             throw new AssertionError(Messages.localized("security.architecture.method.call.message",
                     ruleName,
-                    reachableNodes.getLast().getMethod().getSignature(),
+                    reachableNodes.get(reachableNodes.size() -1).getMethod().getSignature(),
                     reachableNodes.get(reachableNodes.size() - 2).getMethod().getSignature(),
-                    reachableNodes.getLast().getMethod().getDeclaringClass().getName().getClassName().toString(),
+                    reachableNodes.get(reachableNodes.size() -1).getMethod().getDeclaringClass().getName().getClassName().toString(),
                     lineNumber,
-                    reachableNodes.getFirst().getMethod().getSignature()
+                    reachableNodes.get(0).getMethod().getSignature()
             ));
         } catch (InvalidClassFileException e) {
             throw new SecurityException(Messages.localized("security.architecture.invalid.class.file"));
