@@ -27,7 +27,7 @@ endif::env-github[]
 
 
 Ares 2 is a framework for easy and secure remote execution of student submissions on the interactive learning platform.
-It is the second Java-based implementation of the Secure COder Remote Execution (SCORE) framework and the first one supporting Java versions beyond 17.
+It is the second Java-based implementation of the Secure COder Remote Execution (SCORE) framework and the first one supporting Java 17 and later versions.
 
 Its main features are:
 
@@ -437,8 +437,6 @@ pipeline and is required for both precompile and postcompile mode.
 
 
 ==== How to integrate Precompile mode
-**Please note that precompile mode requires Java 21 or higher.**
-
 To make use of these protections in practice, we now show how precompile mode
 is integrated using a concrete example.
 
@@ -829,13 +827,12 @@ configurations {
 }
 
 dependencies {
-    aresAgent 'de.tum.cit.ase:ares:2.0.1-Beta'
-    testImplementation("de.tum.cit.ase:ares:2.0.1-Beta")
+    aresAgent 'de.tum.cit.ase:ares:2.0.1-Beta4'
+    testImplementation("de.tum.cit.ase:ares:2.0.1-Beta4")
 }
 
 def forbiddenPackageFolders = [
-    <!--1-->
-
+    // <!--1-->
     "$studentOutputDir/ch/qos/logback/",
     "$studentOutputDir/com/github/javaparser/",
     "$studentOutputDir/com/intellij/",
@@ -868,7 +865,7 @@ tasks.register('buildInstrumentationAgent', Jar) {
     description 'Builds a proper Java agent from the Ares JAR with correct manifest'
     archiveFileName = 'ares-agent.jar'
     destinationDirectory = layout.buildDirectory.dir("agents")
-    from zipTree(layout.buildDirectory.file("agents/ares-2.0.1-Beta.jar").get().asFile)
+    from zipTree(layout.buildDirectory.file("agents/ares-2.0.1-Beta4.jar").get().asFile)
     manifest {
         attributes(
                 'Manifest-Version': '1.0',
@@ -1043,4 +1040,6 @@ use
 
 == License
 
+Ares2 is licensed under [specify license type - e.g., MIT, Apache 2.0, etc.].
 
+See LICENSE file for details.
