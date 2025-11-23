@@ -26,8 +26,9 @@ if [[ -s "${RW}" ]]; then
     args+=( --bind "$p" "$p" )
   done < "${RW}"
 fi
+
 if [[ -s "${TAIL}" ]]; then
-  args+=( $(<"${TAIL}") )
+  mapfile -t -O "${#args[@]}" args < "${TAIL}"
 fi
 
 if [[ -n "${PHOBOS_DEBUG:-}" ]]; then
