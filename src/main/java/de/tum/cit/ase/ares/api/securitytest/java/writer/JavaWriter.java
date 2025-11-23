@@ -137,7 +137,7 @@ public class JavaWriter implements Writer {
             @Nullable Path testFolderPath
     ) {
         if (testFolderPath == null) {
-            throw new IllegalArgumentException("testFolderPath must not be null");
+            return List.of();
         }
 
         int nameCount = testFolderPath.getNameCount();
@@ -145,20 +145,19 @@ public class JavaWriter implements Writer {
             throw new IllegalArgumentException("Unexpected test folder path: " + testFolderPath);
         }
 
-        Path parent = testFolderPath.getParent();
-        parent = parent != null ? parent.getParent() : null;
+        Path parentPath = testFolderPath.subpath(0, nameCount - 2);
 
-        if (parent == null) {
-            throw new IllegalArgumentException("Cannot resolve parent directories of: " + testFolderPath);
-        }
-
-        Path resourcesFolderPath = parent.resolve("resources");
+        Path root = testFolderPath.getRoot();
+        Path resourcesFolderPath = (root == null)
+                ? Paths.get(parentPath.toString(), "resources")
+                : Paths.get(root.toString(), parentPath.toString(), "resources");
 
         return FileTools.copyFiles(
                 Localisation.filesToCopy(),
                 Localisation.targetsToCopyTo(resourcesFolderPath)
         );
     }
+
 
 
     @Nonnull

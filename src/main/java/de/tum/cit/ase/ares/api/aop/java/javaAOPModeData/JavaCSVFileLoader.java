@@ -72,7 +72,7 @@ public class JavaCSVFileLoader implements JavaFileLoader {
     }
 
     /**
-     * Retrieves the path to the CSV file containing the copy configuration for the selected AOP mode.
+     * Retrieves the path to the CSV file containing the copy configuration for Phobos.
      *
      * @return the path to the CSV file containing the copy configuration.
      */
