@@ -47,6 +47,9 @@ public final class IgnoreValues {
     }
 
     public int getIndex() {
+        if (index == null) {
+            throw new IllegalStateException("Index is not available for type: " + type);
+        }
         return index;
     }
 

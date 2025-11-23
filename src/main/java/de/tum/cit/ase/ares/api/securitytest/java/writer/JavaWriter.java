@@ -136,12 +136,30 @@ public class JavaWriter implements Writer {
             @Nonnull String packageName,
             @Nullable Path testFolderPath
     ) {
-        Path resourcesFolderPath = Paths.get("/", testFolderPath.subpath(0,testFolderPath.toString().split("/").length-2).toString(), "resources");
+        if (testFolderPath == null) {
+            throw new IllegalArgumentException("testFolderPath must not be null");
+        }
+
+        int nameCount = testFolderPath.getNameCount();
+        if (nameCount < 2) {
+            throw new IllegalArgumentException("Unexpected test folder path: " + testFolderPath);
+        }
+
+        Path parent = testFolderPath.getParent();
+        parent = parent != null ? parent.getParent() : null;
+
+        if (parent == null) {
+            throw new IllegalArgumentException("Cannot resolve parent directories of: " + testFolderPath);
+        }
+
+        Path resourcesFolderPath = parent.resolve("resources");
+
         return FileTools.copyFiles(
                 Localisation.filesToCopy(),
                 Localisation.targetsToCopyTo(resourcesFolderPath)
         );
     }
+
 
     @Nonnull
     private List<Path> createPhobosFiles(

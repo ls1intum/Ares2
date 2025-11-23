@@ -259,13 +259,24 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
             if (isIgnorable) {
                 continue;
             }
-            if (className.startsWith(restrictedPackage) && !className.startsWith("de.tum.cit.ase.ares.api.aop.java.instrumentation)")) {
-                if (i != 0) {
-                    return stackTrace[i-1].getClassName() + "." + stackTrace[i-1].getMethodName();
-                } else {
-                    return null;
+            if (className.startsWith(restrictedPackage)
+                    && !className.startsWith("de.tum.cit.ase.ares.api.aop.java.instrumentation")) {
+                // Find the first non-ignored caller above this restricted frame.
+                for (int j = i + 1; j < stackTrace.length; j++) {
+                    StackTraceElement caller = stackTrace[j];
+                    String callerClass = caller.getClassName();
+                    boolean callerIgnorable = false;
+                    for (String ignore : IGNORE_CALLSTACK) {
+                        if (callerClass.startsWith(ignore)) {
+                            callerIgnorable = true;
+                            break;
+                        }
+                    }
+                    if (!callerIgnorable) {
+                        return callerClass + "." + caller.getMethodName();
+                    }
                 }
-
+                return null;
             }
         }
         return null;
@@ -321,6 +332,8 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
                 }
                 newVariables.remove(ignoreVariables.getIndex());
                 break;
+            default:
+                throw new IllegalArgumentException("Unknown ignore type: " + ignoreVariables.getType());
         }
         return newVariables.toArray();
     }

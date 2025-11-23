@@ -118,13 +118,29 @@ public class JavaInstrumentationPointcutDefinitions {
                 return new MethodPointcutSpec(name, List.of());
             }
 
-            String[] tokens = paramsPart.split(",");
-            List<String> parameterTypes = new ArrayList<>(tokens.length);
-            for (String token : tokens) {
-                String typeName = token.trim();
-                if (!typeName.isEmpty()) {
-                    parameterTypes.add(typeName);
+            List<String> parameterTypes = new ArrayList<>();
+            int depth = 0;
+            int start = 0;
+
+            for (int i = 0; i < paramsPart.length(); i++) {
+                char ch = paramsPart.charAt(i);
+
+                if (ch == '<') {
+                    depth++;
+                } else if (ch == '>') {
+                    depth--;
+                } else if (ch == ',' && depth == 0) {
+                    String typeName = paramsPart.substring(start, i).trim();
+                    if (!typeName.isEmpty()) {
+                        parameterTypes.add(typeName);
+                    }
+                    start = i + 1;
                 }
+            }
+
+            String lastType = paramsPart.substring(start).trim();
+            if (!lastType.isEmpty()) {
+                parameterTypes.add(lastType);
             }
             return new MethodPointcutSpec(name, parameterTypes);
         }

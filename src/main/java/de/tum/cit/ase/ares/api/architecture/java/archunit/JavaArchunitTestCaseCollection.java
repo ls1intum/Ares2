@@ -40,7 +40,7 @@ public class JavaArchunitTestCaseCollection {
         throw new SecurityException(
                 Messages.localized(
                         "security.general.utility.initialization",
-                        "JavaArchunitTestCaseCollection"
+                        JavaArchunitTestCaseCollection.class.getSimpleName()
                 )
         );
     }

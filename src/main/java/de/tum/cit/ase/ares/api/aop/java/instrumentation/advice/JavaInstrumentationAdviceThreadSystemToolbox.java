@@ -245,7 +245,7 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
             @Nullable Object taskValue = getObjectMethod.invoke(unsafe, threadFieldHolder, offset);
             if (taskValue == null) {
                 throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-                        "security.advice.transform.path.exception.detail",
+                        "security.advice.thread.task.null",
                         threadFieldHolder
                 ));
             }
@@ -254,7 +254,7 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
         } catch (NoSuchFieldException | IllegalAccessException | NullPointerException |
                  InaccessibleObjectException e) {
             throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-                    "security.advice.transform.path.exception.detail",
+                    "security.advice.thread.task.reflection.error",
                     threadFieldHolder
             ), e);
         } catch (ClassNotFoundException | InvocationTargetException | NoSuchMethodException e) {

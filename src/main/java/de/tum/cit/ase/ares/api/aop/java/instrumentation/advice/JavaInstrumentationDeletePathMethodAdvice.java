@@ -5,6 +5,9 @@ import net.bytebuddy.asm.Advice;
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 
+import static java.lang.reflect.Modifier.isStatic;
+import static java.util.Arrays.stream;
+
 /**
  * This class provides advice for the execution of methods deleting files.
  * It is responsible for verifying whether the method execution is allowed based on the file system
@@ -42,7 +45,11 @@ public class JavaInstrumentationDeletePathMethodAdvice {
     ) {
 
         //<editor-fold desc="Attributes">
-        final Field[] fields = instance != null ? instance.getClass().getDeclaredFields() : new Field[0];
+        final Field[] fields = instance != null
+                ? stream(instance.getClass().getDeclaredFields())
+                .filter(f -> !isStatic(f.getModifiers()))
+                .toArray(Field[]::new)
+                : new Field[0];
         final Object[] attributes = new Object[fields.length];
         if (instance != null) {
             for (int i = 0; i < fields.length; i++) {

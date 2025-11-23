@@ -68,6 +68,19 @@ public class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstrumentat
 
     private static final EnumSet<StandardOpenOption> CREATE_OPTIONS =
             EnumSet.of(StandardOpenOption.CREATE, StandardOpenOption.CREATE_NEW);
+
+    /**
+     * Internal Ares files that should be excluded from file system interception.
+     * These are implementation details of Ares itself and should not trigger
+     * sandbox violations when accessed internally.
+     */
+    private static final Set<String> INTERNAL_PATH_SUFFIXES = Set.of(
+            "ares/api/localization/Messages.class",
+            "ares/api/localization/messages.class",
+            "ares/api/localization/messages.properties",
+            "ares/api/util/LruCache.class"
+    );
+
     //</editor-fold>
 
     //<editor-fold desc="Constructor">
@@ -190,7 +203,10 @@ public class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstrumentat
             } else if (variableValue instanceof String) {
                 // Easy fix for cases where an empty string or root '/'' is provided (often an incorrect entry)
                 if(variableValue.equals("") || variableValue.equals("/")) {
-                    return null;
+                    throw new SecurityException(localize(
+                            "security.instrumentation.invalid.path",
+                            variableValue
+                    ));
                 }
                 Path absolutePath = Path.of((String) variableValue).normalize().toAbsolutePath();
                 if (Files.exists(absolutePath) || allowNonExistingPathsToBeConsidered) {
@@ -514,12 +530,11 @@ public class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstrumentat
         //<editor-fold desc="Check attributes">
         @Nullable String pathIllegallyInteractedThroughAttribute = (attributes == null || attributes.length == 0) ? null : checkIfVariableCriteriaIsViolated(attributes, allowedPaths, FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE), allowNonExistingPathsToBeConsidered);
         if (pathIllegallyInteractedThroughAttribute != null) {
-            if (
-                    !pathIllegallyInteractedThroughAttribute.endsWith("ares/api/localization/Messages.class") &&
-                            !pathIllegallyInteractedThroughAttribute.endsWith("ares/api/localization/messages.class") &&
-                            !pathIllegallyInteractedThroughAttribute.endsWith("ares/api/localization/messages.properties") &&
-                            !pathIllegallyInteractedThroughAttribute.endsWith("ares/api/util/LruCache.class")
-            ) {
+            boolean isInternalAllowed =
+                    INTERNAL_PATH_SUFFIXES.stream()
+                            .anyMatch(pathIllegallyInteractedThroughAttribute::endsWith);
+
+            if (!isInternalAllowed) {
                 throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
                         "security.advice.illegal.file.execution",
                         fileSystemMethodToCheck,

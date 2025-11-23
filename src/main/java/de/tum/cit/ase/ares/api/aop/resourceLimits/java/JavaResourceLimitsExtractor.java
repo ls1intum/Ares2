@@ -33,12 +33,23 @@ public class JavaResourceLimitsExtractor implements ResourceLimitsExtractor {
     @Nonnull
     public Long getTightestTimeout() {
         List<?> rawList = resourceAccessSupplier.get();
+        if (rawList == null) {
+            throw new SecurityException(
+                    Messages.localized("security.resource.limits.permission.null.list")
+            );
+        }
+
         if (rawList.isEmpty()) {
             return ResourceLimitsPermission.createRestrictive().timeout();
         }
 
-        // Validate that all elements are ResourceLimitsPermission instances
         for (Object item : rawList) {
+            if (item == null) {
+                throw new SecurityException(
+                        Messages.localized("security.resource.limits.permission.null.entry")
+                );
+            }
+
             if (!(item instanceof ResourceLimitsPermission)) {
                 throw new SecurityException(
                         Messages.localized(
@@ -48,6 +59,7 @@ public class JavaResourceLimitsExtractor implements ResourceLimitsExtractor {
                 );
             }
         }
+
 
         OptionalLong min = rawList.stream()
                 .map(ResourceLimitsPermission.class::cast).mapToLong(ResourceLimitsPermission::timeout)

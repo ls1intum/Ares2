@@ -78,7 +78,7 @@ public class Phobos {
         try {
             return (new JavaCSVFileLoader()).loadPhobosEditData();
         } catch (IOException | CsvException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed to load Phobos edit configuration from CSV", e);
         }
     }
 

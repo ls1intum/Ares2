@@ -35,7 +35,7 @@ public class JavaWalaTestCaseCollection {
         throw new SecurityException(
                 Messages.localized(
                         "security.general.utility.initialization",
-                        "JavaWalaTestCaseCollection"
+                        JavaWalaTestCaseCollection.class.getSimpleName()
                 )
         );
     }

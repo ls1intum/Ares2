@@ -76,7 +76,7 @@ public class JavaCSVFileLoader implements JavaFileLoader {
      *
      * @return the path to the CSV file containing the copy configuration.
      */
-    private File getPhobosCopyPaths() throws IOException {
+    private File getPhobosCopyPaths() {
         return FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration", "copyFiles", "PhobosCopyFiles.csv"));
     }
     //</editor-fold>
@@ -121,7 +121,7 @@ public class JavaCSVFileLoader implements JavaFileLoader {
      *
      * @return the path to the CSV file containing the edit configuration.
      */
-    private File getPhobosEditPaths() throws IOException {
+    private File getPhobosEditPaths() {
         return FileTools.readFile(FileTools.resolveFileOnSourceDirectory("configuration", "editFiles", "PhobosEditFiles.csv"));
     }
     //</editor-fold>
@@ -150,6 +150,13 @@ public class JavaCSVFileLoader implements JavaFileLoader {
         return FileTools.readCSVFile(getCopyPaths(mode, fs));
     }
 
+    /**
+     * Loads the copy configuration from the CSV file for Localisation.
+     *
+     * @return the copy configuration.
+     * @throws IOException if an I/O error occurs
+     * @throws CsvException if a CSV parsing error occurs
+     */
     public List<List<String>> loadLocalisationCopyData() throws IOException, CsvException {
         return FileTools.readCSVFile(getLocalisationCopyPaths());
     }
