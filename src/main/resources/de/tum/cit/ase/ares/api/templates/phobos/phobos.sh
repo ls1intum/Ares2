@@ -24,7 +24,6 @@ USAGE
 
 cfgs=()
 cmd=()
-seen_sep=0
 while (( "$#" )); do
   case "$1" in
     --config|-c)
@@ -33,7 +32,7 @@ while (( "$#" )); do
       [[ -f "$1" ]] || { echo "Config not found: $1" >&2; exit ${PHB_EPOLICY}; }
       cfgs+=("$1"); shift;;
     --)
-      seen_sep=1; shift
+      shift
       while (( "$#" )); do cmd+=("$1"); shift; done
       break;;
     *)
