@@ -58,7 +58,6 @@ public class JavaWriter implements Writer {
             @Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
             @Nullable Path testFolderPath
     ) {
-        var x = 0;
         return Stream.concat(Stream.concat(
                         FileTools.copyAndFormatFSFiles(
                                 architectureMode.fsFilesToCopy(),
@@ -219,7 +218,6 @@ public class JavaWriter implements Writer {
             @Nonnull List<JavaPhobosTestCase> javaPhobosTestCases,
             @Nullable Path testFolderPath
     ) {
-        var x = 0;
         return Stream.of(
                         createJavaArchitectureFiles(
                                 architectureMode,
