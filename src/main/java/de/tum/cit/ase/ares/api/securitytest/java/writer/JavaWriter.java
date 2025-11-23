@@ -174,7 +174,7 @@ public class JavaWriter implements Writer {
                 ).stream(),
                 Stream.of(FileTools.createThreePartedFormatStringFile(
                         Phobos.threePartedFileHeader(),
-                        Phobos.threePartedFileBody(javaPhobosTestCases, testFolderPath),
+                        Phobos.threePartedFileBody(javaPhobosTestCases),
                         Phobos.threePartedFileFooter(),
                         Phobos.targetToCopyTo(testFolderPath),
                         Phobos.fileValue(packageName)

@@ -32,39 +32,18 @@ public class JavaResourceLimitsExtractor implements ResourceLimitsExtractor {
      */
     @Nonnull
     public Long getTightestTimeout() {
-        List<?> rawList = resourceAccessSupplier.get();
-        if (rawList == null) {
-            throw new SecurityException(
-                    Messages.localized("security.resource.limits.permission.null.list")
-            );
-        }
+        List<ResourceLimitsPermission> permissions = validatePermissions(resourceAccessSupplier.get());
 
-        if (rawList.isEmpty()) {
+        if (permissions.isEmpty()) {
             return ResourceLimitsPermission.createRestrictive().timeout();
         }
 
-        for (Object item : rawList) {
-            if (item == null) {
-                throw new SecurityException(
-                        Messages.localized("security.resource.limits.permission.null.entry")
-                );
-            }
-
-            if (!(item instanceof ResourceLimitsPermission)) {
-                throw new SecurityException(
-                        Messages.localized(
-                                "security.resource.limits.permission.invalid.type",
-                                item.getClass().getName()
-                        )
-                );
-            }
-        }
-
-
-        OptionalLong min = rawList.stream()
-                .map(ResourceLimitsPermission.class::cast).mapToLong(ResourceLimitsPermission::timeout)
+        OptionalLong min = permissions.stream()
+                .mapToLong(ResourceLimitsPermission::timeout)
+                .filter(timeoutValue -> timeoutValue >= 0)
                 .min();
-        return min.getAsLong();
+
+        return min.orElse(ResourceLimitsPermission.createRestrictive().timeout());
     }
 
 
@@ -105,5 +84,40 @@ public class JavaResourceLimitsExtractor implements ResourceLimitsExtractor {
             }
         }
         return min;
+    }
+
+    private static List<ResourceLimitsPermission> validatePermissions(List<?> rawList) {
+        if (rawList == null) {
+            throw new SecurityException(
+                    Messages.localized("security.resource.limits.permission.null.list")
+            );
+        }
+
+        if (rawList.isEmpty()) {
+            return List.of();
+        }
+
+        List<ResourceLimitsPermission> result = new ArrayList<>();
+
+        for (Object item : rawList) {
+            if (item == null) {
+                throw new SecurityException(
+                        Messages.localized("security.resource.limits.permission.null.entry")
+                );
+            }
+
+            if (!(item instanceof ResourceLimitsPermission)) {
+                throw new SecurityException(
+                        Messages.localized(
+                                "security.resource.limits.permission.invalid.type",
+                                item.getClass().getName()
+                        )
+                );
+            }
+
+            result.add((ResourceLimitsPermission) item);
+        }
+
+        return result;
     }
 }

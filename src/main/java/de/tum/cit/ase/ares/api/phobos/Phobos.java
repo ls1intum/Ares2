@@ -62,7 +62,7 @@ public class Phobos {
         try {
             return (new JavaCSVFileLoader()).loadPhobosCopyData();
         } catch (IOException | CsvException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed to load Phobos copy configuration from CSV.",e);
         }
     }
 
@@ -78,7 +78,7 @@ public class Phobos {
         try {
             return (new JavaCSVFileLoader()).loadPhobosEditData();
         } catch (IOException | CsvException e) {
-            throw new RuntimeException("Failed to load Phobos edit configuration from CSV", e);
+            throw new RuntimeException("Failed to load Phobos edit configuration from CSV.", e);
         }
     }
 
@@ -132,12 +132,10 @@ public class Phobos {
      * @since 2.0.0
      * @author Ajayvir Singh
      * @param javaPhobosTestCases the list of Java AOP test cases
-     * @param testFolderPath   the path to the test folder, can be null
      * @return a string representing the body of the three-parted file
      */
     public static String threePartedFileBody(
-            @Nonnull List<JavaPhobosTestCase> javaPhobosTestCases,
-            @Nullable Path testFolderPath
+            @Nonnull List<JavaPhobosTestCase> javaPhobosTestCases
     ) {
         List<FilePermission> filePermissions =
                 extractPermissions(javaPhobosTestCases, JavaPhobosTestCaseSupported.FILESYSTEM_INTERACTION);
@@ -159,6 +157,7 @@ public class Phobos {
      * @param supported the type of supported permissions to extract
      * @return a list of permissions extracted from the test cases
      */
+    @SuppressWarnings("unchecked")
     private static <T> List<T> extractPermissions(List<JavaPhobosTestCase> testCases, JavaPhobosTestCaseSupported supported) {
         return testCases.stream()
                 .filter(testCase -> testCase.getPhobosTestCaseSupported() == supported)
