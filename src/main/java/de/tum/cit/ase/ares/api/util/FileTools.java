@@ -421,7 +421,15 @@ public class FileTools {
     public static List<Path> copyAndFormatFSFiles(List<Path> sourceFilePaths, List<Path> targetFilePaths,
                                                   List<String[]> formatValues) {
         List<Path> copiedFiles = copyFiles(sourceFilePaths, targetFilePaths);
-        formatFSFiles(copiedFiles, formatValues);
+
+        // Skip formatting for localization resource files (*.properties)
+        List<Path> filesToFormat = copiedFiles.stream()
+                .filter(p -> !p.toString().contains("localization"))
+                .filter(p -> !p.toString().endsWith(".properties"))
+                .toList();
+
+        formatFSFiles(filesToFormat, formatValues);
+
         return copiedFiles;
     }
 
