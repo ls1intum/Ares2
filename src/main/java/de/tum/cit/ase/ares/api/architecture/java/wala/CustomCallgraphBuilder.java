@@ -20,6 +20,7 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -82,7 +83,7 @@ public class CustomCallgraphBuilder {
         try {
             // Build analysis scope from current classpath and exclusion list
             scope = Java9AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(
-                    classPath + ":" + System.getProperty("java.class.path"),
+                    classPath + File.pathSeparator + System.getProperty("java.class.path"),
                     FileTools.readFile(FileTools.resolveFileOnSourceDirectory("templates","architecture","java","exclusions.txt"))
             );
             // Construct class hierarchy from scope
