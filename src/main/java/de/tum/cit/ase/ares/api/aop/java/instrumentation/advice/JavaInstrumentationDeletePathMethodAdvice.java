@@ -4,13 +4,6 @@ import net.bytebuddy.asm.Advice;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.List;
-
-import static java.lang.reflect.Modifier.isStatic;
-import static java.util.Arrays.stream;
-
 /**
  * This class provides advice for the execution of methods deleting files.
  * It is responsible for verifying whether the method execution is allowed based on the file system
@@ -47,21 +40,8 @@ public class JavaInstrumentationDeletePathMethodAdvice {
             @Advice.AllArguments Object... parameters
     ) {
 
-        // Collect non-static fields *without* using streams/lambdas
-        final Field[] fields;
-        if (instance != null) {
-            Field[] allFields = instance.getClass().getDeclaredFields();
-            List<Field> tmp = new ArrayList<>();
-            for (Field f : allFields) {
-                if (!Modifier.isStatic(f.getModifiers())) {
-                    tmp.add(f);
-                }
-            }
-            fields = tmp.toArray(new Field[0]);
-        } else {
-            fields = new Field[0];
-        }
-
+        //<editor-fold desc="Attributes">
+        final Field[] fields = instance != null ? instance.getClass().getDeclaredFields() : new Field[0];
         final Object[] attributes = new Object[fields.length];
         if (instance != null) {
             for (int i = 0; i < fields.length; i++) {
@@ -69,40 +49,21 @@ public class JavaInstrumentationDeletePathMethodAdvice {
                     fields[i].setAccessible(true);
                     attributes[i] = fields[i].get(instance);
                 } catch (InaccessibleObjectException e) {
-                    throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-                            "security.instrumentation.inaccessible.object.exception",
-                            fields[i].getName(),
-                            instance.getClass().getName()
-                    ), e);
+                    throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.inaccessible.object.exception", fields[i].getName(), instance.getClass().getName()), e);
                 } catch (IllegalAccessException e) {
-                    throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-                            "security.instrumentation.illegal.access.exception",
-                            fields[i].getName(),
-                            instance.getClass().getName()
-                    ), e);
+                    throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.illegal.access.exception", fields[i].getName(), instance.getClass().getName()), e);
                 } catch (IllegalArgumentException e) {
-                    throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-                            "security.instrumentation.illegal.argument.exception",
-                            fields[i].getName(),
-                            fields[i].getDeclaringClass().getName(),
-                            instance.getClass().getName()
-                    ), e);
+                    throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.illegal.argument.exception", fields[i].getName(), fields[i].getDeclaringClass().getName(), instance.getClass().getName()), e);
                 } catch (NullPointerException e) {
-                    throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-                            "security.instrumentation.null.pointer.exception",
-                            fields[i].getName(),
-                            instance.getClass().getName()
-                    ), e);
+                    throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.null.pointer.exception", fields[i].getName(), instance.getClass().getName()), e);
                 } catch (ExceptionInInitializerError e) {
-                    throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-                            "security.instrumentation.exception.in-initializer.error",
-                            fields[i].getName(),
-                            instance.getClass().getName()
-                    ), e);
+                    throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.exception.in-initializer.error", fields[i].getName(), instance.getClass().getName()), e);
                 }
             }
         }
+        //</editor-fold>
 
+        //<editor-fold desc="Check">
         JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction(
                 "delete",
                 declaringTypeName,
@@ -112,6 +73,6 @@ public class JavaInstrumentationDeletePathMethodAdvice {
                 parameters,
                 instance
         );
+        //</editor-fold>
     }
-
 }
