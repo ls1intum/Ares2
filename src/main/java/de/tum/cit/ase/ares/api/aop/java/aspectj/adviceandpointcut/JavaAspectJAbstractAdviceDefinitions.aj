@@ -155,7 +155,7 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
             if (result instanceof String str) {
                 return str;
             } else {
-                throw new IllegalStateException("Method does not return a String");
+                throw new SecurityException(localize("security.localization.method.return.type"));
             }
         } catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException |
                  IllegalAccessException e) {
@@ -245,19 +245,19 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
         @Nonnull ArrayList<Object> newVariables = new ArrayList<>(Arrays.asList(variables.clone()));
         switch (ignoreVariables.getType()) {
             // No variable is ignored
-            case NONE:
+            case "NONE":
                 break;
             // All variables are ignored
-            case ALL:
+            case "ALL":
                 newVariables.clear();
                 break;
             // All variables except the one at the given index are ignored
-            case ALL_EXCEPT:
+            case "ALL_EXCEPT":
                 @Nonnull Object toKeep = newVariables.get(ignoreVariables.getIndex());
                 newVariables.clear();
                 newVariables.add(toKeep);
                 break;
-            case NONE_EXCEPT:
+            case "NONE_EXCEPT":
                 newVariables.remove(ignoreVariables.getIndex());
                 break;
         }

@@ -1,5 +1,7 @@
 package de.tum.cit.ase.ares.api.aop.java;
 
+import de.tum.cit.ase.ares.api.localization.Messages;
+
 /**
  * Configuration settings for Java instrumentation aspect configurations.
  * <p>
@@ -23,7 +25,12 @@ public class JavaAOPTestCaseSettings {
      * </p>
      */
     private JavaAOPTestCaseSettings() {
-        throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): JavaAOPTestCaseSettings is a utility class and should not be instantiated.");
+        throw new SecurityException(
+                Messages.localized(
+                        "security.general.utility.initialization",
+                        "JavaAOPTestCaseSettings"
+                )
+        );
     }
 
     /**

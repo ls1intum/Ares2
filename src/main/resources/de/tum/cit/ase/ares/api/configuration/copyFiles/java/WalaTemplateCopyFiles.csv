@@ -18,5 +18,3 @@ templates/architecture/java/wala/methods/jvm-termination-methods.txt,0,ares/api/
 templates/architecture/java/wala/methods/reflection-methods.txt,0,ares/api/templates/architecture/java/wala/methods/reflection-methods.txt
 templates/architecture/java/wala/methods/classloader-methods.txt,0,ares/api/templates/architecture/java/wala/methods/classloader-methods.txt
 templates/architecture/java/wala/methods/serializable-methods.txt,0,ares/api/templates/architecture/java/wala/methods/serializable-methods.txt
-localization/messages.properties,0,ares/api/localization/messages.properties
-localization/messages_de.properties,0,ares/api/localization/messages_de.properties

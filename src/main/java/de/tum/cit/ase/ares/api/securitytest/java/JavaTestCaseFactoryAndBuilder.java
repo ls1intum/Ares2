@@ -7,6 +7,7 @@ import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
+import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.securitytest.TestCaseAbstractFactoryAndBuilder;
 import de.tum.cit.ase.ares.api.securitytest.java.creator.JavaCreator;
@@ -20,6 +21,7 @@ import javax.annotation.Nullable;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
+
 //</editor-fold>
 
 /**
@@ -107,6 +109,7 @@ public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBui
                 mainClassInPackageName,
                 this.architectureTestCases.stream().map(architectureTestCase -> (JavaArchitectureTestCase) architectureTestCase).toList(),
                 this.aopTestCases.stream().map(aopTestCase -> (JavaAOPTestCase) aopTestCase).toList(),
+                this.phobosTestCases.stream().map(phobosTestCase -> (JavaPhobosTestCase) phobosTestCase).toList(),
                 testFolderPath
         );
     }

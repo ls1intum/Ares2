@@ -268,7 +268,10 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
                     case "overwrite" -> "pathsAllowedToBeOverwritten";
                     case "execute" -> "pathsAllowedToBeExecuted";
                     case "delete" -> "pathsAllowedToBeDeleted";
-                    default -> throw new SecurityException("Unknown action: " + action);
+                    default -> throw new SecurityException(localize(
+                            "security.advice.file.system.unknown.action",
+                            action
+                    ));
                 }
         );
         //</editor-fold>

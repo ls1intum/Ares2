@@ -28,6 +28,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.jar.JarEntry;
@@ -378,7 +379,7 @@ public class FileTools {
      *         copied files.
      * @throws SecurityException if an error occurs during the file copy process.
      */
-    private static List<Path> copyFiles(List<Path> sourceFilePaths, List<Path> targetFilePaths) {
+    public static List<Path> copyFiles(List<Path> sourceFilePaths, List<Path> targetFilePaths) {
         return IntStream.range(0, sourceFilePaths.size()).mapToObj(i -> {
             try {
                 Path parentPath = targetFilePaths.get(i).getParent();
@@ -699,5 +700,30 @@ public class FileTools {
             throw new SecurityException();
         }
     }
-    // </editor-fold>
+
+    /**
+     * Reads a Phobos configuration file and returns its content as a list of lists of strings.
+     * <p>
+     * Each line in the configuration file is expected to contain exactly three tokens separated by whitespace.
+     * </p>
+     *
+     * @param sourceCFGPath the path to the configuration file.
+     * @return a list of lists, where each inner list contains three tokens from a line in the configuration file.
+     * @throws IOException if an I/O error occurs while reading the file.
+     */
+    public static List<List<String>> readCFGFile(Path sourceCFGPath) throws IOException {
+        return Files
+                .lines(sourceCFGPath)
+                .map(String::trim)
+                .filter(line -> !line.isEmpty())
+                .map(line -> List.of(line.split("\\s+")))
+                .peek(parts -> {
+                    if (parts.size() != 3) {
+                        throw new IllegalArgumentException(
+                                "Invalid cfg format (expected exactly 3 tokens per line): " + parts);
+                    }
+                })
+                .collect(Collectors.toList());
+    }
+    //</editor-fold>
 }

@@ -49,6 +49,7 @@ public class JavaFileSystemExtractor implements FileSystemExtractor {
      *
      * @param filePermission the type of file permission to filter by (e.g., "read", "overwrite"), must not be null.
      * @return a list of permitted file paths for the specified file permission type.
+     * @throws SecurityException if the filePermission is not a valid permission type
      */
     @Nonnull
     public List<String> getPermittedFilePaths(@Nonnull String filePermission) {
@@ -58,7 +59,12 @@ public class JavaFileSystemExtractor implements FileSystemExtractor {
             case "execute" -> FilePermission::executeAllFiles;
             case "delete" -> FilePermission::deleteAllFiles;
             default ->
-                    throw new IllegalArgumentException(Messages.localized("security.advice.settings.invalid.file.permission", filePermission));
+                    throw new SecurityException(
+                            Messages.localized(
+                                    "security.advice.settings.invalid.file.permission",
+                                    filePermission
+                            )
+                    );
         };
         return ((List<FilePermission>) resourceAccessSupplier.get())
                 .stream()

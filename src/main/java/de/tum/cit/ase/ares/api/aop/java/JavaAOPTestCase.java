@@ -164,31 +164,31 @@ public class JavaAOPTestCase extends AOPTestCase {
             field.setAccessible(false);
         } catch (LinkageError e) {
             throw new SecurityException(
-                    JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.linkage.exception", adviceSetting),
+                    JavaInstrumentationAdviceAbstractToolbox.localize("security.creation.advice.linkage.exception", adviceSetting),
                     e);
         } catch (ClassNotFoundException e) {
             throw new SecurityException(
-                    JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.class.not.found.exception", adviceSetting),
+                    JavaInstrumentationAdviceAbstractToolbox.localize("security.creation.advice.class.not.found.exception", adviceSetting),
                     e);
         } catch (NoSuchFieldException e) {
             throw new SecurityException(
-                    JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.no.such.field.exception", adviceSetting),
+                    JavaInstrumentationAdviceAbstractToolbox.localize("security.creation.advice.no.such.field.exception", adviceSetting),
                     e);
         } catch (NullPointerException e) {
             throw new SecurityException(
-                    JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.null.pointer.exception", adviceSetting),
+                    JavaInstrumentationAdviceAbstractToolbox.localize("security.creation.advice.null.pointer.exception", adviceSetting),
                     e);
         } catch (IllegalAccessException e) {
             throw new SecurityException(
-                    JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.illegal.access.exception", adviceSetting),
+                    JavaInstrumentationAdviceAbstractToolbox.localize("security.creation.advice.illegal.access.exception", adviceSetting),
                     e);
         } catch (IllegalArgumentException e) {
             throw new SecurityException(
-                    JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.illegal.argument.exception", adviceSetting, value),
+                    JavaInstrumentationAdviceAbstractToolbox.localize("security.creation.advice.illegal.argument.exception", adviceSetting, value),
                     e);
         } catch (InaccessibleObjectException e) {
             throw new SecurityException(
-                    JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.inaccessible.object.exception", adviceSetting),
+                    JavaInstrumentationAdviceAbstractToolbox.localize("security.creation.advice.inaccessible.object.exception", adviceSetting),
                     e);
         }
     }

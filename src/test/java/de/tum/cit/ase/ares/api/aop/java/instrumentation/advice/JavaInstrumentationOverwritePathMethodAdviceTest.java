@@ -29,7 +29,8 @@ class JavaInstrumentationOverwritePathMethodAdviceTest {
                     METHOD_NAME,
                     METHOD_SIGNATURE,
                     ATTRIBUTES,
-                    PARAMETERS
+                    PARAMETERS,
+                    null
             )).thenAnswer(invocation -> null);
 
             // Act
@@ -48,7 +49,8 @@ class JavaInstrumentationOverwritePathMethodAdviceTest {
                     METHOD_NAME,
                     METHOD_SIGNATURE,
                     ATTRIBUTES,
-                    PARAMETERS
+                    PARAMETERS,
+                    null
             ));
         }
     }

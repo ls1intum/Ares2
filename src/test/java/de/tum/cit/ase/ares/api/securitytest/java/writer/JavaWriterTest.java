@@ -5,6 +5,7 @@ import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
+import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.util.FileTools;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -33,6 +34,7 @@ public class JavaWriterTest {
     private String mainClassInPackageName;
     private List<JavaArchitectureTestCase> javaArchitectureTestCases;
     private List<JavaAOPTestCase> javaAOPTestCases;
+    private List<JavaPhobosTestCase> javaPhobosTestCases;
 
     @TempDir
     Path tempDir;
@@ -55,6 +57,10 @@ public class JavaWriterTest {
         javaAOPTestCases = List.of(
                 mock(JavaAOPTestCase.class),
                 mock(JavaAOPTestCase.class)
+        );
+        javaPhobosTestCases = List.of(
+                mock(JavaPhobosTestCase.class),
+                mock(JavaPhobosTestCase.class)
         );
     }
 
@@ -116,7 +122,7 @@ public class JavaWriterTest {
                 List<Path> result = javaWriter.writeTestCases(
                         buildMode, architectureMode, aopMode, essentialPackages,
                         essentialClasses, testClasses, packageName, mainClassInPackageName,
-                        javaArchitectureTestCases, javaAOPTestCases, tempDir
+                        javaArchitectureTestCases, javaAOPTestCases, javaPhobosTestCases, tempDir
                 );
 
                 // Assert
@@ -202,7 +208,7 @@ public class JavaWriterTest {
                 List<Path> result = javaWriter.writeTestCases(
                         buildMode, architectureMode, aopMode, emptyPackages,
                         emptyClasses, emptyTestClasses, packageName, mainClassInPackageName,
-                        emptyArchTestCases, emptyAOPTestCases, tempDir
+                        emptyArchTestCases, emptyAOPTestCases, javaPhobosTestCases,tempDir
                 );
 
                 // Assert
@@ -255,7 +261,7 @@ public class JavaWriterTest {
                 javaWriter.writeTestCases(
                         buildMode, architectureMode, aopMode, essentialPackages,
                         essentialClasses, testClasses, packageName, mainClassInPackageName,
-                        javaArchitectureTestCases, javaAOPTestCases, tempDir
+                        javaArchitectureTestCases, javaAOPTestCases, javaPhobosTestCases, tempDir
                 );
 
                 // Assert - verify that merged list contains both essential and test classes
@@ -312,7 +318,7 @@ public class JavaWriterTest {
                     javaWriter.writeTestCases(
                             BuildMode.GRADLE, architectureMode, aopMode, essentialPackages,
                             essentialClasses, testClasses, packageName, mainClassInPackageName,
-                            javaArchitectureTestCases, javaAOPTestCases, tempDir
+                            javaArchitectureTestCases, javaAOPTestCases, javaPhobosTestCases, tempDir
                     );
                 });
             }

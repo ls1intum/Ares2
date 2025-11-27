@@ -24,7 +24,8 @@ class JavaInstrumentationDeletePathConstructorAdviceTest {
                     METHOD_NAME,
                     METHOD_SIGNATURE,
                     ATTRIBUTES,
-                    PARAMETERS
+                    PARAMETERS,
+                    null
             )).thenAnswer(invocation -> null);
 
             // Act
@@ -40,7 +41,8 @@ class JavaInstrumentationDeletePathConstructorAdviceTest {
                     METHOD_NAME,
                     METHOD_SIGNATURE,
                     ATTRIBUTES,
-                    PARAMETERS
+                    PARAMETERS,
+                    null
             ));
         }
     }

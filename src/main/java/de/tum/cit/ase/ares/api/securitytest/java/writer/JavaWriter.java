@@ -5,12 +5,15 @@ import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
+import de.tum.cit.ase.ares.api.localization.Localisation;
+import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.Phobos;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
@@ -55,7 +58,6 @@ public class JavaWriter implements Writer {
             @Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
             @Nullable Path testFolderPath
     ) {
-        var x = 0;
         return Stream.concat(Stream.concat(
                         FileTools.copyAndFormatFSFiles(
                                 architectureMode.fsFilesToCopy(),
@@ -129,23 +131,50 @@ public class JavaWriter implements Writer {
     }
 
     @Nonnull
+    private List<Path> createLocalisationFiles(
+            @Nonnull String packageName,
+            @Nullable Path testFolderPath
+    ) {
+        if (testFolderPath == null) {
+            return List.of();
+        }
+
+        int nameCount = testFolderPath.getNameCount();
+        if (nameCount < 2) {
+            throw new IllegalArgumentException("Unexpected test folder path: " + testFolderPath);
+        }
+
+        Path parentPath = testFolderPath.subpath(0, nameCount - 2);
+
+        Path root = testFolderPath.getRoot();
+        Path resourcesFolderPath = (root == null)
+                ? Paths.get(parentPath.toString(), "resources")
+                : Paths.get(root.toString(), parentPath.toString(), "resources");
+
+        return FileTools.copyFiles(
+                Localisation.filesToCopy(),
+                Localisation.targetsToCopyTo(resourcesFolderPath)
+        );
+    }
+
+
+
+    @Nonnull
     private List<Path> createPhobosFiles(
             @Nonnull String packageName,
-            @Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
-            @Nonnull List<JavaAOPTestCase> javaAOPTestCases,
+            @Nonnull List<JavaPhobosTestCase> javaPhobosTestCases,
             @Nullable Path testFolderPath
     ) {
         return Stream.concat(
-                FileTools.copyAndFormatFSFiles(
+                FileTools.copyFiles(
                         Phobos.filesToCopy(),
-                        Phobos.targetsToCopyTo(testFolderPath, packageName),
-                        Phobos.fileValues(packageName)
+                        Phobos.targetsToCopyTo(testFolderPath)
                 ).stream(),
                 Stream.of(FileTools.createThreePartedFormatStringFile(
                         Phobos.threePartedFileHeader(),
-                        Phobos.threePartedFileBody(javaArchitectureTestCases, javaAOPTestCases, testFolderPath),
+                        Phobos.threePartedFileBody(javaPhobosTestCases),
                         Phobos.threePartedFileFooter(),
-                        Phobos.targetToCopyTo(testFolderPath, packageName),
+                        Phobos.targetToCopyTo(testFolderPath),
                         Phobos.fileValue(packageName)
                 ))
         ).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
@@ -170,6 +199,7 @@ public class JavaWriter implements Writer {
      * @param mainClassInPackageName the name of the main class; must not be null
      * @param javaArchitectureTestCases the list of architecture test cases; must not be null
      * @param javaAOPTestCases the list of AOP test cases; must not be null
+     * @param javaPhobosTestCases the list of Phobos test cases; must not be null
      * @param testFolderPath the directory of the project; may be null
      * @return a list of paths to the created files
      */
@@ -185,9 +215,9 @@ public class JavaWriter implements Writer {
             @Nonnull String mainClassInPackageName,
             @Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
             @Nonnull List<JavaAOPTestCase> javaAOPTestCases,
+            @Nonnull List<JavaPhobosTestCase> javaPhobosTestCases,
             @Nullable Path testFolderPath
     ) {
-        var x = 0;
         return Stream.of(
                         createJavaArchitectureFiles(
                                 architectureMode,
@@ -205,13 +235,16 @@ public class JavaWriter implements Writer {
                                 mainClassInPackageName,
                                 javaAOPTestCases,
                                 testFolderPath
-                        ).stream()//,
-                        /*createPhobosFiles(
+                        ).stream(),
+                        createLocalisationFiles(
                                 packageName,
-                                javaArchitectureTestCases,
-                                javaAOPTestCases,
                                 testFolderPath
-                        ).stream()*/
+                        ).stream(),
+                        createPhobosFiles(
+                                packageName,
+                                javaPhobosTestCases,
+                                testFolderPath
+                        ).stream()
                 )
                 .flatMap(s -> s)
                 .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);

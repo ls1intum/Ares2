@@ -12,7 +12,13 @@ public interface JavaFileLoader {
 
     List<List<String>> loadCopyData(AOPMode mode, boolean formatStringFileRequested) throws IOException, CsvException;
 
+    List<List<String>> loadLocalisationCopyData() throws IOException, CsvException;
+
+    List<List<String>> loadPhobosCopyData() throws IOException, CsvException;
+
     List<List<String>> loadEditData(ArchitectureMode mode) throws IOException, CsvException;
 
     List<List<String>> loadEditData(AOPMode mode) throws IOException, CsvException;
+
+    List<List<String>> loadPhobosEditData() throws IOException, CsvException;
 }

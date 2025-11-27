@@ -32,7 +32,12 @@ public class JavaWalaTestCaseCollection {
 
     //<editor-fold desc="Constructor">
     private JavaWalaTestCaseCollection() {
-        throw new SecurityException(Messages.localized("security.general.utility.initialization", JavaWalaTestCaseCollection.class.getName()));
+        throw new SecurityException(
+                Messages.localized(
+                        "security.general.utility.initialization",
+                        JavaWalaTestCaseCollection.class.getSimpleName()
+                )
+        );
     }
     //</editor-fold>
 

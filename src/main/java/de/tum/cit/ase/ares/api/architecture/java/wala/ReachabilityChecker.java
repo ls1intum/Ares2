@@ -25,7 +25,12 @@ import java.util.function.Predicate;
 public class ReachabilityChecker {
     //<editor-fold desc="Constructor">
     private ReachabilityChecker() {
-        throw new SecurityException(Messages.localized("security.general.utility.initialization", ReachabilityChecker.class.getName()));
+        throw new SecurityException(
+                Messages.localized(
+                        "security.general.utility.initialization",
+                        "ReachabilityChecker"
+                )
+        );
     }
     //</editor-fold>
 

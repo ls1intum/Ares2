@@ -36,7 +36,8 @@ public class JavaInstrumentationDeletePathConstructorAdvice {
                 "<init>",
                 "",
                 new Object[0],
-                parameters
+                parameters,
+                null
         );
     }
 }

@@ -72,7 +72,12 @@ public class JavaNetworkSystemExtractor implements NetworkSystemExtractor {
             case "send" -> NetworkPermission::sendData;
             case "receive" -> NetworkPermission::receiveData;
             default ->
-                    throw new IllegalArgumentException(Messages.localized("security.advice.settings.invalid.network.permission", networkPermission));
+                    throw new SecurityException(
+                            Messages.localized(
+                                    "security.advice.settings.invalid.network.permission",
+                                    networkPermission
+                            )
+                    );
         };
         return ((List<NetworkPermission>) resourceAccessSupplier.get())
                 .stream()
@@ -94,7 +99,12 @@ public class JavaNetworkSystemExtractor implements NetworkSystemExtractor {
             case "send" -> NetworkPermission::sendData;
             case "receive" -> NetworkPermission::receiveData;
             default ->
-                    throw new IllegalArgumentException(Messages.localized("security.advice.settings.invalid.network.permission", networkPermission));
+                    throw new SecurityException(
+                            Messages.localized(
+                                    "security.advice.settings.invalid.network.permission",
+                                    networkPermission
+                            )
+                    );
         };
         return ((List<NetworkPermission>) resourceAccessSupplier.get())
                 .stream()

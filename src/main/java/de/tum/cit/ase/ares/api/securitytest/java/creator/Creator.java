@@ -5,6 +5,7 @@ import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
+import de.tum.cit.ase.ares.api.phobos.PhobosTestCase;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
 
 import javax.annotation.Nonnull;
@@ -51,6 +52,7 @@ public interface Creator {
             @Nonnull String mainClassInPackageName,
             @Nonnull List<ArchitectureTestCase> architectureTestCases,
             @Nonnull List<AOPTestCase> aopTestCases,
+            @Nonnull List<PhobosTestCase> phobosTestCases,
             @Nonnull ResourceAccesses resourceAccesses,
             @Nonnull Path projectPath
     );

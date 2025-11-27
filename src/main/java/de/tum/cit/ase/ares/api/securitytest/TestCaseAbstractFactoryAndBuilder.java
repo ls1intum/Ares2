@@ -7,6 +7,7 @@ import de.tum.cit.ase.ares.api.aop.AOPTestCase;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
+import de.tum.cit.ase.ares.api.phobos.PhobosTestCase;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.SupervisedCode;
@@ -150,6 +151,10 @@ public abstract class TestCaseAbstractFactoryAndBuilder {
      */
     @Nonnull
     protected final List<AOPTestCase> aopTestCases = new ArrayList<>();
+
+
+    @Nonnull
+    protected final List<PhobosTestCase> phobosTestCases = new ArrayList<>();
     //</editor-fold>
 
     //</editor-fold>
@@ -233,6 +238,7 @@ public abstract class TestCaseAbstractFactoryAndBuilder {
                 this.mainClassInPackageName,
                 this.architectureTestCases,
                 this.aopTestCases,
+                this.phobosTestCases,
                 this.resourceAccesses,
                 this.projectPath
         );

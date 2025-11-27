@@ -36,7 +36,8 @@ public class JavaInstrumentationExecutePathConstructorAdvice {
                 "<init>",
                 "",
                 new Object[0],
-                parameters
+                parameters,
+                null
         );
     }
 }

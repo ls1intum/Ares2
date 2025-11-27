@@ -4,7 +4,6 @@ import net.bytebuddy.asm.Advice;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
-
 /**
  * This class provides advice for the execution of methods deleting files.
  * It is responsible for verifying whether the method execution is allowed based on the file system
@@ -71,7 +70,8 @@ public class JavaInstrumentationDeletePathMethodAdvice {
                 methodName,
                 methodSignature,
                 attributes,
-                parameters
+                parameters,
+                instance
         );
         //</editor-fold>
     }

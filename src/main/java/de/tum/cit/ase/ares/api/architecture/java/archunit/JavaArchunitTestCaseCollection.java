@@ -37,7 +37,12 @@ public class JavaArchunitTestCaseCollection {
 
     //<editor-fold desc="Constructor">
     private JavaArchunitTestCaseCollection() {
-        throw new SecurityException(Messages.localized("security.general.utility.initialization", JavaArchunitTestCaseCollection.class.getName()));
+        throw new SecurityException(
+                Messages.localized(
+                        "security.general.utility.initialization",
+                        JavaArchunitTestCaseCollection.class.getSimpleName()
+                )
+        );
     }
     //</editor-fold>
 
