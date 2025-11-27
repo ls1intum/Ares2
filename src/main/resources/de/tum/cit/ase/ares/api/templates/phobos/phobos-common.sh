@@ -127,12 +127,18 @@ net_union() {
     done < <(sed -E 's/#.*$//' "$f" | sed '/^[[:space:]]*$/d')
   done
 }
+
+filter_existing() { while IFS= read -r p; do [[ -n "$p" && -e "$p" ]] && printf '%s\n' "$p"; done; }
+
 write_spec() {
   local spec_dir="$1" ro="$2" rw="$3" hide="$4" net="$5" timeout="$6" tail="$7"
   mkdir -p "$spec_dir"
-  cp "$ro"   "${spec_dir}/ro.paths"   2>/dev/null || : > "${spec_dir}/ro.paths"
+
+  if [[ -s "$ro" ]]; then filter_existing < "$ro" > "${spec_dir}/ro.paths"; else : > "${spec_dir}/ro.paths"; fi
+  if [[ -s "$hide" ]]; then filter_existing < "$hide" > "${spec_dir}/hide.paths"; else : > "${spec_dir}/hide.paths"; fi
+
   cp "$rw"   "${spec_dir}/rw.paths"   2>/dev/null || : > "${spec_dir}/rw.paths"
-  cp "$hide" "${spec_dir}/hide.paths" 2>/dev/null || : > "${spec_dir}/hide.paths"
+
   if [[ -n "$timeout" ]]; then printf '%s\n' "$timeout" > "${spec_dir}/timeout.sec"; else : > "${spec_dir}/timeout.sec"; fi
   if [[ -n "$tail" && -f "$tail" ]]; then sed -E 's/#.*$//' "$tail" | sed '/^[[:space:]]*$/d' > "${spec_dir}/tail.flags"; else : > "${spec_dir}/tail.flags"; fi
   if [[ -n "$net" && -s "$net" ]]; then cp "$net" "${spec_dir}/net.rules"; else : > "${spec_dir}/net.rules"; fi

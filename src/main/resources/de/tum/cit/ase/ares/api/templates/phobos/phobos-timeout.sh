@@ -9,6 +9,15 @@ source "${HERE}/phobos-common.sh"
 SPEC_DIR="$1"; shift 2
 CMD=("$@")
 
+enable_timeout="${PHB_ENABLE_TIMEOUT:-1}"
+
+# If timeout layer is disabled, just pass through to network layer and ensure
+# PHB_TIMEOUT_SEC is not set.
+if [[ "$enable_timeout" != "1" ]]; then
+  export PHB_TIMEOUT_SEC=""
+  exec "${HERE}/phobos-network.sh" "${SPEC_DIR}" -- "${CMD[@]}"
+fi
+
 if [[ -s "${SPEC_DIR}/timeout.sec" ]]; then
   PHB_TIMEOUT_SEC="$(<"${SPEC_DIR}/timeout.sec")"
   export PHB_TIMEOUT_SEC
