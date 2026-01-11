@@ -25,7 +25,7 @@ public class Localisation {
 
     public static List<Path> filesToCopy() {
         return getCopyConfigurationEntries().stream()
-                .map(entry -> entry.getFirst().split("/"))
+                .map(entry -> entry.get(0).split("/"))
                 .map(FileTools::resolveFileOnSourceDirectory)
                 .toList();
 

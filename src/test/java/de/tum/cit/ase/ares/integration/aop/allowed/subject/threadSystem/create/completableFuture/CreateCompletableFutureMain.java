@@ -42,9 +42,12 @@ public class CreateCompletableFutureMain {
      * Tests CompletableFuture.supplyAsync(Supplier, Executor) method
      */
     public static void supplyAsyncWithExecutor() {
-        try (ExecutorService executor = Executors.newSingleThreadExecutor()) {
+        try {
+            ExecutorService executor = Executors.newSingleThreadExecutor();
             Supplier<String> supplier = () -> "test";
             CompletableFuture.supplyAsync(supplier, executor);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -61,10 +64,13 @@ public class CreateCompletableFutureMain {
      * Tests CompletableFuture.thenApplyAsync(Function, Executor) method
      */
     public static void thenApplyAsyncWithExecutor() {
-        try (ExecutorService executor = Executors.newSingleThreadExecutor()) {
+        try {
+            ExecutorService executor = Executors.newSingleThreadExecutor();
             CompletableFuture<String> future = CompletableFuture.completedFuture("test");
             Function<String, String> function = s -> s.toUpperCase();
             future.thenApplyAsync(function, executor);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 

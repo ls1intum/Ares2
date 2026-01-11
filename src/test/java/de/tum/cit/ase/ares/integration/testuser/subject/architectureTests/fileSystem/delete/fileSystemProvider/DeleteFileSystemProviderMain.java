@@ -14,7 +14,7 @@ public class DeleteFileSystemProviderMain {
      * Access the file system using the {@link FileSystemProvider} class for deletion.
      */
     public static void accessFileSystemViaFileSystemProvider() throws IOException {
-        FileSystemProvider provider = FileSystemProvider.installedProviders().getFirst();
+        FileSystemProvider provider = FileSystemProvider.installedProviders().get(0);
         provider.delete(Path.of("pom123.xml"));
     }
 }

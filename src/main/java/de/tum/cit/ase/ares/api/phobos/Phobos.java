@@ -45,7 +45,7 @@ public class Phobos {
      */
     public static List<Path> filesToCopy() {
         return getCopyConfigurationEntries().stream()
-                .map(entry -> entry.getFirst().split("/"))
+                .map(entry -> entry.get(0).split("/"))
                 .map(FileTools::resolveFileOnSourceDirectory)
                 .toList();
 
@@ -121,9 +121,9 @@ public class Phobos {
      */
     public static Path threePartedFileHeader() {
         return getEditConfigurationEntries().stream()
-                .map(entry -> entry.getFirst().split("/"))
+                .map(entry -> entry.get(0).split("/"))
                 .map(FileTools::resolveFileOnSourceDirectory)
-                .toList().getFirst();
+                .toList().get(0);
     }
 
     /**
@@ -179,7 +179,7 @@ public class Phobos {
         return getEditConfigurationEntries().stream()
                 .map(entry -> entry.get(1).split("/"))
                 .map(FileTools::resolveFileOnSourceDirectory)
-                .toList().getFirst();
+                .toList().get(0);
     }
 
 
@@ -198,6 +198,6 @@ public class Phobos {
     public static Path targetToCopyTo(Path targetPath) {
         return getEditConfigurationEntries().stream().map(entry -> entry.get(2).split("/"))
                 .map(path -> FileTools.resolveFileOnTargetDirectory(targetPath, path))
-                .toList().getFirst();
+                .toList().get(0);
     }
 }

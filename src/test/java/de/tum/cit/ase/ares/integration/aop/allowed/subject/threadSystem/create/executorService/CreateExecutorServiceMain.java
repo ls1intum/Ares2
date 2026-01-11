@@ -18,8 +18,11 @@ public class CreateExecutorServiceMain {
      * Tests ExecutorService.execute(java.lang.Runnable) method
      */
     public static void executeRunnable() {
-        try (ExecutorService executorService = Executors.newSingleThreadExecutor()) {
+        try {
+            ExecutorService executorService = Executors.newSingleThreadExecutor();;
             executorService.execute(new LegalThread());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 

@@ -16,8 +16,11 @@ public class CreateScheduledExecutorServiceMain {
      * Tests ScheduledExecutorService.schedule(Runnable, long, TimeUnit) method
      */
     public static void scheduleRunnable() {
-        try (ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1)) {
+        try {
+            ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
             scheduledExecutorService.schedule(new IllegalThread(), 1, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -25,8 +28,11 @@ public class CreateScheduledExecutorServiceMain {
      * Tests ScheduledExecutorService.schedule(Callable, long, TimeUnit) method
      */
     public static void scheduleCallable() {
-        try (ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1)) {
+        try {
+            ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
             scheduledExecutorService.schedule(() -> "result", 1, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -34,8 +40,11 @@ public class CreateScheduledExecutorServiceMain {
      * Tests ScheduledExecutorService.scheduleAtFixedRate(Runnable, long, long, TimeUnit) method
      */
     public static void scheduleAtFixedRate() {
-        try (ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1)) {
+        try {
+            ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
             scheduledExecutorService.scheduleAtFixedRate(new IllegalThread(), 1, 2, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 }

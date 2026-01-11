@@ -15,8 +15,11 @@ public class CreateForkJoinPoolMain {
      * Tests ForkJoinPool.execute(Runnable) method
      */
     public static void commonPoolExecute() {
-        try (ForkJoinPool forkJoinPool = new ForkJoinPool()) {
+        try {
+            ForkJoinPool forkJoinPool = new ForkJoinPool();
             forkJoinPool.execute(new IllegalThread());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -24,9 +27,12 @@ public class CreateForkJoinPoolMain {
      * Tests ForkJoinPool.submit(Callable task) method
      */
     public static void commonPoolSubmitCallableTask() {
-        try (ForkJoinPool forkJoinPool = new ForkJoinPool()) {
+        try {
+            ForkJoinPool forkJoinPool = new ForkJoinPool();
             Callable<String> task = () -> "test";
             forkJoinPool.submit(task);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -34,8 +40,11 @@ public class CreateForkJoinPoolMain {
      * Tests ForkJoinPool.submit(Runnable) method
      */
     public static void commonPoolSubmitRunnable() {
-        try (ForkJoinPool forkJoinPool = new ForkJoinPool()) {
+        try {
+            ForkJoinPool forkJoinPool = new ForkJoinPool();
             forkJoinPool.submit(new IllegalThread());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 }

@@ -17,7 +17,7 @@ public class WriteFileSystemProviderMain {
      * @param text The text to write to the trusted file
      */
     public static void accessFileSystemViaFileSystemProvider(String text) throws IOException {
-        FileSystemProvider provider = FileSystemProvider.installedProviders().getFirst();
+        FileSystemProvider provider = FileSystemProvider.installedProviders().get(0);
         try (OutputStream os = provider.newOutputStream(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"), StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
             os.write(text.getBytes());
         }
