@@ -2,6 +2,8 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
 
 //<editor-fold desc="imports">
 
+import java.lang.reflect.Field;
+import java.lang.reflect.InaccessibleObjectException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -247,9 +249,37 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
             throw new SecurityException(localize("security.advice.command.allowed.size", commandsAllowedToBeExecutedSize, argumentsAllowedToBePassedSize));
         }
         //</editor-fold>
-        //<editor-fold desc="Get information from attributes">
+        //<editor-fold desc="Get information from join point">
         @Nonnull Object[] parameters = thisJoinPoint.getArgs();
+        @Nullable Object instance = thisJoinPoint.getThis();
         @Nonnull final String fullMethodSignature = thisJoinPoint.getSignature().toLongString();
+        //</editor-fold>
+        //<editor-fold desc="Extract attributes from object instance">
+        @Nonnull Object[] attributes = new Object[0];
+        if (instance != null) {
+            try {
+                @Nonnull Field[] fields = instance.getClass().getDeclaredFields();
+                attributes = new Object[fields.length];
+                for (int i = 0; i < fields.length; i++) {
+                    try {
+                        fields[i].setAccessible(true);
+                        attributes[i] = fields[i].get(instance);
+                    } catch (InaccessibleObjectException e) {
+                        throw new SecurityException(localize("security.instrumentation.inaccessible.object.exception", fields[i].getName(), instance.getClass().getName()), e);
+                    } catch (IllegalAccessException e) {
+                        throw new SecurityException(localize("security.instrumentation.illegal.access.exception", fields[i].getName(), instance.getClass().getName()), e);
+                    } catch (IllegalArgumentException e) {
+                        throw new SecurityException(localize("security.instrumentation.illegal.argument.exception", fields[i].getName(), fields[i].getDeclaringClass().getName(), instance.getClass().getName()), e);
+                    } catch (NullPointerException e) {
+                        throw new SecurityException(localize("security.instrumentation.null.pointer.exception", fields[i].getName(), instance.getClass().getName()), e);
+                    } catch (ExceptionInInitializerError e) {
+                        throw new SecurityException(localize("security.instrumentation.exception.in-initializer.error", fields[i].getName(), instance.getClass().getName()), e);
+                    }
+                }
+            } catch (SecurityException e) {
+                throw e;
+            }
+        }
         //</editor-fold>
         //<editor-fold desc="Check callstack">
         @Nullable String commandSystemMethodToCheck = (restrictedPackage == null) ? null : checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses);
@@ -257,10 +287,29 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
             return;
         }
         //</editor-fold>
+        @Nullable String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
         //<editor-fold desc="Check parameters">
         @Nullable String commandIllegallyExecutedThroughParameter = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, commandsAllowedToBeExecuted, argumentsAllowedToBePassed, COMMAND_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE));
         if (commandIllegallyExecutedThroughParameter != null) {
-            throw new SecurityException(localize("security.advice.illegal.command.execution", commandSystemMethodToCheck, action, commandIllegallyExecutedThroughParameter, fullMethodSignature));
+            throw new SecurityException(localize(
+                    "security.advice.illegal.command.execution",
+                    commandSystemMethodToCheck,
+                    action,
+                    commandIllegallyExecutedThroughParameter,
+                    fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+            ));
+        }
+        //</editor-fold>
+        //<editor-fold desc="Check attributes">
+        @Nullable String commandIllegallyExecutedThroughAttribute = (attributes == null || attributes.length == 0) ? null : checkIfVariableCriteriaIsViolated(attributes, commandsAllowedToBeExecuted, argumentsAllowedToBePassed, COMMAND_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE));
+        if (commandIllegallyExecutedThroughAttribute != null) {
+            throw new SecurityException(localize(
+                    "security.advice.illegal.command.execution",
+                    commandSystemMethodToCheck,
+                    action,
+                    commandIllegallyExecutedThroughAttribute,
+                    fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+            ));
         }
         //</editor-fold>
     }

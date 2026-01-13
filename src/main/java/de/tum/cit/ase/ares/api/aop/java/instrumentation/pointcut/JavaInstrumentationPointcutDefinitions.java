@@ -462,7 +462,7 @@ public class JavaInstrumentationPointcutDefinitions {
     public static final Map<String, List<String>> methodsWhichCanCreateThreads = Map.ofEntries(
             //java.lang
             Map.entry("java.lang.Thread", List.of("start", "startVirtualThread")),
-            Map.entry("java.lang.Thread.Builder", List.of("run")),
+            Map.entry("java.lang.Thread.Builder", List.of("run", "start")),
             Map.entry("java.lang.Thread.Builder.OfPlatform", List.of("start")),
             Map.entry("java.lang.ThreadGroup", List.of("newThread")),
             // java.util
@@ -493,7 +493,7 @@ public class JavaInstrumentationPointcutDefinitions {
     public static final Map<String, List<String>> methodsWhichCanExecuteCommands = Map.ofEntries(
             // java.lang
             Map.entry("java.lang.Runtime", List.of("exec")),
-            Map.entry("java.lang.ProcessBuilder", List.of("start"))
+            Map.entry("java.lang.ProcessBuilder", List.of("start", "<init>"))
     );
     //</editor-fold>
 

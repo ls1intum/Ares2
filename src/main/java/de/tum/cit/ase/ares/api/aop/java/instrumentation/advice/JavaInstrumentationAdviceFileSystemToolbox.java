@@ -27,7 +27,7 @@ import javax.annotation.Nullable;
  * Utility class for Java instrumentation file system security advice.
  *
  * <p>Description: Provides static methods to enforce file system security policies at runtime
- * by checking file system interactions (read, write, execute, delete) against allowed paths,
+ * by checking file system interactions (read, create, overwrite, execute, delete) against allowed paths,
  * call stack criteria, and variable criteria. Uses reflection to interact with test case settings
  * and localization utilities. Designed to prevent unauthorized file system operations during
  * Java application execution, especially in test and instrumentation scenarios.
@@ -41,7 +41,7 @@ import javax.annotation.Nullable;
  * @author Markus Paulsen
  * @version 2.0.0
  */
-public class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstrumentationAdviceAbstractToolbox {
+public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstrumentationAdviceAbstractToolbox {
 
     //<editor-fold desc="Constants">
     /**
@@ -505,7 +505,7 @@ public class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstrumentat
                 switch (action) {
                     case "read" -> "pathsAllowedToBeRead";
                     case "overwrite" -> "pathsAllowedToBeOverwritten";
-                    case "create" -> "pathsAllowedToBeOverwritten";
+                    case "create" -> "pathsAllowedToBeCreated";
                     case "execute" -> "pathsAllowedToBeExecuted";
                     case "delete" -> "pathsAllowedToBeDeleted";
                     default -> throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
@@ -550,7 +550,7 @@ public class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstrumentat
     /**
      * Validates a file system interaction against security policies.
      *
-     * <p>Description: Verifies that the specified action (read, overwrite, execute, delete)
+     * <p>Description: Verifies that the specified action (read, overwrite, create, execute, delete)
      * complies with allowed paths and call stack criteria. Throws SecurityException
      * if a policy violation is detected.
      *

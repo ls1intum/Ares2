@@ -110,6 +110,7 @@ public class JavaPhobosTestCase extends PhobosTestCase {
         Set<String> ro = new LinkedHashSet<>(fs.getPermittedFilePaths("read"));
         ro.addAll(fs.getPermittedFilePaths("execute"));
         ro.removeAll(fs.getPermittedFilePaths("overwrite"));
+        ro.removeAll(fs.getPermittedFilePaths("create"));
         ro.removeAll(fs.getPermittedFilePaths("delete"));
         return ro;
     }
@@ -122,6 +123,7 @@ public class JavaPhobosTestCase extends PhobosTestCase {
      */
     private static Set<String> collectWritePaths(JavaFileSystemExtractor fs) {
         Set<String> rw = new LinkedHashSet<>(fs.getPermittedFilePaths("overwrite"));
+        rw.addAll(fs.getPermittedFilePaths("create"));
         rw.addAll(fs.getPermittedFilePaths("delete"));
         return rw;
     }

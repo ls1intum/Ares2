@@ -79,6 +79,11 @@ public class JavaAOPTestCaseSettings {
     private static String[] pathsAllowedToBeOverwritten = null;
 
     /**
+     * Paths that are allowed to be created.
+     */
+    private static String[] pathsAllowedToBeCreated = null;
+
+    /**
      * Paths that are allowed to be executed.
      */
     private static String[] pathsAllowedToBeExecuted = null;
@@ -151,6 +156,7 @@ public class JavaAOPTestCaseSettings {
         JavaAOPTestCaseSettings.allowedListedClasses = null;
         JavaAOPTestCaseSettings.pathsAllowedToBeRead = null;
         JavaAOPTestCaseSettings.pathsAllowedToBeOverwritten = null;
+        JavaAOPTestCaseSettings.pathsAllowedToBeCreated = null;
         JavaAOPTestCaseSettings.pathsAllowedToBeExecuted = null;
         JavaAOPTestCaseSettings.pathsAllowedToBeDeleted = null;
         JavaAOPTestCaseSettings.hostsAllowedToBeConnectedTo = null;

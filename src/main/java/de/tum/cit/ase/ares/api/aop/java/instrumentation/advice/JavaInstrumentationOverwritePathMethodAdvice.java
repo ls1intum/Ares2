@@ -14,7 +14,7 @@ import java.lang.reflect.InaccessibleObjectException;
  * unauthorized file overwritings. The class interacts with the JavaInstrumentationAdviceFileSystemToolbox to
  * perform these security checks.
  */
-public class JavaInstrumentationOverwritePathMethodAdvice {
+public final class JavaInstrumentationOverwritePathMethodAdvice {
     /**
      * This method is called when a method overwriting files is entered.
      * It performs security checks to determine whether the method execution is allowed according
@@ -49,10 +49,8 @@ public class JavaInstrumentationOverwritePathMethodAdvice {
                 try {
                     fields[i].setAccessible(true);
                     attributes[i] = fields[i].get(instance);
-                } catch (InaccessibleObjectException e) {
-                    throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.inaccessible.object.exception", fields[i].getName(), instance.getClass().getName()), e);
-                } catch (IllegalAccessException e) {
-                    throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.illegal.access.exception", fields[i].getName(), instance.getClass().getName()), e);
+                } catch (InaccessibleObjectException | IllegalAccessException | SecurityException e) {
+                    continue;
                 } catch (IllegalArgumentException e) {
                     throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.illegal.argument.exception", fields[i].getName(), fields[i].getDeclaringClass().getName(), instance.getClass().getName()), e);
                 } catch (NullPointerException e) {

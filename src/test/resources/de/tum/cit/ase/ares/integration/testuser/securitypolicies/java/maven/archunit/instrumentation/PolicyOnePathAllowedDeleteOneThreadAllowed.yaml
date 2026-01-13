@@ -10,6 +10,7 @@ regardingTheSupervisedCode:
     regardingFileSystemInteractions:
       - readAllFiles: false
         overwriteAllFiles: false
+        createAllFiles: false
         executeAllFiles: false
         deleteAllFiles: true
         onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"

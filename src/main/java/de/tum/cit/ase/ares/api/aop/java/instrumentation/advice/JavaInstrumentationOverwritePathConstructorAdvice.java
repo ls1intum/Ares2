@@ -11,7 +11,7 @@ import net.bytebuddy.asm.Advice;
  * unauthorized file overwritings. The class interacts with the JavaInstrumentationAdviceFileSystemToolbox to
  * perform these security checks.
  */
-public class JavaInstrumentationOverwritePathConstructorAdvice {
+public final class JavaInstrumentationOverwritePathConstructorAdvice {
     /**
      * This method is called when a constructor overwriting files is entered.
      * It performs security checks to determine whether the constructor execution is allowed according

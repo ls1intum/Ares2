@@ -47,7 +47,7 @@ public class JavaFileSystemExtractor implements FileSystemExtractor {
     /**
      * Retrieves the list of file paths that are permitted for the given permission type.
      *
-     * @param filePermission the type of file permission to filter by (e.g., "read", "overwrite"), must not be null.
+     * @param filePermission the type of file permission to filter by (e.g., "read", "overwrite", "create"), must not be null.
      * @return a list of permitted file paths for the specified file permission type.
      * @throws SecurityException if the filePermission is not a valid permission type
      */
@@ -56,6 +56,7 @@ public class JavaFileSystemExtractor implements FileSystemExtractor {
         @Nonnull Predicate<FilePermission> filter = switch (filePermission) {
             case "read" -> FilePermission::readAllFiles;
             case "overwrite" -> FilePermission::overwriteAllFiles;
+            case "create" -> FilePermission::createAllFiles;
             case "execute" -> FilePermission::executeAllFiles;
             case "delete" -> FilePermission::deleteAllFiles;
             default ->

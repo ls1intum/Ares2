@@ -11,7 +11,7 @@ import net.bytebuddy.asm.Advice;
  * unauthorized file deletions. The class interacts with the JavaInstrumentationAdviceFileSystemToolbox to
  * perform these security checks.
  */
-public class JavaInstrumentationDeletePathConstructorAdvice {
+public final class JavaInstrumentationDeletePathConstructorAdvice {
     /**
      * This method is called when a constructor deleting files is entered.
      * It performs security checks to determine whether the constructor execution is allowed according

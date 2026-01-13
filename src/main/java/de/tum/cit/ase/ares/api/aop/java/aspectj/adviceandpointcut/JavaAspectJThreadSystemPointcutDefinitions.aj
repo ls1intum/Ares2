@@ -5,6 +5,9 @@ public aspect JavaAspectJThreadSystemPointcutDefinitions {
     pointcut threadCreateMethodsWithParameters(): (
             call(* java.lang.Thread.startVirtualThread(..)) ||
             call(* java.lang.Thread.Builder.start(..)) ||
+            call(* java.lang.Thread.Builder.run(..)) ||
+            call(* java.lang.Thread.Builder.OfPlatform.start(..)) ||
+            call(* java.lang.ThreadGroup.newThread(..)) ||
             call(* java.util.concurrent.Executor.execute(..)) ||
             call(* java.util.concurrent.ExecutorService.submit(..)) ||
             call(* java.util.concurrent.ExecutorService.invokeAll(..)) ||
@@ -14,6 +17,7 @@ public aspect JavaAspectJThreadSystemPointcutDefinitions {
             call(* java.util.concurrent.AbstractExecutorService.invokeAll(..)) ||
             call(* java.util.concurrent.AbstractExecutorService.invokeAny(..)) ||
             call(* java.util.concurrent.ThreadPoolExecutor.execute(..)) ||
+            call(* java.util.concurrent.ThreadPoolExecutor.submit(..)) ||
             call(* java.util.concurrent.ScheduledExecutorService.schedule(..)) ||
             call(* java.util.concurrent.ScheduledExecutorService.scheduleAtFixedRate(..)) ||
             call(* java.util.concurrent.ScheduledExecutorService.scheduleWithFixedDelay(..)) ||
@@ -22,8 +26,6 @@ public aspect JavaAspectJThreadSystemPointcutDefinitions {
             call(* java.util.concurrent.ScheduledThreadPoolExecutor.scheduleWithFixedDelay(..)) ||
             call(* java.util.concurrent.ForkJoinPool.execute(..)) ||
             call(* java.util.concurrent.ForkJoinPool.submit(..)) ||
-            call(* java.util.concurrent.ForkJoinPool.invoke(..)) ||
-            call(* java.util.concurrent.ForkJoinPool.commonPool()) ||
             call(* java.util.concurrent.CompletableFuture.runAsync(..)) ||
             call(* java.util.concurrent.CompletableFuture.supplyAsync(..)) ||
             call(* java.util.concurrent.CompletableFuture.thenApplyAsync(..)) ||
@@ -39,9 +41,8 @@ public aspect JavaAspectJThreadSystemPointcutDefinitions {
 
     pointcut threadCreateMethodsWithoutParameters(): (
             call(* java.lang.Thread.start()) ||
-            call(* java.lang.Thread.notify()) ||
-            call(* java.lang.Thread.notifyAll()) ||
             call(* java.util.Collection.parallelStream()) ||
+            call(* java.util.stream.Stream.parallel()) ||
             call(* java.util.stream.BaseStream.parallel())
             );
 }

@@ -11,7 +11,7 @@ import net.bytebuddy.asm.Advice;
  * unauthorized file executions. The class interacts with the JavaInstrumentationAdviceFileSystemToolbox to
  * perform these security checks.
  */
-public class JavaInstrumentationExecutePathConstructorAdvice {
+public final class JavaInstrumentationExecutePathConstructorAdvice {
     /**
      * This method is called when a constructor executing files is entered.
      * It performs security checks to determine whether the constructor execution is allowed according

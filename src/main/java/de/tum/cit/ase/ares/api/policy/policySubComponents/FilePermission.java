@@ -16,6 +16,7 @@ import java.util.Objects;
  * @since 2.0.0
  * @param readAllFiles whether reading all files is permitted.
  * @param overwriteAllFiles whether overwriting all files is permitted.
+ * @param createAllFiles whether creating files is permitted.
  * @param executeAllFiles whether executing all files is permitted.
  * @param deleteAllFiles whether deleting all files is permitted.
  * @param onThisPathAndAllPathsBelow the path where these permissions apply; must not be null.
@@ -24,6 +25,7 @@ public record FilePermission(
         @Nonnull String onThisPathAndAllPathsBelow,
         boolean readAllFiles,
         boolean overwriteAllFiles,
+        @Nonnull Boolean createAllFiles,
         boolean executeAllFiles,
         boolean deleteAllFiles
 ) {
@@ -39,6 +41,7 @@ public record FilePermission(
         if (onThisPathAndAllPathsBelow.isBlank()) {
             throw new IllegalArgumentException("onThisPathAndAllPathsBelow must not be blank");
         }
+        Objects.requireNonNull(createAllFiles, "createAllFiles must not be null");
     }
 
     /**
@@ -51,7 +54,14 @@ public record FilePermission(
      */
     @Nonnull
     public static FilePermission createRestrictive(String path) {
-        return builder().onThisPathAndAllPathsBelow(Objects.requireNonNull(path, "path must not be null")).readAllFiles(false).overwriteAllFiles(false).executeAllFiles(false).deleteAllFiles(false).build();
+        return builder()
+                .onThisPathAndAllPathsBelow(Objects.requireNonNull(path, "path must not be null"))
+                .readAllFiles(false)
+                .overwriteAllFiles(false)
+                .createAllFiles(false)
+                .executeAllFiles(false)
+                .deleteAllFiles(false)
+                .build();
     }
 
     /**
@@ -91,6 +101,10 @@ public record FilePermission(
          * Whether overwriting files is permitted.
          */
         private boolean overwriteAllFiles;
+        /**
+         * Whether creating files is permitted.
+         */
+        private boolean createAllFiles;
         /**
          * Whether executing files is permitted.
          */
@@ -143,6 +157,20 @@ public record FilePermission(
         }
 
         /**
+         * Sets whether creating files is permitted.
+         *
+         * @since 2.0.1
+         * @author Markus Paulsen
+         * @param createAllFiles whether creating is permitted.
+         * @return the updated Builder.
+         */
+        @Nonnull
+        public Builder createAllFiles(boolean createAllFiles) {
+            this.createAllFiles = createAllFiles;
+            return this;
+        }
+
+        /**
          * Sets whether executing files is permitted.
          *
          * @since 2.0.0
@@ -179,7 +207,14 @@ public record FilePermission(
          */
         @Nonnull
         public FilePermission build() {
-            return new FilePermission(Objects.requireNonNull(onThisPathAndAllPathsBelow, "path must not be null"), readAllFiles, overwriteAllFiles, executeAllFiles, deleteAllFiles);
+            return new FilePermission(
+                    Objects.requireNonNull(onThisPathAndAllPathsBelow, "path must not be null"),
+                    readAllFiles,
+                    overwriteAllFiles,
+                    createAllFiles,
+                    executeAllFiles,
+                    deleteAllFiles
+            );
         }
     }
 }

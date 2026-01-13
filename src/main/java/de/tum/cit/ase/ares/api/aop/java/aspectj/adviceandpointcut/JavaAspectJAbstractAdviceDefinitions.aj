@@ -215,10 +215,63 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
                 }
             }
             if (ignoreFound) {
-                break;
+                continue;  // Skip ignored frames instead of aborting scan
             }
             if (className.startsWith(restrictedPackage) && !checkIfCallstackElementIsAllowed(allowedClasses, element)) {
                 return className + "." + element.getMethodName();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Finds the caller directly above the first method on the current call stack that belongs to the given restricted package.
+     *
+     * <p>Description: Iterates the stack trace, skipping frames in {@link #IGNORE_CALLSTACK}. When the first frame
+     * whose class starts with the provided restricted package is found, this method returns the fully qualified
+     * method name (className.methodName) of the next non-ignored frame above it (i.e., its caller). Returns null if
+     * none is found or if {@code restrictedPackage} is null.
+     *
+     * @param restrictedPackage the package prefix to search for
+     * @return the fully qualified method name of the caller above the first restricted frame, or null if none
+     * @since 2.0.2
+     */
+    @Nullable
+    protected static String findFirstMethodOutsideOfRestrictedPackage(@Nullable String restrictedPackage) {
+        if (restrictedPackage == null) {
+            return null;
+        }
+        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+        for (int i = 0; i < stackTrace.length; i++) {
+            StackTraceElement element = stackTrace[i];
+            String className = element.getClassName();
+            boolean ignoreFound = false;
+            for (String ignore : IGNORE_CALLSTACK) {
+                if (className.startsWith(ignore)) {
+                    ignoreFound = true;
+                    break;
+                }
+            }
+            if (ignoreFound) {
+                continue;
+            }
+            if (className.startsWith(restrictedPackage)
+                    && !className.startsWith("de.tum.cit.ase.ares.api.aop.java.aspectj")) {
+                for (int j = i + 1; j < stackTrace.length; j++) {
+                    StackTraceElement caller = stackTrace[j];
+                    String callerClass = caller.getClassName();
+                    boolean callerIgnorable = false;
+                    for (String ignore : IGNORE_CALLSTACK) {
+                        if (callerClass.startsWith(ignore)) {
+                            callerIgnorable = true;
+                            break;
+                        }
+                    }
+                    if (!callerIgnorable) {
+                        return callerClass + "." + caller.getMethodName();
+                    }
+                }
+                return null;
             }
         }
         return null;
@@ -253,13 +306,29 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
                 break;
             // All variables except the one at the given index are ignored
             case "ALL_EXCEPT":
+                if (ignoreVariables.getIndex() < 0 || ignoreVariables.getIndex() >= newVariables.size()) {
+                    throw new SecurityException(localize(
+                            "security.instrumentation.ignore.values.index.invalid",
+                            ignoreVariables.getIndex(),
+                            newVariables.size()
+                    ));
+                }
                 @Nonnull Object toKeep = newVariables.get(ignoreVariables.getIndex());
                 newVariables.clear();
                 newVariables.add(toKeep);
                 break;
             case "NONE_EXCEPT":
+                if (ignoreVariables.getIndex() < 0 || ignoreVariables.getIndex() >= newVariables.size()) {
+                    throw new SecurityException(localize(
+                            "security.instrumentation.ignore.values.index.invalid",
+                            ignoreVariables.getIndex(),
+                            newVariables.size()
+                    ));
+                }
                 newVariables.remove(ignoreVariables.getIndex());
                 break;
+            default:
+                throw new IllegalArgumentException("Unknown ignore type: " + ignoreVariables.getType());
         }
         return newVariables.toArray();
     }

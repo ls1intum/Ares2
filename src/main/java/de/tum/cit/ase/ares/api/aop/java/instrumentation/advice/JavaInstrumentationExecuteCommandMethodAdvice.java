@@ -14,7 +14,7 @@ import java.lang.reflect.InaccessibleObjectException;
  * unauthorized command execution. The class interacts with the JavaInstrumentationAdviceCommandSystemToolbox to
  * perform these security checks.
  */
-public class JavaInstrumentationExecuteCommandMethodAdvice {
+public final class JavaInstrumentationExecuteCommandMethodAdvice {
     /**
      * This method is called when a method that can execute commands is entered.
      * It performs security checks to determine whether the method execution is allowed according

@@ -4,6 +4,8 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
 
     pointcut fileReadMethods():
             (call(* java.io.File.canRead(..)) ||
+                    call(* java.io.File.canWrite(..)) ||  // Metadata query, not write operation
+                    call(* java.io.File.canExecute(..)) ||  // Metadata query, not execute operation
                     call(java.io.File.new(..)) ||
                     call(java.io.RandomAccessFile.new(..)) ||
                     call(* java.io.File.exists(..)) ||
@@ -19,18 +21,14 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.io.RandomAccessFile.read(..)));
 
     pointcut fileWriteMethods():
-            (call(* java.io.File.canWrite(..)) ||
-                    call(java.io.RandomAccessFile.new(..)) ||
+            (call(java.io.RandomAccessFile.new(..)) ||
                     call(java.util.zip.GZIPOutputStream.new(..)) ||
                     call(java.util.zip.InflaterOutputStream.new(..)) ||
-                    call(* java.io.File.createNewFile(..)) ||
-                    call(* java.io.File.createTempFile(..)) ||
                     call(* java.io.File.setExecutable(..)) ||
                     call(* java.io.File.setLastModified(..)) ||
                     call(* java.io.File.setReadOnly(..)) ||
                     call(* java.io.File.setReadable(..)) ||
                     call(* java.io.File.setWritable(..)) ||
-                    call(* java.io.File.mkdir(..)) ||
                     call(* java.nio.channels.FileChannel.write(..)) ||
                     call(* java.nio.file.Files.write(..)) ||
                     call(* java.nio.file.Files.newBufferedWriter(..)) ||
@@ -38,11 +36,15 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.io.FileOutputStream.write(..)) ||
                     call(* java.io.RandomAccessFile.write(..)));
 
+    pointcut fileCreateMethods():
+            (call(* java.io.File.createNewFile(..)) ||
+                    call(* java.io.File.createTempFile(..)) ||
+                    call(* java.io.File.mkdir(..)) ||
+                    call(* java.io.File.mkdirs(..)));
+
     pointcut fileExecuteMethods():
-            (call(* java.io.File.canExecute(..)) ||
-                    call(* java.io.File.renameTo(..)) ||
+            (call(* java.io.File.renameTo(..)) ||
                     call(* java.io.File.toPath(..)) ||
-                    call(* java.io.File.mkdirs(..)) ||
                     call(* java.io.File.listFiles(..)));
 
     pointcut fileDeleteMethods():
@@ -72,7 +74,13 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.nio.file.Files.newBufferedReader(..)) ||
                     call(* java.nio.file.Files.newInputStream(..)) ||
                     call(* java.nio.file.Files.probeContentType(..)) ||
-                    call(* java.nio.file.Files.isReadable(..))||
+                    call(* java.nio.file.Files.isReadable(..)) ||
+                    call(* java.nio.file.Files.isWritable(..)) ||  // Metadata query, not write operation
+                    call(* java.nio.file.Files.isExecutable(..)) ||  // Metadata query, not execute operation
+                    call(* java.nio.file.Files.isDirectory(..)) ||  // Metadata query
+                    call(* java.nio.file.Files.isSymbolicLink(..)) ||  // Metadata query
+                    call(* java.nio.file.Files.notExists(..)) ||  // Metadata query
+                    call(* java.nio.file.Files.isSameFile(..)) ||  // Metadata query
                     call(* java.io.DataInputStream.read(..)) ||
                     call(* java.io.DataInputStream.readFully(..)) ||
                     call(* java.io.ObjectInputStream.readObject(..)) ||
@@ -87,8 +95,16 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.nio.file.Files.setAttribute(..)) ||
                     call(* java.nio.file.Files.setLastModifiedTime(..)) ||
                     call(* java.nio.file.Files.setOwner(..)) ||
-                    call(* java.nio.file.Files.setPosixFilePermissions(..)) ||
-                    call(* java.nio.file.Files.isWritable(..)));
+                    call(* java.nio.file.Files.setPosixFilePermissions(..)));
+
+    pointcut filesCreateMethods():
+            (call(* java.nio.file.Files.createDirectory(..)) ||
+                    call(* java.nio.file.Files.createDirectories(..)) ||
+                    call(* java.nio.file.Files.createFile(..)) ||
+                    call(* java.nio.file.Files.createLink(..)) ||
+                    call(* java.nio.file.Files.createSymbolicLink(..)) ||
+                    call(* java.nio.file.Files.createTempDirectory(..)) ||
+                    call(* java.nio.file.Files.createTempFile(..)));
 
     pointcut filesExecuteMethods():
             (call(* java.nio.file.Files.walk(..)) ||
@@ -96,21 +112,11 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.nio.file.Files.find(..)) ||
                     call(* java.nio.file.Files.list(..)) ||
                     call(* java.nio.file.Files.copy(..)) ||
-                    call(* java.nio.file.Files.move(..)) ||
-                    call(* java.nio.file.Files.createDirectory(..)) ||
-                    call(* java.nio.file.Files.createDirectories(..)) ||
-                    call(* java.nio.file.Files.createFile(..)) ||
-                    call(* java.nio.file.Files.createLink(..)) ||
-                    call(* java.nio.file.Files.createSymbolicLink(..)) ||
-                    call(* java.nio.file.Files.isExecutable(..)));
+                    call(* java.nio.file.Files.move(..)));
 
     pointcut filesDeleteMethods():
             (call(* java.nio.file.Files.delete(..)) ||
-                    call(* java.nio.file.Files.deleteIfExists(..)) ||
-                    call(* java.nio.file.Files.isDirectory(..)) ||
-                    call(* java.nio.file.Files.isSameFile(..)) ||
-                    call(* java.nio.file.Files.isSymbolicLink(..)) ||
-                    call(* java.nio.file.Files.notExists(..)));
+                    call(* java.nio.file.Files.deleteIfExists(..)));
 
     pointcut fileSystemReadMethods():
             (call(* java.nio.file.FileSystem.getFileStores(..)) ||
@@ -128,9 +134,7 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
     pointcut fileSystemExecuteMethods():
             (call(* java.nio.file.FileSystem.equals(..)) ||
                     call(* java.nio.file.FileSystem.hashCode(..)) ||
-                    call(* java.nio.file.FileSystem.toString(..))) ||
-                    call(* java.lang.Runtime.exec(..)) ||
-                    call(java.lang.ProcessBuilder.new(..));
+                    call(* java.nio.file.FileSystem.toString(..)));
 
     pointcut fileChannelExecuteMethods():
             (call(* java.nio.channels.FileChannel.position(..)) ||
@@ -141,9 +145,11 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
             (call(* java.nio.channels.FileChannel.read(..)) ||
                     call(* java.nio.channels.FileChannel.size(..)));
 
+    pointcut fileChannelCreateMethods():
+            call(* java.nio.channels.FileChannel.open(..));
+
     pointcut fileChannelWriteMethods():
-            (call(* java.nio.channels.FileChannel.open(..)) ||
-            call(* java.nio.channels.FileChannel.write(..)) ||
+            (call(* java.nio.channels.FileChannel.write(..)) ||
                     call(* java.nio.channels.FileChannel.force(..)));
 
 
@@ -189,7 +195,7 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
             (call(* java.nio.file.FileSystems.getDefault(..)) ||
                     call(* java.nio.file.FileSystems.getFileSystem(..)));
 
-    pointcut fileSystemsExecuteMethods():
+    pointcut fileSystemsCreateMethods():
             call(* java.nio.file.FileSystems.newFileSystem(..));
 
     pointcut defaultFileSystemExecuteMethods():
@@ -213,14 +219,16 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.nio.file.spi.FileSystemProvider.readAttributes(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider.readSymbolicLink(..)));
 
-    pointcut fileSystemProviderWriteMethods():
-            (call(* java.nio.file.spi.FileSystemProvider.copy(..)) ||
-                    call(* java.nio.file.spi.FileSystemProvider.createDirectory(..)) ||
+    pointcut fileSystemProviderCreateMethods():
+            (call(* java.nio.file.spi.FileSystemProvider.createDirectory(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider.createLink(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider.createSymbolicLink(..)) ||
-                    call(* java.nio.file.spi.FileSystemProvider.move(..)) ||
-                    call(* java.nio.file.spi.FileSystemProvider.setAttribute(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider.newFileSystem(..)));
+
+    pointcut fileSystemProviderWriteMethods():
+            (call(* java.nio.file.spi.FileSystemProvider.copy(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider.move(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider.setAttribute(..)));
 
     pointcut fileSystemProviderExecuteMethods():
             call(* java.nio.file.spi.FileSystemProvider.checkAccess(..));
@@ -237,7 +245,6 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
 
     pointcut printWriterInitMethods(): call(java.io.PrintWriter.new(..));
 
-    //TODO Sarp: These should definitely be considered in different pointcut files or this one
     pointcut desktopExecuteMethods():
             (call(* java.awt.Desktop.browse(..)) ||
                     call(* java.awt.Desktop.browseFileDirectory(..)) ||

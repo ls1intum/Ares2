@@ -401,9 +401,38 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
             throw new SecurityException(localize("security.advice.thread.allowed.size", allowedThreadNumbersSize, allowedThreadClassesSize));
         }
         //</editor-fold>
-        //<editor-fold desc="Get information from attributes">
+        //<editor-fold desc="Get information from join point">
         @Nonnull Object[] parameters = thisJoinPoint.getArgs();
+        @Nullable Object instance = thisJoinPoint.getThis();
         @Nonnull final String fullMethodSignature = thisJoinPoint.getSignature().toLongString();
+        @Nonnull final String declaringTypeName = thisJoinPoint.getSignature().getDeclaringTypeName();
+        //</editor-fold>
+        //<editor-fold desc="Extract attributes from object instance">
+        @Nonnull Object[] attributes = new Object[0];
+        if (instance != null) {
+            try {
+                @Nonnull java.lang.reflect.Field[] fields = instance.getClass().getDeclaredFields();
+                attributes = new Object[fields.length];
+                for (int i = 0; i < fields.length; i++) {
+                    try {
+                        fields[i].setAccessible(true);
+                        attributes[i] = fields[i].get(instance);
+                    } catch (InaccessibleObjectException e) {
+                        throw new SecurityException(localize("security.instrumentation.inaccessible.object.exception", fields[i].getName(), instance.getClass().getName()), e);
+                    } catch (IllegalAccessException e) {
+                        throw new SecurityException(localize("security.instrumentation.illegal.access.exception", fields[i].getName(), instance.getClass().getName()), e);
+                    } catch (IllegalArgumentException e) {
+                        throw new SecurityException(localize("security.instrumentation.illegal.argument.exception", fields[i].getName(), fields[i].getDeclaringClass().getName(), instance.getClass().getName()), e);
+                    } catch (NullPointerException e) {
+                        throw new SecurityException(localize("security.instrumentation.null.pointer.exception", fields[i].getName(), instance.getClass().getName()), e);
+                    } catch (ExceptionInInitializerError e) {
+                        throw new SecurityException(localize("security.instrumentation.exception.in-initializer.error", fields[i].getName(), instance.getClass().getName()), e);
+                    }
+                }
+            } catch (SecurityException e) {
+                throw e;
+            }
+        }
         //</editor-fold>
         //<editor-fold desc="Check callstack">
         @Nullable String systemMethodToCheck = (restrictedPackage == null) ? null : checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses);
@@ -411,10 +440,34 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
             return;
         }
         //</editor-fold>
+        @Nullable String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
         //<editor-fold desc="Check parameters">
         @Nullable String illegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, allowedThreadClasses, allowedThreadNumbers, THREAD_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE));
         if (illegallyInteractedThroughParameter != null) {
-            throw new SecurityException(localize("security.advice.illegal.thread.execution", systemMethodToCheck, action, illegallyInteractedThroughParameter, fullMethodSignature));
+            throw new SecurityException(localize(
+                    "security.advice.illegal.thread.execution",
+                    systemMethodToCheck,
+                    action,
+                    illegallyInteractedThroughParameter,
+                    fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+            ));
+        }
+        //</editor-fold>
+        //<editor-fold desc="Check attributes">
+        @Nonnull Object[] attributesToCheck = new Object[attributes.length + 1];
+        attributesToCheck[0] = declaringTypeName;
+        if (attributes.length > 0) {
+            System.arraycopy(attributes, 0, attributesToCheck, 1, attributes.length);
+        }
+        @Nullable String illegallyInteractedThroughAttribute = (attributesToCheck.length == 0) ? null : checkIfVariableCriteriaIsViolated(attributesToCheck, allowedThreadClasses, allowedThreadNumbers, THREAD_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE));
+        if (illegallyInteractedThroughAttribute != null) {
+            throw new SecurityException(localize(
+                    "security.advice.illegal.thread.execution",
+                    systemMethodToCheck,
+                    action,
+                    illegallyInteractedThroughAttribute,
+                    fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+            ));
         }
         //</editor-fold>
     }

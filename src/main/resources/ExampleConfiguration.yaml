@@ -9,6 +9,7 @@ regardingTheSupervisedCode:
       - onThisPathAndAllPathsBelow: "pom.xml"
         readAllFiles: true
         overwriteAllFiles: true
+        createAllFiles: true
         executeAllFiles: true
         deleteAllFiles: false
     regardingNetworkConnections:

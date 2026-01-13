@@ -11,10 +11,10 @@ import java.lang.reflect.InaccessibleObjectException;
  * security policies defined within the application.
  * <p>
  * If an execution attempt violates these policies, a SecurityException is thrown, preventing
- * unauthorized thread creation. The class interacts with the JavaInstrumentationAdviceFileSystemToolbox to
+ * unauthorized thread creation. The class interacts with the JavaInstrumentationAdviceThreadSystemToolbox to
  * perform these security checks.
  */
-public class JavaInstrumentationCreateThreadMethodAdvice {
+public final class JavaInstrumentationCreateThreadMethodAdvice {
     /**
      * This method is called when a method annotated with the creating threads is entered.
      * It performs security checks to determine whether the method execution is allowed according

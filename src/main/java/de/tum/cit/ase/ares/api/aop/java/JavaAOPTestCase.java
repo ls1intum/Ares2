@@ -241,6 +241,7 @@ public class JavaAOPTestCase extends AOPTestCase {
                         new JavaAOPAdviceSettingTriple("String[]", " allowedListedClasses", allowedListedClasses),
                         new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeRead", JavaFileSystemExtractor.extractPaths(filePermissions, FilePermission::readAllFiles)),
                         new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeOverwritten", JavaFileSystemExtractor.extractPaths(filePermissions, FilePermission::overwriteAllFiles)),
+                        new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeCreated", JavaFileSystemExtractor.extractPaths(filePermissions, FilePermission::createAllFiles)),
                         new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeExecuted", JavaFileSystemExtractor.extractPaths(filePermissions, FilePermission::executeAllFiles)),
                         new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeDeleted", JavaFileSystemExtractor.extractPaths(filePermissions, FilePermission::deleteAllFiles)),
                         new JavaAOPAdviceSettingTriple("String[]", " hostsAllowedToBeConnectedTo", JavaNetworkSystemExtractor.extractHosts(networkPermissions, NetworkPermission::openConnections)),
@@ -271,6 +272,7 @@ public class JavaAOPTestCase extends AOPTestCase {
             case FILESYSTEM_INTERACTION -> Map.of(
                     "pathsAllowedToBeRead", fileSystemExtractor.getPermittedFilePaths("read").toArray(String[]::new),
                     "pathsAllowedToBeOverwritten", fileSystemExtractor.getPermittedFilePaths("overwrite").toArray(String[]::new),
+                    "pathsAllowedToBeCreated", fileSystemExtractor.getPermittedFilePaths("create").toArray(String[]::new),
                     "pathsAllowedToBeExecuted", fileSystemExtractor.getPermittedFilePaths("execute").toArray(String[]::new),
                     "pathsAllowedToBeDeleted", fileSystemExtractor.getPermittedFilePaths("delete").toArray(String[]::new)
             ).forEach((k, v) -> JavaAOPTestCase.setJavaAdviceSettingValue(k, v, architectureMode, aopMode));
