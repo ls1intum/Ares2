@@ -50,7 +50,7 @@ This document describes how Ares 2 prevents unauthorized file system access in s
 - **🔴 Red** = Access blocked (security violation detected)
 - **🌕 Yellow** = Continue to next check
 
-![File System Security Validation Flow](BlockFileSystemAccess.drawio.png)
+![File System Security Validation Flow](BlockFileSystemAccessAOP.drawio.png)
 
 The UML activity diagram illustrates the complete validation flow from student code triggering a file access through all security checks to the final allow/block decision.
 
