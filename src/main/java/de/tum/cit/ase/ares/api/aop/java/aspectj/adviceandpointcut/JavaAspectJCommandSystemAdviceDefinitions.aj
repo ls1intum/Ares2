@@ -246,12 +246,12 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
         int argumentsAllowedToBePassedSize = argumentsAllowedToBePassed == null ? 0 : argumentsAllowedToBePassed.length;
 
         if (commandsAllowedToBeExecutedSize != argumentsAllowedToBePassedSize) {
-            throw new SecurityException(localize("security.advice.command.allowed.size", commandsAllowedToBeExecutedSize, argumentsAllowedToBePassedSize));
+            throw new SecurityException(localize("security.advice.command.allowed.size", argumentsAllowedToBePassedSize, commandsAllowedToBeExecutedSize));
         }
         //</editor-fold>
         //<editor-fold desc="Get information from join point">
         @Nonnull Object[] parameters = thisJoinPoint.getArgs();
-        @Nullable Object instance = thisJoinPoint.getThis();
+        @Nullable Object instance = thisJoinPoint.getTarget();
         @Nonnull final String fullMethodSignature = thisJoinPoint.getSignature().toLongString();
         //</editor-fold>
         //<editor-fold desc="Extract attributes from object instance">

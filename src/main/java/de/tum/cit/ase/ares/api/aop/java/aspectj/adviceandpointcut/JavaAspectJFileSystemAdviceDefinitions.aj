@@ -444,7 +444,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
         //</editor-fold>
         //<editor-fold desc="Get information from join point">
         @Nonnull Object[] parameters = thisJoinPoint.getArgs();
-        @Nullable Object instance = thisJoinPoint.getThis();
+        @Nullable Object instance = thisJoinPoint.getTarget();
         @Nonnull final String fullMethodSignature = thisJoinPoint.getSignature().toLongString();
         //</editor-fold>
         //<editor-fold desc="Extract attributes from object instance">

@@ -349,7 +349,7 @@ public void checkFileSystemInteraction(
     String action,
     JoinPoint thisJoinPoint
 ) {
-    Object instance = thisJoinPoint.getThis();  // Get the object instance
+    Object instance = thisJoinPoint.getTarget();  // Get the object instance
     // Extract attributes using reflection (see below)
 }
 ```
@@ -653,7 +653,7 @@ if (violatingMethod == null) {
 - **`allowedClasses`** (String[]): From 5.2.1 - list of trusted helper classes
 - **`violatingMethod`** (String): Returns the fully qualified method name of the student code that triggered the file operation, or `null` if no student code found
 - **`stackTrace`** (StackTraceElement[]): The complete call chain showing all method calls leading to this point
-- **`IGNORE_CALLSTACK`** (String[]): Instrumentation uses `["java.lang.ClassLoader", "de.tum.cit.ase.ares.api."]`; AspectJ uses `["java.lang.ClassLoader", "de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension", "de.tum.cit.ase.ares.api.jqwik.JqwikSecurityExtension", "de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationBindingDefinitions"]`
+- **`IGNORE_CALLSTACK`** (String[]): Instrumentation uses `["java.lang.ClassLoader", "de.tum.cit.ase.ares.api."]`; AspectJ uses `["java.lang.ClassLoader", "de.tum.cit.ase.ares.api.", "de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension", "de.tum.cit.ase.ares.api.jqwik.JqwikSecurityExtension", "de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationBindingDefinitions"]`
 - **`className`** (String): The fully qualified class name for each method in the call stack
 - **`isInAllowedList()`** (method): Helper function that returns `true` if the class is listed in the `allowedClasses` array
 
@@ -1032,7 +1032,7 @@ The system operates **transparently** using AOP techniques, requiring no modific
 | **Configuration** | `aopMode = "INSTRUMENTATION"` | `aopMode = "ASPECTJ"` |
 | **Advice Structure** | Separate class per operation type | Single aspect with multiple `before()` advice |
 | **Method Info Access** | `@Advice.Origin` annotations | `JoinPoint.getSignature()` |
-| **Instance Access** | `@Advice.This` annotation | `JoinPoint.getThis()` |
+| **Instance Access** | `@Advice.This` annotation | `JoinPoint.getTarget()` |
 | **Parameters Access** | `@Advice.AllArguments` annotation | `JoinPoint.getArgs()` |
 | **Validation Logic** | Delegates to `JavaInstrumentationAdviceFileSystemToolbox` | Implements in `JavaAspectJFileSystemAdviceDefinitions` |
 

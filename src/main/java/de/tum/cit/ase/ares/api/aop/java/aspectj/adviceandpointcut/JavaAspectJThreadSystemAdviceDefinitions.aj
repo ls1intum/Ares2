@@ -403,7 +403,7 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
         //</editor-fold>
         //<editor-fold desc="Get information from join point">
         @Nonnull Object[] parameters = thisJoinPoint.getArgs();
-        @Nullable Object instance = thisJoinPoint.getThis();
+        @Nullable Object instance = thisJoinPoint.getTarget();
         @Nonnull final String fullMethodSignature = thisJoinPoint.getSignature().toLongString();
         @Nonnull final String declaringTypeName = thisJoinPoint.getSignature().getDeclaringTypeName();
         //</editor-fold>

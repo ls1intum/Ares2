@@ -22,6 +22,7 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
     @Nonnull
     protected static final List<String> IGNORE_CALLSTACK = List.of(
             "java.lang.ClassLoader",
+            "de.tum.cit.ase.ares.api.",
             "de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension",
             "de.tum.cit.ase.ares.api.jqwik.JqwikSecurityExtension",
             "de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationBindingDefinitions"
