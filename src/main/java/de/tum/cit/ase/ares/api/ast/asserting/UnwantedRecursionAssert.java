@@ -93,7 +93,7 @@ public class UnwantedRecursionAssert extends AbstractAssert<UnwantedRecursionAss
      * @return An unwanted simple recursion assertion object (for chaining)
      */
     public static UnwantedRecursionAssert assertThatProjectSources() {
-        var path = ProjectSourcesFinder.findProjectSourcesPath().orElseThrow(() -> //$NON-NLS-1$
+        Path path = ProjectSourcesFinder.findProjectSourcesPath().orElseThrow(() -> //$NON-NLS-1$
                 new AssertionError("Could not find project sources folder." //$NON-NLS-1$
                         + " Make sure the build file is configured correctly." //$NON-NLS-1$
                         + " If it is not located in the execution folder directly," //$NON-NLS-1$
@@ -129,7 +129,7 @@ public class UnwantedRecursionAssert extends AbstractAssert<UnwantedRecursionAss
      */
     public UnwantedRecursionAssert withinPackage(String packageName) {
         Objects.requireNonNull(packageName, "The package name must not be null."); //$NON-NLS-1$
-        var newPath = actual.resolve(Path.of("", packageName.split("\\."))); //$NON-NLS-1$ //$NON-NLS-2$
+        Path newPath = actual.resolve(Path.of("", packageName.split("\\."))); //$NON-NLS-1$ //$NON-NLS-2$
         return new UnwantedRecursionAssert(newPath, level, startingMethod, excludedMethods);
     }
 

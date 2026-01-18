@@ -103,7 +103,7 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
                     .replace("${allowedPackages}", allowedPackagesAsCode())
                     .replace("${javaClasses}", javaClassesAsCode());
         } catch (AssertionError | IOException e) {
-            throw new SecurityException("Ares Security Error (Reason: Student-Code; Stage: Execution): Illegal Statement found: " + e.getMessage());
+            throw new SecurityException(Messages.localized("architecture.illegal.statement", e.getMessage()));
         }
     }
     //</editor-fold>

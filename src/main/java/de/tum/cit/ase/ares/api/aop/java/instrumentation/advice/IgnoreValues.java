@@ -48,7 +48,7 @@ public final class IgnoreValues {
 
     public int getIndex() {
         if (index == null) {
-            throw new IllegalStateException("Index is not available for type: " + type);
+            throw new IllegalStateException(JavaInstrumentationAdviceAbstractToolbox.localize("aop.ignore.index.not.available", type));
         }
         return index;
     }

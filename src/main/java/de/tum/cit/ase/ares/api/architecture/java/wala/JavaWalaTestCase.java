@@ -104,7 +104,7 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
                     .replace("${javaClasses}", javaClassesAsCode())
                     .replace("${callGraph}", callGraphAsCode());
         } catch (AssertionError | IOException e) {
-            throw new SecurityException("Ares Security Error (Reason: Student-Code; Stage: Execution): Illegal Statement found: " + e.getMessage());
+            throw new SecurityException(Messages.localized("architecture.illegal.statement", e.getMessage()));
         }
     }
     //</editor-fold>

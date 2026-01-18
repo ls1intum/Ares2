@@ -329,7 +329,7 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
                 newVariables.remove(ignoreVariables.getIndex());
                 break;
             default:
-                throw new IllegalArgumentException("Unknown ignore type: " + ignoreVariables.getType());
+                throw new IllegalArgumentException(localize("aop.ignore.unknown.type", ignoreVariables.getType()));
         }
         return newVariables.toArray();
     }

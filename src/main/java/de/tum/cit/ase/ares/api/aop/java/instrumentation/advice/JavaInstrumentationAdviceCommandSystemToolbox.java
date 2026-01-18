@@ -118,9 +118,15 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
     //<editor-fold desc="Conversion handling">
 
     /**
-     * Converts a variable value to a command string.
+     * Converts a variable value to a command string array.
+     *
+     * <p>Description: Converts various input types to a command array representation.
+     * For String inputs, uses shell-like parsing that properly handles quoted arguments.
+     *
      * @param variableValue the value of the variable to convert
-     * @return the command string representation of the variable value
+     * @return the command string array representation of the variable value
+     * @since 2.0.0
+     * @author Markus Paulsen
      */
     @Nullable
     private static String[] variableToCommand(@Nullable Object variableValue) {
@@ -129,12 +135,84 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
         } else if (variableValue instanceof String[] && ((String[]) variableValue).length != 0) {
             return (String[]) variableValue;
         } else if (variableValue instanceof List<?> && ((List<?>) variableValue).stream().allMatch(o -> o instanceof String)) {
-            return ((List<String>) variableValue).toArray(new String[0]);
+            @SuppressWarnings("unchecked")
+            List<String> stringList = (List<String>) variableValue;
+            return stringList.toArray(new String[0]);
         } else if (variableValue instanceof String) {
-            return ((String) variableValue).split(" ");
+            return parseCommandString((String) variableValue);
         } else {
             return null;
         }
+    }
+
+    /**
+     * Parses a command string into an array of arguments, handling quoted strings.
+     *
+     * <p>Description: Implements shell-like parsing that properly handles single-quoted,
+     * double-quoted, and unquoted arguments. This prevents command injection attacks
+     * where malicious input could manipulate argument boundaries through spaces in
+     * quoted strings.
+     *
+     * @param command the command string to parse
+     * @return array of parsed arguments
+     * @since 2.0.0
+     * @author Markus Paulsen
+     */
+    @Nonnull
+    private static String[] parseCommandString(@Nonnull String command) {
+        List<String> args = new java.util.ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        boolean inSingleQuote = false;
+        boolean inDoubleQuote = false;
+        boolean escaped = false;
+
+        for (int i = 0; i < command.length(); i++) {
+            char c = command.charAt(i);
+
+            if (escaped) {
+                // Handle escaped characters
+                current.append(c);
+                escaped = false;
+                continue;
+            }
+
+            if (c == '\\' && !inSingleQuote) {
+                // Backslash escapes next character (except in single quotes)
+                escaped = true;
+                continue;
+            }
+
+            if (c == '\'' && !inDoubleQuote) {
+                // Toggle single quote mode (single quotes don't interpret anything)
+                inSingleQuote = !inSingleQuote;
+                continue;
+            }
+
+            if (c == '"' && !inSingleQuote) {
+                // Toggle double quote mode
+                inDoubleQuote = !inDoubleQuote;
+                continue;
+            }
+
+            if (c == ' ' && !inSingleQuote && !inDoubleQuote) {
+                // Space outside quotes - argument boundary
+                if (current.length() > 0) {
+                    args.add(current.toString());
+                    current = new StringBuilder();
+                }
+                continue;
+            }
+
+            // Regular character - add to current argument
+            current.append(c);
+        }
+
+        // Add final argument if present
+        if (current.length() > 0) {
+            args.add(current.toString());
+        }
+
+        return args.toArray(new String[0]);
     }
     //</editor-fold>
 

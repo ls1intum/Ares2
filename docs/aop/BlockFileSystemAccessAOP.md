@@ -1,117 +1,73 @@
+<a id="file-system-security-mechanism"></a>
 # File System Security Mechanism
 
+<a id="table-of-contents"></a>
 ## Table of Contents
 
-1. [High-Level Overview](#1-high-level-overview)
-   - [1.1 Complete Validation Flow Diagram](#11-complete-validation-flow-diagram)
-   - [1.2 Configuration Settings](#12-configuration-settings)
-   - [1.3 Summary: When Is File Access Blocked?](#13-summary-when-is-file-access-blocked)
-   - [1.4 What Code Is Trusted vs. Restricted?](#14-what-code-is-trusted-vs-restricted)
-2. [Ares Monitors File System Methods](#2-ares-monitors-file-system-methods)
-   - [2.1 FILE SYSTEM - READ Operations](#21-file-system---read-operations)
-   - [2.2 FILE SYSTEM - WRITE/OVERWRITE Operations](#22-file-system---writeoverwrite-operations)
-   - [2.3 FILE SYSTEM - CREATE Operations](#23-file-system---create-operations)
-   - [2.4 FILE SYSTEM - DELETE Operations](#24-file-system---delete-operations)
-   - [2.5 FILE SYSTEM - EXECUTE Operations](#25-file-system---execute-operations)
-3. [Student Code Triggers Security Check](#3-student-code-triggers-security-check)
-4. [Ares Collects Information About the File Access](#4-ares-collects-information-about-the-file-access)
-   - [4.1 Which Method Was Called?](#41-which-method-was-called)
-   - [4.2 What's the Current State of the Object?](#42-whats-the-current-state-of-the-object)
-   - [4.3 What Parameters Were Passed?](#43-what-parameters-were-passed)
-   - [4.4 Information Passed to Security Validator](#44-information-passed-to-security-validator)
-5. [Ares Validates the File Access](#5-ares-validates-the-file-access)
-   - [5.1 Check 1: Is Security Enabled?](#51-check-1-is-security-enabled)
-   - [5.2 Check 2: Does the Call Come from Student Code?](#52-check-2-does-the-call-come-from-student-code)
+1. [Ares 2 AOP File System Access Control: High-Level Overview](#1-ares-2-aop-file-system-access-control-high-level-overview)
+   - [1.1 How Does The UML Activity Diagram look like?](#11-how-does-the-uml-activity-diagram-look-like)
+   - [1.2 What Is AOP?](#12-what-is-aop)
+   - [1.3 Which AOP Modes / Implementations Are There?](#13-which-aop-modes-implementations-are-there)
+   - [1.4 What Are The Internal Configuration Settings?](#14-what-are-the-internal-configuration-settings)
+   - [1.5 When Is File Access Generally Blocked?](#15-when-is-file-access-generally-blocked)
+2. [Ares 2 AOP File System Access Control: Monitored File System Methods](#2-ares-2-aop-file-system-access-control-monitored-file-system-methods)
+   - [2.1 Which Operations Does Ares 2 AOP File System Access Control Monitor?](#21-which-operations-does-ares-2-aop-file-system-access-control-monitor)
+   - [2.2 What Are The Monitored READ Operations?](#22-what-are-the-monitored-read-operations)
+   - [2.3 What Are The Monitored WRITE Operations?](#23-what-are-the-monitored-overwrite-operations)
+   - [2.4 What Are The Monitored CREATE Operations?](#24-what-are-the-monitored-create-operations)
+   - [2.5 What Are The Monitored DELETE Operations?](#25-what-are-the-monitored-delete-operations)
+   - [2.6 What Are The Monitored EXECUTE Operations?](#26-what-are-the-monitored-execute-operations)
+3. [Ares 2 AOP File System Access Control: Student Code Triggers the Access Control Check](#3-ares-2-aop-file-system-access-control-student-code-triggers-the-access-control-check)
+4. [Ares 2 AOP File System Access Control: Collected Information About the File Access](#4-ares-2-aop-file-system-access-control-collected-information-about-the-file-access)
+   - [4.1 What Is The Signature Of The Monitored File System Method?](#41-what-is-the-signature-of-the-monitored-file-system-method)
+   - [4.2 What Are The Attribuet Values Of The Object Of The Monitored File System Method?](#42-what-are-the-attribuet-values-of-the-object-of-the-monitored-file-system-method)
+   - [4.3 What Are The Parameter Values Of The Monitored File System Method?](#43-what-are-the-parameter-values-of-the-monitored-file-system-method)
+   - [4.4 Which Information Is Passed To The Respective Security Validator?](#44-which-information-is-passed-to-the-respective-security-validator)
+5. [Ares 2 AOP File System Access Control: Blocking Or Allowing The File Access](#5-ares-2-aop-file-system-access-control-blocking-or-allowing-the-file-access)
+   - [5.1 Check 1: Is A Respective AOP Mode Enabled Or Is AOP Fully Disabeled?](#51-check-1-is-a-respective-aop-mode-enabled-or-is-aop-fully-disabeled)
+   - [5.2 Check 2: Is the Caller Of The Monitored File System Method The Monitored Student Code?](#52-check-2-is-the-caller-of-the-monitored-file-system-method-the-monitored-student-code)
      - [5.2.1 Load Configuration](#521-load-configuration)
      - [5.2.2 Analyze the Call Chain](#522-analyze-the-call-chain)
      - [5.2.3 Find Which Test Called the Student Code](#523-find-which-test-called-the-student-code)
-   - [5.3 Check 3: Determine Which Security Permissions to Check](#53-check-3-determine-which-security-permissions-to-check)
-   - [5.4 Check 4: Extract and Validate File Paths](#54-check-4-extract-and-validate-file-paths)
+   - [5.3 Check 3: Which Operations Does The Monitored File System Method Wants To Conduct?](#53-check-3-which-operations-does-the-monitored-file-system-method-wants-to-conduct)
+   - [5.4 Check 4: Which Paths Does The Monitored File System Method Wants To Access?](#54-check-4-which-paths-does-the-monitored-file-system-method-wants-to-access)
      - [5.4.1 Load List of Allowed Paths](#541-load-list-of-allowed-paths)
      - [5.4.2 Apply Special Rules for Specific Methods](#542-apply-special-rules-for-specific-methods)
      - [5.4.3 Check Method Parameters for File Paths](#543-check-method-parameters-for-file-paths)
      - [5.4.4 Check Object State for File Paths](#544-check-object-state-for-file-paths)
      - [5.4.5 Allow Ares Internal Files](#545-allow-ares-internal-files)
    - [5.5 Check 5: Block Access with Detailed Error Message](#55-check-5-block-access-with-detailed-error-message)
-6. [Conclusion](#6-conclusion)
+6. [Ares 2 AOP File System Access Control: Conclusion](#6-ares-2-aop-file-system-access-control-conclusion)
+   - [6.1 Summary for Programming Instructors (TL;DR)](#61-summary-for-programming-instructors-tldr)
+   - [6.2 Technical Details](#62-technical-details)
 
 ---
 
-# 1. High-Level Overview
+<a id="1-ares-2-aop-file-system-access-control-high-level-overview"></a>
+# 1. Ares 2 AOP File System Access Control: High-Level Overview
 
-This document describes how Ares 2 prevents unauthorized file system access in student code.
-
+This document explains how Ares 2 decides whether student code may access the file system through a set of monitored file system methods. It checks:
+- The caller of the monitored file system method
+- The operations the monitored file system method wants to conduct
+- The paths the monitored file system method wants to access
 ---
 
-## 1.1 Complete Validation Flow Diagram
+<a id="11-how-does-the-uml-activity-diagram-look-like"></a>
+## 1.1 How Does The UML Activity Diagram look like?
 
-**Legend througout the document:**
-- **🟢 Green** = Access allowed (no security violation)
-- **🔴 Red** = Access blocked (security violation detected)
-- **🌕 Yellow** = Continue to next check
+Below is a general overview of the process for deciding whether to allow or block file access as an UML activity diagram. Throughout this document, you will find the following symbols:
+- **🔴 Red** = File access blocked (security policy violation detected)
+- **🌕 Yellow** = Intermediate condition met → continue to the next verification step
+- **🟢 Green** = File access permitted (no security policy violation detected)
 
 ![File System Security Validation Flow](BlockFileSystemAccessAOP.drawio.png)
 
-The UML activity diagram illustrates the complete validation flow from student code triggering a file access through all security checks to the final allow/block decision.
-
 ---
 
-## 1.2 Configuration Settings
+<a id="12-what-is-aop"></a>
+## 1.2 What Is AOP?
 
-Security policies are configured through settings that instructors can adjust:
-
-| Setting | Type | Description | Example |
-|---------|------|-------------|---------|
-| **aopMode** | `String` | AOP implementation | `"INSTRUMENTATION"` (Byte Buddy) or `"ASPECTJ"` |
-| **restrictedPackage** | `String` | The package where student code is located | `"de.student."` |
-| **allowedListedClasses** | `String[]` | Trusted helper classes students can use | `["de.student.util.Helper"]` |
-| **pathsAllowedToBeRead** | `String[]` | Folders students can read from files | `["/tmp", "/home/student/input"]` |
-| **pathsAllowedToBeOverwritten** | `String[]` | Folders students can write to files | `["/tmp", "/home/student/input"]` |
-| **pathsAllowedToBeCreated** | `String[]` | Folders students create files | `["/tmp", "/home/student/input"]` |
-| **pathsAllowedToBeExecuted** | `String[]` | Folders students can execute files | `["/tmp", "/home/student/input"]` |
-| **pathsAllowedToBeDeleted** | `String[]` | Folders students can delete files | `["/tmp", "/home/student/input"]` |
-
----
-
-## 1.3 Summary: When Is File Access Blocked?
-
-Access is **BLOCKED** 🔴 when **ALL** conditions are true:
-
-1. **Security Enabled**: `aopMode == "INSTRUMENTATION"` or `aopMode == "ASPECTJ"`
-2. **Student Code Detected**: Call chain contains code in `restrictedPackage` and not in `allowedListedClasses`
-3. **Path Not Allowed**: File path doesn't match any entry in the allowed paths list for that operation type
-4. **Not Ares Internal**: Path is not an Ares internal configuration file
-5. **No Special Rules**: No method-specific rule excludes this parameter/object field
-
-**If ANY condition fails → Access is ALLOWED** 🟢
-
-**Legend:**
-- 🔴 Security exception thrown → Analysis and method execution terminated (forbidden file access detected)
-- 🌕 Condition passed → Continue to next validation step
-- 🟢 Access allowed → Analysis terminated and method execution continues (no forbidden file access detected)
-
----
-
-## 1.4 What Code Is Trusted vs. Restricted?
-
-**Trusted Code (No Restrictions):**
-- Code outside the `restrictedPackage`
-- Classes listed in `allowedListedClasses` within the student package
-- Ares internal code
-
-**Restricted Code (Subject to Security Checks):**
-- All code within `restrictedPackage`
-
-**Security Assumptions:** 
-- Student code cannot modify Ares security settings (guaranteed by making settings private and modifying them only by reflection (which is excluded for student code))
-- Student code cannot interfere with security monitoring (guaranteed by making settings private and modifying them only by reflection (which is excluded for student code))
-- Student code executes after Ares is initialized (guaranteed by build pipeline)
-
----
-
-# 2. Ares Monitors File System Methods
-
-**What is AOP?** AOP (Aspect-Oriented Programming) is a technique that automatically runs security checks before certain methods execute, without modifying the student code. Think of it like a security guard checking IDs before people enter a building - the building code doesn't change, but everyone gets checked automatically when interacting with the building.
+AOP (Aspect-Oriented Programming) is a technique that automatically runs security checks before certain methods execute, without modifying the student code. Think of it like a security guard checking IDs before people enter a building - the building code doesn't change, but everyone gets checked automatically when interacting with the building.
 
 **Concrete Example:**
 
@@ -130,82 +86,396 @@ public void readFile(String path) {
 }
 ```
 
+---
+
+<a id="13-which-aop-modes-implementations-are-there"></a>
+## 1.3 Which AOP Modes / Implementations Are There?
+
 Ares automatically monitors file system operations by intercepting specific Java methods using one of two AOP implementations:
 
 - **Byte Buddy (Instrumentation Mode)**: Automatically adds security checks when Java loads classes (called bytecode manipulation).
 - **AspectJ (AspectJ Mode)**: Automatically adds security checks in a second compilation step (called weaving).
 
-Both implementations set up "checkpoints" that activate **before** the file operation actually happens, giving Ares a chance to verify whether the operation should be allowed or blocked. The validation logic is identical in both modes, but interception coverage differs slightly (AspectJ uses explicit pointcuts; instrumentation uses type-hierarchy maps). For the authoritative lists, see `src/main/java/de/tum/cit/ase/ares/api/aop/java/aspectj/adviceandpointcut/JavaAspectJFileSystemPointcutDefinitions.aj` and `src/main/java/de/tum/cit/ase/ares/api/aop/java/instrumentation/pointcut/JavaInstrumentationPointcutDefinitions.java`.
+Both implementations set up "checkpoints" that activate **before** the file operation actually happens, giving Ares a chance to verify whether the operation should be allowed or blocked. The validation logic is identical in both modes, but interception coverage differs slightly (AspectJ uses explicit pointcuts; instrumentation uses type-hierarchy maps).
 
 ---
 
-## 2.1 FILE SYSTEM - READ Operations
+<a id="14-what-are-the-internal-configuration-settings"></a>
+## 1.4 What Are The Internal Configuration Settings?
+
+Instructors define file system access policies in a policy file, and Ares 2 translates them into the following runtime settings (allowlists are folder prefixes; only paths below them are permitted):
+
+| Setting | Type | Description | Example |
+|---------|------|-------------|---------|
+| **aopMode** | `String` | The used AOP implementation | `"INSTRUMENTATION"` (Byte Buddy) or `"ASPECTJ"` |
+| **restrictedPackage** | `String` | The package containing the student code (the code to be monitored) | `"de.student."` |
+| **allowedListedClasses** | `String[]` | The list of classes (usually test classes) that are exempt from supervision | `["de.student.util.Helper"]` |
+| **pathsAllowedToBeRead** | `String[]` | The list of folders that the student code can read files from | `["/tmp", "/home/student/input"]` |
+| **pathsAllowedToBeOverwritten** | `String[]` | The list of folders that the student code can write files to | `["/tmp", "/home/student/input"]` |
+| **pathsAllowedToBeCreated** | `String[]` | The list of folders that the student code can create files in | `["/tmp", "/home/student/input"]` |
+| **pathsAllowedToBeExecuted** | `String[]` | The list of folders that the student code can execute files in | `["/tmp", "/home/student/input"]` |
+| **pathsAllowedToBeDeleted** | `String[]` | The list of folders that the student code can delete files in | `["/tmp", "/home/student/input"]` |
+
+---
+
+<a id="15-when-is-file-access-generally-blocked"></a>
+## 1.5 When Is File Access Generally Blocked?
+
+**Access is BLOCKED 🔴 if ALL of the following conditions apply:**
+
+1. **Security enabled**: `aopMode` is set to `"INSTRUMENTATION"` or `"ASPECTJ"`
+2. **Student code detected**: The call stack contains classes in `restrictedPackage` and not in `allowedListedClasses`
+3. **Derived actions**: The actions are derived from the intercepted method and any `StandardOpenOption` values (may include multiple actions)
+4. **Path violation found**: After method-specific parameter filtering, at least one extracted path (from parameters or attributes) does not match the list of allowed paths for its allowed actions
+5. **Not internal to Ares**: The violating path is not an internal configuration/resource file of Ares (applies to attribute-based violations; parameter-based violations are blocked immediately)
+
+Plain-language summary: if student code triggers a monitored file method and the path is outside the allowlist for the needed action, Ares blocks the access.
+
+**Access is ALLOWED 🟢 if ANY of the aforementioned conditions do not apply**
+
+Summarising this, Ares trusts code when: 
+- It is located outside of the `restrictedPackage`
+- It is located inside of the `restrictedPackage`, but its classes are listed in `allowedListedClasses` within the student package
+- It is listed as Ares internal code
+
+**Security Assumptions:** 
+- Student code cannot modify Ares security settings (guaranteed by making settings private and modifying them only by reflection (which is excluded for student code))
+- Student code cannot interfere with security monitoring (guaranteed by making settings private and modifying them only by reflection (which is excluded for student code))
+- Student code executes after Ares is initialized (guaranteed by build pipeline)
+
+---
+
+<a id="2-ares-2-aop-file-system-access-control-monitored-file-system-methods"></a>
+# 2. Ares 2 AOP File System Access Control: Monitored File System Methods
+
+<a id="21-which-operations-does-ares-2-aop-file-system-access-control-monitor"></a>
+## 2.1 Which Operations Does Ares 2 AOP File System Access Control Monitor?
+
+Ares classifies file system interactions into five action types. These labels drive which allowlist is checked.
+
+- **READ**: Accessing file contents or metadata without modifying them (streams, read APIs, attribute queries).
+- **OVERWRITE**: Writing or mutating existing content/attributes (write/append/truncate, metadata setters).
+- **CREATE**: Creating new files, directories, or links (create* APIs, file system creation/open).
+- **DELETE**: Removing files or scheduling deletion/trash operations.
+- **EXECUTE**: Operations that launch or open files with external programs (for example, `Runtime.exec(...)` or `Program.launch(...)`).
+
+Some APIs can appear under multiple actions because they imply more than one permission (for example, `copy`/`move` or `StandardOpenOption` combinations).
+
+---
+
+<a id="22-what-are-the-monitored-read-operations"></a>
+## 2.2 What Are The Monitored READ Operations?
 
 **Security Component:** Read operation monitor
 
-**Monitored APIs (representative; see pointcuts for the full list per mode):**
-- **java.io**: stream/reader/data input types (e.g., `InputStream`, `Reader`, `DataInput`, `ObjectInput`, `RandomAccessFile`) and file metadata access via `File`
-- **java.nio.file**: `Files` read APIs (e.g., `readAllBytes`, `readString`, `readAttributes`), directory traversal (`list`, `walk`, `find`)
-- **java.nio.channels**: `FileChannel`/`AsynchronousFileChannel` read/size/position
-- **java.nio.file.spi**: `FileSystemProvider` read/attribute APIs
-- **file-backed APIs**: `ImageIO`, `DocumentBuilder`, `AudioSystem`, `Scanner`, `Toolkit` image loading
+**Monitored APIs:**
+
+Read APIs listed below access file contents or metadata without modifying them.
+
+**Reads any formatted file fully**
+
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.io.FileInputStream | `<new>` | ✅ | ✅ | ✅ |
+| java.io.BufferedInputStream | `<new>` | ✅ | ✅ | ✅ |
+| java.io.FileReader | `<new>` | ✅ | ✅ | ✅ |
+| java.io.RandomAccessFile | `<new>` | ✅ | ✅ | ✅ |
+| java.lang.ClassLoader | getResourceAsStream | ✅ | ✅ | ❌ |
+| java.net.JarURLConnection | getInputStream | ✅ | ✅ | ❌ |
+| java.nio.file.Files | newBufferedReader | ✅ | ✅ | ❌ |
+| java.nio.file.Files | newByteChannel | ✅ | ✅ | ✅ |
+| java.nio.file.Files | newInputStream | ✅ | ✅ | ✅ |
+| java.nio.file.Files | readAllBytes | ✅ | ✅ | ❌ |
+| java.nio.file.spi.FileSystemProvider | newAsynchronousFileChannel | ✅ | ✅ | ❌ |
+| java.nio.file.spi.FileSystemProvider | newByteChannel | ✅ | ✅ | ❌ |
+| java.nio.file.spi.FileSystemProvider | newFileChannel | ✅ | ✅ | ❌ |
+| java.nio.file.spi.FileSystemProvider | newInputStream | ✅ | ✅ | ❌ |
+
+**Reads UTF-8 text/tokens fully**
+
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.io.BufferedReader | `<new>` | ✅ | ✅ | ✅ |
+| java.nio.file.Files | lines | ✅ | ✅ | ❌ |
+| java.nio.file.Files | readAllLines | ✅ | ✅ | ✅ |
+| java.nio.file.Files | readString | ✅ | ✅ | ✅ |
+| java.util.Scanner | `<new>` | ✅ | ✅ | ✅ |
+
+**Reads only specifically formatted files fully**
+
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.awt.Toolkit | createImage | ✅ | ✅ | ❌ |
+| java.awt.Toolkit | getImage | ✅ | ✅ | ❌ |
+| java.awt.image.PixelGrabber | grabPixels | ✅ | ✅ | ❌ |
+| java.io.ObjectInput | readObject | ✅ | ✅ | ❌ |
+| java.io.ObjectInputStream | `<new>` | ✅ | ✅ | ✅ |
+| java.io.ObjectInputStream | readObject | ✅ | ✅ | ✅ |
+| javax.imageio.ImageIO | createImageInputStream | ✅ | ✅ | ❌ |
+| javax.imageio.ImageIO | getImageReaders | ✅ | ✅ | ❌ |
+| javax.imageio.ImageIO | read | ✅ | ✅ | ❌ |
+| javax.sound.midi.MidiSystem | getSoundbank | ✅ | ✅ | ❌ |
+| javax.sound.sampled.AudioSystem | getAudioInputStream | ✅ | ✅ | ❌ |
+| javax.xml.parsers.DocumentBuilder | parse | ✅ | ✅ | ❌ |
+
+**Reads only specific parts of a file**
+
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.io.DataInput | read | ✅ | ✅ | ❌ |
+| java.io.DataInput | readBoolean | ✅ | ✅ | ❌ |
+| java.io.DataInput | readByte | ✅ | ✅ | ❌ |
+| java.io.DataInput | readChar | ✅ | ✅ | ❌ |
+| java.io.DataInput | readDouble | ✅ | ✅ | ❌ |
+| java.io.DataInput | readFloat | ✅ | ✅ | ❌ |
+| java.io.DataInput | readFully | ✅ | ✅ | ❌ |
+| java.io.DataInput | readInt | ✅ | ✅ | ❌ |
+| java.io.DataInput | readLine | ✅ | ✅ | ❌ |
+| java.io.DataInput | readLong | ✅ | ✅ | ❌ |
+| java.io.DataInput | readShort | ✅ | ✅ | ❌ |
+| java.io.DataInput | readUTF | ✅ | ✅ | ❌ |
+| java.io.DataInput | readUnsignedByte | ✅ | ✅ | ❌ |
+| java.io.DataInput | readUnsignedShort | ✅ | ✅ | ❌ |
+| java.io.DataInputStream | `<new>` | ✅ | ✅ | ✅ |
+| java.io.DataInputStream | read | ✅ | ✅ | ❌ |
+| java.io.DataInputStream | readFully | ✅ | ✅ | ❌ |
+| java.io.DataInputStream | readUTF | ✅ | ✅ | ✅ |
+| java.io.InputStream | read | ✅ | ✅ | ❌ |
+| java.io.InputStreamReader | read | ✅ | ✅ | ❌ |
+| java.io.ObjectInput | read | ✅ | ✅ | ❌ |
+| java.io.ObjectInputStream | read | ✅ | ✅ | ❌ |
+| java.io.RandomAccessFile | read | ✅ | ✅ | ✅ |
+| java.io.Reader | read | ✅ | ✅ | ❌ |
+| java.nio.channels.AsynchronousFileChannel | read | ✅ | ✅ | ❌ |
+| java.io.BufferedInputStream | read | ✅ | ✅ | ✅ |
+| java.nio.channels.FileChannel | map | ✅ | ✅ | ✅ |
+| java.nio.channels.FileChannel | read | ✅ | ✅ | ✅ |
+
+**Only reads the file hierarchy**
+
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.io.File | normalizedList | ✅ | ✅ | ❌ |
+| java.nio.file.Files | find | ✅ | ✅ | ❌ |
+| java.nio.file.Files | list | ✅ | ✅ | ❌ |
+| java.nio.file.Files | newDirectoryStream | ✅ | ✅ | ❌ |
+| java.nio.file.Files | walk | ✅ | ✅ | ❌ |
+| java.nio.file.Files | walkFileTree | ✅ | ✅ | ❌ |
+| java.nio.file.spi.FileSystemProvider | newDirectoryStream | ✅ | ✅ | ❌ |
+| java.nio.file.spi.FileSystemProvider | newWatchService | ✅ | ✅ | ❌ |
 
 ---
 
-## 2.2 FILE SYSTEM - WRITE/OVERWRITE Operations
+<a id="23-what-are-the-monitored-overwrite-operations"></a>
+## 2.3 What Are The Monitored WRITE Operations?
 
 **Security Component:** Write operation monitor
 
-**Monitored APIs (representative; see pointcuts for the full list per mode):**
-- **java.io**: `OutputStream`/`RandomAccessFile` write APIs and `File` attribute mutation
-- **java.nio.file**: `Files` write/mutate APIs (e.g., `write`, `newOutputStream`, `setAttribute`)
-- **java.nio.channels**: `FileChannel`/`AsynchronousFileChannel` write/force/truncate
-- **java.nio.file.spi**: `FileSystemProvider` write/copy/move APIs
-- **file-backed APIs**: `ImageIO`, `AudioSystem`, `Transformer`, `Marshaller`, `DocPrintJob`, `HotSpotDiagnosticMXBean`, `Recording`
+**Monitored APIs:**
+
+Write APIs listed below modify existing content or attributes.
+
+**Writes any format fully to a file**
+
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
+| --- | --- | --- | --- | --- |
+| com.sun.management.HotSpotDiagnosticMXBean | dumpHeap | ✅ | ✅ | ❌ |
+| java.io.FileOutputStream | `<new>` | ✅ | ✅ | ✅ |
+| java.io.BufferedOutputStream | `<new>` | ✅ | ✅ | ✅ |
+| java.io.FileOutputStream | write | ✅ | ✅ | ✅ |
+| java.io.FileWriter | `<new>` | ✅ | ✅ | ✅ |
+| java.io.OutputStream | write | ✅ | ✅ | ❌ |
+| java.io.PrintWriter | `<new>` | ✅ | ✅ | ✅ |
+| java.io.RandomAccessFile | `<new>` | ✅ | ✅ | ✅ |
+| java.io.Writer | `<new>` | ✅ | ✅ | ❌ |
+| java.nio.channels.AsynchronousFileChannel | write | ✅ | ✅ | ❌ |
+| java.io.BufferedOutputStream | write | ✅ | ✅ | ✅ |
+| java.nio.channels.FileChannel | map | ✅ | ✅ | ✅ |
+| java.nio.channels.FileChannel | write | ✅ | ✅ | ✅ |
+| java.nio.file.Files | newBufferedWriter | ✅ | ✅ | ✅ |
+| java.nio.file.Files | newByteChannel | ✅ | ✅ | ✅ |
+| java.nio.file.Files | newOutputStream | ✅ | ✅ | ✅ |
+| java.nio.file.Files | write | ✅ | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | newAsynchronousFileChannel | ✅ | ✅ | ❌ |
+| java.nio.file.spi.FileSystemProvider | newByteChannel | ✅ | ✅ | ❌ |
+| java.nio.file.spi.FileSystemProvider | newOutputStream | ✅ | ✅ | ❌ |
+| jdk.jfr.Recording | dump | ✅ | ✅ | ❌ |
+
+**Writes UTF-8 text/tokens fully**
+
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.io.BufferedWriter | `<new>` | ✅ | ✅ | ✅ |
+| java.io.BufferedWriter | write | ✅ | ✅ | ✅ |
+| java.io.FileWriter | write | ✅ | ✅ | ✅ |
+| java.io.Writer | write | ✅ | ✅ | ❌ |
+| java.nio.file.Files | writeString | ✅ | ✅ | ✅ |
+
+**Writes only specifically formatted files fully**
+
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.io.DataOutputStream | `<new>` | ✅ | ✅ | ✅ |
+| java.io.DataOutputStream | writeUTF | ✅ | ✅ | ✅ |
+| java.io.ObjectOutputStream | `<new>` | ✅ | ✅ | ✅ |
+| java.io.ObjectOutputStream | writeObject | ✅ | ✅ | ✅ |
+| java.util.logging.FileHandler | `<new>` | ✅ | ✅ | ❌ |
+| java.util.logging.FileHandler | publish | ✅ | ✅ | ❌ |
+| java.util.zip.GZIPOutputStream | `<new>` | ✅ | ✅ | ❌ |
+| java.util.zip.InflaterOutputStream | `<new>` | ✅ | ✅ | ❌ |
+| javax.imageio.ImageIO | write | ✅ | ✅ | ❌ |
+| javax.print.DocPrintJob | print | ✅ | ✅ | ❌ |
+| javax.sound.sampled.AudioSystem | write | ✅ | ✅ | ❌ |
+| javax.xml.bind.Marshaller | marshal | ✅ | ✅ | ❌ |
+| javax.xml.transform.Transformer | transform | ✅ | ✅ | ❌ |
+
+**Writes only specific parts to a file**
+
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.io.BufferedWriter | append | ✅ | ✅ | ❌ |
+| java.io.FileWriter | append | ✅ | ✅ | ❌ |
+| java.io.RandomAccessFile | write | ✅ | ✅ | ✅ |
+| java.io.RandomAccessFile | writeBoolean | ✅ | ✅ | ❌ |
+| java.io.RandomAccessFile | writeByte | ✅ | ✅ | ❌ |
+| java.io.RandomAccessFile | writeBytes | ✅ | ✅ | ❌ |
+| java.io.RandomAccessFile | writeChar | ✅ | ✅ | ❌ |
+| java.io.RandomAccessFile | writeChars | ✅ | ✅ | ❌ |
+| java.io.RandomAccessFile | writeDouble | ✅ | ✅ | ❌ |
+| java.io.RandomAccessFile | writeFloat | ✅ | ✅ | ❌ |
+| java.io.RandomAccessFile | writeInt | ✅ | ✅ | ❌ |
+| java.io.RandomAccessFile | writeLong | ✅ | ✅ | ❌ |
+| java.io.RandomAccessFile | writeShort | ✅ | ✅ | ❌ |
+| java.io.RandomAccessFile | writeUTF | ✅ | ✅ | ❌ |
+| java.io.Writer | append | ✅ | ✅ | ❌ |
+| java.nio.channels.AsynchronousFileChannel | truncate | ✅ | ✅ | ❌ |
+| java.nio.channels.FileChannel | truncate | ✅ | ✅ | ❌ |
+| java.nio.file.attribute.UserDefinedFileAttributeView | write | ✅ | ✅ | ❌ |
+
+**Only writes the file hierarchy (metadata/attributes)**
+
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.io.File | setExecutable | ✅ | ✅ | ❌ |
+| java.io.File | setLastModified | ✅ | ✅ | ❌ |
+| java.io.File | setReadOnly | ✅ | ✅ | ❌ |
+| java.io.File | setReadable | ✅ | ✅ | ❌ |
+| java.io.File | setWritable | ✅ | ✅ | ❌ |
+| java.nio.file.Files | copy | ✅ | ✅ | ❌ |
+| java.nio.file.Files | move | ✅ | ✅ | ❌ |
+| java.nio.file.Files | setAttribute | ✅ | ✅ | ❌ |
+| java.nio.file.Files | setLastModifiedTime | ✅ | ✅ | ❌ |
+| java.nio.file.Files | setOwner | ✅ | ✅ | ❌ |
+| java.nio.file.Files | setPosixFilePermissions | ✅ | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | copy | ✅ | ✅ | ❌ |
+| java.nio.file.spi.FileSystemProvider | move | ✅ | ✅ | ❌ |
+| java.nio.file.spi.FileSystemProvider | setAttribute | ✅ | ✅ | ❌ |
 
 ---
 
-## 2.3 FILE SYSTEM - CREATE Operations
+<a id="24-what-are-the-monitored-create-operations"></a>## 2.4 What Are The Monitored CREATE Operations?
 
 **Security Component:** Create operation monitor
 
-**Monitored APIs (representative; see pointcuts for the full list per mode):**
-- **java.io.File** creation methods (`createNewFile`, `mkdir`, `createTempFile`)
-- **java.nio.file.Files** creation methods (`createFile`, `createDirectories`, `createTempFile`, links)
-- **java.nio.file.FileSystems** and **java.nio.file.spi.FileSystemProvider** filesystem creation APIs
-- **java.nio.channels.FileChannel** `open`
+**Monitored APIs:**
+
+Link creation APIs and conditional creates (e.g., `FileChannel.open` with create options) are listed under Creates files.
+
+**Creates files**
+
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.io.File | createNewFile | ✅ | ✅ | ✅ |
+| java.io.File | createTempFile | ✅ | ✅ | ✅ |
+| java.nio.channels.FileChannel | open | ✅ | ✅ | ✅ |
+| java.nio.file.Files | createFile | ✅ | ✅ | ✅ |
+| java.nio.file.Files | createLink | ✅ | ✅ | ✅ |
+| java.nio.file.Files | createSymbolicLink | ✅ | ✅ | ✅ |
+| java.nio.file.Files | createTempFile | ✅ | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | createLink | ✅ | ✅ | ❌ |
+| java.nio.file.spi.FileSystemProvider | createSymbolicLink | ✅ | ✅ | ❌ |
+
+**Creates folders**
+
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.io.File | mkdir | ✅ | ✅ | ❌ |
+| java.io.File | mkdirs | ✅ | ✅ | ❌ |
+| java.nio.file.Files | createDirectories | ✅ | ✅ | ✅ |
+| java.nio.file.Files | createDirectory | ✅ | ✅ | ❌ |
+| java.nio.file.Files | createTempDirectory | ✅ | ✅ | ❌ |
+| java.nio.file.spi.FileSystemProvider | createDirectory | ✅ | ✅ | ❌ |
 
 ---
 
-## 2.4 FILE SYSTEM - DELETE Operations
+<a id="25-what-are-the-monitored-delete-operations"></a>
+## 2.5 What Are The Monitored DELETE Operations?
 
 **Security Component:** Delete operation monitor
 
-**Monitored APIs (representative; see pointcuts for the full list per mode):**
-- **java.awt.Desktop** trash operations
-- **java.io.File** delete/rename operations
-- **java.nio.file.Files** delete operations
-- **java.nio.file.spi.FileSystemProvider** delete operations
+**Monitored APIs:**
+
+Delete APIs listed below can remove files and empty directories.
+
+**Delete files**
+
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.awt.Desktop | moveToTrash | ✅ | ✅ | ❌ |
+| java.io.File | delete | ✅ | ✅ | ✅ |
+| java.io.File | deleteOnExit | ✅ | ✅ | ❌ |
+| java.nio.file.Files | delete | ✅ | ✅ | ✅ |
+| java.nio.file.Files | deleteIfExists | ✅ | ✅ | ❌ |
+| java.nio.file.spi.FileSystemProvider | delete | ✅ | ✅ | ❌ |
+| java.nio.file.spi.FileSystemProvider | deleteIfExists | ✅ | ✅ | ❌ |
+
+**Delete folders**
+
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.awt.Desktop | moveToTrash | ✅ | ✅ | ❌ |
+| java.io.File | delete | ✅ | ✅ | ✅ |
+| java.io.File | deleteOnExit | ✅ | ✅ | ❌ |
+| java.nio.file.Files | delete | ✅ | ✅ | ✅ |
+| java.nio.file.Files | deleteIfExists | ✅ | ✅ | ❌ |
+| java.nio.file.spi.FileSystemProvider | delete | ✅ | ✅ | ❌ |
+| java.nio.file.spi.FileSystemProvider | deleteIfExists | ✅ | ✅ | ❌ |
+
+**Does not delete (still monitored in delete pointcuts)**
+
+- `java.nio.file.Files`: copy, move
 
 ---
 
-## 2.5 FILE SYSTEM - EXECUTE Operations
+<a id="26-what-are-the-monitored-execute-operations"></a>
+## 2.6 What Are The Monitored EXECUTE Operations?
 
-**What does "Execute" mean?** File system actions that trigger execution-like behavior such as filesystem traversal or opening files with their default programs (e.g., `Files.walk(...)` or `Desktop.open(...)`).
+**What does "Execute" mean?** File system actions that trigger execution-like behavior such as launching processes or opening files with their default programs (e.g., `Runtime.exec(...)` or `Program.launch(...)`).
 
 **Security Component:** Execute operation monitor
 
-**Monitored APIs (representative; see pointcuts for the full list per mode):**
-- **java.io.File** rename operations
-- **java.nio.file.Files** move/copy operations
-- **java.nio.channels.FileChannel** positioning/locking operations
-- **java.awt.Desktop** open/edit/print/browse operations
+**Monitored APIs:**
+
+Execute APIs listed below trigger execution-like behavior on files.
+
+**Executes the file on the console (command line execution)**
+
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.lang.ProcessBuilder | start | ✅ | ✅ | ✅ |
+| java.lang.Runtime | exec | ✅ | ✅ | ✅ |
+
+**Executes the file in the GUI (opens with default application)**
+
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
+| --- | --- | --- | --- | --- |
+| com.apple.eio.FileManager | openURL | ✅ | ✅ | ❌ |
+| com.apple.eio.FileManager | runApplication | ✅ | ✅ | ❌ |
+| org.eclipse.swt.program.Program | launch | ✅ | ✅ | ❌ |
 
 ---
 
----
-
-# 3. Student Code Triggers Security Check
+<a id="3-ares-2-aop-file-system-access-control-student-code-triggers-the-access-control-check"></a># 3. Ares 2 AOP File System Access Control: Student Code Triggers the Access Control Check
 
 When student code (any code within the configured restricted package) calls one of these monitored methods, Ares automatically performs a security check **before** the file operation executes.
 
@@ -233,7 +503,8 @@ Ares then checks whether the student is allowed to access `Path.of("/etc/passwd"
 
 ---
 
-# 4. Ares Collects Information About the File Access
+<a id="4-ares-2-aop-file-system-access-control-collected-information-about-the-file-access"></a>
+# 4. Ares 2 AOP File System Access Control: Collected Information About the File Access
 
 The security monitor collects information about what's happening: Which method is being called, what file path is being accessed, and where in the student code this is happening.
 
@@ -266,7 +537,8 @@ File paths can appear in **different places** depending on how the method is use
 
 ---
 
-## 4.1 Which Method Was Called?
+<a id="41-what-is-the-signature-of-the-monitored-file-system-method"></a>
+## 4.1 What Is The Signature Of The Monitored File System Method?
 
 **1. What Information Do We Collect:**
 
@@ -322,7 +594,8 @@ public void checkFileSystemInteraction(
 
 ---
 
-## 4.2 What's the Current State of the Object?
+<a id="42-what-are-the-attribuet-values-of-the-object-of-the-monitored-file-system-method"></a>
+## 4.2 What Are The Attribuet Values Of The Object Of The Monitored File System Method?
 
 **1. What Information Do We Collect:**
 
@@ -389,7 +662,8 @@ for (int i = 0; i < fields.length; i++) {
 
 ---
 
-## 4.3 What Parameters Were Passed?
+<a id="43-what-are-the-parameter-values-of-the-monitored-file-system-method"></a>
+## 4.3 What Are The Parameter Values Of The Monitored File System Method?
 
 **1. What Information Do We Collect:**
 
@@ -427,7 +701,8 @@ public void checkFileSystemInteraction(
 
 ---
 
-## 4.4 Information Passed to Security Validator
+<a id="44-which-information-is-passed-to-the-respective-security-validator"></a>
+## 4.4 Which Information Is Passed To The Respective Security Validator?
 
 After collecting this information, Ares passes it to the security validation component.
 
@@ -453,7 +728,7 @@ The action type (e.g., `"read"`) is **automatically determined** based on which 
 | `FileOutputStream.write()`, `Files.write()` | `"overwrite"` |
 | `File.createNewFile()`, `Files.createFile()` | `"create"` |
 | `File.delete()`, `Files.delete()` | `"delete"` |
-| `Files.copy()`, `Desktop.open()` | `"execute"` |
+| `Runtime.exec()`, `Program.launch()` | `"execute"` |
 
 **For File System Operations:**
 ```java
@@ -495,7 +770,8 @@ The action type is **hardcoded** based on which methods are intercepted:
 
 ---
 
-# 5. Ares Validates the File Access
+<a id="5-ares-2-aop-file-system-access-control-blocking-or-allowing-the-file-access"></a>
+# 5. Ares 2 AOP File System Access Control: Blocking Or Allowing The File Access
 
 The security validator performs a **series of checks** to decide whether the file operation should be allowed or blocked.
 
@@ -509,7 +785,8 @@ The security validator performs a **series of checks** to decide whether the fil
 
 ---
 
-## 5.1 Check 1: Is Security Enabled?
+<a id="51-check-1-is-a-respective-aop-mode-enabled-or-is-aop-fully-disabeled"></a>
+## 5.1 Check 1: Is A Respective AOP Mode Enabled Or Is AOP Fully Disabeled?
 
 **1. Purpose**
 
@@ -540,10 +817,12 @@ Both implementations check the `aopMode` setting but accept different values:
 
 ---
 
-## 5.2 Check 2: Does the Call Come from Student Code?
+<a id="52-check-2-is-the-caller-of-the-monitored-file-system-method-the-monitored-student-code"></a>
+## 5.2 Check 2: Is the Caller Of The Monitored File System Method The Monitored Student Code?
 
 This check determines whether the file operation was triggered by restricted student code or by trusted framework code. It consists of three sub-steps:
 
+<a id="521-load-configuration"></a>
 ### 5.2.1 Load Configuration
 
 **1. Purpose**
@@ -566,6 +845,7 @@ String[] allowedClasses = getValueFromSettings("allowedListedClasses");
 
 Configuration loaded → 🌕 **Continue to 5.2.2**
 
+<a id="522-analyze-the-call-chain"></a>
 ### 5.2.2 Analyze the Call Chain
 
 **1. Purpose**
@@ -662,6 +942,7 @@ if (violatingMethod == null) {
 - Found student code calling the file operation → Returns method name like `"de.student.StudentCode.exploit"` → 🌕 **Continue to 5.2.3**
 - No student code found in call chain → Returns `null` → 🟢 **Allow operation** (called from test framework or trusted code - analysis terminated)
 
+<a id="523-find-which-test-called-the-student-code"></a>
 ### 5.2.3 Find Which Test Called the Student Code
 
 **1. Purpose**
@@ -695,7 +976,8 @@ Test method identified → Stored for error message → 🌕 **Continue to Check
 
 ---
 
-## 5.3 Check 3: Determine Which Security Permissions to Check
+<a id="53-check-3-which-operations-does-the-monitored-file-system-method-wants-to-conduct"></a>
+## 5.3 Check 3: Which Operations Does The Monitored File System Method Wants To Conduct?
 
 **1. Purpose**
 
@@ -765,7 +1047,8 @@ List of actions to validate (e.g., `[("create", true), ("overwrite", false)]`) �
 
 ---
 
-## 5.4 Check 4: Extract and Validate File Paths
+<a id="54-check-4-which-paths-does-the-monitored-file-system-method-wants-to-access"></a>
+## 5.4 Check 4: Which Paths Does The Monitored File System Method Wants To Access?
 
 This check finds all file paths involved in the operation and validates them against the allowed paths list. It consists of five sub-steps:
 
@@ -776,6 +1059,7 @@ This check finds all file paths involved in the operation and validates them aga
 4. **5.4.4** Extract paths from **object state** and check against list
 5. **5.4.5** Exception for Ares-internal files (so Ares itself can function)
 
+<a id="541-load-list-of-allowed-paths"></a>
 ### 5.4.1 Load List of Allowed Paths
 
 **1. Purpose**
@@ -805,6 +1089,7 @@ String[] allowedPaths = getValueFromSettings(
 
 Allowed paths list loaded → 🌕 **Continue to 5.4.2**
 
+<a id="542-apply-special-rules-for-specific-methods"></a>
 ### 5.4.2 Apply Special Rules for Specific Methods
 
 **1. Purpose**
@@ -814,14 +1099,14 @@ Apply method-specific rules to determine which parameters or object fields shoul
 **2. How it works**
 
 ```java
-IgnoreValues ignoreRule = FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(
+IgnoreValues ignoreRule = FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(
     declaringTypeName + "." + methodName,
     IgnoreValues.NONE
 );
-Object[] filteredVariables = filterVariables(parameters, ignoreRule);
+Object[] filteredVariables = filterVariables(attributes, ignoreRule);
 ```
 
-**Current file system special cases:**
+**Current file system special cases (attribute-based):**
 
 | Method | What We Check | Why |
 |--------|---------------|-----|
@@ -833,6 +1118,7 @@ Object[] filteredVariables = filterVariables(parameters, ignoreRule);
 
 Filtered variables ready for path validation → 🌕 **Continue to 5.4.3**
 
+<a id="543-check-method-parameters-for-file-paths"></a>
 ### 5.4.3 Check Method Parameters for File Paths
 
 **1. Purpose**
@@ -854,9 +1140,18 @@ for (Object variable : filteredVariables) {
 
     // 3. Normalize and validate path
     Path normalizedCandidate = candidate.normalize().toAbsolutePath();
+    if (Files.exists(normalizedCandidate) && !allowNonExistingPaths) {
+        normalizedCandidate = normalizedCandidate.toRealPath(LinkOption.NOFOLLOW_LINKS);
+    }
     
     for (String allowedPathString : allowedPaths) {
         Path allowedPath = Path.of(allowedPathString).normalize().toAbsolutePath();
+        if (!allowNonExistingPaths && !Files.exists(allowedPath)) {
+            continue;
+        }
+        if (Files.exists(allowedPath)) {
+            allowedPath = allowedPath.toRealPath(LinkOption.NOFOLLOW_LINKS);
+        }
         if (normalizedCandidate.startsWith(allowedPath)) {
             continue;  // Path is allowed
         }
@@ -873,6 +1168,7 @@ for (Object variable : filteredVariables) {
 - **`allowedPaths`** (String[]): From 5.4.1 - list of allowed path prefixes
 - **`candidate`** (Path): Converted path candidate (String/Path/File only; other types are ignored)
 - **`normalizedCandidate`** (Path): Normalized absolute path of the file being accessed
+- **`allowNonExistingPaths`** (boolean): Whether missing paths are allowed for this action (e.g., create)
 - **`allowedPath`** (Path): Normalized, absolute, real path of an allowed path prefix
 - **`variableToPath()`** (method): Helper that converts only `String`, `Path`, or `File` values to `Path`
 
@@ -881,13 +1177,14 @@ for (Object variable : filteredVariables) {
 - All paths allowed → 🌕 **Continue to 5.4.4**
 - Forbidden path found → Record violation → 🌕 **Continue to 5.4.5** (check if Ares internal)
 
+<a id="544-check-object-state-for-file-paths"></a>
 ### 5.4.4 Check Object State for File Paths
 
 **1. Purpose**
 
 Extract and validate all file paths from the object's internal state. This step systematically extracts paths from all object's internal state types and validates each against the allowed paths list.
 
-**2. How it works**
+**2. How it works (attribute-based violations only)**
 
 **Same process as checking parameters (Section 5.4.3 above)**, but we examine the object's internal field values (from Section 4.2) instead of method parameters. The path normalization and validation logic is identical.
 
@@ -903,6 +1200,7 @@ Extract and validate all file paths from the object's internal state. This step 
 - All paths allowed → 🌕 **Continue to 5.4.5**
 - Forbidden path found → Record violation → 🌕 **Continue to 5.4.5** (check if Ares internal)
 
+<a id="545-allow-ares-internal-files"></a>
 ### 5.4.5 Allow Ares Internal Files
 
 **1. Purpose**
@@ -928,7 +1226,7 @@ if (!isInternalAllowed) {
 
 **3. Used variables**
 
-- **`pathViolation`** (String): The file path that was flagged as forbidden in 5.4.3 or 5.4.4
+- **`pathViolation`** (String): The file path that was flagged as forbidden in 5.4.4 (attribute-based)
 - **`INTERNAL_PATH_SUFFIXES`** (List<String>): Predefined list of Ares internal file path suffixes that should always be allowed
 - **`isInternalAllowed`** (boolean): `true` if the path ends with an Ares internal file suffix, `false` otherwise
 
@@ -939,6 +1237,7 @@ if (!isInternalAllowed) {
 
 ---
 
+<a id="55-check-5-block-access-with-detailed-error-message"></a>
 ## 5.5 Check 5: Block Access with Detailed Error Message
 
 🔴 **Security Exception Thrown - Analysis Terminated**
@@ -985,9 +1284,11 @@ Test method: org.junit.TestClass.testStudent
 
 ---
 
-# 6. Conclusion
+<a id="6-ares-2-aop-file-system-access-control-conclusion"></a>
+# 6. Ares 2 AOP File System Access Control: Conclusion
 
-## Summary for Programming Instructors (TL;DR)
+<a id="61-summary-for-programming-instructors-tldr"></a>
+## 6.1 Summary for Programming Instructors (TL;DR)
 
 **What does Ares do?**
 - ✅ Monitors a **broad set of file system APIs** automatically (Read, Write, Create, Delete, Execute)
@@ -1010,7 +1311,8 @@ Test method: org.junit.TestClass.testStudent
 
 ---
 
-## Technical Details
+<a id="62-technical-details"></a>
+## 6.2 Technical Details
 
 The file system security mechanism provides **comprehensive protection** through:
 

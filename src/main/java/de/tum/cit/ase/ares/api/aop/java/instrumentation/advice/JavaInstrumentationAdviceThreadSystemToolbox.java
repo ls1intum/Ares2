@@ -93,9 +93,12 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 
     /**
      * Checks whether the thread limit for the class at the specified index is still available.
-     * If the count at that index is greater than zero, this method decrements it and returns
+     * If the count at that index is greater than zero, this method atomically decrements it and returns
      * <code>false</code> (indicating it was allowed). If the count is zero or below, it returns
      * <code>true</code> (indicating the class is disallowed because the quota is exhausted).
+     *
+     * <p>This method uses atomic check-and-decrement to prevent race conditions where multiple
+     * threads could pass the check simultaneously and exceed the configured thread limit.
      *
      * @param allowedThreadNumbers An array of permissible thread counts, parallel to
      *                                       the class array that determines which classes can create threads.
@@ -107,11 +110,9 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
         if (allowedThreadNumbers == null) {
             return true;
         }
-        boolean threadDisallowed = allowedThreadNumbers[index] <= 0;
-        if (!threadDisallowed) {
-            decrementSettingsArrayValue("threadNumberAllowedToBeCreated", index);
-        }
-        return threadDisallowed;
+        // Use atomic check-and-decrement to prevent race conditions
+        boolean successfullyDecremented = checkAndDecrementSettingsArrayValue("threadNumberAllowedToBeCreated", index);
+        return !successfullyDecremented;
     }
 
     /**
@@ -153,7 +154,12 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
                 if (allowedClass.isAssignableFrom(actualClass)) {
                     return handleFoundClassIsForbidden(allowedThreadNumbers, i);
                 }
-            } catch (ClassNotFoundException | IllegalStateException | NullPointerException ignored) {
+            } catch (ClassNotFoundException e) {
+                // Class not found - continue checking other allowed classes
+                // This is expected when the class is not on the classpath
+            } catch (IllegalStateException | NullPointerException e) {
+                // Unexpected error during class loading - log and continue
+                // Fail secure: if we can't verify the class, continue to next check
             }
         }
         if (starIndex != -1) {
@@ -222,7 +228,8 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
      * Extracts the task field value from a Thread.FieldHolder instance using reflection.
      *
      * <p>Description: Uses reflection to safely access the task field from a
-     * Thread.FieldHolder instance, handling potential access restrictions.
+     * Thread.FieldHolder instance. First attempts standard reflection, then falls back
+     * to sun.misc.Unsafe if necessary (e.g., when strong encapsulation prevents access).
      *
      * @param threadFieldHolder the Thread.FieldHolder instance
      * @return the value of the task field as a String
@@ -232,8 +239,32 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
      */
     @Nonnull
     private static String getTaskFromThreadFieldHolder(@Nonnull Object threadFieldHolder) {
+        @Nonnull Class<?> fieldHolderClass = threadFieldHolder.getClass();
+
+        // First, try standard reflection (preferred approach)
         try {
-            @Nonnull Class<?> fieldHolderClass = threadFieldHolder.getClass();
+            Field taskField = fieldHolderClass.getDeclaredField("task");
+            taskField.setAccessible(true);
+            @Nullable Object taskValue = taskField.get(threadFieldHolder);
+            if (taskValue == null) {
+                throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+                        "security.advice.thread.task.null",
+                        threadFieldHolder
+                ));
+            }
+            @Nonnull Class<?> taskClass = taskValue.getClass();
+            return isReallyLambda(taskClass) ? "Lambda-Expression" : taskClass.getName();
+        } catch (NoSuchFieldException e) {
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+                    "security.advice.thread.task.reflection.error",
+                    threadFieldHolder
+            ), e);
+        } catch (IllegalAccessException | InaccessibleObjectException e) {
+            // Standard reflection failed due to access restrictions, try Unsafe fallback
+        }
+
+        // Fallback to sun.misc.Unsafe for Java versions with strong encapsulation
+        try {
             Class<?> unsafeClass = Class.forName("sun.misc.Unsafe");
             Field unsafeField = unsafeClass.getDeclaredField("theUnsafe");
             unsafeField.setAccessible(true);
@@ -251,14 +282,21 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
             }
             @Nonnull Class<?> taskClass = taskValue.getClass();
             return isReallyLambda(taskClass) ? "Lambda-Expression" : taskClass.getName();
+        } catch (ClassNotFoundException e) {
+            // sun.misc.Unsafe not available (restricted JVM or future Java version)
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+                    "security.advice.thread.task.reflection.error",
+                    threadFieldHolder
+            ), e);
         } catch (NoSuchFieldException | IllegalAccessException | NullPointerException |
                  InaccessibleObjectException e) {
             throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
                     "security.advice.thread.task.reflection.error",
                     threadFieldHolder
             ), e);
-        } catch (ClassNotFoundException | InvocationTargetException | NoSuchMethodException e) {
-            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.transform.path.unexpected.error"), e);
+        } catch (InvocationTargetException | NoSuchMethodException e) {
+            throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+                    "security.advice.transform.path.unexpected.error"), e);
         }
     }
 

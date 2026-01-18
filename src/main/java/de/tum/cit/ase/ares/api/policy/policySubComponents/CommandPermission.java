@@ -2,6 +2,7 @@ package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -33,7 +34,7 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
     public CommandPermission {
         Objects.requireNonNull(executeTheCommand, "executeTheCommand must not be null");
         if (executeTheCommand.isBlank()) {
-            throw new IllegalArgumentException("executeTheCommand must not be blank");
+            throw new IllegalArgumentException(Messages.localized("policy.permission.command.blank"));
         }
         Objects.requireNonNull(withTheseArguments, "withTheseArguments must not be null");
     }

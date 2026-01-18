@@ -2,6 +2,7 @@ package de.tum.cit.ase.ares.api.policy;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.director.SecurityPolicyDirector;
 import de.tum.cit.ase.ares.api.policy.reader.SecurityPolicyReader;
 import de.tum.cit.ase.ares.api.securitytest.TestCaseAbstractFactoryAndBuilder;
@@ -98,7 +99,7 @@ public class SecurityPolicyReaderAndDirector {
                     if(securityPolicyReader != null) {
                         return securityPolicyReader.readSecurityPolicyFrom(securityPolicyFilePath);
                     } else {
-                        throw new IllegalArgumentException("No suitable SecurityPolicyReader found for the provided file path: " + securityPolicyFilePath);
+                        throw new IllegalArgumentException(Messages.localized("policy.reader.no.suitable.reader", securityPolicyFilePath));
                     }
                 })
                 .orNull();

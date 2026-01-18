@@ -38,7 +38,7 @@ public class RecursionCheck {
     private static final Logger log = LoggerFactory.getLogger(RecursionCheck.class);
 
     private RecursionCheck() {
-        throw new IllegalStateException("Hide the implicit public constructor");
+        throw new IllegalStateException(localized("ast.hide.implicit.constructor"));
     }
 
     /**
@@ -104,7 +104,7 @@ public class RecursionCheck {
             log.error("Error in MethodCallGraph: Vertex position not found for vertex: {}", vertexName);
 
             // Throw an IllegalStateException with a descriptive message
-            throw new IllegalStateException("Node position cannot be determined as the vertex was not detected in the cycle.");
+            throw new IllegalStateException(localized("ast.node.position.not.determined"));
         }
 
         return localized("ast.method.get_formatted_file_string_prefix", pathOfSourceRoot.toString()

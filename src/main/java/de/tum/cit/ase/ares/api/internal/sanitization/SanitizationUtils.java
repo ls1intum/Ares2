@@ -41,7 +41,7 @@ final class SanitizationUtils {
 		invoke(() -> to.setStackTrace(fromStackTrace));
 		// add suppressed Throwables only if there are none in to but some in from
 		if (toSuppr.length == 0 && fromSuppr.length > 0)
-			for (Throwable suppressed : toSuppr)
+			for (Throwable suppressed : fromSuppr)
 				to.addSuppressed(suppressed); // OK: final method
 	}
 

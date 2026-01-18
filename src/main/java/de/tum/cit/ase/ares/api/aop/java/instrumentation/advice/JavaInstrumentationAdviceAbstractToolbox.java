@@ -113,10 +113,42 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
     }
 
     /**
+     * Retrieves the settings lock object for synchronization.
+     *
+     * <p>Description: Uses reflection to get the SETTINGS_LOCK from JavaAOPTestCaseSettings,
+     * allowing synchronized access to settings for thread-safe operations.
+     *
+     * @return the settings lock object
+     * @since 2.0.0
+     * @author Markus Paulsen
+     */
+    @Nonnull
+    public static Object getSettingsLock() {
+        try {
+            @Nonnull Class<?> adviceSettingsClass = Objects.requireNonNull(
+                    Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings"),
+                    "adviceSettingsClass must not be null"
+            );
+            @Nonnull java.lang.reflect.Method getLockMethod = adviceSettingsClass.getDeclaredMethod("getSettingsLock");
+            @Nonnull Object lock = Objects.requireNonNull(getLockMethod.invoke(null), "lock must not be null");
+            return lock;
+        } catch (Exception e) {
+            // Fallback to class object if lock retrieval fails
+            try {
+                return Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings");
+            } catch (ClassNotFoundException ex) {
+                throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+                        "security.advice.class.not.found.exception", "JavaAOPTestCaseSettings"), ex);
+            }
+        }
+    }
+
+    /**
      * Decrements the value at a specified index in an integer array setting.
      *
      * <p>Description: Retrieves an integer array from settings, decrements the value
      * at the given position, and updates the array back to the settings class.
+     * This operation is synchronized to prevent race conditions.
      *
      * @param settingsArray the name of the array field in settings
      * @param position the index position of the value to decrement
@@ -124,11 +156,42 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
      * @author Markus Paulsen
      */
     public static void decrementSettingsArrayValue(@Nonnull String settingsArray, int position) {
-        @Nullable int[] array = getValueFromSettings(settingsArray);
-        if (array != null && position >= 0 && position < array.length) {
+        synchronized (getSettingsLock()) {
+            @Nullable int[] array = getValueFromSettings(settingsArray);
+            if (array != null && position >= 0 && position < array.length) {
+                @Nonnull int[] clone = array.clone();
+                clone[position]--;
+                setValueToSettings(settingsArray, clone);
+            }
+        }
+    }
+
+    /**
+     * Atomically checks if the value at a specified index in an integer array setting is positive,
+     * and if so, decrements it.
+     *
+     * <p>Description: This method combines the check and decrement into a single atomic operation
+     * to prevent race conditions where multiple threads could pass the check simultaneously.
+     *
+     * @param settingsArray the name of the array field in settings
+     * @param position the index position of the value to check and decrement
+     * @return true if the value was positive and successfully decremented, false if the quota is exhausted
+     * @since 2.0.0
+     * @author Markus Paulsen
+     */
+    public static boolean checkAndDecrementSettingsArrayValue(@Nonnull String settingsArray, int position) {
+        synchronized (getSettingsLock()) {
+            @Nullable int[] array = getValueFromSettings(settingsArray);
+            if (array == null || position < 0 || position >= array.length) {
+                return false;
+            }
+            if (array[position] <= 0) {
+                return false;
+            }
             @Nonnull int[] clone = array.clone();
             clone[position]--;
             setValueToSettings(settingsArray, clone);
+            return true;
         }
     }
 
@@ -333,7 +396,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
                 newVariables.remove(ignoreVariables.getIndex());
                 break;
             default:
-                throw new IllegalArgumentException("Unknown ignore type: " + ignoreVariables.getType());
+                throw new IllegalArgumentException(JavaInstrumentationAdviceAbstractToolbox.localize("aop.ignore.unknown.type", ignoreVariables.getType()));
         }
         return newVariables.toArray();
     }

@@ -19,6 +19,15 @@ import de.tum.cit.ase.ares.api.localization.Messages;
 public class JavaAOPTestCaseSettings {
 
     /**
+     * Lock object for synchronizing access to all security-related settings.
+     * <p>
+     * This ensures thread-safe access to settings during concurrent test execution,
+     * preventing race conditions that could lead to security bypasses.
+     * </p>
+     */
+    private static final Object SETTINGS_LOCK = new Object();
+
+    /**
      * Private constructor to prevent instantiation of this utility class.
      * <p>
      * The constructor throws an {@link SecurityException} to enforce the utility class pattern.
@@ -34,114 +43,127 @@ public class JavaAOPTestCaseSettings {
     }
 
     /**
+     * Returns the lock object used for synchronizing access to settings.
+     * <p>
+     * External code that needs to perform atomic check-and-modify operations
+     * on settings should synchronize on this lock.
+     * </p>
+     *
+     * @return the settings lock object
+     */
+    public static Object getSettingsLock() {
+        return SETTINGS_LOCK;
+    }
+
+    /**
      * The mode of the build.
      */
-    private static String buildMode = null;
+    private static volatile String buildMode = null;
 
     /**
      * The mode of the architecture tests.
      */
-    private static String architectureMode = null;
+    private static volatile String architectureMode = null;
 
     /**
      * The mode of the aspect-oriented programming (AOP) configuration.
      */
-    private static String aopMode = null;
+    private static volatile String aopMode = null;
 
     /**
      * The package that is restricted from certain operations.
      */
-    private static String restrictedPackage = null;
+    private static volatile String restrictedPackage = null;
 
     /**
      * The main class.
      */
-    private static String mainClass = null;
+    private static volatile String mainClass = null;
 
     /**
      * List of packages that are allowed to be instrumented.
      */
-    private static String[] allowedListedPackages = null;
+    private static volatile String[] allowedListedPackages = null;
 
     /**
      * List of classes that are allowed to be instrumented.
      */
-    private static String[] allowedListedClasses = null;
+    private static volatile String[] allowedListedClasses = null;
 
     /**
      * Paths that are allowed to be read.
      */
-    private static String[] pathsAllowedToBeRead = null;
+    private static volatile String[] pathsAllowedToBeRead = null;
 
     /**
      * Paths that are allowed to be overwritten.
      */
-    private static String[] pathsAllowedToBeOverwritten = null;
+    private static volatile String[] pathsAllowedToBeOverwritten = null;
 
     /**
      * Paths that are allowed to be created.
      */
-    private static String[] pathsAllowedToBeCreated = null;
+    private static volatile String[] pathsAllowedToBeCreated = null;
 
     /**
      * Paths that are allowed to be executed.
      */
-    private static String[] pathsAllowedToBeExecuted = null;
+    private static volatile String[] pathsAllowedToBeExecuted = null;
 
     /**
      * Paths that are allowed to be executed.
      */
-    private static String[] pathsAllowedToBeDeleted = null;
+    private static volatile String[] pathsAllowedToBeDeleted = null;
 
     /**
      * Hosts that are allowed to be connected to.
      */
-    private static String[] hostsAllowedToBeConnectedTo = null;
+    private static volatile String[] hostsAllowedToBeConnectedTo = null;
 
     /**
      * Ports that are allowed to be connected to.
      */
-    private static int[] portsAllowedToBeConnectedTo = null;
+    private static volatile int[] portsAllowedToBeConnectedTo = null;
 
     /**
      * Hosts that are allowed to send data to.
      */
-    private static String[] hostsAllowedToBeSentTo = null;
+    private static volatile String[] hostsAllowedToBeSentTo = null;
 
     /**
      * Ports that are allowed to send data to.
      */
-    private static int[] portsAllowedToBeSentTo = null;
+    private static volatile int[] portsAllowedToBeSentTo = null;
 
     /**
      * Hosts that are allowed to receive data from.
      */
-    private static String[] hostsAllowedToBeReceivedFrom = null;
+    private static volatile String[] hostsAllowedToBeReceivedFrom = null;
 
     /**
      * Ports that are allowed to receive data from.
      */
-    private static int[] portsAllowedToBeReceivedFrom = null;
+    private static volatile int[] portsAllowedToBeReceivedFrom = null;
 
     /**
      * Commands that are allowed to be executed.
      */
-    private static String[] commandsAllowedToBeExecuted = null;
+    private static volatile String[] commandsAllowedToBeExecuted = null;
 
     /**
      * Arguments that are allowed to be passed to the commands.
      */
-    private static String[][] argumentsAllowedToBePassed = null;
+    private static volatile String[][] argumentsAllowedToBePassed = null;
 
     /**
      * Classes of threads that are allowed to be created.
      */
-    private static String[] threadClassAllowedToBeCreated = null;
+    private static volatile String[] threadClassAllowedToBeCreated = null;
 
     /**
      * Number of threads that are allowed to be created.
      */
-    private static int[] threadNumberAllowedToBeCreated = null;
+    private static volatile int[] threadNumberAllowedToBeCreated = null;
 
     /**
      * Resets the configuration settings to their default values.

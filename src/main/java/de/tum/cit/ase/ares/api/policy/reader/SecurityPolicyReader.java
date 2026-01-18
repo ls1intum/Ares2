@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.io.MoreFiles;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.reader.yaml.SecurityPolicyYAMLReader;
 
@@ -68,7 +69,7 @@ public abstract class SecurityPolicyReader {
                 SecurityPolicyYAMLReader.yamlBuilder()
                         .yamlMapper(new YAMLMapper())
                         .build();
-            default -> throw new IllegalArgumentException("Unsupported security policy file format: " + MoreFiles.getFileExtension(securityPolicyFilePath));
+            default -> throw new IllegalArgumentException(Messages.localized("policy.reader.unsupported.format", MoreFiles.getFileExtension(securityPolicyFilePath)));
         };
     }
     //</editor-fold>

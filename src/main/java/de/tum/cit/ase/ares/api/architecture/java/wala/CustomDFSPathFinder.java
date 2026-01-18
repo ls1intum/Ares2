@@ -16,6 +16,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 import de.tum.cit.ase.ares.api.architecture.java.FileHandlerConstants;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.util.FileTools;
 import org.jspecify.annotations.Nullable;
 
@@ -68,11 +69,42 @@ public class CustomDFSPathFinder {
     private boolean initialized = false;
 
     /**
-     * Methods to skip during traversal.
+     * Holder class for lazy initialization of excluded methods.
      *
-     * <p>Description: List of false-positive file system interaction methods to exclude from paths.
+     * <p>Description: Uses initialization-on-demand holder idiom to defer file I/O
+     * until the excluded methods set is actually needed. This prevents I/O during
+     * class loading and improves startup time.
+     *
+     * <p>Design Rationale: Static initialization that performs I/O can cause
+     * class loading failures and unexpected exceptions. Lazy initialization
+     * defers this work until the first actual use.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
      */
-    private static final Set<String> toExcludeMethodsFromPath = FileTools.readMethodsFile(FileTools.readFile(FileHandlerConstants.FALSE_POSITIVES_FILE_SYSTEM_INTERACTIONS));
+    private static class ExcludedMethodsHolder {
+        /**
+         * Methods to skip during traversal.
+         *
+         * <p>Description: Set of false-positive file system interaction methods to exclude from paths.
+         */
+        static final Set<String> EXCLUDED_METHODS = FileTools.readMethodsFile(
+                FileTools.readFile(FileHandlerConstants.FALSE_POSITIVES_FILE_SYSTEM_INTERACTIONS)
+        );
+    }
+
+    /**
+     * Gets the set of methods to exclude from path analysis.
+     *
+     * <p>Description: Uses lazy initialization to defer file I/O until first use.
+     *
+     * @return set of method signatures to exclude
+     * @since 2.0.0
+     * @author Markus Paulsen
+     */
+    private static Set<String> getExcludedMethods() {
+        return ExcludedMethodsHolder.EXCLUDED_METHODS;
+    }
 
     /**
      * Stack for DFS traversal.
@@ -94,13 +126,13 @@ public class CustomDFSPathFinder {
      */
     public CustomDFSPathFinder(Graph<CGNode> G, Iterator<CGNode> nodes, Predicate<CGNode> f) {
         if (G == null) {
-            throw new IllegalArgumentException("G is null");
+            throw new IllegalArgumentException(Messages.localized("architecture.wala.graph.null"));
         }
         if (nodes == null) {
-            throw new IllegalArgumentException("roots is null");
+            throw new IllegalArgumentException(Messages.localized("architecture.wala.roots.null"));
         }
         if (f == null) {
-            throw new IllegalArgumentException("filter is null");
+            throw new IllegalArgumentException(Messages.localized("architecture.wala.filter.null"));
         }
         this.G = G;
         this.roots = nodes;
@@ -164,7 +196,7 @@ public class CustomDFSPathFinder {
             for (CGNode child : Iterator2Iterable.make(pendingChildren.get(stackTop))) {
                 if (pendingChildren.get(child) == null) {
                     // skip excluded methods
-                    if (toExcludeMethodsFromPath.stream().anyMatch(child.getMethod().getSignature()::startsWith)) {
+                    if (getExcludedMethods().stream().anyMatch(child.getMethod().getSignature()::startsWith)) {
                         continue;
                     }
                     stack.push(child); // descend into this child

@@ -33,6 +33,17 @@ public class DynamicClass<T> implements Checkable {
 		return name;
 	}
 
+	/**
+	 * Resolves and returns the class object for this dynamic class.
+	 * <p>
+	 * <b>Warning:</b> When using the String constructor, this method performs
+	 * an unchecked cast. The caller must ensure the generic type parameter {@code T}
+	 * matches the actual class loaded from the name string to avoid
+	 * {@link ClassCastException} at runtime.
+	 *
+	 * @return the resolved class object
+	 * @throws AssertionError if the class cannot be found
+	 */
 	@SuppressWarnings("unchecked")
 	public Class<T> toClass() {
 		if (clazz == null) {
@@ -45,6 +56,15 @@ public class DynamicClass<T> implements Checkable {
 		return clazz;
 	}
 
+	/**
+	 * Checks if the class exists and can be loaded.
+	 * <p>
+	 * <b>Warning:</b> When using the String constructor, this method performs
+	 * an unchecked cast. The caller must ensure the generic type parameter {@code T}
+	 * matches the actual class loaded from the name string.
+	 *
+	 * @return true if the class exists, false otherwise
+	 */
 	@Override
 	@SuppressWarnings("unchecked")
 	public boolean exists() {

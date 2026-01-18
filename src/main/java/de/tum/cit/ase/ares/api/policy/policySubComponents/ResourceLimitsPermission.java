@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
+import de.tum.cit.ase.ares.api.localization.Messages;
 import javax.annotation.Nonnull;
 
 /**
@@ -22,7 +23,7 @@ public record ResourceLimitsPermission(long timeout) {
      */
     public ResourceLimitsPermission {
         if (timeout < 0) {
-            throw new IllegalArgumentException("timeout must not be negative");
+            throw new IllegalArgumentException(Messages.localized("policy.permission.timeout.negative"));
         }
     }
 

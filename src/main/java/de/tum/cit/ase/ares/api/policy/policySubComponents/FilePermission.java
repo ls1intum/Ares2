@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
+import de.tum.cit.ase.ares.api.localization.Messages;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Objects;
@@ -25,7 +26,7 @@ public record FilePermission(
         @Nonnull String onThisPathAndAllPathsBelow,
         boolean readAllFiles,
         boolean overwriteAllFiles,
-        @Nonnull Boolean createAllFiles,
+        boolean createAllFiles,
         boolean executeAllFiles,
         boolean deleteAllFiles
 ) {
@@ -39,9 +40,8 @@ public record FilePermission(
     public FilePermission {
         Objects.requireNonNull(onThisPathAndAllPathsBelow, "onThisPathAndAllPathsBelow must not be null");
         if (onThisPathAndAllPathsBelow.isBlank()) {
-            throw new IllegalArgumentException("onThisPathAndAllPathsBelow must not be blank");
+            throw new IllegalArgumentException(Messages.localized("policy.permission.file.path.blank"));
         }
-        Objects.requireNonNull(createAllFiles, "createAllFiles must not be null");
     }
 
     /**

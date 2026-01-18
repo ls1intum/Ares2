@@ -6,6 +6,7 @@ import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.localization.Localisation;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.Phobos;
 import de.tum.cit.ase.ares.api.util.FileTools;
@@ -141,7 +142,7 @@ public class JavaWriter implements Writer {
 
         int nameCount = testFolderPath.getNameCount();
         if (nameCount < 2) {
-            throw new IllegalArgumentException("Unexpected test folder path: " + testFolderPath);
+            throw new IllegalArgumentException(Messages.localized("securitytest.unexpected.test.folder.path", testFolderPath));
         }
 
         Path parentPath = testFolderPath.subpath(0, nameCount - 2);

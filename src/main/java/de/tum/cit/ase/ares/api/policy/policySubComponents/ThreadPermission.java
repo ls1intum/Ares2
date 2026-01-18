@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
+import de.tum.cit.ase.ares.api.localization.Messages;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Objects;
@@ -28,10 +29,10 @@ public record ThreadPermission(int createTheFollowingNumberOfThreads, @Nonnull S
     public ThreadPermission {
         Objects.requireNonNull(ofThisClass, "Thread class must not be null");
         if (createTheFollowingNumberOfThreads < 0) {
-            throw new IllegalArgumentException("createTheFollowingNumberOfThreads threads must not be negative");
+            throw new IllegalArgumentException(Messages.localized("policy.permission.thread.count.negative"));
         }
         if (ofThisClass.isBlank()) {
-            throw new IllegalArgumentException("ofThisClass must not be blank");
+            throw new IllegalArgumentException(Messages.localized("policy.permission.thread.class.blank"));
         }
     }
 

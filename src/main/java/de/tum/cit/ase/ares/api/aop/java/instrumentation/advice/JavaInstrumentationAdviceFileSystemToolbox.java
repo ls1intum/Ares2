@@ -110,12 +110,19 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
     /**
      * Checks if a Path is outside of the allowed paths whitelist.
      *
-     * <p>Description: Returns true if allowedPathsAsStrings not null or if the given actualPath does not match one of the allowedPatterns.
+     * <p>Description: Returns true if allowedPathsAsStrings is null or if the given actualPath
+     * does not match one of the allowed patterns. This method resolves symlinks FIRST to
+     * prevent symlink-based sandbox escapes (TOCTOU attacks).
+     *
+     * <p>Security Note: Symlinks are resolved to their canonical form BEFORE checking against
+     * allowed paths, preventing attacks where a path like "/allowed/../../../etc/passwd" could
+     * bypass prefix checks.
      *
      * @since 2.0.0
      * @author Markus
      * @param actualPath         the Path to test
      * @param allowedPathsAsStrings whitelist of allowed actualPath strings
+     * @param allowNonExistingPathsToBeConsidered whether to allow paths that don't exist yet
      * @return true if actualPath is forbidden; false otherwise
      */
     private static boolean checkIfPathIsForbidden(@Nullable Path actualPath, @Nullable String[] allowedPathsAsStrings, boolean allowNonExistingPathsToBeConsidered) {
@@ -126,17 +133,27 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
             return true;
         }
 
-        Path candidate = actualPath.normalize().toAbsolutePath();
-        boolean actualExists = Files.exists(candidate);
+        // SECURITY: Resolve symlinks FIRST to get the canonical path before any checks.
+        // This prevents TOCTOU attacks where symlinks could be manipulated between check and use.
+        Path candidate;
+        boolean actualExists = Files.exists(actualPath, LinkOption.NOFOLLOW_LINKS);
 
         if (actualExists) {
             try {
-                candidate = candidate.toRealPath(LinkOption.NOFOLLOW_LINKS);
-            } catch (IOException ignored) {
+                // Resolve ALL symlinks to get the true canonical path
+                // Do NOT use NOFOLLOW_LINKS here - we want to follow symlinks to see the real target
+                candidate = actualPath.toRealPath();
+            } catch (IOException e) {
+                // If we can't resolve the real path for an existing file, fail secure
                 if (!allowNonExistingPathsToBeConsidered) {
                     return true;
                 }
+                // Fall back to normalized absolute path if real path resolution fails
+                candidate = actualPath.normalize().toAbsolutePath();
             }
+        } else {
+            // For non-existing paths, use normalized absolute path
+            candidate = actualPath.normalize().toAbsolutePath();
         }
 
         boolean hasAllowedPrefix = false;
@@ -145,23 +162,28 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
             if (allowedPath == null) {
                 continue;
             }
-            Path normalizedAllowedPath = allowedPath.normalize().toAbsolutePath();
-            if (!allowNonExistingPathsToBeConsidered) {
-                if (!Files.exists(normalizedAllowedPath)) {
+
+            // SECURITY: Also resolve symlinks in allowed paths to canonical form
+            Path normalizedAllowedPath;
+            boolean allowedExists = Files.exists(allowedPath, LinkOption.NOFOLLOW_LINKS);
+
+            if (allowedExists) {
+                try {
+                    // Resolve ALL symlinks in allowed path too
+                    normalizedAllowedPath = allowedPath.toRealPath();
+                } catch (IOException e) {
+                    if (!allowNonExistingPathsToBeConsidered) {
+                        continue;
+                    }
+                    normalizedAllowedPath = allowedPath.normalize().toAbsolutePath();
+                }
+            } else {
+                if (!allowNonExistingPathsToBeConsidered) {
                     continue;
                 }
-                try {
-                    normalizedAllowedPath = normalizedAllowedPath.toRealPath(LinkOption.NOFOLLOW_LINKS);
-                } catch (IOException ignored) {
-                    continue;
-                }
-            } else if (Files.exists(normalizedAllowedPath)) {
-                try {
-                    normalizedAllowedPath = normalizedAllowedPath.toRealPath(LinkOption.NOFOLLOW_LINKS);
-                } catch (IOException ignored) {
-                    // use normalized path if real path resolution fails
-                }
+                normalizedAllowedPath = allowedPath.normalize().toAbsolutePath();
             }
+
             if (candidate.startsWith(normalizedAllowedPath)) {
                 hasAllowedPrefix = true;
                 break;
@@ -299,7 +321,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
             return null;
         } else {
             Path observedPath = variableToPath(observedVariable, allowNonExistingPathsToBeConsidered);
-            if (checkIfPathIsForbidden(observedPath, allowedPaths, allowNonExistingPathsToBeConsidered)) {
+            if (observedPath != null && checkIfPathIsForbidden(observedPath, allowedPaths, allowNonExistingPathsToBeConsidered)) {
                 return observedPath.toString();
             }
         }

@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
+import de.tum.cit.ase.ares.api.localization.Messages;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Objects;
@@ -27,7 +28,7 @@ public record PackagePermission(@Nonnull String importTheFollowingPackage) {
     public PackagePermission {
         Objects.requireNonNull(importTheFollowingPackage, "Package name must not be null");
         if (importTheFollowingPackage.isBlank()) {
-            throw new IllegalArgumentException("importTheFollowingPackage must not be blank");
+            throw new IllegalArgumentException(Messages.localized("policy.permission.package.blank"));
         }
     }
 

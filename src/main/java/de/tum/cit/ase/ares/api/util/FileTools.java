@@ -2,6 +2,8 @@ package de.tum.cit.ase.ares.api.util;
 
 //<editor-fold desc="Import">
 
+import static de.tum.cit.ase.ares.api.localization.Messages.localized;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.io.Closer;
@@ -169,20 +171,24 @@ public class FileTools {
             return Files.newInputStream(path.normalize());
         }
         JarFile jar = new JarFile(Path.of(jarMatcher.group(1)).toFile());
-        JarEntry entry = jar.getJarEntry(jarMatcher.group(2).replace('\\', '/'));
-        if (entry == null) {
-            jar.close();
-            throw new SecurityException("Jar entry not found: " + jarMatcher.group(2).replace('\\', '/') + " in " + Path.of(jarMatcher.group(1)));
-        }
         Closer closer = Closer.create();
-        InputStream entryStream = closer.register(jar.getInputStream(entry));
-        closer.register(jar);
-        return new FilterInputStream(entryStream) {
-            @Override
-            public void close() throws IOException {
-                closer.close();
+        try {
+            closer.register(jar);
+            JarEntry entry = jar.getJarEntry(jarMatcher.group(2).replace('\\', '/'));
+            if (entry == null) {
+                throw new SecurityException("Jar entry not found: " + jarMatcher.group(2).replace('\\', '/') + " in " + Path.of(jarMatcher.group(1)));
             }
-        };
+            InputStream entryStream = closer.register(jar.getInputStream(entry));
+            return new FilterInputStream(entryStream) {
+                @Override
+                public void close() throws IOException {
+                    closer.close();
+                }
+            };
+        } catch (Exception e) {
+            closer.close();
+            throw e;
+        }
     }
 
     /**
@@ -523,7 +529,7 @@ public class FileTools {
                 String formatted = formatTemplate(template, formatValues.get(i), target);
                 writeFile(target, formatted, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
             } catch (IOException e) {
-                throw new SecurityException();
+                throw new SecurityException(localized("file.tools.format.file.failed", target), e);
             }
         });
     }
@@ -580,7 +586,7 @@ public class FileTools {
                 String formatted = processPlaceholdersAndFormat(content, perFilePlaceholders, values, targetPath);
                 writeFile(targetPath, formatted, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
             } catch (IOException e) {
-                throw new SecurityException();
+                throw new SecurityException(localized("file.tools.process.format.file.failed", targetPath), e);
             }
         });
     }
@@ -697,7 +703,7 @@ public class FileTools {
             writeFile(createdFile, formatted, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
             return createdFile;
         } catch (IOException e) {
-            throw new SecurityException();
+            throw new SecurityException(localized("file.tools.create.format.file.failed", createdFile), e);
         }
     }
 

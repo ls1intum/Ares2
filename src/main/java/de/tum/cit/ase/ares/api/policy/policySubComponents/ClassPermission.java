@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
+import de.tum.cit.ase.ares.api.localization.Messages;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Objects;
@@ -27,7 +28,7 @@ public record ClassPermission(@Nonnull String className) {
     public ClassPermission {
         Objects.requireNonNull(className, "className name must not be null");
         if (className.isBlank()) {
-            throw new IllegalArgumentException("className must not be blank");
+            throw new IllegalArgumentException(Messages.localized("policy.permission.class.blank"));
         }
     }
 

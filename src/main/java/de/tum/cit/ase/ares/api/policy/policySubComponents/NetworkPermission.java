@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
+import de.tum.cit.ase.ares.api.localization.Messages;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Objects;
@@ -37,10 +38,10 @@ public record NetworkPermission(
     public NetworkPermission {
         Objects.requireNonNull(onTheHost, "onTheHost must not be null");
         if (onTheHost.isBlank()) {
-            throw new IllegalArgumentException("onTheHost must not be blank");
+            throw new IllegalArgumentException(Messages.localized("policy.permission.network.host.blank"));
         }
         if (onThePort < 0 || onThePort > 65535) {
-            throw new IllegalArgumentException("onThePort must be between 0 and 65535");
+            throw new IllegalArgumentException(Messages.localized("policy.permission.network.port.invalid"));
         }
     }
 
