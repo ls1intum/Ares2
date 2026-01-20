@@ -28,7 +28,8 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
     @Nonnull
     public static final List<String> IGNORE_CALLSTACK = List.of(
             "java.lang.ClassLoader",
-            "de.tum.cit.ase.ares.api."
+            "de.tum.cit.ase.ares.api.",
+            "com.intellij.rt.debugger."
     );
     //</editor-fold>
 
@@ -50,8 +51,9 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
     @Nullable
     public static <T> T getValueFromSettings(@Nonnull String fieldName) {
         try {
-            // Take standard class loader as class loader in order to get the JavaAOPTestCaseSettings class at compile time for aspectj
-            @Nonnull Class<?> adviceSettingsClass = Objects.requireNonNull(Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings"), "adviceSettingsClass must not be null");
+            // Use null as ClassLoader to explicitly load from Bootstrap ClassLoader
+            // Use false to avoid class initialization which could trigger file system operations
+            @Nonnull Class<?> adviceSettingsClass = Objects.requireNonNull(Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", false, null), "adviceSettingsClass must not be null");
             @Nonnull Field field = Objects.requireNonNull(adviceSettingsClass.getDeclaredField(Objects.requireNonNull(fieldName, "fieldName must not be null")), "field must not be null");
             field.setAccessible(true);
             @Nullable T value = (T) field.get(null);
@@ -89,8 +91,9 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
      */
     public static <T> void setValueToSettings(@Nonnull String fieldName, @Nullable T newValue) {
         try {
-            // Take standard class loader as class loader in order to get the JavaAOPTestCaseSettings class at compile time for aspectj
-            @Nonnull Class<?> adviceSettingsClass = Objects.requireNonNull(Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings"), "adviceSettingsClass must not be null");
+            // Use null as ClassLoader to explicitly load from Bootstrap ClassLoader
+            // Use false to avoid class initialization which could trigger file system operations
+            @Nonnull Class<?> adviceSettingsClass = Objects.requireNonNull(Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", false, null), "adviceSettingsClass must not be null");
             @Nonnull Field field = Objects.requireNonNull(adviceSettingsClass.getDeclaredField(Objects.requireNonNull(fieldName, "fieldName must not be null")), "field must not be null");
             field.setAccessible(true);
             field.set(null, newValue);
@@ -125,8 +128,10 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
     @Nonnull
     public static Object getSettingsLock() {
         try {
+            // Use null as ClassLoader to explicitly load from Bootstrap ClassLoader
+            // Use false to avoid class initialization which could trigger file system operations
             @Nonnull Class<?> adviceSettingsClass = Objects.requireNonNull(
-                    Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings"),
+                    Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", false, null),
                     "adviceSettingsClass must not be null"
             );
             @Nonnull java.lang.reflect.Method getLockMethod = adviceSettingsClass.getDeclaredMethod("getSettingsLock");
@@ -135,7 +140,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
         } catch (Exception e) {
             // Fallback to class object if lock retrieval fails
             try {
-                return Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings");
+                return Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", false, null);
             } catch (ClassNotFoundException ex) {
                 throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
                         "security.advice.class.not.found.exception", "JavaAOPTestCaseSettings"), ex);

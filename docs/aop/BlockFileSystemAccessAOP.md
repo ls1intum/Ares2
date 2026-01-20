@@ -157,7 +157,7 @@ Ares classifies file system interactions into five action types. These labels dr
 - **OVERWRITE**: Writing or mutating existing content/attributes (write/append/truncate, metadata setters).
 - **CREATE**: Creating new files, directories, or links (create* APIs, file system creation/open).
 - **DELETE**: Removing files or scheduling deletion/trash operations.
-- **EXECUTE**: Operations that launch or open files with external programs (for example, `Runtime.exec(...)` or `Program.launch(...)`).
+- **EXECUTE**: Operations that launch or open files with external programs (for example, `Runtime.exec(...)` or `ProcessBuilder.start(...)`).
 
 Some APIs can appear under multiple actions because they imply more than one permission (for example, `copy`/`move` or `StandardOpenOption` combinations).
 
@@ -186,6 +186,8 @@ Read APIs listed below access file contents or metadata without modifying them.
 | java.nio.file.Files | newByteChannel | ✅ | ✅ | ✅ |
 | java.nio.file.Files | newInputStream | ✅ | ✅ | ✅ |
 | java.nio.file.Files | readAllBytes | ✅ | ✅ | ❌ |
+| java.nio.channels.FileChannel | open | ✅ | ✅ | ✅ |
+| java.nio.channels.AsynchronousFileChannel | open | ✅ | ✅ | ❌ |
 | java.nio.file.spi.FileSystemProvider | newAsynchronousFileChannel | ✅ | ✅ | ❌ |
 | java.nio.file.spi.FileSystemProvider | newByteChannel | ✅ | ✅ | ❌ |
 | java.nio.file.spi.FileSystemProvider | newFileChannel | ✅ | ✅ | ❌ |
@@ -217,6 +219,33 @@ Read APIs listed below access file contents or metadata without modifying them.
 | javax.sound.midi.MidiSystem | getSoundbank | ✅ | ✅ | ❌ |
 | javax.sound.sampled.AudioSystem | getAudioInputStream | ✅ | ✅ | ❌ |
 | javax.xml.parsers.DocumentBuilder | parse | ✅ | ✅ | ❌ |
+| javax.xml.parsers.SAXParser | parse | ✅ | ✅ | ❌ |
+| javax.xml.bind.Unmarshaller | unmarshal | ✅ | ✅ | ❌ |
+
+**Reads archive files (ZIP/JAR/GZIP)**
+
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.util.zip.ZipFile | `<new>` | ✅ | ✅ | ❌ |
+| java.util.zip.ZipFile | entries | ✅ | ✅ | ❌ |
+| java.util.zip.ZipFile | getInputStream | ✅ | ✅ | ❌ |
+| java.util.zip.ZipInputStream | `<new>` | ✅ | ✅ | ❌ |
+| java.util.zip.ZipInputStream | getNextEntry | ✅ | ✅ | ❌ |
+| java.util.zip.ZipInputStream | read | ✅ | ✅ | ❌ |
+| java.util.zip.GZIPInputStream | `<new>` | ✅ | ✅ | ❌ |
+| java.util.zip.GZIPInputStream | read | ✅ | ✅ | ❌ |
+| java.util.jar.JarFile | `<new>` | ✅ | ✅ | ❌ |
+| java.util.jar.JarFile | entries | ✅ | ✅ | ❌ |
+| java.util.jar.JarFile | getInputStream | ✅ | ✅ | ❌ |
+| java.util.jar.JarInputStream | `<new>` | ✅ | ✅ | ❌ |
+| java.util.jar.JarInputStream | getNextJarEntry | ✅ | ✅ | ❌ |
+
+**Reads configuration/properties files**
+
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.util.Properties | load | ✅ | ✅ | ❌ |
+| java.util.Properties | loadFromXML | ✅ | ✅ | ❌ |
 
 **Reads only specific parts of a file**
 
@@ -244,18 +273,24 @@ Read APIs listed below access file contents or metadata without modifying them.
 | java.io.InputStreamReader | read | ✅ | ✅ | ❌ |
 | java.io.ObjectInput | read | ✅ | ✅ | ❌ |
 | java.io.ObjectInputStream | read | ✅ | ✅ | ❌ |
-| java.io.RandomAccessFile | read | ✅ | ✅ | ✅ |
+| java.io.RandomAccessFile | read | ✅ | ✅ | ❌ |
 | java.io.Reader | read | ✅ | ✅ | ❌ |
+| java.io.BufferedReader | read | ✅ | ✅ | ❌ |
 | java.nio.channels.AsynchronousFileChannel | read | ✅ | ✅ | ❌ |
-| java.io.BufferedInputStream | read | ✅ | ✅ | ✅ |
+| java.io.BufferedInputStream | read | ✅ | ✅ | ❌ |
+| java.nio.channels.SeekableByteChannel | read | ✅ | ✅ | ✅ |
 | java.nio.channels.FileChannel | map | ✅ | ✅ | ✅ |
 | java.nio.channels.FileChannel | read | ✅ | ✅ | ✅ |
+| java.nio.channels.FileChannel | transferFrom | ✅ | ✅ | ❌ |
 
 **Only reads the file hierarchy**
 
 | Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
 | --- | --- | --- | --- | --- |
-| java.io.File | normalizedList | ✅ | ✅ | ❌ |
+| java.io.File | list | ✅ | ✅ | ❌ |
+| java.io.File | listFiles | ✅ | ✅ | ❌ |
+| java.io.File | listRoots | ✅ | ✅ | ❌ |
+| java.nio.file.FileSystem | newWatchService | ✅ | ✅ | ❌ |
 | java.nio.file.Files | find | ✅ | ✅ | ❌ |
 | java.nio.file.Files | list | ✅ | ✅ | ❌ |
 | java.nio.file.Files | newDirectoryStream | ✅ | ✅ | ❌ |
@@ -263,6 +298,47 @@ Read APIs listed below access file contents or metadata without modifying them.
 | java.nio.file.Files | walkFileTree | ✅ | ✅ | ❌ |
 | java.nio.file.spi.FileSystemProvider | newDirectoryStream | ✅ | ✅ | ❌ |
 | java.nio.file.spi.FileSystemProvider | newWatchService | ✅ | ✅ | ❌ |
+
+**Reads file attributes and metadata**
+
+> **Note:** The following methods were intentionally removed from instrumentation:
+> - `java.io.File.exists()`
+> - `java.io.File.canRead()`  
+> - `java.io.File.canWrite()`
+> - `java.io.File.canExecute()`
+>
+> **Reason:** These methods are commonly used for pre-validation checks (e.g., checking if a file exists before reading it). Instrumenting them causes SecurityExceptions to be thrown prematurely in validation code, before the actual file operation occurs. Since these methods only query metadata and don't perform actual file I/O, they are safe to exclude from monitoring.
+
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.io.File | isDirectory | ✅ | ✅ | ❌ |
+| java.io.File | isFile | ✅ | ✅ | ❌ |
+| java.io.File | isHidden | ✅ | ✅ | ❌ |
+| java.io.File | lastModified | ✅ | ✅ | ❌ |
+| java.io.File | length | ✅ | ✅ | ❌ |
+| java.io.File | getFreeSpace | ✅ | ✅ | ❌ |
+| java.io.File | getTotalSpace | ✅ | ✅ | ❌ |
+| java.io.File | getUsableSpace | ✅ | ✅ | ❌ |
+| java.nio.file.Files | isDirectory | ✅ | ✅ | ❌ |
+| java.nio.file.Files | isRegularFile | ✅ | ✅ | ❌ |
+| java.nio.file.Files | isSymbolicLink | ✅ | ✅ | ❌ |
+| java.nio.file.Files | isHidden | ✅ | ✅ | ❌ |
+| java.nio.file.Files | isSameFile | ✅ | ✅ | ❌ |
+| java.nio.file.Files | size | ✅ | ✅ | ❌ |
+| java.nio.file.Files | getLastModifiedTime | ✅ | ✅ | ❌ |
+| java.nio.file.Files | getOwner | ✅ | ✅ | ❌ |
+| java.nio.file.Files | getPosixFilePermissions | ✅ | ✅ | ❌ |
+| java.nio.file.Files | getAttribute | ✅ | ✅ | ❌ |
+| java.nio.file.Files | getFileStore | ✅ | ✅ | ❌ |
+| java.nio.file.Files | probeContentType | ✅ | ✅ | ❌ |
+| java.nio.file.Files | readSymbolicLink | ✅ | ✅ | ❌ |
+| java.nio.file.Files | getFileAttributeView | ✅ | ✅ | ❌ |
+| java.nio.file.spi.FileSystemProvider | getFileAttributeView | ✅ | ✅ | ❌ |
+| java.nio.file.spi.FileSystemProvider | getFileStore | ✅ | ✅ | ❌ |
+| java.nio.file.spi.FileSystemProvider | isHidden | ✅ | ✅ | ❌ |
+| java.nio.file.spi.FileSystemProvider | isSameFile | ✅ | ✅ | ❌ |
+| java.nio.file.spi.FileSystemProvider | readSymbolicLink | ✅ | ✅ | ❌ |
+| java.nio.file.spi.FileSystemProvider | checkAccess | ✅ | ✅ | ❌ |
 
 ---
 
@@ -279,17 +355,19 @@ Write APIs listed below modify existing content or attributes.
 
 | Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
 | --- | --- | --- | --- | --- |
-| com.sun.management.HotSpotDiagnosticMXBean | dumpHeap | ✅ | ✅ | ❌ |
 | java.io.FileOutputStream | `<new>` | ✅ | ✅ | ✅ |
 | java.io.BufferedOutputStream | `<new>` | ✅ | ✅ | ✅ |
 | java.io.FileOutputStream | write | ✅ | ✅ | ✅ |
 | java.io.FileWriter | `<new>` | ✅ | ✅ | ✅ |
-| java.io.OutputStream | write | ✅ | ✅ | ❌ |
+| java.io.OutputStream | write | ✅ | ✅ | ✅ |
 | java.io.PrintWriter | `<new>` | ✅ | ✅ | ✅ |
 | java.io.RandomAccessFile | `<new>` | ✅ | ✅ | ✅ |
 | java.io.Writer | `<new>` | ✅ | ✅ | ❌ |
+| java.io.OutputStreamWriter | `<new>` | ✅ | ✅ | ❌ |
 | java.nio.channels.AsynchronousFileChannel | write | ✅ | ✅ | ❌ |
+| java.nio.channels.AsynchronousFileChannel | open | ✅ | ✅ | ❌ |
 | java.io.BufferedOutputStream | write | ✅ | ✅ | ✅ |
+| java.nio.channels.FileChannel | open | ✅ | ✅ | ✅ |
 | java.nio.channels.FileChannel | map | ✅ | ✅ | ✅ |
 | java.nio.channels.FileChannel | write | ✅ | ✅ | ✅ |
 | java.nio.file.Files | newBufferedWriter | ✅ | ✅ | ✅ |
@@ -299,7 +377,6 @@ Write APIs listed below modify existing content or attributes.
 | java.nio.file.spi.FileSystemProvider | newAsynchronousFileChannel | ✅ | ✅ | ❌ |
 | java.nio.file.spi.FileSystemProvider | newByteChannel | ✅ | ✅ | ❌ |
 | java.nio.file.spi.FileSystemProvider | newOutputStream | ✅ | ✅ | ❌ |
-| jdk.jfr.Recording | dump | ✅ | ✅ | ❌ |
 
 **Writes UTF-8 text/tokens fully**
 
@@ -308,7 +385,10 @@ Write APIs listed below modify existing content or attributes.
 | java.io.BufferedWriter | `<new>` | ✅ | ✅ | ✅ |
 | java.io.BufferedWriter | write | ✅ | ✅ | ✅ |
 | java.io.FileWriter | write | ✅ | ✅ | ✅ |
+| java.io.OutputStreamWriter | `<new>` | ✅ | ✅ | ❌ |
+| java.io.PrintWriter | `<new>` | ✅ | ✅ | ✅ |
 | java.io.Writer | write | ✅ | ✅ | ❌ |
+| java.nio.file.Files | newBufferedWriter | ✅ | ✅ | ✅ |
 | java.nio.file.Files | writeString | ✅ | ✅ | ✅ |
 
 **Writes only specifically formatted files fully**
@@ -316,7 +396,19 @@ Write APIs listed below modify existing content or attributes.
 | Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
 | --- | --- | --- | --- | --- |
 | java.io.DataOutputStream | `<new>` | ✅ | ✅ | ✅ |
+| java.io.DataOutputStream | write | ✅ | ✅ | ❌ |
+| java.io.DataOutputStream | writeBoolean | ✅ | ✅ | ❌ |
+| java.io.DataOutputStream | writeByte | ✅ | ✅ | ❌ |
+| java.io.DataOutputStream | writeBytes | ✅ | ✅ | ❌ |
+| java.io.DataOutputStream | writeChar | ✅ | ✅ | ❌ |
+| java.io.DataOutputStream | writeChars | ✅ | ✅ | ❌ |
+| java.io.DataOutputStream | writeDouble | ✅ | ✅ | ❌ |
+| java.io.DataOutputStream | writeFloat | ✅ | ✅ | ❌ |
+| java.io.DataOutputStream | writeInt | ✅ | ✅ | ❌ |
+| java.io.DataOutputStream | writeLong | ✅ | ✅ | ❌ |
+| java.io.DataOutputStream | writeShort | ✅ | ✅ | ❌ |
 | java.io.DataOutputStream | writeUTF | ✅ | ✅ | ✅ |
+| java.io.PrintStream | `<new>` | ✅ | ✅ | ❌ |
 | java.io.ObjectOutputStream | `<new>` | ✅ | ✅ | ✅ |
 | java.io.ObjectOutputStream | writeObject | ✅ | ✅ | ✅ |
 | java.util.logging.FileHandler | `<new>` | ✅ | ✅ | ❌ |
@@ -328,6 +420,28 @@ Write APIs listed below modify existing content or attributes.
 | javax.sound.sampled.AudioSystem | write | ✅ | ✅ | ❌ |
 | javax.xml.bind.Marshaller | marshal | ✅ | ✅ | ❌ |
 | javax.xml.transform.Transformer | transform | ✅ | ✅ | ❌ |
+| javax.imageio.ImageIO | createImageOutputStream | ✅ | ✅ | ❌ |
+
+**Writes archive files (ZIP/JAR)**
+
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.util.zip.ZipOutputStream | `<new>` | ✅ | ✅ | ❌ |
+| java.util.zip.ZipOutputStream | putNextEntry | ✅ | ✅ | ❌ |
+| java.util.zip.ZipOutputStream | closeEntry | ✅ | ✅ | ❌ |
+| java.util.zip.ZipOutputStream | write | ✅ | ✅ | ❌ |
+| java.util.zip.GZIPOutputStream | write | ✅ | ✅ | ❌ |
+| java.util.jar.JarOutputStream | `<new>` | ✅ | ✅ | ❌ |
+| java.util.jar.JarOutputStream | putNextEntry | ✅ | ✅ | ❌ |
+| java.util.jar.JarOutputStream | closeEntry | ✅ | ✅ | ❌ |
+
+**Writes configuration/properties files**
+
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.util.Properties | store | ✅ | ✅ | ❌ |
+| java.util.Properties | storeToXML | ✅ | ✅ | ❌ |
+| java.util.Formatter | `<new>` | ✅ | ✅ | ❌ |
 
 **Writes only specific parts to a file**
 
@@ -350,6 +464,7 @@ Write APIs listed below modify existing content or attributes.
 | java.io.Writer | append | ✅ | ✅ | ❌ |
 | java.nio.channels.AsynchronousFileChannel | truncate | ✅ | ✅ | ❌ |
 | java.nio.channels.FileChannel | truncate | ✅ | ✅ | ❌ |
+| java.nio.channels.FileChannel | transferTo | ✅ | ✅ | ❌ |
 | java.nio.file.attribute.UserDefinedFileAttributeView | write | ✅ | ✅ | ❌ |
 
 **Only writes the file hierarchy (metadata/attributes)**
@@ -361,12 +476,13 @@ Write APIs listed below modify existing content or attributes.
 | java.io.File | setReadOnly | ✅ | ✅ | ❌ |
 | java.io.File | setReadable | ✅ | ✅ | ❌ |
 | java.io.File | setWritable | ✅ | ✅ | ❌ |
+| java.io.File | renameTo | ✅ | ✅ | ❌ |
 | java.nio.file.Files | copy | ✅ | ✅ | ❌ |
 | java.nio.file.Files | move | ✅ | ✅ | ❌ |
 | java.nio.file.Files | setAttribute | ✅ | ✅ | ❌ |
 | java.nio.file.Files | setLastModifiedTime | ✅ | ✅ | ❌ |
 | java.nio.file.Files | setOwner | ✅ | ✅ | ❌ |
-| java.nio.file.Files | setPosixFilePermissions | ✅ | ✅ | ✅ |
+| java.nio.file.Files | setPosixFilePermissions | ✅ | ✅ | ❌ |
 | java.nio.file.spi.FileSystemProvider | copy | ✅ | ✅ | ❌ |
 | java.nio.file.spi.FileSystemProvider | move | ✅ | ✅ | ❌ |
 | java.nio.file.spi.FileSystemProvider | setAttribute | ✅ | ✅ | ❌ |
@@ -387,11 +503,23 @@ Link creation APIs and conditional creates (e.g., `FileChannel.open` with create
 | --- | --- | --- | --- | --- |
 | java.io.File | createNewFile | ✅ | ✅ | ✅ |
 | java.io.File | createTempFile | ✅ | ✅ | ✅ |
+| java.io.BufferedOutputStream | `<new>` | ✅ | ✅ | ✅ |
+| java.io.BufferedWriter | `<new>` | ✅ | ✅ | ✅ |
+| java.io.FileOutputStream | `<new>` | ✅ | ✅ | ✅ |
+| java.io.FileWriter | `<new>` | ✅ | ✅ | ✅ |
+| java.io.PrintWriter | `<new>` | ✅ | ✅ | ✅ |
+| java.io.RandomAccessFile | `<new>` | ✅ | ✅ | ✅ |
+| java.nio.channels.AsynchronousFileChannel | open | ✅ | ✅ | ❌ |
 | java.nio.channels.FileChannel | open | ✅ | ✅ | ✅ |
 | java.nio.file.Files | createFile | ✅ | ✅ | ✅ |
 | java.nio.file.Files | createLink | ✅ | ✅ | ✅ |
 | java.nio.file.Files | createSymbolicLink | ✅ | ✅ | ✅ |
 | java.nio.file.Files | createTempFile | ✅ | ✅ | ✅ |
+| java.nio.file.Files | newBufferedWriter | ✅ | ✅ | ✅ |
+| java.nio.file.Files | newByteChannel | ✅ | ✅ | ✅ |
+| java.nio.file.Files | newOutputStream | ✅ | ✅ | ✅ |
+| java.nio.file.Files | write | ✅ | ✅ | ✅ |
+| java.nio.file.Files | writeString | ✅ | ✅ | ✅ |
 | java.nio.file.spi.FileSystemProvider | createLink | ✅ | ✅ | ❌ |
 | java.nio.file.spi.FileSystemProvider | createSymbolicLink | ✅ | ✅ | ❌ |
 
@@ -401,7 +529,7 @@ Link creation APIs and conditional creates (e.g., `FileChannel.open` with create
 | --- | --- | --- | --- | --- |
 | java.io.File | mkdir | ✅ | ✅ | ❌ |
 | java.io.File | mkdirs | ✅ | ✅ | ❌ |
-| java.nio.file.Files | createDirectories | ✅ | ✅ | ✅ |
+| java.nio.file.Files | createDirectories | ✅ | ✅ | ❌ |
 | java.nio.file.Files | createDirectory | ✅ | ✅ | ❌ |
 | java.nio.file.Files | createTempDirectory | ✅ | ✅ | ❌ |
 | java.nio.file.spi.FileSystemProvider | createDirectory | ✅ | ✅ | ❌ |
@@ -425,7 +553,7 @@ Delete APIs listed below can remove files and empty directories.
 | java.io.File | delete | ✅ | ✅ | ✅ |
 | java.io.File | deleteOnExit | ✅ | ✅ | ❌ |
 | java.nio.file.Files | delete | ✅ | ✅ | ✅ |
-| java.nio.file.Files | deleteIfExists | ✅ | ✅ | ❌ |
+| java.nio.file.Files | deleteIfExists | ✅ | ✅ | ✅ |
 | java.nio.file.spi.FileSystemProvider | delete | ✅ | ✅ | ❌ |
 | java.nio.file.spi.FileSystemProvider | deleteIfExists | ✅ | ✅ | ❌ |
 
@@ -437,7 +565,7 @@ Delete APIs listed below can remove files and empty directories.
 | java.io.File | delete | ✅ | ✅ | ✅ |
 | java.io.File | deleteOnExit | ✅ | ✅ | ❌ |
 | java.nio.file.Files | delete | ✅ | ✅ | ✅ |
-| java.nio.file.Files | deleteIfExists | ✅ | ✅ | ❌ |
+| java.nio.file.Files | deleteIfExists | ✅ | ✅ | ✅ |
 | java.nio.file.spi.FileSystemProvider | delete | ✅ | ✅ | ❌ |
 | java.nio.file.spi.FileSystemProvider | deleteIfExists | ✅ | ✅ | ❌ |
 
@@ -450,7 +578,7 @@ Delete APIs listed below can remove files and empty directories.
 <a id="26-what-are-the-monitored-execute-operations"></a>
 ## 2.6 What Are The Monitored EXECUTE Operations?
 
-**What does "Execute" mean?** File system actions that trigger execution-like behavior such as launching processes or opening files with their default programs (e.g., `Runtime.exec(...)` or `Program.launch(...)`).
+**What does "Execute" mean?** File system actions that trigger execution-like behavior such as launching processes or opening files with their default programs (e.g., `Runtime.exec(...)` or `ProcessBuilder.start(...)`).
 
 **Security Component:** Execute operation monitor
 
@@ -463,15 +591,22 @@ Execute APIs listed below trigger execution-like behavior on files.
 | Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
 | --- | --- | --- | --- | --- |
 | java.lang.ProcessBuilder | start | ✅ | ✅ | ✅ |
+| java.lang.ProcessBuilder | startPipeline | ✅ | ✅ | ✅ |
 | java.lang.Runtime | exec | ✅ | ✅ | ✅ |
+| java.lang.Runtime | load | ✅ | ✅ | ❌ |
+| java.lang.Runtime | loadLibrary | ✅ | ✅ | ❌ |
+| java.lang.System | load | ✅ | ✅ | ❌ |
+| java.lang.System | loadLibrary | ✅ | ✅ | ❌ |
 
-**Executes the file in the GUI (opens with default application)**
+**Opens files with default applications (Desktop integration)**
 
 | Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
 | --- | --- | --- | --- | --- |
-| com.apple.eio.FileManager | openURL | ✅ | ✅ | ❌ |
-| com.apple.eio.FileManager | runApplication | ✅ | ✅ | ❌ |
-| org.eclipse.swt.program.Program | launch | ✅ | ✅ | ❌ |
+| java.awt.Desktop | open | ✅ | ✅ | ❌ |
+| java.awt.Desktop | edit | ✅ | ✅ | ❌ |
+| java.awt.Desktop | print | ✅ | ✅ | ❌ |
+| java.awt.Desktop | browse | ✅ | ✅ | ❌ |
+| java.awt.Desktop | browseFileDirectory | ✅ | ✅ | ❌ |
 
 ---
 
@@ -728,7 +863,7 @@ The action type (e.g., `"read"`) is **automatically determined** based on which 
 | `FileOutputStream.write()`, `Files.write()` | `"overwrite"` |
 | `File.createNewFile()`, `Files.createFile()` | `"create"` |
 | `File.delete()`, `Files.delete()` | `"delete"` |
-| `Runtime.exec()`, `Program.launch()` | `"execute"` |
+| `Runtime.exec()`, `ProcessBuilder.start()` | `"execute"` |
 
 **For File System Operations:**
 ```java

@@ -118,7 +118,7 @@ public final class OutputTester implements LineAcceptor {
 
 	public String getOutputAsString(OutputTestOptions... outputOptions) {
 		return processLines(outputOptions).stream().map(Line::text)
-				.collect(Collectors.joining(IOTester.LINE_SEPERATOR));
+				.collect(Collectors.joining(IOTester.LINE_SEPARATOR));
 	}
 
 	public List<String> getLinesAsString(OutputTestOptions... outputOptions) {
@@ -275,7 +275,7 @@ public final class OutputTester implements LineAcceptor {
 			if (isRegExLine(line))
 				return line.substring(2, line.length() - 2);
 			return line;
-		}).collect(Collectors.joining(IOTester.LINE_SEPERATOR));
+		}).collect(Collectors.joining(IOTester.LINE_SEPARATOR));
 	}
 
 	private static boolean startsWithEscape(String line) {

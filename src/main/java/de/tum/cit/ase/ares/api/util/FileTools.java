@@ -672,7 +672,6 @@ public class FileTools {
      * {@code formatValues}, and writes the formatted content back to the same
      * file.</li>
      * </ol>
-     * </p>
      *
      * @param sourceHeaderPath the path (within the classpath resources) of the
      *                         header file whose content
@@ -696,8 +695,9 @@ public class FileTools {
     public static Path createThreePartedFormatStringFile(
             Path sourceHeaderPath, String sourceBody, Path sourceFooterPath,
             Path target, String[] formatValues) {
+        Path createdFile = null;
         try {
-            Path createdFile = createThreePartedFile(sourceHeaderPath, sourceBody, sourceFooterPath, target);
+            createdFile = createThreePartedFile(sourceHeaderPath, sourceBody, sourceFooterPath, target);
             String template = Files.readString(FileTools.readFile(createdFile).toPath(), StandardCharsets.UTF_8);
             String formatted = formatTemplate(template, formatValues, createdFile);
             writeFile(createdFile, formatted, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
