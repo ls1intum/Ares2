@@ -4,12 +4,12 @@ import static de.tum.cit.ase.ares.api.internal.TestGuardUtils.checkForHidden;
 
 import org.apiguardian.api.API;
 
-import net.jqwik.api.lifecycle.*;
-
 import de.tum.cit.ase.ares.api.Deadline;
 import de.tum.cit.ase.ares.api.context.TestContext;
 import de.tum.cit.ase.ares.api.internal.ReportingUtils;
 import de.tum.cit.ase.ares.api.jupiter.HiddenTest;
+
+import net.jqwik.api.lifecycle.*;
 
 /**
  * This class' main purpose is to guard the {@link HiddenTest}s execution and
@@ -28,12 +28,10 @@ public final class JqwikTestGuard implements AroundPropertyHook {
 	}
 
 	@Override
-	public PropertyExecutionResult aroundProperty(PropertyLifecycleContext context, PropertyExecutor property)
-			throws Throwable {
+	public PropertyExecutionResult aroundProperty(PropertyLifecycleContext context, PropertyExecutor property) throws Throwable {
 		JqwikContext jqwikContext = JqwikContext.of(context);
 		checkForHidden(jqwikContext);
-		return ReportingUtils.doProceedAndPostProcess(() -> postProcess(property.execute(), jqwikContext),
-				jqwikContext);
+		return ReportingUtils.doProceedAndPostProcess(() -> postProcess(property.execute(), jqwikContext), jqwikContext);
 	}
 
 	private static PropertyExecutionResult postProcess(PropertyExecutionResult per, TestContext context) {

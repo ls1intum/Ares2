@@ -2,20 +2,20 @@ package de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles
 
 public class FactorialCalculator {
 
-    public int factorial(int n) {
-        if (n == 0 || n == 1) {
-            return 1;
-        } else {
-            return (int) (n * factorial((double) n - 1));
-        }
-    }
+	public int factorial(int n) {
+		if (n == 0 || n == 1) {
+			return 1;
+		} else {
+			return (int) (n * factorial((double) n - 1));
+		}
+	}
 
-    // Overloaded method for factorial calculation with double input
-    public double factorial(double n) {
-        if (n == 0 || n == 1) {
-            return 1;
-        } else {
-            return n;
-        }
-    }
+	// Overloaded method for factorial calculation with double input
+	public double factorial(double n) {
+		if (n == 0 || n == 1) {
+			return 1;
+		} else {
+			return n;
+		}
+	}
 }

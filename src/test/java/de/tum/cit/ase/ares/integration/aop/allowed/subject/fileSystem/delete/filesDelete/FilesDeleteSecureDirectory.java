@@ -6,18 +6,18 @@ import java.nio.file.SecureDirectoryStream;
 
 public final class FilesDeleteSecureDirectory {
 
-    private static final Path REL_FILE       = Path.of("trusted.txt");
-    private static final Path REL_EMPTY_DIR  = Path.of("tempEmptyDir");
+	private static final Path REL_FILE = Path.of("trusted.txt");
+	private static final Path REL_EMPTY_DIR = Path.of("tempEmptyDir");
 
-    private FilesDeleteSecureDirectory() { throw new SecurityException("utility"); }
+	private FilesDeleteSecureDirectory() {
+		throw new SecurityException("utility");
+	}
 
-    public static void accessFileSystemViaSecureDirectoryStreamDeleteFile(
-            SecureDirectoryStream<Path> secureDirectoryStream) throws IOException {
-        secureDirectoryStream.deleteFile(REL_FILE);
-    }
+	public static void accessFileSystemViaSecureDirectoryStreamDeleteFile(SecureDirectoryStream<Path> secureDirectoryStream) throws IOException {
+		secureDirectoryStream.deleteFile(REL_FILE);
+	}
 
-    public static void accessFileSystemViaSecureDirectoryStreamDeleteDirectory(
-            SecureDirectoryStream<Path> secureDirectoryStream) throws IOException {
-        secureDirectoryStream.deleteDirectory(REL_EMPTY_DIR);
-    }
+	public static void accessFileSystemViaSecureDirectoryStreamDeleteDirectory(SecureDirectoryStream<Path> secureDirectoryStream) throws IOException {
+		secureDirectoryStream.deleteDirectory(REL_EMPTY_DIR);
+	}
 }

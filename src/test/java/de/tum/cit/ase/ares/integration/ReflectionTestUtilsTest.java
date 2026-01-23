@@ -64,8 +64,7 @@ class ReflectionTestUtilsTest {
 
 	@TestTest
 	void test_testGetConstructor_noSuchMethod() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testGetConstructor_noSuchMethod,
-				AssertionFailedError.class,
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testGetConstructor_noSuchMethod, AssertionFailedError.class,
 				"Could not find the constructor with the parameters: [ String, Boolean ] in the class SomeClass because the constructor does not exist. Make sure to implement this constructor properly."));
 	}
 
@@ -82,15 +81,13 @@ class ReflectionTestUtilsTest {
 
 	@TestTest
 	void test_testGetMethod_noSuchMethod_noParameters() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testGetMethod_noSuchMethod_noParameters,
-				AssertionFailedError.class,
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testGetMethod_noSuchMethod_noParameters, AssertionFailedError.class,
 				"Could not find the method 'someMethod' in the class SomeClass because the method does not exist. Make sure to implement this method properly."));
 	}
 
 	@TestTest
 	void test_testGetMethod_noSuchMethod_withParameters() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testGetMethod_noSuchMethod_withParameters,
-				AssertionFailedError.class,
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testGetMethod_noSuchMethod_withParameters, AssertionFailedError.class,
 				"Could not find the method 'someMethod' with the parameters: [ String ] in the class SomeClass because the method does not exist. Make sure to implement this method properly."));
 	}
 
@@ -101,36 +98,31 @@ class ReflectionTestUtilsTest {
 
 	@TestTest
 	void test_testInvokeMethod_classNotVisible() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testInvokeMethod_classNotVisible,
-				AssertionFailedError.class,
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testInvokeMethod_classNotVisible, AssertionFailedError.class,
 				"Could not invoke the method 'publicMethod' in the class Nested because access to the method was denied. Make sure to check the modifiers of the class."));
 	}
 
 	@TestTest
 	void test_testInvokeMethod_invocationTarget() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testInvokeMethod_invocationTarget,
-				AssertionFailedError.class,
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testInvokeMethod_invocationTarget, AssertionFailedError.class,
 				"Could not invoke the method 'throwException' in the class SomeClass because of an exception within the method: java.lang.RuntimeException"));
 	}
 
 	@TestTest
 	void test_testInvokeMethodRethrowing_illegalAccess() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testInvokeMethodRethrowing_illegalAccess,
-				AssertionFailedError.class,
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testInvokeMethodRethrowing_illegalAccess, AssertionFailedError.class,
 				"Could not invoke the method 'superSecretMethod' in the class SomeClass because access to the method was denied. Make sure to check the modifiers of the method."));
 	}
 
 	@TestTest
 	void test_testInvokeMethodRethrowing_illegalArgument() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testInvokeMethodRethrowing_illegalArgument,
-				AssertionFailedError.class,
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testInvokeMethodRethrowing_illegalArgument, AssertionFailedError.class,
 				"Could not invoke the method 'getAnotherAttribute' in the class SomeClass because the parameters are not implemented right. Make sure to check the parameters of the method."));
 	}
 
 	@TestTest
 	void test_testInvokeMethodRethrowing_nullPointer() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testInvokeMethodRethrowing_nullPointer,
-				AssertionFailedError.class,
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testInvokeMethodRethrowing_nullPointer, AssertionFailedError.class,
 				"Could not invoke the method 'getAnotherAttribute' in the class SomeClass because the object was null and the method is an instance method. Make sure to check the static modifier of the method."));
 	}
 
@@ -141,50 +133,43 @@ class ReflectionTestUtilsTest {
 
 	@TestTest
 	void test_testNewInstance_classNotFound() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testNewInstance_classNotFound,
-				AssertionFailedError.class,
-				"The class 'DoesNotExist' was not found within the submission. Make sure to implement it properly."));
+		tests.assertThatEvents().haveExactly(1,
+				testFailedWith(testNewInstance_classNotFound, AssertionFailedError.class, "The class 'DoesNotExist' was not found within the submission. Make sure to implement it properly."));
 	}
 
 	@TestTest
 	void test_testNewInstance_classNotVisible() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testNewInstance_classNotVisible,
-				AssertionFailedError.class,
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testNewInstance_classNotVisible, AssertionFailedError.class,
 				"Could not instantiate the class Nested because access to its constructor with the parameters: none was denied. Make sure to check the modifiers of the class."));
 	}
 
 	@TestTest
 	void test_testNewInstance_exceptionInInitializer() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testNewInstance_exceptionInInitializer,
-				AssertionFailedError.class,
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testNewInstance_exceptionInInitializer, AssertionFailedError.class,
 				"The class 'SomeFailingClass' could not be initialized because an exception was thrown in a static initializer block. Make sure to implement the static initialization without errors."));
 	}
 
 	@TestTest
 	void test_testNewInstance_illegalAccess() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testNewInstance_illegalAccess,
-				AssertionFailedError.class,
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testNewInstance_illegalAccess, AssertionFailedError.class,
 				"Could not instantiate the class SomeClass because access to its constructor with the parameters: [ String ] was denied. Make sure to check the modifiers of the constructor."));
 	}
 
 	@TestTest
 	void test_testNewInstance_illegalArguments() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testNewInstance_illegalArguments,
-				AssertionFailedError.class,
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testNewInstance_illegalArguments, AssertionFailedError.class,
 				"Could not instantiate the class SomeClass because the actual constructor or none of the actual constructors of this class match the expected one. We expect, amongst others, one with [ Integer ] parameters, which does not exist. Make sure to implement this constructor correctly."));
 	}
 
 	@TestTest
 	void test_testNewInstance_instantiation() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testNewInstance_instantiation,
-				AssertionFailedError.class,
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testNewInstance_instantiation, AssertionFailedError.class,
 				"Could not instantiate the class SomeAbstractClass because the class is abstract and should not have a constructor. Make sure to remove the constructor of the class."));
 	}
 
 	@TestTest
 	void test_testNewInstance_invocationTarget() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testNewInstance_invocationTarget,
-				AssertionFailedError.class,
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testNewInstance_invocationTarget, AssertionFailedError.class,
 				"Could not instantiate the class SomeClass because the constructor with 1 parameters threw an exception and could not be initialized. Make sure to check the constructor implementation."));
 	}
 
@@ -206,15 +191,13 @@ class ReflectionTestUtilsTest {
 
 	@TestTest
 	void test_testSetValueOfAttribute_final() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testSetValueOfAttribute_final,
-				AssertionFailedError.class,
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testSetValueOfAttribute_final, AssertionFailedError.class,
 				"Could not set the value of attribute 'SOME_CONSTANT' from the class SomeClass because it is final. Make sure to check the modifiers of the attribute."));
 	}
 
 	@TestTest
 	void test_testSetValueOfAttribute_illegalAccess() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testSetValueOfAttribute_illegalAccess,
-				AssertionFailedError.class,
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testSetValueOfAttribute_illegalAccess, AssertionFailedError.class,
 				"Could not retrieve the attribute 'someAttribute' from the class SomeClass because access to the attribute was denied. Make sure to check the modifiers of the attribute."));
 	}
 
@@ -225,8 +208,7 @@ class ReflectionTestUtilsTest {
 
 	@TestTest
 	void test_testSetValueOfNonPublicAttribute_final() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testSetValueOfNonPublicAttribute_final,
-				AssertionFailedError.class,
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testSetValueOfNonPublicAttribute_final, AssertionFailedError.class,
 				"Could not set the value of attribute 'someFinalAttribute' from the class SomeClass because it is final. Make sure to check the modifiers of the attribute."));
 	}
 
@@ -237,22 +219,19 @@ class ReflectionTestUtilsTest {
 
 	@TestTest
 	void test_testValueForAttribute_classNotVisible() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testValueForAttribute_classNotVisible,
-				AssertionFailedError.class,
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testValueForAttribute_classNotVisible, AssertionFailedError.class,
 				"Could not retrieve the attribute 'innerValue' from the class Nested because access to the attribute was denied. Make sure to check the modifiers of the class."));
 	}
 
 	@TestTest
 	void test_testValueForAttribute_illegalAccess() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testValueForAttribute_illegalAccess,
-				AssertionFailedError.class,
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testValueForAttribute_illegalAccess, AssertionFailedError.class,
 				"Could not retrieve the attribute 'someAttribute' from the class SomeClass because access to the attribute was denied. Make sure to check the modifiers of the attribute."));
 	}
 
 	@TestTest
 	void test_testValueForAttribute_noSuchField() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testValueForAttribute_noSuchField,
-				AssertionFailedError.class,
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testValueForAttribute_noSuchField, AssertionFailedError.class,
 				"Could not retrieve the attribute 'noSuchField' from the class SomeClass because the attribute does not exist. Make sure to implement the attribute correctly."));
 	}
 
@@ -268,20 +247,17 @@ class ReflectionTestUtilsTest {
 
 	@TestTest
 	void test_testNewInstanceRethrowing_invocationTarget() {
-		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(testNewInstanceRethrowing_invocationTarget, RuntimeException.class));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testNewInstanceRethrowing_invocationTarget, RuntimeException.class));
 	}
 
 	@TestTest
 	void test_testNewInstanceFromNonPublicConstructorRethrowing_success() {
-		tests.assertThatEvents().haveExactly(1,
-				finishedSuccessfully(testNewInstanceFromNonPublicConstructorRethrowing_success));
+		tests.assertThatEvents().haveExactly(1, finishedSuccessfully(testNewInstanceFromNonPublicConstructorRethrowing_success));
 	}
 
 	@TestTest
 	void test_testGetNonPublicConstructor_noSuchMethod() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testGetNonPublicConstructor_noSuchMethod,
-				AssertionFailedError.class,
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testGetNonPublicConstructor_noSuchMethod, AssertionFailedError.class,
 				"Could not find the constructor with the parameters: [ String, Boolean ] in the class SomeClass because the constructor does not exist. Make sure to implement this constructor properly."));
 	}
 }

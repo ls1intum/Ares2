@@ -3,9 +3,9 @@ package de.tum.cit.ase.ares.api.security;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 
-import ch.qos.logback.core.OutputStreamAppender;
-
 import de.tum.cit.ase.ares.api.io.IOTester;
+
+import ch.qos.logback.core.OutputStreamAppender;
 
 /**
  * Required because ConsoleAppender will always use the current System.out or

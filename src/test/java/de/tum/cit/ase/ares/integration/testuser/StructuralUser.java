@@ -9,16 +9,16 @@ import java.util.List;
 import org.junit.jupiter.api.*;
 import org.slf4j.LoggerFactory;
 
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
-
 import de.tum.cit.ase.ares.api.*;
 import de.tum.cit.ase.ares.api.jupiter.Public;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
 import de.tum.cit.ase.ares.api.structural.*;
 import de.tum.cit.ase.ares.api.structural.testutils.ClassNameScanner;
 import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
+
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 
 @Public
 @UseLocale("en")
@@ -53,8 +53,7 @@ public class StructuralUser {
 	@Nested
 	class InvalidConfigurations {
 
-		private final List<Logger> loggers = List.of((Logger) LoggerFactory.getLogger(ProjectSourcesFinder.class),
-				(Logger) LoggerFactory.getLogger(ClassNameScanner.class));
+		private final List<Logger> loggers = List.of((Logger) LoggerFactory.getLogger(ProjectSourcesFinder.class), (Logger) LoggerFactory.getLogger(ClassNameScanner.class));
 		private final ListAppender<ILoggingEvent> logs = new ListAppender<>();
 
 		@BeforeEach

@@ -19,8 +19,9 @@ class TrustedClassesTest {
 
 	@TestTest
 	void test_allowAndExcludeLocalPortIntersect() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1, testFailedWith(testNotWhitelisted, SecurityException.class));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(1, testFailedWith(testNotWhitelisted,
+		// SecurityException.class));
 	}
 
 	@TestTest

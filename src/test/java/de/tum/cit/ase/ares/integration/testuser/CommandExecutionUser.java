@@ -1,11 +1,12 @@
 package de.tum.cit.ase.ares.integration.testuser;
 
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.TestMethodOrder;
+
 import de.tum.cit.ase.ares.api.*;
 import de.tum.cit.ase.ares.api.jupiter.Public;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.TestMethodOrder;
 
 @Public
 @UseLocale("en")
@@ -17,9 +18,9 @@ import org.junit.jupiter.api.TestMethodOrder;
 @BlacklistPath(value = "**Test*.{java,class}", type = PathType.GLOB)
 public class CommandExecutionUser {
 
-    @PublicTest
-    @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/commandexecution")
-    void testExecuteCommand() {
-        // do nothing
-    }
+	@PublicTest
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/commandexecution")
+	void testExecuteCommand() {
+		// do nothing
+	}
 }

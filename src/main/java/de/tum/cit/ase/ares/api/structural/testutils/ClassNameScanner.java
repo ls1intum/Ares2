@@ -12,10 +12,10 @@ import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 import org.slf4j.*;
 
-import info.debatty.java.stringsimilarity.*;
-
 import de.tum.cit.ase.ares.api.AresConfiguration;
 import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
+
+import info.debatty.java.stringsimilarity.*;
 
 /**
  * This class scans the submission project if the current expected class is
@@ -107,8 +107,7 @@ public class ClassNameScanner {
 		if (observedClasses.containsKey(expectedClassName)) {
 			// the class was found in the correct package
 			List<String> observedPackageNames = observedClasses.get(expectedClassName);
-			return createScanResult(getScanResultTypeClassFound(observedPackageNames), expectedClassName,
-					observedPackageNames.toString());
+			return createScanResult(getScanResultTypeClassFound(observedPackageNames), expectedClassName, observedPackageNames.toString());
 		}
 		/*
 		 * if the class was NOT found in the correct package, we try to to find it in a
@@ -120,27 +119,24 @@ public class ClassNameScanner {
 			var foundObservedPackageNames = observedPackageNames.toString();
 
 			boolean classPresentMultiple = observedPackageNames.size() > 1;
-			boolean classCorrectlyPlaced = !classPresentMultiple
-					&& (observedPackageNames.contains(expectedPackageName));
+			boolean classCorrectlyPlaced = !classPresentMultiple && (observedPackageNames.contains(expectedPackageName));
 			/*
 			 * 1) check whether the class might have the wrong case
 			 */
 			if (foundObservedClassName.equalsIgnoreCase(expectedClassName))
-				return createScanResult(foundObservedClassName, foundObservedPackageNames, classPresentMultiple,
-						classCorrectlyPlaced, WRONG_CASE_MULTIPLE, WRONG_CASE_CORRECT_PLACE, WRONG_CASE_MISPLACED);
+				return createScanResult(foundObservedClassName, foundObservedPackageNames, classPresentMultiple, classCorrectlyPlaced, WRONG_CASE_MULTIPLE, WRONG_CASE_CORRECT_PLACE,
+						WRONG_CASE_MISPLACED);
 			/*
 			 * 2) check whether there are similar classes (e.g. the student has a small typo
 			 * in the class name)
 			 */
 			if (isMisspelledWithHighProbability(expectedClassName, foundObservedClassName))
-				return createScanResult(foundObservedClassName, foundObservedPackageNames, classPresentMultiple,
-						classCorrectlyPlaced, TYPOS_MULTIPLE, TYPOS_CORRECT_PLACE, TYPOS_MISPLACED);
+				return createScanResult(foundObservedClassName, foundObservedPackageNames, classPresentMultiple, classCorrectlyPlaced, TYPOS_MULTIPLE, TYPOS_CORRECT_PLACE, TYPOS_MISPLACED);
 		}
 		return createScanResult(ScanResultType.NOTFOUND, expectedClassName, null);
 	}
 
-	private ScanResult createScanResult(String foundObservedClassName, String foundObservedPackageName,
-			boolean classPresentMultiple, boolean classCorrectlyPlaced, ScanResultType multipleTimes,
+	private ScanResult createScanResult(String foundObservedClassName, String foundObservedPackageName, boolean classPresentMultiple, boolean classCorrectlyPlaced, ScanResultType multipleTimes,
 			ScanResultType correctPlace, ScanResultType misplaced) {
 		ScanResultType scanResultType;
 		if (classPresentMultiple)
@@ -163,37 +159,36 @@ public class ClassNameScanner {
 		return new ScanResult(scanResultType, scanResultMessage);
 	}
 
-	private String createScanResultMessage(ScanResultType scanResultType, String foundClassName,
-			String foundPackageName) {
+	private String createScanResultMessage(ScanResultType scanResultType, String foundClassName, String foundPackageName) {
 		var expectedPackageDescription = describePackageNameLocalized(expectedPackageName);
 		var foundPackageDescription = describePackageNameLocalized(foundPackageName);
 		switch (scanResultType) {
-		case CORRECT_NAME_CORRECT_PLACE:
-			return localized("structural.scan.correctNameCorrectPlace", foundClassName); //$NON-NLS-1$
-		case CORRECT_NAME_MISPLACED:
-			return localized("structural.scan.correctNameMisplaced", foundClassName, foundPackageDescription); //$NON-NLS-1$
-		case CORRECT_NAME_MULTIPLE:
-			return localized("structural.scan.correctNameMultiple", foundClassName, foundPackageDescription); //$NON-NLS-1$
-		case WRONG_CASE_CORRECT_PLACE:
-			return localized("structural.scan.wrongCaseCorrectPlace", expectedClassName, foundClassName); //$NON-NLS-1$
-		case WRONG_CASE_MISPLACED:
-			return localized("structural.scan.wrongCaseMisplaced", expectedClassName, expectedPackageDescription, //$NON-NLS-1$
-					foundClassName, foundPackageDescription);
-		case WRONG_CASE_MULTIPLE:
-			return localized("structural.scan.wrongCaseMultiple", expectedClassName, expectedPackageDescription, //$NON-NLS-1$
-					foundClassName, foundPackageDescription);
-		case TYPOS_CORRECT_PLACE:
-			return localized("structural.scan.typosCorrectPlace", expectedClassName, foundClassName); //$NON-NLS-1$
-		case TYPOS_MISPLACED:
-			return localized("structural.scan.typosMisplaced", expectedClassName, expectedPackageDescription, //$NON-NLS-1$
-					foundClassName, foundPackageDescription);
-		case TYPOS_MULTIPLE:
-			return localized("structural.scan.typosMultiple", expectedClassName, expectedPackageDescription, //$NON-NLS-1$
-					foundClassName, observedClasses.get(foundClassName).toString());
-		case NOTFOUND:
-			return localized("structural.scan.notFound", expectedClassName, expectedPackageDescription); //$NON-NLS-1$
-		default:
-			return localized("structural.scan.default"); //$NON-NLS-1$
+			case CORRECT_NAME_CORRECT_PLACE :
+				return localized("structural.scan.correctNameCorrectPlace", foundClassName); //$NON-NLS-1$
+			case CORRECT_NAME_MISPLACED :
+				return localized("structural.scan.correctNameMisplaced", foundClassName, foundPackageDescription); //$NON-NLS-1$
+			case CORRECT_NAME_MULTIPLE :
+				return localized("structural.scan.correctNameMultiple", foundClassName, foundPackageDescription); //$NON-NLS-1$
+			case WRONG_CASE_CORRECT_PLACE :
+				return localized("structural.scan.wrongCaseCorrectPlace", expectedClassName, foundClassName); //$NON-NLS-1$
+			case WRONG_CASE_MISPLACED :
+				return localized("structural.scan.wrongCaseMisplaced", expectedClassName, expectedPackageDescription, //$NON-NLS-1$
+						foundClassName, foundPackageDescription);
+			case WRONG_CASE_MULTIPLE :
+				return localized("structural.scan.wrongCaseMultiple", expectedClassName, expectedPackageDescription, //$NON-NLS-1$
+						foundClassName, foundPackageDescription);
+			case TYPOS_CORRECT_PLACE :
+				return localized("structural.scan.typosCorrectPlace", expectedClassName, foundClassName); //$NON-NLS-1$
+			case TYPOS_MISPLACED :
+				return localized("structural.scan.typosMisplaced", expectedClassName, expectedPackageDescription, //$NON-NLS-1$
+						foundClassName, foundPackageDescription);
+			case TYPOS_MULTIPLE :
+				return localized("structural.scan.typosMultiple", expectedClassName, expectedPackageDescription, //$NON-NLS-1$
+						foundClassName, observedClasses.get(foundClassName).toString());
+			case NOTFOUND :
+				return localized("structural.scan.notFound", expectedClassName, expectedPackageDescription); //$NON-NLS-1$
+			default :
+				return localized("structural.scan.default"); //$NON-NLS-1$
 		}
 	}
 
@@ -217,10 +212,10 @@ public class ClassNameScanner {
 	 * <code>.java</code> and <code>.kt</code> to the passed JSON object.
 	 *
 	 * @param assignmentFolder The root folder where the method starts walking the
-	 *                         project structure.
-	 * @param node             The current node the method is visiting.
-	 * @param foundClasses     The JSON object where the type names and packages get
-	 *                         appended.
+	 *            project structure.
+	 * @param node The current node the method is visiting.
+	 * @param foundClasses The JSON object where the type names and packages get
+	 *            appended.
 	 */
 	private void walkProjectFileStructure(Path assignmentFolder, File node, Map<String, List<String>> foundClasses) {
 		// Example:
@@ -234,8 +229,7 @@ public class ClassNameScanner {
 			var className = fileNameComponents[fileNameComponents.length - 2];
 
 			Path packagePath = assignmentFolder.relativize(node.toPath().getParent());
-			var packageName = StreamSupport.stream(packagePath.spliterator(), false).map(Object::toString)
-					.collect(Collectors.joining(".")); //$NON-NLS-1$
+			var packageName = StreamSupport.stream(packagePath.spliterator(), false).map(Object::toString).collect(Collectors.joining(".")); //$NON-NLS-1$
 
 			if (foundClasses.containsKey(className))
 				foundClasses.get(className).add(packageName);

@@ -4,9 +4,9 @@ import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 import org.junit.jupiter.api.extension.*;
 
-import net.jqwik.api.lifecycle.AroundPropertyHook;
-
 import de.tum.cit.ase.ares.api.WithIOManager;
+
+import net.jqwik.api.lifecycle.AroundPropertyHook;
 
 /**
  * Manages how IO testing is performed in the Ares test extension for IO.

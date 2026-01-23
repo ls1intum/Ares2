@@ -87,7 +87,7 @@ public class InputOutputUser {
 
 	@Test
 	void makeUTF8Error() throws IOException {
-		System.out.write(new byte[] { 'P', 'i', 'n', 'g', 'u', (byte) 0xFF });
+		System.out.write(new byte[]{ 'P', 'i', 'n', 'g', 'u', (byte) 0xFF });
 	}
 
 	@Test
@@ -140,8 +140,7 @@ public class InputOutputUser {
 					">> 2", //
 					"|| (( |", //
 					"Something");
-		}).isInstanceOf(AssertionFailedError.class)
-				.hasMessageContainingAll("expected: matches regular expression: `d+XX`", "actual: `123`");
+		}).isInstanceOf(AssertionFailedError.class).hasMessageContainingAll("expected: matches regular expression: `d+XX`", "actual: `123`");
 
 		assertThatThrownBy(() -> {
 			tester.out().assertLinesMatch("This should not pass", //
@@ -156,8 +155,7 @@ public class InputOutputUser {
 		}).isInstanceOf(AssertionFailedError.class).hasMessageContainingAll("expected: `ABC XXX`", "actual: `ABC ((`");
 
 		assertThatThrownBy(() -> {
-			tester.out().assertLinesMatch("This should not pass",
-					new OutputTestOptions[] { OutputTestOptions.DONT_IGNORE_LAST_EMPTY_LINE }, //
+			tester.out().assertLinesMatch("This should not pass", new OutputTestOptions[]{ OutputTestOptions.DONT_IGNORE_LAST_EMPTY_LINE }, //
 					"ABC ((", //
 					">> some lines >>", //
 					"\\>> HERE >>", //
@@ -173,15 +171,13 @@ public class InputOutputUser {
 			tester.out().assertLinesMatch("This should not pass", //
 					">> 11 >>", //
 					"ABCDEF");
-		}).isInstanceOf(AssertionFailedError.class)
-				.hasMessageContainingAll("expected line #2:`ABCDEF` not found - actual lines depleted");
+		}).isInstanceOf(AssertionFailedError.class).hasMessageContainingAll("expected line #2:`ABCDEF` not found - actual lines depleted");
 
 		assertThatThrownBy(() -> {
 			tester.out().assertLinesMatch("This should not pass", //
 					">> 12 >>", //
 					"ABCDEF");
-		}).isInstanceOf(AssertionFailedError.class).hasMessageContainingAll(
-				"This should not pass ==> fast-forward(12) error: not enough actual lines remaining (11)");
+		}).isInstanceOf(AssertionFailedError.class).hasMessageContainingAll("This should not pass ==> fast-forward(12) error: not enough actual lines remaining (11)");
 	}
 
 	@Test
@@ -218,8 +214,7 @@ public class InputOutputUser {
 
 		tester.err().assertThat().isEmpty();
 		tester.out().assertThatLines().element(1).isEqualTo("Nieder mit den Eisbären!");
-		tester.out().assertThat(OutputTestOptions.DONT_IGNORE_LAST_EMPTY_LINE).hasLineCount(2)
-				.isEqualTo("Pinguine sind die Besten!\nNieder mit den Eisbären!\n");
+		tester.out().assertThat(OutputTestOptions.DONT_IGNORE_LAST_EMPTY_LINE).hasLineCount(2).isEqualTo("Pinguine sind die Besten!\nNieder mit den Eisbären!\n");
 	}
 
 	@Test

@@ -2,14 +2,14 @@ package de.tum.cit.ase.ares.integration;
 
 import static de.tum.cit.ase.ares.testutilities.CustomConditions.*;
 
-import de.tum.cit.ase.ares.testutilities.TestTest;
-import de.tum.cit.ase.ares.testutilities.UserBased;
-import de.tum.cit.ase.ares.testutilities.UserTestResults;
 import org.junit.platform.testkit.engine.Events;
 import org.opentest4j.*;
 
 import de.tum.cit.ase.ares.integration.testuser.DynamicsUser;
 import de.tum.cit.ase.ares.testutilities.CustomConditions.Option;
+import de.tum.cit.ase.ares.testutilities.TestTest;
+import de.tum.cit.ase.ares.testutilities.UserBased;
+import de.tum.cit.ase.ares.testutilities.UserTestResults;
 
 @UserBased(DynamicsUser.class)
 class DynamicsTest {
@@ -77,8 +77,7 @@ class DynamicsTest {
 
 	@TestTest
 	void test_class_notFound() {
-		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(class_notFound, AssertionFailedError.class, "Klasse DoesNotExist nicht gefunden."));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(class_notFound, AssertionFailedError.class, "Klasse DoesNotExist nicht gefunden."));
 	}
 
 	@TestTest
@@ -95,8 +94,7 @@ class DynamicsTest {
 
 	@TestTest
 	void test_class_searchPublicOrProtectedMethods() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(class_searchPublicOrProtectedMethods,
-				AssertionFailedError.class, "Methode doSomething(java.lang.String) darf nicht public sein."));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(class_searchPublicOrProtectedMethods, AssertionFailedError.class, "Methode doSomething(java.lang.String) darf nicht public sein."));
 	}
 
 	@TestTest
@@ -129,9 +127,12 @@ class DynamicsTest {
 
 	@TestTest
 	void test_constructor_throwing() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1, testFailedWith(constructor_throwing, RuntimeException.class,
-		//		"\n/// Mögliche Problemstelle: de.tum.cit.ase.ares.integration.testuser.subject.structural.SomeClass.<init>(SomeClass.java:20) ///"));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(1, testFailedWith(constructor_throwing,
+		// RuntimeException.class,
+		// "\n/// Mögliche Problemstelle:
+		// de.tum.cit.ase.ares.integration.testuser.subject.structural.SomeClass.<init>(SomeClass.java:20)
+		// ///"));
 	}
 
 	@TestTest
@@ -163,14 +164,12 @@ class DynamicsTest {
 
 	@TestTest
 	void test_field_getWrongType() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(field_getWrongType, AssertionFailedError.class,
-				"Attribut [SOME_CONSTANT] konnte nicht gefunden werden."));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(field_getWrongType, AssertionFailedError.class, "Attribut [SOME_CONSTANT] konnte nicht gefunden werden."));
 	}
 
 	@TestTest
 	void test_field_noSuchField() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(field_noSuchField, AssertionFailedError.class,
-				"Attribut [a] konnte nicht gefunden werden."));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(field_noSuchField, AssertionFailedError.class, "Attribut [a] konnte nicht gefunden werden."));
 	}
 
 	@TestTest
@@ -231,14 +230,14 @@ class DynamicsTest {
 
 	@TestTest
 	void test_method_notFound() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(method_notFound, AssertionFailedError.class,
-				"Keine Methode void de.tum.cit.ase.ares.integration.testuser.subject.structural.SomeClass.abc() gefunden."));
+		tests.assertThatEvents().haveExactly(1,
+				testFailedWith(method_notFound, AssertionFailedError.class, "Keine Methode void de.tum.cit.ase.ares.integration.testuser.subject.structural.SomeClass.abc() gefunden."));
 	}
 
 	@TestTest
 	void test_method_notStatic() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(method_notStatic, AssertionFailedError.class,
-				"Methode de.tum.cit.ase.ares.integration.testuser.subject.structural.SomeClass.throwException() ist nicht statisch."));
+		tests.assertThatEvents().haveExactly(1,
+				testFailedWith(method_notStatic, AssertionFailedError.class, "Methode de.tum.cit.ase.ares.integration.testuser.subject.structural.SomeClass.throwException() ist nicht statisch."));
 	}
 
 	@TestTest
@@ -247,10 +246,13 @@ class DynamicsTest {
 				"Methode de.tum.cit.ase.ares.integration.testuser.subject.structural.SomeClass.throwException() konnte nicht aufgerufen werden, das Objekt ist null."));
 	}
 
-	//OUTCOMMENTED: Test does not pass
+	// OUTCOMMENTED: Test does not pass
 	@TestTest
 	void test_method_throwing() {
-		//tests.assertThatEvents().haveExactly(1, testFailedWith(method_throwing, RuntimeException.class,
-		//		"\n/// Mögliche Problemstelle: de.tum.cit.ase.ares.integration.testuser.subject.structural.SomeClass.throwException(SomeClass.java:61) ///"));
+		// tests.assertThatEvents().haveExactly(1, testFailedWith(method_throwing,
+		// RuntimeException.class,
+		// "\n/// Mögliche Problemstelle:
+		// de.tum.cit.ase.ares.integration.testuser.subject.structural.SomeClass.throwException(SomeClass.java:61)
+		// ///"));
 	}
 }

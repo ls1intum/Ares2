@@ -101,8 +101,7 @@ public class DynamicField<T> implements Checkable {
 	}
 
 	private Optional<Field> findField(Class<?> c) {
-		return fieldsOf(c).stream().filter(f -> name.contains(ignoreCase ? f.getName().toLowerCase() : f.getName()))
-				.findFirst();
+		return fieldsOf(c).stream().filter(f -> name.contains(ignoreCase ? f.getName().toLowerCase() : f.getName())).findFirst();
 	}
 
 	private List<Field> fieldsOf(Class<?> c) {

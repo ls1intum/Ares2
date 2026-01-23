@@ -148,8 +148,7 @@ public enum PathType {
 
 	static final FileSystem DEFAULT_FS = FileSystems.getDefault();
 	static final Path CURRENT_PATH = Path.of("").toAbsolutePath(); //$NON-NLS-1$
-	static final List<Path> CURRENT_PATH_HIERARCHY = Stream.iterate(CURRENT_PATH, Path::getParent)
-			.takeWhile(Objects::nonNull).collect(Collectors.toUnmodifiableList());
+	static final List<Path> CURRENT_PATH_HIERARCHY = Stream.iterate(CURRENT_PATH, Path::getParent).takeWhile(Objects::nonNull).collect(Collectors.toUnmodifiableList());
 
 	private static final int NO_OFFSET = 0;
 	private static final Pattern GLOB_SINGLE_DOT_ELIMINATION;
@@ -158,10 +157,8 @@ public enum PathType {
 	static {
 		String sepPat = "/".equals(File.separator) ? "/" : "[/\\\\]"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 		String nonSepPat = "/".equals(File.separator) ? "(?!\\.\\./)[^/]+" : "(?!\\.\\.[/\\\\])(?:[^/\\\\])+"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-		GLOB_SINGLE_DOT_ELIMINATION = Pattern
-				.compile(String.format("^(?:\\.(?:%1$s|$))+|(?:%1$s\\.)(?=%1$s|$)|%1$s$", sepPat)); //$NON-NLS-1$
-		GLOB_DOUBLE_DOT_ELIMINATION = Pattern
-				.compile(String.format("^%2$s%1$s\\.\\.(?:%1$s|$)|%1$s%2$s%1$s\\.\\.(?=%1$s|$)", sepPat, nonSepPat)); //$NON-NLS-1$
+		GLOB_SINGLE_DOT_ELIMINATION = Pattern.compile(String.format("^(?:\\.(?:%1$s|$))+|(?:%1$s\\.)(?=%1$s|$)|%1$s$", sepPat)); //$NON-NLS-1$
+		GLOB_DOUBLE_DOT_ELIMINATION = Pattern.compile(String.format("^%2$s%1$s\\.\\.(?:%1$s|$)|%1$s%2$s%1$s\\.\\.(?=%1$s|$)", sepPat, nonSepPat)); //$NON-NLS-1$
 	}
 
 	private static Path relativizeSafe(Path any, int offset) {

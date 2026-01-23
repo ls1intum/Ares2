@@ -2,17 +2,17 @@ package de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles
 
 public class First {
 
-    public void callSecond() {
-        Second second = new Second();
-        second.callFourth();
-    }
+	public void callSecond() {
+		Second second = new Second();
+		second.callFourth();
+	}
 
-    public void noRecursion() {
-        System.out.println("No recursion");
-    }
+	public void noRecursion() {
+		System.out.println("No recursion");
+	}
 
-    public static void main(String[] args) {
-        First first = new First();
-        first.callSecond();
-    }
+	public static void main(String[] args) {
+		First first = new First();
+		first.callSecond();
+	}
 }

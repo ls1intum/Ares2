@@ -7,12 +7,12 @@ import org.apiguardian.api.API.Status;
 import org.junit.jupiter.api.Assertions;
 import org.junit.platform.engine.TestDescriptor;
 
+import de.tum.cit.ase.ares.api.StrictTimeout;
+import de.tum.cit.ase.ares.api.internal.TimeoutUtils;
+
 import net.jqwik.api.domains.DomainContext;
 import net.jqwik.api.lifecycle.*;
 import net.jqwik.engine.execution.lifecycle.*;
-
-import de.tum.cit.ase.ares.api.StrictTimeout;
-import de.tum.cit.ase.ares.api.internal.TimeoutUtils;
 
 /**
  * This class manages the {@link StrictTimeout} annotation and how it is
@@ -37,13 +37,10 @@ public class JqwikStrictTimeoutExtension implements AroundPropertyHook {
 	}
 
 	@Override
-	public PropertyExecutionResult aroundProperty(PropertyLifecycleContext context, PropertyExecutor property)
-			throws Throwable {
+	public PropertyExecutionResult aroundProperty(PropertyLifecycleContext context, PropertyExecutor property) throws Throwable {
 		DomainContext domainContext = CurrentDomainContext.get();
 		TestDescriptor desc = CurrentTestDescriptor.get();
-		return TimeoutUtils.performTimeoutExecution(
-				() -> CurrentDomainContext.runWithContext(domainContext,
-						() -> CurrentTestDescriptor.runWithDescriptor(desc, property::execute)),
+		return TimeoutUtils.performTimeoutExecution(() -> CurrentDomainContext.runWithContext(domainContext, () -> CurrentTestDescriptor.runWithDescriptor(desc, property::execute)),
 				JqwikContext.of(context));
 	}
 }

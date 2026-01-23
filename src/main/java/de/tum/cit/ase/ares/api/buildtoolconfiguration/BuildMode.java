@@ -6,61 +6,63 @@ import java.nio.file.Paths;
 /**
  * Enum representing the Java build tools supported by Ares.
  *
- * <p>This enum provides two modes:</p>
+ * <p>
+ * This enum provides two modes:
+ * </p>
  * <ul>
- *   <li>{@link #MAVEN} - A mode using Maven for running Ares.</li>
- *   <li>{@link #GRADLE} - A mode using Gradle for running Ares.</li>
+ * <li>{@link #MAVEN} - A mode using Maven for running Ares.</li>
+ * <li>{@link #GRADLE} - A mode using Gradle for running Ares.</li>
  * </ul>
  */
 public enum BuildMode {
 
-    /**
-     * Maven mode.
-     * <p>
-     * In this mode, Maven is used to run Ares.
-     * </p>
-     */
-    MAVEN,
+	/**
+	 * Maven mode.
+	 * <p>
+	 * In this mode, Maven is used to run Ares.
+	 * </p>
+	 */
+	MAVEN,
 
-    /**
-     * Gradle mode.
-     * <p>
-     * In this mode, Gradle is used to run Ares.
-     * </p>
-     */
-    GRADLE;
+	/**
+	 * Gradle mode.
+	 * <p>
+	 * In this mode, Gradle is used to run Ares.
+	 * </p>
+	 */
+	GRADLE;
 
-    public String[] threePartedFileHeader() {
-        return switch (this) {
-            case MAVEN -> new String[]{"templates", "java", "maven", "pomHeader.txt"};
-            case GRADLE -> new String[]{"templates", "java", "gradle", "buildHeader.txt"};
-        };
-    }
+	public String[] threePartedFileHeader() {
+		return switch (this) {
+			case MAVEN -> new String[]{ "templates", "java", "maven", "pomHeader.txt" };
+			case GRADLE -> new String[]{ "templates", "java", "gradle", "buildHeader.txt" };
+		};
+	}
 
-    public String[] threePartedFileFooter() {
-        return switch (this) {
-            case MAVEN -> new String[]{"templates", "java", "maven", "pomFooter.txt"};
-            case GRADLE -> new String[]{"templates", "java", "gradle", "buildFooter.txt"};
-        };
-    }
+	public String[] threePartedFileFooter() {
+		return switch (this) {
+			case MAVEN -> new String[]{ "templates", "java", "maven", "pomFooter.txt" };
+			case GRADLE -> new String[]{ "templates", "java", "gradle", "buildFooter.txt" };
+		};
+	}
 
-    public String[] fileName() {
-        return switch (this) {
-            case MAVEN -> new String[]{"pom.xml"};
-            case GRADLE -> new String[]{"build.gradle"};
-        };
-    }
+	public String[] fileName() {
+		return switch (this) {
+			case MAVEN -> new String[]{ "pom.xml" };
+			case GRADLE -> new String[]{ "build.gradle" };
+		};
+	}
 
-    //<editor-fold desc="Other methods">
-    public String getBuildDirectory() {
-        return switch (this) {
-            case MAVEN -> "target/classes/java/main";
-            case GRADLE -> "build/classes/java/main";
-        };
-    }
+	// <editor-fold desc="Other methods">
+	public String getBuildDirectory() {
+		return switch (this) {
+			case MAVEN -> "target/classes/java/main";
+			case GRADLE -> "build/classes/java/main";
+		};
+	}
 
-    public String getClasspath(Path projectPath) {
-        return Paths.get(projectPath != null ? projectPath.toString() : null, getBuildDirectory()).toString();
-    }
-    //</editor-fold>
+	public String getClasspath(Path projectPath) {
+		return Paths.get(projectPath != null ? projectPath.toString() : null, getBuildDirectory()).toString();
+	}
+	// </editor-fold>
 }

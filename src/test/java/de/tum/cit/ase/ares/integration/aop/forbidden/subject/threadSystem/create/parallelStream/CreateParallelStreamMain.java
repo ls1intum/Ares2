@@ -6,23 +6,23 @@ import java.util.stream.Stream;
 
 public class CreateParallelStreamMain {
 
-    private CreateParallelStreamMain() {
-        throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
-    }
+	private CreateParallelStreamMain() {
+		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+	}
 
-    /**
-     * Tests Collection.parallelStream() method
-     */
-    public static void collectionParallelStream() {
-        Collection<String> collection = Arrays.asList("a", "b", "c");
-        collection.parallelStream().forEach(System.out::println);
-    }
+	/**
+	 * Tests Collection.parallelStream() method
+	 */
+	public static void collectionParallelStream() {
+		Collection<String> collection = Arrays.asList("a", "b", "c");
+		collection.parallelStream().forEach(System.out::println);
+	}
 
-    /**
-     * Tests Stream.parallel() method
-     */
-    public static void streamParallel() {
-        Stream<String> stream = Stream.of("a", "b", "c");
-        stream.parallel().forEach(System.out::println);
-    }
+	/**
+	 * Tests Stream.parallel() method
+	 */
+	public static void streamParallel() {
+		Stream<String> stream = Stream.of("a", "b", "c");
+		stream.parallel().forEach(System.out::println);
+	}
 }

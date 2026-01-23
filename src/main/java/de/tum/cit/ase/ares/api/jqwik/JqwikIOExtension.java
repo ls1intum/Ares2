@@ -6,12 +6,12 @@ import java.util.function.Predicate;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 
+import de.tum.cit.ase.ares.api.internal.IOExtensionUtils;
+
 import net.jqwik.api.*;
 import net.jqwik.api.lifecycle.*;
 import net.jqwik.api.providers.*;
 import net.jqwik.engine.providers.RegisteredArbitraryProviders;
-
-import de.tum.cit.ase.ares.api.internal.IOExtensionUtils;
 
 /**
  * <p>
@@ -34,8 +34,7 @@ public final class JqwikIOExtension implements AroundPropertyHook {
 		// register controller if possible
 		ControllerProvider controllerProvider = null;
 		if (ioExtensionUtils.providesController()) {
-			controllerProvider = new ControllerProvider(ioExtensionUtils::canProvideControllerFor,
-					ioExtensionUtils.getControllerInstance());
+			controllerProvider = new ControllerProvider(ioExtensionUtils::canProvideControllerFor, ioExtensionUtils.getControllerInstance());
 			RegisteredArbitraryProviders.register(controllerProvider);
 		}
 		try {

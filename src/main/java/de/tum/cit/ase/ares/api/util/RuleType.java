@@ -5,6 +5,5 @@ import org.apiguardian.api.API.Status;
 
 @API(status = Status.INTERNAL)
 public enum RuleType {
-	WHITELIST,
-	BLACKLIST
+	WHITELIST, BLACKLIST
 }

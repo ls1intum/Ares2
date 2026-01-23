@@ -34,48 +34,38 @@ class ExceptionFailureTest {
 
 	@TestTest
 	void test_assertJMultipleFailures() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(assertJMultipleFailures,
-				AssertJMultipleFailuresError.class, "Multiple Failures \\(2 failures\\)\n" + //
-						"-- failure 1 --A\n" + //
-						"at ExceptionFailureUser.+\n" + //
-						"-- failure 2 --B\n" + //
-						"at ExceptionFailureUser.+",
-				new Condition<>(t -> t.getSuppressed().length == 2, "failures added as suppressed"),
-				Option.MESSAGE_NORMALIZE_NEWLINE, Option.MESSAGE_REGEX));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(assertJMultipleFailures, AssertJMultipleFailuresError.class, "Multiple Failures \\(2 failures\\)\n" + //
+				"-- failure 1 --A\n" + //
+				"at ExceptionFailureUser.+\n" + //
+				"-- failure 2 --B\n" + //
+				"at ExceptionFailureUser.+", new Condition<>(t -> t.getSuppressed().length == 2, "failures added as suppressed"), Option.MESSAGE_NORMALIZE_NEWLINE, Option.MESSAGE_REGEX));
 	}
 
 	@TestTest
 	void test_assertionFailOnly() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(assertionFailOnly, AssertionFailedError.class,
-				"This test failed. Penguin.", new Condition<>(t -> {
-					var afe = (AssertionFailedError) t;
-					return afe.getActual() == null && afe.getExpected() == null;
-				}, "expected and actual are both null")));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(assertionFailOnly, AssertionFailedError.class, "This test failed. Penguin.", new Condition<>(t -> {
+			var afe = (AssertionFailedError) t;
+			return afe.getActual() == null && afe.getExpected() == null;
+		}, "expected and actual are both null")));
 	}
 
 	@TestTest
 	void test_assertionFailed() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(assertionFailed, AssertionFailedError.class,
-				"expected: <1> but was: <2>", new Condition<>(t -> {
-					var afe = (AssertionFailedError) t;
-					return "2".equals(afe.getActual().getStringRepresentation())
-							&& "1".equals(afe.getExpected().getStringRepresentation());
-				}, "expected and actual are correct")));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(assertionFailed, AssertionFailedError.class, "expected: <1> but was: <2>", new Condition<>(t -> {
+			var afe = (AssertionFailedError) t;
+			return "2".equals(afe.getActual().getStringRepresentation()) && "1".equals(afe.getExpected().getStringRepresentation());
+		}, "expected and actual are correct")));
 	}
 
 	@TestTest
 	void test_customException() {
-		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(customException, UnexpectedExceptionError.class,
-						"de.tum.cit.ase.ares.integration.testuser.subject.CustomException: ABC",
-						new Condition<>(t -> t.getCause() instanceof ArrayIndexOutOfBoundsException,
-								"cause is ArrayIndexOutOfBoundsException")));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(customException, UnexpectedExceptionError.class, "de.tum.cit.ase.ares.integration.testuser.subject.CustomException: ABC",
+				new Condition<>(t -> t.getCause() instanceof ArrayIndexOutOfBoundsException, "cause is ArrayIndexOutOfBoundsException")));
 	}
 
 	@TestTest
 	void test_exceptionInInitializer() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(exceptionInInitializer,
-				ExceptionInInitializerError.class, CustomConditions.NO_MSG,
+		tests.assertThatEvents().haveExactly(1, testFailedWith(exceptionInInitializer, ExceptionInInitializerError.class, CustomConditions.NO_MSG,
 				new Condition<>(t -> t.getCause() instanceof ArithmeticException, "cause is ArithmeticException")));
 	}
 
@@ -122,14 +112,12 @@ class ExceptionFailureTest {
 				"Multiple Failures (2 failures)\n" + //
 						"\tjava.lang.AssertionError: A\n" + //
 						"\tjava.lang.AssertionError: B", //
-				new Condition<>(t -> t.getSuppressed().length == 2, "two suppressed exceptions"),
-				Option.MESSAGE_NORMALIZE_NEWLINE));
+				new Condition<>(t -> t.getSuppressed().length == 2, "two suppressed exceptions"), Option.MESSAGE_NORMALIZE_NEWLINE));
 	}
 
 	@TestTest
 	void test_nullPointer() {
-		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(nullPointer, NullPointerException.class, "XYZ", Option.MESSAGE_CONTAINS));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(nullPointer, NullPointerException.class, "XYZ", Option.MESSAGE_CONTAINS));
 	}
 
 	@TestTest
@@ -144,16 +132,22 @@ class ExceptionFailureTest {
 
 	@TestTest
 	void test_throwExceptionInInitializerError() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1, testFailedWith(throwExceptionInInitializerError,
-		//		ExceptionInInitializerError.class,
-		//		"abc\n" + "/// potential problem location: de.tum.cit.ase.ares.integration.testuser.subject.ExceptionFailurePenguin.throwExceptionInInitializerError(ExceptionFailurePenguin.java:13) ///"));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(1,
+		// testFailedWith(throwExceptionInInitializerError,
+		// ExceptionInInitializerError.class,
+		// "abc\n" + "/// potential problem location:
+		// de.tum.cit.ase.ares.integration.testuser.subject.ExceptionFailurePenguin.throwExceptionInInitializerError(ExceptionFailurePenguin.java:13)
+		// ///"));
 	}
 
 	@TestTest
 	void test_throwNullPointerException() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1, testFailedWith(throwNullPointerException, NullPointerException.class,
-		//		"xyz\n" + "/// potential problem location: de.tum.cit.ase.ares.integration.testuser.subject.ExceptionFailurePenguin.throwNullPointerException(ExceptionFailurePenguin.java:9) ///"));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(1,
+		// testFailedWith(throwNullPointerException, NullPointerException.class,
+		// "xyz\n" + "/// potential problem location:
+		// de.tum.cit.ase.ares.integration.testuser.subject.ExceptionFailurePenguin.throwNullPointerException(ExceptionFailurePenguin.java:9)
+		// ///"));
 	}
 }

@@ -14,8 +14,8 @@ import org.apiguardian.api.API.Status;
  * <p>
  * <b>Thread Safety:</b> All static methods ({@link #isInstalled()},
  * {@link #installNew(boolean, long)}, {@link #uninstallCurrent()}) are
- * synchronized and thread-safe. Instance methods should only be called
- * after installation and before uninstallation.
+ * synchronized and thread-safe. Instance methods should only be called after
+ * installation and before uninstallation.
  *
  * @author Christian Femers
  * @since 0.1.0
@@ -45,9 +45,9 @@ public final class IOTester {
 	private final OutputTester errTester;
 
 	/**
-	 * Flag indicating whether this IOTester instance is currently installed.
-	 * Marked volatile to ensure visibility across threads when accessed from
-	 * the static synchronized methods.
+	 * Flag indicating whether this IOTester instance is currently installed. Marked
+	 * volatile to ensure visibility across threads when accessed from the static
+	 * synchronized methods.
 	 */
 	private volatile boolean isInstalled;
 
@@ -70,7 +70,7 @@ public final class IOTester {
 
 	public synchronized void install() {
 		// check permission already here, we need to be allowed to set system IO
-		//REMOVED: Getting the system's SecurityManager
+		// REMOVED: Getting the system's SecurityManager
 		// if this is a problem, make sure to install the security manager after
 		// IOTester
 

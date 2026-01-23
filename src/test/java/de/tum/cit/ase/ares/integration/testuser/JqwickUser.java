@@ -8,14 +8,14 @@ import java.util.concurrent.TimeUnit;
 
 import org.assertj.core.api.Assertions;
 
-import net.jqwik.api.*;
-import net.jqwik.api.constraints.*;
-
 import de.tum.cit.ase.ares.api.*;
 import de.tum.cit.ase.ares.api.TrustedThreads.TrustScope;
 import de.tum.cit.ase.ares.api.io.*;
 import de.tum.cit.ase.ares.api.jqwik.*;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
+
+import net.jqwik.api.*;
+import net.jqwik.api.constraints.*;
 
 @Hidden
 @UseLocale("de")
@@ -106,8 +106,7 @@ public class JqwickUser {
 	void propertyUseIOTesterCorrect(@ForAll IOTester test, @ForAll @CharRange(from = 'a', to = 'z') String s) {
 		test.reset();
 		System.out.println(s);
-		Assertions.assertThat(test.out().getLines(DONT_IGNORE_LAST_EMPTY_LINE)).containsExactly(Line.of(s),
-				Line.of(""));
+		Assertions.assertThat(test.out().getLines(DONT_IGNORE_LAST_EMPTY_LINE)).containsExactly(Line.of(s), Line.of(""));
 	}
 
 	@Public
@@ -115,8 +114,7 @@ public class JqwickUser {
 	void propertyUseIOTesterWrong(@ForAll IOTester test, @ForAll @CharRange(from = 'a', to = 'z') String s) {
 		test.reset();
 		System.out.println(s.length() < 5 ? s : s.substring(0, 5));
-		Assertions.assertThat(test.out().getLines(DONT_IGNORE_LAST_EMPTY_LINE)).containsExactly(Line.of(s),
-				Line.of(""));
+		Assertions.assertThat(test.out().getLines(DONT_IGNORE_LAST_EMPTY_LINE)).containsExactly(Line.of(s), Line.of(""));
 	}
 
 	@Public

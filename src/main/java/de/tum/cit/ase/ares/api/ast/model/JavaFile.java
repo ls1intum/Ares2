@@ -38,18 +38,12 @@ public class JavaFile {
 
 	/**
 	 * Excludes the main method from the AST
+	 * 
 	 * @param javaFileAST AST of the Java-file
 	 */
 	private static void excludeMainMethod(CompilationUnit javaFileAST) {
-		javaFileAST.findAll(MethodDeclaration.class).stream()
-				.filter(method ->
-						method.isPublic() &&
-								method.isStatic() &&
-								method.getType().isVoidType() &&
-								method.getNameAsString().equals("main") &&
-								method.getParameters().size() == 1 &&
-								method.getParameter(0).getTypeAsString().equals("String[]"))
-				.forEach(Node::remove);
+		javaFileAST.findAll(MethodDeclaration.class).stream().filter(method -> method.isPublic() && method.isStatic() && method.getType().isVoidType() && method.getNameAsString().equals("main")
+				&& method.getParameters().size() == 1 && method.getParameter(0).getTypeAsString().equals("String[]")).forEach(Node::remove);
 	}
 
 	public Path getJavaFilePath() {

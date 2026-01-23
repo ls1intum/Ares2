@@ -18,6 +18,5 @@ import de.tum.cit.ase.ares.api.jupiter.*;
  */
 @API(status = Status.MAINTAINED)
 public enum TestType {
-	PUBLIC,
-	HIDDEN
+	PUBLIC, HIDDEN
 }

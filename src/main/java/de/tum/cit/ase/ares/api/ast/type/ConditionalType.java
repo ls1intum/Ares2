@@ -28,13 +28,11 @@ public enum ConditionalType implements Type {
 	 */
 	ANY(Map.of(localized("ast.enum.conditional_type.if"), IfStmt.class, //$NON-NLS-1$
 			localized("ast.enum.conditional_type.conditional_expression"), ConditionalExpr.class, //$NON-NLS-1$
-			localized("ast.enum.conditional_type.switch"), SwitchStmt.class,
-			localized("ast.enum.conditional_type.switch_expression"), SwitchExpr.class)),
+			localized("ast.enum.conditional_type.switch"), SwitchStmt.class, localized("ast.enum.conditional_type.switch_expression"), SwitchExpr.class)),
 	/**
 	 * All if-related types
 	 */
-	ANY_IF(Map.of(localized("ast.enum.conditional_type.if"), IfStmt.class,
-			localized("ast.enum.conditional_type.conditional_expression"), ConditionalExpr.class)),
+	ANY_IF(Map.of(localized("ast.enum.conditional_type.if"), IfStmt.class, localized("ast.enum.conditional_type.conditional_expression"), ConditionalExpr.class)),
 	/**
 	 * The if statement type (statements of the form: "if (" + condition + ")" +
 	 * statement)
@@ -48,8 +46,7 @@ public enum ConditionalType implements Type {
 	/**
 	 * All switch-related types
 	 */
-	ANY_SWITCH(Map.of(localized("ast.enum.conditional_type.switch"), SwitchStmt.class,
-			localized("ast.enum.conditional_type.switch_expression"), SwitchExpr.class)),
+	ANY_SWITCH(Map.of(localized("ast.enum.conditional_type.switch"), SwitchStmt.class, localized("ast.enum.conditional_type.switch_expression"), SwitchExpr.class)),
 	/**
 	 * The switch statement type (statements of the form: "switch (" + name + ")" +
 	 * statement)

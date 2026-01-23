@@ -32,13 +32,12 @@ public abstract class ConstructorTestProvider extends StructuralTestProvider {
 	 * @return A dynamic test container containing the test for each class which is
 	 *         then executed by JUnit.
 	 * @throws URISyntaxException an exception if the URI of the class name cannot
-	 *                            be generated (which seems to be unlikely)
+	 *             be generated (which seems to be unlikely)
 	 */
 	protected DynamicContainer generateTestsForAllClasses() throws URISyntaxException {
 		List<DynamicNode> tests = new ArrayList<>();
 		if (structureOracleJSON == null)
-			throw failure(
-					"The ConstructorTest can only run if the structural oracle (test.json) is present. If you do not provide it, delete ConstructorTest.java!"); //$NON-NLS-1$
+			throw failure("The ConstructorTest can only run if the structural oracle (test.json) is present. If you do not provide it, delete ConstructorTest.java!"); //$NON-NLS-1$
 		for (var i = 0; i < structureOracleJSON.length(); i++) {
 			var expectedClassJSON = structureOracleJSON.getJSONObject(i);
 
@@ -47,15 +46,13 @@ public abstract class ConstructorTestProvider extends StructuralTestProvider {
 				var expectedClassPropertiesJSON = expectedClassJSON.getJSONObject(JSON_PROPERTY_CLASS);
 				var expectedClassName = expectedClassPropertiesJSON.getString(JSON_PROPERTY_NAME);
 				var expectedPackageName = expectedClassPropertiesJSON.getString(JSON_PROPERTY_PACKAGE);
-				var expectedClassStructure = new ExpectedClassStructure(expectedClassName, expectedPackageName,
-						expectedClassJSON);
+				var expectedClassStructure = new ExpectedClassStructure(expectedClassName, expectedPackageName, expectedClassJSON);
 				tests.add(dynamicTest("testConstructors[" + expectedClassName + "]", //$NON-NLS-1$ //$NON-NLS-2$
 						() -> testConstructors(expectedClassStructure)));
 			}
 		}
 		if (tests.isEmpty())
-			throw failure(
-					"No tests for constructors available in the structural oracle (test.json). Either provide constructor information or delete ConstructorTest.java!"); //$NON-NLS-1$
+			throw failure("No tests for constructors available in the structural oracle (test.json). Either provide constructor information or delete ConstructorTest.java!"); //$NON-NLS-1$
 		/*
 		 * Using a custom URI here to workaround surefire rendering the JUnit XML
 		 * without the correct test names.
@@ -69,7 +66,7 @@ public abstract class ConstructorTestProvider extends StructuralTestProvider {
 	 * the assignment and then proceeds to check its constructors.
 	 *
 	 * @param expectedClassStructure The class structure that we expect to find and
-	 *                               test against.
+	 *            test against.
 	 */
 	protected static void testConstructors(ExpectedClassStructure expectedClassStructure) {
 		var expectedClassName = expectedClassStructure.getExpectedClassName();
@@ -84,17 +81,14 @@ public abstract class ConstructorTestProvider extends StructuralTestProvider {
 	 * This method checks if a observed class' constructors match the expected ones
 	 * defined in the structure oracle.
 	 *
-	 * @param expectedClassName    The simple name of the class, mainly used for
-	 *                             error messages.
-	 * @param observedClass        The class that needs to be checked as a Class
-	 *                             object.
+	 * @param expectedClassName The simple name of the class, mainly used for error
+	 *            messages.
+	 * @param observedClass The class that needs to be checked as a Class object.
 	 * @param expectedConstructors The information on the expected constructors
-	 *                             contained in a JSON array. This information
-	 *                             consists of the parameter types and the
-	 *                             visibility modifiers.
+	 *            contained in a JSON array. This information consists of the
+	 *            parameter types and the visibility modifiers.
 	 */
-	protected static void checkConstructors(String expectedClassName, Class<?> observedClass,
-			JSONArray expectedConstructors) {
+	protected static void checkConstructors(String expectedClassName, Class<?> observedClass, JSONArray expectedConstructors) {
 		for (var i = 0; i < expectedConstructors.length(); i++) {
 			var expectedConstructor = expectedConstructors.getJSONObject(i);
 			var expectedParameters = getExpectedJsonProperty(expectedConstructor, JSON_PROPERTY_PARAMETERS);
@@ -119,13 +113,11 @@ public abstract class ConstructorTestProvider extends StructuralTestProvider {
 				if (parametersAreRight && modifiersAreRight && annotationsAreRight)
 					break;
 			}
-			checkConstructorCorrectness(expectedClassName, expectedParameters, parametersAreRight, modifiersAreRight,
-					annotationsAreRight);
+			checkConstructorCorrectness(expectedClassName, expectedParameters, parametersAreRight, modifiersAreRight, annotationsAreRight);
 		}
 	}
 
-	private static void checkConstructorCorrectness(String expectedClassName, JSONArray expectedParameters,
-			boolean parametersAreCorrect, boolean modifiersAreCorrect, boolean annotationsAreCorrect) {
+	private static void checkConstructorCorrectness(String expectedClassName, JSONArray expectedParameters, boolean parametersAreCorrect, boolean modifiersAreCorrect, boolean annotationsAreCorrect) {
 		String parameters = describeParameters(expectedParameters);
 		if (!parametersAreCorrect)
 			throw localizedFailure("structural.constructor.parameters", expectedClassName, parameters); //$NON-NLS-1$

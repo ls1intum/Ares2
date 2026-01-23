@@ -2,13 +2,13 @@ package de.tum.cit.ase.ares.integration.testuser;
 
 import java.nio.file.Path;
 
-import de.tum.cit.ase.ares.api.ast.asserting.UnwantedRecursionAssert;
 import org.junit.jupiter.api.*;
 
 import com.github.javaparser.ParserConfiguration;
 
 import de.tum.cit.ase.ares.api.*;
 import de.tum.cit.ase.ares.api.ast.asserting.UnwantedNodesAssert;
+import de.tum.cit.ase.ares.api.ast.asserting.UnwantedRecursionAssert;
 import de.tum.cit.ase.ares.api.ast.type.*;
 import de.tum.cit.ase.ares.api.jupiter.Public;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
@@ -19,8 +19,7 @@ import de.tum.cit.ase.ares.api.localization.UseLocale;
 public class AstAssertionUser {
 
 	private static final String BASE_PACKAGE = "de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles";
-	private static final Path UNSUPPORTED_LEVEL_BASE_PATH = Path.of("src", "test", "resources", "de", "tum", "cit",
-			"ase", "ares", "integration", "testuser", "javaClassesWithUnsupportedFeatures");
+	private static final Path UNSUPPORTED_LEVEL_BASE_PATH = Path.of("src", "test", "resources", "de", "tum", "cit", "ase", "ares", "integration", "testuser", "javaClassesWithUnsupportedFeatures");
 
 	private String mavenOld;
 	private String gradleOld;
@@ -44,14 +43,12 @@ public class AstAssertionUser {
 	class ForLoopTests {
 		@Test
 		void testHasBelowNoForLoop_Success() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".loops.no")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.FORSTMT);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".loops.no").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.FORSTMT);
 		}
 
 		@Test
 		void testHasBelowNoForLoop_Fail() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".loops.yes")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.FORSTMT);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".loops.yes").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.FORSTMT);
 		}
 	}
 
@@ -60,14 +57,12 @@ public class AstAssertionUser {
 	class ForEachLoopTests {
 		@Test
 		void testHasBelowNoForEachLoop_Success() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".loops.no")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.FOR_EACHSTMT);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".loops.no").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.FOR_EACHSTMT);
 		}
 
 		@Test
 		void testHasBelowNoForEachLoop_Fail() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".loops.yes")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.FOR_EACHSTMT);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".loops.yes").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.FOR_EACHSTMT);
 		}
 	}
 
@@ -76,14 +71,12 @@ public class AstAssertionUser {
 	class WhileLoopTests {
 		@Test
 		void testHasBelowNoWhileLoop_Success() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".loops.no")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.WHILESTMT);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".loops.no").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.WHILESTMT);
 		}
 
 		@Test
 		void testHasBelowNoWhileLoop_Fail() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".loops.yes")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.WHILESTMT);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".loops.yes").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.WHILESTMT);
 		}
 	}
 
@@ -92,14 +85,12 @@ public class AstAssertionUser {
 	class DoWhileLoopTests {
 		@Test
 		void testHasBelowNoDoWhileLoop_Success() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".loops.no")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.DO_WHILESTMT);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".loops.no").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.DO_WHILESTMT);
 		}
 
 		@Test
 		void testHasBelowNoDoWhileLoop_Fail() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".loops.yes")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.DO_WHILESTMT);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".loops.yes").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.DO_WHILESTMT);
 		}
 	}
 
@@ -108,14 +99,12 @@ public class AstAssertionUser {
 	class AnyForLoopTests {
 		@Test
 		void testHasBelowNoAnyForLoop_Success() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".loops.no")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.ANY_FOR);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".loops.no").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.ANY_FOR);
 		}
 
 		@Test
 		void testHasBelowNoAnyForLoop_Fail() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".loops.yes")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.ANY_FOR);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".loops.yes").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.ANY_FOR);
 		}
 	}
 
@@ -124,14 +113,12 @@ public class AstAssertionUser {
 	class AnyWhileLoopTests {
 		@Test
 		void testHasBelowNoAnyWhileLoop_Success() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".loops.no")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.ANY_WHILE);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".loops.no").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.ANY_WHILE);
 		}
 
 		@Test
 		void testHasBelowNoAnyWhileLoop_Fail() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".loops.yes")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.ANY_WHILE);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".loops.yes").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.ANY_WHILE);
 		}
 	}
 
@@ -140,14 +127,12 @@ public class AstAssertionUser {
 	class AnyLoopTests {
 		@Test
 		void testHasBelowNoAnyLoop_Success() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".loops.no")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.ANY);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".loops.no").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.ANY);
 		}
 
 		@Test
 		void testHasBelowNoAnyLoop_Fail() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".loops.yes")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.ANY);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".loops.yes").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.ANY);
 		}
 	}
 
@@ -156,14 +141,12 @@ public class AstAssertionUser {
 	class IfStatementTests {
 		@Test
 		void testHasBelowNoIfStatement_Success() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".conditionals.no")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ConditionalType.IFSTMT);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".conditionals.no").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ConditionalType.IFSTMT);
 		}
 
 		@Test
 		void testHasBelowNoIfStatement_Fail() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".conditionals.yes")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ConditionalType.IFSTMT);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".conditionals.yes").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ConditionalType.IFSTMT);
 		}
 	}
 
@@ -172,15 +155,13 @@ public class AstAssertionUser {
 	class IfExpressionTests {
 		@Test
 		void testHasBelowNoIfExpression_Success() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".conditionals.no")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".conditionals.no").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
 					.hasNo(ConditionalType.CONDITIONALEXPR);
 		}
 
 		@Test
 		void testHasBelowNoIfExpression_Fail() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".conditionals.yes")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".conditionals.yes").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
 					.hasNo(ConditionalType.CONDITIONALEXPR);
 		}
 	}
@@ -190,14 +171,14 @@ public class AstAssertionUser {
 	class SwitchStatementTests {
 		@Test
 		void testHasBelowNoSwitchStatement_Success() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".conditionals.no")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ConditionalType.SWITCHSTMT);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".conditionals.no").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.hasNo(ConditionalType.SWITCHSTMT);
 		}
 
 		@Test
 		void testHasBelowNoSwitchStatement_Fail() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".conditionals.yes")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ConditionalType.SWITCHSTMT);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".conditionals.yes").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.hasNo(ConditionalType.SWITCHSTMT);
 		}
 	}
 
@@ -206,14 +187,14 @@ public class AstAssertionUser {
 	class SwitchExpressionTests {
 		@Test
 		void testHasBelowNoSwitchExpression_Success() {
-			UnwantedNodesAssert.assertThatSourcesIn(UNSUPPORTED_LEVEL_BASE_PATH.resolve(Path.of("conditionals", "no")))
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ConditionalType.SWITCHEXPR);
+			UnwantedNodesAssert.assertThatSourcesIn(UNSUPPORTED_LEVEL_BASE_PATH.resolve(Path.of("conditionals", "no"))).withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.hasNo(ConditionalType.SWITCHEXPR);
 		}
 
 		@Test
 		void testHasBelowNoSwitchExpression_Fail() {
-			UnwantedNodesAssert.assertThatSourcesIn(UNSUPPORTED_LEVEL_BASE_PATH.resolve(Path.of("conditionals", "yes")))
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ConditionalType.SWITCHEXPR);
+			UnwantedNodesAssert.assertThatSourcesIn(UNSUPPORTED_LEVEL_BASE_PATH.resolve(Path.of("conditionals", "yes"))).withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.hasNo(ConditionalType.SWITCHEXPR);
 		}
 	}
 
@@ -222,14 +203,12 @@ public class AstAssertionUser {
 	class AnyIfTests {
 		@Test
 		void testHasBelowNoAnyIf_Success() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".conditionals.no")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ConditionalType.ANY_IF);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".conditionals.no").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ConditionalType.ANY_IF);
 		}
 
 		@Test
 		void testHasBelowNoAnyIf_Fail() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".conditionals.yes")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ConditionalType.ANY_IF);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".conditionals.yes").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ConditionalType.ANY_IF);
 		}
 	}
 
@@ -238,14 +217,14 @@ public class AstAssertionUser {
 	class AnySwitchTests {
 		@Test
 		void testHasBelowNoAnySwitch_Success() {
-			UnwantedNodesAssert.assertThatSourcesIn(UNSUPPORTED_LEVEL_BASE_PATH.resolve(Path.of("conditionals", "no")))
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ConditionalType.ANY_SWITCH);
+			UnwantedNodesAssert.assertThatSourcesIn(UNSUPPORTED_LEVEL_BASE_PATH.resolve(Path.of("conditionals", "no"))).withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.hasNo(ConditionalType.ANY_SWITCH);
 		}
 
 		@Test
 		void testHasBelowNoAnySwitch_Fail() {
-			UnwantedNodesAssert.assertThatSourcesIn(UNSUPPORTED_LEVEL_BASE_PATH.resolve(Path.of("conditionals", "yes")))
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ConditionalType.ANY_SWITCH);
+			UnwantedNodesAssert.assertThatSourcesIn(UNSUPPORTED_LEVEL_BASE_PATH.resolve(Path.of("conditionals", "yes"))).withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.hasNo(ConditionalType.ANY_SWITCH);
 		}
 	}
 
@@ -254,14 +233,14 @@ public class AstAssertionUser {
 	class AnyConditionalTests {
 		@Test
 		void testHasBelowNoAnyConditional_Success() {
-			UnwantedNodesAssert.assertThatSourcesIn(UNSUPPORTED_LEVEL_BASE_PATH.resolve(Path.of("conditionals", "no")))
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ConditionalType.ANY);
+			UnwantedNodesAssert.assertThatSourcesIn(UNSUPPORTED_LEVEL_BASE_PATH.resolve(Path.of("conditionals", "no"))).withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.hasNo(ConditionalType.ANY);
 		}
 
 		@Test
 		void testHasBelowNoAnyConditional_Fail() {
-			UnwantedNodesAssert.assertThatSourcesIn(UNSUPPORTED_LEVEL_BASE_PATH.resolve(Path.of("conditionals", "yes")))
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ConditionalType.ANY);
+			UnwantedNodesAssert.assertThatSourcesIn(UNSUPPORTED_LEVEL_BASE_PATH.resolve(Path.of("conditionals", "yes"))).withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.hasNo(ConditionalType.ANY);
 		}
 	}
 
@@ -270,14 +249,12 @@ public class AstAssertionUser {
 	class ClassTests {
 		@Test
 		void testHasBelowNoClass_Success() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".classes.no")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ClassType.CLASS);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".classes.no").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ClassType.CLASS);
 		}
 
 		@Test
 		void testHasBelowNoClass_Fail() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".classes.yes")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ClassType.CLASS);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".classes.yes").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ClassType.CLASS);
 		}
 	}
 
@@ -286,14 +263,13 @@ public class AstAssertionUser {
 	class RecordTests {
 		@Test
 		void testHasBelowNoRecord_Success() {
-			UnwantedNodesAssert.assertThatSourcesIn(UNSUPPORTED_LEVEL_BASE_PATH.resolve(Path.of("classes", "no")))
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ClassType.RECORD);
+			UnwantedNodesAssert.assertThatSourcesIn(UNSUPPORTED_LEVEL_BASE_PATH.resolve(Path.of("classes", "no"))).withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ClassType.RECORD);
 		}
 
 		@Test
 		void testHasBelowNoRecord_Fail() {
-			UnwantedNodesAssert.assertThatSourcesIn(UNSUPPORTED_LEVEL_BASE_PATH.resolve(Path.of("classes", "yes")))
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ClassType.RECORD);
+			UnwantedNodesAssert.assertThatSourcesIn(UNSUPPORTED_LEVEL_BASE_PATH.resolve(Path.of("classes", "yes"))).withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.hasNo(ClassType.RECORD);
 		}
 	}
 
@@ -302,14 +278,12 @@ public class AstAssertionUser {
 	class AnyClassTests {
 		@Test
 		void testHasBelowNoAnyClass_Success() {
-			UnwantedNodesAssert.assertThatSourcesIn(UNSUPPORTED_LEVEL_BASE_PATH.resolve(Path.of("classes", "no")))
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ClassType.ANY);
+			UnwantedNodesAssert.assertThatSourcesIn(UNSUPPORTED_LEVEL_BASE_PATH.resolve(Path.of("classes", "no"))).withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ClassType.ANY);
 		}
 
 		@Test
 		void testHasBelowNoAnyClass_Fail() {
-			UnwantedNodesAssert.assertThatSourcesIn(UNSUPPORTED_LEVEL_BASE_PATH.resolve(Path.of("classes", "yes")))
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ClassType.ANY);
+			UnwantedNodesAssert.assertThatSourcesIn(UNSUPPORTED_LEVEL_BASE_PATH.resolve(Path.of("classes", "yes"))).withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ClassType.ANY);
 		}
 	}
 
@@ -318,14 +292,14 @@ public class AstAssertionUser {
 	class AssertExceptionHandlingTests {
 		@Test
 		void testHasBelowNoAssertExceptionHandling_Success() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".exceptionHandlings.no")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ExceptionHandlingType.ASSERT);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".exceptionHandlings.no").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.hasNo(ExceptionHandlingType.ASSERT);
 		}
 
 		@Test
 		void testHasBelowNoAssertExceptionHandling_Fail() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".exceptionHandlings.yes")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ExceptionHandlingType.ASSERT);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".exceptionHandlings.yes").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.hasNo(ExceptionHandlingType.ASSERT);
 		}
 	}
 
@@ -334,14 +308,14 @@ public class AstAssertionUser {
 	class ThrowExceptionHandlingTests {
 		@Test
 		void testHasBelowNoThrowExceptionHandling_Success() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".exceptionHandlings.no")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ExceptionHandlingType.THROW);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".exceptionHandlings.no").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.hasNo(ExceptionHandlingType.THROW);
 		}
 
 		@Test
 		void testHasBelowNoThrowExceptionHandling_Fail() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".exceptionHandlings.yes")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ExceptionHandlingType.THROW);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".exceptionHandlings.yes").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.hasNo(ExceptionHandlingType.THROW);
 		}
 	}
 
@@ -350,14 +324,14 @@ public class AstAssertionUser {
 	class CatchExceptionHandlingTests {
 		@Test
 		void testHasBelowNoCatchExceptionHandling_Success() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".exceptionHandlings.no")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ExceptionHandlingType.CATCH);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".exceptionHandlings.no").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.hasNo(ExceptionHandlingType.CATCH);
 		}
 
 		@Test
 		void testHasBelowNoCatchExceptionHandling_Fail() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".exceptionHandlings.yes")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ExceptionHandlingType.CATCH);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".exceptionHandlings.yes").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.hasNo(ExceptionHandlingType.CATCH);
 		}
 	}
 
@@ -366,14 +340,14 @@ public class AstAssertionUser {
 	class AnyExceptionHandlingTests {
 		@Test
 		void testHasBelowNoAnyExceptionHandling_Success() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".exceptionHandlings.no")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ExceptionHandlingType.ANY);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".exceptionHandlings.no").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.hasNo(ExceptionHandlingType.ANY);
 		}
 
 		@Test
 		void testHasBelowNoAnyExceptionHandling_Fail() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".exceptionHandlings.yes")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(ExceptionHandlingType.ANY);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".exceptionHandlings.yes").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.hasNo(ExceptionHandlingType.ANY);
 		}
 	}
 
@@ -384,8 +358,7 @@ public class AstAssertionUser {
 		void testPomXmlFileDoesExist() {
 			AresConfiguration.setBuildGradlePath(null);
 			AresConfiguration.setPomXmlPath("src/test/resources/de/tum/cit/ase/ares/integration/testuser/pom.xml");
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".loops.no")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.FORSTMT);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".loops.no").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.FORSTMT);
 		}
 	}
 
@@ -395,40 +368,34 @@ public class AstAssertionUser {
 
 		@Test
 		void testPathDoesNotExist() {
-			UnwantedNodesAssert.assertThatSourcesIn(Path.of("this", "path", "does", "not", "exist"))
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.ANY);
+			UnwantedNodesAssert.assertThatSourcesIn(Path.of("this", "path", "does", "not", "exist")).withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.ANY);
 		}
 
 		@Test
 		void testPathIsNull() {
-			UnwantedNodesAssert.assertThatSourcesIn(null).withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.hasNo(LoopType.ANY);
+			UnwantedNodesAssert.assertThatSourcesIn(null).withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.ANY);
 		}
 
 		@Test
 		void testPackageDoesNotExist() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage("this.package.name.does.not.exist")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.ANY);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage("this.package.name.does.not.exist").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.ANY);
 		}
 
 		@Test
 		void testPackageIsNull() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(null)
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.ANY);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(null).withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.ANY);
 		}
 
 		@Test
 		void testBuildGradleFileDoesNotExist() {
 			AresConfiguration.setBuildGradlePath("does/not/exist/build.bradle");
-			UnwantedNodesAssert.assertThatProjectSources().withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.hasNo(LoopType.ANY);
+			UnwantedNodesAssert.assertThatProjectSources().withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.ANY);
 		}
 
 		@Test
 		void testBuildGradleFileIsNull() {
 			AresConfiguration.setBuildGradlePath(null);
-			UnwantedNodesAssert.assertThatProjectSources().withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.hasNo(LoopType.ANY);
+			UnwantedNodesAssert.assertThatProjectSources().withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.ANY);
 		}
 
 		@Test
@@ -442,23 +409,19 @@ public class AstAssertionUser {
 	class ExcludeErrorTests {
 		@Test
 		void testHasBelowNoLoopsOutsideMainMethod_Success() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".excludeMain.no")
-					.excludeMainMethod().withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".excludeMain.no").excludeMainMethod().withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
 					.hasNo(LoopType.ANY);
 		}
 
 		@Test
 		void testHasBelowNoLoopsOutsideMainMethod_Fail() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".excludeMain.yes")
-					.excludeMainMethod().withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".excludeMain.yes").excludeMainMethod().withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
 					.hasNo(LoopType.ANY);
 		}
 
 		@Test
 		void testHasNoLoopsOutsideMainMethod_Fail() {
-			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".excludeMain.no")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.hasNo(LoopType.ANY);
+			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".excludeMain.no").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.ANY);
 		}
 	}
 
@@ -467,103 +430,73 @@ public class AstAssertionUser {
 	class RecursionTests {
 		@Test
 		void testExcludesPassedMethods_Success() {
-			UnwantedRecursionAssert.assertThatProjectSources()
-					.withinPackage(BASE_PACKAGE + ".recursions.excludeMethods")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.excludeMethods(BASE_PACKAGE + ".recursions.excludeMethods.ClassWithNoExcludeMethods.something(de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.RandomParameterThatShouldBeResolved)")
+			UnwantedRecursionAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".recursions.excludeMethods").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.excludeMethods(BASE_PACKAGE
+							+ ".recursions.excludeMethods.ClassWithNoExcludeMethods.something(de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.RandomParameterThatShouldBeResolved)")
 					.hasNoRecursion();
 		}
 
 		@Test
 		void testExcludesPassedMethod_Fail() {
-			UnwantedRecursionAssert.assertThatProjectSources()
-					.withinPackage(BASE_PACKAGE + ".recursions.excludeMethods")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+			UnwantedRecursionAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".recursions.excludeMethods").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
 					.excludeMethods("de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.startingNode.ClassWithMethodsCallingEachOther.main(java.lang.String[])")
 					.hasNoRecursion();
 		}
 
 		@Test
 		void testShouldDetectRecursionGivenStartingNode() {
-			UnwantedRecursionAssert.assertThatProjectSources()
-					.withinPackage(BASE_PACKAGE + ".recursions.startingNode")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+			UnwantedRecursionAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".recursions.startingNode").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
 					.startingWithMethod("de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.startingNode.ClassWithMethodsCallingEachOther.main(java.lang.String[])")
 					.hasRecursion();
 		}
 
 		@Test
 		void testShouldNotDetectRecursionGivenStartingNode() {
-			UnwantedRecursionAssert.assertThatProjectSources()
-					.withinPackage(BASE_PACKAGE + ".recursions.startingNode")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.startingWithMethod("de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.startingNode.ClassWithMethodsCallingEachOther.method3()")
-					.hasNoRecursion();
+			UnwantedRecursionAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".recursions.startingNode").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.startingWithMethod("de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.startingNode.ClassWithMethodsCallingEachOther.method3()").hasNoRecursion();
 		}
 
 		@Test
 		void testDetectComplexNoRecursion() {
-			UnwantedRecursionAssert.assertThatProjectSources()
-					.withinPackage(BASE_PACKAGE + ".recursions.complex.no")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.hasNoRecursion();
+			UnwantedRecursionAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".recursions.complex.no").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNoRecursion();
 		}
 
 		@Test
 		void testDetectComplexRecursion() {
-			UnwantedRecursionAssert.assertThatProjectSources()
-					.withinPackage(BASE_PACKAGE + ".recursions.complex.yes")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.hasRecursion();
+			UnwantedRecursionAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".recursions.complex.yes").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasRecursion();
 		}
 
 		@Test
 		void testDetectDynamicDispatchRecursion() {
-			UnwantedRecursionAssert.assertThatProjectSources()
-					.withinPackage(BASE_PACKAGE + ".recursions.dynamicDispatch")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.hasRecursion();
+			UnwantedRecursionAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".recursions.dynamicDispatch").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasRecursion();
 		}
 
 		@Test
 		void testDetectOverloadedRecursion() {
-			UnwantedRecursionAssert.assertThatProjectSources()
-					.withinPackage(BASE_PACKAGE + ".recursions.overloaded.yes")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.hasRecursion();
+			UnwantedRecursionAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".recursions.overloaded.yes").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasRecursion();
 		}
 
 		@Test
 		void testDetectOverloadedNoRecursion() {
-			UnwantedRecursionAssert.assertThatProjectSources()
-					.withinPackage(BASE_PACKAGE + ".recursions.overloaded.no")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.excludeMethods(BASE_PACKAGE + ".recursions.excludeMethods.ClassWithNoExcludeMethods.something(de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.RandomParameterThatShouldBeResolved)")
+			UnwantedRecursionAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".recursions.overloaded.no").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+					.excludeMethods(BASE_PACKAGE
+							+ ".recursions.excludeMethods.ClassWithNoExcludeMethods.something(de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.RandomParameterThatShouldBeResolved)")
 					.hasNoRecursion();
 		}
 
 		@Test
 		void testDetectOverriddenRecursion() {
-			UnwantedRecursionAssert.assertThatProjectSources()
-					.withinPackage(BASE_PACKAGE + ".recursions.overridden")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.hasRecursion();
+			UnwantedRecursionAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".recursions.overridden").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasRecursion();
 		}
 
 		@Test
 		void testDetectSimpleRecursion() {
-			UnwantedRecursionAssert.assertThatProjectSources()
-					.withinPackage(BASE_PACKAGE + ".recursions.simple")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.hasRecursion();
+			UnwantedRecursionAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".recursions.simple").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasRecursion();
 		}
 
 		@Test
 		void testDetectLambdaRecursion() {
-			UnwantedRecursionAssert.assertThatProjectSources()
-					.withinPackage(BASE_PACKAGE + ".recursions.lambda")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.hasRecursion();
+			UnwantedRecursionAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".recursions.lambda").withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasRecursion();
 		}
 	}
 }

@@ -35,30 +35,26 @@ public abstract class AttributeTestProvider extends StructuralTestProvider {
 	 * @return A dynamic test container containing the test for each class which is
 	 *         then executed by JUnit.
 	 * @throws URISyntaxException an exception if the URI of the class name cannot
-	 *                            be generated (which seems to be unlikely)
+	 *             be generated (which seems to be unlikely)
 	 */
 	protected DynamicContainer generateTestsForAllClasses() throws URISyntaxException {
 		List<DynamicNode> tests = new ArrayList<>();
 		if (structureOracleJSON == null)
-			throw failure(
-					"The AttributeTest test can only run if the structural oracle (test.json) is present. If you do not provide it, delete AttributeTest.java!"); //$NON-NLS-1$
+			throw failure("The AttributeTest test can only run if the structural oracle (test.json) is present. If you do not provide it, delete AttributeTest.java!"); //$NON-NLS-1$
 		for (var i = 0; i < structureOracleJSON.length(); i++) {
 			var expectedClassJSON = structureOracleJSON.getJSONObject(i);
 			// Only test the classes that have attributes defined in the oracle.
-			if (expectedClassJSON.has(JSON_PROPERTY_CLASS) && (expectedClassJSON.has(JSON_PROPERTY_ATTRIBUTES)
-					|| expectedClassJSON.has(JSON_PROPERTY_ENUM_VALUES))) {
+			if (expectedClassJSON.has(JSON_PROPERTY_CLASS) && (expectedClassJSON.has(JSON_PROPERTY_ATTRIBUTES) || expectedClassJSON.has(JSON_PROPERTY_ENUM_VALUES))) {
 				var expectedClassPropertiesJSON = expectedClassJSON.getJSONObject(JSON_PROPERTY_CLASS);
 				var expectedClassName = expectedClassPropertiesJSON.getString(JSON_PROPERTY_NAME);
 				var expectedPackageName = expectedClassPropertiesJSON.getString(JSON_PROPERTY_PACKAGE);
-				var expectedClassStructure = new ExpectedClassStructure(expectedClassName, expectedPackageName,
-						expectedClassJSON);
+				var expectedClassStructure = new ExpectedClassStructure(expectedClassName, expectedPackageName, expectedClassJSON);
 				tests.add(dynamicTest("testAttributes[" + expectedClassName + "]", //$NON-NLS-1$ //$NON-NLS-2$
 						() -> testAttributes(expectedClassStructure)));
 			}
 		}
 		if (tests.isEmpty())
-			throw failure(
-					"No tests for attributes available in the structural oracle (test.json). Either provide attributes information or delete AttributeTest.java!"); //$NON-NLS-1$
+			throw failure("No tests for attributes available in the structural oracle (test.json). Either provide attributes information or delete AttributeTest.java!"); //$NON-NLS-1$
 		/*
 		 * Using a custom URI here to workaround surefire rendering the JUnit XML
 		 * without the correct test names.
@@ -72,7 +68,7 @@ public abstract class AttributeTestProvider extends StructuralTestProvider {
 	 * the assignment and then proceeds to check its attributes.
 	 *
 	 * @param expectedClassStructure The class structure that we expect to find and
-	 *                               test against.
+	 *            test against.
 	 */
 	protected static void testAttributes(ExpectedClassStructure expectedClassStructure) {
 		var expectedClassName = expectedClassStructure.getExpectedClassName();
@@ -91,17 +87,14 @@ public abstract class AttributeTestProvider extends StructuralTestProvider {
 	 * This method checks if a observed class' attributes match the expected ones
 	 * defined in the structure oracle.
 	 *
-	 * @param expectedClassName  The simple name of the class, mainly used for error
-	 *                           messages.
-	 * @param observedClass      The class that needs to be checked as a Class
-	 *                           object.
+	 * @param expectedClassName The simple name of the class, mainly used for error
+	 *            messages.
+	 * @param observedClass The class that needs to be checked as a Class object.
 	 * @param expectedAttributes The information on the expected attributes
-	 *                           contained in a JSON array. This information
-	 *                           consists of the name, the type and the visibility
-	 *                           modifiers of each attribute.
+	 *            contained in a JSON array. This information consists of the name,
+	 *            the type and the visibility modifiers of each attribute.
 	 */
-	protected static void checkAttributes(String expectedClassName, Class<?> observedClass,
-			JSONArray expectedAttributes) {
+	protected static void checkAttributes(String expectedClassName, Class<?> observedClass, JSONArray expectedAttributes) {
 		for (var i = 0; i < expectedAttributes.length(); i++) {
 			var expectedAttribute = expectedAttributes.getJSONObject(i);
 			var expectedName = expectedAttribute.getString(JSON_PROPERTY_NAME);
@@ -118,8 +111,7 @@ public abstract class AttributeTestProvider extends StructuralTestProvider {
 			for (Field observedAttribute : observedClass.getDeclaredFields()) {
 				if (expectedName.equals(observedAttribute.getName())) {
 					nameIsCorrect = true;
-					typeIsCorrect = checkExpectedType(observedAttribute.getType(), observedAttribute.getGenericType(),
-							expectedTypeName);
+					typeIsCorrect = checkExpectedType(observedAttribute.getType(), observedAttribute.getGenericType(), expectedTypeName);
 					modifiersAreCorrect = checkModifiers(Modifier.toString(observedAttribute.getModifiers()).split(" "), //$NON-NLS-1$
 							expectedModifiers);
 					annotationsAreCorrect = checkAnnotations(observedAttribute.getAnnotations(), expectedAnnotations);
@@ -129,13 +121,12 @@ public abstract class AttributeTestProvider extends StructuralTestProvider {
 				}
 				// TODO: we should also take wrong case and typos into account (the else case)
 			}
-			checkAttributeCorrectness(nameIsCorrect, typeIsCorrect, modifiersAreCorrect, annotationsAreCorrect,
-					expectedName, expectedClassName);
+			checkAttributeCorrectness(nameIsCorrect, typeIsCorrect, modifiersAreCorrect, annotationsAreCorrect, expectedName, expectedClassName);
 		}
 	}
 
-	private static void checkAttributeCorrectness(boolean nameIsCorrect, boolean typeIsCorrect,
-			boolean modifiersAreCorrect, boolean annotationsAreCorrect, String expectedName, String expectedClassName) {
+	private static void checkAttributeCorrectness(boolean nameIsCorrect, boolean typeIsCorrect, boolean modifiersAreCorrect, boolean annotationsAreCorrect, String expectedName,
+			String expectedClassName) {
 		if (!nameIsCorrect)
 			throw localizedFailure("structural.attribute.name", expectedName, expectedClassName); //$NON-NLS-1$
 		if (!typeIsCorrect)
@@ -150,28 +141,23 @@ public abstract class AttributeTestProvider extends StructuralTestProvider {
 	 * This method checks if the observed enum values match the expected ones
 	 * defined in the structure oracle.
 	 *
-	 * @param expectedClassName  The simple name of the class, mainly used for error
-	 *                           messages.
-	 * @param observedClass      The enum that needs to be checked as a Class
-	 *                           object.
+	 * @param expectedClassName The simple name of the class, mainly used for error
+	 *            messages.
+	 * @param observedClass The enum that needs to be checked as a Class object.
 	 * @param expectedEnumValues The information on the expected enum values
-	 *                           contained in a JSON array. This information
-	 *                           consists of the name of each enum value.
+	 *            contained in a JSON array. This information consists of the name
+	 *            of each enum value.
 	 */
-	protected static void checkEnumValues(String expectedClassName, Class<?> observedClass,
-			JSONArray expectedEnumValues) {
+	protected static void checkEnumValues(String expectedClassName, Class<?> observedClass, JSONArray expectedEnumValues) {
 		if (!observedClass.isEnum())
 			throw localizedFailure("structural.attribute.noEnumConstants", expectedClassName); //$NON-NLS-1$
 		@SuppressWarnings("unchecked")
 		var observedEnumValues = ((Class<? extends Enum<?>>) observedClass).getEnumConstants();
 		var observedEnumNames = Stream.of(observedEnumValues).map(Enum::name).collect(Collectors.toSet());
-		var expectedEnumNames = IntStream.range(0, expectedEnumValues.length()).mapToObj(expectedEnumValues::getString)
-				.collect(Collectors.toSet());
+		var expectedEnumNames = IntStream.range(0, expectedEnumValues.length()).mapToObj(expectedEnumValues::getString).collect(Collectors.toSet());
 		var missing = expectedEnumNames.stream().filter(not(observedEnumNames::contains)).findFirst();
-		missing.ifPresent(missingName -> fail(
-				localized("structural.attribute.missingEnumConstants", expectedClassName, missingName))); //$NON-NLS-1$
+		missing.ifPresent(missingName -> fail(localized("structural.attribute.missingEnumConstants", expectedClassName, missingName))); //$NON-NLS-1$
 		var unexpected = observedEnumNames.stream().filter(not(expectedEnumNames::contains)).findFirst();
-		unexpected.ifPresent(unexpectedName -> fail(
-				localized("structural.attribute.unexpectedEnumConstants", expectedClassName, unexpectedName))); //$NON-NLS-1$
+		unexpected.ifPresent(unexpectedName -> fail(localized("structural.attribute.unexpectedEnumConstants", expectedClassName, unexpectedName))); //$NON-NLS-1$
 	}
 }

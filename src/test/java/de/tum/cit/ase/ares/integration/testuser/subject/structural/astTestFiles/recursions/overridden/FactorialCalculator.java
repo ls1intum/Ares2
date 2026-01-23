@@ -2,19 +2,18 @@ package de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles
 
 public class FactorialCalculator {
 
-    // Method for calculating factorial (recursive)
-    public int calculateFactorial(int n) {
-        if (n == 0 || n == 1) {
-            return 1;
-        } else {
-            return n * calculateFactorial(n - 1);
-        }
-    }
+	// Method for calculating factorial (recursive)
+	public int calculateFactorial(int n) {
+		if (n == 0 || n == 1) {
+			return 1;
+		} else {
+			return n * calculateFactorial(n - 1);
+		}
+	}
 
-    public static void main(String[] args) {
-        FactorialCalculator calculator = new FactorialCalculator();
-        int result = calculator.calculateFactorial(5);
-        System.out.println("Factorial of 5: " + result);
-    }
+	public static void main(String[] args) {
+		FactorialCalculator calculator = new FactorialCalculator();
+		int result = calculator.calculateFactorial(5);
+		System.out.println("Factorial of 5: " + result);
+	}
 }
-

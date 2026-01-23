@@ -51,6 +51,40 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 
     //<editor-fold desc="Thread system methods">
 
+    //<editor-fold desc="Command execution bypass">
+
+    /**
+     * Checks if the current thread creation is triggered by ProcessBuilder or Runtime.exec.
+     *
+     * <p>Description: When ProcessBuilder.start() or Runtime.exec() is called, they internally
+     * create threads for process I/O handling. These thread creations should not be blocked
+     * by the Thread subsystem because the Command/Execute subsystem handles these operations.
+     * This method scans the call stack to detect if the thread creation originates from
+     * these command execution methods.
+     *
+     * @return true if thread creation is from ProcessBuilder or Runtime.exec, false otherwise
+     * @since 2.0.0
+     * @author Markus Paulsen
+     */
+    private static boolean isThreadCreationFromCommandExecution() {
+        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+        for (StackTraceElement element : stackTrace) {
+            String className = element.getClassName();
+            String methodName = element.getMethodName();
+            // Check for ProcessBuilder.start() and ProcessBuilder.startPipeline()
+            if ("java.lang.ProcessBuilder".equals(className) &&
+                    ("start".equals(methodName) || "startPipeline".equals(methodName))) {
+                return true;
+            }
+            // Check for Runtime.exec()
+            if ("java.lang.Runtime".equals(className) && "exec".equals(methodName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    //</editor-fold>
+
     //<editor-fold desc="Variable criteria methods">
 
     //<editor-fold desc="Forbidden handling">
@@ -432,6 +466,14 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
             } catch (SecurityException e) {
                 throw e;
             }
+        }
+        //</editor-fold>
+        //<editor-fold desc="Skip if thread creation is triggered by ProcessBuilder or Runtime.exec">
+        // When ProcessBuilder.start() or Runtime.exec() is called, they internally create threads
+        // for process I/O handling. These threads should not be blocked by the Thread subsystem
+        // because the Command/Execute subsystem will check these operations.
+        if (isThreadCreationFromCommandExecution()) {
+            return;
         }
         //</editor-fold>
         //<editor-fold desc="Check callstack">

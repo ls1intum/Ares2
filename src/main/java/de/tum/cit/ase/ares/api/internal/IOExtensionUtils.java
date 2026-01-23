@@ -24,7 +24,7 @@ public final class IOExtensionUtils {
 		/*
 		 * Initialize SecurityManager when we are still in the main thread
 		 */
-		//REMOVED: Installation of ArtemisSecurityManager;
+		// REMOVED: Installation of ArtemisSecurityManager;
 	}
 
 	private static final HashMap<Class<? extends IOManager<?>>, Supplier<? extends IOManager<?>>> ioManagerCache = new HashMap<>();
@@ -60,8 +60,7 @@ public final class IOExtensionUtils {
 	}
 
 	private static IOManager<?> createIOManagerFor(TestContext testContext) {
-		var ioManagerClass = TestContextUtils.findAnnotationIn(testContext, WithIOManager.class)
-				.<Class<? extends IOManager<?>>>map(WithIOManager::value).orElse(DEFAULT_IO_MANAGER);
+		var ioManagerClass = TestContextUtils.findAnnotationIn(testContext, WithIOManager.class).<Class<? extends IOManager<?>>>map(WithIOManager::value).orElse(DEFAULT_IO_MANAGER);
 		return ioManagerCache.computeIfAbsent(ioManagerClass, IOExtensionUtils::generateIOManagerSupplier).get();
 	}
 
@@ -69,10 +68,8 @@ public final class IOExtensionUtils {
 		try {
 			var lookup = MethodHandles.lookup();
 			var contructor = lookup.findConstructor(ioManagerClass, methodType(void.class));
-			var factory = LambdaMetafactory
-					.metafactory(lookup, "get", methodType(Supplier.class), contructor.type().generic(), contructor, //$NON-NLS-1$
-							contructor.type())
-					.getTarget();
+			var factory = LambdaMetafactory.metafactory(lookup, "get", methodType(Supplier.class), contructor.type().generic(), contructor, //$NON-NLS-1$
+					contructor.type()).getTarget();
 			return (Supplier<IOManager<?>>) factory.invokeExact();
 		} catch (Throwable e) {
 			throw new AnnotationFormatError("Could not create IOManager Supplier for type " //$NON-NLS-1$

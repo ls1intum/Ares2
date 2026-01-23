@@ -22,57 +22,47 @@ import org.junit.jupiter.api.extension.*;
 public interface UnifiedInvocationInterceptor extends InvocationInterceptor {
 
 	@Override
-	default <T> T interceptTestClassConstructor(Invocation<T> invocation,
-			ReflectiveInvocationContext<Constructor<T>> invocationContext, ExtensionContext extensionContext)
-			throws Throwable {
+	default <T> T interceptTestClassConstructor(Invocation<T> invocation, ReflectiveInvocationContext<Constructor<T>> invocationContext, ExtensionContext extensionContext) throws Throwable {
 		return interceptGenericInvocation(invocation, extensionContext, Optional.of(invocationContext));
 	}
 
 	@Override
-	default void interceptBeforeAllMethod(Invocation<Void> invocation,
-			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
+	default void interceptBeforeAllMethod(Invocation<Void> invocation, ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
 		interceptGenericInvocation(invocation, extensionContext, Optional.of(invocationContext));
 	}
 
 	@Override
-	default void interceptBeforeEachMethod(Invocation<Void> invocation,
-			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
+	default void interceptBeforeEachMethod(Invocation<Void> invocation, ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
 		interceptGenericInvocation(invocation, extensionContext, Optional.of(invocationContext));
 	}
 
 	@Override
-	default void interceptTestMethod(Invocation<Void> invocation, ReflectiveInvocationContext<Method> invocationContext,
-			ExtensionContext extensionContext) throws Throwable {
+	default void interceptTestMethod(Invocation<Void> invocation, ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
 		interceptGenericInvocation(invocation, extensionContext, Optional.of(invocationContext));
 	}
 
 	@Override
-	default <T> T interceptTestFactoryMethod(Invocation<T> invocation,
-			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
+	default <T> T interceptTestFactoryMethod(Invocation<T> invocation, ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
 		return interceptGenericInvocation(invocation, extensionContext, Optional.of(invocationContext));
 	}
 
 	@Override
-	default void interceptTestTemplateMethod(Invocation<Void> invocation,
-			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
+	default void interceptTestTemplateMethod(Invocation<Void> invocation, ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
 		interceptGenericInvocation(invocation, extensionContext, Optional.of(invocationContext));
 	}
 
 	@Override
-	default void interceptDynamicTest(Invocation<Void> invocation, DynamicTestInvocationContext invocationContext,
-			ExtensionContext extensionContext) throws Throwable {
+	default void interceptDynamicTest(Invocation<Void> invocation, DynamicTestInvocationContext invocationContext, ExtensionContext extensionContext) throws Throwable {
 		interceptGenericInvocation(invocation, extensionContext, Optional.empty());
 	}
 
 	@Override
-	default void interceptAfterEachMethod(Invocation<Void> invocation,
-			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
+	default void interceptAfterEachMethod(Invocation<Void> invocation, ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
 		interceptGenericInvocation(invocation, extensionContext, Optional.of(invocationContext));
 	}
 
 	@Override
-	default void interceptAfterAllMethod(Invocation<Void> invocation,
-			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
+	default void interceptAfterAllMethod(Invocation<Void> invocation, ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
 		interceptGenericInvocation(invocation, extensionContext, Optional.of(invocationContext));
 	}
 
@@ -80,18 +70,15 @@ public interface UnifiedInvocationInterceptor extends InvocationInterceptor {
 	 * Called for all invocation types unless the default method of this interface
 	 * is explicitly overridden.
 	 *
-	 * @param <T>               the result type of the invocation, often just
-	 *                          {@link Void}
-	 * @param invocation        the invocation that is being intercepted; never null
-	 * @param extensionContext  the current extension context; never null
+	 * @param <T> the result type of the invocation, often just {@link Void}
+	 * @param invocation the invocation that is being intercepted; never null
+	 * @param extensionContext the current extension context; never null
 	 * @param invocationContext the context of the invocation that is being
-	 *                          intercepted; never null; but may be empty for
-	 *                          {@link DynamicTest}s
+	 *            intercepted; never null; but may be empty for {@link DynamicTest}s
 	 * @return the result of the invocation; potentially null
 	 * @throws Throwable the invocation can potentially throw any throwable when it
-	 *                   is executed
+	 *             is executed
 	 * @author Christian Femers
 	 */
-	<T> T interceptGenericInvocation(Invocation<T> invocation, ExtensionContext extensionContext,
-			Optional<ReflectiveInvocationContext<?>> invocationContext) throws Throwable; // NOSONAR
+	<T> T interceptGenericInvocation(Invocation<T> invocation, ExtensionContext extensionContext, Optional<ReflectiveInvocationContext<?>> invocationContext) throws Throwable; // NOSONAR
 }

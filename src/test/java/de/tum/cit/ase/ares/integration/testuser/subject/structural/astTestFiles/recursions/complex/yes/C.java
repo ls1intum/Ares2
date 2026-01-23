@@ -2,7 +2,7 @@ package de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles
 
 public class C {
 
-    public static String aRecursive() {
-        return A.bRecursive();
-    }
+	public static String aRecursive() {
+		return A.bRecursive();
+	}
 }

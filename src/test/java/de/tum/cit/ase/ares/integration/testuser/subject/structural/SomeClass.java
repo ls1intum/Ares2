@@ -66,8 +66,7 @@ public class SomeClass implements SomeInterface {
 	}
 
 	private int superSecretMethod() {
-		return ThreadLocalRandom.current()
-				.nextInt(doSomethingOperations == null ? SOME_CONSTANT : doSomethingOperations.size());
+		return ThreadLocalRandom.current().nextInt(doSomethingOperations == null ? SOME_CONSTANT : doSomethingOperations.size());
 	}
 
 	static class Nested {

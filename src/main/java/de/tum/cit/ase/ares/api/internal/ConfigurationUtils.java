@@ -38,36 +38,30 @@ public final class ConfigurationUtils {
 	}
 
 	public static Set<PathRule> generatePathWhiteList(TestContext context) {
-		return TestContextUtils.findRepeatableAnnotationsIn(context, WhitelistPath.class).flatMap(PathRule::allOf)
-				.collect(Collectors.toSet());
+		return TestContextUtils.findRepeatableAnnotationsIn(context, WhitelistPath.class).flatMap(PathRule::allOf).collect(Collectors.toSet());
 	}
 
 	public static Set<PathRule> generatePathBlackList(TestContext context) {
-		return TestContextUtils.findRepeatableAnnotationsIn(context, BlacklistPath.class).flatMap(PathRule::allOf)
-				.collect(Collectors.toSet());
+		return TestContextUtils.findRepeatableAnnotationsIn(context, BlacklistPath.class).flatMap(PathRule::allOf).collect(Collectors.toSet());
 	}
 
 	public static Set<String> generateClassWhiteList(TestContext context) {
-		Set<String> entries = StackWalker.getInstance()
-				.walk(s -> s.map(StackFrame::getClassName).collect(Collectors.toCollection(HashSet::new)));
+		Set<String> entries = StackWalker.getInstance().walk(s -> s.map(StackFrame::getClassName).collect(Collectors.toCollection(HashSet::new)));
 		TestContextUtils.getClassNestingInnermostFirst(context).map(Class::getName).forEach(entries::add);
 		entries.addAll(getWhitelistedClasses(context));
 		return entries;
 	}
 
 	public static Set<String> getWhitelistedClasses(TestContext context) {
-		return TestContextUtils.findRepeatableAnnotationsIn(context, WhitelistClass.class).map(WhitelistClass::value)
-				.flatMap(Arrays::stream).map(Class::getName).collect(Collectors.toSet());
+		return TestContextUtils.findRepeatableAnnotationsIn(context, WhitelistClass.class).map(WhitelistClass::value).flatMap(Arrays::stream).map(Class::getName).collect(Collectors.toSet());
 	}
 
 	public static boolean shouldMirrorOutput(TestContext context) {
-		return TestContextUtils.findAnnotationIn(context, MirrorOutput.class).map(MirrorOutput::value)
-				.map(MirrorOutputPolicy::isEnabled).orElse(false);
+		return TestContextUtils.findAnnotationIn(context, MirrorOutput.class).map(MirrorOutput::value).map(MirrorOutputPolicy::isEnabled).orElse(false);
 	}
 
 	public static long getMaxStandardOutput(TestContext context) {
-		return TestContextUtils.findAnnotationIn(context, MirrorOutput.class).map(MirrorOutput::maxCharCount)
-				.orElse(MirrorOutput.DEFAULT_MAX_STD_OUT);
+		return TestContextUtils.findAnnotationIn(context, MirrorOutput.class).map(MirrorOutput::maxCharCount).orElse(MirrorOutput.DEFAULT_MAX_STD_OUT);
 	}
 
 	public static void configureAllowLocalPort(AresSecurityConfigurationBuilder config, TestContext context) {
@@ -79,34 +73,27 @@ public final class ConfigurationUtils {
 	}
 
 	public static OptionalInt getAllowedThreadCount(TestContext context) {
-		return TestContextUtils.findAnnotationIn(context, AllowThreads.class).map(AllowThreads::maxActiveCount)
-				.map(OptionalInt::of).orElseGet(OptionalInt::empty);
+		return TestContextUtils.findAnnotationIn(context, AllowThreads.class).map(AllowThreads::maxActiveCount).map(OptionalInt::of).orElseGet(OptionalInt::empty);
 	}
 
 	public static Set<PackageRule> generatePackageBlackList(TestContext context) {
-		return TestContextUtils.findRepeatableAnnotationsIn(context, BlacklistPackage.class).flatMap(PackageRule::allOf)
-				.collect(Collectors.toSet());
+		return TestContextUtils.findRepeatableAnnotationsIn(context, BlacklistPackage.class).flatMap(PackageRule::allOf).collect(Collectors.toSet());
 	}
 
 	public static Set<PackageRule> generatePackageWhiteList(TestContext context) {
-		return TestContextUtils.findRepeatableAnnotationsIn(context, WhitelistPackage.class).flatMap(PackageRule::allOf)
-				.collect(Collectors.toSet());
+		return TestContextUtils.findRepeatableAnnotationsIn(context, WhitelistPackage.class).flatMap(PackageRule::allOf).collect(Collectors.toSet());
 	}
 
 	public static Optional<String> getNonprivilegedFailureMessage(TestContext context) {
-		return TestContextUtils.findAnnotationIn(context, PrivilegedExceptionsOnly.class)
-				.map(PrivilegedExceptionsOnly::value);
+		return TestContextUtils.findAnnotationIn(context, PrivilegedExceptionsOnly.class).map(PrivilegedExceptionsOnly::value);
 	}
 
 	public static Set<PackageRule> getTrustedPackages(TestContext context) {
-		return TestContextUtils.findRepeatableAnnotationsIn(context, AddTrustedPackage.class)
-				.map(AddTrustedPackage::value)
-				.flatMap(packagePatterns -> PackageRule.from(RuleType.WHITELIST, packagePatterns))
-				.collect(Collectors.toSet());
+		return TestContextUtils.findRepeatableAnnotationsIn(context, AddTrustedPackage.class).map(AddTrustedPackage::value)
+				.flatMap(packagePatterns -> PackageRule.from(RuleType.WHITELIST, packagePatterns)).collect(Collectors.toSet());
 	}
 
 	private static TrustScope getThreadTrustScope(TestContext context) {
-		return TestContextUtils.findAnnotationIn(context, TrustedThreads.class).map(TrustedThreads::value)
-				.orElse(TrustScope.MINIMAL);
+		return TestContextUtils.findAnnotationIn(context, TrustedThreads.class).map(TrustedThreads::value).orElse(TrustScope.MINIMAL);
 	}
 }

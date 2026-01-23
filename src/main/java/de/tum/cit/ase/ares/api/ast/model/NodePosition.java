@@ -17,8 +17,7 @@ import com.github.javaparser.utils.Pair;
 @API(status = Status.INTERNAL)
 public class NodePosition implements Comparable<NodePosition> {
 
-	private static final Comparator<NodePosition> COMPARATOR = Comparator.comparing(NodePosition::getBeginLine)
-			.thenComparing(NodePosition::getBeginColumn);
+	private static final Comparator<NodePosition> COMPARATOR = Comparator.comparing(NodePosition::getBeginLine).thenComparing(NodePosition::getBeginColumn);
 
 	private final boolean hasBegin;
 	private final Pair<Integer, Integer> begin;
@@ -44,9 +43,7 @@ public class NodePosition implements Comparable<NodePosition> {
 
 	@Override
 	public String toString() {
-		return localized("ast.method.to_string",
-				(hasBegin ? localized("ast.check.has_begin_end", begin.a, begin.b)
-						: localized("ast.check.not_has_begin")),
+		return localized("ast.method.to_string", (hasBegin ? localized("ast.check.has_begin_end", begin.a, begin.b) : localized("ast.check.not_has_begin")),
 				(hasEnd ? localized("ast.check.has_begin_end", end.a, end.b) : localized("ast.check.not_has_end")));
 	}
 

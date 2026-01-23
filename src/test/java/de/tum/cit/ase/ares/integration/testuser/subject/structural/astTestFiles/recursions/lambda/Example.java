@@ -2,20 +2,18 @@ package de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles
 
 public class Example {
 
+	public void method() {
+		Runnable r = () -> {
+			method2();
+		};
+		r.run();
+	}
 
-    public void method() {
-        Runnable r = () -> {
-            method2();
-        };
-        r.run();
-    }
-
-    public void method2() {
-        Runnable r = () -> {
-            method();
-        };
-        r.run();
-    }
-
+	public void method2() {
+		Runnable r = () -> {
+			method();
+		};
+		r.run();
+	}
 
 }

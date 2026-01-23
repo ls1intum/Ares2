@@ -28,8 +28,8 @@ public class SecurityUser {
 
 	@Test
 	void doSystemExit() {
-		//OUTCOMMENTED: Action terminates the JVM
-		//System.exit(0);
+		// OUTCOMMENTED: Action terminates the JVM
+		// System.exit(0);
 	}
 
 	@Test
@@ -81,7 +81,7 @@ public class SecurityUser {
 		SecurityPenguin.newClassLoader();
 	}
 
-	//REMOVED: Test for a new SecurityManager
+	// REMOVED: Test for a new SecurityManager
 
 	@Test
 	@AddTrustedPackage("xyz.**")
@@ -99,7 +99,7 @@ public class SecurityUser {
 		SecurityPenguin.tryManageProcess();
 	}
 
-	//REMOVED: Test for setting the SecurityManager to null
+	// REMOVED: Test for setting the SecurityManager to null
 
 	@Test
 	void trySetSystemOut() {
@@ -136,7 +136,7 @@ public class SecurityUser {
 		SecurityPenguin.useReflection();
 	}
 
-	//REMOVED: Test for privileged reflection
+	// REMOVED: Test for privileged reflection
 
 	@Test
 	void useReflectionTrick() throws Throwable {

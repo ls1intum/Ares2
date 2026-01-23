@@ -49,8 +49,7 @@ class StructuralTest {
 
 	@TestTest
 	void test_testAttributesSomeInterface() {
-		tests.assertThatEvents().haveExactly(COUNT, testFailedWith(testAttributesSomeInterface,
-				AssertionFailedError.class,
+		tests.assertThatEvents().haveExactly(COUNT, testFailedWith(testAttributesSomeInterface, AssertionFailedError.class,
 				"The type of the expected attribute 'ANOTHER_CONSTANT' of the class 'SomeInterface' is not implemented as expected."));
 	}
 
@@ -66,23 +65,21 @@ class StructuralTest {
 
 	@TestTest
 	void test_testAttributesSomeAbstractClass() {
-		tests.assertThatEvents().haveExactly(COUNT,
-				testFailedWith(testAttributesSomeAbstractClass, AssertionFailedError.class,
-						"The modifier(s) (access type, abstract, etc.) of the expected attribute 'someInt' "
-								+ "of the class 'SomeAbstractClass' are not implemented as expected."));
+		tests.assertThatEvents().haveExactly(COUNT, testFailedWith(testAttributesSomeAbstractClass, AssertionFailedError.class,
+				"The modifier(s) (access type, abstract, etc.) of the expected attribute 'someInt' " + "of the class 'SomeAbstractClass' are not implemented as expected."));
 	}
 
 	@TestTest
 	void test_testAttributesSomeFailingClass() {
-		tests.assertThatEvents().haveExactly(COUNT, testFailedWith(testAttributesSomeFailingClass,
-				IllegalArgumentException.class, "Invalid entry for modifier: 'penguin: final'"));
+		tests.assertThatEvents().haveExactly(COUNT, testFailedWith(testAttributesSomeFailingClass, IllegalArgumentException.class, "Invalid entry for modifier: 'penguin: final'"));
 	}
 
 	@TestTest
 	void test_testClassDoesNotExist() {
-		tests.assertThatEvents().haveExactly(COUNT, testFailedWith(testClassDoesNotExist, AssertionFailedError.class,
-				"The exercise expects a class with the name DoesNotExist in the package de.tum.cit.ase.ares.integration.testuser.subject.structural. "
-						+ "You did not implement the class in the exercise."));
+		tests.assertThatEvents().haveExactly(COUNT,
+				testFailedWith(testClassDoesNotExist, AssertionFailedError.class,
+						"The exercise expects a class with the name DoesNotExist in the package de.tum.cit.ase.ares.integration.testuser.subject.structural. "
+								+ "You did not implement the class in the exercise."));
 	}
 
 	@TestTest
@@ -92,10 +89,8 @@ class StructuralTest {
 
 	@TestTest
 	void test_testClassMisspelledClas() {
-		tests.assertThatEvents().haveExactly(COUNT, testFailedWith(testClassMisspelledClas, AssertionFailedError.class,
-				"The exercise expects a class with the name MisspelledClas. "
-						+ "We found that you implemented a class MisspelledClass, which deviates from the expectation. "
-						+ "Check for typos in the class name."));
+		tests.assertThatEvents().haveExactly(COUNT, testFailedWith(testClassMisspelledClas, AssertionFailedError.class, "The exercise expects a class with the name MisspelledClas. "
+				+ "We found that you implemented a class MisspelledClass, which deviates from the expectation. " + "Check for typos in the class name."));
 	}
 
 	@TestTest
@@ -115,25 +110,20 @@ class StructuralTest {
 
 	@TestTest
 	void test_testClassMisspelledclass() {
-		tests.assertThatEvents().haveExactly(COUNT, testFailedWith(testClassMisspelledclass, AssertionFailedError.class,
-				"The exercise expects a class with the name Misspelledclass. "
-						+ "We found that you implemented a class MisspelledClass, which deviates from the expectation. "
-						+ "Check for wrong upper case / lower case lettering."));
+		tests.assertThatEvents().haveExactly(COUNT, testFailedWith(testClassMisspelledclass, AssertionFailedError.class, "The exercise expects a class with the name Misspelledclass. "
+				+ "We found that you implemented a class MisspelledClass, which deviates from the expectation. " + "Check for wrong upper case / lower case lettering."));
 	}
 
 	@TestTest
 	void test_testClassSomeFailingClass() {
-		tests.assertThatEvents().haveExactly(COUNT, testFailedWith(testClassSomeFailingClass,
-				AssertionFailedError.class,
-				"The modifier(s) (access type, abstract, etc.) of SomeFailingClass are not implemented as expected."));
+		tests.assertThatEvents().haveExactly(COUNT,
+				testFailedWith(testClassSomeFailingClass, AssertionFailedError.class, "The modifier(s) (access type, abstract, etc.) of SomeFailingClass are not implemented as expected."));
 	}
 
 	@TestTest
 	void test_testClassDoesNotExistDefault() {
-		tests.assertThatEvents().haveExactly(COUNT, testFailedWith(testClassDoesNotExistDefault,
-				AssertionFailedError.class,
-				"The exercise expects a class with the name DoesNotExistDefault in the package <default> (i.e., no package). "
-						+ "You did not implement the class in the exercise."));
+		tests.assertThatEvents().haveExactly(COUNT, testFailedWith(testClassDoesNotExistDefault, AssertionFailedError.class,
+				"The exercise expects a class with the name DoesNotExistDefault in the package <default> (i.e., no package). " + "You did not implement the class in the exercise."));
 	}
 
 	@TestTest
@@ -154,8 +144,7 @@ class StructuralTest {
 
 	@TestTest
 	void test_testConstructorsSomeFailingClass() {
-		tests.assertThatEvents().haveExactly(COUNT, testFailedWith(testConstructorsSomeFailingClass,
-				AssertionFailedError.class,
+		tests.assertThatEvents().haveExactly(COUNT, testFailedWith(testConstructorsSomeFailingClass, AssertionFailedError.class,
 				"The parameters of the expected constructor of the class 'SomeFailingClass' with the parameters: [\"int\",\"String\"] are not implemented as expected."));
 	}
 
@@ -171,8 +160,8 @@ class StructuralTest {
 
 	@TestTest
 	void test_testMethodsSomeEnum() {
-		tests.assertThatEvents().haveExactly(COUNT, testFailedWith(testMethodsSomeEnum, AssertionFailedError.class,
-				"The expected method 'doesNotExist' of the class 'SomeEnum' with no parameters was not found or is named wrongly."));
+		tests.assertThatEvents().haveExactly(COUNT,
+				testFailedWith(testMethodsSomeEnum, AssertionFailedError.class, "The expected method 'doesNotExist' of the class 'SomeEnum' with no parameters was not found or is named wrongly."));
 	}
 
 	@TestTest
@@ -182,8 +171,7 @@ class StructuralTest {
 
 	@TestTest
 	void test_testMethodsSomeFailingClass() {
-		tests.assertThatEvents().haveExactly(COUNT, testFailedWith(testMethodsSomeFailingClass,
-				AssertionFailedError.class,
+		tests.assertThatEvents().haveExactly(COUNT, testFailedWith(testMethodsSomeFailingClass, AssertionFailedError.class,
 				"The parameters of the expected method 'someMethodWithWrongParameterOrder' of the class 'SomeFailingClass' with the parameters: [\"int\",\"double\"] are not implemented as expected."));
 	}
 
@@ -194,21 +182,19 @@ class StructuralTest {
 
 	@TestTest
 	void test_invalidGradle() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(invalidGradle, AssertionFailedError.class,
-				"[[ERROR] Could not retrieve source directory from project file. Contact your instructor.]"));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(invalidGradle, AssertionFailedError.class, "[[ERROR] Could not retrieve source directory from project file. Contact your instructor.]"));
 	}
 
 	@TestTest
 	void test_invalidMaven() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(invalidMaven, AssertionFailedError.class,
-				"[[ERROR] Could not retrieve the source directory from the pom.xml file. Contact your instructor., "
+		tests.assertThatEvents().haveExactly(1,
+				testFailedWith(invalidMaven, AssertionFailedError.class, "[[ERROR] Could not retrieve the source directory from the pom.xml file. Contact your instructor., "
 						+ "[ERROR] Could not retrieve source directory from project file. Contact your instructor.]"));
 	}
 
 	@TestTest
 	void test_noBuildToolFile() {
 		tests.assertThatEvents().haveExactly(1, testFailedWith(noBuildToolFile, AssertionFailedError.class,
-				"[[ERROR] Could not find any build file. Contact your instructor., "
-						+ "[ERROR] Could not retrieve source directory from project file. Contact your instructor.]"));
+				"[[ERROR] Could not find any build file. Contact your instructor., " + "[ERROR] Could not retrieve source directory from project file. Contact your instructor.]"));
 	}
 }

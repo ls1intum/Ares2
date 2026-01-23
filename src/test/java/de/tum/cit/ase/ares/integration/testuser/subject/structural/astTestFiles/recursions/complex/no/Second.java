@@ -2,16 +2,16 @@ package de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles
 
 public class Second {
 
-    public void callThird() {
-        Third third = new Third();
-    }
+	public void callThird() {
+		Third third = new Third();
+	}
 
-    public void callFourth() {
-        Fourth fourth = new Fourth();
-        fourth.callThird();
-    }
+	public void callFourth() {
+		Fourth fourth = new Fourth();
+		fourth.callThird();
+	}
 
-    public void callFifth() {
-        Fifth fifth = new Fifth();
-    }
+	public void callFifth() {
+		Fifth fifth = new Fifth();
+	}
 }

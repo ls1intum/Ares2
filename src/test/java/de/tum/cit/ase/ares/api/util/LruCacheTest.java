@@ -22,8 +22,7 @@ class LruCacheTest {
 
 			assertThat(cache.size()).isLessThanOrEqualTo(size);
 
-			var expectedKeys = LongStream.iterate(key, k -> k >= 0, k -> k - 1).limit(size).boxed()
-					.toArray(Long[]::new);
+			var expectedKeys = LongStream.iterate(key, k -> k >= 0, k -> k - 1).limit(size).boxed().toArray(Long[]::new);
 
 			assertThat(cache).containsOnlyKeys(expectedKeys);
 		}

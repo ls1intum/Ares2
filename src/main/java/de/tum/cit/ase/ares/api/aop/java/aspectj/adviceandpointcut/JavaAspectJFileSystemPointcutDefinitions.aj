@@ -121,9 +121,9 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
 
     pointcut fileTypeDetectorProbeContentTypeMethods(): if(false);
 
-    pointcut fileImageSourceInitMethods(): call(sun.awt.image.FileImageSource.new(..));
+    pointcut fileImageSourceInitMethods(): if(false);
 
-    pointcut imageConsumerQueueInitMethods(): call(sun.awt.image.ImageConsumerQueue.new(..));
+    pointcut imageConsumerQueueInitMethods(): if(false);
 
     pointcut filesReadMethods():
             (call(* java.awt.Toolkit.createImage(..)) ||
@@ -214,11 +214,15 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.util.Properties.load(..)) ||
                     call(* java.util.Properties.loadFromXML(..)));
 
+    // Note: Files.newByteChannel is intentionally NOT included here.
+    // It is already in filesReadMethods, and the actual operation (read/write/create)
+    // is determined by the OpenOptions passed to it. The deriveActionChecks() method handles
+    // the semantic classification based on the options. Methods like Files.readString() and
+    // Files.readAllLines() internally call newByteChannel() with default READ-only options.
     pointcut filesWriteMethods():
             (call(* java.nio.file.Files.write(..)) ||
                     call(* java.nio.file.Files.writeString(..)) ||
                     call(* java.nio.file.Files.newBufferedWriter(..)) ||
-                    call(* java.nio.file.Files.newByteChannel(..)) ||
                     call(* java.nio.file.Files.newOutputStream(..)) ||
                     call(* java.nio.file.Files.copy(..)) ||
                     call(* java.nio.file.Files.move(..)) ||
@@ -227,6 +231,14 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.nio.file.Files.setOwner(..)) ||
                     call(* java.nio.file.Files.setPosixFilePermissions(..)));
 
+    // Note: Files.newByteChannel is intentionally NOT included here.
+    // It is already in filesReadMethods, and the actual operation is determined
+    // by the OpenOptions. The deriveActionChecks() method handles semantic classification.
+    // Methods like Files.readString() and Files.readAllLines() internally call
+    // newByteChannel() with default READ-only options.
+    // Note: Files.write and Files.writeString are NOT included here because they default to
+    // TRUNCATE_EXISTING behavior. When called with CREATE or CREATE_NEW options, the
+    // deriveActionChecks method will detect these options and properly classify as "create".
     pointcut filesCreateMethods():
             (call(* java.nio.file.Files.createDirectory(..)) ||
                     call(* java.nio.file.Files.createDirectories(..)) ||
@@ -236,10 +248,7 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.nio.file.Files.createTempDirectory(..)) ||
                     call(* java.nio.file.Files.createTempFile(..)) ||
                     call(* java.nio.file.Files.newBufferedWriter(..)) ||
-                    call(* java.nio.file.Files.newByteChannel(..)) ||
-                    call(* java.nio.file.Files.newOutputStream(..)) ||
-                    call(* java.nio.file.Files.write(..)) ||
-                    call(* java.nio.file.Files.writeString(..)));
+                    call(* java.nio.file.Files.newOutputStream(..)));
 
     pointcut filesExecuteMethods(): if(false);
 
@@ -249,8 +258,7 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
 
     pointcut fileSystemReadMethods(): if(false);
 
-    pointcut fileSystemWriteMethods():
-            call(* java.nio.file.FileSystem.close(..));
+    pointcut fileSystemWriteMethods(): if(false);
 
     pointcut fileSystemExecuteMethods(): if(false);
 
@@ -265,16 +273,22 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.nio.channels.FileChannel.transferFrom(..)) ||
                     call(* java.nio.channels.SeekableByteChannel.read(..)));
 
-    pointcut fileChannelCreateMethods():
-            (call(* java.nio.channels.FileChannel.open(..)) ||
-                    call(* java.nio.channels.AsynchronousFileChannel.open(..)));
+    // Note: FileChannel.open and AsynchronousFileChannel.open are intentionally NOT included here.
+    // These methods are already in fileChannelReadMethods, and the actual operation (read/write/create)
+    // is determined by the OpenOptions passed to them. The deriveActionChecks() method handles
+    // the semantic classification based on the options. Subsequent write()/truncate() calls
+    // will be caught by fileChannelWriteMethods if needed.
+    pointcut fileChannelCreateMethods(): if(false);
 
+    // Note: FileChannel.open and AsynchronousFileChannel.open are intentionally NOT included here.
+    // These methods are already in fileChannelReadMethods, and the actual operation is determined
+    // by the OpenOptions. The deriveActionChecks() method handles semantic classification.
+    // Note: FileChannel.map is intentionally NOT included here. It's in fileChannelReadMethods,
+    // and the actual operation is determined by the MapMode parameter. MapMode.READ_ONLY does
+    // not modify the file. The deriveActionChecks() method handles semantic classification.
     pointcut fileChannelWriteMethods():
-            (call(* java.nio.channels.AsynchronousFileChannel.open(..)) ||
-                    call(* java.nio.channels.AsynchronousFileChannel.write(..)) ||
+            (call(* java.nio.channels.AsynchronousFileChannel.write(..)) ||
                     call(* java.nio.channels.AsynchronousFileChannel.truncate(..)) ||
-                    call(* java.nio.channels.FileChannel.map(..)) ||
-                    call(* java.nio.channels.FileChannel.open(..)) ||
                     call(* java.nio.channels.FileChannel.write(..)) ||
                     call(* java.nio.channels.FileChannel.truncate(..)) ||
                     call(* java.nio.channels.FileChannel.transferTo(..)));
@@ -306,8 +320,7 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
     pointcut fileSystemsReadMethods():
             call(* java.nio.file.FileSystem.newWatchService(..));
 
-    pointcut defaultFileSystemExecuteMethods():
-            call(* java.io.DefaultFileSystem.getFileSystem(..));
+    pointcut defaultFileSystemExecuteMethods(): if(false);
 
     pointcut fileSystemProviderReadMethods():
             (call(* java.nio.file.spi.FileSystemProvider.newAsynchronousFileChannel(..)) ||
@@ -329,7 +342,6 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
             (call(* java.nio.file.spi.FileSystemProvider.copy(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider.move(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider.newAsynchronousFileChannel(..)) ||
-                    call(* java.nio.file.spi.FileSystemProvider.newByteChannel(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider.newOutputStream(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider.setAttribute(..)));
 

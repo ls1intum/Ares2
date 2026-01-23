@@ -28,8 +28,7 @@ import de.tum.cit.ase.ares.api.StrictTimeout;
 public class JupiterStrictTimeoutExtension implements UnifiedInvocationInterceptor {
 
 	@Override
-	public <T> T interceptGenericInvocation(Invocation<T> invocation, ExtensionContext extensionContext,
-			Optional<ReflectiveInvocationContext<?>> invocationContext) throws Throwable {
+	public <T> T interceptGenericInvocation(Invocation<T> invocation, ExtensionContext extensionContext, Optional<ReflectiveInvocationContext<?>> invocationContext) throws Throwable {
 		return performTimeoutExecution(invocation::proceed, JupiterContext.of(extensionContext));
 	}
 }

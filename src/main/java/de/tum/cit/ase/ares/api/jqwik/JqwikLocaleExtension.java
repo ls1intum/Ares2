@@ -9,9 +9,9 @@ import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 import org.junit.platform.commons.support.AnnotationSupport;
 
-import net.jqwik.api.lifecycle.*;
-
 import de.tum.cit.ase.ares.api.localization.UseLocale;
+
+import net.jqwik.api.lifecycle.*;
 
 @API(status = Status.INTERNAL)
 public class JqwikLocaleExtension implements AroundContainerHook {

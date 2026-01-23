@@ -23,15 +23,15 @@ public class ClassWithNoKindsOfExceptionHandlings {
 	public void switchStatement() {
 		String output;
 		switch (3) {
-		case 1:
-			output = "Hello";
-			break;
-		case 0:
-			output = "World";
-			break;
-		default:
-			output = "!";
-			break;
+			case 1 :
+				output = "Hello";
+				break;
+			case 0 :
+				output = "World";
+				break;
+			default :
+				output = "!";
+				break;
 		}
 		System.out.println(output);
 	}
@@ -43,7 +43,7 @@ public class ClassWithNoKindsOfExceptionHandlings {
 	}
 
 	public void forEachLoop() {
-		for (int integer : new int[] { 3, 3, 3 }) {
+		for (int integer : new int[]{ 3, 3, 3 }) {
 			System.out.println("Hello World");
 		}
 	}

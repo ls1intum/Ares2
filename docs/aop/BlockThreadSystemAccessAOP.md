@@ -101,8 +101,8 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 - All code within `restrictedPackage`
 
 **Security Assumptions:** 
-- Student code cannot modify Ares security settings (guaranteed by making settings private and modifying them only by reflection (which is excluded for student code))
-- Student code cannot interfere with security monitoring (guaranteed by making settings private and modifying them only by reflection (which is excluded for student code))
+- Student code cannot modify Ares security settings (guaranteed by making settings private; reflection is disabled for student code)
+- Student code cannot interfere with security monitoring (guaranteed by making settings private; reflection is disabled for student code)
 - Student code executes after Ares is initialized (guaranteed by build pipeline)
 
 ---

@@ -5,11 +5,7 @@ import org.apiguardian.api.API.Status;
 
 @API(status = Status.STABLE)
 public enum PathActionLevel {
-	READ,
-	READLINK,
-	WRITE,
-	DELETE,
-	EXECUTE;
+	READ, READLINK, WRITE, DELETE, EXECUTE;
 
 	public boolean isAboveOrEqual(PathActionLevel other) {
 		return ordinal() >= other.ordinal();

@@ -11,7 +11,7 @@ public class ClassWithAnyKindsOfLoops {
 	}
 
 	public void forEachLoop() {
-		for (int integer : new int[] { 3, 3, 3 }) {
+		for (int integer : new int[]{ 3, 3, 3 }) {
 			System.out.println("Hello World");
 		}
 	}

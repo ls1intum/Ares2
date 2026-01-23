@@ -37,9 +37,14 @@
      - [5.4.4 Check Object State for File Paths](#544-check-object-state-for-file-paths)
      - [5.4.5 Allow Ares Internal Files](#545-allow-ares-internal-files)
    - [5.5 Check 5: Block Access with Detailed Error Message](#55-check-5-block-access-with-detailed-error-message)
-6. [Ares 2 AOP File System Access Control: Conclusion](#6-ares-2-aop-file-system-access-control-conclusion)
-   - [6.1 Summary for Programming Instructors (TL;DR)](#61-summary-for-programming-instructors-tldr)
-   - [6.2 Technical Details](#62-technical-details)
+6. [Ares 2 AOP File System Access Control: Operation Type Classification](#6-ares-2-aop-file-system-access-control-operation-type-classification)
+   - [6.1 Kategorie A: OpenOptions-Priorisierung](#61-kategorie-a-openoptions-priorisierung)
+   - [6.2 Kategorie B: RandomAccessFile Mode-Erkennung](#62-kategorie-b-randomaccessfile-mode-erkennung)
+   - [6.3 Kategorie C: Vorbereitende Operationen](#63-kategorie-c-vorbereitende-operationen)
+   - [6.4 Kategorie D: Falsches Subsystem](#64-kategorie-d-falsches-subsystem)
+7. [Ares 2 AOP File System Access Control: Conclusion](#7-ares-2-aop-file-system-access-control-conclusion)
+   - [7.1 Summary for Programming Instructors (TL;DR)](#71-summary-for-programming-instructors-tldr)
+   - [7.2 Technical Details](#72-technical-details)
 
 ---
 
@@ -139,8 +144,8 @@ Summarising this, Ares trusts code when:
 - It is listed as Ares internal code
 
 **Security Assumptions:** 
-- Student code cannot modify Ares security settings (guaranteed by making settings private and modifying them only by reflection (which is excluded for student code))
-- Student code cannot interfere with security monitoring (guaranteed by making settings private and modifying them only by reflection (which is excluded for student code))
+- Student code cannot modify Ares security settings (guaranteed by making settings private; reflection is disabled for student code)
+- Student code cannot interfere with security monitoring (guaranteed by making settings private; reflection is disabled for student code)
 - Student code executes after Ares is initialized (guaranteed by build pipeline)
 
 ---
@@ -287,6 +292,7 @@ Read APIs listed below access file contents or metadata without modifying them.
 
 | Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
 | --- | --- | --- | --- | --- |
+| java.io.File | normalizedList | ✅ | ✅ | ❌ |
 | java.io.File | list | ✅ | ✅ | ❌ |
 | java.io.File | listFiles | ✅ | ✅ | ❌ |
 | java.io.File | listRoots | ✅ | ✅ | ❌ |
@@ -306,23 +312,27 @@ Read APIs listed below access file contents or metadata without modifying them.
 > - `java.io.File.canRead()`  
 > - `java.io.File.canWrite()`
 > - `java.io.File.canExecute()`
+> - `java.io.File.isDirectory()`
+> - `java.io.File.isFile()`
+> - `java.io.File.isHidden()`
+> - `java.nio.file.Files.isDirectory()`
+> - `java.nio.file.Files.isRegularFile()`
+> - `java.nio.file.Files.isSymbolicLink()`
+> - `java.nio.file.Files.isHidden()`
+> - `java.nio.file.Files.getFileAttributeView()`
+> - `java.nio.file.spi.FileSystemProvider.getFileAttributeView()`
+> - `java.nio.file.spi.FileSystemProvider.isHidden()`
+> - `java.nio.file.spi.FileSystemProvider.checkAccess()`
 >
 > **Reason:** These methods are commonly used for pre-validation checks (e.g., checking if a file exists before reading it). Instrumenting them causes SecurityExceptions to be thrown prematurely in validation code, before the actual file operation occurs. Since these methods only query metadata and don't perform actual file I/O, they are safe to exclude from monitoring.
 
 | Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
 | --- | --- | --- | --- | --- |
-| java.io.File | isDirectory | ✅ | ✅ | ❌ |
-| java.io.File | isFile | ✅ | ✅ | ❌ |
-| java.io.File | isHidden | ✅ | ✅ | ❌ |
 | java.io.File | lastModified | ✅ | ✅ | ❌ |
 | java.io.File | length | ✅ | ✅ | ❌ |
 | java.io.File | getFreeSpace | ✅ | ✅ | ❌ |
 | java.io.File | getTotalSpace | ✅ | ✅ | ❌ |
 | java.io.File | getUsableSpace | ✅ | ✅ | ❌ |
-| java.nio.file.Files | isDirectory | ✅ | ✅ | ❌ |
-| java.nio.file.Files | isRegularFile | ✅ | ✅ | ❌ |
-| java.nio.file.Files | isSymbolicLink | ✅ | ✅ | ❌ |
-| java.nio.file.Files | isHidden | ✅ | ✅ | ❌ |
 | java.nio.file.Files | isSameFile | ✅ | ✅ | ❌ |
 | java.nio.file.Files | size | ✅ | ✅ | ❌ |
 | java.nio.file.Files | getLastModifiedTime | ✅ | ✅ | ❌ |
@@ -332,13 +342,9 @@ Read APIs listed below access file contents or metadata without modifying them.
 | java.nio.file.Files | getFileStore | ✅ | ✅ | ❌ |
 | java.nio.file.Files | probeContentType | ✅ | ✅ | ❌ |
 | java.nio.file.Files | readSymbolicLink | ✅ | ✅ | ❌ |
-| java.nio.file.Files | getFileAttributeView | ✅ | ✅ | ❌ |
-| java.nio.file.spi.FileSystemProvider | getFileAttributeView | ✅ | ✅ | ❌ |
 | java.nio.file.spi.FileSystemProvider | getFileStore | ✅ | ✅ | ❌ |
-| java.nio.file.spi.FileSystemProvider | isHidden | ✅ | ✅ | ❌ |
 | java.nio.file.spi.FileSystemProvider | isSameFile | ✅ | ✅ | ❌ |
 | java.nio.file.spi.FileSystemProvider | readSymbolicLink | ✅ | ✅ | ❌ |
-| java.nio.file.spi.FileSystemProvider | checkAccess | ✅ | ✅ | ❌ |
 
 ---
 
@@ -371,11 +377,10 @@ Write APIs listed below modify existing content or attributes.
 | java.nio.channels.FileChannel | map | ✅ | ✅ | ✅ |
 | java.nio.channels.FileChannel | write | ✅ | ✅ | ✅ |
 | java.nio.file.Files | newBufferedWriter | ✅ | ✅ | ✅ |
-| java.nio.file.Files | newByteChannel | ✅ | ✅ | ✅ |
+| java.nio.file.Files | newByteChannel | ❌ | ✅ | ✅ |
 | java.nio.file.Files | newOutputStream | ✅ | ✅ | ✅ |
 | java.nio.file.Files | write | ✅ | ✅ | ✅ |
 | java.nio.file.spi.FileSystemProvider | newAsynchronousFileChannel | ✅ | ✅ | ❌ |
-| java.nio.file.spi.FileSystemProvider | newByteChannel | ✅ | ✅ | ❌ |
 | java.nio.file.spi.FileSystemProvider | newOutputStream | ✅ | ✅ | ❌ |
 
 **Writes UTF-8 text/tokens fully**
@@ -516,10 +521,7 @@ Link creation APIs and conditional creates (e.g., `FileChannel.open` with create
 | java.nio.file.Files | createSymbolicLink | ✅ | ✅ | ✅ |
 | java.nio.file.Files | createTempFile | ✅ | ✅ | ✅ |
 | java.nio.file.Files | newBufferedWriter | ✅ | ✅ | ✅ |
-| java.nio.file.Files | newByteChannel | ✅ | ✅ | ✅ |
 | java.nio.file.Files | newOutputStream | ✅ | ✅ | ✅ |
-| java.nio.file.Files | write | ✅ | ✅ | ✅ |
-| java.nio.file.Files | writeString | ✅ | ✅ | ✅ |
 | java.nio.file.spi.FileSystemProvider | createLink | ✅ | ✅ | ❌ |
 | java.nio.file.spi.FileSystemProvider | createSymbolicLink | ✅ | ✅ | ❌ |
 
@@ -569,9 +571,9 @@ Delete APIs listed below can remove files and empty directories.
 | java.nio.file.spi.FileSystemProvider | delete | ✅ | ✅ | ❌ |
 | java.nio.file.spi.FileSystemProvider | deleteIfExists | ✅ | ✅ | ❌ |
 
-**Does not delete (still monitored in delete pointcuts)**
+**Does not delete (still monitored in delete pointcuts in Byte Buddy only)**
 
-- `java.nio.file.Files`: copy, move
+- `java.nio.file.Files`: copy, move (Note: AspectJ does NOT monitor these in delete pointcuts)
 
 ---
 
@@ -588,11 +590,13 @@ Execute APIs listed below trigger execution-like behavior on files.
 
 **Executes the file on the console (command line execution)**
 
+> **Note:** In Byte Buddy mode, `ProcessBuilder.start()`, `ProcessBuilder.startPipeline()`, and `Runtime.exec()` are handled by the **Command System** rather than the File System, as they execute commands rather than individual files. The File System pointcuts for execute only cover library loading (`load`/`loadLibrary`).
+
 | Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
 | --- | --- | --- | --- | --- |
-| java.lang.ProcessBuilder | start | ✅ | ✅ | ✅ |
-| java.lang.ProcessBuilder | startPipeline | ✅ | ✅ | ✅ |
-| java.lang.Runtime | exec | ✅ | ✅ | ✅ |
+| java.lang.ProcessBuilder | start | ✅ | ❌ (Command System) | ✅ |
+| java.lang.ProcessBuilder | startPipeline | ✅ | ❌ (Command System) | ✅ |
+| java.lang.Runtime | exec | ✅ | ❌ (Command System) | ✅ |
 | java.lang.Runtime | load | ✅ | ✅ | ❌ |
 | java.lang.Runtime | loadLibrary | ✅ | ✅ | ❌ |
 | java.lang.System | load | ✅ | ✅ | ❌ |
@@ -1419,11 +1423,144 @@ Test method: org.junit.TestClass.testStudent
 
 ---
 
-<a id="6-ares-2-aop-file-system-access-control-conclusion"></a>
-# 6. Ares 2 AOP File System Access Control: Conclusion
+<a id="6-ares-2-aop-file-system-access-control-operation-type-classification"></a>
+# 6. Ares 2 AOP File System Access Control: Operation Type Classification
 
-<a id="61-summary-for-programming-instructors-tldr"></a>
-## 6.1 Summary for Programming Instructors (TL;DR)
+This section explains why the **detected operation type** may differ from the **intuitively expected operation** based on the API being tested. Understanding these categories is essential for correctly configuring security expectations in test scenarios.
+
+<a id="61-kategorie-a-openoptions-priorisierung"></a>
+## 6.1 Kategorie A: OpenOptions-Priorisierung
+
+**Problem:** When multiple `StandardOpenOption` values are passed to NIO methods, certain options take precedence over others in the `deriveActionChecks()` method.
+
+**Technical Background:**
+The `deriveActionChecks()` method in `JavaInstrumentationAdviceFileSystemToolbox.java` processes `StandardOpenOption` values in a specific order using a switch statement:
+
+```java
+for (StandardOpenOption option : options) {
+    switch (option) {
+        case CREATE:
+        case CREATE_NEW:
+            actions.merge("create", true, Boolean::logicalOr);
+            break;
+        case WRITE:
+        case APPEND:
+        case TRUNCATE_EXISTING:
+            actions.merge("overwrite", false, Boolean::logicalOr);
+            break;
+        case READ:
+            actions.merge("read", false, Boolean::logicalOr);
+            break;
+        case DELETE_ON_CLOSE:
+            actions.merge("delete", false, Boolean::logicalOr);
+            break;
+        default:
+            break;
+    }
+}
+```
+
+**Consequence:** When both `CREATE_NEW` and `WRITE` are present, both "create" and "overwrite" are added to the actions map. The security check validates ALL derived actions, meaning `WRITE` triggers an "overwrite" check even when the developer's intent was file creation.
+
+**Affected Test Cases:**
+
+| Test | Expected Intent | Detected Operation | Reason |
+|------|-----------------|-------------------|--------|
+| FileSystemCreateAccess#7 | create | overwrite | `Files.newByteChannel(CREATE_NEW, WRITE)` - WRITE triggers overwrite |
+| FileSystemCreateAccess#8 | create | overwrite | `FileChannel.open(CREATE_NEW, WRITE)` - WRITE triggers overwrite |
+| FileSystemDeleteAccess#7 | delete | overwrite | `Files.newByteChannel(DELETE_ON_CLOSE, WRITE)` - WRITE has precedence |
+| FileSystemDeleteAccess#8 | delete | overwrite | `FileChannel.open(DELETE_ON_CLOSE, WRITE)` - WRITE has precedence |
+| FileSystemWriteAccess#14 | overwrite | read | `MappedByteBuffer` requires `FileChannel.open(READ)` first |
+
+<a id="62-kategorie-b-randomaccessfile-mode-erkennung"></a>
+## 6.2 Kategorie B: RandomAccessFile Mode-Erkennung
+
+**Problem:** `RandomAccessFile` uses mode strings (`"r"`, `"rw"`, `"rws"`, `"rwd"`) instead of `StandardOpenOption`, requiring special handling.
+
+**Technical Background:**
+The `getRandomAccessFileModeAction()` method maps mode strings to security actions:
+
+```java
+private static String getRandomAccessFileModeAction(Object[] parameters) {
+    // RandomAccessFile constructor: (File/String file, String mode)
+    Object modeParam = parameters[1];
+    if (modeParam instanceof String) {
+        String mode = (String) modeParam;
+        if ("r".equals(mode)) {
+            return "read";
+        } else if ("rw".equals(mode) || "rws".equals(mode) || "rwd".equals(mode)) {
+            return "overwrite";
+        }
+    }
+    return null;
+}
+```
+
+**Consequence:** Any mode containing write capability (`"rw"`, `"rws"`, `"rwd"`) is classified as "overwrite", regardless of whether the file already exists or will be created.
+
+**Affected Test Cases:**
+
+| Test | Expected Intent | Detected Operation | Reason |
+|------|-----------------|-------------------|--------|
+| FileSystemCreateAccess#11 | create | overwrite | `new RandomAccessFile(file, "rw")` - "rw" mode → overwrite |
+| FileSystemDeleteAccess#11 | delete | overwrite | `RandomAccessFile` with "rw" blocks before delete can occur |
+
+<a id="63-kategorie-c-vorbereitende-operationen"></a>
+## 6.3 Kategorie C: Vorbereitende Operationen
+
+**Problem:** Some test methods require preparatory file system operations before the main intended operation. Ares blocks the **first** forbidden operation encountered.
+
+**Technical Background:**
+When a test method calls multiple file system APIs in sequence, Ares intercepts each call independently. If the first call is forbidden, execution stops before reaching the intended operation.
+
+**Common Patterns:**
+
+1. **ensureParentDirectory:** `Files.createTempFile()` internally calls `Files.createDirectories()` to ensure the parent directory exists.
+
+2. **prepareLinkTarget:** Methods testing `Files.createSymbolicLink()` or `Files.createLink()` first create the target file using `Files.writeString()`.
+
+3. **createTempFile + delete:** Delete tests that need to create temporary files first are blocked at the create step.
+
+**Affected Test Cases:**
+
+| Test | Expected Intent | Detected Operation | Blocked API | Reason |
+|------|-----------------|-------------------|-------------|--------|
+| FileSystemCreateAccess#4 | create | create | `Files.createDirectories` | ensureParentDirectory() called first |
+| FileSystemCreateAccess#12 | create | overwrite | `Files.writeString` | prepareLinkTarget() creates target file |
+| FileSystemCreateAccess#13 | create | overwrite | `Files.writeString` | prepareLinkTarget() creates target file |
+| FileSystemDeleteAccess#2 | delete | create | `File.createTempFile` | Temp file must be created before delete |
+| FileSystemDeleteAccess#4 | delete | create | `Files.createDirectories` | ensureParentDirectory() for temp file |
+| FileSystemDeleteAccess#12 | delete | overwrite | `Files.writeString` | prepareLinkTarget() before link creation |
+| FileSystemDeleteAccess#13 | delete | overwrite | `Files.writeString` | prepareLinkTarget() before link creation |
+| FileSystemExecuteAccess#4 | execute | create | `File.createTempFile` | createTempOutputFile() for redirect |
+| FileSystemExecuteAccess#5 | execute | create | `File.createTempFile` | createTempOutputFile() for inheritIO |
+
+<a id="64-kategorie-d-falsches-subsystem"></a>
+## 6.4 Kategorie D: Falsches Subsystem
+
+**Problem:** Some file system operations trigger security checks in **other subsystems** (e.g., Thread system) before the file system check can occur.
+
+**Technical Background:**
+`ProcessBuilder.start()` and `ProcessBuilder.startPipeline()` internally create threads via `ThreadPoolExecutor.execute()`. Ares's Thread security subsystem intercepts this before the file system subsystem can check the execute operation.
+
+**Consequence:** The exception message contains "Thread" instead of file system details, and the operation is classified as "create" (thread creation) rather than "execute" (file execution).
+
+**Affected Test Cases:**
+
+| Test | Expected Intent | Detected Operation | Blocked API | Subsystem |
+|------|-----------------|-------------------|-------------|-----------|
+| FileSystemExecuteAccess#2 | execute | create | `ThreadPoolExecutor.execute` | Thread |
+| FileSystemExecuteAccess#3 | execute | create | `ThreadPoolExecutor.execute` | Thread |
+
+**Identification:** These cases can be identified by `messageContains: "Thread"` in the expected exceptions configuration.
+
+---
+
+<a id="7-ares-2-aop-file-system-access-control-conclusion"></a>
+# 7. Ares 2 AOP File System Access Control: Conclusion
+
+<a id="71-summary-for-programming-instructors-tldr"></a>
+## 7.1 Summary for Programming Instructors (TL;DR)
 
 **What does Ares do?**
 - ✅ Monitors a **broad set of file system APIs** automatically (Read, Write, Create, Delete, Execute)
@@ -1446,8 +1583,8 @@ Test method: org.junit.TestClass.testStudent
 
 ---
 
-<a id="62-technical-details"></a>
-## 6.2 Technical Details
+<a id="72-technical-details"></a>
+## 7.2 Technical Details
 
 The file system security mechanism provides **comprehensive protection** through:
 

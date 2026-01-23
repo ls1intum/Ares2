@@ -22,20 +22,19 @@ class PrivilegedExceptionTest {
 
 	@TestTest
 	void test_nonprivilegedExceptionExtern() {
-		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(nonprivilegedExceptionExtern, AssertionError.class, "ABC"));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(nonprivilegedExceptionExtern, AssertionError.class, "ABC"));
 	}
 
 	@TestTest
 	void test_nonprivilegedExceptionIntern() {
-		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(nonprivilegedExceptionIntern, AssertionError.class, "ABC"));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(nonprivilegedExceptionIntern, AssertionError.class, "ABC"));
 	}
 
 	@TestTest
 	void test_nonprivilegedExceptionTry() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1, testFailedWith(nonprivilegedExceptionTry, AssertionError.class, "ABC"));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(1,
+		// testFailedWith(nonprivilegedExceptionTry, AssertionError.class, "ABC"));
 	}
 
 	@TestTest
@@ -45,13 +44,11 @@ class PrivilegedExceptionTest {
 
 	@TestTest
 	void test_privilegedExceptionNormal() {
-		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(privilegedExceptionNormal, NullPointerException.class, "xyz"));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(privilegedExceptionNormal, NullPointerException.class, "xyz"));
 	}
 
 	@TestTest
 	void test_privilegedTimeout() {
-		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(privilegedTimeout, AssertionError.class, "execution timed out after 300 ms"));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(privilegedTimeout, AssertionError.class, "execution timed out after 300 ms"));
 	}
 }

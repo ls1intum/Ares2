@@ -18,10 +18,8 @@ public final class ThrowableSanitizer {
 		ThrowableSets.init();
 	}
 
-	private static final List<SpecificThrowableSanitizer> SANITIZERS = List.of(SafeTypeThrowableSanitizer.INSTANCE,
-			AssertionFailedErrorSanitizer.INSTANCE, PrivilegedExceptionSanitizer.INSTANCE,
-			MultipleFailuresErrorSanitizer.INSTANCE, MultipleAssertionsErrorSanitizer.INSTANCE,
-			ExceptionInInitializerErrorSanitizer.INSTANCE, SoftAssertionErrorSanitizer.INSTANCE);
+	private static final List<SpecificThrowableSanitizer> SANITIZERS = List.of(SafeTypeThrowableSanitizer.INSTANCE, AssertionFailedErrorSanitizer.INSTANCE, PrivilegedExceptionSanitizer.INSTANCE,
+			MultipleFailuresErrorSanitizer.INSTANCE, MultipleAssertionsErrorSanitizer.INSTANCE, ExceptionInInitializerErrorSanitizer.INSTANCE, SoftAssertionErrorSanitizer.INSTANCE);
 
 	public static Throwable sanitize(final Throwable t) {
 		return sanitize(t, MessageTransformer.IDENTITY);

@@ -23,9 +23,7 @@ enum MultipleAssertionsErrorSanitizer implements SpecificThrowableSanitizer {
 		MultipleAssertionsError mae = (MultipleAssertionsError) t;
 		ThrowableInfo info = ThrowableInfo.getEssentialInfosSafeFrom(mae).sanitize();
 		// the list is not safe here, it is simply set in the constructor
-		List<AssertionError> errors = invoke(() -> List.copyOf(mae.getErrors())).stream()
-				.map(ThrowableSanitizer::sanitize).map(AssertionError.class::cast)
-				.collect(Collectors.toUnmodifiableList());
+		List<AssertionError> errors = invoke(() -> List.copyOf(mae.getErrors())).stream().map(ThrowableSanitizer::sanitize).map(AssertionError.class::cast).collect(Collectors.toUnmodifiableList());
 		var description = ""; //$NON-NLS-1$
 		if (info.getMessage().startsWith("[")) { //$NON-NLS-1$
 			// has a description, that we now have to get somehow

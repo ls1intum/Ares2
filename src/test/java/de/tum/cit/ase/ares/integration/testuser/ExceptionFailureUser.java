@@ -101,8 +101,7 @@ public class ExceptionFailureUser {
 
 	@PublicTest
 	void multipleAssertions() {
-		throw new MultipleAssertionsError(new TextDescription("Failed with %d", 5),
-				List.of(new AssertionError("X", new CustomException())));
+		throw new MultipleAssertionsError(new TextDescription("Failed with %d", 5), List.of(new AssertionError("X", new CustomException())));
 	}
 
 	@PublicTest

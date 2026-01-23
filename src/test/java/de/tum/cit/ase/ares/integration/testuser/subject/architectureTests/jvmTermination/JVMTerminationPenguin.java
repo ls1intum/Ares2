@@ -2,7 +2,7 @@ package de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.jvmTe
 
 public class JVMTerminationPenguin {
 
-    void terminateJVM() {
-        System.exit(0);
-    }
+	void terminateJVM() {
+		System.exit(0);
+	}
 }
