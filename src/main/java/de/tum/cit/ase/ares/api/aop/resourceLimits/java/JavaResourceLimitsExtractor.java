@@ -20,7 +20,8 @@ public class JavaResourceLimitsExtractor implements ResourceLimitsExtractor {
 	 * access supplier.
 	 *
 	 * @param resourceAccessSupplier the supplier for the resource accesses
-	 *            permitted as defined in the security policy, must not be null.
+	 *                               permitted as defined in the security policy,
+	 *                               must not be null.
 	 */
 	public JavaResourceLimitsExtractor(@Nonnull Supplier<List<?>> resourceAccessSupplier) {
 		this.resourceAccessSupplier = resourceAccessSupplier;
@@ -41,7 +42,8 @@ public class JavaResourceLimitsExtractor implements ResourceLimitsExtractor {
 			return ResourceLimitsPermission.createRestrictive().timeout();
 		}
 
-		OptionalLong min = permissions.stream().mapToLong(ResourceLimitsPermission::timeout).filter(timeoutValue -> timeoutValue >= 0).min();
+		OptionalLong min = permissions.stream().mapToLong(ResourceLimitsPermission::timeout)
+				.filter(timeoutValue -> timeoutValue >= 0).min();
 
 		return min.orElse(ResourceLimitsPermission.createRestrictive().timeout());
 	}
@@ -62,7 +64,8 @@ public class JavaResourceLimitsExtractor implements ResourceLimitsExtractor {
 			}
 			for (Method m : p.getClass().getMethods()) {
 				// Only process public methods with no parameters that return long
-				if (m.getParameterCount() != 0 || m.getReturnType() != long.class || !java.lang.reflect.Modifier.isPublic(m.getModifiers())) {
+				if (m.getParameterCount() != 0 || m.getReturnType() != long.class
+						|| !java.lang.reflect.Modifier.isPublic(m.getModifiers())) {
 					continue;
 				}
 				String name = m.getName();
@@ -72,7 +75,10 @@ public class JavaResourceLimitsExtractor implements ResourceLimitsExtractor {
 						continue;
 					min.merge(name, val, Math::min);
 				} catch (ReflectiveOperationException e) {
-					throw new SecurityException(Messages.localized("security.resource.limits.permission.invocation.error", name, String.valueOf(e.getMessage())), e);
+					throw new SecurityException(
+							Messages.localized("security.resource.limits.permission.invocation.error", name,
+									String.valueOf(e.getMessage())),
+							e);
 				}
 			}
 		}
@@ -96,7 +102,8 @@ public class JavaResourceLimitsExtractor implements ResourceLimitsExtractor {
 			}
 
 			if (!(item instanceof ResourceLimitsPermission)) {
-				throw new SecurityException(Messages.localized("security.resource.limits.permission.invalid.type", item.getClass().getName()));
+				throw new SecurityException(Messages.localized("security.resource.limits.permission.invalid.type",
+						item.getClass().getName()));
 			}
 
 			result.add((ResourceLimitsPermission) item);

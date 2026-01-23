@@ -19,7 +19,8 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	private static final String FILES_DELETE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/delete/filesDelete";
 	private static final String THIRD_PARTY_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/delete/thirdPartyPackage";
 
-	private static final Path TRUSTED_DIR = Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/delete/trusteddir");
+	private static final Path TRUSTED_DIR = Path
+			.of("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/delete/trusteddir");
 	private static final Path TRUSTED_FILE = TRUSTED_DIR.resolve("trusted.txt");
 	private static final Path TRUSTED_EMPTY_DIR = TRUSTED_DIR.resolve("tempEmptyDir");
 
@@ -96,5 +97,4 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	void test_pathToFileDelete_wala_instrumentation() {
 		assertNoAresSecurityException(FileDeleteMain::accessFileSystemViaPathToFileDelete);
 	}
-
 }

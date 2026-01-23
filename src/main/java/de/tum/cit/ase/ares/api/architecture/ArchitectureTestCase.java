@@ -13,12 +13,10 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 
 /**
  * Interface for architecture test case configurations.
- *
  * <p>
  * Description: Defines methods for generating and executing architecture test
  * cases that enforce security via architecture analysis.
  * </p>
- *
  * <p>
  * Design Rationale: Abstracting architecture test cases into a unified
  * interface allows for consistent integration and language-specific
@@ -77,16 +75,21 @@ public abstract class ArchitectureTestCase {
 	 * @since 2.0.0
 	 * @author Sarp Sahinalp
 	 * @param architectureTestCaseSupported The type of architecture test case
-	 *            supported, determining which rules to apply
-	 * @param allowedPackages Set of package permissions that are allowed in the
-	 *            analyzed code
-	 * @param javaClasses Collection of Java classes to be analyzed by the test case
-	 * @param callGraph Call graph representing caller-callee relationships in the
-	 *            code (may be null for ARCHUNIT mode)
+	 *                                      supported, determining which rules to
+	 *                                      apply
+	 * @param allowedPackages               Set of package permissions that are
+	 *                                      allowed in the analyzed code
+	 * @param javaClasses                   Collection of Java classes to be
+	 *                                      analyzed by the test case
+	 * @param callGraph                     Call graph representing caller-callee
+	 *                                      relationships in the code (may be null
+	 *                                      for ARCHUNIT mode)
 	 */
-	protected ArchitectureTestCase(@Nonnull ArchitectureTestCaseSupported architectureTestCaseSupported, @Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
+	protected ArchitectureTestCase(@Nonnull ArchitectureTestCaseSupported architectureTestCaseSupported,
+			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
 			@Nullable CallGraph callGraph) {
-		this.architectureTestCaseSupported = Preconditions.checkNotNull(architectureTestCaseSupported, "architecturalTestCaseSupported must not be null");
+		this.architectureTestCaseSupported = Preconditions.checkNotNull(architectureTestCaseSupported,
+				"architecturalTestCaseSupported must not be null");
 		this.allowedPackages = Preconditions.checkNotNull(allowedPackages, "allowedPackages must not be null");
 		this.javaClasses = Preconditions.checkNotNull(javaClasses, "javaClasses must not be null");
 		this.callGraph = callGraph;
@@ -124,7 +127,7 @@ public abstract class ArchitectureTestCase {
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 * @param architectureMode the identifier for the architecture mode.
-	 * @param aopMode the identifier for the AOP mode.
+	 * @param aopMode          the identifier for the AOP mode.
 	 * @return the architecture test case content as a string.
 	 */
 	@Nonnull
@@ -137,7 +140,7 @@ public abstract class ArchitectureTestCase {
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 * @param architectureMode the identifier for the architecture mode.
-	 * @param aopMode the identifier for the AOP mode.
+	 * @param aopMode          the identifier for the AOP mode.
 	 */
 	public abstract void executeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode);
 	// </editor-fold>

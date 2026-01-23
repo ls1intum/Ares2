@@ -160,5 +160,4 @@ public class ArchitectureSecurityUser {
 		// do nothing
 	}
 	// </editor-fold>
-
 }

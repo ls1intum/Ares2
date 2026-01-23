@@ -148,10 +148,12 @@ public class SecurityPolicyYAMLReaderTest {
 			// Assert
 			assertNotNull(policy);
 			assertNotNull(policy.regardingTheSupervisedCode());
-			assertEquals(ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ, policy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed());
+			assertEquals(ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ,
+					policy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed());
 			assertEquals("com.example", policy.regardingTheSupervisedCode().theSupervisedCodeUsesTheFollowingPackage());
 			assertEquals("Main", policy.regardingTheSupervisedCode().theMainClassInsideThisPackageIs());
-			assertArrayEquals(new String[]{ "TestClass1", "TestClass2" }, policy.regardingTheSupervisedCode().theFollowingClassesAreTestClasses());
+			assertArrayEquals(new String[] { "TestClass1", "TestClass2" },
+					policy.regardingTheSupervisedCode().theFollowingClassesAreTestClasses());
 		}
 
 		@Test
@@ -178,7 +180,8 @@ public class SecurityPolicyYAMLReaderTest {
 			// Assert
 			assertNotNull(policy);
 			assertNotNull(policy.regardingTheSupervisedCode());
-			assertEquals(ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ, policy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed());
+			assertEquals(ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ,
+					policy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed());
 		}
 
 		@Test
@@ -253,7 +256,8 @@ public class SecurityPolicyYAMLReaderTest {
 
 				// Assert
 				assertNotNull(policy);
-				assertEquals(config, policy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed());
+				assertEquals(config,
+						policy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed());
 			}
 		}
 	}
@@ -306,7 +310,8 @@ public class SecurityPolicyYAMLReaderTest {
 			Files.writeString(incompleteFile, incompleteYaml);
 
 			// Act & Assert
-			SecurityException exception = assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(incompleteFile));
+			SecurityException exception = assertThrows(SecurityException.class,
+					() -> reader.readSecurityPolicyFrom(incompleteFile));
 			assertNotNull(exception.getMessage());
 		}
 

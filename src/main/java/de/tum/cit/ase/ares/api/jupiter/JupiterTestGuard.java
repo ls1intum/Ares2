@@ -21,7 +21,8 @@ import de.tum.cit.ase.ares.api.Deadline;
 public final class JupiterTestGuard implements UnifiedInvocationInterceptor {
 
 	@Override
-	public <T> T interceptGenericInvocation(Invocation<T> invocation, ExtensionContext extensionContext, Optional<ReflectiveInvocationContext<?>> invocationContext) throws Throwable {
+	public <T> T interceptGenericInvocation(Invocation<T> invocation, ExtensionContext extensionContext,
+			Optional<ReflectiveInvocationContext<?>> invocationContext) throws Throwable {
 		JupiterContext jupiterContext = JupiterContext.of(extensionContext);
 		checkForHidden(jupiterContext);
 		return doProceedAndPostProcess(invocation, jupiterContext);

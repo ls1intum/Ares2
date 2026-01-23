@@ -9,7 +9,8 @@ public class BufferedWriterWriteMain {
 	private static final String NOT_TRUSTED_FILE = "src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/nottrusteddir/nottrusted.txt";
 
 	private BufferedWriterWriteMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	public static void accessFileSystemViaBufferedWriter() throws IOException {

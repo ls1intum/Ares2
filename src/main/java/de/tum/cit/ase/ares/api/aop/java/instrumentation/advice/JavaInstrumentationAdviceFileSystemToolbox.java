@@ -25,7 +25,6 @@ import javax.annotation.Nullable;
 
 /**
  * Utility class for Java instrumentation file system security advice.
- *
  * <p>
  * Description: Provides static methods to enforce file system security policies
  * at runtime by checking file system interactions (read, create, overwrite,
@@ -34,7 +33,6 @@ import javax.annotation.Nullable;
  * localization utilities. Designed to prevent unauthorized file system
  * operations during Java application execution, especially in test and
  * instrumentation scenarios.
- *
  * <p>
  * Design Rationale: Centralizes file system security checks for Java
  * instrumentation advice, ensuring consistent enforcement of security policies.
@@ -52,20 +50,21 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	// <editor-fold desc="Constants">
 	/**
 	 * Map of methods with attribute index exceptions for file system ignore logic.
-	 *
 	 * <p>
 	 * Description: Specifies for certain methods which attribute index should be
 	 * exempted from ignore rules during file system checks.
 	 */
 	@Nonnull
-	private static final Map<String, IgnoreValues> FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT = Map.ofEntries(Map.entry("java.io.File.delete", IgnoreValues.allExcept(1)),
-			Map.entry("java.io.File.deleteOnExit", IgnoreValues.allExcept(1)), Map.entry("java.io.File.createNewFile", IgnoreValues.allExcept(1)),
+	private static final Map<String, IgnoreValues> FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT = Map.ofEntries(
+			Map.entry("java.io.File.delete", IgnoreValues.allExcept(1)),
+			Map.entry("java.io.File.deleteOnExit", IgnoreValues.allExcept(1)),
+			Map.entry("java.io.File.createNewFile", IgnoreValues.allExcept(1)),
 			// ProcessBuilder.start - only check command (index 0), not flags or arguments
-			Map.entry("java.lang.ProcessBuilder.start", IgnoreValues.allExcept(0)), Map.entry("java.lang.ProcessBuilder.startPipeline", IgnoreValues.allExcept(0)));
+			Map.entry("java.lang.ProcessBuilder.start", IgnoreValues.allExcept(0)),
+			Map.entry("java.lang.ProcessBuilder.startPipeline", IgnoreValues.allExcept(0)));
 
 	/**
 	 * Map of methods with parameter index exceptions for file system ignore logic.
-	 *
 	 * <p>
 	 * Description: Specifies for certain methods which parameter index should be
 	 * exempted from ignore rules during file system checks. For methods like
@@ -90,14 +89,16 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			// Runtime.exec(String[]) - only check command (index 0), not flags like "-c"
 			Map.entry("java.lang.Runtime.exec", IgnoreValues.allExcept(0)));
 
-	private static final EnumSet<StandardOpenOption> CREATE_OPTIONS = EnumSet.of(StandardOpenOption.CREATE, StandardOpenOption.CREATE_NEW);
+	private static final EnumSet<StandardOpenOption> CREATE_OPTIONS = EnumSet.of(StandardOpenOption.CREATE,
+			StandardOpenOption.CREATE_NEW);
 
 	/**
 	 * Internal Ares files that should be excluded from file system interception.
 	 * These are implementation details of Ares itself and should not trigger
 	 * sandbox violations when accessed internally.
 	 */
-	private static final Set<String> INTERNAL_PATH_SUFFIXES = Set.of("ares/api/localization/Messages.class", "ares/api/localization/messages.class", "ares/api/localization/messages.properties",
+	private static final Set<String> INTERNAL_PATH_SUFFIXES = Set.of("ares/api/localization/Messages.class",
+			"ares/api/localization/messages.class", "ares/api/localization/messages.properties",
 			"ares/api/util/LruCache.class");
 
 	// </editor-fold>
@@ -105,7 +106,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	// <editor-fold desc="Constructor">
 	/**
 	 * Private constructor to prevent instantiation of this utility class.
-	 *
 	 * <p>
 	 * Description: Throws a SecurityException if instantiation is attempted,
 	 * enforcing the utility class pattern.
@@ -114,7 +114,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * @author Markus Paulsen
 	 */
 	private JavaInstrumentationAdviceFileSystemToolbox() {
-		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.utility.initialization", "JavaInstrumentationAdviceFileSystemToolbox"));
+		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+				"security.instrumentation.utility.initialization", "JavaInstrumentationAdviceFileSystemToolbox"));
 	}
 	// </editor-fold>
 
@@ -126,12 +127,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 
 	/**
 	 * Checks if a Path is outside of the allowed paths whitelist.
-	 *
 	 * <p>
 	 * Description: Returns true if allowedPathsAsStrings is null or if the given
 	 * actualPath does not match one of the allowed patterns. This method resolves
 	 * symlinks FIRST to prevent symlink-based sandbox escapes (TOCTOU attacks).
-	 *
 	 * <p>
 	 * Security Note: Symlinks are resolved to their canonical form BEFORE checking
 	 * against allowed paths, preventing attacks where a path like
@@ -139,13 +138,15 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 *
 	 * @since 2.0.0
 	 * @author Markus
-	 * @param actualPath the Path to test
-	 * @param allowedPathsAsStrings whitelist of allowed actualPath strings
+	 * @param actualPath                          the Path to test
+	 * @param allowedPathsAsStrings               whitelist of allowed actualPath
+	 *                                            strings
 	 * @param allowNonExistingPathsToBeConsidered whether to allow paths that don't
-	 *            exist yet
+	 *                                            exist yet
 	 * @return true if actualPath is forbidden; false otherwise
 	 */
-	private static boolean checkIfPathIsForbidden(@Nullable Path actualPath, @Nullable String[] allowedPathsAsStrings, boolean allowNonExistingPathsToBeConsidered) {
+	private static boolean checkIfPathIsForbidden(@Nullable Path actualPath, @Nullable String[] allowedPathsAsStrings,
+			boolean allowNonExistingPathsToBeConsidered) {
 		if (actualPath == null) {
 			return false;
 		}
@@ -228,7 +229,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	// <editor-fold desc="Conversion handling">
 	/**
 	 * Transforms variable values into a normalized absolute path.
-	 *
 	 * <p>
 	 * Description: Converts the provided variable (Path, String, or File) into an
 	 * absolute normalized Path for security checks, validating existence.
@@ -272,7 +272,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	// <editor-fold desc="Violation analysis">
 	/**
 	 * Analyzes a variable to determine if it violates allowed paths.
-	 *
 	 * <p>
 	 * Description: Recursively checks if the variable or its elements (if an array
 	 * or List) are in violation of the allowed paths. Returns true if any element
@@ -281,11 +280,12 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * @since 2.0.0
 	 * @author Markus
 	 * @param observedVariable the variable to analyze
-	 * @param allowedPaths whitelist of allowed path strings; if null, all paths are
-	 *            considered allowed
+	 * @param allowedPaths     whitelist of allowed path strings; if null, all paths
+	 *                         are considered allowed
 	 * @return true if a violation is found, false otherwise
 	 */
-	private static boolean analyseViolation(@Nullable Object observedVariable, @Nullable String[] allowedPaths, boolean allowNonExistingPathsToBeConsidered) {
+	private static boolean analyseViolation(@Nullable Object observedVariable, @Nullable String[] allowedPaths,
+			boolean allowNonExistingPathsToBeConsidered) {
 		if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
 			return false;
 		} else if (observedVariable.getClass().isArray()) {
@@ -314,7 +314,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	/**
 	 * Extracts and returns the first violating path string from an array or list
 	 * variable.
-	 *
 	 * <p>
 	 * Description: Iterates through the variable’s elements (array or List),
 	 * converts each to a Path if possible, and returns the string of the first path
@@ -323,11 +322,12 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * @since 2.0.0
 	 * @author Markus
 	 * @param observedVariable the array or List to inspect
-	 * @param allowedPaths whitelist of allowed path strings
+	 * @param allowedPaths     whitelist of allowed path strings
 	 * @return the first violating path as a String, or null if none found
 	 */
 	@Nullable
-	private static String extractViolationPath(@Nullable Object observedVariable, @Nullable String[] allowedPaths, boolean allowNonExistingPathsToBeConsidered) {
+	private static String extractViolationPath(@Nullable Object observedVariable, @Nullable String[] allowedPaths,
+			boolean allowNonExistingPathsToBeConsidered) {
 		if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
 			return null;
 		} else if (observedVariable.getClass().isArray()) {
@@ -349,7 +349,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			return null;
 		} else {
 			Path observedPath = variableToPath(observedVariable, allowNonExistingPathsToBeConsidered);
-			if (observedPath != null && checkIfPathIsForbidden(observedPath, allowedPaths, allowNonExistingPathsToBeConsidered)) {
+			if (observedPath != null
+					&& checkIfPathIsForbidden(observedPath, allowedPaths, allowNonExistingPathsToBeConsidered)) {
 				return observedPath.toString();
 			}
 		}
@@ -358,7 +359,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 
 	/**
 	 * Checks an array of observedVariables against allowed file system paths.
-	 *
 	 * <p>
 	 * Description: Iterates through the filtered observedVariables (excluding those
 	 * matching ignoreVariables). For each non-null variable, if it is an array or a
@@ -369,13 +369,14 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * @since 2.0.0
 	 * @author Markus
 	 * @param observedVariables array of values to validate
-	 * @param allowedPaths whitelist of allowed path strings; if null, all paths are
-	 *            considered allowed
-	 * @param ignoreVariables criteria determining which observedVariables to skip
+	 * @param allowedPaths      whitelist of allowed path strings; if null, all
+	 *                          paths are considered allowed
+	 * @param ignoreVariables   criteria determining which observedVariables to skip
 	 * @return the first path (as String) that is not allowed, or null if none
 	 *         violate
 	 */
-	private static String checkIfVariableCriteriaIsViolated(@Nonnull Object[] observedVariables, @Nullable String[] allowedPaths, @Nonnull IgnoreValues ignoreVariables,
+	private static String checkIfVariableCriteriaIsViolated(@Nonnull Object[] observedVariables,
+			@Nullable String[] allowedPaths, @Nonnull IgnoreValues ignoreVariables,
 			boolean allowNonExistingPathsToBeConsidered) {
 		for (@Nullable
 		Object observedVariable : filterVariables(observedVariables, ignoreVariables)) {
@@ -391,7 +392,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	// <editor-fold desc="Check methods">
 	/**
 	 * Map of class names to the parameter index containing the append boolean.
-	 *
 	 * <p>
 	 * Description: For classes that use a boolean append parameter in their
 	 * constructors, this map specifies which parameter index holds the append flag.
@@ -400,7 +400,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * </p>
 	 */
 	@Nonnull
-	private static final Map<String, Integer> APPEND_PARAMETER_INDEX = Map.ofEntries(Map.entry("java.io.FileWriter", -1), // Variable position, check all booleans
+	private static final Map<String, Integer> APPEND_PARAMETER_INDEX = Map.ofEntries(
+			Map.entry("java.io.FileWriter", -1), // Variable position, check all booleans
 			Map.entry("java.io.FileOutputStream", -1), // Variable position, check all booleans
 			Map.entry("java.io.PrintWriter", -1) // Variable position, check all booleans
 	);
@@ -408,7 +409,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	/**
 	 * Checks if the parameters contain an append=false boolean, indicating
 	 * overwrite behavior.
-	 *
 	 * <p>
 	 * Description: For legacy I/O classes like FileWriter and FileOutputStream, the
 	 * append behavior is controlled by a boolean parameter. When this parameter is
@@ -417,9 +417,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * </p>
 	 *
 	 * @param declaringTypeName the fully qualified class name being invoked
-	 * @param parameters the constructor/method parameters
+	 * @param parameters        the constructor/method parameters
 	 * @return true if append=false was found, indicating overwrite behavior
-	 *
 	 * @since 2.0.0
 	 */
 	private static boolean hasAppendFalseParameter(@Nonnull String declaringTypeName, @Nullable Object[] parameters) {
@@ -470,7 +469,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	/**
 	 * Determines the effective action for RandomAccessFile based on its mode
 	 * string.
-	 *
 	 * <p>
 	 * Description: RandomAccessFile uses mode strings ("r", "rw", "rws", "rwd")
 	 * instead of boolean parameters. This method maps the mode to the appropriate
@@ -489,12 +487,11 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * </ul>
 	 * </p>
 	 *
-	 * @param parameters the constructor parameters (File/String, mode)
+	 * @param parameters    the constructor parameters (File/String, mode)
 	 * @param defaultAction the action from the pointcut context (unused, mode
-	 *            parameter takes priority)
+	 *                      parameter takes priority)
 	 * @return the effective action based on the mode, or null if no mode string
 	 *         found
-	 *
 	 * @since 2.0.0
 	 */
 	@Nullable
@@ -522,7 +519,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	/**
 	 * Derives the list of file-system actions that need to be validated for a given
 	 * invocation.
-	 *
 	 * <p>
 	 * Description: Inspects the intercepted method arguments for
 	 * {@link StandardOpenOption} instances and maps them onto the corresponding
@@ -534,7 +530,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * actions while tracking whether non-existing paths should be allowed for each
 	 * action.
 	 * </p>
-	 *
 	 * <p>
 	 * <b>Semantic Prioritization:</b> When {@code CREATE_NEW} is combined with
 	 * {@code WRITE}, the method returns only "create" as the action. This reflects
@@ -550,16 +545,16 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * files.
 	 * </p>
 	 *
-	 * @param defaultAction action associated with the pointcut configuration (e.g.,
-	 *            {@code overwrite})
+	 * @param defaultAction     action associated with the pointcut configuration
+	 *                          (e.g., {@code overwrite})
 	 * @param declaringTypeName the fully qualified class name being invoked
-	 * @param parameters intercepted method arguments that may contain
-	 *            {@link StandardOpenOption}s
+	 * @param parameters        intercepted method arguments that may contain
+	 *                          {@link StandardOpenOption}s
 	 * @return ordered list of action/allow-non-existing pairs to validate
-	 *
 	 * @since 2.0.0
 	 */
-	private static List<Map.Entry<String, Boolean>> deriveActionChecks(@Nonnull String defaultAction, @Nonnull String declaringTypeName, @Nullable Object[] parameters) {
+	private static List<Map.Entry<String, Boolean>> deriveActionChecks(@Nonnull String defaultAction,
+			@Nonnull String declaringTypeName, @Nullable Object[] parameters) {
 		Set<StandardOpenOption> options = extractStandardOpenOptions(parameters);
 		Map<String, Boolean> actions = new LinkedHashMap<>();
 
@@ -611,7 +606,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		// "overwrite".
 		else {
 			boolean hasCreateNew = options.contains(StandardOpenOption.CREATE_NEW);
-			boolean hasWrite = options.contains(StandardOpenOption.WRITE) || options.contains(StandardOpenOption.APPEND) || options.contains(StandardOpenOption.TRUNCATE_EXISTING);
+			boolean hasWrite = options.contains(StandardOpenOption.WRITE) || options.contains(StandardOpenOption.APPEND)
+					|| options.contains(StandardOpenOption.TRUNCATE_EXISTING);
 
 			if (hasCreateNew && hasWrite) {
 				// Primary intent is file creation; WRITE is just an implementation detail
@@ -626,13 +622,16 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				// write/modify,
 				// and read access is typically needed to support that (e.g., MappedByteBuffer
 				// with READ + WRITE + TRUNCATE_EXISTING). We only validate the write operation.
-				boolean hasWriteOption = options.contains(StandardOpenOption.WRITE) || options.contains(StandardOpenOption.APPEND) || options.contains(StandardOpenOption.TRUNCATE_EXISTING);
+				boolean hasWriteOption = options.contains(StandardOpenOption.WRITE)
+						|| options.contains(StandardOpenOption.APPEND)
+						|| options.contains(StandardOpenOption.TRUNCATE_EXISTING);
 
 				for (StandardOpenOption option : options) {
 					String optionName = option.name();
 					if ("CREATE".equals(optionName) || "CREATE_NEW".equals(optionName)) {
 						mergeBoolean(actions, "create", true);
-					} else if ("WRITE".equals(optionName) || "APPEND".equals(optionName) || "TRUNCATE_EXISTING".equals(optionName)) {
+					} else if ("WRITE".equals(optionName) || "APPEND".equals(optionName)
+							|| "TRUNCATE_EXISTING".equals(optionName)) {
 						mergeBoolean(actions, "overwrite", false);
 					} else if ("READ".equals(optionName)) {
 						// Only add "read" action if no write options are present
@@ -693,7 +692,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 
 	/**
 	 * Merge a boolean value into the actions map using logical OR.
-	 *
 	 * <p>
 	 * Description: This helper method replaces Map.merge with Boolean::logicalOr to
 	 * avoid creating lambda/method-reference inner classes that may not be included
@@ -701,9 +699,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * </p>
 	 *
 	 * @param actions the map to update
-	 * @param key the key to merge
-	 * @param value the value to merge (true = allow non-existing paths)
-	 *
+	 * @param key     the key to merge
+	 * @param value   the value to merge (true = allow non-existing paths)
 	 * @since 2.0.0
 	 */
 	private static void mergeBoolean(Map<String, Boolean> actions, String key, Boolean value) {
@@ -718,7 +715,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 
 	/**
 	 * Determines whether the default action allows paths that do not yet exist.
-	 *
 	 * <p>
 	 * Description: The create action is the only one that implicitly authorises
 	 * interactions with non-existing paths. All other actions require the path to
@@ -727,7 +723,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 *
 	 * @param action action identifier to evaluate
 	 * @return {@code true} if paths may be missing, {@code false} otherwise
-	 *
 	 * @since 2.0.0
 	 */
 	private static boolean shouldAllowNonExistingByDefault(@Nonnull String action) {
@@ -736,7 +731,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 
 	/**
 	 * Extracts all {@link StandardOpenOption}s from the provided method arguments.
-	 *
 	 * <p>
 	 * Description: Traverses arrays, collections, and nested option containers to
 	 * normalise the input into an {@link EnumSet} of distinct
@@ -745,7 +739,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 *
 	 * @param parameters intercepted method arguments
 	 * @return set of discovered {@link StandardOpenOption}s (empty if none found)
-	 *
 	 * @since 2.0.0
 	 */
 	private static Set<StandardOpenOption> extractStandardOpenOptions(@Nullable Object[] parameters) {
@@ -763,7 +756,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	/**
 	 * Extracts a {@link java.nio.channels.FileChannel.MapMode} from method
 	 * parameters if present.
-	 *
 	 * <p>
 	 * Description: Scans parameters looking for a MapMode instance, which indicates
 	 * whether a FileChannel.map() operation is read-only or read-write.
@@ -771,7 +763,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 *
 	 * @param parameters intercepted method arguments
 	 * @return the MapMode if found, or null if not present
-	 *
 	 * @since 2.0.0
 	 */
 	@Nullable
@@ -789,7 +780,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 
 	/**
 	 * Collects {@link StandardOpenOption}s from a single candidate object.
-	 *
 	 * <p>
 	 * Description: Supports direct {@link StandardOpenOption} instances, the wider
 	 * {@link OpenOption} abstraction, arrays, and {@link Collection} containers,
@@ -797,11 +787,11 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * </p>
 	 *
 	 * @param candidate potential holder of {@link StandardOpenOption}s
-	 * @param target accumulation set for discovered options
-	 *
+	 * @param target    accumulation set for discovered options
 	 * @since 2.0.0
 	 */
-	private static void collectStandardOpenOptions(@Nullable Object candidate, @Nonnull EnumSet<StandardOpenOption> target) {
+	private static void collectStandardOpenOptions(@Nullable Object candidate,
+			@Nonnull EnumSet<StandardOpenOption> target) {
 		if (candidate == null) {
 			return;
 		}
@@ -829,7 +819,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 
 	/**
 	 * Performs the security validation for a single derived file-system action.
-	 *
 	 * <p>
 	 * Description: Reuses the previously gathered contextual information to
 	 * evaluate both method parameters and instance attributes against the allowed
@@ -837,57 +826,69 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * raised containing localisation-aware details.
 	 * </p>
 	 *
-	 * @param action concrete file-system action under inspection
+	 * @param action                              concrete file-system action under
+	 *                                            inspection
 	 * @param allowNonExistingPathsToBeConsidered whether non-existing paths are
-	 *            permitted
-	 * @param declaringTypeName fully qualified declaring type name
-	 * @param methodName method being intercepted
-	 * @param methodSignature JVM method signature
-	 * @param attributes instance attributes (if any)
-	 * @param parameters intercepted method arguments
-	 * @param instance instance on which the method is invoked
-	 * @param restrictedPackage package prefix under security scrutiny
-	 * @param allowedClasses classes allowed within the restricted package
-	 * @param fileSystemMethodToCheck offending method discovered in the restricted
-	 *            call stack
-	 * @param studentCalledMethod external method initiating the restricted call
-	 *            (may be null)
-	 * @param fullMethodSignature human-readable method signature for diagnostics
-	 *
+	 *                                            permitted
+	 * @param declaringTypeName                   fully qualified declaring type
+	 *                                            name
+	 * @param methodName                          method being intercepted
+	 * @param methodSignature                     JVM method signature
+	 * @param attributes                          instance attributes (if any)
+	 * @param parameters                          intercepted method arguments
+	 * @param instance                            instance on which the method is
+	 *                                            invoked
+	 * @param restrictedPackage                   package prefix under security
+	 *                                            scrutiny
+	 * @param allowedClasses                      classes allowed within the
+	 *                                            restricted package
+	 * @param fileSystemMethodToCheck             offending method discovered in the
+	 *                                            restricted call stack
+	 * @param studentCalledMethod                 external method initiating the
+	 *                                            restricted call (may be null)
+	 * @param fullMethodSignature                 human-readable method signature
+	 *                                            for diagnostics
 	 * @throws SecurityException if the interaction violates configured policies
-	 *
 	 * @since 2.0.0
 	 */
-	private static void checkFileSystemInteractionForAction(@Nonnull String action, boolean allowNonExistingPathsToBeConsidered, @Nonnull String declaringTypeName, @Nonnull String methodName,
-			@Nonnull String methodSignature, @Nullable Object[] attributes, @Nullable Object[] parameters, @Nullable Object instance, @Nullable String restrictedPackage,
-			@Nullable String[] allowedClasses, @Nonnull String fileSystemMethodToCheck, @Nullable String studentCalledMethod, @Nonnull String fullMethodSignature) {
+	private static void checkFileSystemInteractionForAction(@Nonnull String action,
+			boolean allowNonExistingPathsToBeConsidered, @Nonnull String declaringTypeName, @Nonnull String methodName,
+			@Nonnull String methodSignature, @Nullable Object[] attributes, @Nullable Object[] parameters,
+			@Nullable Object instance, @Nullable String restrictedPackage, @Nullable String[] allowedClasses,
+			@Nonnull String fileSystemMethodToCheck, @Nullable String studentCalledMethod,
+			@Nonnull String fullMethodSignature) {
 		// <editor-fold desc="Resolve allowed paths">
 		@Nullable
 		final String[] allowedPaths = getValueFromSettings(switch (action) {
-			case "read" -> "pathsAllowedToBeRead";
-			case "overwrite" -> "pathsAllowedToBeOverwritten";
-			case "create" -> "pathsAllowedToBeCreated";
-			case "execute" -> "pathsAllowedToBeExecuted";
-			case "delete" -> "pathsAllowedToBeDeleted";
-			default -> throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.file.system.unknown.action", action));
+		case "read" -> "pathsAllowedToBeRead";
+		case "overwrite" -> "pathsAllowedToBeOverwritten";
+		case "create" -> "pathsAllowedToBeCreated";
+		case "execute" -> "pathsAllowedToBeExecuted";
+		case "delete" -> "pathsAllowedToBeDeleted";
+		default -> throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+				.localize("security.advice.file.system.unknown.action", action));
 		});
 		// </editor-fold>
 		// <editor-fold desc="Check parameters">
 		@Nullable
-		String pathIllegallyInteractedThroughParameter = (parameters == null || parameters.length == 0)
-				? null
-				: checkIfVariableCriteriaIsViolated(parameters, allowedPaths, FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE),
+		String pathIllegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null
+				: checkIfVariableCriteriaIsViolated(
+						parameters, allowedPaths, FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT
+								.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE),
 						allowNonExistingPathsToBeConsidered);
 		if (pathIllegallyInteractedThroughParameter != null) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.illegal.file.execution", fileSystemMethodToCheck, action,
-					pathIllegallyInteractedThroughParameter, fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+					"security.advice.illegal.file.execution", fileSystemMethodToCheck, action,
+					pathIllegallyInteractedThroughParameter, fullMethodSignature
+							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
 		}
 		// </editor-fold>
 		// <editor-fold desc="Check attributes">
 		@Nullable
-		String pathIllegallyInteractedThroughAttribute = (attributes == null || attributes.length == 0)
-				? null
-				: checkIfVariableCriteriaIsViolated(attributes, allowedPaths, FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE),
+		String pathIllegallyInteractedThroughAttribute = (attributes == null || attributes.length == 0) ? null
+				: checkIfVariableCriteriaIsViolated(
+						attributes, allowedPaths, FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT
+								.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE),
 						allowNonExistingPathsToBeConsidered);
 		if (pathIllegallyInteractedThroughAttribute != null) {
 			// Check if the path is an internal path that should be allowed
@@ -903,8 +904,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			}
 
 			if (!isInternalAllowed) {
-				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.illegal.file.execution", fileSystemMethodToCheck, action,
-						pathIllegallyInteractedThroughAttribute, fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
+				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+						"security.advice.illegal.file.execution", fileSystemMethodToCheck, action,
+						pathIllegallyInteractedThroughAttribute, fullMethodSignature
+								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
 			}
 		}
 		// </editor-fold>
@@ -912,23 +915,23 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 
 	/**
 	 * Validates a file system interaction against security policies.
-	 *
 	 * <p>
 	 * Description: Verifies that the specified action (read, overwrite, create,
 	 * execute, delete) complies with allowed paths and call stack criteria. Throws
 	 * SecurityException if a policy violation is detected.
 	 *
-	 * @param action the file system action being performed
+	 * @param action            the file system action being performed
 	 * @param declaringTypeName the fully qualified class name of the caller
-	 * @param methodName the name of the method invoked
-	 * @param methodSignature the method signature descriptor
-	 * @param attributes optional method attributes
-	 * @param parameters optional method parameters
+	 * @param methodName        the name of the method invoked
+	 * @param methodSignature   the method signature descriptor
+	 * @param attributes        optional method attributes
+	 * @param parameters        optional method parameters
 	 * @throws SecurityException if unauthorized access is detected
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */
-	public static void checkFileSystemInteraction(@Nonnull String action, @Nonnull String declaringTypeName, @Nonnull String methodName, @Nonnull String methodSignature, @Nullable Object[] attributes,
+	public static void checkFileSystemInteraction(@Nonnull String action, @Nonnull String declaringTypeName,
+			@Nonnull String methodName, @Nonnull String methodSignature, @Nullable Object[] attributes,
 			@Nullable Object[] parameters, @Nullable Object instance) {
 		// <editor-fold desc="Check instrumentation mode early">
 		@Nullable
@@ -947,7 +950,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		// </editor-fold>
 		// <editor-fold desc="Check callstack">
 		@Nullable
-		String fileSystemMethodToCheck = (restrictedPackage == null) ? null : checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses);
+		String fileSystemMethodToCheck = (restrictedPackage == null) ? null
+				: checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses);
 		if (fileSystemMethodToCheck == null) {
 			return;
 		}
@@ -957,8 +961,9 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 
 		List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action, declaringTypeName, parameters);
 		for (Map.Entry<String, Boolean> actionCheck : actionsToValidate) {
-			checkFileSystemInteractionForAction(actionCheck.getKey(), Boolean.TRUE.equals(actionCheck.getValue()), declaringTypeName, methodName, methodSignature, attributes, parameters, instance,
-					restrictedPackage, allowedClasses, fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
+			checkFileSystemInteractionForAction(actionCheck.getKey(), Boolean.TRUE.equals(actionCheck.getValue()),
+					declaringTypeName, methodName, methodSignature, attributes, parameters, instance, restrictedPackage,
+					allowedClasses, fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
 		}
 	}
 	// </editor-fold>

@@ -25,7 +25,8 @@ public final class IgnoreValues {
 
 	public static IgnoreValues noneExcept(int index) {
 		if (index < 0) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.ignore.values.index.negative"));
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.instrumentation.ignore.values.index.negative"));
 		}
 
 		return new IgnoreValues("NONE_EXCEPT", index);
@@ -33,7 +34,8 @@ public final class IgnoreValues {
 
 	public static IgnoreValues allExcept(int index) {
 		if (index < 0) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.ignore.values.index.negative"));
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.instrumentation.ignore.values.index.negative"));
 		}
 
 		return new IgnoreValues("ALL_EXCEPT", index);
@@ -45,9 +47,9 @@ public final class IgnoreValues {
 
 	public int getIndex() {
 		if (index == null) {
-			throw new IllegalStateException(JavaInstrumentationAdviceAbstractToolbox.localize("aop.ignore.index.not.available", type));
+			throw new IllegalStateException(
+					JavaInstrumentationAdviceAbstractToolbox.localize("aop.ignore.index.not.available", type));
 		}
 		return index;
 	}
-
 }

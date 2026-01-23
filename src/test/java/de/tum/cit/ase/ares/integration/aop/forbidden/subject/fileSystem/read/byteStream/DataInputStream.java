@@ -5,7 +5,8 @@ import java.io.*;
 public class DataInputStream {
 
 	private DataInputStream() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/**
@@ -14,7 +15,8 @@ public class DataInputStream {
 	 * any byte stream
 	 */
 	public static void accessFileSystemViaDataInputStream() throws IOException {
-		try (FileInputStream fis = new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
+		try (FileInputStream fis = new FileInputStream(
+				"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
 				java.io.DataInputStream dis = new java.io.DataInputStream(fis)) {
 			try {
 				dis.readInt(); // Reading typed data - int

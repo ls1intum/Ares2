@@ -25,7 +25,6 @@ import javax.annotation.Nullable;
 
 /**
  * Utility class for Java instrumentation thread system security advice.
- *
  * <p>
  * Description: Provides static methods to enforce thread system security
  * policies at runtime by checking thread system interactions (create) against
@@ -34,7 +33,6 @@ import javax.annotation.Nullable;
  * localization utilities. Designed to prevent unauthorized thread system
  * operations during Java application execution, especially in test and
  * instrumentation scenarios.
- *
  * <p>
  * Design Rationale: Centralizes thread system security checks for Java
  * instrumentation advice, ensuring consistent enforcement of security policies.
@@ -54,7 +52,6 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 	/**
 	 * Map of methods with attribute index exceptions for thread system ignore
 	 * logic.
-	 *
 	 * <p>
 	 * Description: Specifies for certain methods which attribute index should be
 	 * exempted from ignore rules during thread system checks.
@@ -65,7 +62,6 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 	/**
 	 * Map of methods with parameter index exceptions for thread system ignore
 	 * logic.
-	 *
 	 * <p>
 	 * Description: Specifies for certain methods which parameter index should be
 	 * exempted from ignore rules during thread system checks.
@@ -78,7 +74,6 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 
 	/**
 	 * Private constructor to prevent instantiation of this utility class.
-	 *
 	 * <p>
 	 * Description: Throws a SecurityException if instantiation is attempted,
 	 * enforcing the utility class pattern.
@@ -87,7 +82,8 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 	 * @author Markus Paulsen
 	 */
 	private JavaInstrumentationAdviceThreadSystemToolbox() {
-		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.utility.initialization", "JavaInstrumentationAdviceThreadSystemToolbox"));
+		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+				"security.instrumentation.utility.initialization", "JavaInstrumentationAdviceThreadSystemToolbox"));
 	}
 	// </editor-fold>
 
@@ -98,7 +94,6 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 	/**
 	 * Checks if the current thread creation is triggered by ProcessBuilder or
 	 * Runtime.exec.
-	 *
 	 * <p>
 	 * Description: When ProcessBuilder.start() or Runtime.exec() is called, they
 	 * internally create threads for process I/O handling. These thread creations
@@ -118,7 +113,8 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 			String className = element.getClassName();
 			String methodName = element.getMethodName();
 			// Check for ProcessBuilder.start() and ProcessBuilder.startPipeline()
-			if ("java.lang.ProcessBuilder".equals(className) && ("start".equals(methodName) || "startPipeline".equals(methodName))) {
+			if ("java.lang.ProcessBuilder".equals(className)
+					&& ("start".equals(methodName) || "startPipeline".equals(methodName))) {
 				return true;
 			}
 			// Check for Runtime.exec()
@@ -140,16 +136,16 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 	 * atomically decrements it and returns <code>false</code> (indicating it was
 	 * allowed). If the count is zero or below, it returns <code>true</code>
 	 * (indicating the class is disallowed because the quota is exhausted).
-	 *
 	 * <p>
 	 * This method uses atomic check-and-decrement to prevent race conditions where
 	 * multiple threads could pass the check simultaneously and exceed the
 	 * configured thread limit.
 	 *
 	 * @param allowedThreadNumbers An array of permissible thread counts, parallel
-	 *            to the class array that determines which classes can create
-	 *            threads.
-	 * @param index The index corresponding to the class being checked.
+	 *                             to the class array that determines which classes
+	 *                             can create threads.
+	 * @param index                The index corresponding to the class being
+	 *                             checked.
 	 * @return <code>true</code> if no more threads can be created (disallowed), or
 	 *         <code>false</code> if the class is allowed to create another thread
 	 *         and the count was decremented.
@@ -165,23 +161,24 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 
 	/**
 	 * Checks if a class name is outside of the allowed paths whitelist.
-	 *
 	 * <p>
 	 * Description: Returns true if allowedPaths not null or if the given path does
 	 * not match one of the allowedPatterns.
 	 *
 	 * @since 2.0.0
 	 * @author Markus
-	 * @param actualClassname the class name of the thread being requested
+	 * @param actualClassname      the class name of the thread being requested
 	 * @param allowedThreadClasses the thread classes that are allowed to be created
 	 * @param allowedThreadNumbers the number of threads allowed to be created
 	 * @return true if path is forbidden; false otherwise
 	 */
-	private static boolean checkIfThreadIsForbidden(@Nullable String actualClassname, @Nullable String[] allowedThreadClasses, @Nullable int[] allowedThreadNumbers) {
+	private static boolean checkIfThreadIsForbidden(@Nullable String actualClassname,
+			@Nullable String[] allowedThreadClasses, @Nullable int[] allowedThreadNumbers) {
 		if (actualClassname == null) {
 			return false;
 		}
-		if (allowedThreadClasses == null || allowedThreadClasses.length == 0 || allowedThreadNumbers == null || allowedThreadNumbers.length == 0) {
+		if (allowedThreadClasses == null || allowedThreadClasses.length == 0 || allowedThreadNumbers == null
+				|| allowedThreadNumbers.length == 0) {
 			return true;
 		}
 		boolean actualIsLambda = "Lambda-Expression".equals(actualClassname);
@@ -224,7 +221,6 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 
 	/**
 	 * Checks if a variable is a lambda expression.
-	 *
 	 * <p>
 	 * Description: Determines if the provided variable is a lambda expression by
 	 * checking if its class is synthetic and has a writeReplace() method that
@@ -243,12 +239,12 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 		String className = variableClass.getName();
 
 		// Check for common lambda patterns
-		return className.contains("$$Lambda") || className.contains("$Lambda$") || className.matches(".*\\$\\$Lambda\\$.*");
+		return className.contains("$$Lambda") || className.contains("$Lambda$")
+				|| className.matches(".*\\$\\$Lambda\\$.*");
 	}
 
 	/**
 	 * Checks if a variable is an instance of Thread.FieldHolder using reflection.
-	 *
 	 * <p>
 	 * Description: Uses reflection to safely check if the variable is an instance
 	 * of Thread.FieldHolder, avoiding direct instanceof checks that might fail in
@@ -272,7 +268,8 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 			String className = variableClass.getName();
 
 			// Check if the class name matches Thread.FieldHolder pattern
-			return className.equals("java.lang.Thread$FieldHolder") || className.endsWith("$FieldHolder") && className.startsWith("java.lang.Thread");
+			return className.equals("java.lang.Thread$FieldHolder")
+					|| className.endsWith("$FieldHolder") && className.startsWith("java.lang.Thread");
 		} catch (Exception e) {
 			return false;
 		}
@@ -281,7 +278,6 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 	/**
 	 * Extracts the task field value from a Thread.FieldHolder instance using
 	 * reflection.
-	 *
 	 * <p>
 	 * Description: Uses reflection to safely access the task field from a
 	 * Thread.FieldHolder instance. First attempts standard reflection, then falls
@@ -306,13 +302,15 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 			@Nullable
 			Object taskValue = taskField.get(threadFieldHolder);
 			if (taskValue == null) {
-				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.thread.task.null", threadFieldHolder));
+				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+						.localize("security.advice.thread.task.null", threadFieldHolder));
 			}
 			@Nonnull
 			Class<?> taskClass = taskValue.getClass();
 			return isReallyLambda(taskClass) ? "Lambda-Expression" : taskClass.getName();
 		} catch (NoSuchFieldException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.thread.task.reflection.error", threadFieldHolder), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.advice.thread.task.reflection.error", threadFieldHolder), e);
 		} catch (IllegalAccessException | InaccessibleObjectException e) {
 			// Standard reflection failed due to access restrictions, try Unsafe fallback
 		}
@@ -330,29 +328,31 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 			@Nullable
 			Object taskValue = getObjectMethod.invoke(unsafe, threadFieldHolder, offset);
 			if (taskValue == null) {
-				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.thread.task.null", threadFieldHolder));
+				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+						.localize("security.advice.thread.task.null", threadFieldHolder));
 			}
 			@Nonnull
 			Class<?> taskClass = taskValue.getClass();
 			return isReallyLambda(taskClass) ? "Lambda-Expression" : taskClass.getName();
 		} catch (ClassNotFoundException e) {
 			// sun.misc.Unsafe not available (restricted JVM or future Java version)
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.thread.task.reflection.error", threadFieldHolder), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.advice.thread.task.reflection.error", threadFieldHolder), e);
 		} catch (NoSuchFieldException | IllegalAccessException | NullPointerException | InaccessibleObjectException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.thread.task.reflection.error", threadFieldHolder), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.advice.thread.task.reflection.error", threadFieldHolder), e);
 		} catch (InvocationTargetException | NoSuchMethodException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.transform.path.unexpected.error"), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.advice.transform.path.unexpected.error"), e);
 		}
 	}
 
 	/**
 	 * Converts a variable value to its class name.
-	 *
 	 * <p>
 	 * Description: Returns null when the value is null or cannot be resolved. If
 	 * the variable is a lambda expression, returns "Lambda-Expression". Otherwise,
 	 * returns the class name of the variable.
-	 *
 	 */
 	@Nullable
 	private static String variableToClassname(@Nullable Object variableValue) {
@@ -361,8 +361,10 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 				return null;
 			} else if (isThreadFieldHolder(variableValue)) {
 				return getTaskFromThreadFieldHolder(variableValue);
-			} else if (variableValue instanceof Runnable || variableValue instanceof Callable<?> || variableValue instanceof ForkJoinTask<?> || variableValue instanceof CompletableFuture<?>
-					|| variableValue instanceof Supplier<?> || variableValue instanceof Function<?, ?> || variableValue instanceof BiFunction<?, ?, ?> || variableValue instanceof CompletionStage<?>) {
+			} else if (variableValue instanceof Runnable || variableValue instanceof Callable<?>
+					|| variableValue instanceof ForkJoinTask<?> || variableValue instanceof CompletableFuture<?>
+					|| variableValue instanceof Supplier<?> || variableValue instanceof Function<?, ?>
+					|| variableValue instanceof BiFunction<?, ?, ?> || variableValue instanceof CompletionStage<?>) {
 				@Nonnull
 				Class<?> variableClass = variableValue.getClass();
 				return isReallyLambda(variableClass) ? "Lambda-Expression" : variableClass.getName();
@@ -372,7 +374,6 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 		} catch (SecurityException ignored) {
 			return null;
 		}
-
 	}
 	// </editor-fold>
 
@@ -380,7 +381,6 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 
 	/**
 	 * Analyzes a variable to determine if it violates allowed paths.
-	 *
 	 * <p>
 	 * Description: Recursively checks if the variable or its elements (if an array
 	 * or List) are in violation of the allowed paths. Returns true if any element
@@ -388,19 +388,21 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 	 *
 	 * @since 2.0.0
 	 * @author Markus
-	 * @param observedVariable the variable to analyze
-	 * @param threadClassAllowedToBeCreated whitelist of allowed thread classes
+	 * @param observedVariable               the variable to analyze
+	 * @param threadClassAllowedToBeCreated  whitelist of allowed thread classes
 	 * @param threadNumberAllowedToBeCreated the number of threads allowed to be
-	 *            created
+	 *                                       created
 	 * @return true if a violation is found, false otherwise
 	 */
-	private static boolean analyseViolation(@Nullable Object observedVariable, @Nullable String[] threadClassAllowedToBeCreated, @Nullable int[] threadNumberAllowedToBeCreated) {
+	private static boolean analyseViolation(@Nullable Object observedVariable,
+			@Nullable String[] threadClassAllowedToBeCreated, @Nullable int[] threadNumberAllowedToBeCreated) {
 		if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
 			return false;
 		} else if (observedVariable.getClass().isArray()) {
 			for (int i = 0; i < Array.getLength(observedVariable); i++) {
 				Object element = Array.get(observedVariable, i);
-				boolean violation = analyseViolation(element, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated);
+				boolean violation = analyseViolation(element, threadClassAllowedToBeCreated,
+						threadNumberAllowedToBeCreated);
 				if (violation) {
 					return true;
 				}
@@ -408,7 +410,8 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 			return false;
 		} else if (observedVariable instanceof List<?>) {
 			for (Object element : (List<?>) observedVariable) {
-				boolean violation = analyseViolation(element, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated);
+				boolean violation = analyseViolation(element, threadClassAllowedToBeCreated,
+						threadNumberAllowedToBeCreated);
 				if (violation) {
 					return true;
 				}
@@ -416,14 +419,14 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 			return false;
 		} else {
 			String observedClassname = variableToClassname(observedVariable);
-			return checkIfThreadIsForbidden(observedClassname, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated);
+			return checkIfThreadIsForbidden(observedClassname, threadClassAllowedToBeCreated,
+					threadNumberAllowedToBeCreated);
 		}
 	}
 
 	/**
 	 * Extracts and returns the first violating path string from an array or list
 	 * variable.
-	 *
 	 * <p>
 	 * Description: Iterates through the variable’s elements (array or List),
 	 * converts each to a Path if possible, and returns the string of the first path
@@ -431,21 +434,23 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 	 *
 	 * @since 2.0.0
 	 * @author Markus
-	 * @param observedVariable the array or List to inspect
-	 * @param threadClassAllowedToBeCreated the thread classes that are allowed to
-	 *            be created
+	 * @param observedVariable               the array or List to inspect
+	 * @param threadClassAllowedToBeCreated  the thread classes that are allowed to
+	 *                                       be created
 	 * @param threadNumberAllowedToBeCreated the number of threads allowed to be
-	 *            created
+	 *                                       created
 	 * @return the first violating path as a String, or null if none found
 	 */
 	@Nullable
-	private static String extractViolationPath(@Nullable Object observedVariable, @Nullable String[] threadClassAllowedToBeCreated, @Nullable int[] threadNumberAllowedToBeCreated) {
+	private static String extractViolationPath(@Nullable Object observedVariable,
+			@Nullable String[] threadClassAllowedToBeCreated, @Nullable int[] threadNumberAllowedToBeCreated) {
 		if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
 			return null;
 		} else if (observedVariable.getClass().isArray()) {
 			for (int i = 0; i < Array.getLength(observedVariable); i++) {
 				Object element = Array.get(observedVariable, i);
-				String violationPath = extractViolationPath(element, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated);
+				String violationPath = extractViolationPath(element, threadClassAllowedToBeCreated,
+						threadNumberAllowedToBeCreated);
 				if (violationPath != null) {
 					return violationPath;
 				}
@@ -453,7 +458,8 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 			return null;
 		} else if (observedVariable instanceof List<?>) {
 			for (Object element : (List<?>) observedVariable) {
-				String violationPath = extractViolationPath(element, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated);
+				String violationPath = extractViolationPath(element, threadClassAllowedToBeCreated,
+						threadNumberAllowedToBeCreated);
 				if (violationPath != null) {
 					return violationPath;
 				}
@@ -462,7 +468,8 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 		} else {
 			try {
 				String observedClassname = variableToClassname(observedVariable);
-				if (checkIfThreadIsForbidden(observedClassname, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated)) {
+				if (checkIfThreadIsForbidden(observedClassname, threadClassAllowedToBeCreated,
+						threadNumberAllowedToBeCreated)) {
 					return observedClassname;
 				}
 			} catch (SecurityException ignored) {
@@ -474,7 +481,6 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 
 	/**
 	 * Checks an array of observedVariables against allowed file system paths.
-	 *
 	 * <p>
 	 * Description: Iterates through the filtered observedVariables (excluding those
 	 * matching ignoreVariables). For each non-null variable, if it is an array or a
@@ -484,20 +490,23 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 	 *
 	 * @since 2.0.0
 	 * @author Markus
-	 * @param observedVariables array of values to validate
-	 * @param threadClassAllowedToBeCreated whitelist of allowed thread classes
+	 * @param observedVariables              array of values to validate
+	 * @param threadClassAllowedToBeCreated  whitelist of allowed thread classes
 	 * @param threadNumberAllowedToBeCreated the number of threads allowed to be
-	 *            created
-	 * @param ignoreVariables criteria determining which observedVariables to skip
+	 *                                       created
+	 * @param ignoreVariables                criteria determining which
+	 *                                       observedVariables to skip
 	 * @return the first path (as String) that is not allowed, or null if none
 	 *         violate
 	 */
-	private static String checkIfVariableCriteriaIsViolated(@Nonnull Object[] observedVariables, @Nullable String[] threadClassAllowedToBeCreated, @Nullable int[] threadNumberAllowedToBeCreated,
+	private static String checkIfVariableCriteriaIsViolated(@Nonnull Object[] observedVariables,
+			@Nullable String[] threadClassAllowedToBeCreated, @Nullable int[] threadNumberAllowedToBeCreated,
 			@Nonnull IgnoreValues ignoreVariables) {
 		for (@Nullable
 		Object observedVariable : filterVariables(observedVariables, ignoreVariables)) {
 			if (analyseViolation(observedVariable, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated)) {
-				return extractViolationPath(observedVariable, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated);
+				return extractViolationPath(observedVariable, threadClassAllowedToBeCreated,
+						threadNumberAllowedToBeCreated);
 			}
 		}
 		return null;
@@ -510,24 +519,24 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 
 	/**
 	 * Validates a thread system interaction against security policies.
-	 *
 	 * <p>
 	 * Description: Verifies that the specified action (create) complies with
 	 * allowed threads and call stack criteria. Throws SecurityException if a policy
 	 * violation is detected.
 	 *
-	 * @param action the thread system action being performed
+	 * @param action            the thread system action being performed
 	 * @param declaringTypeName the fully qualified class name of the caller
-	 * @param methodName the name of the method invoked
-	 * @param methodSignature the method signature descriptor
-	 * @param attributes optional method attributes
-	 * @param parameters optional method parameters
+	 * @param methodName        the name of the method invoked
+	 * @param methodSignature   the method signature descriptor
+	 * @param attributes        optional method attributes
+	 * @param parameters        optional method parameters
 	 * @throws SecurityException if unauthorized access is detected
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */
-	public static void checkThreadSystemInteraction(@Nonnull String action, @Nonnull String declaringTypeName, @Nonnull String methodName, @Nonnull String methodSignature,
-			@Nullable Object[] attributes, @Nullable Object[] parameters) {
+	public static void checkThreadSystemInteraction(@Nonnull String action, @Nonnull String declaringTypeName,
+			@Nonnull String methodName, @Nonnull String methodSignature, @Nullable Object[] attributes,
+			@Nullable Object[] parameters) {
 		// <editor-fold desc="Get information from settings">
 		@Nullable
 		final String aopMode = getValueFromSettings("aopMode");
@@ -541,14 +550,17 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 
 		@Nullable
 		String[] threadClassAllowedToBeCreated = getValueFromSettings("threadClassAllowedToBeCreated");
-		int threadClassAllowedToBeCreatedSize = threadClassAllowedToBeCreated == null ? 0 : threadClassAllowedToBeCreated.length;
+		int threadClassAllowedToBeCreatedSize = threadClassAllowedToBeCreated == null ? 0
+				: threadClassAllowedToBeCreated.length;
 		@Nullable
 		int[] threadNumberAllowedToBeCreated = getValueFromSettings("threadNumberAllowedToBeCreated");
-		int threadNumberAllowedToBeCreatedSize = threadNumberAllowedToBeCreated == null ? 0 : threadNumberAllowedToBeCreated.length;
+		int threadNumberAllowedToBeCreatedSize = threadNumberAllowedToBeCreated == null ? 0
+				: threadNumberAllowedToBeCreated.length;
 
 		if (threadNumberAllowedToBeCreatedSize != threadClassAllowedToBeCreatedSize) {
 			throw new SecurityException(
-					JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.thread.allowed.size", threadNumberAllowedToBeCreatedSize, threadClassAllowedToBeCreatedSize));
+					JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.thread.allowed.size",
+							threadNumberAllowedToBeCreatedSize, threadClassAllowedToBeCreatedSize));
 		}
 		// </editor-fold>
 		// <editor-fold desc="Get information from attributes">
@@ -568,7 +580,8 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 		// </editor-fold>
 		// <editor-fold desc="Check callstack">
 		@Nullable
-		String threadSystemMethodToCheck = (restrictedPackage == null) ? null : checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses);
+		String threadSystemMethodToCheck = (restrictedPackage == null) ? null
+				: checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses);
 		if (threadSystemMethodToCheck == null) {
 			return;
 		}
@@ -577,27 +590,32 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 		// </editor-fold>
 		// <editor-fold desc="Check parameters">
 		@Nullable
-		String threadIllegallyInteractedThroughParameter = (parameters == null || parameters.length == 0)
-				? null
-				: checkIfVariableCriteriaIsViolated(parameters, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated,
-						THREAD_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
+		String threadIllegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null
+				: checkIfVariableCriteriaIsViolated(parameters, threadClassAllowedToBeCreated,
+						threadNumberAllowedToBeCreated, THREAD_SYSTEM_IGNORE_PARAMETERS_EXCEPT
+								.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
 		if (threadIllegallyInteractedThroughParameter != null) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.illegal.thread.execution", threadSystemMethodToCheck, action,
-					threadIllegallyInteractedThroughParameter, fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+					"security.advice.illegal.thread.execution", threadSystemMethodToCheck, action,
+					threadIllegallyInteractedThroughParameter, fullMethodSignature
+							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
 		}
 		// </editor-fold>
 		// <editor-fold desc="Check attributes">
 		// Create combined array with declaringTypeName and attributes
-		Object[] attributesToCheck = attributes == null ? new Object[]{ declaringTypeName } : Stream.concat(Stream.of(declaringTypeName), Arrays.stream(attributes)).toArray();
+		Object[] attributesToCheck = attributes == null ? new Object[] { declaringTypeName }
+				: Stream.concat(Stream.of(declaringTypeName), Arrays.stream(attributes)).toArray();
 
 		@Nullable
-		String threadIllegallyInteractedThroughAttribute = (attributesToCheck.length == 0)
-				? null
-				: checkIfVariableCriteriaIsViolated(attributesToCheck, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated,
-						THREAD_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
+		String threadIllegallyInteractedThroughAttribute = (attributesToCheck.length == 0) ? null
+				: checkIfVariableCriteriaIsViolated(attributesToCheck, threadClassAllowedToBeCreated,
+						threadNumberAllowedToBeCreated, THREAD_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT
+								.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
 		if (threadIllegallyInteractedThroughAttribute != null) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.illegal.thread.execution", threadSystemMethodToCheck, action,
-					threadIllegallyInteractedThroughAttribute, fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+					"security.advice.illegal.thread.execution", threadSystemMethodToCheck, action,
+					threadIllegallyInteractedThroughAttribute, fullMethodSignature
+							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
 		}
 		// </editor-fold>
 	}

@@ -9,7 +9,8 @@ import java.io.InputStreamReader;
 public class ReadBufferedReaderMain {
 
 	private ReadBufferedReaderMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/**
@@ -17,7 +18,8 @@ public class ReadBufferedReaderMain {
 	 * by character.
 	 */
 	public static String accessFileSystemViaBufferedReaderRead() throws IOException {
-		try (BufferedReader reader = new BufferedReader(new FileReader("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"))) {
+		try (BufferedReader reader = new BufferedReader(
+				new FileReader("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"))) {
 			StringBuilder content = new StringBuilder();
 			int ch;
 			while ((ch = reader.read()) != -1) {
@@ -32,7 +34,8 @@ public class ReadBufferedReaderMain {
 	 * len) Reads the file into a buffer.
 	 */
 	public static String accessFileSystemViaBufferedReaderReadCharArray() throws IOException {
-		try (BufferedReader reader = new BufferedReader(new FileReader("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"))) {
+		try (BufferedReader reader = new BufferedReader(
+				new FileReader("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"))) {
 			StringBuilder content = new StringBuilder();
 			char[] buffer = new char[1024];
 			int numRead;
@@ -48,7 +51,8 @@ public class ReadBufferedReaderMain {
 	 * line.
 	 */
 	public static String accessFileSystemViaBufferedReaderReadLine() throws IOException {
-		try (BufferedReader reader = new BufferedReader(new FileReader("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"))) {
+		try (BufferedReader reader = new BufferedReader(
+				new FileReader("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"))) {
 			StringBuilder content = new StringBuilder();
 			String line;
 			while ((line = reader.readLine()) != null) {
@@ -63,7 +67,9 @@ public class ReadBufferedReaderMain {
 	 * with buffer size.
 	 */
 	public static String accessFileSystemViaBufferedReaderWithSize() throws IOException {
-		try (BufferedReader reader = new BufferedReader(new FileReader("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"), 8192)) {
+		try (BufferedReader reader = new BufferedReader(
+				new FileReader("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"),
+				8192)) {
 			String line = reader.readLine();
 			return line != null ? line : "";
 		}
@@ -73,7 +79,8 @@ public class ReadBufferedReaderMain {
 	 * Access the file system using BufferedReader.ready() method.
 	 */
 	public static String accessFileSystemViaBufferedReaderReady() throws IOException {
-		try (BufferedReader reader = new BufferedReader(new FileReader("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"))) {
+		try (BufferedReader reader = new BufferedReader(
+				new FileReader("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"))) {
 			boolean ready = reader.ready();
 			return "Ready: " + ready;
 		}
@@ -83,7 +90,8 @@ public class ReadBufferedReaderMain {
 	 * Access the file system using BufferedReader.close() method explicitly.
 	 */
 	public static String accessFileSystemViaBufferedReaderClose() throws IOException {
-		BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt")));
+		BufferedReader reader = new BufferedReader(new InputStreamReader(
+				new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt")));
 		reader.close();
 		return "Closed";
 	}
@@ -92,7 +100,8 @@ public class ReadBufferedReaderMain {
 	 * Access the file system using BufferedReader.skip(long n) method.
 	 */
 	public static String accessFileSystemViaBufferedReaderSkip() throws IOException {
-		try (BufferedReader reader = new BufferedReader(new FileReader("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"))) {
+		try (BufferedReader reader = new BufferedReader(
+				new FileReader("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"))) {
 			long skipped = reader.skip(10);
 			return "Skipped: " + skipped + " characters";
 		}

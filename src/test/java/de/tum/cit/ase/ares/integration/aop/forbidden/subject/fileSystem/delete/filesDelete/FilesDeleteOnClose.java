@@ -9,7 +9,8 @@ public final class FilesDeleteOnClose {
 	private static final String NOT_TRUSTED_FILE = "src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/nottrusteddir/nottrusted.txt";
 
 	private FilesDeleteOnClose() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): " + "FilesDeleteOnClose is a utility class and should not be instantiated.");
+		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): "
+				+ "FilesDeleteOnClose is a utility class and should not be instantiated.");
 	}
 
 	/**

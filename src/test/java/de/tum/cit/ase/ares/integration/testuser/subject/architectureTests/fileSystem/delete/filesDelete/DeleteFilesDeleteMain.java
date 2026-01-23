@@ -7,7 +7,8 @@ import java.nio.file.Path;
 public final class DeleteFilesDeleteMain {
 
 	private DeleteFilesDeleteMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/**

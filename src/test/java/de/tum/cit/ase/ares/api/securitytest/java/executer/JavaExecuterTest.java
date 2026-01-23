@@ -56,21 +56,28 @@ public class JavaExecuterTest {
 		void shouldExecuteTestCasesAndSetJavaAdviceSettings() {
 			try (MockedStatic<JavaAOPTestCase> mockedJavaAOPTestCase = mockStatic(JavaAOPTestCase.class)) {
 				// Arrange - mock setJavaAdviceSettingValue to do nothing
-				mockedJavaAOPTestCase.when(() -> JavaAOPTestCase.setJavaAdviceSettingValue(any(String.class), any(), any(String.class), any(String.class))).thenAnswer(invocation -> null);
+				mockedJavaAOPTestCase.when(() -> JavaAOPTestCase.setJavaAdviceSettingValue(any(String.class), any(),
+						any(String.class), any(String.class))).thenAnswer(invocation -> null);
 
 				// Act
-				javaExecuter.executeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
-						javaAOPTestCases);
+				javaExecuter.executeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
+						testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases, javaAOPTestCases);
 
 				// Assert - verify JavaAOPTestCase.setJavaAdviceSettingValue was called with
 				// correct parameters
-				mockedJavaAOPTestCase.verify(() -> JavaAOPTestCase.setJavaAdviceSettingValue(eq("buildMode"), eq("MAVEN"), eq("ARCHUNIT"), eq("INSTRUMENTATION")));
-				mockedJavaAOPTestCase.verify(() -> JavaAOPTestCase.setJavaAdviceSettingValue(eq("architectureMode"), eq("ARCHUNIT"), eq("ARCHUNIT"), eq("INSTRUMENTATION")));
-				mockedJavaAOPTestCase.verify(() -> JavaAOPTestCase.setJavaAdviceSettingValue(eq("aopMode"), eq("INSTRUMENTATION"), eq("ARCHUNIT"), eq("INSTRUMENTATION")));
+				mockedJavaAOPTestCase.verify(() -> JavaAOPTestCase.setJavaAdviceSettingValue(eq("buildMode"),
+						eq("MAVEN"), eq("ARCHUNIT"), eq("INSTRUMENTATION")));
+				mockedJavaAOPTestCase.verify(() -> JavaAOPTestCase.setJavaAdviceSettingValue(eq("architectureMode"),
+						eq("ARCHUNIT"), eq("ARCHUNIT"), eq("INSTRUMENTATION")));
+				mockedJavaAOPTestCase.verify(() -> JavaAOPTestCase.setJavaAdviceSettingValue(eq("aopMode"),
+						eq("INSTRUMENTATION"), eq("ARCHUNIT"), eq("INSTRUMENTATION")));
 				mockedJavaAOPTestCase
-						.verify(() -> JavaAOPTestCase.setJavaAdviceSettingValue(eq("allowedListedPackages"), eq(essentialPackages.toArray(String[]::new)), eq("ARCHUNIT"), eq("INSTRUMENTATION")));
-				mockedJavaAOPTestCase.verify(() -> JavaAOPTestCase.setJavaAdviceSettingValue(eq("restrictedPackage"), eq("com.example"), eq("ARCHUNIT"), eq("INSTRUMENTATION")));
-				mockedJavaAOPTestCase.verify(() -> JavaAOPTestCase.setJavaAdviceSettingValue(eq("mainClass"), eq("MainClass"), eq("ARCHUNIT"), eq("INSTRUMENTATION")));
+						.verify(() -> JavaAOPTestCase.setJavaAdviceSettingValue(eq("allowedListedPackages"),
+								eq(essentialPackages.toArray(String[]::new)), eq("ARCHUNIT"), eq("INSTRUMENTATION")));
+				mockedJavaAOPTestCase.verify(() -> JavaAOPTestCase.setJavaAdviceSettingValue(eq("restrictedPackage"),
+						eq("com.example"), eq("ARCHUNIT"), eq("INSTRUMENTATION")));
+				mockedJavaAOPTestCase.verify(() -> JavaAOPTestCase.setJavaAdviceSettingValue(eq("mainClass"),
+						eq("MainClass"), eq("ARCHUNIT"), eq("INSTRUMENTATION")));
 
 				// Verify architecture test cases were executed
 				for (JavaArchitectureTestCase testCase : javaArchitectureTestCases) {
@@ -89,13 +96,16 @@ public class JavaExecuterTest {
 		void shouldHandleDifferentBuildModeValues() {
 			try (MockedStatic<JavaAOPTestCase> mockedJavaAOPTestCase = mockStatic(JavaAOPTestCase.class)) {
 				// Arrange - mock setJavaAdviceSettingValue to do nothing
-				mockedJavaAOPTestCase.when(() -> JavaAOPTestCase.setJavaAdviceSettingValue(any(String.class), any(), any(String.class), any(String.class))).thenAnswer(invocation -> null);
+				mockedJavaAOPTestCase.when(() -> JavaAOPTestCase.setJavaAdviceSettingValue(any(String.class), any(),
+						any(String.class), any(String.class))).thenAnswer(invocation -> null);
 
 				// Test with GRADLE
-				javaExecuter.executeTestCases(BuildMode.GRADLE, architectureMode, aopMode, essentialPackages, essentialClasses, testClasses, packageName, mainClassInPackageName,
-						javaArchitectureTestCases, javaAOPTestCases);
+				javaExecuter.executeTestCases(BuildMode.GRADLE, architectureMode, aopMode, essentialPackages,
+						essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
+						javaAOPTestCases);
 
-				mockedJavaAOPTestCase.verify(() -> JavaAOPTestCase.setJavaAdviceSettingValue(eq("buildMode"), eq("GRADLE"), eq("ARCHUNIT"), eq("INSTRUMENTATION")));
+				mockedJavaAOPTestCase.verify(() -> JavaAOPTestCase.setJavaAdviceSettingValue(eq("buildMode"),
+						eq("GRADLE"), eq("ARCHUNIT"), eq("INSTRUMENTATION")));
 			}
 		}
 
@@ -104,13 +114,16 @@ public class JavaExecuterTest {
 		void shouldHandleDifferentArchitectureModeValues() {
 			try (MockedStatic<JavaAOPTestCase> mockedJavaAOPTestCase = mockStatic(JavaAOPTestCase.class)) {
 				// Arrange - mock setJavaAdviceSettingValue to do nothing
-				mockedJavaAOPTestCase.when(() -> JavaAOPTestCase.setJavaAdviceSettingValue(any(String.class), any(), any(String.class), any(String.class))).thenAnswer(invocation -> null);
+				mockedJavaAOPTestCase.when(() -> JavaAOPTestCase.setJavaAdviceSettingValue(any(String.class), any(),
+						any(String.class), any(String.class))).thenAnswer(invocation -> null);
 
 				// Test with WALA
-				javaExecuter.executeTestCases(buildMode, ArchitectureMode.WALA, aopMode, essentialPackages, essentialClasses, testClasses, packageName, mainClassInPackageName,
-						javaArchitectureTestCases, javaAOPTestCases);
+				javaExecuter.executeTestCases(buildMode, ArchitectureMode.WALA, aopMode, essentialPackages,
+						essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
+						javaAOPTestCases);
 
-				mockedJavaAOPTestCase.verify(() -> JavaAOPTestCase.setJavaAdviceSettingValue(eq("architectureMode"), eq("WALA"), eq("WALA"), eq("INSTRUMENTATION")));
+				mockedJavaAOPTestCase.verify(() -> JavaAOPTestCase.setJavaAdviceSettingValue(eq("architectureMode"),
+						eq("WALA"), eq("WALA"), eq("INSTRUMENTATION")));
 			}
 		}
 
@@ -119,13 +132,16 @@ public class JavaExecuterTest {
 		void shouldHandleDifferentAOPModeValues() {
 			try (MockedStatic<JavaAOPTestCase> mockedJavaAOPTestCase = mockStatic(JavaAOPTestCase.class)) {
 				// Arrange - mock setJavaAdviceSettingValue to do nothing
-				mockedJavaAOPTestCase.when(() -> JavaAOPTestCase.setJavaAdviceSettingValue(any(String.class), any(), any(String.class), any(String.class))).thenAnswer(invocation -> null);
+				mockedJavaAOPTestCase.when(() -> JavaAOPTestCase.setJavaAdviceSettingValue(any(String.class), any(),
+						any(String.class), any(String.class))).thenAnswer(invocation -> null);
 
 				// Test with ASPECTJ
-				javaExecuter.executeTestCases(buildMode, architectureMode, AOPMode.ASPECTJ, essentialPackages, essentialClasses, testClasses, packageName, mainClassInPackageName,
-						javaArchitectureTestCases, javaAOPTestCases);
+				javaExecuter.executeTestCases(buildMode, architectureMode, AOPMode.ASPECTJ, essentialPackages,
+						essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
+						javaAOPTestCases);
 
-				mockedJavaAOPTestCase.verify(() -> JavaAOPTestCase.setJavaAdviceSettingValue(eq("aopMode"), eq("ASPECTJ"), eq("ARCHUNIT"), eq("ASPECTJ")));
+				mockedJavaAOPTestCase.verify(() -> JavaAOPTestCase.setJavaAdviceSettingValue(eq("aopMode"),
+						eq("ASPECTJ"), eq("ARCHUNIT"), eq("ASPECTJ")));
 			}
 		}
 
@@ -134,15 +150,17 @@ public class JavaExecuterTest {
 		void shouldMergeEssentialClassesAndTestClassesCorrectly() {
 			try (MockedStatic<JavaAOPTestCase> mockedJavaAOPTestCase = mockStatic(JavaAOPTestCase.class)) {
 				// Arrange - mock setJavaAdviceSettingValue to do nothing
-				mockedJavaAOPTestCase.when(() -> JavaAOPTestCase.setJavaAdviceSettingValue(any(String.class), any(), any(String.class), any(String.class))).thenAnswer(invocation -> null);
+				mockedJavaAOPTestCase.when(() -> JavaAOPTestCase.setJavaAdviceSettingValue(any(String.class), any(),
+						any(String.class), any(String.class))).thenAnswer(invocation -> null);
 
 				// Act
-				javaExecuter.executeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
-						javaAOPTestCases);
+				javaExecuter.executeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
+						testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases, javaAOPTestCases);
 
 				// Assert - verify allowedListedClasses contains both essential and test classes
 				String[] expectedClasses = { "java.lang.String", "java.util.List", "TestClass1", "TestClass2" };
-				mockedJavaAOPTestCase.verify(() -> JavaAOPTestCase.setJavaAdviceSettingValue(eq("allowedListedClasses"), eq(expectedClasses), eq("ARCHUNIT"), eq("INSTRUMENTATION")));
+				mockedJavaAOPTestCase.verify(() -> JavaAOPTestCase.setJavaAdviceSettingValue(eq("allowedListedClasses"),
+						eq(expectedClasses), eq("ARCHUNIT"), eq("INSTRUMENTATION")));
 			}
 		}
 
@@ -151,7 +169,8 @@ public class JavaExecuterTest {
 		void shouldHandleEmptyLists() {
 			try (MockedStatic<JavaAOPTestCase> mockedJavaAOPTestCase = mockStatic(JavaAOPTestCase.class)) {
 				// Arrange - mock setJavaAdviceSettingValue to do nothing
-				mockedJavaAOPTestCase.when(() -> JavaAOPTestCase.setJavaAdviceSettingValue(any(String.class), any(), any(String.class), any(String.class))).thenAnswer(invocation -> null);
+				mockedJavaAOPTestCase.when(() -> JavaAOPTestCase.setJavaAdviceSettingValue(any(String.class), any(),
+						any(String.class), any(String.class))).thenAnswer(invocation -> null);
 
 				List<String> emptyPackages = List.of();
 				List<String> emptyClasses = List.of();
@@ -160,12 +179,15 @@ public class JavaExecuterTest {
 				List<JavaAOPTestCase> emptyAOPTestCases = List.of();
 
 				// Act
-				javaExecuter.executeTestCases(buildMode, architectureMode, aopMode, emptyPackages, emptyClasses, emptyTestClasses, packageName, mainClassInPackageName, emptyArchTestCases,
-						emptyAOPTestCases);
+				javaExecuter.executeTestCases(buildMode, architectureMode, aopMode, emptyPackages, emptyClasses,
+						emptyTestClasses, packageName, mainClassInPackageName, emptyArchTestCases, emptyAOPTestCases);
 
 				// Assert - verify empty arrays were passed
-				mockedJavaAOPTestCase.verify(() -> JavaAOPTestCase.setJavaAdviceSettingValue(eq("allowedListedPackages"), eq(new String[0]), eq("ARCHUNIT"), eq("INSTRUMENTATION")));
-				mockedJavaAOPTestCase.verify(() -> JavaAOPTestCase.setJavaAdviceSettingValue(eq("allowedListedClasses"), eq(new String[0]), eq("ARCHUNIT"), eq("INSTRUMENTATION")));
+				mockedJavaAOPTestCase
+						.verify(() -> JavaAOPTestCase.setJavaAdviceSettingValue(eq("allowedListedPackages"),
+								eq(new String[0]), eq("ARCHUNIT"), eq("INSTRUMENTATION")));
+				mockedJavaAOPTestCase.verify(() -> JavaAOPTestCase.setJavaAdviceSettingValue(eq("allowedListedClasses"),
+						eq(new String[0]), eq("ARCHUNIT"), eq("INSTRUMENTATION")));
 			}
 		}
 
@@ -174,14 +196,15 @@ public class JavaExecuterTest {
 		void shouldNotExecuteTestCasesWhenListsAreEmpty() {
 			try (MockedStatic<JavaAOPTestCase> mockedJavaAOPTestCase = mockStatic(JavaAOPTestCase.class)) {
 				// Arrange - mock setJavaAdviceSettingValue to do nothing
-				mockedJavaAOPTestCase.when(() -> JavaAOPTestCase.setJavaAdviceSettingValue(any(String.class), any(), any(String.class), any(String.class))).thenAnswer(invocation -> null);
+				mockedJavaAOPTestCase.when(() -> JavaAOPTestCase.setJavaAdviceSettingValue(any(String.class), any(),
+						any(String.class), any(String.class))).thenAnswer(invocation -> null);
 
 				List<JavaArchitectureTestCase> emptyArchTestCases = List.of();
 				List<JavaAOPTestCase> emptyAOPTestCases = List.of();
 
 				// Act
-				javaExecuter.executeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses, testClasses, packageName, mainClassInPackageName, emptyArchTestCases,
-						emptyAOPTestCases);
+				javaExecuter.executeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
+						testClasses, packageName, mainClassInPackageName, emptyArchTestCases, emptyAOPTestCases);
 
 				// Assert - no test case executions should occur
 				verifyNoInteractions(javaArchitectureTestCases.toArray());
@@ -206,11 +229,13 @@ public class JavaExecuterTest {
 		void shouldOverrideExecuteTestCasesMethodFromExecuterInterface() {
 			try (MockedStatic<JavaAOPTestCase> mockedJavaAOPTestCase = mockStatic(JavaAOPTestCase.class)) {
 				// Arrange - mock setJavaAdviceSettingValue to do nothing
-				mockedJavaAOPTestCase.when(() -> JavaAOPTestCase.setJavaAdviceSettingValue(any(String.class), any(), any(String.class), any(String.class))).thenAnswer(invocation -> null);
+				mockedJavaAOPTestCase.when(() -> JavaAOPTestCase.setJavaAdviceSettingValue(any(String.class), any(),
+						any(String.class), any(String.class))).thenAnswer(invocation -> null);
 
 				// This test ensures the method signature matches the interface
 				assertDoesNotThrow(() -> {
-					javaExecuter.executeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses, testClasses, packageName, mainClassInPackageName,
+					javaExecuter.executeTestCases(buildMode, architectureMode, aopMode, essentialPackages,
+							essentialClasses, testClasses, packageName, mainClassInPackageName,
 							javaArchitectureTestCases, javaAOPTestCases);
 				});
 			}

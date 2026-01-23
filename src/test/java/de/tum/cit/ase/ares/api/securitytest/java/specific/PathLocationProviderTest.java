@@ -17,7 +17,6 @@ import de.tum.cit.ase.ares.api.securitytest.java.StudentCompiledClassesPath;
 
 /**
  * Comprehensive unit tests for {@link PathLocationProvider}.
- * 
  * <p>
  * This test suite validates the functionality of the PathLocationProvider
  * class, ensuring proper location detection from annotated test classes and
@@ -118,7 +117,8 @@ public class PathLocationProviderTest {
 		@DisplayName("Should throw SecurityException for non-annotated class")
 		void testGetLocation_NoAnnotation() {
 			// Given & When & Then
-			SecurityException exception = assertThrows(SecurityException.class, () -> provider.get(NonAnnotatedTestClass.class));
+			SecurityException exception = assertThrows(SecurityException.class,
+					() -> provider.get(NonAnnotatedTestClass.class));
 
 			assertTrue(exception.getMessage().contains("Ares Security Error"));
 			assertTrue(exception.getMessage().contains("PathLocationProvider"));
@@ -137,11 +137,13 @@ public class PathLocationProviderTest {
 		@DisplayName("Should provide specific error message format")
 		void testGetLocation_ErrorMessageFormat() {
 			// Given & When
-			SecurityException exception = assertThrows(SecurityException.class, () -> provider.get(NonAnnotatedTestClass.class));
+			SecurityException exception = assertThrows(SecurityException.class,
+					() -> provider.get(NonAnnotatedTestClass.class));
 
 			// Then
-			String expectedMessage = String.format("Ares Security Error (Reason: Ares-Code; Stage: Creation): %s can only be used on classes annotated with @%s", "PathLocationProvider",
-					"StudentCompiledClassesPath");
+			String expectedMessage = String.format(
+					"Ares Security Error (Reason: Ares-Code; Stage: Creation): %s can only be used on classes annotated with @%s",
+					"PathLocationProvider", "StudentCompiledClassesPath");
 			assertEquals(expectedMessage, exception.getMessage());
 		}
 	}
@@ -252,7 +254,8 @@ public class PathLocationProviderTest {
 			}
 
 			// When & Then
-			SecurityException exception = assertThrows(SecurityException.class, () -> provider.get(UnauthorizedClass.class));
+			SecurityException exception = assertThrows(SecurityException.class,
+					() -> provider.get(UnauthorizedClass.class));
 
 			assertTrue(exception.getMessage().startsWith("Ares Security Error"));
 		}

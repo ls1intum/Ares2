@@ -8,7 +8,8 @@ import java.util.Properties;
 public class ReadPropertiesMain {
 
 	private ReadPropertiesMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/**
@@ -16,7 +17,8 @@ public class ReadPropertiesMain {
 	 */
 	public static void accessFileSystemViaPropertiesLoadInputStream() throws IOException {
 		Properties props = new Properties();
-		try (FileInputStream fis = new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt")) {
+		try (FileInputStream fis = new FileInputStream(
+				"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt")) {
 			props.load(fis);
 		}
 	}
@@ -26,7 +28,8 @@ public class ReadPropertiesMain {
 	 */
 	public static void accessFileSystemViaPropertiesLoadReader() throws IOException {
 		Properties props = new Properties();
-		try (FileReader reader = new FileReader("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt")) {
+		try (FileReader reader = new FileReader(
+				"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt")) {
 			props.load(reader);
 		}
 	}
@@ -36,7 +39,8 @@ public class ReadPropertiesMain {
 	 */
 	public static void accessFileSystemViaPropertiesLoadFromXML() throws IOException {
 		Properties props = new Properties();
-		try (FileInputStream fis = new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt")) {
+		try (FileInputStream fis = new FileInputStream(
+				"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt")) {
 			props.loadFromXML(fis);
 		}
 	}

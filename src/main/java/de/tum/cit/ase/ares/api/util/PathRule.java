@@ -76,14 +76,17 @@ public final class PathRule {
 		if (!(obj instanceof PathRule))
 			return false;
 		PathRule other = (PathRule) obj;
-		return actionLevel == other.actionLevel && pathType == other.pathType && ruleType == other.ruleType && Objects.equals(pathPattern, other.pathPattern);
+		return actionLevel == other.actionLevel && pathType == other.pathType && ruleType == other.ruleType
+				&& Objects.equals(pathPattern, other.pathPattern);
 	}
 
 	public static Stream<PathRule> allOf(WhitelistPath whitelistedPath) {
-		return Stream.of(whitelistedPath.value()).map(pathPattern -> new PathRule(RuleType.WHITELIST, whitelistedPath.type(), whitelistedPath.level(), pathPattern));
+		return Stream.of(whitelistedPath.value()).map(pathPattern -> new PathRule(RuleType.WHITELIST,
+				whitelistedPath.type(), whitelistedPath.level(), pathPattern));
 	}
 
 	public static Stream<PathRule> allOf(BlacklistPath blacklistedPath) {
-		return Stream.of(blacklistedPath.value()).map(pathPattern -> new PathRule(RuleType.BLACKLIST, blacklistedPath.type(), blacklistedPath.level(), pathPattern));
+		return Stream.of(blacklistedPath.value()).map(pathPattern -> new PathRule(RuleType.BLACKLIST,
+				blacklistedPath.type(), blacklistedPath.level(), pathPattern));
 	}
 }

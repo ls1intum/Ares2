@@ -7,7 +7,8 @@ import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdp
 public class ExecuteThirdPartyPackageMain {
 
 	private ExecuteThirdPartyPackageMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/**

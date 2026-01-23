@@ -24,7 +24,8 @@ public class JavaNetworkSystemExtractor implements NetworkSystemExtractor {
 	 * access supplier.
 	 *
 	 * @param resourceAccessSupplier the supplier for the resource accesses
-	 *            permitted as defined in the security policy, must not be null.
+	 *                               permitted as defined in the security policy,
+	 *                               must not be null.
 	 */
 	public JavaNetworkSystemExtractor(@Nonnull Supplier<List<?>> resourceAccessSupplier) {
 		this.resourceAccessSupplier = resourceAccessSupplier;
@@ -36,13 +37,14 @@ public class JavaNetworkSystemExtractor implements NetworkSystemExtractor {
 	 * Extracts the permitted network hosts from the provided configurations based
 	 * on the given predicate.
 	 *
-	 * @param configs the list of JavaTestCase configurations, must not be null.
+	 * @param configs   the list of JavaTestCase configurations, must not be null.
 	 * @param predicate a filter for determining which hosts are permitted, must not
-	 *            be null.
+	 *                  be null.
 	 * @return a list of permitted hosts.
 	 */
 	@Nonnull
-	public static List<String> extractHosts(@Nonnull List<NetworkPermission> configs, @Nonnull Predicate<NetworkPermission> predicate) {
+	public static List<String> extractHosts(@Nonnull List<NetworkPermission> configs,
+			@Nonnull Predicate<NetworkPermission> predicate) {
 		return configs.stream().filter(predicate).map(NetworkPermission::onTheHost).toList();
 	}
 
@@ -50,13 +52,14 @@ public class JavaNetworkSystemExtractor implements NetworkSystemExtractor {
 	 * Extracts the permitted network ports from the provided configurations based
 	 * on the given predicate.
 	 *
-	 * @param configs the list of JavaTestCase configurations, must not be null.
+	 * @param configs   the list of JavaTestCase configurations, must not be null.
 	 * @param predicate a filter for determining which ports are permitted, must not
-	 *            be null.
+	 *                  be null.
 	 * @return a list of permitted ports.
 	 */
 	@Nonnull
-	public static List<String> extractPorts(@Nonnull List<NetworkPermission> configs, @Nonnull Predicate<NetworkPermission> predicate) {
+	public static List<String> extractPorts(@Nonnull List<NetworkPermission> configs,
+			@Nonnull Predicate<NetworkPermission> predicate) {
 		return configs.stream().filter(predicate).map(NetworkPermission::onThePort).map(String::valueOf).toList();
 	}
 
@@ -65,7 +68,7 @@ public class JavaNetworkSystemExtractor implements NetworkSystemExtractor {
 	 * permission type.
 	 *
 	 * @param networkPermission the type of network permission to filter by (e.g.,
-	 *            "connect", "send"), must not be null.
+	 *                          "connect", "send"), must not be null.
 	 * @return a list of permitted network hosts for the specified network
 	 *         permission type.
 	 */
@@ -73,12 +76,14 @@ public class JavaNetworkSystemExtractor implements NetworkSystemExtractor {
 	public List<String> getPermittedNetworkHosts(@Nonnull String networkPermission) {
 		@Nonnull
 		Predicate<NetworkPermission> filter = switch (networkPermission) {
-			case "connect" -> NetworkPermission::openConnections;
-			case "send" -> NetworkPermission::sendData;
-			case "receive" -> NetworkPermission::receiveData;
-			default -> throw new SecurityException(Messages.localized("security.advice.settings.invalid.network.permission", networkPermission));
+		case "connect" -> NetworkPermission::openConnections;
+		case "send" -> NetworkPermission::sendData;
+		case "receive" -> NetworkPermission::receiveData;
+		default -> throw new SecurityException(
+				Messages.localized("security.advice.settings.invalid.network.permission", networkPermission));
 		};
-		return ((List<NetworkPermission>) resourceAccessSupplier.get()).stream().filter(filter).map(NetworkPermission::onTheHost).toList();
+		return ((List<NetworkPermission>) resourceAccessSupplier.get()).stream().filter(filter)
+				.map(NetworkPermission::onTheHost).toList();
 	}
 
 	/**
@@ -86,7 +91,7 @@ public class JavaNetworkSystemExtractor implements NetworkSystemExtractor {
 	 * permission type.
 	 *
 	 * @param networkPermission the type of network permission to filter by (e.g.,
-	 *            "connect", "send"), must not be null.
+	 *                          "connect", "send"), must not be null.
 	 * @return a list of permitted network ports for the specified network
 	 *         permission type.
 	 */
@@ -94,12 +99,14 @@ public class JavaNetworkSystemExtractor implements NetworkSystemExtractor {
 	public List<Integer> getPermittedNetworkPorts(@Nonnull String networkPermission) {
 		@Nonnull
 		Predicate<NetworkPermission> filter = switch (networkPermission) {
-			case "connect" -> NetworkPermission::openConnections;
-			case "send" -> NetworkPermission::sendData;
-			case "receive" -> NetworkPermission::receiveData;
-			default -> throw new SecurityException(Messages.localized("security.advice.settings.invalid.network.permission", networkPermission));
+		case "connect" -> NetworkPermission::openConnections;
+		case "send" -> NetworkPermission::sendData;
+		case "receive" -> NetworkPermission::receiveData;
+		default -> throw new SecurityException(
+				Messages.localized("security.advice.settings.invalid.network.permission", networkPermission));
 		};
-		return ((List<NetworkPermission>) resourceAccessSupplier.get()).stream().filter(filter).map(NetworkPermission::onThePort).toList();
+		return ((List<NetworkPermission>) resourceAccessSupplier.get()).stream().filter(filter)
+				.map(NetworkPermission::onThePort).toList();
 	}
 	// </editor-fold>
 }

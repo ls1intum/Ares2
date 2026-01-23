@@ -8,13 +8,15 @@ import java.net.URI;
 public class DesktopExecuteMain {
 
 	private DesktopExecuteMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	public static void accessFileSystemViaDesktopBrowse() throws IOException {
 		if (Desktop.isDesktopSupported()) {
 			Desktop desktop = Desktop.getDesktop();
-			URI uri = URI.create("file:///src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
+			URI uri = URI.create(
+					"file:///src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
 			desktop.browse(uri);
 		}
 	}

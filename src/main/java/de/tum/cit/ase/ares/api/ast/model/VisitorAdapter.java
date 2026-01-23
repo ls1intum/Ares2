@@ -17,11 +17,11 @@ public class VisitorAdapter extends VoidVisitorAdapter<Void> {
 
 	private final Map<String, NodePosition> methodInfoMap;
 
-	public VisitorAdapter(Graph<String, DefaultEdge> graph, Set<String> excludedMethodIdentifiers, Map<String, NodePosition> positonInfoMap) {
+	public VisitorAdapter(Graph<String, DefaultEdge> graph, Set<String> excludedMethodIdentifiers,
+			Map<String, NodePosition> positonInfoMap) {
 		this.graph = graph;
 		this.excludedMethodIdentifiers = excludedMethodIdentifiers;
 		this.methodInfoMap = positonInfoMap;
-
 	}
 
 	@Override

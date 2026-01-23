@@ -15,5 +15,4 @@ public class Example {
 		};
 		r.run();
 	}
-
 }

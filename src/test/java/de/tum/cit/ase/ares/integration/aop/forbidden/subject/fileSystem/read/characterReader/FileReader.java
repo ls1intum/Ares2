@@ -5,7 +5,8 @@ import java.io.*;
 public class FileReader {
 
 	private FileReader() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/**
@@ -14,7 +15,8 @@ public class FileReader {
 	 * Text-file reader using the platform charset
 	 */
 	public static void accessFileSystemViaFileReader() throws IOException {
-		try (java.io.FileReader fr = new java.io.FileReader("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt")) {
+		try (java.io.FileReader fr = new java.io.FileReader(
+				"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt")) {
 			// Test various read operations
 			fr.read(); // Single character read
 			fr.read(new char[1024]); // Character array read

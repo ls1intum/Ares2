@@ -42,7 +42,7 @@ public final class ReflectionTestUtils {
 	 * Retrieve the actual class by its qualified name.
 	 *
 	 * @param qualifiedClassName The qualified name of the class that needs to get
-	 *            retrieved (package.classname)
+	 *                           retrieved (package.classname)
 	 * @return The wanted class object.
 	 */
 	public static Class<?> getClazz(String qualifiedClassName) {
@@ -67,9 +67,9 @@ public final class ReflectionTestUtils {
 	 * {@link #newInstance(Constructor, Object...)} for that.
 	 *
 	 * @param qualifiedClassName The qualified name of the class that needs to get
-	 *            retrieved (package.classname)
-	 * @param constructorArgs Parameter instances of the constructor of the class,
-	 *            that it should use to get instantiated with.
+	 *                           retrieved (package.classname)
+	 * @param constructorArgs    Parameter instances of the constructor of the
+	 *                           class, that it should use to get instantiated with.
 	 * @return The instance of this class.
 	 * @see #newInstance(Class, Object...)
 	 */
@@ -91,9 +91,9 @@ public final class ReflectionTestUtils {
 	 * require this functionality.
 	 *
 	 * @param qualifiedClassName The qualified name of the class that needs to get
-	 *            retrieved (package.classname)
-	 * @param constructorArgs Parameter instances of the constructor of the class
-	 *            that it should use to get instantiated with.
+	 *                           retrieved (package.classname)
+	 * @param constructorArgs    Parameter instances of the constructor of the class
+	 *                           that it should use to get instantiated with.
 	 * @return The instance of this class.
 	 * @see #newInstance(Class, Object...)
 	 */
@@ -109,9 +109,9 @@ public final class ReflectionTestUtils {
 	 * parameter types or invoking constructors with primitive parameters. Use
 	 * {@link #newInstance(Constructor, Object...)} for that.
 	 *
-	 * @param clazz The class for which a new instance should be created
+	 * @param clazz           The class for which a new instance should be created
 	 * @param constructorArgs Parameter instances of the constructor of the class,
-	 *            that it should use to get instantiated with.
+	 *                        that it should use to get instantiated with.
 	 * @return The instance of this class.
 	 */
 	public static Object newInstance(Class<?> clazz, Object... constructorArgs) {
@@ -130,9 +130,9 @@ public final class ReflectionTestUtils {
 	 * constructors. Use {@link #newInstance(Class, Object...)} if you do not
 	 * require this functionality.
 	 *
-	 * @param clazz The class for which a new instance should be created
+	 * @param clazz           The class for which a new instance should be created
 	 * @param constructorArgs Parameter instances of the constructor of the class,
-	 *            that it should use to get instantiated with.
+	 *                        that it should use to get instantiated with.
 	 * @return The instance of this class.
 	 */
 	public static Object newInstanceFromNonPublicConstructor(Class<?> clazz, Object... constructorArgs) {
@@ -143,10 +143,10 @@ public final class ReflectionTestUtils {
 	 * Instantiate an object of a class by using a specific constructor and
 	 * constructor arguments, if applicable.
 	 *
-	 * @param constructor The actual constructor that should be used for creating a
-	 *            new instance of the object
+	 * @param constructor     The actual constructor that should be used for
+	 *                        creating a new instance of the object
 	 * @param constructorArgs Parameter instances of the constructor of the class,
-	 *            that it should use to get instantiated with.
+	 *                        that it should use to get instantiated with.
 	 * @return The instance of this class.
 	 */
 	public static Object newInstance(Constructor<?> constructor, Object... constructorArgs) {
@@ -161,10 +161,10 @@ public final class ReflectionTestUtils {
 	 * constructors. Use {@link #newInstance(Constructor, Object...)} if you do not
 	 * require this functionality.
 	 *
-	 * @param constructor The actual constructor that should be used for creating a
-	 *            new instance of the object
+	 * @param constructor     The actual constructor that should be used for
+	 *                        creating a new instance of the object
 	 * @param constructorArgs Parameter instances of the constructor of the class,
-	 *            that it should use to get instantiated with.
+	 *                        that it should use to get instantiated with.
 	 * @return The instance of this class.
 	 */
 	public static Object newInstanceFromNonPublicConstructor(Constructor<?> constructor, Object... constructorArgs) {
@@ -175,12 +175,12 @@ public final class ReflectionTestUtils {
 	 * Instantiate an object of a class by using a specific constructor and
 	 * constructor arguments, if applicable.
 	 *
-	 * @param clazz The type of the class that should be instantiated.
-	 * @param forceAccess True, if access to a (package) private or protected
-	 *            constructor should be forced. Might fail with an
-	 *            {@link IllegalAccessException} otherwise.
+	 * @param clazz           The type of the class that should be instantiated.
+	 * @param forceAccess     True, if access to a (package) private or protected
+	 *                        constructor should be forced. Might fail with an
+	 *                        {@link IllegalAccessException} otherwise.
 	 * @param constructorArgs Parameter instances the constructor should be called
-	 *            with.
+	 *                        with.
 	 * @return An instance of the given class type.
 	 */
 	private static Object newInstanceAccessible(Class<?> clazz, boolean forceAccess, Object[] constructorArgs) {
@@ -199,16 +199,17 @@ public final class ReflectionTestUtils {
 	 * Instantiate an object of a class by using a specific constructor and
 	 * constructor arguments, if applicable.
 	 *
-	 * @param constructor The constructor that should be used to instantiate an
-	 *            object.
-	 * @param forceAccess True, if access to a (package) private or protected
-	 *            constructor should be forced. Might fail with an
-	 *            {@link IllegalAccessException} otherwise.
+	 * @param constructor     The constructor that should be used to instantiate an
+	 *                        object.
+	 * @param forceAccess     True, if access to a (package) private or protected
+	 *                        constructor should be forced. Might fail with an
+	 *                        {@link IllegalAccessException} otherwise.
 	 * @param constructorArgs Parameter instances the constructor should be called
-	 *            with.
+	 *                        with.
 	 * @return The object created by calling the given constructor.
 	 */
-	private static Object newInstanceAccessible(Constructor<?> constructor, boolean forceAccess, Object[] constructorArgs) {
+	private static Object newInstanceAccessible(Constructor<?> constructor, boolean forceAccess,
+			Object[] constructorArgs) {
 		try {
 			return newInstanceRethrowingAccessible(constructor, forceAccess, constructorArgs);
 		} catch (AssertionFailedError e) {
@@ -224,10 +225,10 @@ public final class ReflectionTestUtils {
 	 * constructor arguments, if applicable, and re-throw an exception if one occurs
 	 * during the method execution.
 	 *
-	 * @param constructor The actual constructor that should be used for creating a
-	 *            new instance of the object
+	 * @param constructor     The actual constructor that should be used for
+	 *                        creating a new instance of the object
 	 * @param constructorArgs Parameter instances of the constructor of the class,
-	 *            that it should use to get instantiated with.
+	 *                        that it should use to get instantiated with.
 	 * @return The instance of this class.
 	 * @throws Throwable the exception that was caught and which will be re-thrown
 	 */
@@ -244,14 +245,15 @@ public final class ReflectionTestUtils {
 	 * constructors. Use {@link #newInstance(Constructor, Object...)} if you do not
 	 * require this functionality.
 	 *
-	 * @param constructor The actual constructor that should be used for creating a
-	 *            new instance of the object
+	 * @param constructor     The actual constructor that should be used for
+	 *                        creating a new instance of the object
 	 * @param constructorArgs Parameter instances of the constructor of the class,
-	 *            that it should use to get instantiated with.
+	 *                        that it should use to get instantiated with.
 	 * @return The instance of this class.
 	 * @throws Throwable the exception that was caught and which will be re-thrown
 	 */
-	public static Object newInstanceFromNonPublicConstructorRethrowing(Constructor<?> constructor, Object... constructorArgs) throws Throwable {
+	public static Object newInstanceFromNonPublicConstructorRethrowing(Constructor<?> constructor,
+			Object... constructorArgs) throws Throwable {
 		return newInstanceRethrowingAccessible(constructor, true, constructorArgs);
 	}
 
@@ -260,17 +262,18 @@ public final class ReflectionTestUtils {
 	 * constructor arguments, if applicable, and re-throw an exception if one occurs
 	 * during the construction.
 	 *
-	 * @param constructor The constructor that should be used to instantiate an
-	 *            object.
-	 * @param forceAccess True, if access to a (package) private or protected
-	 *            constructor should be forced. Might fail with an
-	 *            {@link IllegalAccessException} otherwise.
+	 * @param constructor     The constructor that should be used to instantiate an
+	 *                        object.
+	 * @param forceAccess     True, if access to a (package) private or protected
+	 *                        constructor should be forced. Might fail with an
+	 *                        {@link IllegalAccessException} otherwise.
 	 * @param constructorArgs Parameter instances the constructor should be called
-	 *            with.
+	 *                        with.
 	 * @return The object created by calling the given constructor.
 	 * @throws Throwable the exception that was caught and which will be re-thrown
 	 */
-	private static Object newInstanceRethrowingAccessible(Constructor<?> constructor, boolean forceAccess, Object[] constructorArgs) throws Throwable {
+	private static Object newInstanceRethrowingAccessible(Constructor<?> constructor, boolean forceAccess,
+			Object[] constructorArgs) throws Throwable {
 		try {
 			if (forceAccess) {
 				constructor.setAccessible(true);
@@ -278,10 +281,12 @@ public final class ReflectionTestUtils {
 			return constructor.newInstance(constructorArgs);
 		} catch (@SuppressWarnings("unused") IllegalAccessException iae) {
 			throw localizedFailure("reflection_test_utils.constructor_access", //$NON-NLS-1$
-					constructor.getDeclaringClass().getSimpleName(), getParameterTypesAsString(constructor.getParameterTypes()), getIllegalAccessSource(constructor));
+					constructor.getDeclaringClass().getSimpleName(),
+					getParameterTypesAsString(constructor.getParameterTypes()), getIllegalAccessSource(constructor));
 		} catch (@SuppressWarnings("unused") IllegalArgumentException iae) {
 			throw localizedFailure("reflection_test_utils.constructor_arguments", //$NON-NLS-1$
-					constructor.getDeclaringClass().getSimpleName(), getParameterTypesAsString(constructor.getParameterTypes()));
+					constructor.getDeclaringClass().getSimpleName(),
+					getParameterTypesAsString(constructor.getParameterTypes()));
 		} catch (@SuppressWarnings("unused") InstantiationException ie) {
 			throw localizedFailure("reflection_test_utils.constructor_abstract_class", //$NON-NLS-1$
 					constructor.getDeclaringClass().getSimpleName());
@@ -297,10 +302,10 @@ public final class ReflectionTestUtils {
 	 * Retrieve an attribute value of a given instance of a class by the attribute
 	 * name.
 	 *
-	 * @param object The instance of the class that contains the attribute. Must not
-	 *            be null, even for static fields.
+	 * @param object        The instance of the class that contains the attribute.
+	 *                      Must not be null, even for static fields.
 	 * @param attributeName The name of the attribute whose value needs to get
-	 *            retrieved.
+	 *                      retrieved.
 	 * @return The instance of the attribute with the wanted value.
 	 */
 	public static Object valueForAttribute(Object object, String attributeName) {
@@ -315,10 +320,10 @@ public final class ReflectionTestUtils {
 	 * attributes. Use {@link #valueForAttribute(Object, String)} when reading
 	 * accessible attributes.
 	 *
-	 * @param object The instance of the class that contains the attribute. Must not
-	 *            be null, even for static fields.
+	 * @param object        The instance of the class that contains the attribute.
+	 *                      Must not be null, even for static fields.
 	 * @param attributeName The name of the attribute whose value needs to get
-	 *            retrieved.
+	 *                      retrieved.
 	 * @return The instance of the attribute with the wanted value.
 	 */
 	public static Object valueForNonPublicAttribute(Object object, String attributeName) {
@@ -329,11 +334,11 @@ public final class ReflectionTestUtils {
 	 * Retrieve an attribute value of a given instance of a class by the attribute
 	 * name.
 	 *
-	 * @param object The object from which the attribute should be read.
+	 * @param object        The object from which the attribute should be read.
 	 * @param attributeName The name of the attribute that should be read.
-	 * @param forceAccess True, if access to a (package) private or protected
-	 *            attribute should be forced. Might fail with an
-	 *            {@link IllegalAccessException} otherwise.
+	 * @param forceAccess   True, if access to a (package) private or protected
+	 *                      attribute should be forced. Might fail with an
+	 *                      {@link IllegalAccessException} otherwise.
 	 * @return The value that is stored in the attribute in the given object.
 	 */
 	private static Object valueForAttribute(Object object, String attributeName, boolean forceAccess) {
@@ -349,10 +354,10 @@ public final class ReflectionTestUtils {
 	 * Sets the attribute value of a given instance of a class by the attribute
 	 * name.
 	 *
-	 * @param object The instance of the class that contains the attribute. Must not
-	 *            be null, even for static fields.
+	 * @param object        The instance of the class that contains the attribute.
+	 *                      Must not be null, even for static fields.
 	 * @param attributeName The name of the attribute whose value should be set.
-	 * @param newValue The new value that should be assigned to the attribute.
+	 * @param newValue      The new value that should be assigned to the attribute.
 	 */
 	public static void setValueOfAttribute(Object object, String attributeName, Object newValue) {
 		setValueOfAttribute(object, attributeName, newValue, false);
@@ -366,10 +371,10 @@ public final class ReflectionTestUtils {
 	 * attributes. Use {@link #valueForAttribute(Object, String)} when reading
 	 * accessible attributes.
 	 *
-	 * @param object The instance of the class that contains the attribute. Must not
-	 *            be null, even for static fields.
+	 * @param object        The instance of the class that contains the attribute.
+	 *                      Must not be null, even for static fields.
 	 * @param attributeName The name of the attribute whose value should be set.
-	 * @param newValue The new value that should be assigned to the attribute.
+	 * @param newValue      The new value that should be assigned to the attribute.
 	 */
 	public static void setValueOfNonPublicAttribute(Object object, String attributeName, Object newValue) {
 		setValueOfAttribute(object, attributeName, newValue, true);
@@ -379,12 +384,12 @@ public final class ReflectionTestUtils {
 	 * Sets the attribute value of a given instance of a class by the attribute
 	 * name.
 	 *
-	 * @param object The object for which the attribute should be set.
+	 * @param object        The object for which the attribute should be set.
 	 * @param attributeName The name of the attribute that should be set.
-	 * @param newValue The new value that should be assigned to the attribute.
-	 * @param forceAccess True, if access to a (package) private or protected
-	 *            attribute should be forced. Might fail with an
-	 *            {@link IllegalAccessException} otherwise.
+	 * @param newValue      The new value that should be assigned to the attribute.
+	 * @param forceAccess   True, if access to a (package) private or protected
+	 *                      attribute should be forced. Might fail with an
+	 *                      {@link IllegalAccessException} otherwise.
 	 */
 	private static void setValueOfAttribute(Object object, String attributeName, Object newValue, boolean forceAccess) {
 		Field field = getAttribute(object, attributeName, forceAccess);
@@ -422,8 +427,8 @@ public final class ReflectionTestUtils {
 	 * Helper method that retrieves a public method with arguments of a given object
 	 * by its name.
 	 *
-	 * @param object instance of the class that defines the method.
-	 * @param methodName the name of the method.
+	 * @param object         instance of the class that defines the method.
+	 * @param methodName     the name of the method.
 	 * @param parameterTypes The parameter types of this method.
 	 * @return The wanted method.
 	 */
@@ -436,7 +441,7 @@ public final class ReflectionTestUtils {
 	 * Retrieve a public method with arguments of a given class by its name.
 	 *
 	 * @param declaringClass The class that declares this method.
-	 * @param methodName The name of this method.
+	 * @param methodName     The name of this method.
 	 * @param parameterTypes The parameter types of this method.
 	 * @return The wanted method.
 	 */
@@ -448,8 +453,8 @@ public final class ReflectionTestUtils {
 	 * Helper method that retrieves a non-public method with arguments of a given
 	 * object by its name.
 	 *
-	 * @param object Instance of the class that defines the method.
-	 * @param methodName The name of the method.
+	 * @param object         Instance of the class that defines the method.
+	 * @param methodName     The name of the method.
 	 * @param parameterTypes The parameter types of this method.
 	 * @return The wanted method.
 	 */
@@ -462,7 +467,7 @@ public final class ReflectionTestUtils {
 	 * Retrieve a non-public method with arguments of a given class by its name.
 	 *
 	 * @param declaringClass The class that declares this method.
-	 * @param methodName The name of this method.
+	 * @param methodName     The name of this method.
 	 * @param parameterTypes The parameter types of this method.
 	 * @return The wanted method.
 	 */
@@ -474,13 +479,14 @@ public final class ReflectionTestUtils {
 	 * Retrieve a method with arguments of a given class by its name.
 	 *
 	 * @param declaringClass The class that declares this method.
-	 * @param methodName The name of this method.
-	 * @param findNonPublic True, if this method should search for (package) private
-	 *            or protected methods.
+	 * @param methodName     The name of this method.
+	 * @param findNonPublic  True, if this method should search for (package)
+	 *                       private or protected methods.
 	 * @param parameterTypes The parameter types of this method.
 	 * @return The wanted method.
 	 */
-	private static Method getMethodAccessible(Class<?> declaringClass, String methodName, boolean findNonPublic, Class<?>[] parameterTypes) {
+	private static Method getMethodAccessible(Class<?> declaringClass, String methodName, boolean findNonPublic,
+			Class<?>[] parameterTypes) {
 		try {
 			return ClassMemberAccessor.getMethod(declaringClass, methodName, findNonPublic, parameterTypes);
 		} catch (@SuppressWarnings("unused") NoSuchMethodException nsme) {
@@ -500,10 +506,10 @@ public final class ReflectionTestUtils {
 	 * passing subclasses of the parameter types or invoking methods with primitive
 	 * parameters. Use {@link #invokeMethod(Object, Method, Object...)} for that.
 	 *
-	 * @param object The instance of the class that should invoke the method. Must
-	 *            not be null, even for static methods.
+	 * @param object     The instance of the class that should invoke the method.
+	 *                   Must not be null, even for static methods.
 	 * @param methodName The method name that has to get invoked.
-	 * @param params Parameter instances of the method.
+	 * @param params     Parameter instances of the method.
 	 * @return The return value of the method.
 	 */
 	public static Object invokeMethod(Object object, String methodName, Object... params) {
@@ -523,10 +529,10 @@ public final class ReflectionTestUtils {
 	 * methods. Use {@link #invokeMethod(Object, String, Object...)} when invoking
 	 * accessible methods.
 	 *
-	 * @param object The instance of the class that should invoke the method. Must
-	 *            not be null, even for static methods.
+	 * @param object     The instance of the class that should invoke the method.
+	 *                   Must not be null, even for static methods.
 	 * @param methodName The method name that has to get invoked.
-	 * @param params Parameter instances of the method.
+	 * @param params     Parameter instances of the method.
 	 * @return The return value of the method.
 	 */
 	public static Object invokeNonPublicMethod(Object object, String methodName, Object... params) {
@@ -537,7 +543,7 @@ public final class ReflectionTestUtils {
 	 * Invoke a given method of a given object with instances of the parameters.
 	 *
 	 * @param object The instance of the class that should invoke the method. Can be
-	 *            null if the method is static.
+	 *               null if the method is static.
 	 * @param method The method that has to get invoked.
 	 * @param params Parameter instances of the method.
 	 * @return The return value of the method.
@@ -554,7 +560,7 @@ public final class ReflectionTestUtils {
 	 * accessible methods.
 	 *
 	 * @param object The instance of the class that should invoke the method. Can be
-	 *            null if the method is static.
+	 *               null if the method is static.
 	 * @param method The method that has to get invoked.
 	 * @param params Parameter instances of the method.
 	 * @return The return value of the method.
@@ -566,15 +572,16 @@ public final class ReflectionTestUtils {
 	/**
 	 * Invoke a given method of a given object with instances of the parameters.
 	 *
-	 * @param object The instance of the class that should invoke the method.
-	 * @param methodName The name of the method that has to get invoked.
+	 * @param object      The instance of the class that should invoke the method.
+	 * @param methodName  The name of the method that has to get invoked.
 	 * @param forceAccess True, if access to a (package) private or protected method
-	 *            should be forced. Might fail with an
-	 *            {@link IllegalAccessException} otherwise.
-	 * @param params Parameter instances of the method.
+	 *                    should be forced. Might fail with an
+	 *                    {@link IllegalAccessException} otherwise.
+	 * @param params      Parameter instances of the method.
 	 * @return The return value of the method.
 	 */
-	private static Object invokeMethodAccessible(Object object, String methodName, boolean forceAccess, Object[] params) {
+	private static Object invokeMethodAccessible(Object object, String methodName, boolean forceAccess,
+			Object[] params) {
 		var parameterTypes = getParameterTypes(params, "reflection_test_utils.method_null_args", methodName); //$NON-NLS-1$
 		var method = getMethodAccessible(object.getClass(), methodName, forceAccess, parameterTypes);
 		return invokeMethodAccessible(object, method, forceAccess, params);
@@ -583,12 +590,12 @@ public final class ReflectionTestUtils {
 	/**
 	 * Invoke a given method of a given object with instances of the parameters.
 	 *
-	 * @param object The instance of the class that should invoke the method.
-	 * @param method The method that has to get invoked.
+	 * @param object      The instance of the class that should invoke the method.
+	 * @param method      The method that has to get invoked.
 	 * @param forceAccess True, if access to a (package) private or protected method
-	 *            should be forced. Might fail with an
-	 *            {@link IllegalAccessException} otherwise.
-	 * @param params Parameter instances of the method.
+	 *                    should be forced. Might fail with an
+	 *                    {@link IllegalAccessException} otherwise.
+	 * @param params      Parameter instances of the method.
 	 * @return The return value of the method.
 	 */
 	private static Object invokeMethodAccessible(Object object, Method method, boolean forceAccess, Object[] params) {
@@ -631,7 +638,8 @@ public final class ReflectionTestUtils {
 	 * @return The return value of the method.
 	 * @throws Throwable the exception that was caught and which will be re-thrown
 	 */
-	public static Object invokeNonPublicMethodRethrowing(Object object, Method method, Object... params) throws Throwable {
+	public static Object invokeNonPublicMethodRethrowing(Object object, Method method, Object... params)
+			throws Throwable {
 		return invokeMethodRethrowingAccessible(object, method, true, params);
 	}
 
@@ -639,16 +647,17 @@ public final class ReflectionTestUtils {
 	 * Invoke a given method of a given object with instances of the parameters, and
 	 * rethrow an exception if one occurs during the method execution.
 	 *
-	 * @param object The instance of the class that should invoke the method.
-	 * @param method The method that has to get invoked.
+	 * @param object      The instance of the class that should invoke the method.
+	 * @param method      The method that has to get invoked.
 	 * @param forceAccess True, if access to a (package) private or protected method
-	 *            should be forced. Might fail with an
-	 *            {@link IllegalAccessException} otherwise.
-	 * @param params Parameter instances of the method.
+	 *                    should be forced. Might fail with an
+	 *                    {@link IllegalAccessException} otherwise.
+	 * @param params      Parameter instances of the method.
 	 * @return The return value of the method.
 	 * @throws Throwable the exception that was caught and which will be rethrown
 	 */
-	private static Object invokeMethodRethrowingAccessible(Object object, Method method, boolean forceAccess, Object[] params) throws Throwable {
+	private static Object invokeMethodRethrowingAccessible(Object object, Method method, boolean forceAccess,
+			Object[] params) throws Throwable {
 		// NOTE: object can be null, if method is static
 		try {
 			if (forceAccess) {
@@ -677,7 +686,7 @@ public final class ReflectionTestUtils {
 	 *
 	 * @param declaringClass The class that declares this constructor.
 	 * @param parameterTypes The parameter types of this method.
-	 * @param <T> The type parameter of the constructor and class
+	 * @param <T>            The type parameter of the constructor and class
 	 * @return The wanted constructor.
 	 */
 	public static <T> Constructor<T> getConstructor(Class<T> declaringClass, Class<?>... parameterTypes) {
@@ -694,7 +703,7 @@ public final class ReflectionTestUtils {
 	 *
 	 * @param declaringClass The class that declares this constructor.
 	 * @param parameterTypes The parameter types of this method.
-	 * @param <T> The type parameter of the constructor and class
+	 * @param <T>            The type parameter of the constructor and class
 	 * @return The wanted method.
 	 */
 	public static <T> Constructor<T> getNonPublicConstructor(Class<T> declaringClass, Class<?>... parameterTypes) {
@@ -715,13 +724,14 @@ public final class ReflectionTestUtils {
 	/**
 	 * Retrieves the parameters types of a given collection of parameter instances.
 	 *
-	 * @param key The key for the localized exception message.
+	 * @param key         The key for the localized exception message.
 	 * @param messageArgs The arguments for the formatted localized message.
-	 * @param params The instances of the parameters.
+	 * @param params      The instances of the parameters.
 	 * @return The parameter types of the instances as an array.
 	 */
 	private static Class<?>[] getParameterTypes(Object[] params, String key, Object... messageArgs) {
-		return Arrays.stream(params).map(it -> requireNonNull(it, key, messageArgs)).map(Object::getClass).toArray(Class<?>[]::new);
+		return Arrays.stream(params).map(it -> requireNonNull(it, key, messageArgs)).map(Object::getClass)
+				.toArray(Class<?>[]::new);
 	}
 
 	/**
@@ -742,9 +752,9 @@ public final class ReflectionTestUtils {
 	 * Throws an {@link AssertionFailedError} if the given object is null using the
 	 * provided localized message.
 	 *
-	 * @param <T> The type of the object that should be checked.
-	 * @param object The object to check for null.
-	 * @param key The key for the localized exception message.
+	 * @param <T>         The type of the object that should be checked.
+	 * @param object      The object to check for null.
+	 * @param key         The key for the localized exception message.
 	 * @param messageArgs The arguments for the formatted localized message.
 	 * @return the same, unchanged object in case it was not null
 	 */
@@ -756,7 +766,8 @@ public final class ReflectionTestUtils {
 
 	private static String getIllegalAccessSource(Member member) {
 		if (!Modifier.isPublic(member.getModifiers()))
-			return localized("reflection_test_utils.construct." + member.getClass().getSimpleName().toLowerCase(Locale.ROOT)); //$NON-NLS-1$
+			return localized(
+					"reflection_test_utils.construct." + member.getClass().getSimpleName().toLowerCase(Locale.ROOT)); //$NON-NLS-1$
 		return localized("reflection_test_utils.construct.class"); //$NON-NLS-1$
 	}
 }

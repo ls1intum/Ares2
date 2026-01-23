@@ -8,7 +8,8 @@ import java.net.URLClassLoader;
 public class ExecuteURLClassLoaderMain {
 
 	private ExecuteURLClassLoaderMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/**
@@ -18,7 +19,7 @@ public class ExecuteURLClassLoaderMain {
 		File file = new File("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
 		URL url = file.toURI().toURL();
 
-		try (URLClassLoader classLoader = new URLClassLoader(new URL[]{ url })) {
+		try (URLClassLoader classLoader = new URLClassLoader(new URL[] { url })) {
 			Class<?> loadedClass = classLoader.loadClass("com.example.CustomExecutable");
 			Object instance = loadedClass.getDeclaredConstructor().newInstance();
 			Method method = loadedClass.getMethod("execute");

@@ -23,8 +23,10 @@ public final class AresSecurityConfigurationBuilder {
 
 	private static final Logger LOG = LoggerFactory.getLogger(AresSecurityConfigurationBuilder.class);
 
-	private static final Path EXPECTED_MAVEN_POM_PATH = Path.of(System.getProperty(AresSystemProperties.ARES_MAVEN_POM, "pom.xml")); //$NON-NLS-1$
-	private static final Path EXPECTED_GRADLE_BUILD_PATH = Path.of(System.getProperty(AresSystemProperties.ARES_GRADLE_BUILD, "build.gradle")); //$NON-NLS-1$
+	private static final Path EXPECTED_MAVEN_POM_PATH = Path
+			.of(System.getProperty(AresSystemProperties.ARES_MAVEN_POM, "pom.xml")); //$NON-NLS-1$
+	private static final Path EXPECTED_GRADLE_BUILD_PATH = Path
+			.of(System.getProperty(AresSystemProperties.ARES_GRADLE_BUILD, "build.gradle")); //$NON-NLS-1$
 	private static final String MAVEN_ENFORCER_FILE_ENTRY = "<file>${project.build.outputDirectory}%s</file>"; //$NON-NLS-1$
 	private static final String GRADLE_ENFORCER_FILE_ENTRY = "\"$studentOutputDir%s\""; //$NON-NLS-1$
 	private static final boolean IS_MAVEN;
@@ -32,9 +34,11 @@ public final class AresSecurityConfigurationBuilder {
 	static {
 		// Check if we are in a maven environment and don't intend to ignore that fact
 		IS_MAVEN = (StackWalker.getInstance().walk(sfs -> sfs.anyMatch(sf -> sf.getClassName().contains("maven"))) //$NON-NLS-1$
-				|| Files.exists(EXPECTED_MAVEN_POM_PATH)) && !Boolean.getBoolean(AresSystemProperties.ARES_MAVEN_IGNORE);
+				|| Files.exists(EXPECTED_MAVEN_POM_PATH))
+				&& !Boolean.getBoolean(AresSystemProperties.ARES_MAVEN_IGNORE);
 		IS_GRADLE = (StackWalker.getInstance().walk(sfs -> sfs.anyMatch(sf -> sf.getClassName().contains("gradle"))) //$NON-NLS-1$
-				|| Files.exists(EXPECTED_GRADLE_BUILD_PATH)) && !Boolean.getBoolean(AresSystemProperties.ARES_GRADLE_IGNORE);
+				|| Files.exists(EXPECTED_GRADLE_BUILD_PATH))
+				&& !Boolean.getBoolean(AresSystemProperties.ARES_GRADLE_IGNORE);
 	}
 	/**
 	 * Cache for the content of the build file so that we don't need to read it each
@@ -140,8 +144,10 @@ public final class AresSecurityConfigurationBuilder {
 
 	public AresSecurityConfiguration build() {
 		validate();
-		return new AresSecurityConfiguration(testClass, testMethod, executionPath, whitelistedClassNames, Optional.ofNullable(whitelistedPaths), blacklistedPaths, allowedLocalPorts,
-				allowLocalPortsAbove, excludedLocalPorts, allowedThreadCount, blacklistedPackages, whitelistedPackages, trustedPackages, threadTrustScope);
+		return new AresSecurityConfiguration(testClass, testMethod, executionPath, whitelistedClassNames,
+				Optional.ofNullable(whitelistedPaths), blacklistedPaths, allowedLocalPorts, allowLocalPortsAbove,
+				excludedLocalPorts, allowedThreadCount, blacklistedPackages, whitelistedPackages, trustedPackages,
+				threadTrustScope);
 	}
 
 	private void validate() {
@@ -195,7 +201,8 @@ public final class AresSecurityConfigurationBuilder {
 					// And finally wrap the paths info file rules for maven enforcer
 					.map(packagePath -> String.format(enforcerFileEntryFormat, packagePath));
 			// all must be contained in the build file, find the missing ones
-			var missing = enforcerFileRules.filter(Predicate.not(buildConfigurationFileContent::contains)).sorted().collect(Collectors.toList());
+			var missing = enforcerFileRules.filter(Predicate.not(buildConfigurationFileContent::contains)).sorted()
+					.collect(Collectors.toList());
 			LOG.debug("Validated build configuration regarding trusted package rules, {} are missing.", missing.size()); //$NON-NLS-1$
 			// If nothing is missing, we're good. Otherwise tell the user what is missing
 			if (missing.isEmpty())

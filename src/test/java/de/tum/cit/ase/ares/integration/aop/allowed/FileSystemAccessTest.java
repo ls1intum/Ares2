@@ -97,7 +97,8 @@ class FileSystemAccessTest {
 
 		// Verify file content
 		String content = java.nio.file.Files.readString(java.nio.file.Paths.get(outputFilePath)).trim();
-		Assertions.assertEquals(TRUSTED_FILE_CONTENT, content, "Output file content does not match the expected trusted file content.");
+		Assertions.assertEquals(TRUSTED_FILE_CONTENT, content,
+				"Output file content does not match the expected trusted file content.");
 	}
 
 	/**
@@ -114,7 +115,7 @@ class FileSystemAccessTest {
 	 * matches.
 	 *
 	 * @param fileReadCallable a callable that calls the static file read method and
-	 *            returns the file content
+	 *                         returns the file content
 	 */
 	private void assertFileReadAllowedAndContentMatches(java.util.concurrent.Callable<String> fileReadCallable) {
 		// Define the input file path
@@ -128,11 +129,13 @@ class FileSystemAccessTest {
 			String content = fileReadCallable.call();
 
 			// Verify that the reading was correct
-			Assertions.assertEquals(TRUSTED_FILE_CONTENT, content != null ? content.trim() : null, ERROR_FILE_CONTENT_MISMATCH);
+			Assertions.assertEquals(TRUSTED_FILE_CONTENT, content != null ? content.trim() : null,
+					ERROR_FILE_CONTENT_MISMATCH);
 		} catch (Exception e) {
 			Assertions.fail(ERROR_SECURITY_EXCEPTION, e);
 		}
 	}
+
 	/**
 	 * Helper method to assert that execution is allowed and creates the expected
 	 * output file with correct content.
@@ -153,7 +156,6 @@ class FileSystemAccessTest {
 
 			// Verify the file was created and has correct content
 			verifyOutputFileCreatedWithCorrectContent(outputFilePath);
-
 		} catch (SecurityException e) {
 			Assertions.fail(ERROR_SECURITY_EXCEPTION, e);
 		} catch (Throwable e) {
@@ -224,25 +226,29 @@ class FileSystemAccessTest {
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/bufferedReader")
 		void test_accessFileSystemViaBufferedReaderReadCharArrayMavenArchunitAspectJ() {
-			assertFileReadAllowedAndContentMatches(ReadBufferedReaderMain::accessFileSystemViaBufferedReaderReadCharArray);
+			assertFileReadAllowedAndContentMatches(
+					ReadBufferedReaderMain::accessFileSystemViaBufferedReaderReadCharArray);
 		}
 
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/bufferedReader")
 		void test_accessFileSystemViaBufferedReaderReadCharArrayMavenArchunitInstrumentation() {
-			assertFileReadAllowedAndContentMatches(ReadBufferedReaderMain::accessFileSystemViaBufferedReaderReadCharArray);
+			assertFileReadAllowedAndContentMatches(
+					ReadBufferedReaderMain::accessFileSystemViaBufferedReaderReadCharArray);
 		}
 
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/bufferedReader")
 		void test_accessFileSystemViaBufferedReaderReadCharArrayMavenWalaAspectJ() {
-			assertFileReadAllowedAndContentMatches(ReadBufferedReaderMain::accessFileSystemViaBufferedReaderReadCharArray);
+			assertFileReadAllowedAndContentMatches(
+					ReadBufferedReaderMain::accessFileSystemViaBufferedReaderReadCharArray);
 		}
 
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/bufferedReader")
 		void test_accessFileSystemViaBufferedReaderReadCharArrayMavenWalaInstrumentation() {
-			assertFileReadAllowedAndContentMatches(ReadBufferedReaderMain::accessFileSystemViaBufferedReaderReadCharArray);
+			assertFileReadAllowedAndContentMatches(
+					ReadBufferedReaderMain::accessFileSystemViaBufferedReaderReadCharArray);
 		}
 		// </editor-fold>
 
@@ -517,25 +523,29 @@ class FileSystemAccessTest {
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/fileReader")
 		void test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenArchunitAspectJ() {
-			assertFileReadAllowedAndContentMatches(ReadFileReaderMain::accessFileSystemViaFileReaderReadCharArrayOffsetLength);
+			assertFileReadAllowedAndContentMatches(
+					ReadFileReaderMain::accessFileSystemViaFileReaderReadCharArrayOffsetLength);
 		}
 
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/fileReader")
 		void test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenArchunitInstrumentation() {
-			assertFileReadAllowedAndContentMatches(ReadFileReaderMain::accessFileSystemViaFileReaderReadCharArrayOffsetLength);
+			assertFileReadAllowedAndContentMatches(
+					ReadFileReaderMain::accessFileSystemViaFileReaderReadCharArrayOffsetLength);
 		}
 
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/fileReader")
 		void test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenWalaAspectJ() {
-			assertFileReadAllowedAndContentMatches(ReadFileReaderMain::accessFileSystemViaFileReaderReadCharArrayOffsetLength);
+			assertFileReadAllowedAndContentMatches(
+					ReadFileReaderMain::accessFileSystemViaFileReaderReadCharArrayOffsetLength);
 		}
 
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/fileReader")
 		void test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenWalaInstrumentation() {
-			assertFileReadAllowedAndContentMatches(ReadFileReaderMain::accessFileSystemViaFileReaderReadCharArrayOffsetLength);
+			assertFileReadAllowedAndContentMatches(
+					ReadFileReaderMain::accessFileSystemViaFileReaderReadCharArrayOffsetLength);
 		}
 		// </editor-fold>
 		// </editor-fold>
@@ -719,25 +729,29 @@ class FileSystemAccessTest {
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/fileOutputStream")
 		void test_accessFileSystemViaFileOutputStreamMavenArchunitAspectJ() {
-			assertNoAresSecurityException(() -> WriteFileOutputStreamMain.accessFileSystemViaFileOutputStream(TRUSTED_FILE_CONTENT));
+			assertNoAresSecurityException(
+					() -> WriteFileOutputStreamMain.accessFileSystemViaFileOutputStream(TRUSTED_FILE_CONTENT));
 		}
 
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/fileOutputStream")
 		void test_accessFileSystemViaFileOutputStreamMavenArchunitInstrumentation() {
-			assertNoAresSecurityException(() -> WriteFileOutputStreamMain.accessFileSystemViaFileOutputStream(TRUSTED_FILE_CONTENT));
+			assertNoAresSecurityException(
+					() -> WriteFileOutputStreamMain.accessFileSystemViaFileOutputStream(TRUSTED_FILE_CONTENT));
 		}
 
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/fileOutputStream")
 		void test_accessFileSystemViaFileOutputStreamMavenWalaAspectJ() {
-			assertNoAresSecurityException(() -> WriteFileOutputStreamMain.accessFileSystemViaFileOutputStream(TRUSTED_FILE_CONTENT));
+			assertNoAresSecurityException(
+					() -> WriteFileOutputStreamMain.accessFileSystemViaFileOutputStream(TRUSTED_FILE_CONTENT));
 		}
 
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/fileOutputStream")
 		void test_accessFileSystemViaFileOutputStreamMavenWalaInstrumentation() {
-			assertNoAresSecurityException(() -> WriteFileOutputStreamMain.accessFileSystemViaFileOutputStream(TRUSTED_FILE_CONTENT));
+			assertNoAresSecurityException(
+					() -> WriteFileOutputStreamMain.accessFileSystemViaFileOutputStream(TRUSTED_FILE_CONTENT));
 		}
 		// </editor-fold>
 
@@ -745,25 +759,29 @@ class FileSystemAccessTest {
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/fileSystemProvider")
 		void test_accessFileSystemViaFileSystemProviderMavenArchunitAspectJ() {
-			assertNoAresSecurityException(() -> WriteFileSystemProviderMain.accessFileSystemViaFileSystemProvider(TRUSTED_FILE_CONTENT));
+			assertNoAresSecurityException(
+					() -> WriteFileSystemProviderMain.accessFileSystemViaFileSystemProvider(TRUSTED_FILE_CONTENT));
 		}
 
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/fileSystemProvider")
 		void test_accessFileSystemViaFileSystemProviderMavenArchunitInstrumentation() {
-			assertNoAresSecurityException(() -> WriteFileSystemProviderMain.accessFileSystemViaFileSystemProvider(TRUSTED_FILE_CONTENT));
+			assertNoAresSecurityException(
+					() -> WriteFileSystemProviderMain.accessFileSystemViaFileSystemProvider(TRUSTED_FILE_CONTENT));
 		}
 
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/fileSystemProvider")
 		void test_accessFileSystemViaFileSystemProviderMavenWalaAspectJ() {
-			assertNoAresSecurityException(() -> WriteFileSystemProviderMain.accessFileSystemViaFileSystemProvider(TRUSTED_FILE_CONTENT));
+			assertNoAresSecurityException(
+					() -> WriteFileSystemProviderMain.accessFileSystemViaFileSystemProvider(TRUSTED_FILE_CONTENT));
 		}
 
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/fileSystemProvider")
 		void test_accessFileSystemViaFileSystemProviderMavenWalaInstrumentation() {
-			assertNoAresSecurityException(() -> WriteFileSystemProviderMain.accessFileSystemViaFileSystemProvider(TRUSTED_FILE_CONTENT));
+			assertNoAresSecurityException(
+					() -> WriteFileSystemProviderMain.accessFileSystemViaFileSystemProvider(TRUSTED_FILE_CONTENT));
 		}
 		// </editor-fold>
 
@@ -797,25 +815,29 @@ class FileSystemAccessTest {
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/fileWriter")
 		void test_accessFileSystemViaFileWriterMavenArchunitAspectJ() {
-			assertNoAresSecurityException(() -> WriteFileWriterMain.accessFileSystemViaFileWriter(TRUSTED_FILE_CONTENT));
+			assertNoAresSecurityException(
+					() -> WriteFileWriterMain.accessFileSystemViaFileWriter(TRUSTED_FILE_CONTENT));
 		}
 
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/fileWriter")
 		void test_accessFileSystemViaFileWriterMavenArchunitInstrumentation() {
-			assertNoAresSecurityException(() -> WriteFileWriterMain.accessFileSystemViaFileWriter(TRUSTED_FILE_CONTENT));
+			assertNoAresSecurityException(
+					() -> WriteFileWriterMain.accessFileSystemViaFileWriter(TRUSTED_FILE_CONTENT));
 		}
 
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/fileWriter")
 		void test_accessFileSystemViaFileWriterMavenWalaAspectJ() {
-			assertNoAresSecurityException(() -> WriteFileWriterMain.accessFileSystemViaFileWriter(TRUSTED_FILE_CONTENT));
+			assertNoAresSecurityException(
+					() -> WriteFileWriterMain.accessFileSystemViaFileWriter(TRUSTED_FILE_CONTENT));
 		}
 
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/fileWriter")
 		void test_accessFileSystemViaFileWriterMavenWalaInstrumentation() {
-			assertNoAresSecurityException(() -> WriteFileWriterMain.accessFileSystemViaFileWriter(TRUSTED_FILE_CONTENT));
+			assertNoAresSecurityException(
+					() -> WriteFileWriterMain.accessFileSystemViaFileWriter(TRUSTED_FILE_CONTENT));
 		}
 		// </editor-fold>
 
@@ -823,25 +845,29 @@ class FileSystemAccessTest {
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/filesWrite")
 		void test_accessFileSystemViaFilesWriteMavenArchunitAspectJ() {
-			assertNoAresSecurityException(() -> WriteFilesWriteMain.accessFileSystemViaFilesWrite(TRUSTED_FILE_CONTENT));
+			assertNoAresSecurityException(
+					() -> WriteFilesWriteMain.accessFileSystemViaFilesWrite(TRUSTED_FILE_CONTENT));
 		}
 
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/filesWrite")
 		void test_accessFileSystemViaFilesWriteMavenArchunitInstrumentation() {
-			assertNoAresSecurityException(() -> WriteFilesWriteMain.accessFileSystemViaFilesWrite(TRUSTED_FILE_CONTENT));
+			assertNoAresSecurityException(
+					() -> WriteFilesWriteMain.accessFileSystemViaFilesWrite(TRUSTED_FILE_CONTENT));
 		}
 
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/filesWrite")
 		void test_accessFileSystemViaFilesWriteMavenWalaAspectJ() {
-			assertNoAresSecurityException(() -> WriteFilesWriteMain.accessFileSystemViaFilesWrite(TRUSTED_FILE_CONTENT));
+			assertNoAresSecurityException(
+					() -> WriteFilesWriteMain.accessFileSystemViaFilesWrite(TRUSTED_FILE_CONTENT));
 		}
 
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/filesWrite")
 		void test_accessFileSystemViaFilesWriteMavenWalaInstrumentation() {
-			assertNoAresSecurityException(() -> WriteFilesWriteMain.accessFileSystemViaFilesWrite(TRUSTED_FILE_CONTENT));
+			assertNoAresSecurityException(
+					() -> WriteFilesWriteMain.accessFileSystemViaFilesWrite(TRUSTED_FILE_CONTENT));
 		}
 		// </editor-fold>
 
@@ -849,25 +875,29 @@ class FileSystemAccessTest {
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/nioChannel")
 		void test_accessFileSystemViaNIOChannelMavenArchunitAspectJ() {
-			assertNoAresSecurityException(() -> WriteNIOChannelMain.accessFileSystemViaNIOChannel(TRUSTED_FILE_CONTENT));
+			assertNoAresSecurityException(
+					() -> WriteNIOChannelMain.accessFileSystemViaNIOChannel(TRUSTED_FILE_CONTENT));
 		}
 
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/nioChannel")
 		void test_accessFileSystemViaNIOChannelMavenArchunitInstrumentation() {
-			assertNoAresSecurityException(() -> WriteNIOChannelMain.accessFileSystemViaNIOChannel(TRUSTED_FILE_CONTENT));
+			assertNoAresSecurityException(
+					() -> WriteNIOChannelMain.accessFileSystemViaNIOChannel(TRUSTED_FILE_CONTENT));
 		}
 
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/nioChannel")
 		void test_accessFileSystemViaNIOChannelMavenWalaAspectJ() {
-			assertNoAresSecurityException(() -> WriteNIOChannelMain.accessFileSystemViaNIOChannel(TRUSTED_FILE_CONTENT));
+			assertNoAresSecurityException(
+					() -> WriteNIOChannelMain.accessFileSystemViaNIOChannel(TRUSTED_FILE_CONTENT));
 		}
 
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/nioChannel")
 		void test_accessFileSystemViaNIOChannelMavenWalaInstrumentation() {
-			assertNoAresSecurityException(() -> WriteNIOChannelMain.accessFileSystemViaNIOChannel(TRUSTED_FILE_CONTENT));
+			assertNoAresSecurityException(
+					() -> WriteNIOChannelMain.accessFileSystemViaNIOChannel(TRUSTED_FILE_CONTENT));
 		}
 		// </editor-fold>
 
@@ -875,25 +905,29 @@ class FileSystemAccessTest {
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/printWriter")
 		void test_accessFileSystemViaPrintWriterMavenArchunitAspectJ() {
-			assertNoAresSecurityException(() -> WritePrintWriterMain.accessFileSystemViaPrintWriter(TRUSTED_FILE_CONTENT));
+			assertNoAresSecurityException(
+					() -> WritePrintWriterMain.accessFileSystemViaPrintWriter(TRUSTED_FILE_CONTENT));
 		}
 
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/printWriter")
 		void test_accessFileSystemViaPrintWriterMavenArchunitInstrumentation() {
-			assertNoAresSecurityException(() -> WritePrintWriterMain.accessFileSystemViaPrintWriter(TRUSTED_FILE_CONTENT));
+			assertNoAresSecurityException(
+					() -> WritePrintWriterMain.accessFileSystemViaPrintWriter(TRUSTED_FILE_CONTENT));
 		}
 
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/printWriter")
 		void test_accessFileSystemViaPrintWriterMavenWalaAspectJ() {
-			assertNoAresSecurityException(() -> WritePrintWriterMain.accessFileSystemViaPrintWriter(TRUSTED_FILE_CONTENT));
+			assertNoAresSecurityException(
+					() -> WritePrintWriterMain.accessFileSystemViaPrintWriter(TRUSTED_FILE_CONTENT));
 		}
 
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/printWriter")
 		void test_accessFileSystemViaPrintWriterMavenWalaInstrumentation() {
-			assertNoAresSecurityException(() -> WritePrintWriterMain.accessFileSystemViaPrintWriter(TRUSTED_FILE_CONTENT));
+			assertNoAresSecurityException(
+					() -> WritePrintWriterMain.accessFileSystemViaPrintWriter(TRUSTED_FILE_CONTENT));
 		}
 		// </editor-fold>
 
@@ -901,25 +935,29 @@ class FileSystemAccessTest {
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/thirdPartyPackage")
 		void test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ() {
-			assertNoAresSecurityException(() -> WriteThirdPartyPackageMain.accessFileSystemViaThirdPartyPackage(TRUSTED_FILE_CONTENT));
+			assertNoAresSecurityException(
+					() -> WriteThirdPartyPackageMain.accessFileSystemViaThirdPartyPackage(TRUSTED_FILE_CONTENT));
 		}
 
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/thirdPartyPackage")
 		void test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation() {
-			assertNoAresSecurityException(() -> WriteThirdPartyPackageMain.accessFileSystemViaThirdPartyPackage(TRUSTED_FILE_CONTENT));
+			assertNoAresSecurityException(
+					() -> WriteThirdPartyPackageMain.accessFileSystemViaThirdPartyPackage(TRUSTED_FILE_CONTENT));
 		}
 
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/thirdPartyPackage")
 		void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ() {
-			assertNoAresSecurityException(() -> WriteThirdPartyPackageMain.accessFileSystemViaThirdPartyPackage(TRUSTED_FILE_CONTENT));
+			assertNoAresSecurityException(
+					() -> WriteThirdPartyPackageMain.accessFileSystemViaThirdPartyPackage(TRUSTED_FILE_CONTENT));
 		}
 
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/thirdPartyPackage")
 		void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation() {
-			assertNoAresSecurityException(() -> WriteThirdPartyPackageMain.accessFileSystemViaThirdPartyPackage(TRUSTED_FILE_CONTENT));
+			assertNoAresSecurityException(
+					() -> WriteThirdPartyPackageMain.accessFileSystemViaThirdPartyPackage(TRUSTED_FILE_CONTENT));
 		}
 		// </editor-fold>
 	}
@@ -930,7 +968,8 @@ class FileSystemAccessTest {
 	@Nested
 	class DeleteOperations {
 
-		private static final Path TRUSTED_FILE_PATH = Paths.get("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt");
+		private static final Path TRUSTED_FILE_PATH = Paths
+				.get("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt");
 
 		@BeforeEach
 		public void ensureTrustedFileExistsBefore() throws IOException {
@@ -1156,7 +1195,6 @@ class FileSystemAccessTest {
 			});
 		}
 		// </editor-fold>
-
 	}
 	// </editor-fold>
 }

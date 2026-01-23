@@ -13,7 +13,8 @@ import de.tum.cit.ase.ares.integration.aop.allowed.subject.LegalThread;
 public class CreateCompletableFutureMain {
 
 	private CreateCompletableFutureMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/**

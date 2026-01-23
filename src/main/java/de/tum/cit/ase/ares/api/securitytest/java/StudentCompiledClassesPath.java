@@ -7,13 +7,11 @@ import javax.annotation.Nonnull;
 
 /**
  * Specifies the path of the compiled student classes.
- *
  * <p>
  * Description: Exercise Instructors use this annotation to mark a field or
  * method with the file system path where the respective Learning Management
  * Systems locates compiled student classes.
  * </p>
- *
  * <p>
  * Design Rationale: This annotation facilitates the automated detection and
  * utilisation of compiled student classes, supporting efficient class loading

@@ -9,11 +9,9 @@ import de.tum.cit.ase.ares.api.localization.Messages;
 
 /**
  * Allowed thread creation operations.
- *
  * <p>
  * Description: Specifies the number of threads permitted to be created and the
  * thread class allowed.
- *
  * <p>
  * Design Rationale: Limiting thread creation is crucial to control concurrency
  * and resource usage.
@@ -22,9 +20,10 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  * @author Markus Paulsen
  * @since 2.0.0
  * @param createTheFollowingNumberOfThreads the number of threads permitted to
- *            be created.
- * @param ofThisClass the fully qualified name of the allowed thread class; must
- *            not be null.
+ *                                          be created.
+ * @param ofThisClass                       the fully qualified name of the
+ *                                          allowed thread class; must not be
+ *                                          null.
  */
 public record ThreadPermission(int createTheFollowingNumberOfThreads, @Nonnull String ofThisClass) {
 
@@ -54,7 +53,8 @@ public record ThreadPermission(int createTheFollowingNumberOfThreads, @Nonnull S
 	 */
 	@Nonnull
 	public static ThreadPermission createRestrictive(@Nonnull String threadClass) {
-		return builder().createTheFollowingNumberOfThreads(0).ofThisClass(Objects.requireNonNull(threadClass, "threadClass must not be null")).build();
+		return builder().createTheFollowingNumberOfThreads(0)
+				.ofThisClass(Objects.requireNonNull(threadClass, "threadClass must not be null")).build();
 	}
 
 	/**
@@ -71,10 +71,8 @@ public record ThreadPermission(int createTheFollowingNumberOfThreads, @Nonnull S
 
 	/**
 	 * Builder for ThreadPermission.
-	 *
 	 * <p>
 	 * Description: Provides a fluent API to construct a ThreadPermission instance.
-	 *
 	 * <p>
 	 * Design Rationale: This builder allows for configurable thread creation
 	 * restrictions.
@@ -132,7 +130,8 @@ public record ThreadPermission(int createTheFollowingNumberOfThreads, @Nonnull S
 		 */
 		@Nonnull
 		public ThreadPermission build() {
-			return new ThreadPermission(createTheFollowingNumberOfThreads, Objects.requireNonNull(threadClass, "threadClass must not be null"));
+			return new ThreadPermission(createTheFollowingNumberOfThreads,
+					Objects.requireNonNull(threadClass, "threadClass must not be null"));
 		}
 	}
 }

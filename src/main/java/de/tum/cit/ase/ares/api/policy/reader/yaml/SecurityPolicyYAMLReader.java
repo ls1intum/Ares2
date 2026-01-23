@@ -19,13 +19,11 @@ import de.tum.cit.ase.ares.api.util.FileTools;
 
 /**
  * YAML security policy reader.
- *
  * <p>
  * Description: Reads a {@link SecurityPolicy} from a YAML file using the
  * Jackson YAML library. It validates the provided file path and translates
  * common exceptions into a {@code SecurityException} to clearly signal issues
  * during policy reading.
- *
  * <p>
  * Design Rationale: By employing Jackson's YAMLFactory and ObjectMapper, this
  * class minimises boilerplate and ensures efficient parsing. Its focused
@@ -69,7 +67,8 @@ public class SecurityPolicyYAMLReader extends SecurityPolicyReader {
 		@Nonnull
 		Path path = Preconditions.checkNotNull(securityPolicyPath, "The security policy path must not be null");
 		@Nonnull
-		Class<SecurityPolicy> yamlClass = Preconditions.checkNotNull(SecurityPolicy.class, "The security policy class must not be null.");
+		Class<SecurityPolicy> yamlClass = Preconditions.checkNotNull(SecurityPolicy.class,
+				"The security policy class must not be null.");
 		try {
 			return FileTools.readYamlFile(FileTools.readFile(path), yamlClass);
 		} catch (StreamReadException e) {
@@ -77,7 +76,8 @@ public class SecurityPolicyYAMLReader extends SecurityPolicyReader {
 		} catch (DatabindException e) {
 			throw new SecurityException(Messages.localized("security.policy.data.bind.failed", path.toString()), e);
 		} catch (UnsupportedOperationException e) {
-			throw new SecurityException(Messages.localized("security.policy.unsupported.operation", path.toString()), e);
+			throw new SecurityException(Messages.localized("security.policy.unsupported.operation", path.toString()),
+					e);
 		} catch (IOException e) {
 			throw new SecurityException(Messages.localized("security.policy.io.exception", path.toString()), e);
 		}

@@ -37,7 +37,6 @@ import de.tum.cit.ase.ares.api.securitytest.java.writer.JavaWriter;
  * delegates the creation of test cases to specialised helper classes while
  * ensuring clear configuration and robust error handling.
  * </p>
- *
  * <p>
  * <strong>Design Patterns:</strong> Abstract Factory, Builder, and Strategy
  * (for test case execution).
@@ -60,24 +59,30 @@ public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBui
 	 * policy. If the testPath is null, a default path is used.
 	 * </p>
 	 *
-	 * @param buildMode the build tool used in the project; must not be null.
-	 * @param architectureMode the architecture mode used in the project; must not
-	 *            be null.
-	 * @param aopMode the AOP mode used in the project; must not be null.
-	 * @param essentialDataReader the reader for essential configuration; must not
-	 *            be null.
+	 * @param buildMode             the build tool used in the project; must not be
+	 *                              null.
+	 * @param architectureMode      the architecture mode used in the project; must
+	 *                              not be null.
+	 * @param aopMode               the AOP mode used in the project; must not be
+	 *                              null.
+	 * @param essentialDataReader   the reader for essential configuration; must not
+	 *                              be null.
 	 * @param essentialPackagesPath the path to the essential packages
-	 *            configuration; must not be null.
-	 * @param essentialClassesPath the path to the essential classes configuration;
-	 *            must not be null.
-	 * @param projectPath the project path where test cases will be generated; if
-	 *            null, a default is used.
-	 * @param securityPolicy the security policy to enforce; may be null.
+	 *                              configuration; must not be null.
+	 * @param essentialClassesPath  the path to the essential classes configuration;
+	 *                              must not be null.
+	 * @param projectPath           the project path where test cases will be
+	 *                              generated; if null, a default is used.
+	 * @param securityPolicy        the security policy to enforce; may be null.
 	 */
-	public JavaTestCaseFactoryAndBuilder(@Nonnull JavaCreator creator, @Nonnull JavaWriter writer, @Nonnull JavaExecuter executer, @Nonnull EssentialDataReader essentialDataReader,
-			@Nonnull JavaProjectScanner projectScanner, @Nonnull Path essentialPackagesPath, @Nonnull Path essentialClassesPath, @Nullable BuildMode buildMode,
-			@Nullable ArchitectureMode architectureMode, @Nullable AOPMode aopMode, @Nullable SecurityPolicy securityPolicy, @Nullable Path projectPath) {
-		super(creator, writer, executer, essentialDataReader, projectScanner, essentialPackagesPath, essentialClassesPath, buildMode, architectureMode, aopMode, securityPolicy, projectPath);
+	public JavaTestCaseFactoryAndBuilder(@Nonnull JavaCreator creator, @Nonnull JavaWriter writer,
+			@Nonnull JavaExecuter executer, @Nonnull EssentialDataReader essentialDataReader,
+			@Nonnull JavaProjectScanner projectScanner, @Nonnull Path essentialPackagesPath,
+			@Nonnull Path essentialClassesPath, @Nullable BuildMode buildMode,
+			@Nullable ArchitectureMode architectureMode, @Nullable AOPMode aopMode,
+			@Nullable SecurityPolicy securityPolicy, @Nullable Path projectPath) {
+		super(creator, writer, executer, essentialDataReader, projectScanner, essentialPackagesPath,
+				essentialClassesPath, buildMode, architectureMode, aopMode, securityPolicy, projectPath);
 	}
 	// </editor-fold>
 
@@ -92,17 +97,20 @@ public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBui
 	 * </p>
 	 *
 	 * @param testFolderPath the directory where test case files will be written;
-	 *            may be null.
+	 *                       may be null.
 	 * @return a non-null list of {@link Path} objects representing the generated
 	 *         files.
 	 */
 	@Override
 	@Nonnull
 	public List<Path> writeTestCases(@Nullable Path testFolderPath) {
-		return writer.writeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses, testClasses, packageName, mainClassInPackageName,
-				this.architectureTestCases.stream().map(architectureTestCase -> (JavaArchitectureTestCase) architectureTestCase).toList(),
+		return writer.writeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
+				testClasses, packageName, mainClassInPackageName,
+				this.architectureTestCases.stream()
+						.map(architectureTestCase -> (JavaArchitectureTestCase) architectureTestCase).toList(),
 				this.aopTestCases.stream().map(aopTestCase -> (JavaAOPTestCase) aopTestCase).toList(),
-				this.phobosTestCases.stream().map(phobosTestCase -> (JavaPhobosTestCase) phobosTestCase).toList(), testFolderPath);
+				this.phobosTestCases.stream().map(phobosTestCase -> (JavaPhobosTestCase) phobosTestCase).toList(),
+				testFolderPath);
 	}
 	// </editor-fold>
 
@@ -117,8 +125,10 @@ public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBui
 	 */
 	@Override
 	public void executeTestCases() {
-		executer.executeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses, testClasses, packageName, mainClassInPackageName,
-				this.architectureTestCases.stream().map(architectureTestCase -> (JavaArchitectureTestCase) architectureTestCase).toList(),
+		executer.executeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
+				testClasses, packageName, mainClassInPackageName,
+				this.architectureTestCases.stream()
+						.map(architectureTestCase -> (JavaArchitectureTestCase) architectureTestCase).toList(),
 				this.aopTestCases.stream().map(aopTestCase -> (JavaAOPTestCase) aopTestCase).toList());
 	}
 	// </editor-fold>
@@ -159,46 +169,60 @@ public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBui
 			this.creator = Objects.requireNonNull(creator, "creator must not be null");
 			return this;
 		}
+
 		public Builder writer(@Nonnull JavaWriter writer) {
 			this.writer = Objects.requireNonNull(writer, "writer must not be null");
 			return this;
 		}
+
 		public Builder executer(@Nonnull JavaExecuter executer) {
 			this.executer = Objects.requireNonNull(executer, "executer must not be null");
 			return this;
 		}
+
 		public Builder essentialDataReader(@Nonnull EssentialDataReader essentialDataReader) {
-			this.essentialDataReader = Objects.requireNonNull(essentialDataReader, "essentialDataReader must not be null");
+			this.essentialDataReader = Objects.requireNonNull(essentialDataReader,
+					"essentialDataReader must not be null");
 			return this;
 		}
+
 		public Builder projectScanner(@Nonnull JavaProjectScanner projectScanner) {
 			this.projectScanner = Objects.requireNonNull(projectScanner, "projectScanner must not be null");
 			return this;
 		}
+
 		public Builder essentialPackagesPath(@Nonnull Path essentialPackagesPath) {
-			this.essentialPackagesPath = Objects.requireNonNull(essentialPackagesPath, "essentialPackagesPath must not be null");
+			this.essentialPackagesPath = Objects.requireNonNull(essentialPackagesPath,
+					"essentialPackagesPath must not be null");
 			return this;
 		}
+
 		public Builder essentialClassesPath(@Nonnull Path essentialClassesPath) {
-			this.essentialClassesPath = Objects.requireNonNull(essentialClassesPath, "essentialClassesPath must not be null");
+			this.essentialClassesPath = Objects.requireNonNull(essentialClassesPath,
+					"essentialClassesPath must not be null");
 			return this;
 		}
+
 		public Builder buildMode(@Nullable BuildMode buildMode) {
 			this.buildMode = buildMode;
 			return this;
 		}
+
 		public Builder architectureMode(@Nullable ArchitectureMode architectureMode) {
 			this.architectureMode = architectureMode;
 			return this;
 		}
+
 		public Builder aopMode(@Nullable AOPMode aopMode) {
 			this.aopMode = aopMode;
 			return this;
 		}
+
 		public Builder securityPolicy(@Nullable SecurityPolicy securityPolicy) {
 			this.securityPolicy = securityPolicy;
 			return this;
 		}
+
 		public Builder projectPath(@Nullable Path projectPath) {
 			this.projectPath = projectPath;
 			return this;
@@ -206,11 +230,15 @@ public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBui
 
 		@Nonnull
 		public JavaTestCaseFactoryAndBuilder build() {
-			return new JavaTestCaseFactoryAndBuilder(java.util.Objects.requireNonNull(creator, "creator must not be null"), java.util.Objects.requireNonNull(writer, "writer must not be null"),
-					java.util.Objects.requireNonNull(executer, "executer must not be null"), java.util.Objects.requireNonNull(essentialDataReader, "essentialDataReader must not be null"),
+			return new JavaTestCaseFactoryAndBuilder(
+					java.util.Objects.requireNonNull(creator, "creator must not be null"),
+					java.util.Objects.requireNonNull(writer, "writer must not be null"),
+					java.util.Objects.requireNonNull(executer, "executer must not be null"),
+					java.util.Objects.requireNonNull(essentialDataReader, "essentialDataReader must not be null"),
 					java.util.Objects.requireNonNull(projectScanner, "projectScanner must not be null"),
 					java.util.Objects.requireNonNull(essentialPackagesPath, "essentialPackagesPath must not be null"),
-					java.util.Objects.requireNonNull(essentialClassesPath, "essentialClassesPath must not be null"), buildMode, architectureMode, aopMode, securityPolicy, projectPath);
+					java.util.Objects.requireNonNull(essentialClassesPath, "essentialClassesPath must not be null"),
+					buildMode, architectureMode, aopMode, securityPolicy, projectPath);
 		}
 	}
 	// </editor-fold>

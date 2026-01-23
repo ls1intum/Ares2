@@ -8,7 +8,8 @@ import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdp
 public class WriteThirdPartyPackageMain {
 
 	private WriteThirdPartyPackageMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/**
@@ -18,6 +19,7 @@ public class WriteThirdPartyPackageMain {
 	 * @param text The text to write to the trusted file
 	 */
 	public static void accessFileSystemViaThirdPartyPackage(String text) throws IOException {
-		ThirdPartyPackagePenguin.overwriteFile(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"));
+		ThirdPartyPackagePenguin.overwriteFile(
+				Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"));
 	}
 }

@@ -76,13 +76,13 @@ public class FileTools {
 	 * segment.
 	 * </p>
 	 *
-	 * @param path the base {@link Path} to resolve against.
+	 * @param path             the base {@link Path} to resolve against.
 	 * @param furtherPathParts the additional path segments to append to the base
-	 *            path.
+	 *                         path.
 	 * @return the resolved {@link Path} combining the base path and all provided
 	 *         segments.
 	 * @throws NullPointerException if either {@code path} or
-	 *             {@code furtherPathParts} is null.
+	 *                              {@code furtherPathParts} is null.
 	 */
 	public static Path resolveOnPath(@Nonnull Path path, @Nonnull String... furtherPathParts) {
 		return Stream.of(furtherPathParts).reduce(path, Path::resolve, Path::resolve);
@@ -99,16 +99,18 @@ public class FileTools {
 	 *
 	 * @return the resolved source directory {@link Path}.
 	 * @throws SecurityException if the FileTools class cannot be found or if there
-	 *             is an error converting its location to a URI.
+	 *                           is an error converting its location to a URI.
 	 */
 	private static Path resolveSourceDirectory() {
 		try {
-			URL url = Class.forName("de.tum.cit.ase.ares.api.util.FileTools").getProtectionDomain().getCodeSource().getLocation();
+			URL url = Class.forName("de.tum.cit.ase.ares.api.util.FileTools").getProtectionDomain().getCodeSource()
+					.getLocation();
 
 			Path classesDir = Path.of(url.toURI()).toAbsolutePath().normalize();
 			String[] packageParts = "de.tum.cit.ase".split("\\.");
 			String[] furtherPathParts = { "ares", "api" };
-			return resolveOnPath(classesDir, Stream.concat(Arrays.stream(packageParts), Arrays.stream(furtherPathParts)).toArray(String[]::new));
+			return resolveOnPath(classesDir,
+					Stream.concat(Arrays.stream(packageParts), Arrays.stream(furtherPathParts)).toArray(String[]::new));
 		} catch (ClassNotFoundException | URISyntaxException e) {
 			throw new SecurityException(e.getMessage());
 		}
@@ -123,7 +125,7 @@ public class FileTools {
 	 * </p>
 	 *
 	 * @param furtherPathParts the additional path segments to append to the source
-	 *            directory path.
+	 *                         directory path.
 	 * @return the resolved {@link Path} within the source directory.
 	 * @throws NullPointerException if {@code furtherPathParts} is null.
 	 */
@@ -138,12 +140,12 @@ public class FileTools {
 	 * segments against the given target directory path.
 	 * </p>
 	 *
-	 * @param targetPath the base {@link Path} of the target directory.
+	 * @param targetPath       the base {@link Path} of the target directory.
 	 * @param furtherPathParts the additional path segments to append to the target
-	 *            directory path.
+	 *                         directory path.
 	 * @return the resolved {@link Path} within the specified target directory.
 	 * @throws NullPointerException if either {@code targetPath} or
-	 *             {@code furtherPathParts} is null.
+	 *                              {@code furtherPathParts} is null.
 	 */
 	public static Path resolveFileOnTargetDirectory(@Nonnull Path targetPath, @Nonnull String... furtherPathParts) {
 		return resolveOnPath(targetPath, furtherPathParts);
@@ -164,7 +166,8 @@ public class FileTools {
 			closer.register(jar);
 			JarEntry entry = jar.getJarEntry(jarMatcher.group(2).replace('\\', '/'));
 			if (entry == null) {
-				throw new SecurityException("Jar entry not found: " + jarMatcher.group(2).replace('\\', '/') + " in " + Path.of(jarMatcher.group(1)));
+				throw new SecurityException("Jar entry not found: " + jarMatcher.group(2).replace('\\', '/') + " in "
+						+ Path.of(jarMatcher.group(1)));
 			}
 			InputStream entryStream = closer.register(jar.getInputStream(entry));
 			return new FilterInputStream(entryStream) {
@@ -220,13 +223,16 @@ public class FileTools {
 				return tmp.toFile();
 			}
 		} catch (OutOfMemoryError e) {
-			throw new SecurityException("Ares Security Error (Stage: Creation): Out of memory while reading content.", e);
+			throw new SecurityException("Ares Security Error (Stage: Creation): Out of memory while reading content.",
+					e);
 		} catch (IllegalFormatException e) {
 			throw new SecurityException("Ares Security Error (Stage: Creation): An illegal format in content.", e);
 		} catch (NullPointerException e) {
-			throw new SecurityException("Ares Security Error (Stage: Creation): A null pointer encountered while reading file.", e);
+			throw new SecurityException(
+					"Ares Security Error (Stage: Creation): A null pointer encountered while reading file.", e);
 		} catch (UnsupportedOperationException e) {
-			throw new SecurityException("Ares Security Error (Stage: Creation): Unsupported operation while reading file.", e);
+			throw new SecurityException(
+					"Ares Security Error (Stage: Creation): Unsupported operation while reading file.", e);
 		} catch (IOException e) {
 			throw new SecurityException("Ares Security Error (Stage: Creation): I/O error while reading file.", e);
 		}
@@ -237,8 +243,8 @@ public class FileTools {
 	 * object of the specified type.
 	 *
 	 * @param sourceFile The YAML file to read
-	 * @param valueType The class type to deserialize the YAML content into
-	 * @param <T> The type of the object to be returned
+	 * @param valueType  The class type to deserialize the YAML content into
+	 * @param <T>        The type of the object to be returned
 	 * @return An object of type T deserialized from the YAML file
 	 * @throws IOException if an I/O error occurs while reading the file
 	 */
@@ -248,7 +254,8 @@ public class FileTools {
 		Class<T> protectedValueType = Objects.requireNonNull(valueType, "valueType must not be null");
 		try (InputStream in = createInputStream(protectedPath.toPath())) {
 			T result = new ObjectMapper(new YAMLFactory()).readValue(in, protectedValueType);
-			return Objects.requireNonNull(result, () -> "YAML file " + protectedPath + " deserialized to null " + "for type " + protectedValueType.getName());
+			return Objects.requireNonNull(result, () -> "YAML file " + protectedPath + " deserialized to null "
+					+ "for type " + protectedValueType.getName());
 		}
 	}
 
@@ -258,13 +265,14 @@ public class FileTools {
 	 * @param sourceFile The CSV file to read
 	 * @return A list of string lists representing the rows and columns of the CSV
 	 *         file
-	 * @throws IOException if an I/O error occurs while reading the file
+	 * @throws IOException  if an I/O error occurs while reading the file
 	 * @throws CsvException if a parsing error occurs while processing the CSV
-	 *             content
+	 *                      content
 	 */
 	public static List<List<String>> readCSVFile(@Nonnull File sourceFile) throws IOException, CsvException {
 		CSVParser csvParserBuilder = new CSVParserBuilder().withSeparator(',').withQuoteChar('"').build();
-		try (CSVReader csvReaderBuilder = new CSVReaderBuilder(new FileReader(sourceFile)).withCSVParser(csvParserBuilder).withSkipLines(1).build()) {
+		try (CSVReader csvReaderBuilder = new CSVReaderBuilder(new FileReader(sourceFile))
+				.withCSVParser(csvParserBuilder).withSkipLines(1).build()) {
 			List<String[]> csvRowList = csvReaderBuilder.readAll();
 			return csvRowList.stream().map(Arrays::asList).toList();
 		}
@@ -287,7 +295,8 @@ public class FileTools {
 		} catch (IOException e) {
 			throw new SecurityException(localize("security.file-tools.read.content.failure"), e);
 		} catch (OutOfMemoryError e) {
-			throw new SecurityException("Ares Security Error (Stage: Creation): Out of memory while reading content.", e);
+			throw new SecurityException("Ares Security Error (Stage: Creation): Out of memory while reading content.",
+					e);
 		}
 	}
 
@@ -316,26 +325,30 @@ public class FileTools {
 	 * </p>
 	 *
 	 * @param targetPath the path to the target file where the content will be
-	 *            written.
-	 * @param content the content to write to the file.
-	 * @param options optional {@link java.nio.file.OpenOption} parameters to
-	 *            customize the write operation.
+	 *                   written.
+	 * @param content    the content to write to the file.
+	 * @param options    optional {@link java.nio.file.OpenOption} parameters to
+	 *                   customize the write operation.
 	 * @return the path to the file that was written.
 	 * @throws SecurityException if an error occurs during the write operation,
-	 *             including invalid arguments, I/O errors, null pointers, or
-	 *             unsupported operations.
+	 *                           including invalid arguments, I/O errors, null
+	 *                           pointers, or unsupported operations.
 	 */
 	private static File writeFile(Path targetPath, String content, java.nio.file.OpenOption... options) {
 		try {
 			return Files.writeString(targetPath, content, options).toFile();
 		} catch (IllegalArgumentException e) {
-			throw new SecurityException("Ares Security Error (Stage: Creation): Illegal argument provided for targetPath writing.", e);
+			throw new SecurityException(
+					"Ares Security Error (Stage: Creation): Illegal argument provided for targetPath writing.", e);
 		} catch (IOException e) {
-			throw new SecurityException("Ares Security Error (Stage: Creation): IO error occurred during targetPath writing.", e);
+			throw new SecurityException(
+					"Ares Security Error (Stage: Creation): IO error occurred during targetPath writing.", e);
 		} catch (NullPointerException e) {
-			throw new SecurityException("Ares Security Error (Stage: Creation): A null pointer encountered during targetPath writing.", e);
+			throw new SecurityException(
+					"Ares Security Error (Stage: Creation): A null pointer encountered during targetPath writing.", e);
 		} catch (UnsupportedOperationException e) {
-			throw new SecurityException("Ares Security Error (Stage: Creation): Unsupported operation during targetPath writing.", e);
+			throw new SecurityException(
+					"Ares Security Error (Stage: Creation): Unsupported operation during targetPath writing.", e);
 		}
 	}
 	// </editor-fold>
@@ -352,9 +365,9 @@ public class FileTools {
 	 * </p>
 	 *
 	 * @param sourceFilePaths a {@link List} of {@link Path} objects representing
-	 *            the source files to copy.
+	 *                        the source files to copy.
 	 * @param targetFilePaths a {@link List} of {@link Path} objects representing
-	 *            the target paths for the copied files.
+	 *                        the target paths for the copied files.
 	 * @return a {@link List} of {@link Path} objects representing the paths of the
 	 *         copied files.
 	 * @throws SecurityException if an error occurs during the file copy process.
@@ -366,15 +379,20 @@ public class FileTools {
 				if (parentPath != null && !Files.exists(parentPath)) {
 					Files.createDirectories(parentPath);
 				}
-				Files.copy(FileTools.readFile(sourceFilePaths.get(i)).toPath(), targetFilePaths.get(i), StandardCopyOption.REPLACE_EXISTING);
+				Files.copy(FileTools.readFile(sourceFilePaths.get(i)).toPath(), targetFilePaths.get(i),
+						StandardCopyOption.REPLACE_EXISTING);
 			} catch (InvalidPathException e) {
-				throw new SecurityException("Ares Security Error (Stage: Creation): Invalid path provided during file copy.", e);
+				throw new SecurityException(
+						"Ares Security Error (Stage: Creation): Invalid path provided during file copy.", e);
 			} catch (UnsupportedOperationException e) {
-				throw new SecurityException("Ares Security Error (Stage: Creation): Unsupported operation during file copy.", e);
+				throw new SecurityException(
+						"Ares Security Error (Stage: Creation): Unsupported operation during file copy.", e);
 			} catch (FileAlreadyExistsException e) {
-				throw new SecurityException("Ares Security Error (Stage: Creation): File already exists at target location.", e);
+				throw new SecurityException(
+						"Ares Security Error (Stage: Creation): File already exists at target location.", e);
 			} catch (IOException e) {
-				throw new SecurityException("Ares Security Error (Stage: Creation): IO error occurred during file copy.", e);
+				throw new SecurityException(
+						"Ares Security Error (Stage: Creation): IO error occurred during file copy.", e);
 			}
 			return targetFilePaths.get(i);
 		}).toList();
@@ -390,15 +408,17 @@ public class FileTools {
 	 *
 	 * @param sourceFilePaths the source file paths.
 	 * @param targetFilePaths the target file paths.
-	 * @param formatValues the format values for formatting the files.
+	 * @param formatValues    the format values for formatting the files.
 	 * @return a list of copied paths.
 	 * @throws SecurityException if an error occurs during the process.
 	 */
-	public static List<Path> copyAndFormatFSFiles(List<Path> sourceFilePaths, List<Path> targetFilePaths, List<String[]> formatValues) {
+	public static List<Path> copyAndFormatFSFiles(List<Path> sourceFilePaths, List<Path> targetFilePaths,
+			List<String[]> formatValues) {
 		List<Path> copiedFiles = copyFiles(sourceFilePaths, targetFilePaths);
 
 		// Skip formatting for localization resource files (*.properties)
-		List<Path> filesToFormat = copiedFiles.stream().filter(p -> !p.toString().contains("localization")).filter(p -> !p.toString().endsWith(".properties")).toList();
+		List<Path> filesToFormat = copiedFiles.stream().filter(p -> !p.toString().contains("localization"))
+				.filter(p -> !p.toString().endsWith(".properties")).toList();
 
 		formatFSFiles(filesToFormat, formatValues);
 
@@ -415,19 +435,21 @@ public class FileTools {
 	 * format values using {@link String#format(String, Object...)}.
 	 * </p>
 	 *
-	 * @param sourceFilePaths the list of source file paths to copy.
-	 * @param targetFilePaths the list of target file paths where the files will be
-	 *            copied.
+	 * @param sourceFilePaths   the list of source file paths to copy.
+	 * @param targetFilePaths   the list of target file paths where the files will
+	 *                          be copied.
 	 * @param placeholderValues a list of string arrays, where each array contains
-	 *            placeholders to be replaced in the corresponding file.
-	 * @param formatValues a list of string arrays, where each array contains values
-	 *            to be injected into the format specifiers in the corresponding
-	 *            file.
+	 *                          placeholders to be replaced in the corresponding
+	 *                          file.
+	 * @param formatValues      a list of string arrays, where each array contains
+	 *                          values to be injected into the format specifiers in
+	 *                          the corresponding file.
 	 * @return a list of paths representing the copied and formatted files.
 	 * @throws SecurityException if an error occurs during file copying or
-	 *             formatting.
+	 *                           formatting.
 	 */
-	public static List<Path> copyAndFormatNonFSFiles(List<Path> sourceFilePaths, List<Path> targetFilePaths, List<String[]> placeholderValues, List<String[]> formatValues) {
+	public static List<Path> copyAndFormatNonFSFiles(List<Path> sourceFilePaths, List<Path> targetFilePaths,
+			List<String[]> placeholderValues, List<String[]> formatValues) {
 		List<Path> copiedFiles = copyFiles(sourceFilePaths, targetFilePaths);
 		formatNonFSFiles(copiedFiles, placeholderValues, formatValues);
 		return copiedFiles;
@@ -463,7 +485,9 @@ public class FileTools {
 		try {
 			return String.format(template, (Object[]) values);
 		} catch (IllegalFormatException e) {
-			throw new SecurityException("Ares Security Error (Stage: Creation): Illegal format in " + pathForError.toAbsolutePath() + ".", e);
+			throw new SecurityException(
+					"Ares Security Error (Stage: Creation): Illegal format in " + pathForError.toAbsolutePath() + ".",
+					e);
 		}
 	}
 
@@ -491,14 +515,16 @@ public class FileTools {
 		});
 	}
 
-	private static String processPlaceholdersAndFormat(String content, String[] placeholderValues, String[] formatValues, Path pathForError) {
+	private static String processPlaceholdersAndFormat(String content, String[] placeholderValues,
+			String[] formatValues, Path pathForError) {
 		content = replacePlaceholdersWithFormatSpec(content, placeholderValues);
 		String[] values = (formatValues != null) ? formatValues : new String[0];
 		int valuesCount = values.length;
 		int placeholderCount = countOccurrences(content, "%s");
 		if (placeholderCount != valuesCount) {
-			throw new SecurityException("Ares Security Error (Stage: Creation): Placeholder count mismatch in " + pathForError.toAbsolutePath() + ". Expected " + valuesCount
-					+ " '%s' placeholders, but found " + placeholderCount + ".");
+			throw new SecurityException("Ares Security Error (Stage: Creation): Placeholder count mismatch in "
+					+ pathForError.toAbsolutePath() + ". Expected " + valuesCount + " '%s' placeholders, but found "
+					+ placeholderCount + ".");
 		}
 		return formatTemplate(content, values, pathForError);
 	}
@@ -514,21 +540,26 @@ public class FileTools {
 	 * {@link SecurityException} is thrown.
 	 * </p>
 	 *
-	 * @param targetFilePaths the target files to process.
+	 * @param targetFilePaths   the target files to process.
 	 * @param placeholderValues per-file arrays of placeholder literals to be
-	 *            replaced with "%s".
-	 * @param formatValues per-file arrays of values to inject via
-	 *            {@link String#format(String, Object...)}.
+	 *                          replaced with "%s".
+	 * @param formatValues      per-file arrays of values to inject via
+	 *                          {@link String#format(String, Object...)}.
 	 * @throws SecurityException if IO fails or placeholder count does not match
-	 *             format values count.
+	 *                           format values count.
 	 */
-	private static void formatNonFSFiles(List<Path> targetFilePaths, List<String[]> placeholderValues, List<String[]> formatValues) {
+	private static void formatNonFSFiles(List<Path> targetFilePaths, List<String[]> placeholderValues,
+			List<String[]> formatValues) {
 		IntStream.range(0, targetFilePaths.size()).forEach(i -> {
 			Path targetPath = targetFilePaths.get(i);
 			try {
 				String content = Files.readString(FileTools.readFile(targetPath).toPath(), StandardCharsets.UTF_8);
-				String[] perFilePlaceholders = (placeholderValues != null && placeholderValues.size() > i) ? placeholderValues.get(i) : null;
-				String[] values = (formatValues != null && formatValues.size() > i && formatValues.get(i) != null) ? formatValues.get(i) : new String[0];
+				String[] perFilePlaceholders = (placeholderValues != null && placeholderValues.size() > i)
+						? placeholderValues.get(i)
+						: null;
+				String[] values = (formatValues != null && formatValues.size() > i && formatValues.get(i) != null)
+						? formatValues.get(i)
+						: new String[0];
 				String formatted = processPlaceholdersAndFormat(content, perFilePlaceholders, values, targetPath);
 				writeFile(targetPath, formatted, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
 			} catch (IOException e) {
@@ -545,9 +576,9 @@ public class FileTools {
 	 * {@code numberOfEntries} parameter.
 	 * </p>
 	 *
-	 * @param packageName the package name to be repeated in the array.
+	 * @param packageName     the package name to be repeated in the array.
 	 * @param numberOfEntries the number of times the package name should be
-	 *            repeated in the array.
+	 *                        repeated in the array.
 	 * @return a {@link String} array where each element is the provided package
 	 *         name.
 	 */
@@ -568,18 +599,21 @@ public class FileTools {
 	 * </p>
 	 *
 	 * @param sourceHeaderPath the {@link Path} of the header file.
-	 * @param sourceBody the body content as a {@link String}.
+	 * @param sourceBody       the body content as a {@link String}.
 	 * @param sourceFooterPath the {@link Path} of the footer file.
-	 * @param target the target directory {@link Path} where the file will be
-	 *            created.
+	 * @param target           the target directory {@link Path} where the file will
+	 *                         be created.
 	 * @return the {@link Path} of the created file.
 	 * @throws SecurityException if an error occurs during the file creation or
-	 *             writing process.
+	 *                           writing process.
 	 */
-	public static Path createThreePartedFile(Path sourceHeaderPath, String sourceBody, Path sourceFooterPath, Path target) {
+	public static Path createThreePartedFile(Path sourceHeaderPath, String sourceBody, Path sourceFooterPath,
+			Path target) {
 		try {
-			String sourceHeaderContent = Files.readString(FileTools.readFile(sourceHeaderPath).toPath(), StandardCharsets.UTF_8);
-			String sourceFooterContent = Files.readString(FileTools.readFile(sourceFooterPath).toPath(), StandardCharsets.UTF_8);
+			String sourceHeaderContent = Files.readString(FileTools.readFile(sourceHeaderPath).toPath(),
+					StandardCharsets.UTF_8);
+			String sourceFooterContent = Files.readString(FileTools.readFile(sourceFooterPath).toPath(),
+					StandardCharsets.UTF_8);
 			String fileContent = String.join("\n", List.of(sourceHeaderContent, sourceBody, sourceFooterContent));
 			Path fullTargetPath = target.getParent().resolve(target.getFileName());
 
@@ -590,7 +624,8 @@ public class FileTools {
 					throw new SecurityException(localize("security.file-tools.create.target.directory.failed"), e);
 				}
 			}
-			return FileTools.writeFile(fullTargetPath, fileContent, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING).toPath();
+			return FileTools.writeFile(fullTargetPath, fileContent, StandardOpenOption.CREATE,
+					StandardOpenOption.TRUNCATE_EXISTING).toPath();
 		} catch (IOException e) {
 			throw new SecurityException(localize("security.file-tools.create.target.directory.failed"), e);
 		}
@@ -612,23 +647,26 @@ public class FileTools {
 	 * </ol>
 	 *
 	 * @param sourceHeaderPath the path (within the classpath resources) of the
-	 *            header file whose content will be placed at the beginning of the
-	 *            created file.
-	 * @param sourceBody the body text to be inserted between header and footer.
+	 *                         header file whose content will be placed at the
+	 *                         beginning of the created file.
+	 * @param sourceBody       the body text to be inserted between header and
+	 *                         footer.
 	 * @param sourceFooterPath the path (within the classpath resources) of the
-	 *            footer file whose content will be placed at the end of the created
-	 *            file.
-	 * @param target the target path (on the filesystem) of the file to create and
-	 *            format.
-	 * @param formatValues the values to be injected into format specifiers (e.g.,
-	 *            {@code %s}) contained in the concatenated content.
+	 *                         footer file whose content will be placed at the end
+	 *                         of the created file.
+	 * @param target           the target path (on the filesystem) of the file to
+	 *                         create and format.
+	 * @param formatValues     the values to be injected into format specifiers
+	 *                         (e.g., {@code %s}) contained in the concatenated
+	 *                         content.
 	 * @return the path to the created and formatted file.
-	 * @throws SecurityException if an I/O error occurs while reading or writing the
-	 *             file content.
+	 * @throws SecurityException      if an I/O error occurs while reading or
+	 *                                writing the file content.
 	 * @throws IllegalFormatException if the format string contains an illegal
-	 *             syntax for the provided values.
+	 *                                syntax for the provided values.
 	 */
-	public static Path createThreePartedFormatStringFile(Path sourceHeaderPath, String sourceBody, Path sourceFooterPath, Path target, String[] formatValues) {
+	public static Path createThreePartedFormatStringFile(Path sourceHeaderPath, String sourceBody,
+			Path sourceFooterPath, Path target, String[] formatValues) {
 		Path createdFile = null;
 		try {
 			createdFile = createThreePartedFile(sourceHeaderPath, sourceBody, sourceFooterPath, target);
@@ -655,11 +693,13 @@ public class FileTools {
 	 * @throws IOException if an I/O error occurs while reading the file.
 	 */
 	public static List<List<String>> readCFGFile(Path sourceCFGPath) throws IOException {
-		return Files.lines(sourceCFGPath).map(String::trim).filter(line -> !line.isEmpty()).map(line -> List.of(line.split("\\s+"))).peek(parts -> {
-			if (parts.size() != 3) {
-				throw new IllegalArgumentException("Invalid cfg format (expected exactly 3 tokens per line): " + parts);
-			}
-		}).collect(Collectors.toList());
+		return Files.lines(sourceCFGPath).map(String::trim).filter(line -> !line.isEmpty())
+				.map(line -> List.of(line.split("\\s+"))).peek(parts -> {
+					if (parts.size() != 3) {
+						throw new IllegalArgumentException(
+								"Invalid cfg format (expected exactly 3 tokens per line): " + parts);
+					}
+				}).collect(Collectors.toList());
 	}
 	// </editor-fold>
 }

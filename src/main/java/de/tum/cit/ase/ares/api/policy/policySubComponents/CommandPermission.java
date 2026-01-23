@@ -14,11 +14,9 @@ import de.tum.cit.ase.ares.api.localization.Messages;
 
 /**
  * Allowed command execution operations.
- *
  * <p>
  * Description: Specifies a command that is permitted to be executed along with
  * its predefined arguments.
- *
  * <p>
  * Design Rationale: Explicitly defining command execution permissions helps
  * prevent unauthorised or harmful commands.
@@ -26,10 +24,10 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  * @since 2.0.0
  * @author Markus Paulsen
  * @since 2.0.0
- * @param executeTheCommand the command that is permitted to be executed; must
- *            not be null.
+ * @param executeTheCommand  the command that is permitted to be executed; must
+ *                           not be null.
  * @param withTheseArguments the predefined arguments for the command; must not
- *            be null.
+ *                           be null.
  */
 @SuppressWarnings("unused")
 public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List<String> withTheseArguments) {
@@ -58,7 +56,9 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
 	 */
 	@Nonnull
 	public static CommandPermission createRestrictive(@Nonnull String executeTheCommand) {
-		return builder().executeTheCommand(Objects.requireNonNull(executeTheCommand, "executeTheCommand must not be null")).withTheseArguments(new ArrayList<>()).build();
+		return builder()
+				.executeTheCommand(Objects.requireNonNull(executeTheCommand, "executeTheCommand must not be null"))
+				.withTheseArguments(new ArrayList<>()).build();
 	}
 
 	/**
@@ -103,10 +103,8 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
 
 	/**
 	 * Builder for CommandPermission.
-	 *
 	 * <p>
 	 * Description: Provides a fluent API to construct a CommandPermission instance.
-	 *
 	 * <p>
 	 * Design Rationale: This builder enables step-by-step configuration of command
 	 * execution permissions with variable arguments.
@@ -151,7 +149,8 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
 		 */
 		@Nonnull
 		public Builder withTheseArguments(@Nonnull List<String> withTheseArguments) {
-			this.withTheseArguments = new ArrayList<>(Objects.requireNonNull(withTheseArguments, "withTheseArguments must not be null"));
+			this.withTheseArguments = new ArrayList<>(
+					Objects.requireNonNull(withTheseArguments, "withTheseArguments must not be null"));
 			return this;
 		}
 
@@ -164,7 +163,8 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
 		 */
 		@Nonnull
 		public CommandPermission build() {
-			return new CommandPermission(Objects.requireNonNull(executeTheCommand, "executeTheCommand must not be null"),
+			return new CommandPermission(
+					Objects.requireNonNull(executeTheCommand, "executeTheCommand must not be null"),
 					Objects.requireNonNull(withTheseArguments, "withTheseArguments must not be null"));
 		}
 	}

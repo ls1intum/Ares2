@@ -48,8 +48,8 @@ public class LruCache<K, V> extends LinkedHashMap<K, V> {
 	 * {@link Collections#synchronizedMap(Map)} to provide thread-safe access in
 	 * concurrent environments.
 	 *
-	 * @param <K> the type of the cache keys
-	 * @param <V> the type of the cache values
+	 * @param <K>          the type of the cache keys
+	 * @param <V>          the type of the cache values
 	 * @param maxCacheSize the maximum number of entries in the cache
 	 * @return a synchronized (thread-safe) LRU cache
 	 */

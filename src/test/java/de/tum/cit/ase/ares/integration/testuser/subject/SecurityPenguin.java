@@ -60,7 +60,8 @@ public final class SecurityPenguin {
 
 	public static String tryExecuteGit() {
 		try {
-			return new String(Runtime.getRuntime().exec("git --help").getInputStream().readAllBytes()).replaceAll("\\W| ", "_");
+			return new String(Runtime.getRuntime().exec("git --help").getInputStream().readAllBytes())
+					.replaceAll("\\W| ", "_");
 		} catch (IOException e) {
 			throw new UncheckedIOException(e);
 		}
@@ -91,7 +92,8 @@ public final class SecurityPenguin {
 	}
 
 	public static void useCommonPoolBadNormal() throws Throwable {
-		useCommonPool(() -> CompletableFuture.runAsync(() -> IOTester.class.getDeclaredFields()[0].setAccessible(true)).get());
+		useCommonPool(() -> CompletableFuture.runAsync(() -> IOTester.class.getDeclaredFields()[0].setAccessible(true))
+				.get());
 	}
 
 	public static void useCommonPoolBadTrick() throws Throwable {

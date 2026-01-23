@@ -7,7 +7,8 @@ import java.io.IOException;
 public class WriteBufferedWriterMain {
 
 	private WriteBufferedWriterMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/**
@@ -16,7 +17,8 @@ public class WriteBufferedWriterMain {
 	 * @param text The text to write to the trusted file
 	 */
 	public static void accessFileSystemViaBufferedWriter(String text) throws IOException {
-		try (BufferedWriter writer = new BufferedWriter(new FileWriter("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"))) {
+		try (BufferedWriter writer = new BufferedWriter(
+				new FileWriter("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"))) {
 			writer.write(text);
 		}
 	}

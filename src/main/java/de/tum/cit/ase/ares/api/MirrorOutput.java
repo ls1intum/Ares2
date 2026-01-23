@@ -52,7 +52,8 @@ public @interface MirrorOutput {
 	long maxCharCount() default DEFAULT_MAX_STD_OUT;
 
 	enum MirrorOutputPolicy {
-		DISABLED, ENABLED;
+		DISABLED,
+		ENABLED;
 
 		public boolean isEnabled() {
 			return this == ENABLED;

@@ -10,10 +10,8 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.CommandPermission;
 
 /**
  * Unit tests for JavaCommandSystemExtractor.
- *
  * <p>
  * Description: Validates extraction of permitted commands and their arguments.
- *
  * <p>
  * Design Rationale: Ensures command execution permissions map accurately to API
  * responses.
@@ -26,7 +24,6 @@ public class JavaCommandSystemExtractorTest {
 
 	/**
 	 * Tests static extractCommands and extractArguments methods.
-	 *
 	 * <p>
 	 * Description: Provides multiple CommandPermission instances and asserts
 	 * returned lists.
@@ -36,7 +33,8 @@ public class JavaCommandSystemExtractorTest {
 	 */
 	@Test
 	public void testExtractCommandsAndArguments() {
-		List<CommandPermission> configs = List.of(CommandPermission.builder().executeTheCommand("cmd0").withTheseArguments(List.of()).build(),
+		List<CommandPermission> configs = List.of(
+				CommandPermission.builder().executeTheCommand("cmd0").withTheseArguments(List.of()).build(),
 				CommandPermission.builder().executeTheCommand("cmd1").withTheseArguments(List.of("a1")).build(),
 				CommandPermission.builder().executeTheCommand("cmd2").withTheseArguments(List.of("a2", "b2")).build());
 
@@ -44,14 +42,14 @@ public class JavaCommandSystemExtractorTest {
 		List<String> actualCommands = JavaCommandSystemExtractor.extractCommands(configs);
 		Assertions.assertEquals(expectedCommands, actualCommands);
 
-		List<String> expectedArguments = List.of("new String[] {}", "new String[] {\"a1\"}", "new String[] {\"a2\",\"b2\"}");
+		List<String> expectedArguments = List.of("new String[] {}", "new String[] {\"a1\"}",
+				"new String[] {\"a2\",\"b2\"}");
 		List<String> actualArguments = JavaCommandSystemExtractor.extractArguments(configs);
 		Assertions.assertEquals(expectedArguments, actualArguments);
 	}
 
 	/**
 	 * Tests instance methods getPermittedCommands and getPermittedArguments.
-	 *
 	 * <p>
 	 * Description: Uses supplier stub and verifies returned commands and argument
 	 * lists.
@@ -61,7 +59,8 @@ public class JavaCommandSystemExtractorTest {
 	 */
 	@Test
 	public void testGetPermittedCommandsAndArguments() {
-		Supplier<List<?>> supplier = () -> List.of(CommandPermission.builder().executeTheCommand("cmd0").withTheseArguments(List.of()).build(),
+		Supplier<List<?>> supplier = () -> List.of(
+				CommandPermission.builder().executeTheCommand("cmd0").withTheseArguments(List.of()).build(),
 				CommandPermission.builder().executeTheCommand("cmd1").withTheseArguments(List.of("a1")).build(),
 				CommandPermission.builder().executeTheCommand("cmd2").withTheseArguments(List.of("a2", "b2")).build());
 		JavaCommandSystemExtractor extractor = new JavaCommandSystemExtractor(supplier);

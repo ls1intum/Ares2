@@ -9,10 +9,10 @@ import java.lang.annotation.AnnotationFormatError;
 import org.junit.platform.testkit.engine.Events;
 import org.opentest4j.AssertionFailedError;
 
+import net.jqwik.engine.JqwikTestEngine;
+
 import de.tum.cit.ase.ares.integration.testuser.JqwickUser;
 import de.tum.cit.ase.ares.testutilities.*;
-
-import net.jqwik.engine.JqwikTestEngine;
 
 @UserBased(value = JqwickUser.class, testEngineId = JqwikTestEngine.ENGINE_ID)
 class JqwickTest {
@@ -42,7 +42,8 @@ class JqwickTest {
 
 	@TestTest
 	void test_exampleHiddenCustomDeadlineFuture() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(exampleHiddenCustomDeadlineFuture, AssertionFailedError.class));
+		tests.assertThatEvents().haveExactly(1,
+				testFailedWith(exampleHiddenCustomDeadlineFuture, AssertionFailedError.class));
 	}
 
 	@TestTest
@@ -57,7 +58,8 @@ class JqwickTest {
 
 	@TestTest
 	void test_examplePublicCustomDeadline() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(examplePublicCustomDeadline, AnnotationFormatError.class));
+		tests.assertThatEvents().haveExactly(1,
+				testFailedWith(examplePublicCustomDeadline, AnnotationFormatError.class));
 	}
 
 	@TestTest
@@ -67,7 +69,8 @@ class JqwickTest {
 
 	@TestTest
 	void test_propertyHiddenCustomDeadlineFuture() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(propertyHiddenCustomDeadlineFuture, AssertionFailedError.class));
+		tests.assertThatEvents().haveExactly(1,
+				testFailedWith(propertyHiddenCustomDeadlineFuture, AssertionFailedError.class));
 	}
 
 	@TestTest
@@ -82,7 +85,8 @@ class JqwickTest {
 
 	@TestTest
 	void test_propertyPublicCustomDeadline() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(propertyPublicCustomDeadline, AnnotationFormatError.class));
+		tests.assertThatEvents().haveExactly(1,
+				testFailedWith(propertyPublicCustomDeadline, AnnotationFormatError.class));
 	}
 
 	@TestTest
@@ -112,7 +116,8 @@ class JqwickTest {
 
 	@TestTest
 	void test_provokeTimeoutSleepProperty() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(provokeTimeoutSleepProperty, AssertionFailedError.class));
+		tests.assertThatEvents().haveExactly(1,
+				testFailedWith(provokeTimeoutSleepProperty, AssertionFailedError.class));
 	}
 
 	@TestTest

@@ -10,7 +10,6 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.SupervisedCode;
 
 /**
  * Immutable security policy for supervised code execution.
- *
  * <p>
  * Description: This record encapsulates all necessary details regarding
  * supervised code, including its programming language configuration, permitted
@@ -18,7 +17,6 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.SupervisedCode;
  * pattern, it guarantees thread-safety and reduces boilerplate. Input
  * validation is performed in factory methods to ensure that every instance
  * meets its invariants.
- *
  * <p>
  * Design Rationale: Leveraging modern Java features such as records and
  * nullability annotations enforces immutability and clarity. The use of a
@@ -31,7 +29,7 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.SupervisedCode;
  * @author Markus Paulsen
  * @since 2.0.0
  * @param regardingTheSupervisedCode the details of the supervised code; must
- *            not be null.
+ *                                   not be null.
  */
 @SuppressWarnings("unused")
 public record SecurityPolicy(@Nonnull SupervisedCode regardingTheSupervisedCode) {
@@ -52,12 +50,15 @@ public record SecurityPolicy(@Nonnull SupervisedCode regardingTheSupervisedCode)
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 * @param programmingLanguageConfiguration the programming language
-	 *            configuration for the restrictive policy.
+	 *                                         configuration for the restrictive
+	 *                                         policy.
 	 * @return a new SecurityPolicy instance.
 	 */
 	@Nonnull
-	public static SecurityPolicy createRestrictive(@Nonnull ProgrammingLanguageConfiguration programmingLanguageConfiguration) {
-		return builder().regardingTheSupervisedCode(SupervisedCode.createRestrictive(Objects.requireNonNull(programmingLanguageConfiguration, "programmingLanguageConfiguration must not be null")))
+	public static SecurityPolicy createRestrictive(
+			@Nonnull ProgrammingLanguageConfiguration programmingLanguageConfiguration) {
+		return builder().regardingTheSupervisedCode(SupervisedCode.createRestrictive(Objects
+				.requireNonNull(programmingLanguageConfiguration, "programmingLanguageConfiguration must not be null")))
 				.build();
 	}
 
@@ -75,10 +76,8 @@ public record SecurityPolicy(@Nonnull SupervisedCode regardingTheSupervisedCode)
 
 	/**
 	 * Builder for SecurityPolicy.
-	 *
 	 * <p>
 	 * Description: Provides a fluent API to construct a SecurityPolicy instance.
-	 *
 	 * <p>
 	 * Design Rationale: The builder pattern here allows for step-by-step
 	 * configuration of a SecurityPolicy, ensuring immutability.
@@ -105,7 +104,8 @@ public record SecurityPolicy(@Nonnull SupervisedCode regardingTheSupervisedCode)
 		 */
 		@Nonnull
 		public Builder regardingTheSupervisedCode(@Nonnull SupervisedCode regardingTheSupervisedCode) {
-			this.regardingTheSupervisedCode = Objects.requireNonNull(regardingTheSupervisedCode, "regardingTheSupervisedCode must not be null");
+			this.regardingTheSupervisedCode = Objects.requireNonNull(regardingTheSupervisedCode,
+					"regardingTheSupervisedCode must not be null");
 			return this;
 		}
 
@@ -118,7 +118,8 @@ public record SecurityPolicy(@Nonnull SupervisedCode regardingTheSupervisedCode)
 		 */
 		@Nonnull
 		public SecurityPolicy build() {
-			return new SecurityPolicy(Objects.requireNonNull(regardingTheSupervisedCode, "regardingTheSupervisedCode must not be null"));
+			return new SecurityPolicy(
+					Objects.requireNonNull(regardingTheSupervisedCode, "regardingTheSupervisedCode must not be null"));
 		}
 	}
 }

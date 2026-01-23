@@ -44,8 +44,9 @@ public class UnwantedRecursionAssert extends AbstractAssert<UnwantedRecursionAss
 	/**
 	 * The regular expression to match a valid vertex
 	 */
-	private static final String STARTING_NODE_REGEX = JAVA_IDENTIFIER_REGEX + "\\((" + JAVA_IDENTIFIER_REGEX + "\\[\\],|" + JAVA_IDENTIFIER_REGEX + "\\[\\]|" + JAVA_IDENTIFIER_REGEX + "|"
-			+ JAVA_IDENTIFIER_REGEX + "\\<" + ID_PATTERN + "\\>)*\\)";
+	private static final String STARTING_NODE_REGEX = JAVA_IDENTIFIER_REGEX + "\\((" + JAVA_IDENTIFIER_REGEX
+			+ "\\[\\],|" + JAVA_IDENTIFIER_REGEX + "\\[\\]|" + JAVA_IDENTIFIER_REGEX + "|" + JAVA_IDENTIFIER_REGEX
+			+ "\\<" + ID_PATTERN + "\\>)*\\)";
 
 	/**
 	 * The language level for the Java parser
@@ -63,14 +64,16 @@ public class UnwantedRecursionAssert extends AbstractAssert<UnwantedRecursionAss
 	 */
 	private final Set<String> excludedMethods;
 
-	private UnwantedRecursionAssert(Path path, LanguageLevel level, String startingMethod, Set<String> excludedMethods) {
+	private UnwantedRecursionAssert(Path path, LanguageLevel level, String startingMethod,
+			Set<String> excludedMethods) {
 		super(requireNonNull(path), UnwantedRecursionAssert.class);
 		this.level = level;
 		this.startingMethod = startingMethod;
 		this.excludedMethods = excludedMethods;
 
 		if (startingMethod != null && !startingMethod.matches(STARTING_NODE_REGEX)) {
-			fail("The starting method %s does not match the regular expression %s", startingMethod, STARTING_NODE_REGEX); //$NON-NLS-1$
+			fail("The starting method %s does not match the regular expression %s", startingMethod, //$NON-NLS-1$
+					STARTING_NODE_REGEX);
 		}
 
 		if (startingMethod != null && excludedMethods != null && excludedMethods.contains(startingMethod)) {
@@ -119,8 +122,8 @@ public class UnwantedRecursionAssert extends AbstractAssert<UnwantedRecursionAss
 	 * the given package, including all of its sub-packages.
 	 *
 	 * @param packageName Java package name in the form of, e.g.,
-	 *            <code>de.tum.cit.ase.ares.api</code>, which is resolved relative
-	 *            to the path of this UnwantedNodesAssert.
+	 *                    <code>de.tum.cit.ase.ares.api</code>, which is resolved
+	 *                    relative to the path of this UnwantedNodesAssert.
 	 * @return An unwanted simple recursion assertion object (for chaining)
 	 * @implNote The package is split at "." with the resulting segments being
 	 *           interpreted as directory structure. So
@@ -175,14 +178,16 @@ public class UnwantedRecursionAssert extends AbstractAssert<UnwantedRecursionAss
 
 		Optional<String> errorMessage;
 		if (shouldHaveRecursion) {
-			errorMessage = RecursionCheck.hasNoCycle(actual, level, startingMethod, excludedMethods).isEmpty() ? Optional.of(localized("ast.recursion.no.recursion.found")) : Optional.empty();
+			errorMessage = RecursionCheck.hasNoCycle(actual, level, startingMethod, excludedMethods).isEmpty()
+					? Optional.of(localized("ast.recursion.no.recursion.found"))
+					: Optional.empty();
 		} else {
 			errorMessage = RecursionCheck.hasNoCycle(actual, level, startingMethod, excludedMethods);
 		}
 
 		String messageKey = shouldHaveRecursion ? "ast.recursion.has.recursion" : "ast.method.has_no";
-		errorMessage.ifPresent(unwantedSimpleRecursionMessageForAllJavaFiles -> failWithMessage(localized(messageKey) + System.lineSeparator() + unwantedSimpleRecursionMessageForAllJavaFiles)); // $NON-NLS-1$
-
+		errorMessage.ifPresent(unwantedSimpleRecursionMessageForAllJavaFiles -> failWithMessage(
+				localized(messageKey) + System.lineSeparator() + unwantedSimpleRecursionMessageForAllJavaFiles)); // $NON-NLS-1$
 	}
 
 	/**

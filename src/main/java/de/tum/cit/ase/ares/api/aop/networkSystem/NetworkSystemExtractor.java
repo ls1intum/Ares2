@@ -11,7 +11,7 @@ public interface NetworkSystemExtractor {
 	 * permission type.
 	 *
 	 * @param networkPermission the type of network permission to filter by (e.g.,
-	 *            "connect", "send"), must not be null.
+	 *                          "connect", "send"), must not be null.
 	 * @return a list of permitted network hosts for the specified network
 	 *         permission type.
 	 */
@@ -23,7 +23,7 @@ public interface NetworkSystemExtractor {
 	 * permission type.
 	 *
 	 * @param networkPermission the type of network permission to filter by (e.g.,
-	 *            "connect", "send"), must not be null.
+	 *                          "connect", "send"), must not be null.
 	 * @return a list of permitted network ports for the specified network
 	 *         permission type.
 	 */

@@ -18,7 +18,6 @@ import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 
 /**
  * Comprehensive unit tests for {@link JavaProjectScanner}.
- * 
  * <p>
  * This test suite validates the functionality of the JavaProjectScanner class,
  * ensuring proper scanning of Java projects for build modes, test classes,

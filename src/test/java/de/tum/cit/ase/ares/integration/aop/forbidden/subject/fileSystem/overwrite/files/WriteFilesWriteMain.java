@@ -20,7 +20,8 @@ public final class WriteFilesWriteMain {
 	private static final Path NOT_TRUSTED_COPY = Path.of(NOT_TRUSTED_DIR, "nottrusted-copy.txt");
 
 	private WriteFilesWriteMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/**
@@ -28,7 +29,8 @@ public final class WriteFilesWriteMain {
 	 * {@link Files#newOutputStream(Path, OpenOption...)} method.
 	 */
 	public static void accessFileSystemViaFilesNewOutputStream() throws IOException {
-		try (var outputStream = Files.newOutputStream(NOT_TRUSTED_FILE, StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
+		try (var outputStream = Files.newOutputStream(NOT_TRUSTED_FILE, StandardOpenOption.CREATE,
+				StandardOpenOption.WRITE)) {
 			outputStream.write("Hello, world!".getBytes());
 		}
 	}
@@ -38,7 +40,8 @@ public final class WriteFilesWriteMain {
 	 * {@link Files#newBufferedWriter(Path, Charset, OpenOption...)} method.
 	 */
 	public static void accessFileSystemViaFilesNewBufferedWriterWithCharset() throws IOException {
-		try (var writer = Files.newBufferedWriter(NOT_TRUSTED_FILE, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
+		try (var writer = Files.newBufferedWriter(NOT_TRUSTED_FILE, StandardCharsets.UTF_8, StandardOpenOption.CREATE,
+				StandardOpenOption.WRITE)) {
 			writer.write("Hello, world!");
 		}
 	}
@@ -48,7 +51,8 @@ public final class WriteFilesWriteMain {
 	 * {@link Files#newBufferedWriter(Path, OpenOption...)} method.
 	 */
 	public static void accessFileSystemViaFilesNewBufferedWriter() throws IOException {
-		try (var writer = Files.newBufferedWriter(NOT_TRUSTED_FILE, StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
+		try (var writer = Files.newBufferedWriter(NOT_TRUSTED_FILE, StandardOpenOption.CREATE,
+				StandardOpenOption.WRITE)) {
 			writer.write("Hello, world!");
 		}
 	}
@@ -101,7 +105,6 @@ public final class WriteFilesWriteMain {
 	 * {@link Files#copy(InputStream, Path, CopyOption...)} method.
 	 */
 	public static void accessFileSystemViaFilesCopyFromInputStream() throws IOException {
-
 		Path source = NOT_TRUSTED_FILE;
 		Path target = NOT_TRUSTED_COPY;
 		Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);

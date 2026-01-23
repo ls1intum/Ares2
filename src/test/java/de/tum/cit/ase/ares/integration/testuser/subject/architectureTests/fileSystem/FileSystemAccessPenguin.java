@@ -14,7 +14,8 @@ public final class FileSystemAccessPenguin {
 
 	// <editor-fold desc="Constructor">
 	private FileSystemAccessPenguin() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): FileSystemAccessPenguin is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): FileSystemAccessPenguin is a utility class and should not be instantiated.");
 	}
 	// </editor-fold>
 
@@ -261,9 +262,7 @@ public final class FileSystemAccessPenguin {
 	 * Access the file system using the {@link Desktop} class.
 	 */
 	public static void accessFileSystemViaDesktop() throws IOException {
-
 		Desktop.getDesktop().open(new File("pom123.xml"));
 	}
 	// </editor-fold>
-
 }

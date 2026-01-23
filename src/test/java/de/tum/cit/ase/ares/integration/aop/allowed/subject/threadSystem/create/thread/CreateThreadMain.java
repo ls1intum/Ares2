@@ -5,7 +5,8 @@ import de.tum.cit.ase.ares.integration.aop.allowed.subject.LegalThread;
 public class CreateThreadMain {
 
 	private CreateThreadMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/**

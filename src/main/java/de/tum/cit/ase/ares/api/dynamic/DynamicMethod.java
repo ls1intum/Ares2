@@ -20,11 +20,13 @@ public class DynamicMethod<T> implements Checkable {
 	private final DynamicClass<T> returnType;
 	private Method m;
 
-	public DynamicMethod(DynamicClass<?> dClass, Class<T> dynamicableReturn, String mName, Object... dynamicableParams) {
+	public DynamicMethod(DynamicClass<?> dClass, Class<T> dynamicableReturn, String mName,
+			Object... dynamicableParams) {
 		this(dClass, DynamicClass.toDynamic(dynamicableReturn), mName, dynamicableParams);
 	}
 
-	public DynamicMethod(DynamicClass<?> dClass, DynamicClass<T> dynamicableReturn, String mName, Object... dynamicableParams) {
+	public DynamicMethod(DynamicClass<?> dClass, DynamicClass<T> dynamicableReturn, String mName,
+			Object... dynamicableParams) {
 		this.owner = Objects.requireNonNull(dClass);
 		this.name = Objects.requireNonNull(mName);
 		this.returnType = Objects.requireNonNull(dynamicableReturn);

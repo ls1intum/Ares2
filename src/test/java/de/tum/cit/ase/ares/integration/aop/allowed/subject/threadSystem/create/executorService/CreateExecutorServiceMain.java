@@ -11,7 +11,8 @@ import de.tum.cit.ase.ares.integration.aop.allowed.subject.LegalThread;
 public class CreateExecutorServiceMain {
 
 	private CreateExecutorServiceMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/**
@@ -19,7 +20,8 @@ public class CreateExecutorServiceMain {
 	 */
 	public static void executeRunnable() {
 		try {
-			ExecutorService executorService = Executors.newSingleThreadExecutor();;
+			ExecutorService executorService = Executors.newSingleThreadExecutor();
+			;
 			executorService.execute(new LegalThread());
 		} catch (Exception e) {
 			throw new RuntimeException(e);

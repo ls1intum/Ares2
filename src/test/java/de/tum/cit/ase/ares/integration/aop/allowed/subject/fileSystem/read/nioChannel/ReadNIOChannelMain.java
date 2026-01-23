@@ -9,7 +9,8 @@ import java.nio.file.StandardOpenOption;
 public class ReadNIOChannelMain {
 
 	private ReadNIOChannelMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/**
@@ -18,7 +19,9 @@ public class ReadNIOChannelMain {
 	 * @return The content of the trusted file
 	 */
 	public static String accessFileSystemViaNIOChannel() throws IOException {
-		try (FileChannel channel = FileChannel.open(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"), StandardOpenOption.READ)) {
+		try (FileChannel channel = FileChannel.open(
+				Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"),
+				StandardOpenOption.READ)) {
 			ByteBuffer buffer = ByteBuffer.allocate((int) channel.size());
 			channel.read(buffer);
 			buffer.flip();

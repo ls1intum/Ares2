@@ -9,10 +9,8 @@ import de.tum.cit.ase.ares.api.localization.Messages;
 
 /**
  * Allowed package import.
- *
  * <p>
  * Description: Specifies the package that is permitted to be imported.
- *
  * <p>
  * Design Rationale: Explicitly declaring permitted package imports prevents
  * unauthorised dependencies.
@@ -21,7 +19,7 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  * @author Markus Paulsen
  * @since 2.0.0
  * @param importTheFollowingPackage the package that is permitted to be
- *            imported; must not be null.
+ *                                  imported; must not be null.
  */
 public record PackagePermission(@Nonnull String importTheFollowingPackage) {
 
@@ -44,12 +42,15 @@ public record PackagePermission(@Nonnull String importTheFollowingPackage) {
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 * @param importTheFollowingPackage the package name for which import is
-	 *            restricted.
+	 *                                  restricted.
 	 * @return a new PackagePermission instance.
 	 */
 	@Nonnull
 	public static PackagePermission createRestrictive(@Nonnull String importTheFollowingPackage) {
-		return builder().importTheFollowingPackage(Objects.requireNonNull(importTheFollowingPackage, "importTheFollowingPackage must not be null")).build();
+		return builder()
+				.importTheFollowingPackage(
+						Objects.requireNonNull(importTheFollowingPackage, "importTheFollowingPackage must not be null"))
+				.build();
 	}
 
 	/**
@@ -66,10 +67,8 @@ public record PackagePermission(@Nonnull String importTheFollowingPackage) {
 
 	/**
 	 * Builder for PackagePermission.
-	 *
 	 * <p>
 	 * Description: Provides a fluent API to construct a PackagePermission instance.
-	 *
 	 * <p>
 	 * Design Rationale: This builder allows for flexible configuration of package
 	 * import permissions.
@@ -95,7 +94,8 @@ public record PackagePermission(@Nonnull String importTheFollowingPackage) {
 		 */
 		@Nonnull
 		public Builder importTheFollowingPackage(@Nonnull String importTheFollowingPackage) {
-			this.importTheFollowingPackage = Objects.requireNonNull(importTheFollowingPackage, "@Nonnull String importTheFollowingPackage must not be null");
+			this.importTheFollowingPackage = Objects.requireNonNull(importTheFollowingPackage,
+					"@Nonnull String importTheFollowingPackage must not be null");
 			return this;
 		}
 
@@ -108,7 +108,8 @@ public record PackagePermission(@Nonnull String importTheFollowingPackage) {
 		 */
 		@Nonnull
 		public PackagePermission build() {
-			return new PackagePermission(Objects.requireNonNull(importTheFollowingPackage, "packageName must not be null"));
+			return new PackagePermission(
+					Objects.requireNonNull(importTheFollowingPackage, "packageName must not be null"));
 		}
 	}
 }

@@ -18,7 +18,6 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 
 /**
  * Architecture test case for the Java programming language.
- *
  * <p>
  * Description: This class provides methods to write and execute architecture
  * test cases that verify code compliance with security policies. It supports
@@ -26,7 +25,6 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
  * appropriate delegation to specialized implementations based on the selected
  * architecture mode.
  * </p>
- *
  * <p>
  * Design Rationale: Implements a shared interface for architecture testing
  * strategies in different programming languages, facilitating consistent
@@ -46,16 +44,21 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	 * Constructs a new Java architecture test case with the specified parameters.
 	 *
 	 * @param javaArchitectureTestCaseSupported The type of architecture test case
-	 *            supported, determining which rules to apply
-	 * @param allowedPackages Set of package permissions that are allowed in the
-	 *            analyzed code (may be null for no restrictions)
-	 * @param javaClasses Collection of Java classes to be analyzed by the test case
-	 * @param callGraph Call graph representing caller-callee relationships in the
-	 *            code (may be null for ARCHUNIT mode)
+	 *                                          supported, determining which rules
+	 *                                          to apply
+	 * @param allowedPackages                   Set of package permissions that are
+	 *                                          allowed in the analyzed code (may be
+	 *                                          null for no restrictions)
+	 * @param javaClasses                       Collection of Java classes to be
+	 *                                          analyzed by the test case
+	 * @param callGraph                         Call graph representing
+	 *                                          caller-callee relationships in the
+	 *                                          code (may be null for ARCHUNIT mode)
 	 * @author Sarp Sahinalp
 	 * @since 2.0.0
 	 */
-	public JavaArchitectureTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported, @Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
+	public JavaArchitectureTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
+			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
 			@Nullable CallGraph callGraph) {
 		super(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, callGraph);
 	}
@@ -73,7 +76,7 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	 * @author Sarp Sahinalp
 	 * @param e The assertion error produced by an architectural rule violation
 	 * @throws SecurityException with a formatted error message describing the
-	 *             security violation
+	 *                           security violation
 	 */
 	public static void parseErrorMessage(@Nonnull AssertionError e) {
 		Preconditions.checkNotNull(e, "error must not be null");
@@ -88,7 +91,8 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		}
 		@Nonnull
 		String replacementIdentifier = ".*?'(.*?)'.*\r*";
-		throw new SecurityException(Messages.localized("security.archunit.violation.error", messageParts[0].replaceAll(replacementIdentifier, "$1"), messageParts[1]));
+		throw new SecurityException(Messages.localized("security.archunit.violation.error",
+				messageParts[0].replaceAll(replacementIdentifier, "$1"), messageParts[1]));
 	}
 	// </editor-fold>
 
@@ -102,8 +106,8 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	 * @since 2.0.0
 	 * @author Sarp Sahinalp
 	 * @param architectureMode The mode of architecture analysis (e.g., "WALA" or
-	 *            "ARCHUNIT")
-	 * @param aopMode The aspect-oriented programming mode to use
+	 *                         "ARCHUNIT")
+	 * @param aopMode          The aspect-oriented programming mode to use
 	 * @return A string containing the generated architecture test case code
 	 * @throws SecurityException if the specified architecture mode is not supported
 	 */
@@ -111,11 +115,16 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	@Override
 	public String writeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
 		return switch (architectureMode) {
-			case "ARCHUNIT" -> JavaArchunitTestCase.builder().javaArchitectureTestCaseSupported((JavaArchitectureTestCaseSupported) architectureTestCaseSupported).allowedPackages(allowedPackages)
-					.javaClasses(javaClasses).build().writeArchitectureTestCase(architectureMode, aopMode);
-			case "WALA" -> JavaWalaTestCase.builder().javaArchitectureTestCaseSupported((JavaArchitectureTestCaseSupported) architectureTestCaseSupported).allowedPackages(allowedPackages)
-					.javaClasses(javaClasses).callGraph(callGraph).build().writeArchitectureTestCase(architectureMode, aopMode);
-			default -> throw new SecurityException(Messages.localized("security.architecture.testcase.mode.not.supported", architectureMode));
+		case "ARCHUNIT" -> JavaArchunitTestCase.builder()
+				.javaArchitectureTestCaseSupported((JavaArchitectureTestCaseSupported) architectureTestCaseSupported)
+				.allowedPackages(allowedPackages).javaClasses(javaClasses).build()
+				.writeArchitectureTestCase(architectureMode, aopMode);
+		case "WALA" -> JavaWalaTestCase.builder()
+				.javaArchitectureTestCaseSupported((JavaArchitectureTestCaseSupported) architectureTestCaseSupported)
+				.allowedPackages(allowedPackages).javaClasses(javaClasses).callGraph(callGraph).build()
+				.writeArchitectureTestCase(architectureMode, aopMode);
+		default -> throw new SecurityException(
+				Messages.localized("security.architecture.testcase.mode.not.supported", architectureMode));
 		};
 	}
 	// </editor-fold>
@@ -130,26 +139,33 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	 * @since 2.0.0
 	 * @author Sarp Sahinalp
 	 * @param architectureMode The mode of architecture analysis (e.g., "WALA" or
-	 *            "ARCHUNIT")
-	 * @param aopMode The aspect-oriented programming mode to use
+	 *                         "ARCHUNIT")
+	 * @param aopMode          The aspect-oriented programming mode to use
 	 * @throws SecurityException if validation fails or if required resources are
-	 *             missing for the selected mode
+	 *                           missing for the selected mode
 	 */
 	@Override
 	public void executeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
-		ArchitectureTestCaseSupported protectedArchitectureTestCaseSupported = Preconditions.checkNotNull(architectureTestCaseSupported, "javaArchitecturalTestCaseSupported must not be null");
+		ArchitectureTestCaseSupported protectedArchitectureTestCaseSupported = Preconditions
+				.checkNotNull(architectureTestCaseSupported, "javaArchitecturalTestCaseSupported must not be null");
 		Preconditions.checkArgument(architectureTestCaseSupported instanceof JavaArchitectureTestCaseSupported,
 				"javaArchitecturalTestCaseSupported must be an instance of JavaArchitectureTestCaseSupported");
 		JavaArchitectureTestCaseSupported protectedJavaArchitectureTestCaseSupported = (JavaArchitectureTestCaseSupported) protectedArchitectureTestCaseSupported;
-		Set<PackagePermission> protectedAllowedPackages = Preconditions.checkNotNull(allowedPackages, "allowedPackages must not be null");
+		Set<PackagePermission> protectedAllowedPackages = Preconditions.checkNotNull(allowedPackages,
+				"allowedPackages must not be null");
 		JavaClasses protectedJavaClasses = Preconditions.checkNotNull(javaClasses, "javaClasses must not be null");
 
 		switch (architectureMode) {
-			case "ARCHUNIT" -> JavaArchunitTestCase.archunitBuilder().javaArchitectureTestCaseSupported(protectedJavaArchitectureTestCaseSupported).allowedPackages(protectedAllowedPackages)
-					.javaClasses(protectedJavaClasses).build().executeArchitectureTestCase(architectureMode, aopMode);
-			case "WALA" -> JavaWalaTestCase.walaBuilder().javaArchitectureTestCaseSupported(protectedJavaArchitectureTestCaseSupported).allowedPackages(protectedAllowedPackages)
-					.javaClasses(protectedJavaClasses).callGraph(callGraph).build().executeArchitectureTestCase(architectureMode, aopMode);
-			default -> throw new SecurityException(Messages.localized("security.architecture.testcase.mode.not.supported", architectureMode));
+		case "ARCHUNIT" -> JavaArchunitTestCase.archunitBuilder()
+				.javaArchitectureTestCaseSupported(protectedJavaArchitectureTestCaseSupported)
+				.allowedPackages(protectedAllowedPackages).javaClasses(protectedJavaClasses).build()
+				.executeArchitectureTestCase(architectureMode, aopMode);
+		case "WALA" -> JavaWalaTestCase.walaBuilder()
+				.javaArchitectureTestCaseSupported(protectedJavaArchitectureTestCaseSupported)
+				.allowedPackages(protectedAllowedPackages).javaClasses(protectedJavaClasses).callGraph(callGraph)
+				.build().executeArchitectureTestCase(architectureMode, aopMode);
+		default -> throw new SecurityException(
+				Messages.localized("security.architecture.testcase.mode.not.supported", architectureMode));
 		}
 	}
 	// </editor-fold>
@@ -188,13 +204,15 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		 * @since 2.0.0
 		 * @author Sarp Sahinalp
 		 * @param javaArchitectureTestCaseSupported The type of architecture test case
-		 *            to support
+		 *                                          to support
 		 * @return This builder instance for method chaining
 		 * @throws SecurityException if the parameter is null
 		 */
 		@Nonnull
-		public Builder javaArchitectureTestCaseSupported(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported) {
-			this.javaArchitectureTestCaseSupported = Preconditions.checkNotNull(javaArchitectureTestCaseSupported, "javaArchitecturalTestCaseSupported must not be null");
+		public Builder javaArchitectureTestCaseSupported(
+				@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported) {
+			this.javaArchitectureTestCaseSupported = Preconditions.checkNotNull(javaArchitectureTestCaseSupported,
+					"javaArchitecturalTestCaseSupported must not be null");
 			return this;
 		}
 
@@ -252,10 +270,12 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		 */
 		@Nonnull
 		public JavaArchitectureTestCase build() {
-			return new JavaArchitectureTestCase(Preconditions.checkNotNull(javaArchitectureTestCaseSupported, "javaArchitecturalTestCaseSupported must not be null"),
-					Preconditions.checkNotNull(allowedPackages, "allowedPackages must not be null"), Preconditions.checkNotNull(javaClasses, "javaClasses must not be null"), callGraph);
+			return new JavaArchitectureTestCase(
+					Preconditions.checkNotNull(javaArchitectureTestCaseSupported,
+							"javaArchitecturalTestCaseSupported must not be null"),
+					Preconditions.checkNotNull(allowedPackages, "allowedPackages must not be null"),
+					Preconditions.checkNotNull(javaClasses, "javaClasses must not be null"), callGraph);
 		}
 	}
 	// </editor-fold>
-
 }

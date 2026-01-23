@@ -14,7 +14,8 @@ public final class UnexpectedExceptionError extends Error {
 	private static final long serialVersionUID = 1L;
 	private final Class<? extends Throwable> originalType;
 
-	private UnexpectedExceptionError(Class<? extends Throwable> originalType, String message, Throwable cause, StackTraceElement[] stackTrace, Throwable[] suppressed) {
+	private UnexpectedExceptionError(Class<? extends Throwable> originalType, String message, Throwable cause,
+			StackTraceElement[] stackTrace, Throwable[] suppressed) {
 		super(message, sanitize(cause), true, true);
 		this.originalType = originalType;
 		setStackTrace(stackTrace);
@@ -37,7 +38,9 @@ public final class UnexpectedExceptionError extends Error {
 		return new UnexpectedExceptionError(originalType, message, cause, stackTrace, suppressed);
 	}
 
-	public static UnexpectedExceptionError create(Class<? extends Throwable> originalType, String message, Throwable cause, StackTraceElement[] stackTrace, Throwable[] suppressed) {
-		return new UnexpectedExceptionError(Objects.requireNonNull(originalType), message, cause, Objects.requireNonNull(stackTrace), Objects.requireNonNull(suppressed));
+	public static UnexpectedExceptionError create(Class<? extends Throwable> originalType, String message,
+			Throwable cause, StackTraceElement[] stackTrace, Throwable[] suppressed) {
+		return new UnexpectedExceptionError(Objects.requireNonNull(originalType), message, cause,
+				Objects.requireNonNull(stackTrace), Objects.requireNonNull(suppressed));
 	}
 }

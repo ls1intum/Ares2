@@ -23,6 +23,7 @@ public enum JavaPhobosTestCaseSupported implements PhobosTestCaseSupported {
 
 	@Override
 	public List<PhobosTestCaseSupported> getPhobosTestCases() {
-		return List.of(JavaPhobosTestCaseSupported.FILESYSTEM_INTERACTION, JavaPhobosTestCaseSupported.NETWORK_CONNECTION, JavaPhobosTestCaseSupported.TIMEOUT);
+		return List.of(JavaPhobosTestCaseSupported.FILESYSTEM_INTERACTION,
+				JavaPhobosTestCaseSupported.NETWORK_CONNECTION, JavaPhobosTestCaseSupported.TIMEOUT);
 	}
 }

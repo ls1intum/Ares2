@@ -33,35 +33,45 @@ class AresSecurityConfigurationTest {
 	private static final TestContext MOCK_TEST_CONTEXT_ONE = new MockTestContext(new TestTestClass(), TEST_ONE);
 	private static final TestContext MOCK_TEST_CONTEXT_TWO = new MockTestContext(new TestTestClass(), TEST_TWO);
 
-	private final AresSecurityConfiguration configurationOneA = ConfigurationUtils.generateConfiguration(MOCK_TEST_CONTEXT_ONE);
-	private final AresSecurityConfiguration configurationOneB = ConfigurationUtils.generateConfiguration(MOCK_TEST_CONTEXT_ONE);
-	private final AresSecurityConfiguration configurationTwo = ConfigurationUtils.generateConfiguration(MOCK_TEST_CONTEXT_TWO);
+	private final AresSecurityConfiguration configurationOneA = ConfigurationUtils
+			.generateConfiguration(MOCK_TEST_CONTEXT_ONE);
+	private final AresSecurityConfiguration configurationOneB = ConfigurationUtils
+			.generateConfiguration(MOCK_TEST_CONTEXT_ONE);
+	private final AresSecurityConfiguration configurationTwo = ConfigurationUtils
+			.generateConfiguration(MOCK_TEST_CONTEXT_TWO);
 
 	@Test
 	void testGetter() {
 		assertThat(configurationOneA.testClass()).hasValue(TestTestClass.class);
-		assertThat(configurationOneA.testMethod()).isEqualTo(ReflectionSupport.findMethod(TestTestClass.class, TEST_ONE));
-		assertThat(configurationOneA.whitelistedClassNames()).contains(TestTestClass.class.getName(), String.class.getName());
+		assertThat(configurationOneA.testMethod())
+				.isEqualTo(ReflectionSupport.findMethod(TestTestClass.class, TEST_ONE));
+		assertThat(configurationOneA.whitelistedClassNames()).contains(TestTestClass.class.getName(),
+				String.class.getName());
 
-		assertThat(configurationOneA.whitelistedPaths()).isPresent().get(as(iterable(PathRule.class))).hasSize(1).allMatch(pathRule -> pathRule.getActionLevel() == PathActionLevel.READ //
-				&& pathRule.getRuleType() == RuleType.WHITELIST //
-				&& PATH_WHITELIST.equals(pathRule.getPathPattern()));
-		assertThat(configurationOneA.blacklistedPaths()).hasSize(1).allMatch(pathRule -> pathRule.getActionLevel() == PathActionLevel.READ //
-				&& pathRule.getRuleType() == RuleType.BLACKLIST //
-				&& PATH_BLACKLIST.equals(pathRule.getPathPattern()));
+		assertThat(configurationOneA.whitelistedPaths()).isPresent().get(as(iterable(PathRule.class))).hasSize(1)
+				.allMatch(pathRule -> pathRule.getActionLevel() == PathActionLevel.READ //
+						&& pathRule.getRuleType() == RuleType.WHITELIST //
+						&& PATH_WHITELIST.equals(pathRule.getPathPattern()));
+		assertThat(configurationOneA.blacklistedPaths()).hasSize(1)
+				.allMatch(pathRule -> pathRule.getActionLevel() == PathActionLevel.READ //
+						&& pathRule.getRuleType() == RuleType.BLACKLIST //
+						&& PATH_BLACKLIST.equals(pathRule.getPathPattern()));
 
-		assertThat(configurationOneA.blacklistedPackages()).hasSize(1).allMatch(packageRule -> packageRule.getRuleType() == RuleType.BLACKLIST //
-				&& PACKAGE_BLACKLIST.equals(packageRule.getPackagePattern()));
-		assertThat(configurationOneA.whitelistedPackages()).hasSize(1).allMatch(packageRule -> packageRule.getRuleType() == RuleType.WHITELIST //
-				&& PACKAGE_WHITELIST.equals(packageRule.getPackagePattern()));
+		assertThat(configurationOneA.blacklistedPackages()).hasSize(1)
+				.allMatch(packageRule -> packageRule.getRuleType() == RuleType.BLACKLIST //
+						&& PACKAGE_BLACKLIST.equals(packageRule.getPackagePattern()));
+		assertThat(configurationOneA.whitelistedPackages()).hasSize(1)
+				.allMatch(packageRule -> packageRule.getRuleType() == RuleType.WHITELIST //
+						&& PACKAGE_WHITELIST.equals(packageRule.getPackagePattern()));
 
 		assertThat(configurationOneA.allowedThreadCount()).isPresent().hasValue(THREAD_COUNT);
 		assertThat(configurationOneA.allowedLocalPorts()).containsExactly(ALLOWED_PORT_NUMBER);
 		assertThat(configurationOneA.allowLocalPortsAbove()).isPresent().hasValue(ALLOW_PORT_ABOVE);
 		assertThat(configurationOneA.excludedLocalPorts()).containsExactly(EXCLUDED_PORT_NUMBER);
 
-		assertThat(configurationOneA.trustedPackages()).hasSize(1).allMatch(packageRule -> packageRule.getRuleType() == RuleType.WHITELIST //
-				&& TRUSTED_PACKAGE.equals(packageRule.getPackagePattern()));
+		assertThat(configurationOneA.trustedPackages()).hasSize(1)
+				.allMatch(packageRule -> packageRule.getRuleType() == RuleType.WHITELIST //
+						&& TRUSTED_PACKAGE.equals(packageRule.getPackagePattern()));
 
 		assertThat(configurationOneA.threadTrustScope()).isEqualTo(TrustedThreads.TrustScope.MINIMAL);
 		assertThat(configurationTwo.threadTrustScope()).isEqualTo(TrustedThreads.TrustScope.EXTENDED);

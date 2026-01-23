@@ -42,7 +42,8 @@ public class ArchitectureSecurityTest {
 	// <editor-fold desc="Command Execution Rules">
 	@TestTest
 	void testArchunitCommandExecution() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith("testArchunitCommandExecution", SecurityException.class));
+		tests.assertThatEvents().haveExactly(1,
+				testFailedWith("testArchunitCommandExecution", SecurityException.class));
 	}
 
 	@TestTest
@@ -138,7 +139,8 @@ public class ArchitectureSecurityTest {
 
 	@TestTest
 	void testWalaThirdPartyPackageAccess() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith("testWalaThirdPartyPackageAccess", SecurityException.class));
+		tests.assertThatEvents().haveExactly(1,
+				testFailedWith("testWalaThirdPartyPackageAccess", SecurityException.class));
 	}
 	// </editor-fold>
 }

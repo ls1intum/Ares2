@@ -23,11 +23,9 @@ import de.tum.cit.ase.ares.api.util.FileTools;
 
 /**
  * Utility to traverse a call graph using depth-first search.
- *
  * <p>
  * Description: Explores nodes in a directed CGNode graph by following successor
  * edges until a target filter matches, returning the path found.
- *
  * <p>
  * Design Rationale: Enables precise path discovery for security checks by
  * walking down call graph branches, avoiding broad breadth-first scans.
@@ -40,7 +38,6 @@ public class CustomDFSPathFinder {
 
 	/**
 	 * Graph to search through.
-	 *
 	 * <p>
 	 * Description: Directed graph whose nodes are CGNode instances and edges
 	 * represent call relationships.
@@ -49,7 +46,6 @@ public class CustomDFSPathFinder {
 
 	/**
 	 * Filter defining target nodes.
-	 *
 	 * <p>
 	 * Description: Predicate that returns true for nodes we aim to find in the
 	 * graph.
@@ -58,7 +54,6 @@ public class CustomDFSPathFinder {
 
 	/**
 	 * Entry points for search.
-	 *
 	 * <p>
 	 * Description: Iterator over root nodes from which depth-first traversal
 	 * begins.
@@ -67,7 +62,6 @@ public class CustomDFSPathFinder {
 
 	/**
 	 * Pending successors for each node.
-	 *
 	 * <p>
 	 * Description: Maps visited nodes to their unvisited child iterator for
 	 * traversal order.
@@ -76,7 +70,6 @@ public class CustomDFSPathFinder {
 
 	/**
 	 * Indicates if initialization occurred.
-	 *
 	 * <p>
 	 * Description: Ensures that init() is called only once before traversal begins.
 	 */
@@ -84,12 +77,10 @@ public class CustomDFSPathFinder {
 
 	/**
 	 * Holder class for lazy initialization of excluded methods.
-	 *
 	 * <p>
 	 * Description: Uses initialization-on-demand holder idiom to defer file I/O
 	 * until the excluded methods set is actually needed. This prevents I/O during
 	 * class loading and improves startup time.
-	 *
 	 * <p>
 	 * Design Rationale: Static initialization that performs I/O can cause class
 	 * loading failures and unexpected exceptions. Lazy initialization defers this
@@ -101,17 +92,16 @@ public class CustomDFSPathFinder {
 	private static class ExcludedMethodsHolder {
 		/**
 		 * Methods to skip during traversal.
-		 *
 		 * <p>
 		 * Description: Set of false-positive file system interaction methods to exclude
 		 * from paths.
 		 */
-		static final Set<String> EXCLUDED_METHODS = FileTools.readMethodsFile(FileTools.readFile(FileHandlerConstants.FALSE_POSITIVES_FILE_SYSTEM_INTERACTIONS));
+		static final Set<String> EXCLUDED_METHODS = FileTools
+				.readMethodsFile(FileTools.readFile(FileHandlerConstants.FALSE_POSITIVES_FILE_SYSTEM_INTERACTIONS));
 	}
 
 	/**
 	 * Gets the set of methods to exclude from path analysis.
-	 *
 	 * <p>
 	 * Description: Uses lazy initialization to defer file I/O until first use.
 	 *
@@ -125,7 +115,6 @@ public class CustomDFSPathFinder {
 
 	/**
 	 * Stack for DFS traversal.
-	 *
 	 * <p>
 	 * Description: Deque used to keep track of the current path in the graph during
 	 * depth-first search.
@@ -134,16 +123,15 @@ public class CustomDFSPathFinder {
 
 	/**
 	 * Construct a DFS finder starting from multiple nodes.
-	 *
 	 * <p>
 	 * Description: Initializes search state with an iterator of root nodes and
 	 * filter, validating inputs.
 	 *
 	 * @since 2.0.0
 	 * @author Sarp Sahinalp
-	 * @param G graph to traverse, must not be null
+	 * @param G     graph to traverse, must not be null
 	 * @param nodes iterator over root nodes, must not be null
-	 * @param f filter predicate for target nodes, must not be null
+	 * @param f     filter predicate for target nodes, must not be null
 	 */
 	public CustomDFSPathFinder(Graph<CGNode> G, Iterator<CGNode> nodes, Predicate<CGNode> f) {
 		if (G == null) {
@@ -162,7 +150,6 @@ public class CustomDFSPathFinder {
 
 	/**
 	 * Initialize DFS by pushing the first root and setting its children iterator.
-	 *
 	 * <p>
 	 * Description: Sets initialized flag, pushes initial node, and records its
 	 * successors for traversal.
@@ -181,7 +168,6 @@ public class CustomDFSPathFinder {
 
 	/**
 	 * Finds the first path to a node matching the filter.
-	 *
 	 * <p>
 	 * Description: Performs DFS until a node passes the filter, returning the path
 	 * from root to that node, or null if none found.
@@ -209,7 +195,6 @@ public class CustomDFSPathFinder {
 
 	/**
 	 * Advances DFS to the next node in discovery order.
-	 *
 	 * <p>
 	 * Description: Examines top of stack, pushes unvisited children, or pops when
 	 * all children visited, then moves to next root if needed.

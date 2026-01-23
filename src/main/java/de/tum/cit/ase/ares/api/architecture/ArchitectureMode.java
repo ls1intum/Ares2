@@ -23,13 +23,11 @@ import de.tum.cit.ase.ares.api.util.FileTools;
 
 /**
  * Enum representing the architecture modes for Java security test cases.
- *
  * <p>
  * Description: Provides different modes for architecture test case generation
  * and execution in Java. The modes determine how files and settings are copied
  * and resolved based on the underlying architecture analysis tool.
  * </p>
- *
  * <p>
  * Design Rationale: Using an enum to represent architecture modes centralises
  * configuration and enables future extensions (e.g. supporting WALA) while
@@ -82,46 +80,53 @@ public enum ArchitectureMode {
 
 	@Nonnull
 	public List<Path> fsFilesToCopy() {
-		return getCopyFSConfigurationEntries().stream().map(entry -> entry.get(0).split("/")).map(FileTools::resolveFileOnSourceDirectory).toList();
+		return getCopyFSConfigurationEntries().stream().map(entry -> entry.get(0).split("/"))
+				.map(FileTools::resolveFileOnSourceDirectory).toList();
 	}
 
 	@Nonnull
 	public List<Path> nonFSFilesToCopy() {
-		return getCopyNonFSConfigurationEntries().stream().map(entry -> entry.get(0).split("/")).map(FileTools::resolveFileOnSourceDirectory).toList();
+		return getCopyNonFSConfigurationEntries().stream().map(entry -> entry.get(0).split("/"))
+				.map(FileTools::resolveFileOnSourceDirectory).toList();
 	}
 
 	@Nonnull
 	public List<String[]> placeholderValues() {
-		return getCopyNonFSConfigurationEntries().stream().map(entry -> entry.get(1)).map(Integer::parseInt).map(entry -> switch (entry) {
-			case 0 -> new String[]{ "de.tum.cit.ase", "de.tum.cit.ase", "Main" };
-			default -> FileTools.generatePackageNameArray("de.tum.cit.ase", entry);
-		}).toList();
+		return getCopyNonFSConfigurationEntries().stream().map(entry -> entry.get(1)).map(Integer::parseInt)
+				.map(entry -> switch (entry) {
+				case 0 -> new String[] { "de.tum.cit.ase", "de.tum.cit.ase", "Main" };
+				default -> FileTools.generatePackageNameArray("de.tum.cit.ase", entry);
+				}).toList();
 	}
 
 	@Nonnull
 	public List<String[]> fsFormatValues(@Nonnull String packageName, @Nonnull String mainClassInPackageName) {
-		return getCopyFSConfigurationEntries().stream().map(entry -> entry.get(1)).map(Integer::parseInt).map(entry -> switch (entry) {
-			case 0 -> new String[]{ packageName, packageName, mainClassInPackageName };
-			default -> FileTools.generatePackageNameArray(packageName, entry);
-		}).toList();
+		return getCopyFSConfigurationEntries().stream().map(entry -> entry.get(1)).map(Integer::parseInt)
+				.map(entry -> switch (entry) {
+				case 0 -> new String[] { packageName, packageName, mainClassInPackageName };
+				default -> FileTools.generatePackageNameArray(packageName, entry);
+				}).toList();
 	}
 
 	@Nonnull
 	public List<String[]> nonFSFormatValues(@Nonnull String packageName, @Nonnull String mainClassInPackageName) {
-		return getCopyNonFSConfigurationEntries().stream().map(entry -> entry.get(1)).map(Integer::parseInt).map(entry -> switch (entry) {
-			case 0 -> new String[]{ packageName, packageName, mainClassInPackageName };
-			default -> FileTools.generatePackageNameArray(packageName, entry);
-		}).toList();
+		return getCopyNonFSConfigurationEntries().stream().map(entry -> entry.get(1)).map(Integer::parseInt)
+				.map(entry -> switch (entry) {
+				case 0 -> new String[] { packageName, packageName, mainClassInPackageName };
+				default -> FileTools.generatePackageNameArray(packageName, entry);
+				}).toList();
 	}
 
 	@Nonnull
 	public List<Path> fsTargetsToCopyTo(@Nonnull Path targetPath) {
-		return getCopyFSConfigurationEntries().stream().map(entry -> entry.get(2).split("/")).map(path -> FileTools.resolveFileOnTargetDirectory(targetPath, path)).toList();
+		return getCopyFSConfigurationEntries().stream().map(entry -> entry.get(2).split("/"))
+				.map(path -> FileTools.resolveFileOnTargetDirectory(targetPath, path)).toList();
 	}
 
 	@Nonnull
 	public List<Path> nonFSTargetsToCopyTo(@Nonnull Path targetPath) {
-		return getCopyNonFSConfigurationEntries().stream().map(entry -> entry.get(2).split("/")).map(path -> FileTools.resolveFileOnTargetDirectory(targetPath, path)).toList();
+		return getCopyNonFSConfigurationEntries().stream().map(entry -> entry.get(2).split("/"))
+				.map(path -> FileTools.resolveFileOnTargetDirectory(targetPath, path)).toList();
 	}
 	// </editor-fold>
 
@@ -136,7 +141,8 @@ public enum ArchitectureMode {
 	 */
 	@Nonnull
 	public Path threePartedFileHeader() {
-		return getEditConfigurationEntries().stream().map(entry -> entry.get(0).split("/")).map(FileTools::resolveFileOnSourceDirectory).toList().get(0);
+		return getEditConfigurationEntries().stream().map(entry -> entry.get(0).split("/"))
+				.map(FileTools::resolveFileOnSourceDirectory).toList().get(0);
 	}
 
 	/**
@@ -152,12 +158,14 @@ public enum ArchitectureMode {
 	@Nonnull
 	public String threePartedFileBody(List<?> testCases) {
 		return switch (this) {
-			case ARCHUNIT -> String.join("\n", convertToJavaArchunitTestCases((List<JavaArchitectureTestCase>) testCases).stream()
-					.map(javaArchunitTestCase -> javaArchunitTestCase.writeArchitectureTestCase("ARCHUNIT", "")).toList()
+		case ARCHUNIT -> String.join("\n",
+				convertToJavaArchunitTestCases((List<JavaArchitectureTestCase>) testCases).stream()
+						.map(javaArchunitTestCase -> javaArchunitTestCase.writeArchitectureTestCase("ARCHUNIT", ""))
+						.toList()
 
-				);
-			case WALA -> String.join("\n",
-					convertToJavaWalaTestCases((List<JavaArchitectureTestCase>) testCases).stream().map(javaWalaTestCase -> javaWalaTestCase.writeArchitectureTestCase("WALA", "")).toList());
+			);
+		case WALA -> String.join("\n", convertToJavaWalaTestCases((List<JavaArchitectureTestCase>) testCases).stream()
+				.map(javaWalaTestCase -> javaWalaTestCase.writeArchitectureTestCase("WALA", "")).toList());
 		};
 	}
 
@@ -170,7 +178,8 @@ public enum ArchitectureMode {
 	 */
 	@Nonnull
 	public Path threePartedFileFooter() {
-		return getEditConfigurationEntries().stream().map(entry -> entry.get(1).split("/")).map(FileTools::resolveFileOnSourceDirectory).toList().get(0);
+		return getEditConfigurationEntries().stream().map(entry -> entry.get(1).split("/"))
+				.map(FileTools::resolveFileOnSourceDirectory).toList().get(0);
 	}
 
 	/**
@@ -184,8 +193,8 @@ public enum ArchitectureMode {
 	@Nonnull
 	public String[] formatValues(@Nonnull String packageName) {
 		return switch (this) {
-			case ARCHUNIT -> FileTools.generatePackageNameArray(packageName, 3);
-			case WALA -> FileTools.generatePackageNameArray(packageName, 3);
+		case ARCHUNIT -> FileTools.generatePackageNameArray(packageName, 3);
+		case WALA -> FileTools.generatePackageNameArray(packageName, 3);
 		};
 	}
 
@@ -200,7 +209,8 @@ public enum ArchitectureMode {
 	 */
 	@Nonnull
 	public Path targetToCopyTo(@Nonnull Path targetPath) {
-		return getEditConfigurationEntries().stream().map(entry -> entry.get(2).split("/")).map(path -> FileTools.resolveFileOnTargetDirectory(targetPath, path)).toList().get(0);
+		return getEditConfigurationEntries().stream().map(entry -> entry.get(2).split("/"))
+				.map(path -> FileTools.resolveFileOnTargetDirectory(targetPath, path)).toList().get(0);
 	}
 	// </editor-fold>
 
@@ -239,21 +249,26 @@ public enum ArchitectureMode {
 	@Nullable
 	public CallGraph getCallGraph(String classPath) {
 		return switch (this) {
-			case ARCHUNIT -> null;
-			case WALA -> new CustomCallgraphBuilder(classPath).buildCallGraph(classPath);
+		case ARCHUNIT -> null;
+		case WALA -> new CustomCallgraphBuilder(classPath).buildCallGraph(classPath);
 		};
 	}
 	// </editor-fold>
 
 	// <editor-fold desc="Static methods">
 	private static JavaArchunitTestCase convertToJavaArchunitTestCase(JavaArchitectureTestCase testCase) {
-		return JavaArchunitTestCase.archunitBuilder().javaArchitectureTestCaseSupported((JavaArchitectureTestCaseSupported) testCase.getArchitectureTestCaseSupported())
+		return JavaArchunitTestCase.archunitBuilder()
+				.javaArchitectureTestCaseSupported(
+						(JavaArchitectureTestCaseSupported) testCase.getArchitectureTestCaseSupported())
 				.allowedPackages(testCase.getAllowedPackages()).javaClasses(testCase.getJavaClasses()).build();
 	}
 
 	private static JavaWalaTestCase convertToJavaWalaTestCases(JavaArchitectureTestCase testCase) {
-		return JavaWalaTestCase.walaBuilder().javaArchitectureTestCaseSupported((JavaArchitectureTestCaseSupported) testCase.getArchitectureTestCaseSupported())
-				.allowedPackages(testCase.getAllowedPackages()).callGraph(testCase.getCallGraph()).javaClasses(testCase.getJavaClasses()).build();
+		return JavaWalaTestCase.walaBuilder()
+				.javaArchitectureTestCaseSupported(
+						(JavaArchitectureTestCaseSupported) testCase.getArchitectureTestCaseSupported())
+				.allowedPackages(testCase.getAllowedPackages()).callGraph(testCase.getCallGraph())
+				.javaClasses(testCase.getJavaClasses()).build();
 	}
 
 	private static List<JavaArchunitTestCase> convertToJavaArchunitTestCases(List<JavaArchitectureTestCase> testCases) {

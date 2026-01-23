@@ -56,7 +56,8 @@ public final class TimeoutUtils {
 		}
 	}
 
-	private static <T> T executeWithTimeout(Duration timeout, Callable<T> action, TestContext context) throws Throwable { // NOSONAR
+	private static <T> T executeWithTimeout(Duration timeout, Callable<T> action, TestContext context)
+			throws Throwable { // NOSONAR
 		// REMOVED: Revoke thread-whitelisting from ArtemisSecurityManager
 		var executorService = Executors.newSingleThreadExecutor(new WhitelistedThreadFactory());
 		try {

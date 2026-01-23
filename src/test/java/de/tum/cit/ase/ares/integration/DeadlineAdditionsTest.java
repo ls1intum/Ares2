@@ -45,17 +45,20 @@ class DeadlineAdditionsTest {
 
 	@TestTest
 	void test_testHidden_CustomDeadlineFutureExtendedInactive() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testHidden_CustomDeadlineFutureExtendedInactive, AssertionFailedError.class));
+		tests.assertThatEvents().haveExactly(1,
+				testFailedWith(testHidden_CustomDeadlineFutureExtendedInactive, AssertionFailedError.class));
 	}
 
 	@TestTest
 	void test_testHidden_CustomDeadlineFutureExtendedNormal() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testHidden_CustomDeadlineFutureExtendedNormal, AssertionFailedError.class));
+		tests.assertThatEvents().haveExactly(1,
+				testFailedWith(testHidden_CustomDeadlineFutureExtendedNormal, AssertionFailedError.class));
 	}
 
 	@TestTest
 	void test_testHidden_CustomDeadlineFutureInactive() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testHidden_CustomDeadlineFutureInactive, AssertionFailedError.class));
+		tests.assertThatEvents().haveExactly(1,
+				testFailedWith(testHidden_CustomDeadlineFutureInactive, AssertionFailedError.class));
 	}
 
 	@TestTest
@@ -65,12 +68,14 @@ class DeadlineAdditionsTest {
 
 	@TestTest
 	void test_testHidden_CustomDeadlinePastExtendedInactive() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testHidden_CustomDeadlinePastExtendedInactive, AssertionFailedError.class));
+		tests.assertThatEvents().haveExactly(1,
+				testFailedWith(testHidden_CustomDeadlinePastExtendedInactive, AssertionFailedError.class));
 	}
 
 	@TestTest
 	void test_testHidden_CustomDeadlinePastExtendedNormal() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testHidden_CustomDeadlinePastExtendedNormal, AssertionFailedError.class));
+		tests.assertThatEvents().haveExactly(1,
+				testFailedWith(testHidden_CustomDeadlinePastExtendedNormal, AssertionFailedError.class));
 	}
 
 	@TestTest

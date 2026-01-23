@@ -10,11 +10,9 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.NetworkPermission;
 
 /**
  * Unit tests for JavaNetworkSystemExtractor.
- *
  * <p>
  * Description: Verifies extraction and filtering of network system permissions
  * for connect, send, receive operations.
- *
  * <p>
  * Design Rationale: Ensures full coverage across all permission types and
  * invalid inputs.
@@ -27,7 +25,6 @@ public class JavaNetworkSystemExtractorTest {
 
 	/**
 	 * Tests static extractHosts and extractPorts for all network predicates.
-	 *
 	 * <p>
 	 * Description: Supplies diverse NetworkPermission instances and asserts correct
 	 * host and port lists.
@@ -37,34 +34,45 @@ public class JavaNetworkSystemExtractorTest {
 	 */
 	@Test
 	public void testExtractHostsAndPortsAllPermissionTypesAndValid() {
-		List<NetworkPermission> configs = List.of(NetworkPermission.builder().onTheHost("0.0.0.0").onThePort(0).openConnections(true).sendData(true).receiveData(true).build(),
-				NetworkPermission.builder().onTheHost("10.10.10.10").onThePort(10).openConnections(true).sendData(false).receiveData(false).build(),
-				NetworkPermission.builder().onTheHost("100.100.100.100").onThePort(100).openConnections(false).sendData(true).receiveData(false).build(),
-				NetworkPermission.builder().onTheHost("200.200.200.200").onThePort(1000).openConnections(false).sendData(false).receiveData(true).build(),
-				NetworkPermission.builder().onTheHost("255.255.255.255").onThePort(10000).openConnections(false).sendData(false).receiveData(false).build());
+		List<NetworkPermission> configs = List.of(
+				NetworkPermission.builder().onTheHost("0.0.0.0").onThePort(0).openConnections(true).sendData(true)
+						.receiveData(true).build(),
+				NetworkPermission.builder().onTheHost("10.10.10.10").onThePort(10).openConnections(true).sendData(false)
+						.receiveData(false).build(),
+				NetworkPermission.builder().onTheHost("100.100.100.100").onThePort(100).openConnections(false)
+						.sendData(true).receiveData(false).build(),
+				NetworkPermission.builder().onTheHost("200.200.200.200").onThePort(1000).openConnections(false)
+						.sendData(false).receiveData(true).build(),
+				NetworkPermission.builder().onTheHost("255.255.255.255").onThePort(10000).openConnections(false)
+						.sendData(false).receiveData(false).build());
 		// connect
 		List<String> connectHosts = List.of("0.0.0.0", "10.10.10.10");
 		List<String> connectPorts = List.of("0", "10");
-		Assertions.assertEquals(connectHosts, JavaNetworkSystemExtractor.extractHosts(configs, NetworkPermission::openConnections));
-		Assertions.assertEquals(connectPorts, JavaNetworkSystemExtractor.extractPorts(configs, NetworkPermission::openConnections));
+		Assertions.assertEquals(connectHosts,
+				JavaNetworkSystemExtractor.extractHosts(configs, NetworkPermission::openConnections));
+		Assertions.assertEquals(connectPorts,
+				JavaNetworkSystemExtractor.extractPorts(configs, NetworkPermission::openConnections));
 
 		// send
 		List<String> sendHosts = List.of("0.0.0.0", "100.100.100.100");
 		List<String> sendPorts = List.of("0", "100");
-		Assertions.assertEquals(sendHosts, JavaNetworkSystemExtractor.extractHosts(configs, NetworkPermission::sendData));
-		Assertions.assertEquals(sendPorts, JavaNetworkSystemExtractor.extractPorts(configs, NetworkPermission::sendData));
+		Assertions.assertEquals(sendHosts,
+				JavaNetworkSystemExtractor.extractHosts(configs, NetworkPermission::sendData));
+		Assertions.assertEquals(sendPorts,
+				JavaNetworkSystemExtractor.extractPorts(configs, NetworkPermission::sendData));
 
 		// receive
 		List<String> receiveHosts = List.of("0.0.0.0", "200.200.200.200");
 		List<String> receivePorts = List.of("0", "1000");
-		Assertions.assertEquals(receiveHosts, JavaNetworkSystemExtractor.extractHosts(configs, NetworkPermission::receiveData));
-		Assertions.assertEquals(receivePorts, JavaNetworkSystemExtractor.extractPorts(configs, NetworkPermission::receiveData));
+		Assertions.assertEquals(receiveHosts,
+				JavaNetworkSystemExtractor.extractHosts(configs, NetworkPermission::receiveData));
+		Assertions.assertEquals(receivePorts,
+				JavaNetworkSystemExtractor.extractPorts(configs, NetworkPermission::receiveData));
 	}
 
 	/**
 	 * Tests instance methods getPermittedNetworkHosts and getPermittedNetworkPorts
 	 * for valid and invalid permissions.
-	 *
 	 * <p>
 	 * Description: Uses stubbed supplier and asserts host and port lists for each
 	 * permission type, plus exception on invalid.
@@ -74,11 +82,17 @@ public class JavaNetworkSystemExtractorTest {
 	 */
 	@Test
 	public void testExtractHostsAndPortsAllPermissionTypesAndInvalid() {
-		Supplier<List<?>> supplier = () -> List.of(NetworkPermission.builder().onTheHost("0.0.0.0").onThePort(0).openConnections(true).sendData(true).receiveData(true).build(),
-				NetworkPermission.builder().onTheHost("10.10.10.10").onThePort(10).openConnections(true).sendData(false).receiveData(false).build(),
-				NetworkPermission.builder().onTheHost("100.100.100.100").onThePort(100).openConnections(false).sendData(true).receiveData(false).build(),
-				NetworkPermission.builder().onTheHost("200.200.200.200").onThePort(1000).openConnections(false).sendData(false).receiveData(true).build(),
-				NetworkPermission.builder().onTheHost("255.255.255.255").onThePort(10000).openConnections(false).sendData(false).receiveData(false).build());
+		Supplier<List<?>> supplier = () -> List.of(
+				NetworkPermission.builder().onTheHost("0.0.0.0").onThePort(0).openConnections(true).sendData(true)
+						.receiveData(true).build(),
+				NetworkPermission.builder().onTheHost("10.10.10.10").onThePort(10).openConnections(true).sendData(false)
+						.receiveData(false).build(),
+				NetworkPermission.builder().onTheHost("100.100.100.100").onThePort(100).openConnections(false)
+						.sendData(true).receiveData(false).build(),
+				NetworkPermission.builder().onTheHost("200.200.200.200").onThePort(1000).openConnections(false)
+						.sendData(false).receiveData(true).build(),
+				NetworkPermission.builder().onTheHost("255.255.255.255").onThePort(10000).openConnections(false)
+						.sendData(false).receiveData(false).build());
 		JavaNetworkSystemExtractor extractor = new JavaNetworkSystemExtractor(supplier);
 
 		// connect hosts

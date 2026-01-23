@@ -5,7 +5,6 @@ import java.nio.file.Paths;
 
 /**
  * Enum representing the Java build tools supported by Ares.
- *
  * <p>
  * This enum provides two modes:
  * </p>
@@ -34,30 +33,30 @@ public enum BuildMode {
 
 	public String[] threePartedFileHeader() {
 		return switch (this) {
-			case MAVEN -> new String[]{ "templates", "java", "maven", "pomHeader.txt" };
-			case GRADLE -> new String[]{ "templates", "java", "gradle", "buildHeader.txt" };
+		case MAVEN -> new String[] { "templates", "java", "maven", "pomHeader.txt" };
+		case GRADLE -> new String[] { "templates", "java", "gradle", "buildHeader.txt" };
 		};
 	}
 
 	public String[] threePartedFileFooter() {
 		return switch (this) {
-			case MAVEN -> new String[]{ "templates", "java", "maven", "pomFooter.txt" };
-			case GRADLE -> new String[]{ "templates", "java", "gradle", "buildFooter.txt" };
+		case MAVEN -> new String[] { "templates", "java", "maven", "pomFooter.txt" };
+		case GRADLE -> new String[] { "templates", "java", "gradle", "buildFooter.txt" };
 		};
 	}
 
 	public String[] fileName() {
 		return switch (this) {
-			case MAVEN -> new String[]{ "pom.xml" };
-			case GRADLE -> new String[]{ "build.gradle" };
+		case MAVEN -> new String[] { "pom.xml" };
+		case GRADLE -> new String[] { "build.gradle" };
 		};
 	}
 
 	// <editor-fold desc="Other methods">
 	public String getBuildDirectory() {
 		return switch (this) {
-			case MAVEN -> "target/classes/java/main";
-			case GRADLE -> "build/classes/java/main";
+		case MAVEN -> "target/classes/java/main";
+		case GRADLE -> "build/classes/java/main";
 		};
 	}
 

@@ -9,11 +9,9 @@ import javax.annotation.Nullable;
 
 /**
  * Resource accesses permitted for the supervised code.
- *
  * <p>
  * Description: Specifies the file system interactions, network connections,
  * command executions, thread creations, and package imports permitted.
- *
  * <p>
  * Design Rationale: Encapsulating allowed resource accesses in a separate
  * record facilitates granular control over code execution security.
@@ -22,17 +20,23 @@ import javax.annotation.Nullable;
  * @author Markus Paulsen
  * @since 2.0.0
  * @param regardingFileSystemInteractions permitted file system interactions;
- *            must not be null.
- * @param regardingNetworkConnections permitted network connections; must not be
- *            null.
- * @param regardingCommandExecutions permitted command executions; must not be
- *            null.
- * @param regardingThreadCreations permitted thread creations; must not be null.
- * @param regardingPackageImports permitted package imports; must not be null.
- * @param regardingTimeouts permitted timeout parameters, must not be null
+ *                                        must not be null.
+ * @param regardingNetworkConnections     permitted network connections; must
+ *                                        not be null.
+ * @param regardingCommandExecutions      permitted command executions; must not
+ *                                        be null.
+ * @param regardingThreadCreations        permitted thread creations; must not
+ *                                        be null.
+ * @param regardingPackageImports         permitted package imports; must not be
+ *                                        null.
+ * @param regardingTimeouts               permitted timeout parameters, must not
+ *                                        be null
  */
-public record ResourceAccesses(@Nonnull List<FilePermission> regardingFileSystemInteractions, @Nonnull List<NetworkPermission> regardingNetworkConnections,
-		@Nonnull List<CommandPermission> regardingCommandExecutions, @Nonnull List<ThreadPermission> regardingThreadCreations, @Nonnull List<PackagePermission> regardingPackageImports,
+public record ResourceAccesses(@Nonnull List<FilePermission> regardingFileSystemInteractions,
+		@Nonnull List<NetworkPermission> regardingNetworkConnections,
+		@Nonnull List<CommandPermission> regardingCommandExecutions,
+		@Nonnull List<ThreadPermission> regardingThreadCreations,
+		@Nonnull List<PackagePermission> regardingPackageImports,
 		@Nonnull List<ResourceLimitsPermission> regardingTimeouts) {
 
 	/**
@@ -59,8 +63,10 @@ public record ResourceAccesses(@Nonnull List<FilePermission> regardingFileSystem
 	 */
 	@Nonnull
 	public static ResourceAccesses createRestrictive() {
-		return builder().regardingFileSystemInteractions(new ArrayList<>()).regardingNetworkConnections(new ArrayList<>()).regardingCommandExecutions(new ArrayList<>())
-				.regardingThreadCreations(new ArrayList<>()).regardingPackageImports(new ArrayList<>()).regardingTimeouts(new ArrayList<>()).build();
+		return builder().regardingFileSystemInteractions(new ArrayList<>())
+				.regardingNetworkConnections(new ArrayList<>()).regardingCommandExecutions(new ArrayList<>())
+				.regardingThreadCreations(new ArrayList<>()).regardingPackageImports(new ArrayList<>())
+				.regardingTimeouts(new ArrayList<>()).build();
 	}
 
 	/**
@@ -77,10 +83,8 @@ public record ResourceAccesses(@Nonnull List<FilePermission> regardingFileSystem
 
 	/**
 	 * Builder for ResourceAccesses.
-	 *
 	 * <p>
 	 * Description: Provides a fluent API to construct a ResourceAccesses instance.
-	 *
 	 * <p>
 	 * Design Rationale: The builder pattern here allows for flexible configuration
 	 * of resource accesses.
@@ -134,7 +138,8 @@ public record ResourceAccesses(@Nonnull List<FilePermission> regardingFileSystem
 		 */
 		@Nonnull
 		public Builder regardingFileSystemInteractions(@Nonnull List<FilePermission> regardingFileSystemInteractions) {
-			this.regardingFileSystemInteractions = new ArrayList<>(Objects.requireNonNull(regardingFileSystemInteractions, "File system interactions list must not be null"));
+			this.regardingFileSystemInteractions = new ArrayList<>(Objects
+					.requireNonNull(regardingFileSystemInteractions, "File system interactions list must not be null"));
 			return this;
 		}
 
@@ -148,7 +153,8 @@ public record ResourceAccesses(@Nonnull List<FilePermission> regardingFileSystem
 		 */
 		@Nonnull
 		public Builder regardingNetworkConnections(@Nonnull List<NetworkPermission> regardingNetworkConnections) {
-			this.regardingNetworkConnections = new ArrayList<>(Objects.requireNonNull(regardingNetworkConnections, "Network connections list must not be null"));
+			this.regardingNetworkConnections = new ArrayList<>(
+					Objects.requireNonNull(regardingNetworkConnections, "Network connections list must not be null"));
 			return this;
 		}
 
@@ -162,7 +168,8 @@ public record ResourceAccesses(@Nonnull List<FilePermission> regardingFileSystem
 		 */
 		@Nonnull
 		public Builder regardingCommandExecutions(@Nonnull List<CommandPermission> regardingCommandExecutions) {
-			this.regardingCommandExecutions = new ArrayList<>(Objects.requireNonNull(regardingCommandExecutions, "Command executions list must not be null"));
+			this.regardingCommandExecutions = new ArrayList<>(
+					Objects.requireNonNull(regardingCommandExecutions, "Command executions list must not be null"));
 			return this;
 		}
 
@@ -176,7 +183,8 @@ public record ResourceAccesses(@Nonnull List<FilePermission> regardingFileSystem
 		 */
 		@Nonnull
 		public Builder regardingThreadCreations(@Nonnull List<ThreadPermission> regardingThreadCreations) {
-			this.regardingThreadCreations = new ArrayList<>(Objects.requireNonNull(regardingThreadCreations, "Thread creations list must not be null"));
+			this.regardingThreadCreations = new ArrayList<>(
+					Objects.requireNonNull(regardingThreadCreations, "Thread creations list must not be null"));
 			return this;
 		}
 
@@ -190,7 +198,8 @@ public record ResourceAccesses(@Nonnull List<FilePermission> regardingFileSystem
 		 */
 		@Nonnull
 		public Builder regardingPackageImports(@Nonnull List<PackagePermission> regardingPackageImports) {
-			this.regardingPackageImports = new ArrayList<>(Objects.requireNonNull(regardingPackageImports, "Package imports list must not be null"));
+			this.regardingPackageImports = new ArrayList<>(
+					Objects.requireNonNull(regardingPackageImports, "Package imports list must not be null"));
 			return this;
 		}
 
@@ -204,7 +213,8 @@ public record ResourceAccesses(@Nonnull List<FilePermission> regardingFileSystem
 		 */
 		@Nonnull
 		public Builder regardingTimeouts(@Nonnull List<ResourceLimitsPermission> regardingTimeouts) {
-			this.regardingTimeouts = new ArrayList<>(Objects.requireNonNull(regardingTimeouts, "Timeout list must not be null"));
+			this.regardingTimeouts = new ArrayList<>(
+					Objects.requireNonNull(regardingTimeouts, "Timeout list must not be null"));
 			return this;
 		}
 
@@ -217,11 +227,14 @@ public record ResourceAccesses(@Nonnull List<FilePermission> regardingFileSystem
 		 */
 		@Nonnull
 		public ResourceAccesses build() {
-			return new ResourceAccesses(Objects.requireNonNull(regardingFileSystemInteractions, "File system interactions list must not be null"),
+			return new ResourceAccesses(
+					Objects.requireNonNull(regardingFileSystemInteractions,
+							"File system interactions list must not be null"),
 					Objects.requireNonNull(regardingNetworkConnections, "Network connections list must not be null"),
 					Objects.requireNonNull(regardingCommandExecutions, "Command executions list must not be null"),
 					Objects.requireNonNull(regardingThreadCreations, "Thread creations list must not be null"),
-					Objects.requireNonNull(regardingPackageImports, "Package imports list must not be null"), Objects.requireNonNull(regardingTimeouts, "Timeout list must not be null"));
+					Objects.requireNonNull(regardingPackageImports, "Package imports list must not be null"),
+					Objects.requireNonNull(regardingTimeouts, "Timeout list must not be null"));
 		}
 	}
 }

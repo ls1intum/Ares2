@@ -33,12 +33,13 @@ public abstract class ClassTestProvider extends StructuralTestProvider {
 	 * @return A dynamic test container containing the test for each class which is
 	 *         then executed by JUnit.
 	 * @throws URISyntaxException an exception if the URI of the class name cannot
-	 *             be generated (which seems to be unlikely)
+	 *                            be generated (which seems to be unlikely)
 	 */
 	protected DynamicContainer generateTestsForAllClasses() throws URISyntaxException {
 		List<DynamicNode> tests = new ArrayList<>();
 		if (structureOracleJSON == null)
-			throw failure("The ClassTest test can only run if the structural oracle (test.json) is present. If you do not provide it, delete ClassTest.java!"); //$NON-NLS-1$
+			throw failure(
+					"The ClassTest test can only run if the structural oracle (test.json) is present. If you do not provide it, delete ClassTest.java!"); //$NON-NLS-1$
 		for (var i = 0; i < structureOracleJSON.length(); i++) {
 			var expectedClassJSON = structureOracleJSON.getJSONObject(i);
 			var expectedClassPropertiesJSON = expectedClassJSON.getJSONObject(JSON_PROPERTY_CLASS);
@@ -46,15 +47,19 @@ public abstract class ClassTestProvider extends StructuralTestProvider {
 			 * Only test the classes that have additional properties (except name and
 			 * package) defined in the structure oracle.
 			 */
-			if (expectedClassPropertiesJSON.has(JSON_PROPERTY_NAME) && expectedClassPropertiesJSON.has(JSON_PROPERTY_PACKAGE) && hasAdditionalProperties(expectedClassPropertiesJSON)) {
+			if (expectedClassPropertiesJSON.has(JSON_PROPERTY_NAME)
+					&& expectedClassPropertiesJSON.has(JSON_PROPERTY_PACKAGE)
+					&& hasAdditionalProperties(expectedClassPropertiesJSON)) {
 				var expectedClassName = expectedClassPropertiesJSON.getString(JSON_PROPERTY_NAME);
 				var expectedPackageName = expectedClassPropertiesJSON.getString(JSON_PROPERTY_PACKAGE);
-				var expectedClassStructure = new ExpectedClassStructure(expectedClassName, expectedPackageName, expectedClassJSON);
+				var expectedClassStructure = new ExpectedClassStructure(expectedClassName, expectedPackageName,
+						expectedClassJSON);
 				tests.add(dynamicTest("testClass[" + expectedClassName + "]", () -> testClass(expectedClassStructure))); //$NON-NLS-1$ //$NON-NLS-2$
 			}
 		}
 		if (tests.isEmpty())
-			throw failure("No tests for classes available in the structural oracle (test.json). Either provide attributes information or delete ClassTest.java!"); //$NON-NLS-1$
+			throw failure(
+					"No tests for classes available in the structural oracle (test.json). Either provide attributes information or delete ClassTest.java!"); //$NON-NLS-1$
 		/*
 		 * Using a custom URI here to workaround surefire rendering the JUnit XML
 		 * without the correct test names.
@@ -75,7 +80,7 @@ public abstract class ClassTestProvider extends StructuralTestProvider {
 	 * the assignment and then proceeds to check its properties.
 	 *
 	 * @param expectedClassStructure The class structure that we expect to find and
-	 *            test against.
+	 *                               test against.
 	 */
 	protected static void testClass(ExpectedClassStructure expectedClassStructure) {
 		var expectedClassName = expectedClassStructure.getExpectedClassName();
@@ -87,7 +92,8 @@ public abstract class ClassTestProvider extends StructuralTestProvider {
 		checkAnnotations(expectedClassName, observedClass, expectedClassPropertiesJSON);
 	}
 
-	private static void checkBasicClassProperties(String expectedClassName, Class<?> observedClass, JSONObject expectedClassPropertiesJSON) {
+	private static void checkBasicClassProperties(String expectedClassName, Class<?> observedClass,
+			JSONObject expectedClassPropertiesJSON) {
 		if (checkBooleanOf(expectedClassPropertiesJSON, "isAbstract") //$NON-NLS-1$
 				&& !Modifier.isAbstract(observedClass.getModifiers()))
 			throw localizedFailure("structural.class.abstract", expectedClassName); //$NON-NLS-1$
@@ -106,20 +112,25 @@ public abstract class ClassTestProvider extends StructuralTestProvider {
 	}
 
 	private static boolean checkBooleanOf(JSONObject expectedClassPropertiesJSON, String booleanProperty) {
-		return expectedClassPropertiesJSON.has(booleanProperty) && expectedClassPropertiesJSON.getBoolean(booleanProperty);
+		return expectedClassPropertiesJSON.has(booleanProperty)
+				&& expectedClassPropertiesJSON.getBoolean(booleanProperty);
 	}
 
-	private static void checkSuperclass(String expectedClassName, Class<?> observedClass, JSONObject expectedClassPropertiesJSON) {
+	private static void checkSuperclass(String expectedClassName, Class<?> observedClass,
+			JSONObject expectedClassPropertiesJSON) {
 		// Filter out the enums, since there is a separate test for them
-		if (expectedClassPropertiesJSON.has(JSON_PROPERTY_SUPERCLASS) && !"Enum".equals(expectedClassPropertiesJSON.getString(JSON_PROPERTY_SUPERCLASS))) { //$NON-NLS-1$
+		if (expectedClassPropertiesJSON.has(JSON_PROPERTY_SUPERCLASS)
+				&& !"Enum".equals(expectedClassPropertiesJSON.getString(JSON_PROPERTY_SUPERCLASS))) { //$NON-NLS-1$
 			var expectedSuperClassName = expectedClassPropertiesJSON.getString(JSON_PROPERTY_SUPERCLASS);
-			if (!checkExpectedType(observedClass.getSuperclass(), observedClass.getGenericSuperclass(), expectedSuperClassName)) {
+			if (!checkExpectedType(observedClass.getSuperclass(), observedClass.getGenericSuperclass(),
+					expectedSuperClassName)) {
 				throw localizedFailure("structural.class.extends", expectedClassName, expectedSuperClassName); //$NON-NLS-1$
 			}
 		}
 	}
 
-	private static void checkInterfaces(String expectedClassName, Class<?> observedClass, JSONObject expectedClassPropertiesJSON) {
+	private static void checkInterfaces(String expectedClassName, Class<?> observedClass,
+			JSONObject expectedClassPropertiesJSON) {
 		if (expectedClassPropertiesJSON.has(JSON_PROPERTY_INTERFACES)) {
 			var expectedInterfaces = expectedClassPropertiesJSON.getJSONArray(JSON_PROPERTY_INTERFACES);
 			var observedInterfaces = observedClass.getInterfaces();
@@ -141,7 +152,8 @@ public abstract class ClassTestProvider extends StructuralTestProvider {
 		}
 	}
 
-	private static void checkAnnotations(String expectedClassName, Class<?> observedClass, JSONObject expectedClassPropertiesJSON) {
+	private static void checkAnnotations(String expectedClassName, Class<?> observedClass,
+			JSONObject expectedClassPropertiesJSON) {
 		if (expectedClassPropertiesJSON.has(JSON_PROPERTY_ANNOTATIONS)) {
 			var expectedAnnotations = expectedClassPropertiesJSON.getJSONArray(JSON_PROPERTY_ANNOTATIONS);
 			var observedAnnotations = observedClass.getAnnotations();

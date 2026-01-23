@@ -16,11 +16,9 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceLimitsPermissi
 
 /**
  * Generates a Phobos security test case file based on the provided permissions.
- *
  * <p>
  * Description: This class provides a method to create a Phobos security test
  * case file that includes filesystem, network, and resource limits permissions.
- *
  * <p>
  * Design Rationale: The separation of concerns allows for clear organization of
  * permissions and facilitates the generation of security test cases.
@@ -41,24 +39,28 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 	 * Initializes the configuration with the given support type and resource
 	 * accesses.
 	 *
-	 * @param javaTestCaseSupported the type of security test case being supported,
-	 *            must not be null.
+	 * @param javaTestCaseSupported  the type of security test case being supported,
+	 *                               must not be null.
 	 * @param resourceAccessSupplier the resource accesses permitted as defined in
-	 *            the security policy, must not be null.
+	 *                               the security policy, must not be null.
 	 */
-	public JavaPhobosTestCase(@Nonnull JavaPhobosTestCaseSupported javaTestCaseSupported, @Nonnull Supplier<List<?>> resourceAccessSupplier) {
-		super(javaTestCaseSupported, new JavaFileSystemExtractor(resourceAccessSupplier), new JavaNetworkSystemExtractor(resourceAccessSupplier),
+	public JavaPhobosTestCase(@Nonnull JavaPhobosTestCaseSupported javaTestCaseSupported,
+			@Nonnull Supplier<List<?>> resourceAccessSupplier) {
+		super(javaTestCaseSupported, new JavaFileSystemExtractor(resourceAccessSupplier),
+				new JavaNetworkSystemExtractor(resourceAccessSupplier),
 				new JavaResourceLimitsExtractor(resourceAccessSupplier));
 		this.resourceAccessSupplier = resourceAccessSupplier;
 	}
 
 	@Nonnull
-	public static String writePhobosSecurityTestCaseFile(@Nonnull List<FilePermission> filePermissions, @Nonnull List<NetworkPermission> networkPermissions,
+	public static String writePhobosSecurityTestCaseFile(@Nonnull List<FilePermission> filePermissions,
+			@Nonnull List<NetworkPermission> networkPermissions,
 			@Nonnull List<ResourceLimitsPermission> resourceLimitsPermissions) {
-
 		JavaFileSystemExtractor fileSystemExtractor = new JavaFileSystemExtractor(supplier(filePermissions));
-		JavaNetworkSystemExtractor networkConnectionExtractor = new JavaNetworkSystemExtractor(supplier(networkPermissions));
-		JavaResourceLimitsExtractor resourceLimitsExtractor = new JavaResourceLimitsExtractor(supplier(resourceLimitsPermissions));
+		JavaNetworkSystemExtractor networkConnectionExtractor = new JavaNetworkSystemExtractor(
+				supplier(networkPermissions));
+		JavaResourceLimitsExtractor resourceLimitsExtractor = new JavaResourceLimitsExtractor(
+				supplier(resourceLimitsPermissions));
 
 		Set<String> readOnlyPaths = collectReadOnlyPaths(fileSystemExtractor);
 		Set<String> writePaths = collectWritePaths(fileSystemExtractor);
@@ -78,7 +80,7 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 	 * Creates a supplier that returns a list of the specified type.
 	 *
 	 * @param list the list to be supplied, must not be null.
-	 * @param <T> the type of elements in the list.
+	 * @param <T>  the type of elements in the list.
 	 * @return a supplier that returns the provided list.
 	 */
 	@SuppressWarnings("unchecked")
@@ -97,7 +99,7 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 	 * Collects read-only file paths from the provided JavaFileSystemExtractor.
 	 *
 	 * @param fs the JavaFileSystemExtractor to extract paths from, must not be
-	 *            null.
+	 *           null.
 	 * @return a set of read-only file paths.
 	 */
 	private static Set<String> collectReadOnlyPaths(JavaFileSystemExtractor fs) {
@@ -113,7 +115,7 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 	 * Collects write file paths from the provided JavaFileSystemExtractor.
 	 *
 	 * @param fs the JavaFileSystemExtractor to extract paths from, must not be
-	 *            null.
+	 *           null.
 	 * @return a set of write file paths.
 	 */
 	private static Set<String> collectWritePaths(JavaFileSystemExtractor fs) {
@@ -127,9 +129,9 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 	 * Appends and formats a section for filesystem paths to the provided
 	 * StringBuilder. e.g. [readonly] /path/to/file1 /path/to/file2
 	 *
-	 * @param out the StringBuilder to append to, must not be null.
+	 * @param out    the StringBuilder to append to, must not be null.
 	 * @param header the header for the section, must not be null.
-	 * @param paths the set of paths to append, must not be null.
+	 * @param paths  the set of paths to append, must not be null.
 	 */
 	private static void appendFilesystemSection(StringBuilder out, String header, Set<String> paths) {
 		if (paths.isEmpty()) {
@@ -149,14 +151,12 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 
 	/**
 	 * Collects allowed network hosts from the provided JavaNetworkSystemExtractor.
-	 *
 	 * <p>
 	 * The extractor must deliver <em>parallel</em> host- and port-lists:<br>
 	 * first host = first port<br>
 	 * Any other configuration is considered invalid and triggers an
 	 * {@link IllegalStateException}.
 	 * </p>
-	 *
 	 * <p>
 	 * The resulting set contains strings of the form {@code "host"} (when the
 	 * mapped port is {@code 0}) or {@code "host:port"}; order is preserved so that
@@ -167,7 +167,7 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 	 * @param net the JavaNetworkSystemExtractor, must not be {@code null}
 	 * @return an ordered set of <code>host[:port]</code> strings
 	 * @throws IllegalStateException if the host and port lists differ in length
-	 * @throws NullPointerException if {@code net} is {@code null}
+	 * @throws NullPointerException  if {@code net} is {@code null}
 	 */
 	private static Set<String> collectAllowHostsAndPorts(JavaNetworkSystemExtractor net) {
 		Objects.requireNonNull(net, "extractor must not be null");
@@ -179,7 +179,8 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 			List<Integer> ports = net.getPermittedNetworkPorts(verb);
 
 			if (hosts.size() != ports.size()) {
-				throw new IllegalStateException(String.format("Mismatching host/port lists for '%s' (hosts=%d, ports=%d)", verb, hosts.size(), ports.size()));
+				throw new IllegalStateException(String.format(
+						"Mismatching host/port lists for '%s' (hosts=%d, ports=%d)", verb, hosts.size(), ports.size()));
 			}
 
 			for (int i = 0; i < hosts.size(); i++) {
@@ -205,14 +206,13 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 	 * allow example2.com:444
 	 * </pre>
 	 *
-	 * @param out StringBuilder to append to, must not be {@code null}
-	 * @param header section header (without brackets), e.g. {@code "network"}, must
-	 *            not be {@code null}
+	 * @param out           StringBuilder to append to, must not be {@code null}
+	 * @param header        section header (without brackets), e.g.
+	 *                      {@code "network"}, must not be {@code null}
 	 * @param hostsAndPorts ordered set of {@code host[:port]} strings, must not be
-	 *            {@code null}
+	 *                      {@code null}
 	 */
 	private static void appendNetworkSection(StringBuilder out, String header, Set<String> hostsAndPorts) {
-
 		Objects.requireNonNull(out, "out must not be null");
 		Objects.requireNonNull(header, "header must not be null");
 		Objects.requireNonNull(hostsAndPorts, "hostsAndPorts must not be null");
@@ -232,7 +232,7 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 	 * Appends and formats a section for resource limits to the provided
 	 * StringBuilder. e.g. [limits] memory=1024 cpu=2
 	 *
-	 * @param out the StringBuilder to append to, must not be null.
+	 * @param out    the StringBuilder to append to, must not be null.
 	 * @param header header for the section, must not be null.
 	 * @param limits the map of resource limits, must not be null.
 	 */
@@ -243,7 +243,6 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 		out.append('[').append(header).append("]\n");
 		limits.forEach((k, v) -> out.append(k).append('=').append(v).append('\n'));
 		out.append('\n');
-
 	}
 
 	/**
@@ -266,10 +265,11 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 		private JavaPhobosTestCaseSupported javaPhobosTestCaseSupported;
 		private Supplier<List<?>> resourceAccessSupplier;
 
-		public JavaPhobosTestCase.Builder javaPhobosTestCaseSupported(@Nonnull JavaPhobosTestCaseSupported javaPhobosTestCaseSupported) {
-
+		public JavaPhobosTestCase.Builder javaPhobosTestCaseSupported(
+				@Nonnull JavaPhobosTestCaseSupported javaPhobosTestCaseSupported) {
 			if (javaPhobosTestCaseSupported == null) {
-				throw new SecurityException(Messages.localized("security.common.not.null", "javaPhobosTestCaseSupported"));
+				throw new SecurityException(
+						Messages.localized("security.common.not.null", "javaPhobosTestCaseSupported"));
 			}
 			this.javaPhobosTestCaseSupported = javaPhobosTestCaseSupported;
 			return this;
@@ -285,7 +285,8 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 
 		public JavaPhobosTestCase build() {
 			if (javaPhobosTestCaseSupported == null) {
-				throw new SecurityException(Messages.localized("security.common.not.null", "javaPhobosTestCaseSupported"));
+				throw new SecurityException(
+						Messages.localized("security.common.not.null", "javaPhobosTestCaseSupported"));
 			}
 			if (resourceAccessSupplier == null) {
 				throw new SecurityException(Messages.localized("security.common.not.null", "resourceAccessSupplier"));

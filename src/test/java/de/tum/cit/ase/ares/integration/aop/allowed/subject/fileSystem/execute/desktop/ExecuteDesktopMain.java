@@ -8,7 +8,8 @@ import java.net.URI;
 public class ExecuteDesktopMain {
 
 	private ExecuteDesktopMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/**

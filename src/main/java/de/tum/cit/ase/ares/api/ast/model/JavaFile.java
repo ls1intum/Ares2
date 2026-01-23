@@ -42,8 +42,11 @@ public class JavaFile {
 	 * @param javaFileAST AST of the Java-file
 	 */
 	private static void excludeMainMethod(CompilationUnit javaFileAST) {
-		javaFileAST.findAll(MethodDeclaration.class).stream().filter(method -> method.isPublic() && method.isStatic() && method.getType().isVoidType() && method.getNameAsString().equals("main")
-				&& method.getParameters().size() == 1 && method.getParameter(0).getTypeAsString().equals("String[]")).forEach(Node::remove);
+		javaFileAST.findAll(MethodDeclaration.class).stream()
+				.filter(method -> method.isPublic() && method.isStatic() && method.getType().isVoidType()
+						&& method.getNameAsString().equals("main") && method.getParameters().size() == 1
+						&& method.getParameter(0).getTypeAsString().equals("String[]"))
+				.forEach(Node::remove);
 	}
 
 	public Path getJavaFilePath() {
@@ -84,7 +87,8 @@ public class JavaFile {
 	 */
 	public static List<JavaFile> readFromDirectory(Path pathOfDirectory, boolean excludeMainMethod) {
 		try (Stream<Path> directoryContentStream = Files.walk(pathOfDirectory)) {
-			return directoryContentStream.map(path -> convertFromFile(path, excludeMainMethod)).filter(Objects::nonNull).toList();
+			return directoryContentStream.map(path -> convertFromFile(path, excludeMainMethod)).filter(Objects::nonNull)
+					.toList();
 		} catch (IOException e) {
 			LOG.error("Error reading Java files in '{}'", pathOfDirectory.toAbsolutePath(), e); //$NON-NLS-1$
 			throw new AssertionError(localized("ast.method.read_from_directory", pathOfDirectory.toAbsolutePath()));

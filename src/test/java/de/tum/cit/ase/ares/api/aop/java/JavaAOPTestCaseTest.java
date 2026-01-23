@@ -65,17 +65,21 @@ class JavaAOPTestCaseTest {
 
 	@Test
 	void testSetJavaAdviceSettingValueNoSuchFieldThrows() {
-		assertThrows(SecurityException.class, () -> JavaAOPTestCase.setJavaAdviceSettingValue("nonexistent", "val", "A", "INSTRUMENTATION"));
+		assertThrows(SecurityException.class,
+				() -> JavaAOPTestCase.setJavaAdviceSettingValue("nonexistent", "val", "A", "INSTRUMENTATION"));
 	}
 
 	@Test
 	void testSetJavaAdviceSettingValueNullFieldThrows() {
-		assertThrows(SecurityException.class, () -> JavaAOPTestCase.setJavaAdviceSettingValue(null, "val", "A", "INSTRUMENTATION"));
+		assertThrows(SecurityException.class,
+				() -> JavaAOPTestCase.setJavaAdviceSettingValue(null, "val", "A", "INSTRUMENTATION"));
 	}
 
 	@Test
 	void testSetJavaAdviceSettingValueIllegalArgumentThrows() {
-		assertThrows(SecurityException.class, () -> JavaAOPTestCase.setJavaAdviceSettingValue("portsAllowedToBeConnectedTo", new String[]{ "a" }, "A", "INSTRUMENTATION"));
+		assertThrows(SecurityException.class,
+				() -> JavaAOPTestCase.setJavaAdviceSettingValue("portsAllowedToBeConnectedTo", new String[] { "a" },
+						"A", "INSTRUMENTATION"));
 	}
 
 	@Test
@@ -86,7 +90,8 @@ class JavaAOPTestCaseTest {
 
 	@Test
 	void testBuilderNullResourceThrows() {
-		JavaAOPTestCase.Builder builder = JavaAOPTestCase.builder().javaAOPTestCaseSupported(JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION);
+		JavaAOPTestCase.Builder builder = JavaAOPTestCase.builder()
+				.javaAOPTestCaseSupported(JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION);
 
 		assertThrows(SecurityException.class, builder::build);
 	}
@@ -95,7 +100,9 @@ class JavaAOPTestCaseTest {
 	void testBuilderNullAllowedThrows() {
 		Supplier<List<?>> supplier = Collections::emptyList;
 
-		JavaAOPTestCase.Builder builder = JavaAOPTestCase.builder().javaAOPTestCaseSupported(JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION).resourceAccessSupplier(supplier);
+		JavaAOPTestCase.Builder builder = JavaAOPTestCase.builder()
+				.javaAOPTestCaseSupported(JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION)
+				.resourceAccessSupplier(supplier);
 
 		assertThrows(SecurityException.class, builder::build);
 	}
@@ -105,7 +112,9 @@ class JavaAOPTestCaseTest {
 		Supplier<List<?>> supplier = List::of;
 		Set<ClassPermission> allowed = Set.of();
 
-		JavaAOPTestCase tc = JavaAOPTestCase.builder().javaAOPTestCaseSupported(JavaAOPTestCaseSupported.NETWORK_CONNECTION).resourceAccessSupplier(supplier).allowedClasses(allowed).build();
+		JavaAOPTestCase tc = JavaAOPTestCase.builder()
+				.javaAOPTestCaseSupported(JavaAOPTestCaseSupported.NETWORK_CONNECTION).resourceAccessSupplier(supplier)
+				.allowedClasses(allowed).build();
 
 		assertEquals(JavaAOPTestCaseSupported.NETWORK_CONNECTION, tc.getAopTestCaseSupported());
 
@@ -119,7 +128,9 @@ class JavaAOPTestCaseTest {
 		Supplier<List<?>> supplier = Collections::emptyList;
 		Set<ClassPermission> allowed = Set.of();
 
-		JavaAOPTestCase tc = JavaAOPTestCase.builder().javaAOPTestCaseSupported(JavaAOPTestCaseSupported.COMMAND_EXECUTION).resourceAccessSupplier(supplier).allowedClasses(allowed).build();
+		JavaAOPTestCase tc = JavaAOPTestCase.builder()
+				.javaAOPTestCaseSupported(JavaAOPTestCaseSupported.COMMAND_EXECUTION).resourceAccessSupplier(supplier)
+				.allowedClasses(allowed).build();
 
 		assertEquals("", tc.writeAOPTestCase("arch", "mode"));
 	}
@@ -131,7 +142,9 @@ class JavaAOPTestCaseTest {
 		Supplier<List<?>> supplier = Collections::emptyList;
 		Set<ClassPermission> allowed = Set.of();
 
-		JavaAOPTestCase tc = JavaAOPTestCase.builder().javaAOPTestCaseSupported(JavaAOPTestCaseSupported.NETWORK_CONNECTION).resourceAccessSupplier(supplier).allowedClasses(allowed).build();
+		JavaAOPTestCase tc = JavaAOPTestCase.builder()
+				.javaAOPTestCaseSupported(JavaAOPTestCaseSupported.NETWORK_CONNECTION).resourceAccessSupplier(supplier)
+				.allowedClasses(allowed).build();
 
 		tc.executeAOPTestCase("A", "B");
 
@@ -150,7 +163,9 @@ class JavaAOPTestCaseTest {
 		Supplier<List<?>> supplier = Collections::emptyList;
 		Set<ClassPermission> allowed = Set.of();
 
-		JavaAOPTestCase tc = JavaAOPTestCase.builder().javaAOPTestCaseSupported(JavaAOPTestCaseSupported.COMMAND_EXECUTION).resourceAccessSupplier(supplier).allowedClasses(allowed).build();
+		JavaAOPTestCase tc = JavaAOPTestCase.builder()
+				.javaAOPTestCaseSupported(JavaAOPTestCaseSupported.COMMAND_EXECUTION).resourceAccessSupplier(supplier)
+				.allowedClasses(allowed).build();
 
 		tc.executeAOPTestCase("X", "Y");
 
@@ -169,7 +184,9 @@ class JavaAOPTestCaseTest {
 		Supplier<List<?>> supplier = Collections::emptyList;
 		Set<ClassPermission> allowed = Set.of();
 
-		JavaAOPTestCase tc = JavaAOPTestCase.builder().javaAOPTestCaseSupported(JavaAOPTestCaseSupported.THREAD_CREATION).resourceAccessSupplier(supplier).allowedClasses(allowed).build();
+		JavaAOPTestCase tc = JavaAOPTestCase.builder()
+				.javaAOPTestCaseSupported(JavaAOPTestCaseSupported.THREAD_CREATION).resourceAccessSupplier(supplier)
+				.allowedClasses(allowed).build();
 
 		tc.executeAOPTestCase("X", "Y");
 
@@ -185,7 +202,8 @@ class JavaAOPTestCaseTest {
 	// Object)
 	private String invokeGenerate(String dataType, String adviceSetting, Object value) {
 		try {
-			Method m = JavaAOPTestCase.class.getDeclaredMethod("generateAdviceSettingValue", String.class, String.class, Object.class);
+			Method m = JavaAOPTestCase.class.getDeclaredMethod("generateAdviceSettingValue", String.class, String.class,
+					Object.class);
 			m.setAccessible(true);
 			return (String) m.invoke(null, dataType, adviceSetting, value);
 		} catch (ReflectiveOperationException e) {
@@ -197,7 +215,8 @@ class JavaAOPTestCaseTest {
 	// generateAdviceSettingValue(JavaAOPAdviceSettingTriple)
 	private String invokeGenerate(JavaAOPAdviceSettingTriple triple) {
 		try {
-			Method m = JavaAOPTestCase.class.getDeclaredMethod("generateAdviceSettingValue", JavaAOPAdviceSettingTriple.class);
+			Method m = JavaAOPTestCase.class.getDeclaredMethod("generateAdviceSettingValue",
+					JavaAOPAdviceSettingTriple.class);
 			m.setAccessible(true);
 			return (String) m.invoke(null, triple);
 		} catch (ReflectiveOperationException e) {

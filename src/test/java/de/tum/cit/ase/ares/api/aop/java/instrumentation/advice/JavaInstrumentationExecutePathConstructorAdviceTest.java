@@ -12,20 +12,24 @@ class JavaInstrumentationExecutePathConstructorAdviceTest {
 	private static final String METHOD_NAME = "<init>";
 	private static final String METHOD_SIGNATURE = "";
 	private static final Object[] ATTRIBUTES = new Object[0];
-	private static final Object[] PARAMETERS = new Object[]{ "param1", "param2" };
+	private static final Object[] PARAMETERS = new Object[] { "param1", "param2" };
 
 	@Test
 	void testOnEnter() {
-		try (MockedStatic<JavaInstrumentationAdviceFileSystemToolbox> mockedToolbox = mockStatic(JavaInstrumentationAdviceFileSystemToolbox.class)) {
+		try (MockedStatic<JavaInstrumentationAdviceFileSystemToolbox> mockedToolbox = mockStatic(
+				JavaInstrumentationAdviceFileSystemToolbox.class)) {
 			// Arrange
-			mockedToolbox.when(() -> JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction(OPERATION, CLASS_NAME, METHOD_NAME, METHOD_SIGNATURE, ATTRIBUTES, PARAMETERS, null))
+			mockedToolbox
+					.when(() -> JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction(OPERATION,
+							CLASS_NAME, METHOD_NAME, METHOD_SIGNATURE, ATTRIBUTES, PARAMETERS, null))
 					.thenAnswer(invocation -> null);
 
 			// Act
 			JavaInstrumentationExecutePathConstructorAdvice.onEnter(CLASS_NAME, PARAMETERS);
 
 			// Assert
-			mockedToolbox.verify(() -> JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction(OPERATION, CLASS_NAME, METHOD_NAME, METHOD_SIGNATURE, ATTRIBUTES, PARAMETERS, null));
+			mockedToolbox.verify(() -> JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction(OPERATION,
+					CLASS_NAME, METHOD_NAME, METHOD_SIGNATURE, ATTRIBUTES, PARAMETERS, null));
 		}
 	}
 }

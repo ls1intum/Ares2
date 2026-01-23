@@ -8,13 +8,11 @@ import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 
 /**
  * JavaScanner interface for scanning Java project metadata.
- *
  * <p>
  * Description: This interface defines methods to scan Java projects for build
  * mode, test classes, package name, main class and test path. It facilitates
  * the extraction of essential metadata for configuration and testing purposes.
  * </p>
- *
  * <p>
  * Design Rationale: By abstracting the scanning logic into an interface,
  * different scanning strategies can be implemented and integrated seamlessly,

@@ -5,7 +5,8 @@ import java.io.IOException;
 public class ExecuteRuntimeMain {
 
 	private ExecuteRuntimeMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/**
@@ -32,6 +33,6 @@ public class ExecuteRuntimeMain {
 	 */
 	public static Process accessFileSystemViaRuntimeArray() throws IOException {
 		Runtime runtime = Runtime.getRuntime();
-		return runtime.exec(new String[]{ "echo", "test" });
+		return runtime.exec(new String[] { "echo", "test" });
 	}
 }

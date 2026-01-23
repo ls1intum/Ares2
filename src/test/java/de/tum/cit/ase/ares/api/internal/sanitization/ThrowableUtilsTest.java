@@ -29,7 +29,7 @@ class ThrowableUtilsTest {
 			typeEntry(Throwable.class, new Exception(), new Exception(), new Exception()), //
 			typeEntry(IOException.class, new IOException()), //
 			typeEntry(TimeUnit.class, TimeUnit.DAYS), //
-			typeEntry(Object[].class, new Object[]{ "a" }, new Object[]{ "b" }), //
+			typeEntry(Object[].class, new Object[] { "a" }, new Object[] { "b" }), //
 			typeEntry(Method.class, ReflectionSupport.findMethod(String.class, "length").orElseThrow()) //
 	);
 
@@ -55,7 +55,9 @@ class ThrowableUtilsTest {
 			var preferredConstructor = findPreferredConstructor(type);
 			return !validate(type, preferredConstructor);
 		}).sorted(Comparator.comparing(Object::toString)).collect(Collectors.toList());
-		assertThat(duplicationFailures).as("the default Throwable duplication works for all SAFE_TYPE classes that are not specially handeled").isEmpty();
+		assertThat(duplicationFailures)
+				.as("the default Throwable duplication works for all SAFE_TYPE classes that are not specially handeled")
+				.isEmpty();
 	}
 
 	@Test
@@ -70,7 +72,9 @@ class ThrowableUtilsTest {
 
 			return !validate(type, specificCreator);
 		}).sorted(Comparator.comparing(Object::toString)).collect(Collectors.toList());
-		assertThat(duplicationFailures).as("the Throwable duplication works for all SAFE_TYPE classes that have a designated creator").isEmpty();
+		assertThat(duplicationFailures)
+				.as("the Throwable duplication works for all SAFE_TYPE classes that have a designated creator")
+				.isEmpty();
 	}
 
 	/**
@@ -80,11 +84,13 @@ class ThrowableUtilsTest {
 	 */
 	@Test
 	void checkProperties() {
-		Set<Class<?>> potentiallyUnsafeProperties = ThrowableSets.SAFE_TYPES.stream().map(ThrowableUtils::getPropertiesWithMethods).flatMap(Set::stream).map(Map.Entry::getValue)
+		Set<Class<?>> potentiallyUnsafeProperties = ThrowableSets.SAFE_TYPES.stream()
+				.map(ThrowableUtils::getPropertiesWithMethods).flatMap(Set::stream).map(Map.Entry::getValue)
 				.map(Method::getReturnType).distinct().filter(type -> {
 					Class<?> containedType;
 					if (type.isArray())
-						containedType = Stream.<Class<?>>iterate(type, Class::getComponentType).takeWhile(Objects::nonNull).reduce(null, (a, b) -> b);
+						containedType = Stream.<Class<?>>iterate(type, Class::getComponentType)
+								.takeWhile(Objects::nonNull).reduce(null, (a, b) -> b);
 					else
 						containedType = type;
 					if (containedType.isPrimitive())

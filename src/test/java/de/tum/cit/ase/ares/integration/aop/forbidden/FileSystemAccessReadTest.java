@@ -33,25 +33,29 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = FILE_INPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaFileInputStreamMavenArchunitAspectJ() {
-		assertAresSecurityExceptionRead(FileinputStreamMain::accessFileSystemViaFileInputStream, FileinputStreamMain.class);
+		assertAresSecurityExceptionRead(FileinputStreamMain::accessFileSystemViaFileInputStream,
+				FileinputStreamMain.class);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = FILE_INPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaFileInputStreamMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionRead(FileinputStreamMain::accessFileSystemViaFileInputStream, FileinputStreamMain.class);
+		assertAresSecurityExceptionRead(FileinputStreamMain::accessFileSystemViaFileInputStream,
+				FileinputStreamMain.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = FILE_INPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaFileInputStreamMavenWalaAspectJ() {
-		assertAresSecurityExceptionRead(FileinputStreamMain::accessFileSystemViaFileInputStream, FileinputStreamMain.class);
+		assertAresSecurityExceptionRead(FileinputStreamMain::accessFileSystemViaFileInputStream,
+				FileinputStreamMain.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = FILE_INPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaFileInputStreamMavenWalaInstrumentation() {
-		assertAresSecurityExceptionRead(FileinputStreamMain::accessFileSystemViaFileInputStream, FileinputStreamMain.class);
+		assertAresSecurityExceptionRead(FileinputStreamMain::accessFileSystemViaFileInputStream,
+				FileinputStreamMain.class);
 	}
 	// </editor-fold>
 
@@ -175,25 +179,29 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = CHARACTER_READER_WITHIN_PATH)
 	void test_accessFileSystemViaInputStreamReaderMavenArchunitAspectJ() {
-		assertAresSecurityExceptionRead(InputStreamReader::accessFileSystemViaInputStreamReader, InputStreamReader.class);
+		assertAresSecurityExceptionRead(InputStreamReader::accessFileSystemViaInputStreamReader,
+				InputStreamReader.class);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = CHARACTER_READER_WITHIN_PATH)
 	void test_accessFileSystemViaInputStreamReaderMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionRead(InputStreamReader::accessFileSystemViaInputStreamReader, InputStreamReader.class);
+		assertAresSecurityExceptionRead(InputStreamReader::accessFileSystemViaInputStreamReader,
+				InputStreamReader.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = CHARACTER_READER_WITHIN_PATH)
 	void test_accessFileSystemViaInputStreamReaderMavenWalaAspectJ() {
-		assertAresSecurityExceptionRead(InputStreamReader::accessFileSystemViaInputStreamReader, InputStreamReader.class);
+		assertAresSecurityExceptionRead(InputStreamReader::accessFileSystemViaInputStreamReader,
+				InputStreamReader.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = CHARACTER_READER_WITHIN_PATH)
 	void test_accessFileSystemViaInputStreamReaderMavenWalaInstrumentation() {
-		assertAresSecurityExceptionRead(InputStreamReader::accessFileSystemViaInputStreamReader, InputStreamReader.class);
+		assertAresSecurityExceptionRead(InputStreamReader::accessFileSystemViaInputStreamReader,
+				InputStreamReader.class);
 	}
 	// </editor-fold>
 
@@ -265,25 +273,29 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = CHARACTER_READER_WITHIN_PATH)
 	void test_accessFileSystemViaBufferedReaderReadLineMavenArchunitAspectJ() {
-		assertAresSecurityExceptionRead(BufferedReader::accessFileSystemViaBufferedReaderReadLine, BufferedReader.class);
+		assertAresSecurityExceptionRead(BufferedReader::accessFileSystemViaBufferedReaderReadLine,
+				BufferedReader.class);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = CHARACTER_READER_WITHIN_PATH)
 	void test_accessFileSystemViaBufferedReaderReadLineMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionRead(BufferedReader::accessFileSystemViaBufferedReaderReadLine, BufferedReader.class);
+		assertAresSecurityExceptionRead(BufferedReader::accessFileSystemViaBufferedReaderReadLine,
+				BufferedReader.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = CHARACTER_READER_WITHIN_PATH)
 	void test_accessFileSystemViaBufferedReaderReadLineMavenWalaAspectJ() {
-		assertAresSecurityExceptionRead(BufferedReader::accessFileSystemViaBufferedReaderReadLine, BufferedReader.class);
+		assertAresSecurityExceptionRead(BufferedReader::accessFileSystemViaBufferedReaderReadLine,
+				BufferedReader.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = CHARACTER_READER_WITHIN_PATH)
 	void test_accessFileSystemViaBufferedReaderReadLineMavenWalaInstrumentation() {
-		assertAresSecurityExceptionRead(BufferedReader::accessFileSystemViaBufferedReaderReadLine, BufferedReader.class);
+		assertAresSecurityExceptionRead(BufferedReader::accessFileSystemViaBufferedReaderReadLine,
+				BufferedReader.class);
 	}
 	// </editor-fold>
 
@@ -325,25 +337,29 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = WHOLE_FILE_CONVENIENCE_WITHIN_PATH)
 	void test_accessFileSystemViaFilesReadAllBytesMavenArchunitAspectJ() {
-		assertAresSecurityExceptionRead(FilesReadAllBytes::accessFileSystemViaFilesReadAllBytes, FilesReadAllBytes.class);
+		assertAresSecurityExceptionRead(FilesReadAllBytes::accessFileSystemViaFilesReadAllBytes,
+				FilesReadAllBytes.class);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = WHOLE_FILE_CONVENIENCE_WITHIN_PATH)
 	void test_accessFileSystemViaFilesReadAllBytesMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionRead(FilesReadAllBytes::accessFileSystemViaFilesReadAllBytes, FilesReadAllBytes.class);
+		assertAresSecurityExceptionRead(FilesReadAllBytes::accessFileSystemViaFilesReadAllBytes,
+				FilesReadAllBytes.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = WHOLE_FILE_CONVENIENCE_WITHIN_PATH)
 	void test_accessFileSystemViaFilesReadAllBytesMavenWalaAspectJ() {
-		assertAresSecurityExceptionRead(FilesReadAllBytes::accessFileSystemViaFilesReadAllBytes, FilesReadAllBytes.class);
+		assertAresSecurityExceptionRead(FilesReadAllBytes::accessFileSystemViaFilesReadAllBytes,
+				FilesReadAllBytes.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = WHOLE_FILE_CONVENIENCE_WITHIN_PATH)
 	void test_accessFileSystemViaFilesReadAllBytesMavenWalaInstrumentation() {
-		assertAresSecurityExceptionRead(FilesReadAllBytes::accessFileSystemViaFilesReadAllBytes, FilesReadAllBytes.class);
+		assertAresSecurityExceptionRead(FilesReadAllBytes::accessFileSystemViaFilesReadAllBytes,
+				FilesReadAllBytes.class);
 	}
 	// </editor-fold>
 
@@ -385,25 +401,29 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = WHOLE_FILE_CONVENIENCE_WITHIN_PATH)
 	void test_accessFileSystemViaFilesReadAllLinesMavenArchunitAspectJ() {
-		assertAresSecurityExceptionRead(FilesReadAllLines::accessFileSystemViaFilesReadAllLines, FilesReadAllLines.class);
+		assertAresSecurityExceptionRead(FilesReadAllLines::accessFileSystemViaFilesReadAllLines,
+				FilesReadAllLines.class);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = WHOLE_FILE_CONVENIENCE_WITHIN_PATH)
 	void test_accessFileSystemViaFilesReadAllLinesMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionRead(FilesReadAllLines::accessFileSystemViaFilesReadAllLines, FilesReadAllLines.class);
+		assertAresSecurityExceptionRead(FilesReadAllLines::accessFileSystemViaFilesReadAllLines,
+				FilesReadAllLines.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = WHOLE_FILE_CONVENIENCE_WITHIN_PATH)
 	void test_accessFileSystemViaFilesReadAllLinesMavenWalaAspectJ() {
-		assertAresSecurityExceptionRead(FilesReadAllLines::accessFileSystemViaFilesReadAllLines, FilesReadAllLines.class);
+		assertAresSecurityExceptionRead(FilesReadAllLines::accessFileSystemViaFilesReadAllLines,
+				FilesReadAllLines.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = WHOLE_FILE_CONVENIENCE_WITHIN_PATH)
 	void test_accessFileSystemViaFilesReadAllLinesMavenWalaInstrumentation() {
-		assertAresSecurityExceptionRead(FilesReadAllLines::accessFileSystemViaFilesReadAllLines, FilesReadAllLines.class);
+		assertAresSecurityExceptionRead(FilesReadAllLines::accessFileSystemViaFilesReadAllLines,
+				FilesReadAllLines.class);
 	}
 	// </editor-fold>
 
@@ -445,25 +465,29 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = CHARACTER_READER_WITHIN_PATH)
 	void test_accessFileSystemViaFilesNewBufferedReaderMavenArchunitAspectJ() {
-		assertAresSecurityExceptionRead(FilesNewBufferedReader::accessFileSystemViaFilesNewBufferedReader, FilesNewBufferedReader.class);
+		assertAresSecurityExceptionRead(FilesNewBufferedReader::accessFileSystemViaFilesNewBufferedReader,
+				FilesNewBufferedReader.class);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = CHARACTER_READER_WITHIN_PATH)
 	void test_accessFileSystemViaFilesNewBufferedReaderMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionRead(FilesNewBufferedReader::accessFileSystemViaFilesNewBufferedReader, FilesNewBufferedReader.class);
+		assertAresSecurityExceptionRead(FilesNewBufferedReader::accessFileSystemViaFilesNewBufferedReader,
+				FilesNewBufferedReader.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = CHARACTER_READER_WITHIN_PATH)
 	void test_accessFileSystemViaFilesNewBufferedReaderMavenWalaAspectJ() {
-		assertAresSecurityExceptionRead(FilesNewBufferedReader::accessFileSystemViaFilesNewBufferedReader, FilesNewBufferedReader.class);
+		assertAresSecurityExceptionRead(FilesNewBufferedReader::accessFileSystemViaFilesNewBufferedReader,
+				FilesNewBufferedReader.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = CHARACTER_READER_WITHIN_PATH)
 	void test_accessFileSystemViaFilesNewBufferedReaderMavenWalaInstrumentation() {
-		assertAresSecurityExceptionRead(FilesNewBufferedReader::accessFileSystemViaFilesNewBufferedReader, FilesNewBufferedReader.class);
+		assertAresSecurityExceptionRead(FilesNewBufferedReader::accessFileSystemViaFilesNewBufferedReader,
+				FilesNewBufferedReader.class);
 	}
 	// </editor-fold>
 
@@ -475,25 +499,29 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = FILE_INPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaFilesNewInputStreamMavenArchunitAspectJ() {
-		assertAresSecurityExceptionRead(FilesNewInputStream::accessFileSystemViaFilesNewInputStream, FilesNewInputStream.class);
+		assertAresSecurityExceptionRead(FilesNewInputStream::accessFileSystemViaFilesNewInputStream,
+				FilesNewInputStream.class);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = FILE_INPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaFilesNewInputStreamMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionRead(FilesNewInputStream::accessFileSystemViaFilesNewInputStream, FilesNewInputStream.class);
+		assertAresSecurityExceptionRead(FilesNewInputStream::accessFileSystemViaFilesNewInputStream,
+				FilesNewInputStream.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = FILE_INPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaFilesNewInputStreamMavenWalaAspectJ() {
-		assertAresSecurityExceptionRead(FilesNewInputStream::accessFileSystemViaFilesNewInputStream, FilesNewInputStream.class);
+		assertAresSecurityExceptionRead(FilesNewInputStream::accessFileSystemViaFilesNewInputStream,
+				FilesNewInputStream.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = FILE_INPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaFilesNewInputStreamMavenWalaInstrumentation() {
-		assertAresSecurityExceptionRead(FilesNewInputStream::accessFileSystemViaFilesNewInputStream, FilesNewInputStream.class);
+		assertAresSecurityExceptionRead(FilesNewInputStream::accessFileSystemViaFilesNewInputStream,
+				FilesNewInputStream.class);
 	}
 	// </editor-fold>
 
@@ -535,25 +563,29 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = FILE_INPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaRandomAccessFileReadMavenArchunitAspectJ() {
-		assertAresSecurityExceptionRead(RandomAccessFileRead::accessFileSystemViaRandomAccessFileRead, RandomAccessFileRead.class);
+		assertAresSecurityExceptionRead(RandomAccessFileRead::accessFileSystemViaRandomAccessFileRead,
+				RandomAccessFileRead.class);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = FILE_INPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaRandomAccessFileReadMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionRead(RandomAccessFileRead::accessFileSystemViaRandomAccessFileRead, RandomAccessFileRead.class);
+		assertAresSecurityExceptionRead(RandomAccessFileRead::accessFileSystemViaRandomAccessFileRead,
+				RandomAccessFileRead.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = FILE_INPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaRandomAccessFileReadMavenWalaAspectJ() {
-		assertAresSecurityExceptionRead(RandomAccessFileRead::accessFileSystemViaRandomAccessFileRead, RandomAccessFileRead.class);
+		assertAresSecurityExceptionRead(RandomAccessFileRead::accessFileSystemViaRandomAccessFileRead,
+				RandomAccessFileRead.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = FILE_INPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaRandomAccessFileReadMavenWalaInstrumentation() {
-		assertAresSecurityExceptionRead(RandomAccessFileRead::accessFileSystemViaRandomAccessFileRead, RandomAccessFileRead.class);
+		assertAresSecurityExceptionRead(RandomAccessFileRead::accessFileSystemViaRandomAccessFileRead,
+				RandomAccessFileRead.class);
 	}
 	// </editor-fold>
 
@@ -565,25 +597,29 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = FILE_INPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaFilesNewByteChannelMavenArchunitAspectJ() {
-		assertAresSecurityExceptionRead(FilesNewByteChannel::accessFileSystemViaFilesNewByteChannel, FilesNewByteChannel.class);
+		assertAresSecurityExceptionRead(FilesNewByteChannel::accessFileSystemViaFilesNewByteChannel,
+				FilesNewByteChannel.class);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = FILE_INPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaFilesNewByteChannelMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionRead(FilesNewByteChannel::accessFileSystemViaFilesNewByteChannel, FilesNewByteChannel.class);
+		assertAresSecurityExceptionRead(FilesNewByteChannel::accessFileSystemViaFilesNewByteChannel,
+				FilesNewByteChannel.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = FILE_INPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaFilesNewByteChannelMavenWalaAspectJ() {
-		assertAresSecurityExceptionRead(FilesNewByteChannel::accessFileSystemViaFilesNewByteChannel, FilesNewByteChannel.class);
+		assertAresSecurityExceptionRead(FilesNewByteChannel::accessFileSystemViaFilesNewByteChannel,
+				FilesNewByteChannel.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = FILE_INPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaFilesNewByteChannelMavenWalaInstrumentation() {
-		assertAresSecurityExceptionRead(FilesNewByteChannel::accessFileSystemViaFilesNewByteChannel, FilesNewByteChannel.class);
+		assertAresSecurityExceptionRead(FilesNewByteChannel::accessFileSystemViaFilesNewByteChannel,
+				FilesNewByteChannel.class);
 	}
 	// </editor-fold>
 
@@ -595,28 +631,35 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = FILE_INPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaClassLoaderGetResourceAsStreamMavenArchunitAspectJ() {
-		assertAresSecurityExceptionRead(ClassLoaderGetResourceAsStream::accessFileSystemViaClassLoaderGetResourceAsStream, ClassLoaderGetResourceAsStream.class);
+		assertAresSecurityExceptionRead(
+				ClassLoaderGetResourceAsStream::accessFileSystemViaClassLoaderGetResourceAsStream,
+				ClassLoaderGetResourceAsStream.class);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = FILE_INPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaClassLoaderGetResourceAsStreamMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionRead(ClassLoaderGetResourceAsStream::accessFileSystemViaClassLoaderGetResourceAsStream, ClassLoaderGetResourceAsStream.class);
+		assertAresSecurityExceptionRead(
+				ClassLoaderGetResourceAsStream::accessFileSystemViaClassLoaderGetResourceAsStream,
+				ClassLoaderGetResourceAsStream.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = FILE_INPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaClassLoaderGetResourceAsStreamMavenWalaAspectJ() {
-		assertAresSecurityExceptionRead(ClassLoaderGetResourceAsStream::accessFileSystemViaClassLoaderGetResourceAsStream, ClassLoaderGetResourceAsStream.class);
+		assertAresSecurityExceptionRead(
+				ClassLoaderGetResourceAsStream::accessFileSystemViaClassLoaderGetResourceAsStream,
+				ClassLoaderGetResourceAsStream.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = FILE_INPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaClassLoaderGetResourceAsStreamMavenWalaInstrumentation() {
-		assertAresSecurityExceptionRead(ClassLoaderGetResourceAsStream::accessFileSystemViaClassLoaderGetResourceAsStream, ClassLoaderGetResourceAsStream.class);
+		assertAresSecurityExceptionRead(
+				ClassLoaderGetResourceAsStream::accessFileSystemViaClassLoaderGetResourceAsStream,
+				ClassLoaderGetResourceAsStream.class);
 	}
 	// </editor-fold>
 
 	// </editor-fold>
-
 }

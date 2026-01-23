@@ -7,7 +7,8 @@ import java.io.LineNumberReader;
 public class ReadLineNumberReaderMain {
 
 	private ReadLineNumberReaderMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/**
@@ -16,7 +17,8 @@ public class ReadLineNumberReaderMain {
 	 * @return The content of the trusted file as string with line numbers
 	 */
 	public static String accessFileSystemViaLineNumberReader() throws IOException {
-		try (LineNumberReader reader = new LineNumberReader(new FileReader("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"))) {
+		try (LineNumberReader reader = new LineNumberReader(
+				new FileReader("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"))) {
 			String line;
 			StringBuilder content = new StringBuilder();
 

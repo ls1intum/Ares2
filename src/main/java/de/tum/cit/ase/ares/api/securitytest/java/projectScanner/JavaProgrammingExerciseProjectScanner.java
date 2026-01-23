@@ -13,6 +13,7 @@ public class JavaProgrammingExerciseProjectScanner extends JavaProjectScanner {
 	private String getDefaultPackage() {
 		return "de.tum.cit.ase";
 	}
+
 	/**
 	 * Default main class name used if no main class is detected.
 	 */
@@ -55,5 +56,4 @@ public class JavaProgrammingExerciseProjectScanner extends JavaProjectScanner {
 		return "Main".equals(result) ? getDefaultMainClass() : result;
 	}
 	// </editor-fold>
-
 }

@@ -11,7 +11,8 @@ public class ObjectOutputStreamWriteMain {
 	private static final String NOT_TRUSTED_DAT = NOT_TRUSTED_DIR + "/nottrusted.dat";
 
 	private ObjectOutputStreamWriteMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	// Sample serializable class for demonstration
@@ -19,6 +20,7 @@ public class ObjectOutputStreamWriteMain {
 		private static final long serialVersionUID = 1L;
 		private final String name;
 		private final int age;
+
 		Person(String name, int age) {
 			this.name = name;
 			this.age = age;

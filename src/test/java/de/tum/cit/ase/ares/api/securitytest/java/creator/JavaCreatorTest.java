@@ -30,13 +30,11 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
 
 /**
  * Test suite for the JavaCreator class.
- *
  * <p>
  * Description: This class contains unit tests that verify the creation of Java
  * security test cases based on security policies. It tests the interaction with
  * build modes, architecture modes, and AOP modes, as well as the preparation of
  * allowed packages and classes.
- *
  * <p>
  * Design Rationale: Tests the Creator pattern implementation for Java projects,
  * ensuring proper delegation to specialized components and correct handling of
@@ -139,11 +137,13 @@ public class JavaCreatorTest {
 			when(buildMode.getClasspath(tempDir)).thenReturn(classpath);
 			when(architectureMode.getJavaClasses(classpath)).thenReturn(javaClasses);
 			when(architectureMode.getCallGraph(classpath)).thenReturn(callGraph);
-			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of(new PackagePermission("allowed.package")));
+			when(resourceAccesses.regardingPackageImports())
+					.thenReturn(List.of(new PackagePermission("allowed.package")));
 
 			// Act
-			assertDoesNotThrow(() -> javaCreator.createTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses, testClasses, packageName, mainClassName,
-					architectureTestCases, aopTestCases, phobosTestCases, resourceAccesses, tempDir));
+			assertDoesNotThrow(() -> javaCreator.createTestCases(buildMode, architectureMode, aopMode,
+					essentialPackages, essentialClasses, testClasses, packageName, mainClassName, architectureTestCases,
+					aopTestCases, phobosTestCases, resourceAccesses, tempDir));
 
 			// Assert
 			verify(buildMode).getClasspath(tempDir);
@@ -172,8 +172,9 @@ public class JavaCreatorTest {
 			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
 
 			// Act & Assert
-			assertDoesNotThrow(() -> javaCreator.createTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses, testClasses, packageName, mainClassName,
-					architectureTestCases, aopTestCases, phobosTestCases, resourceAccesses, tempDir));
+			assertDoesNotThrow(() -> javaCreator.createTestCases(buildMode, architectureMode, aopMode,
+					essentialPackages, essentialClasses, testClasses, packageName, mainClassName, architectureTestCases,
+					aopTestCases, phobosTestCases, resourceAccesses, tempDir));
 		}
 
 		@Test
@@ -196,8 +197,9 @@ public class JavaCreatorTest {
 			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
 
 			// Act & Assert
-			assertDoesNotThrow(() -> javaCreator.createTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses, testClasses, packageName, mainClassName,
-					architectureTestCases, aopTestCases, phobosTestCases, resourceAccesses, tempDir));
+			assertDoesNotThrow(() -> javaCreator.createTestCases(buildMode, architectureMode, aopMode,
+					essentialPackages, essentialClasses, testClasses, packageName, mainClassName, architectureTestCases,
+					aopTestCases, phobosTestCases, resourceAccesses, tempDir));
 		}
 
 		@Test
@@ -220,11 +222,13 @@ public class JavaCreatorTest {
 			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
 
 			// Act - Call twice to test caching
-			javaCreator.createTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses, testClasses, packageName, mainClassName, architectureTestCases, aopTestCases,
-					phobosTestCases, resourceAccesses, tempDir);
+			javaCreator.createTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
+					testClasses, packageName, mainClassName, architectureTestCases, aopTestCases, phobosTestCases,
+					resourceAccesses, tempDir);
 
-			javaCreator.createTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses, testClasses, packageName, mainClassName, new ArrayList<>(), new ArrayList<>(),
-					new ArrayList<>(), resourceAccesses, tempDir);
+			javaCreator.createTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
+					testClasses, packageName, mainClassName, new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
+					resourceAccesses, tempDir);
 
 			// Assert - Each method should be called twice due to new cache instances
 			verify(buildMode, times(2)).getClasspath(tempDir);
@@ -252,8 +256,9 @@ public class JavaCreatorTest {
 			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
 
 			// Act
-			javaCreator.createTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses, testClasses, packageName, mainClassName, architectureTestCases, aopTestCases,
-					phobosTestCases, resourceAccesses, tempDir);
+			javaCreator.createTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
+					testClasses, packageName, mainClassName, architectureTestCases, aopTestCases, phobosTestCases,
+					resourceAccesses, tempDir);
 
 			// Assert - The lists should be modified (exact contents depend on
 			// implementation details)
@@ -302,8 +307,10 @@ public class JavaCreatorTest {
 			when(buildMode.getClasspath(tempDir)).thenThrow(new IllegalArgumentException("Invalid path"));
 
 			// Act & Assert - Should propagate exceptions properly
-			assertThrows(IllegalArgumentException.class, () -> javaCreator.createTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses, testClasses, packageName,
-					mainClassName, architectureTestCases, aopTestCases, phobosTestCases, resourceAccesses, tempDir));
+			assertThrows(IllegalArgumentException.class,
+					() -> javaCreator.createTestCases(buildMode, architectureMode, aopMode, essentialPackages,
+							essentialClasses, testClasses, packageName, mainClassName, architectureTestCases,
+							aopTestCases, phobosTestCases, resourceAccesses, tempDir));
 		}
 
 		@Test
@@ -322,8 +329,10 @@ public class JavaCreatorTest {
 			when(buildMode.getClasspath(tempDir)).thenThrow(new RuntimeException("Build error"));
 
 			// Act & Assert
-			assertThrows(RuntimeException.class, () -> javaCreator.createTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses, testClasses, packageName, mainClassName,
-					architectureTestCases, aopTestCases, phobosTestCases, resourceAccesses, tempDir));
+			assertThrows(RuntimeException.class,
+					() -> javaCreator.createTestCases(buildMode, architectureMode, aopMode, essentialPackages,
+							essentialClasses, testClasses, packageName, mainClassName, architectureTestCases,
+							aopTestCases, phobosTestCases, resourceAccesses, tempDir));
 		}
 	}
 }

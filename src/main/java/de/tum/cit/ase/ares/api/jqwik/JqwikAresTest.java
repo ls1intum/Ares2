@@ -8,9 +8,9 @@ import java.lang.annotation.*;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 
-import de.tum.cit.ase.ares.api.context.TestType;
-
 import net.jqwik.api.lifecycle.*;
+
+import de.tum.cit.ase.ares.api.context.TestType;
 
 /**
  * This is only for internal use, to reduce redundancy.

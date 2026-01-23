@@ -4,6 +4,15 @@ import java.security.ProtectionDomain;
 import java.util.List;
 import java.util.Map;
 
+import net.bytebuddy.agent.builder.AgentBuilder;
+import net.bytebuddy.description.method.MethodDescription;
+import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.dynamic.ClassFileLocator;
+import net.bytebuddy.dynamic.DynamicType;
+import net.bytebuddy.dynamic.loading.ClassInjector;
+import net.bytebuddy.matcher.ElementMatcher;
+import net.bytebuddy.utility.JavaModule;
+
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
@@ -23,15 +32,6 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentati
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathConstructorAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathMethodAdvice;
 
-import net.bytebuddy.agent.builder.AgentBuilder;
-import net.bytebuddy.description.method.MethodDescription;
-import net.bytebuddy.description.type.TypeDescription;
-import net.bytebuddy.dynamic.ClassFileLocator;
-import net.bytebuddy.dynamic.DynamicType;
-import net.bytebuddy.dynamic.loading.ClassInjector;
-import net.bytebuddy.matcher.ElementMatcher;
-import net.bytebuddy.utility.JavaModule;
-
 /**
  * This class provides the definitions for the bindings of the Java
  * instrumentation. It is responsible for creating the bindings for different
@@ -49,7 +49,8 @@ public class JavaInstrumentationBindingDefinitions {
 	 * This class is a utility class and should not be instantiated.
 	 */
 	private JavaInstrumentationBindingDefinitions() {
-		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.general.utility.initialization"));
+		throw new SecurityException(
+				JavaInstrumentationAdviceAbstractToolbox.localize("security.general.utility.initialization"));
 	}
 	// </editor-fold>
 
@@ -57,20 +58,23 @@ public class JavaInstrumentationBindingDefinitions {
 	/**
 	 * Creates method bindings for pointcuts that can create files or directories.
 	 *
-	 * @param builder the current dynamic type builder
-	 * @param typeDescription description of the type being transformed
-	 * @param classLoader loader that defined the type
-	 * @param javaModule originating module (ignored)
+	 * @param builder          the current dynamic type builder
+	 * @param typeDescription  description of the type being transformed
+	 * @param classLoader      loader that defined the type
+	 * @param javaModule       originating module (ignored)
 	 * @param protectionDomain originating protection domain (ignored)
 	 * @return builder enriched with the binding
 	 */
-	public static DynamicType.Builder<?> createCreatePathMethodBinding(DynamicType.Builder<?> builder, TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
+	public static DynamicType.Builder<?> createCreatePathMethodBinding(DynamicType.Builder<?> builder,
+			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain, JavaInstrumentationPointcutDefinitions.methodsWhichCanCreateFiles,
+			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+					JavaInstrumentationPointcutDefinitions.methodsWhichCanCreateFiles,
 					JavaInstrumentationCreatePathMethodAdvice.class);
 		} catch (Exception e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.create.method.binding.error"), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.instrumentation.create.method.binding.error"), e);
 		}
 	}
 
@@ -78,20 +82,23 @@ public class JavaInstrumentationBindingDefinitions {
 	 * Creates constructor bindings for pointcuts that can create files or
 	 * directories.
 	 *
-	 * @param builder the current dynamic type builder
-	 * @param typeDescription description of the type being transformed
-	 * @param classLoader loader that defined the type
-	 * @param javaModule originating module (ignored)
+	 * @param builder          the current dynamic type builder
+	 * @param typeDescription  description of the type being transformed
+	 * @param classLoader      loader that defined the type
+	 * @param javaModule       originating module (ignored)
 	 * @param protectionDomain originating protection domain (ignored)
 	 * @return builder enriched with the binding
 	 */
-	public static DynamicType.Builder<?> createCreatePathConstructorBinding(DynamicType.Builder<?> builder, TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
+	public static DynamicType.Builder<?> createCreatePathConstructorBinding(DynamicType.Builder<?> builder,
+			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain, JavaInstrumentationPointcutDefinitions.methodsWhichCanCreateFiles,
+			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+					JavaInstrumentationPointcutDefinitions.methodsWhichCanCreateFiles,
 					JavaInstrumentationCreatePathConstructorAdvice.class);
 		} catch (Exception e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.create.constructor.binding.error"), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.instrumentation.create.constructor.binding.error"), e);
 		}
 	}
 	// </editor-fold>
@@ -105,45 +112,52 @@ public class JavaInstrumentationBindingDefinitions {
 	 * interacting with the file system, preventing unauthorized actions such as
 	 * file manipulation or access.
 	 *
-	 * @param builder The builder used to create the binding.
+	 * @param builder         The builder used to create the binding.
 	 * @param typeDescription The description of the class whose methods are being
-	 *            instrumented.
-	 * @param classLoader The class loader responsible for loading the class.
-	 * @param pointcuts The pointcuts that specify which methods should be
-	 *            instrumented.
-	 * @param advice The advice to be applied to the methods matched by the
-	 *            pointcuts.
+	 *                        instrumented.
+	 * @param classLoader     The class loader responsible for loading the class.
+	 * @param pointcuts       The pointcuts that specify which methods should be
+	 *                        instrumented.
+	 * @param advice          The advice to be applied to the methods matched by the
+	 *                        pointcuts.
 	 * @return The builder with the binding applied.
 	 * @throws SecurityException If the binding could not be created, preventing the
-	 *             enforcement of security policies.
+	 *                           enforcement of security policies.
 	 */
-	private static DynamicType.Builder<?> createMethodBinding(DynamicType.Builder<?> builder, TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
+	private static DynamicType.Builder<?> createMethodBinding(DynamicType.Builder<?> builder,
+			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain, Map<String, List<String>> pointcuts, Class<?> advice) {
 		try {
 			String adviceClassName = advice.getName();
-			ElementMatcher<? super MethodDescription> matcher = JavaInstrumentationPointcutDefinitions.getMethodsMatcher(typeDescription, pointcuts);
+			ElementMatcher<? super MethodDescription> matcher = JavaInstrumentationPointcutDefinitions
+					.getMethodsMatcher(typeDescription, pointcuts);
 
-			AgentBuilder.Transformer.ForAdvice transformer = new AgentBuilder.Transformer.ForAdvice().include(advice.getClassLoader()).advice(matcher, adviceClassName);
+			AgentBuilder.Transformer.ForAdvice transformer = new AgentBuilder.Transformer.ForAdvice()
+					.include(advice.getClassLoader()).advice(matcher, adviceClassName);
 
 			// Invoke the transformer rather than builder.visit(...)
 			return transformer.transform(builder, typeDescription, classLoader, javaModule, protectionDomain);
 		} catch (Exception e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.binding.error"), e);
+			throw new SecurityException(
+					JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.binding.error"), e);
 		}
 	}
 
-	private static DynamicType.Builder<?> createConstructorBinding(DynamicType.Builder<?> builder, TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
+	private static DynamicType.Builder<?> createConstructorBinding(DynamicType.Builder<?> builder,
+			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain, Map<String, List<String>> pointcuts, Class<?> advice) {
 		try {
 			String adviceClassName = advice.getName();
-			ElementMatcher<? super MethodDescription> matcher = JavaInstrumentationPointcutDefinitions.getConstructorsMatcher(typeDescription, pointcuts);
+			ElementMatcher<? super MethodDescription> matcher = JavaInstrumentationPointcutDefinitions
+					.getConstructorsMatcher(typeDescription, pointcuts);
 
-			AgentBuilder.Transformer.ForAdvice transformer = new AgentBuilder.Transformer.ForAdvice().include(advice.getClassLoader()).advice(matcher, adviceClassName);
+			AgentBuilder.Transformer.ForAdvice transformer = new AgentBuilder.Transformer.ForAdvice()
+					.include(advice.getClassLoader()).advice(matcher, adviceClassName);
 
 			return transformer.transform(builder, typeDescription, classLoader, javaModule, protectionDomain);
-
 		} catch (Exception e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.binding.error"), e);
+			throw new SecurityException(
+					JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.binding.error"), e);
 		}
 	}
 
@@ -156,10 +170,10 @@ public class JavaInstrumentationBindingDefinitions {
 	 * file interactions comply with the security policies defined in the advice.
 	 *
 	 * @param classLoader The class loader responsible for loading the toolbox
-	 *            classes.
+	 *                    classes.
 	 * @throws SecurityException If the toolbox classes could not be loaded into the
-	 *             bootstrap loader, potentially affecting the integrity of the
-	 *             security checks.
+	 *                           bootstrap loader, potentially affecting the
+	 *                           integrity of the security checks.
 	 */
 	private static void loadToolbox(ClassLoader classLoader) {
 		try {
@@ -169,12 +183,13 @@ public class JavaInstrumentationBindingDefinitions {
 					.inject(Map.of(new TypeDescription.ForLoadedType(JavaInstrumentationAdviceFileSystemToolbox.class),
 							ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceFileSystemToolbox.class),
 							new TypeDescription.ForLoadedType(JavaInstrumentationAdviceThreadSystemToolbox.class),
-							ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceThreadSystemToolbox.class), new TypeDescription.ForLoadedType(JavaAOPTestCaseSettings.class),
+							ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceThreadSystemToolbox.class),
+							new TypeDescription.ForLoadedType(JavaAOPTestCaseSettings.class),
 							ClassFileLocator.ForClassLoader.read(JavaAOPTestCaseSettings.class)));
 		} catch (Exception e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.binding.bootstrap.loader.failure", String.valueOf(e.getMessage())), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+					"security.instrumentation.binding.bootstrap.loader.failure", String.valueOf(e.getMessage())), e);
 		}
-
 	}
 	// </editor-fold>
 
@@ -186,34 +201,42 @@ public class JavaInstrumentationBindingDefinitions {
 	 * read files are invoked. This helps to enforce security policies related to
 	 * file read operations, preventing unauthorized access to files.
 	 *
-	 * @param builder The builder used to create the binding.
-	 * @param typeDescription The description of the class whose methods are being
-	 *            instrumented.
-	 * @param classLoader The class loader responsible for loading the class.
-	 * @param javaModule The Java module being ignored (for compatibility reasons).
+	 * @param builder          The builder used to create the binding.
+	 * @param typeDescription  The description of the class whose methods are being
+	 *                         instrumented.
+	 * @param classLoader      The class loader responsible for loading the class.
+	 * @param javaModule       The Java module being ignored (for compatibility
+	 *                         reasons).
 	 * @param protectionDomain The protection domain being ignored (for
-	 *            compatibility reasons).
+	 *                         compatibility reasons).
 	 * @return The builder with the binding applied for file read operations.
 	 * @throws SecurityException If the binding could not be created for the read
-	 *             path, preventing the security advice from being applied.
+	 *                           path, preventing the security advice from being
+	 *                           applied.
 	 */
-	public static DynamicType.Builder<?> createReadPathMethodBinding(DynamicType.Builder<?> builder, TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
+	public static DynamicType.Builder<?> createReadPathMethodBinding(DynamicType.Builder<?> builder,
+			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain, JavaInstrumentationPointcutDefinitions.methodsWhichCanReadFiles,
+			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+					JavaInstrumentationPointcutDefinitions.methodsWhichCanReadFiles,
 					JavaInstrumentationReadPathMethodAdvice.class);
 		} catch (Exception e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.read.method.binding.error"), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.instrumentation.read.method.binding.error"), e);
 		}
 	}
 
-	public static DynamicType.Builder<?> createReadPathConstructorBinding(DynamicType.Builder<?> builder, TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
+	public static DynamicType.Builder<?> createReadPathConstructorBinding(DynamicType.Builder<?> builder,
+			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain, JavaInstrumentationPointcutDefinitions.methodsWhichCanReadFiles,
+			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+					JavaInstrumentationPointcutDefinitions.methodsWhichCanReadFiles,
 					JavaInstrumentationReadPathConstructorAdvice.class);
 		} catch (Exception e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.read.constructor.binding.error"), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.instrumentation.read.constructor.binding.error"), e);
 		}
 	}
 	// </editor-fold>
@@ -226,38 +249,43 @@ public class JavaInstrumentationBindingDefinitions {
 	 * when methods that overwrite files are invoked. This ensures that unauthorized
 	 * or potentially harmful file overwriting actions are detected and prevented.
 	 *
-	 * @param builder The builder used to create the binding.
-	 * @param typeDescription The description of the class whose methods are being
-	 *            instrumented.
-	 * @param classLoader The class loader responsible for loading the class.
-	 * @param javaModule The Java module being ignored (for compatibility reasons).
+	 * @param builder          The builder used to create the binding.
+	 * @param typeDescription  The description of the class whose methods are being
+	 *                         instrumented.
+	 * @param classLoader      The class loader responsible for loading the class.
+	 * @param javaModule       The Java module being ignored (for compatibility
+	 *                         reasons).
 	 * @param protectionDomain The protection domain being ignored (for
-	 *            compatibility reasons).
+	 *                         compatibility reasons).
 	 * @return The builder with the binding applied for file overwrite operations.
 	 * @throws SecurityException If the binding could not be created for the
-	 *             overwrite path, preventing the application of security advice for
-	 *             file overwriting operations.
+	 *                           overwrite path, preventing the application of
+	 *                           security advice for file overwriting operations.
 	 */
-	public static DynamicType.Builder<?> createOverwritePathMethodBinding(DynamicType.Builder<?> builder, TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
+	public static DynamicType.Builder<?> createOverwritePathMethodBinding(DynamicType.Builder<?> builder,
+			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain, JavaInstrumentationPointcutDefinitions.methodsWhichCanOverwriteFiles,
+			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+					JavaInstrumentationPointcutDefinitions.methodsWhichCanOverwriteFiles,
 					JavaInstrumentationOverwritePathMethodAdvice.class);
 		} catch (Exception e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.overwrite.method.binding.error"), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.instrumentation.overwrite.method.binding.error"), e);
 		}
-
 	}
 
-	public static DynamicType.Builder<?> createOverwritePathConstructorBinding(DynamicType.Builder<?> builder, TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
+	public static DynamicType.Builder<?> createOverwritePathConstructorBinding(DynamicType.Builder<?> builder,
+			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain, JavaInstrumentationPointcutDefinitions.methodsWhichCanOverwriteFiles,
+			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+					JavaInstrumentationPointcutDefinitions.methodsWhichCanOverwriteFiles,
 					JavaInstrumentationOverwritePathConstructorAdvice.class);
 		} catch (Exception e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.overwrite.constructor.binding.error"), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.instrumentation.overwrite.constructor.binding.error"), e);
 		}
-
 	}
 	// </editor-fold>
 
@@ -269,35 +297,42 @@ public class JavaInstrumentationBindingDefinitions {
 	 * when methods that execute files are invoked. This helps to prevent
 	 * unauthorized file executions that could compromise the system's integrity.
 	 *
-	 * @param builder The builder used to create the binding.
-	 * @param typeDescription The description of the class whose methods are being
-	 *            instrumented.
-	 * @param classLoader The class loader responsible for loading the class.
-	 * @param javaModule The Java module being ignored (for compatibility reasons).
+	 * @param builder          The builder used to create the binding.
+	 * @param typeDescription  The description of the class whose methods are being
+	 *                         instrumented.
+	 * @param classLoader      The class loader responsible for loading the class.
+	 * @param javaModule       The Java module being ignored (for compatibility
+	 *                         reasons).
 	 * @param protectionDomain The protection domain being ignored (for
-	 *            compatibility reasons).
+	 *                         compatibility reasons).
 	 * @return The builder with the binding applied for file execution operations.
 	 * @throws SecurityException If the binding could not be created for the execute
-	 *             path, preventing the enforcement of security policies for file
-	 *             execution.
+	 *                           path, preventing the enforcement of security
+	 *                           policies for file execution.
 	 */
-	public static DynamicType.Builder<?> createExecutePathMethodBinding(DynamicType.Builder<?> builder, TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
+	public static DynamicType.Builder<?> createExecutePathMethodBinding(DynamicType.Builder<?> builder,
+			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain, JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteFiles,
+			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+					JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteFiles,
 					JavaInstrumentationExecutePathMethodAdvice.class);
 		} catch (Exception e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.execute.method.binding.error"), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.instrumentation.execute.method.binding.error"), e);
 		}
 	}
 
-	public static DynamicType.Builder<?> createExecutePathConstructorBinding(DynamicType.Builder<?> builder, TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
+	public static DynamicType.Builder<?> createExecutePathConstructorBinding(DynamicType.Builder<?> builder,
+			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain, JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteFiles,
+			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+					JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteFiles,
 					JavaInstrumentationExecutePathConstructorAdvice.class);
 		} catch (Exception e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.execute.constructor.binding.error"), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.instrumentation.execute.constructor.binding.error"), e);
 		}
 	}
 	// </editor-fold>
@@ -310,35 +345,42 @@ public class JavaInstrumentationBindingDefinitions {
 	 * when methods that delete files are invoked. This safeguards against
 	 * unauthorized or harmful file deletion operations.
 	 *
-	 * @param builder The builder used to create the binding.
-	 * @param typeDescription The description of the class whose methods are being
-	 *            instrumented.
-	 * @param classLoader The class loader responsible for loading the class.
-	 * @param javaModule The Java module being ignored (for compatibility reasons).
+	 * @param builder          The builder used to create the binding.
+	 * @param typeDescription  The description of the class whose methods are being
+	 *                         instrumented.
+	 * @param classLoader      The class loader responsible for loading the class.
+	 * @param javaModule       The Java module being ignored (for compatibility
+	 *                         reasons).
 	 * @param protectionDomain The protection domain being ignored (for
-	 *            compatibility reasons).
+	 *                         compatibility reasons).
 	 * @return The builder with the binding applied for file deletion operations.
 	 * @throws SecurityException If the binding could not be created for the delete
-	 *             path, preventing the enforcement of security policies for file
-	 *             deletion operations.
+	 *                           path, preventing the enforcement of security
+	 *                           policies for file deletion operations.
 	 */
-	public static DynamicType.Builder<?> createDeletePathMethodBinding(DynamicType.Builder<?> builder, TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
+	public static DynamicType.Builder<?> createDeletePathMethodBinding(DynamicType.Builder<?> builder,
+			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain, JavaInstrumentationPointcutDefinitions.methodsWhichCanDeleteFiles,
+			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+					JavaInstrumentationPointcutDefinitions.methodsWhichCanDeleteFiles,
 					JavaInstrumentationDeletePathMethodAdvice.class);
 		} catch (Exception e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.delete.method.binding.error"), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.instrumentation.delete.method.binding.error"), e);
 		}
 	}
 
-	public static DynamicType.Builder<?> createDeletePathConstructorBinding(DynamicType.Builder<?> builder, TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
+	public static DynamicType.Builder<?> createDeletePathConstructorBinding(DynamicType.Builder<?> builder,
+			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain, JavaInstrumentationPointcutDefinitions.methodsWhichCanDeleteFiles,
+			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+					JavaInstrumentationPointcutDefinitions.methodsWhichCanDeleteFiles,
 					JavaInstrumentationDeletePathConstructorAdvice.class);
 		} catch (Exception e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.delete.constructor.binding.error"), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.instrumentation.delete.constructor.binding.error"), e);
 		}
 	}
 	// </editor-fold>
@@ -351,35 +393,42 @@ public class JavaInstrumentationBindingDefinitions {
 	 * when methods that create threads are invoked. This safeguards against
 	 * unauthorized or harmful file deletion operations.
 	 *
-	 * @param builder The builder used to create the binding.
-	 * @param typeDescription The description of the class whose methods are being
-	 *            instrumented.
-	 * @param classLoader The class loader responsible for loading the class.
-	 * @param javaModule The Java module being ignored (for compatibility reasons).
+	 * @param builder          The builder used to create the binding.
+	 * @param typeDescription  The description of the class whose methods are being
+	 *                         instrumented.
+	 * @param classLoader      The class loader responsible for loading the class.
+	 * @param javaModule       The Java module being ignored (for compatibility
+	 *                         reasons).
 	 * @param protectionDomain The protection domain being ignored (for
-	 *            compatibility reasons).
+	 *                         compatibility reasons).
 	 * @return The builder with the binding applied for file deletion operations.
 	 * @throws SecurityException If the binding could not be created for the create
-	 *             thread, preventing the enforcement of security policies for file
-	 *             deletion operations.
+	 *                           thread, preventing the enforcement of security
+	 *                           policies for file deletion operations.
 	 */
-	public static DynamicType.Builder<?> createCreateThreadMethodBinding(DynamicType.Builder<?> builder, TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
+	public static DynamicType.Builder<?> createCreateThreadMethodBinding(DynamicType.Builder<?> builder,
+			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain, JavaInstrumentationPointcutDefinitions.methodsWhichCanCreateThreads,
+			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+					JavaInstrumentationPointcutDefinitions.methodsWhichCanCreateThreads,
 					JavaInstrumentationCreateThreadMethodAdvice.class);
 		} catch (Exception e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.create.thread.method.binding.error"), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.instrumentation.create.thread.method.binding.error"), e);
 		}
 	}
 
-	public static DynamicType.Builder<?> createCreateThreadConstructorBinding(DynamicType.Builder<?> builder, TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
+	public static DynamicType.Builder<?> createCreateThreadConstructorBinding(DynamicType.Builder<?> builder,
+			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain, JavaInstrumentationPointcutDefinitions.methodsWhichCanCreateThreads,
+			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+					JavaInstrumentationPointcutDefinitions.methodsWhichCanCreateThreads,
 					JavaInstrumentationCreateThreadConstructorAdvice.class);
 		} catch (Exception e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.create.thread.constructor.binding.error"), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.instrumentation.create.thread.constructor.binding.error"), e);
 		}
 	}
 	// </editor-fold>
@@ -392,36 +441,43 @@ public class JavaInstrumentationBindingDefinitions {
 	 * when methods that execute commands are invoked. This safeguards against
 	 * unauthorized or harmful command execution operations.
 	 *
-	 * @param builder The builder used to create the binding.
-	 * @param typeDescription The description of the class whose methods are being
-	 *            instrumented.
-	 * @param classLoader The class loader responsible for loading the class.
-	 * @param javaModule The Java module being ignored (for compatibility reasons).
+	 * @param builder          The builder used to create the binding.
+	 * @param typeDescription  The description of the class whose methods are being
+	 *                         instrumented.
+	 * @param classLoader      The class loader responsible for loading the class.
+	 * @param javaModule       The Java module being ignored (for compatibility
+	 *                         reasons).
 	 * @param protectionDomain The protection domain being ignored (for
-	 *            compatibility reasons).
+	 *                         compatibility reasons).
 	 * @return The builder with the binding applied for command execution
 	 *         operations.
 	 * @throws SecurityException If the binding could not be created for the execute
-	 *             command, preventing the enforcement of security policies for
-	 *             command execution operations.
+	 *                           command, preventing the enforcement of security
+	 *                           policies for command execution operations.
 	 */
-	public static DynamicType.Builder<?> createExecuteCommandMethodBinding(DynamicType.Builder<?> builder, TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
+	public static DynamicType.Builder<?> createExecuteCommandMethodBinding(DynamicType.Builder<?> builder,
+			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain, JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteCommands,
+			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+					JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteCommands,
 					JavaInstrumentationExecuteCommandMethodAdvice.class);
 		} catch (Exception e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.execute.command.method.binding.error"), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.instrumentation.execute.command.method.binding.error"), e);
 		}
 	}
 
-	public static DynamicType.Builder<?> createExecuteCommandConstructorBinding(DynamicType.Builder<?> builder, TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
+	public static DynamicType.Builder<?> createExecuteCommandConstructorBinding(DynamicType.Builder<?> builder,
+			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain, JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteCommands,
+			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+					JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteCommands,
 					JavaInstrumentationExecuteCommandConstructorAdvice.class);
 		} catch (Exception e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.execute.command.constructor.binding.error"), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.instrumentation.execute.command.constructor.binding.error"), e);
 		}
 	}
 	// </editor-fold>

@@ -15,13 +15,11 @@ import de.tum.cit.ase.ares.api.policy.reader.yaml.SecurityPolicyYAMLReader;
 
 /**
  * Abstractr class for reading a SecurityPolicy from a file.
- *
  * <p>
  * Description: This interface defines the contract for classes that parse and
  * produce a SecurityPolicy from a given file system path. Implementations
  * should perform any necessary validation and error handling, and must return a
  * valid SecurityPolicy instance.
- *
  * <p>
  * Design Rationale: Declaring this as a functional interface promotes concise
  * implementations using lambda expressions or method references. It cleanly
@@ -63,10 +61,10 @@ public abstract class SecurityPolicyReader {
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 * @param securityPolicyPath the non-null file system path to the security
-	 *            policy file.
+	 *                           policy file.
 	 * @return a non-null SecurityPolicy instance created from the file content.
 	 * @throws SecurityException if an error occurs during reading or parsing the
-	 *             file.
+	 *                           file.
 	 */
 	@Nonnull
 	public abstract SecurityPolicy readSecurityPolicyFrom(@Nonnull Path securityPolicyPath);
@@ -76,8 +74,9 @@ public abstract class SecurityPolicyReader {
 	public static SecurityPolicyReader selectSecurityPolicyReader(Path securityPolicyFilePath) {
 		Preconditions.checkNotNull(securityPolicyFilePath, "securityPolicyFilePath must not be null");
 		return switch (MoreFiles.getFileExtension(securityPolicyFilePath)) {
-			case "yaml", "yml" -> SecurityPolicyYAMLReader.yamlBuilder().yamlMapper(new YAMLMapper()).build();
-			default -> throw new IllegalArgumentException(Messages.localized("policy.reader.unsupported.format", MoreFiles.getFileExtension(securityPolicyFilePath)));
+		case "yaml", "yml" -> SecurityPolicyYAMLReader.yamlBuilder().yamlMapper(new YAMLMapper()).build();
+		default -> throw new IllegalArgumentException(Messages.localized("policy.reader.unsupported.format",
+				MoreFiles.getFileExtension(securityPolicyFilePath)));
 		};
 	}
 	// </editor-fold>

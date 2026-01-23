@@ -5,7 +5,8 @@ import java.nio.file.Path;
 
 public final class DeleteThirdPartyPackageMain {
 
-	private static final Path TRUSTED_FILE = Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/delete/trusteddir/trusted.txt");
+	private static final Path TRUSTED_FILE = Path.of(
+			"src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/delete/trusteddir/trusted.txt");
 
 	private DeleteThirdPartyPackageMain() {
 		throw new SecurityException("utility");

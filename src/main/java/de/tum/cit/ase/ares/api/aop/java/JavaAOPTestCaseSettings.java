@@ -36,7 +36,8 @@ public class JavaAOPTestCaseSettings {
 	 * </p>
 	 */
 	private JavaAOPTestCaseSettings() {
-		throw new SecurityException(Messages.localized("security.general.utility.initialization", "JavaAOPTestCaseSettings"));
+		throw new SecurityException(
+				Messages.localized("security.general.utility.initialization", "JavaAOPTestCaseSettings"));
 	}
 
 	/**

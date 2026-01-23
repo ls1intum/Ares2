@@ -16,11 +16,15 @@ public class JavaArchitectureTestCaseTest {
 		// Test that parseErrorMessage throws SecurityException when there is only one
 		// line in the message
 		AssertionError error = new AssertionError("onlyOneLine");
-		SecurityException thrown = assertThrows(SecurityException.class, () -> JavaArchitectureTestCase.parseErrorMessage(error),
+		SecurityException thrown = assertThrows(SecurityException.class,
+				() -> JavaArchitectureTestCase.parseErrorMessage(error),
 				"parseErrorMessage should throw SecurityException when messageParts length < 2");
 
 		// The message should contain the localized error text
-		assertTrue((thrown.getMessage().contains("Ares Security Error") || thrown.getMessage().contains("Ares Sicherheitsfehler")) && thrown.getMessage().contains("onlyOneLine"),
+		assertTrue(
+				(thrown.getMessage().contains("Ares Security Error")
+						|| thrown.getMessage().contains("Ares Sicherheitsfehler"))
+						&& thrown.getMessage().contains("onlyOneLine"),
 				"Exception message should include localized error text and original message");
 	}
 
@@ -31,9 +35,11 @@ public class JavaArchitectureTestCaseTest {
 		// identifier.
 		String message = "Rule violated 'TestIdentifier' details\nSecond line explanation";
 		AssertionError error = new AssertionError(message);
-		SecurityException thrown = assertThrows(SecurityException.class, () -> JavaArchitectureTestCase.parseErrorMessage(error),
+		SecurityException thrown = assertThrows(SecurityException.class,
+				() -> JavaArchitectureTestCase.parseErrorMessage(error),
 				"parseErrorMessage should throw SecurityException when messageParts length >= 2");
-		assertTrue(thrown.getMessage().contains("TestIdentifier"), "Exception message should include extracted identifier from the first line");
+		assertTrue(thrown.getMessage().contains("TestIdentifier"),
+				"Exception message should include extracted identifier from the first line");
 	}
 
 	@Test
@@ -41,7 +47,9 @@ public class JavaArchitectureTestCaseTest {
 		// Create a minimal JavaArchitectureTestCase using builder, with null
 		// javaClasses to cause NullPointerException in build.
 		assertThrows(NullPointerException.class, () -> {
-			JavaArchitectureTestCase.builder().javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.PACKAGE_IMPORT).allowedPackages(Collections.emptySet()).javaClasses(null).build();
+			JavaArchitectureTestCase.builder()
+					.javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.PACKAGE_IMPORT)
+					.allowedPackages(Collections.emptySet()).javaClasses(null).build();
 		}, "Builder should throw NullPointerException when javaClasses is null");
 	}
 
@@ -50,9 +58,11 @@ public class JavaArchitectureTestCaseTest {
 		// This test checks the unsupported mode branch with valid instance but
 		// unsupported mode.
 		JavaClasses mockJavaClasses = Mockito.mock(JavaClasses.class);
-		JavaArchitectureTestCase instance = JavaArchitectureTestCase.builder().javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.PACKAGE_IMPORT)
+		JavaArchitectureTestCase instance = JavaArchitectureTestCase.builder()
+				.javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.PACKAGE_IMPORT)
 				.allowedPackages(Collections.emptySet()).javaClasses(mockJavaClasses).build();
-		assertThrows(SecurityException.class, () -> instance.writeArchitectureTestCase("UNSUPPORTED", "AOP"), "writeArchitectureTestCase should throw SecurityException for unsupported modes");
+		assertThrows(SecurityException.class, () -> instance.writeArchitectureTestCase("UNSUPPORTED", "AOP"),
+				"writeArchitectureTestCase should throw SecurityException for unsupported modes");
 	}
 
 	@Test
@@ -60,16 +70,20 @@ public class JavaArchitectureTestCaseTest {
 		// This test checks that executeArchitectureTestCase throws SecurityException
 		// for unsupported mode.
 		JavaClasses mockJavaClasses = Mockito.mock(JavaClasses.class);
-		JavaArchitectureTestCase instance = JavaArchitectureTestCase.builder().javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.PACKAGE_IMPORT)
+		JavaArchitectureTestCase instance = JavaArchitectureTestCase.builder()
+				.javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.PACKAGE_IMPORT)
 				.allowedPackages(Collections.emptySet()).javaClasses(mockJavaClasses).build();
-		assertThrows(SecurityException.class, () -> instance.executeArchitectureTestCase("INVALID", "AOP"), "executeArchitectureTestCase should throw SecurityException for invalid mode");
+		assertThrows(SecurityException.class, () -> instance.executeArchitectureTestCase("INVALID", "AOP"),
+				"executeArchitectureTestCase should throw SecurityException for invalid mode");
 	}
 
 	@Test
 	void testBuilder_missingFields_throwsException() {
 		// Test that the builder throws NullPointerException if required fields are
 		// missing, such as javaArchitectureTestCaseSupported.
-		assertThrows(NullPointerException.class, () -> JavaArchitectureTestCase.builder().allowedPackages(Collections.emptySet()).javaClasses(null).build(),
+		assertThrows(
+				NullPointerException.class, () -> JavaArchitectureTestCase.builder()
+						.allowedPackages(Collections.emptySet()).javaClasses(null).build(),
 				"Builder should throw NullPointerException if required fields are missing");
 	}
 }

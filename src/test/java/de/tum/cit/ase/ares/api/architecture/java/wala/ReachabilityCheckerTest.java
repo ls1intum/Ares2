@@ -24,8 +24,10 @@ public class ReachabilityCheckerTest {
 	void findReachableMethods_NullCallGraph_ThrowsSecurityException() {
 		Iterator<com.ibm.wala.ipa.callgraph.CGNode> dummyNodes = Collections.emptyIterator();
 		Predicate<com.ibm.wala.ipa.callgraph.CGNode> dummyFilter = node -> true;
-		SecurityException ex = assertThrows(SecurityException.class, () -> ReachabilityChecker.findReachableMethods(null, dummyNodes, dummyFilter));
-		assertTrue(ex.getMessage().contains("security.common.not.null"), "Expected security.common.not.null for CallGraph");
+		SecurityException ex = assertThrows(SecurityException.class,
+				() -> ReachabilityChecker.findReachableMethods(null, dummyNodes, dummyFilter));
+		assertTrue(ex.getMessage().contains("security.common.not.null"),
+				"Expected security.common.not.null for CallGraph");
 	}
 
 	/**
@@ -35,8 +37,10 @@ public class ReachabilityCheckerTest {
 	void findReachableMethods_NullStartNodes_ThrowsSecurityException() throws Exception {
 		CallGraph dummyGraph = mock(CallGraph.class);
 		Predicate<com.ibm.wala.ipa.callgraph.CGNode> dummyFilter = node -> true;
-		SecurityException ex = assertThrows(SecurityException.class, () -> ReachabilityChecker.findReachableMethods(dummyGraph, null, dummyFilter));
-		assertTrue(ex.getMessage().contains("security.common.not.null"), "Expected security.common.not.null for startNodes");
+		SecurityException ex = assertThrows(SecurityException.class,
+				() -> ReachabilityChecker.findReachableMethods(dummyGraph, null, dummyFilter));
+		assertTrue(ex.getMessage().contains("security.common.not.null"),
+				"Expected security.common.not.null for startNodes");
 	}
 
 	/**
@@ -46,8 +50,10 @@ public class ReachabilityCheckerTest {
 	void findReachableMethods_NullFilter_ThrowsSecurityException() throws Exception {
 		CallGraph dummyGraph = mock(CallGraph.class);
 		Iterator<com.ibm.wala.ipa.callgraph.CGNode> dummyNodes = Collections.emptyIterator();
-		SecurityException ex = assertThrows(SecurityException.class, () -> ReachabilityChecker.findReachableMethods(dummyGraph, dummyNodes, null));
-		assertTrue(ex.getMessage().contains("security.common.not.null"), "Expected security.common.not.null for targetNodeFilter");
+		SecurityException ex = assertThrows(SecurityException.class,
+				() -> ReachabilityChecker.findReachableMethods(dummyGraph, dummyNodes, null));
+		assertTrue(ex.getMessage().contains("security.common.not.null"),
+				"Expected security.common.not.null for targetNodeFilter");
 	}
 
 	/**
@@ -56,8 +62,10 @@ public class ReachabilityCheckerTest {
 	@Test
 	void getEntryPointsFromStudentSubmission_EmptyClassPath_ThrowsSecurityException() {
 		ClassHierarchy dummyHierarchy = mock(ClassHierarchy.class);
-		SecurityException ex = assertThrows(SecurityException.class, () -> ReachabilityChecker.getEntryPointsFromStudentSubmission("   ", dummyHierarchy));
-		assertTrue(ex.getMessage().contains("security.common.not.null"), "Expected security.common.not.null for classPath");
+		SecurityException ex = assertThrows(SecurityException.class,
+				() -> ReachabilityChecker.getEntryPointsFromStudentSubmission("   ", dummyHierarchy));
+		assertTrue(ex.getMessage().contains("security.common.not.null"),
+				"Expected security.common.not.null for classPath");
 	}
 
 	/**
@@ -65,7 +73,9 @@ public class ReachabilityCheckerTest {
 	 */
 	@Test
 	void getEntryPointsFromStudentSubmission_NullHierarchy_ThrowsSecurityException() {
-		SecurityException ex = assertThrows(SecurityException.class, () -> ReachabilityChecker.getEntryPointsFromStudentSubmission("some/path", null));
-		assertTrue(ex.getMessage().contains("security.common.not.null"), "Expected security.common.not.null for ClassHierarchy");
+		SecurityException ex = assertThrows(SecurityException.class,
+				() -> ReachabilityChecker.getEntryPointsFromStudentSubmission("some/path", null));
+		assertTrue(ex.getMessage().contains("security.common.not.null"),
+				"Expected security.common.not.null for ClassHierarchy");
 	}
 }

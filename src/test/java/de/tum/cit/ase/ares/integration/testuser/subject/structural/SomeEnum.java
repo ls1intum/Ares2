@@ -1,7 +1,8 @@
 package de.tum.cit.ase.ares.integration.testuser.subject.structural;
 
 public enum SomeEnum {
-	ONE, TWO;
+	ONE,
+	TWO;
 
 	@Override
 	public String toString() {

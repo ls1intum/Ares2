@@ -39,7 +39,8 @@ public class EssentialClassesTest {
 		@DisplayName("Should create EssentialClasses with valid parameters")
 		void shouldCreateEssentialClassesWithValidParameters() {
 			// Act
-			EssentialClasses essentialClasses = new EssentialClasses(javaClasses, archUnitClasses, walaClasses, aspectJClasses, instrumentationClasses, aresClasses, junitClasses);
+			EssentialClasses essentialClasses = new EssentialClasses(javaClasses, archUnitClasses, walaClasses,
+					aspectJClasses, instrumentationClasses, aresClasses, junitClasses);
 
 			// Assert
 			assertNotNull(essentialClasses);
@@ -56,49 +57,56 @@ public class EssentialClassesTest {
 		@DisplayName("Should throw NullPointerException when essentialJavaClasses is null")
 		void shouldThrowNullPointerExceptionWhenEssentialJavaClassesIsNull() {
 			// Act & Assert
-			assertThrows(NullPointerException.class, () -> new EssentialClasses(null, archUnitClasses, walaClasses, aspectJClasses, instrumentationClasses, aresClasses, junitClasses));
+			assertThrows(NullPointerException.class, () -> new EssentialClasses(null, archUnitClasses, walaClasses,
+					aspectJClasses, instrumentationClasses, aresClasses, junitClasses));
 		}
 
 		@Test
 		@DisplayName("Should throw NullPointerException when essentialArchunitClasses is null")
 		void shouldThrowNullPointerExceptionWhenEssentialArchunitClassesIsNull() {
 			// Act & Assert
-			assertThrows(NullPointerException.class, () -> new EssentialClasses(javaClasses, null, walaClasses, aspectJClasses, instrumentationClasses, aresClasses, junitClasses));
+			assertThrows(NullPointerException.class, () -> new EssentialClasses(javaClasses, null, walaClasses,
+					aspectJClasses, instrumentationClasses, aresClasses, junitClasses));
 		}
 
 		@Test
 		@DisplayName("Should throw NullPointerException when essentialWalaClasses is null")
 		void shouldThrowNullPointerExceptionWhenEssentialWalaClassesIsNull() {
 			// Act & Assert
-			assertThrows(NullPointerException.class, () -> new EssentialClasses(javaClasses, archUnitClasses, null, aspectJClasses, instrumentationClasses, aresClasses, junitClasses));
+			assertThrows(NullPointerException.class, () -> new EssentialClasses(javaClasses, archUnitClasses, null,
+					aspectJClasses, instrumentationClasses, aresClasses, junitClasses));
 		}
 
 		@Test
 		@DisplayName("Should throw NullPointerException when essentialAspectJClasses is null")
 		void shouldThrowNullPointerExceptionWhenEssentialAspectJClassesIsNull() {
 			// Act & Assert
-			assertThrows(NullPointerException.class, () -> new EssentialClasses(javaClasses, archUnitClasses, walaClasses, null, instrumentationClasses, aresClasses, junitClasses));
+			assertThrows(NullPointerException.class, () -> new EssentialClasses(javaClasses, archUnitClasses,
+					walaClasses, null, instrumentationClasses, aresClasses, junitClasses));
 		}
 
 		@Test
 		@DisplayName("Should throw NullPointerException when essentialInstrumentationClasses is null")
 		void shouldThrowNullPointerExceptionWhenEssentialInstrumentationClassesIsNull() {
 			// Act & Assert
-			assertThrows(NullPointerException.class, () -> new EssentialClasses(javaClasses, archUnitClasses, walaClasses, aspectJClasses, null, aresClasses, junitClasses));
+			assertThrows(NullPointerException.class, () -> new EssentialClasses(javaClasses, archUnitClasses,
+					walaClasses, aspectJClasses, null, aresClasses, junitClasses));
 		}
 
 		@Test
 		@DisplayName("Should throw NullPointerException when essentialAresClasses is null")
 		void shouldThrowNullPointerExceptionWhenEssentialAresClassesIsNull() {
 			// Act & Assert
-			assertThrows(NullPointerException.class, () -> new EssentialClasses(javaClasses, archUnitClasses, walaClasses, aspectJClasses, instrumentationClasses, null, junitClasses));
+			assertThrows(NullPointerException.class, () -> new EssentialClasses(javaClasses, archUnitClasses,
+					walaClasses, aspectJClasses, instrumentationClasses, null, junitClasses));
 		}
 
 		@Test
 		@DisplayName("Should throw NullPointerException when essentialJUnitClasses is null")
 		void shouldThrowNullPointerExceptionWhenEssentialJUnitClassesIsNull() {
 			// Act & Assert
-			assertThrows(NullPointerException.class, () -> new EssentialClasses(javaClasses, archUnitClasses, walaClasses, aspectJClasses, instrumentationClasses, aresClasses, null));
+			assertThrows(NullPointerException.class, () -> new EssentialClasses(javaClasses, archUnitClasses,
+					walaClasses, aspectJClasses, instrumentationClasses, aresClasses, null));
 		}
 
 		@Test
@@ -108,7 +116,8 @@ public class EssentialClassesTest {
 			List<String> emptyList = List.of();
 
 			// Act
-			EssentialClasses essentialClasses = new EssentialClasses(emptyList, emptyList, emptyList, emptyList, emptyList, emptyList, emptyList);
+			EssentialClasses essentialClasses = new EssentialClasses(emptyList, emptyList, emptyList, emptyList,
+					emptyList, emptyList, emptyList);
 
 			// Assert
 			assertNotNull(essentialClasses);
@@ -130,7 +139,8 @@ public class EssentialClassesTest {
 		@DisplayName("Should return aggregated list of all essential classes")
 		void shouldReturnAggregatedListOfAllEssentialClasses() {
 			// Arrange
-			EssentialClasses essentialClasses = new EssentialClasses(javaClasses, archUnitClasses, walaClasses, aspectJClasses, instrumentationClasses, aresClasses, junitClasses);
+			EssentialClasses essentialClasses = new EssentialClasses(javaClasses, archUnitClasses, walaClasses,
+					aspectJClasses, instrumentationClasses, aresClasses, junitClasses);
 
 			// Act
 			List<String> result = essentialClasses.getEssentialClasses();
@@ -152,7 +162,8 @@ public class EssentialClassesTest {
 		void shouldReturnEmptyListWhenAllClassListsAreEmpty() {
 			// Arrange
 			List<String> emptyList = List.of();
-			EssentialClasses essentialClasses = new EssentialClasses(emptyList, emptyList, emptyList, emptyList, emptyList, emptyList, emptyList);
+			EssentialClasses essentialClasses = new EssentialClasses(emptyList, emptyList, emptyList, emptyList,
+					emptyList, emptyList, emptyList);
 
 			// Act
 			List<String> result = essentialClasses.getEssentialClasses();
@@ -174,7 +185,8 @@ public class EssentialClassesTest {
 			List<String> ares = List.of("ares1");
 			List<String> junit = List.of("junit1");
 
-			EssentialClasses essentialClasses = new EssentialClasses(java, archUnit, wala, aspectJ, instrumentation, ares, junit);
+			EssentialClasses essentialClasses = new EssentialClasses(java, archUnit, wala, aspectJ, instrumentation,
+					ares, junit);
 
 			// Act
 			List<String> result = essentialClasses.getEssentialClasses();
@@ -211,8 +223,10 @@ public class EssentialClassesTest {
 		@DisplayName("Should build EssentialClasses with all required fields")
 		void shouldBuildEssentialClassesWithAllRequiredFields() {
 			// Act
-			EssentialClasses essentialClasses = EssentialClasses.builder().essentialJavaClasses(javaClasses).essentialArchunitClasses(archUnitClasses).essentialWalaClasses(walaClasses)
-					.essentialAspectJClasses(aspectJClasses).essentialInstrumentationClasses(instrumentationClasses).essentialAresClasses(aresClasses).essentialJUnitClasses(junitClasses).build();
+			EssentialClasses essentialClasses = EssentialClasses.builder().essentialJavaClasses(javaClasses)
+					.essentialArchunitClasses(archUnitClasses).essentialWalaClasses(walaClasses)
+					.essentialAspectJClasses(aspectJClasses).essentialInstrumentationClasses(instrumentationClasses)
+					.essentialAresClasses(aresClasses).essentialJUnitClasses(junitClasses).build();
 
 			// Assert
 			assertNotNull(essentialClasses);
@@ -229,16 +243,21 @@ public class EssentialClassesTest {
 		@DisplayName("Should throw NullPointerException when building with null essentialJavaClasses")
 		void shouldThrowNullPointerExceptionWhenBuildingWithNullEssentialJavaClasses() {
 			// Act & Assert
-			assertThrows(NullPointerException.class, () -> EssentialClasses.builder().essentialJavaClasses(null).essentialArchunitClasses(archUnitClasses).essentialWalaClasses(walaClasses)
-					.essentialAspectJClasses(aspectJClasses).essentialInstrumentationClasses(instrumentationClasses).essentialAresClasses(aresClasses).essentialJUnitClasses(junitClasses).build());
+			assertThrows(NullPointerException.class, () -> EssentialClasses.builder().essentialJavaClasses(null)
+					.essentialArchunitClasses(archUnitClasses).essentialWalaClasses(walaClasses)
+					.essentialAspectJClasses(aspectJClasses).essentialInstrumentationClasses(instrumentationClasses)
+					.essentialAresClasses(aresClasses).essentialJUnitClasses(junitClasses).build());
 		}
 
 		@Test
 		@DisplayName("Should throw NullPointerException when building with missing essentialJavaClasses")
 		void shouldThrowNullPointerExceptionWhenBuildingWithMissingEssentialJavaClasses() {
 			// Act & Assert
-			assertThrows(NullPointerException.class, () -> EssentialClasses.builder().essentialArchunitClasses(archUnitClasses).essentialWalaClasses(walaClasses)
-					.essentialAspectJClasses(aspectJClasses).essentialInstrumentationClasses(instrumentationClasses).essentialAresClasses(aresClasses).essentialJUnitClasses(junitClasses).build());
+			assertThrows(NullPointerException.class,
+					() -> EssentialClasses.builder().essentialArchunitClasses(archUnitClasses)
+							.essentialWalaClasses(walaClasses).essentialAspectJClasses(aspectJClasses)
+							.essentialInstrumentationClasses(instrumentationClasses).essentialAresClasses(aresClasses)
+							.essentialJUnitClasses(junitClasses).build());
 		}
 
 		@Test

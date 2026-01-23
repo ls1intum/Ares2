@@ -4,6 +4,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 
 import net.bytebuddy.asm.Advice;
+
 /**
  * This class provides advice for the execution of methods deleting files. It is
  * responsible for verifying whether the method execution is allowed based on
@@ -27,18 +28,18 @@ public final class JavaInstrumentationDeletePathMethodAdvice {
 	 * the security restrictions.
 	 *
 	 * @param declaringTypeName The name of the class that declares the method.
-	 * @param methodName The name of the method being executed.
-	 * @param methodSignature The signature of the method being executed.
-	 * @param instance The instance of the class that declares the method (if
-	 *            applicable).
-	 * @param parameters The parameters passed to the method being executed.
+	 * @param methodName        The name of the method being executed.
+	 * @param methodSignature   The signature of the method being executed.
+	 * @param instance          The instance of the class that declares the method
+	 *                          (if applicable).
+	 * @param parameters        The parameters passed to the method being executed.
 	 * @throws SecurityException If the method execution is not allowed based on
-	 *             security policies.
+	 *                           security policies.
 	 */
 	@Advice.OnMethodEnter
-	public static void onEnter(@Advice.Origin("#t") String declaringTypeName, @Advice.Origin("#m") String methodName, @Advice.Origin("#s") String methodSignature,
-			@Advice.This(optional = true) Object instance, @Advice.AllArguments Object... parameters) {
-
+	public static void onEnter(@Advice.Origin("#t") String declaringTypeName, @Advice.Origin("#m") String methodName,
+			@Advice.Origin("#s") String methodSignature, @Advice.This(optional = true) Object instance,
+			@Advice.AllArguments Object... parameters) {
 		// <editor-fold desc="Attributes">
 		final Field[] fields = instance != null ? instance.getClass().getDeclaredFields() : new Field[0];
 		final Object[] attributes = new Object[fields.length];
@@ -50,21 +51,25 @@ public final class JavaInstrumentationDeletePathMethodAdvice {
 				} catch (InaccessibleObjectException | IllegalAccessException | SecurityException e) {
 					continue;
 				} catch (IllegalArgumentException e) {
-					throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.illegal.argument.exception", fields[i].getName(),
+					throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+							"security.instrumentation.illegal.argument.exception", fields[i].getName(),
 							fields[i].getDeclaringClass().getName(), instance.getClass().getName()), e);
 				} catch (NullPointerException e) {
-					throw new SecurityException(
-							JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.null.pointer.exception", fields[i].getName(), instance.getClass().getName()), e);
+					throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+							"security.instrumentation.null.pointer.exception", fields[i].getName(),
+							instance.getClass().getName()), e);
 				} catch (ExceptionInInitializerError e) {
-					throw new SecurityException(
-							JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.exception.in-initializer.error", fields[i].getName(), instance.getClass().getName()), e);
+					throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+							"security.instrumentation.exception.in-initializer.error", fields[i].getName(),
+							instance.getClass().getName()), e);
 				}
 			}
 		}
 		// </editor-fold>
 
 		// <editor-fold desc="Check">
-		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("delete", declaringTypeName, methodName, methodSignature, attributes, parameters, instance);
+		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("delete", declaringTypeName, methodName,
+				methodSignature, attributes, parameters, instance);
 		// </editor-fold>
 	}
 }

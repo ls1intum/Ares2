@@ -30,7 +30,8 @@ public class JavaWalaTestCaseCollectionTest {
 		Assertions.assertTrue(cause instanceof SecurityException);
 		// Print actual message for debugging
 		System.out.println("Actual message: " + cause.getMessage());
-		Assertions.assertTrue(cause.getMessage().contains("utility.initialization") || cause.getMessage().contains("nicht instanziiert werden"));
+		Assertions.assertTrue(cause.getMessage().contains("utility.initialization")
+				|| cause.getMessage().contains("nicht instanziiert werden"));
 	}
 
 	@Test

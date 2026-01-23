@@ -25,7 +25,8 @@ public class ProjectSourcesFinder {
 	 * Pattern for matching the assignment folder name for the build.gradle file of
 	 * a Gradle project
 	 */
-	private static final Pattern GRADLE_SOURCE_DIR_PATTERN = Pattern.compile("def\\s+assignmentSrcDir\\s*=\\s*\"(?<dir>.+)\""); //$NON-NLS-1$
+	private static final Pattern GRADLE_SOURCE_DIR_PATTERN = Pattern
+			.compile("def\\s+assignmentSrcDir\\s*=\\s*\"(?<dir>.+)\""); //$NON-NLS-1$
 
 	private static String pomXmlPath = "pom.xml"; //$NON-NLS-1$
 	private static String buildGradlePath = "build.gradle"; //$NON-NLS-1$

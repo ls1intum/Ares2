@@ -15,22 +15,18 @@ public class PrecompileTest {
 	 * target); return; } try (DirectoryStream<Path> entries =
 	 * Files.newDirectoryStream(target)) { for (Path entry : entries) {
 	 * Files.walkFileTree(entry, new SimpleFileVisitor<>() {
-	 * 
 	 * @Override public FileVisitResult visitFile(Path file, BasicFileAttributes
 	 * attrs) throws IOException { Files.delete(file); return
 	 * FileVisitResult.CONTINUE; }
-	 * 
 	 * @Override public FileVisitResult postVisitDirectory(Path dir, IOException
 	 * exc) throws IOException { Files.delete(dir); return FileVisitResult.CONTINUE;
-	 * }
-	 * 
-	 * }); } } catch (IOException e) {
+	 * } }); } } catch (IOException e) {
 	 * System.err.println("Error cleaning directory: " + e.getMessage()); } }
 	 */
 
 	@Test
 	void testPrecompileJavaMavenArchunitInstrumentation() {
-		SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(Path.of("")).projectFolderPath(Path.of("")).build().createTestCases().writeTestCases(Path.of(""));
-
+		SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(Path.of("")).projectFolderPath(Path.of(""))
+				.build().createTestCases().writeTestCases(Path.of(""));
 	}
 }

@@ -46,6 +46,7 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 	public void test_startThreadMavenWalaInstrumentation() {
 		assertNoAresSecurityException(CreateThreadMain::startThread);
 	} // </editor-fold> // <editor-fold desc="accessThreadSystemViaSubmitCallable">
+
 	@PublicTest
 	@Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_ALL_THREAD_OPERATIONS, withinPath = WITHIN_PATH_EXECUTOR_SERVICE)
 	public void test_submitCallableMavenArchunitAspectJ() {

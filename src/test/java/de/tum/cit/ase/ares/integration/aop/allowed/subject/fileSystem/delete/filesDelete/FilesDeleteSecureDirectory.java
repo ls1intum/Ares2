@@ -13,11 +13,13 @@ public final class FilesDeleteSecureDirectory {
 		throw new SecurityException("utility");
 	}
 
-	public static void accessFileSystemViaSecureDirectoryStreamDeleteFile(SecureDirectoryStream<Path> secureDirectoryStream) throws IOException {
+	public static void accessFileSystemViaSecureDirectoryStreamDeleteFile(
+			SecureDirectoryStream<Path> secureDirectoryStream) throws IOException {
 		secureDirectoryStream.deleteFile(REL_FILE);
 	}
 
-	public static void accessFileSystemViaSecureDirectoryStreamDeleteDirectory(SecureDirectoryStream<Path> secureDirectoryStream) throws IOException {
+	public static void accessFileSystemViaSecureDirectoryStreamDeleteDirectory(
+			SecureDirectoryStream<Path> secureDirectoryStream) throws IOException {
 		secureDirectoryStream.deleteDirectory(REL_EMPTY_DIR);
 	}
 }

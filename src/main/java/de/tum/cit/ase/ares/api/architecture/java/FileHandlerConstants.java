@@ -13,34 +13,50 @@ import de.tum.cit.ase.ares.api.util.FileTools;
 public class FileHandlerConstants {
 
 	// <editor-fold desc="Java Archunit Methods">
-	public static final Path ARCHUNIT_FILESYSTEM_METHODS = FileTools.resolveFileOnSourceDirectory("templates", "architecture", "java", "archunit", "methods", "file-system-access-methods.txt");
-	public static final Path ARCHUNIT_NETWORK_METHODS = FileTools.resolveFileOnSourceDirectory("templates", "architecture", "java", "archunit", "methods", "network-access-methods.txt");
-	public static final Path ARCHUNIT_JVM_TERMINATION_METHODS = FileTools.resolveFileOnSourceDirectory("templates", "architecture", "java", "archunit", "methods", "jvm-termination-methods.txt");
-	public static final Path ARCHUNIT_REFLECTION_METHODS = FileTools.resolveFileOnSourceDirectory("templates", "architecture", "java", "archunit", "methods", "reflection-methods.txt");
-	public static final Path ARCHUNIT_COMMAND_EXECUTION_METHODS = FileTools.resolveFileOnSourceDirectory("templates", "architecture", "java", "archunit", "methods", "command-execution-methods.txt");
-	public static final Path ARCHUNIT_THREAD_MANIPULATION_METHODS = FileTools.resolveFileOnSourceDirectory("templates", "architecture", "java", "archunit", "methods",
-			"thread-manipulation-methods.txt");
-	public static final Path ARCHUNIT_SERIALIZATION_METHODS = FileTools.resolveFileOnSourceDirectory("templates", "architecture", "java", "archunit", "methods", "serializable-methods.txt");
-	public static final Path ARCHUNIT_CLASSLOADER_METHODS = FileTools.resolveFileOnSourceDirectory("templates", "architecture", "java", "archunit", "methods", "classloader-methods.txt");
+	public static final Path ARCHUNIT_FILESYSTEM_METHODS = FileTools.resolveFileOnSourceDirectory("templates",
+			"architecture", "java", "archunit", "methods", "file-system-access-methods.txt");
+	public static final Path ARCHUNIT_NETWORK_METHODS = FileTools.resolveFileOnSourceDirectory("templates",
+			"architecture", "java", "archunit", "methods", "network-access-methods.txt");
+	public static final Path ARCHUNIT_JVM_TERMINATION_METHODS = FileTools.resolveFileOnSourceDirectory("templates",
+			"architecture", "java", "archunit", "methods", "jvm-termination-methods.txt");
+	public static final Path ARCHUNIT_REFLECTION_METHODS = FileTools.resolveFileOnSourceDirectory("templates",
+			"architecture", "java", "archunit", "methods", "reflection-methods.txt");
+	public static final Path ARCHUNIT_COMMAND_EXECUTION_METHODS = FileTools.resolveFileOnSourceDirectory("templates",
+			"architecture", "java", "archunit", "methods", "command-execution-methods.txt");
+	public static final Path ARCHUNIT_THREAD_MANIPULATION_METHODS = FileTools.resolveFileOnSourceDirectory("templates",
+			"architecture", "java", "archunit", "methods", "thread-manipulation-methods.txt");
+	public static final Path ARCHUNIT_SERIALIZATION_METHODS = FileTools.resolveFileOnSourceDirectory("templates",
+			"architecture", "java", "archunit", "methods", "serializable-methods.txt");
+	public static final Path ARCHUNIT_CLASSLOADER_METHODS = FileTools.resolveFileOnSourceDirectory("templates",
+			"architecture", "java", "archunit", "methods", "classloader-methods.txt");
 	// </editor-fold>
 
 	// <editor-fold desc="WALA Methods">
-	public static final Path WALA_CLASSLOADER_METHODS = FileTools.resolveFileOnSourceDirectory("templates", "architecture", "java", "wala", "methods", "classloader-methods.txt");
-	public static final Path WALA_FILESYSTEM_METHODS = FileTools.resolveFileOnSourceDirectory("templates", "architecture", "java", "wala", "methods", "file-system-access-methods.txt");
-	public static final Path WALA_NETWORK_METHODS = FileTools.resolveFileOnSourceDirectory("templates", "architecture", "java", "wala", "methods", "network-access-methods.txt");
-	public static final Path WALA_JVM_TERMINATION_METHODS = FileTools.resolveFileOnSourceDirectory("templates", "architecture", "java", "wala", "methods", "jvm-termination-methods.txt");
-	public static final Path WALA_REFLECTION_METHODS = FileTools.resolveFileOnSourceDirectory("templates", "architecture", "java", "wala", "methods", "reflection-methods.txt");
-	public static final Path WALA_COMMAND_EXECUTION_METHODS = FileTools.resolveFileOnSourceDirectory("templates", "architecture", "java", "wala", "methods", "command-execution-methods.txt");
-	public static final Path WALA_SERIALIZATION_METHODS = FileTools.resolveFileOnSourceDirectory("templates", "architecture", "java", "wala", "methods", "serializable-methods.txt");
-	public static final Path WALA_THREAD_MANIPULATION_METHODS = FileTools.resolveFileOnSourceDirectory("templates", "architecture", "java", "wala", "methods", "thread-manipulation-methods.txt");
+	public static final Path WALA_CLASSLOADER_METHODS = FileTools.resolveFileOnSourceDirectory("templates",
+			"architecture", "java", "wala", "methods", "classloader-methods.txt");
+	public static final Path WALA_FILESYSTEM_METHODS = FileTools.resolveFileOnSourceDirectory("templates",
+			"architecture", "java", "wala", "methods", "file-system-access-methods.txt");
+	public static final Path WALA_NETWORK_METHODS = FileTools.resolveFileOnSourceDirectory("templates", "architecture",
+			"java", "wala", "methods", "network-access-methods.txt");
+	public static final Path WALA_JVM_TERMINATION_METHODS = FileTools.resolveFileOnSourceDirectory("templates",
+			"architecture", "java", "wala", "methods", "jvm-termination-methods.txt");
+	public static final Path WALA_REFLECTION_METHODS = FileTools.resolveFileOnSourceDirectory("templates",
+			"architecture", "java", "wala", "methods", "reflection-methods.txt");
+	public static final Path WALA_COMMAND_EXECUTION_METHODS = FileTools.resolveFileOnSourceDirectory("templates",
+			"architecture", "java", "wala", "methods", "command-execution-methods.txt");
+	public static final Path WALA_SERIALIZATION_METHODS = FileTools.resolveFileOnSourceDirectory("templates",
+			"architecture", "java", "wala", "methods", "serializable-methods.txt");
+	public static final Path WALA_THREAD_MANIPULATION_METHODS = FileTools.resolveFileOnSourceDirectory("templates",
+			"architecture", "java", "wala", "methods", "thread-manipulation-methods.txt");
 	// </editor-fold>
 
 	// <editor-fold desc="Utility Methods">
-	public static final Path FALSE_POSITIVES_FILE_SYSTEM_INTERACTIONS = FileTools.resolveFileOnSourceDirectory("templates", "architecture", "java", "wala", "false-positives",
-			"false-positives-file.txt");
+	public static final Path FALSE_POSITIVES_FILE_SYSTEM_INTERACTIONS = FileTools.resolveFileOnSourceDirectory(
+			"templates", "architecture", "java", "wala", "false-positives", "false-positives-file.txt");
 	// </editor-fold>
 
 	private FileHandlerConstants() {
-		throw new SecurityException(Messages.localized("security.general.utility.initialization", "FileHandlerConstants"));
+		throw new SecurityException(
+				Messages.localized("security.general.utility.initialization", "FileHandlerConstants"));
 	}
 }

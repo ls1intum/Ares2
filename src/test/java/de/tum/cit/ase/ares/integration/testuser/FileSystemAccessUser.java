@@ -22,14 +22,10 @@ public class FileSystemAccessUser {
 
 	/*
 	 * OUTCOMMENTED: Conceptually not possible anymore
-	 * 
 	 * @PublicTest
-	 * 
 	 * @WhitelistPath("") void accessPathAllFiles() {
 	 * PathAccessPenguin.askForFilePermission("<<ALL FILES>>"); }
-	 * 
 	 * @PublicTest
-	 * 
 	 * @WhitelistPath("") void accessPathAllowed() throws IOException {
 	 * PathAccessPenguin.accessPath(Path.of("pom.xml")); }
 	 */
@@ -70,7 +66,6 @@ public class FileSystemAccessUser {
 
 	/*
 	 * @PublicTest
-	 * 
 	 * @Policy(value =
 	 * "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyEverythingForbidden.yaml",
 	 * withinPath =

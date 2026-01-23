@@ -10,11 +10,9 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.ThreadPermission;
 
 /**
  * Unit tests for JavaThreadSystemExtractor._
- *
  * <p>
  * Description: Checks extraction of thread numbers and classes from
  * permissions.
- *
  * <p>
  * Design Rationale: Validates policy-driven thread creation limits and class
  * restrictions.
@@ -27,7 +25,6 @@ public class JavaThreadSystemExtractorTest {
 
 	/**
 	 * Tests static extractThreadNumbers and extractThreadClasses methods.
-	 *
 	 * <p>
 	 * Description: Supplies ThreadPermission records and asserts correct string
 	 * lists.
@@ -37,8 +34,10 @@ public class JavaThreadSystemExtractorTest {
 	 */
 	@Test
 	public void testExtractThreadNumbersAndClasses() {
-		List<ThreadPermission> configs = List.of(ThreadPermission.builder().createTheFollowingNumberOfThreads(0).ofThisClass("C0").build(),
-				ThreadPermission.builder().createTheFollowingNumberOfThreads(1).ofThisClass("C1").build(), ThreadPermission.builder().createTheFollowingNumberOfThreads(10).ofThisClass("C2").build());
+		List<ThreadPermission> configs = List.of(
+				ThreadPermission.builder().createTheFollowingNumberOfThreads(0).ofThisClass("C0").build(),
+				ThreadPermission.builder().createTheFollowingNumberOfThreads(1).ofThisClass("C1").build(),
+				ThreadPermission.builder().createTheFollowingNumberOfThreads(10).ofThisClass("C2").build());
 
 		List<String> expectedThreadNumbers = List.of("0", "1", "10");
 		List<String> actualThreadNumbers = JavaThreadSystemExtractor.extractThreadNumbers(configs);
@@ -52,7 +51,6 @@ public class JavaThreadSystemExtractorTest {
 	/**
 	 * Tests instance methods getPermittedNumberOfThreads and
 	 * getPermittedThreadClasses.
-	 *
 	 * <p>
 	 * Description: Uses supplier stub and validates returned integer and string
 	 * lists.
@@ -62,8 +60,10 @@ public class JavaThreadSystemExtractorTest {
 	 */
 	@Test
 	public void testGetPermittedThreadMethods() {
-		Supplier<List<?>> supplier = () -> List.of(ThreadPermission.builder().createTheFollowingNumberOfThreads(0).ofThisClass("C0").build(),
-				ThreadPermission.builder().createTheFollowingNumberOfThreads(1).ofThisClass("C1").build(), ThreadPermission.builder().createTheFollowingNumberOfThreads(10).ofThisClass("C2").build());
+		Supplier<List<?>> supplier = () -> List.of(
+				ThreadPermission.builder().createTheFollowingNumberOfThreads(0).ofThisClass("C0").build(),
+				ThreadPermission.builder().createTheFollowingNumberOfThreads(1).ofThisClass("C1").build(),
+				ThreadPermission.builder().createTheFollowingNumberOfThreads(10).ofThisClass("C2").build());
 		JavaThreadSystemExtractor extractor = new JavaThreadSystemExtractor(supplier);
 
 		List<Integer> expectedThreadNumbers = List.of(0, 1, 10);

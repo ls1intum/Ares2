@@ -85,8 +85,8 @@ public class UnwantedNodesAssert extends AbstractAssert<UnwantedNodesAssert, Pat
 	 * package, including all of its sub-packages.
 	 *
 	 * @param packageName Java package name in the form of, e.g.,
-	 *            <code>de.tum.cit.ase.ares.api</code>, which is resolved relative
-	 *            to the path of this UnwantedNodesAssert.
+	 *                    <code>de.tum.cit.ase.ares.api</code>, which is resolved
+	 *                    relative to the path of this UnwantedNodesAssert.
 	 * @return An unwanted node assertion object (for chaining)
 	 * @implNote The package is split at "." with the resulting segments being
 	 *           interpreted as directory structure. So
@@ -135,8 +135,10 @@ public class UnwantedNodesAssert extends AbstractAssert<UnwantedNodesAssert, Pat
 			failWithMessage("The 'level' is not set. Please use UnwantedNodesAssert.withLanguageLevel(LanguageLevel)."); //$NON-NLS-1$
 		}
 		StaticJavaParser.getParserConfiguration().setLanguageLevel(level);
-		Optional<String> errorMessage = UnwantedNode.getMessageForUnwantedNodesForAllFilesBelow(actual, type.getNodeNameNodeMap(), excludeMainMethod);
-		errorMessage.ifPresent(unwantedNodeMessageForAllJavaFiles -> failWithMessage(localized("ast.method.has_no") + System.lineSeparator() + unwantedNodeMessageForAllJavaFiles)); //$NON-NLS-1$
+		Optional<String> errorMessage = UnwantedNode.getMessageForUnwantedNodesForAllFilesBelow(actual,
+				type.getNodeNameNodeMap(), excludeMainMethod);
+		errorMessage.ifPresent(unwantedNodeMessageForAllJavaFiles -> failWithMessage(
+				localized("ast.method.has_no") + System.lineSeparator() + unwantedNodeMessageForAllJavaFiles)); //$NON-NLS-1$
 		return this;
 	}
 }

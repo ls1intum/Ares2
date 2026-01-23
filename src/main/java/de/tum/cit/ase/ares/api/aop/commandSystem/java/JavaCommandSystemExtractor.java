@@ -22,7 +22,8 @@ public class JavaCommandSystemExtractor implements CommandSystemExtractor {
 	 * access supplier.
 	 *
 	 * @param resourceAccessSupplier the supplier for the resource accesses
-	 *            permitted as defined in the security policy, must not be null.
+	 *                               permitted as defined in the security policy,
+	 *                               must not be null.
 	 */
 	public JavaCommandSystemExtractor(@Nonnull Supplier<List<?>> resourceAccessSupplier) {
 		this.resourceAccessSupplier = resourceAccessSupplier;
@@ -50,7 +51,8 @@ public class JavaCommandSystemExtractor implements CommandSystemExtractor {
 	 */
 	@Nonnull
 	public static List<String> extractArguments(@Nonnull List<CommandPermission> configs) {
-		return configs.stream().map(CommandPermission::withTheseArguments).map(arguments -> arguments.stream().map(String::valueOf).map(value -> "\"" + value + "\"").toList())
+		return configs.stream().map(CommandPermission::withTheseArguments)
+				.map(arguments -> arguments.stream().map(String::valueOf).map(value -> "\"" + value + "\"").toList())
 				.map(arguments -> "new String[] {" + String.join(",", arguments) + "}").toList();
 	}
 
@@ -61,7 +63,8 @@ public class JavaCommandSystemExtractor implements CommandSystemExtractor {
 	 */
 	@Nonnull
 	public List<String> getPermittedCommands() {
-		return ((List<CommandPermission>) resourceAccessSupplier.get()).stream().map(CommandPermission::executeTheCommand).toList();
+		return ((List<CommandPermission>) resourceAccessSupplier.get()).stream()
+				.map(CommandPermission::executeTheCommand).toList();
 	}
 
 	/**
@@ -72,7 +75,8 @@ public class JavaCommandSystemExtractor implements CommandSystemExtractor {
 	 */
 	@Nonnull
 	public List<List<String>> getPermittedArguments() {
-		return ((List<CommandPermission>) resourceAccessSupplier.get()).stream().map(CommandPermission::withTheseArguments).toList();
+		return ((List<CommandPermission>) resourceAccessSupplier.get()).stream()
+				.map(CommandPermission::withTheseArguments).toList();
 	}
 	// </editor-fold>
 }

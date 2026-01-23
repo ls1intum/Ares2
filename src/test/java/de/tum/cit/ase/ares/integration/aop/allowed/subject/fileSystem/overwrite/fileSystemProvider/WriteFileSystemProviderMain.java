@@ -9,7 +9,8 @@ import java.nio.file.spi.FileSystemProvider;
 public class WriteFileSystemProviderMain {
 
 	private WriteFileSystemProviderMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/**
@@ -20,8 +21,9 @@ public class WriteFileSystemProviderMain {
 	 */
 	public static void accessFileSystemViaFileSystemProvider(String text) throws IOException {
 		FileSystemProvider provider = FileSystemProvider.installedProviders().get(0);
-		try (OutputStream os = provider.newOutputStream(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"), StandardOpenOption.CREATE,
-				StandardOpenOption.WRITE)) {
+		try (OutputStream os = provider.newOutputStream(
+				Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"),
+				StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
 			os.write(text.getBytes());
 		}
 	}

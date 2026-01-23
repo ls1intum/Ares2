@@ -7,7 +7,8 @@ import java.util.Scanner;
 public class ReadScannerMain {
 
 	private ReadScannerMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/**
@@ -16,7 +17,8 @@ public class ReadScannerMain {
 	 * @return The content of the trusted file
 	 */
 	public static String accessFileSystemViaScanner() throws IOException {
-		try (Scanner scanner = new Scanner(new File("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"))) {
+		try (Scanner scanner = new Scanner(
+				new File("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"))) {
 			StringBuilder content = new StringBuilder();
 			while (scanner.hasNextLine()) {
 				content.append(scanner.nextLine());

@@ -18,26 +18,27 @@ import javax.annotation.Nullable;
 public abstract class JavaInstrumentationAdviceAbstractToolbox {
 
 	JavaInstrumentationAdviceAbstractToolbox() {
-		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.utility.initialization", "JavaInstrumentationAdviceAbstractToolbox"));
+		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+				"security.instrumentation.utility.initialization", "JavaInstrumentationAdviceAbstractToolbox"));
 	}
 
 	// <editor-fold desc="Constants">
 	@Nonnull
-	public static final List<String> IGNORE_CALLSTACK = List.of("java.lang.ClassLoader", "de.tum.cit.ase.ares.api.", "com.intellij.rt.debugger.");
+	public static final List<String> IGNORE_CALLSTACK = List.of("java.lang.ClassLoader", "de.tum.cit.ase.ares.api.",
+			"com.intellij.rt.debugger.");
 	// </editor-fold>
 
 	// <editor-fold desc="Tools methods">
 
 	/**
 	 * Retrieves the value of a specified static field from the settings class.
-	 *
 	 * <p>
 	 * Description: Uses reflection to access a static field in
 	 * JavaAOPTestCaseSettings, allowing retrieval of security-related configuration
 	 * values for instrumentation and tests.
 	 *
 	 * @param fieldName the name of the field to retrieve
-	 * @param <T> the type of the field's value
+	 * @param <T>       the type of the field's value
 	 * @return the value of the specified field
 	 * @since 2.0.0
 	 * @author Markus Paulsen
@@ -50,43 +51,52 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 			// Use false to avoid class initialization which could trigger file system
 			// operations
 			@Nonnull
-			Class<?> adviceSettingsClass = Objects.requireNonNull(Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", false, null), "adviceSettingsClass must not be null");
+			Class<?> adviceSettingsClass = Objects.requireNonNull(
+					Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", false, null),
+					"adviceSettingsClass must not be null");
 			@Nonnull
-			Field field = Objects.requireNonNull(adviceSettingsClass.getDeclaredField(Objects.requireNonNull(fieldName, "fieldName must not be null")), "field must not be null");
+			Field field = Objects.requireNonNull(adviceSettingsClass.getDeclaredField(
+					Objects.requireNonNull(fieldName, "fieldName must not be null")), "field must not be null");
 			field.setAccessible(true);
 			@Nullable
 			T value = (T) field.get(null);
 			field.setAccessible(false);
 			return value;
-
 		} catch (LinkageError e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.linkage.exception", fieldName), e);
+			throw new SecurityException(
+					JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.linkage.exception", fieldName),
+					e);
 		} catch (ClassNotFoundException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.class.not.found.exception", fieldName), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.advice.class.not.found.exception", fieldName), e);
 		} catch (NoSuchFieldException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.no.such.field.exception", fieldName), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.advice.no.such.field.exception", fieldName), e);
 		} catch (NullPointerException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.null.pointer.exception", fieldName), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.advice.null.pointer.exception", fieldName), e);
 		} catch (InaccessibleObjectException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.inaccessible.object.exception", fieldName), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.advice.inaccessible.object.exception", fieldName), e);
 		} catch (IllegalAccessException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.illegal.access.exception", fieldName), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.advice.illegal.access.exception", fieldName), e);
 		} catch (IllegalArgumentException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.illegal.argument.exception", fieldName), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.advice.illegal.argument.exception", fieldName), e);
 		}
 	}
 
 	/**
 	 * Sets the value of a specified static field in the settings class.
-	 *
 	 * <p>
 	 * Description: Uses reflection to modify a static field in
 	 * JavaAOPTestCaseSettings, allowing updates to security-related configuration
 	 * values for instrumentation and tests.
 	 *
 	 * @param fieldName the name of the field to modify
-	 * @param newValue the new value to assign to the field
-	 * @param <T> the type of the field's value
+	 * @param newValue  the new value to assign to the field
+	 * @param <T>       the type of the field's value
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */
@@ -96,32 +106,42 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 			// Use false to avoid class initialization which could trigger file system
 			// operations
 			@Nonnull
-			Class<?> adviceSettingsClass = Objects.requireNonNull(Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", false, null), "adviceSettingsClass must not be null");
+			Class<?> adviceSettingsClass = Objects.requireNonNull(
+					Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", false, null),
+					"adviceSettingsClass must not be null");
 			@Nonnull
-			Field field = Objects.requireNonNull(adviceSettingsClass.getDeclaredField(Objects.requireNonNull(fieldName, "fieldName must not be null")), "field must not be null");
+			Field field = Objects.requireNonNull(adviceSettingsClass.getDeclaredField(
+					Objects.requireNonNull(fieldName, "fieldName must not be null")), "field must not be null");
 			field.setAccessible(true);
 			field.set(null, newValue);
 			field.setAccessible(false);
 		} catch (LinkageError e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.linkage.exception", fieldName), e);
+			throw new SecurityException(
+					JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.linkage.exception", fieldName),
+					e);
 		} catch (ClassNotFoundException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.class.not.found.exception", fieldName), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.advice.class.not.found.exception", fieldName), e);
 		} catch (NoSuchFieldException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.no.such.field.exception", fieldName), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.advice.no.such.field.exception", fieldName), e);
 		} catch (NullPointerException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.null.pointer.exception", fieldName), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.advice.null.pointer.exception", fieldName), e);
 		} catch (InaccessibleObjectException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.inaccessible.object.exception", fieldName), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.advice.inaccessible.object.exception", fieldName), e);
 		} catch (IllegalAccessException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.illegal.access.exception", fieldName), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.advice.illegal.access.exception", fieldName), e);
 		} catch (IllegalArgumentException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.illegal.argument.exception", fieldName), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.advice.illegal.argument.exception", fieldName), e);
 		}
 	}
 
 	/**
 	 * Retrieves the settings lock object for synchronization.
-	 *
 	 * <p>
 	 * Description: Uses reflection to get the SETTINGS_LOCK from
 	 * JavaAOPTestCaseSettings, allowing synchronized access to settings for
@@ -138,7 +158,9 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 			// Use false to avoid class initialization which could trigger file system
 			// operations
 			@Nonnull
-			Class<?> adviceSettingsClass = Objects.requireNonNull(Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", false, null), "adviceSettingsClass must not be null");
+			Class<?> adviceSettingsClass = Objects.requireNonNull(
+					Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", false, null),
+					"adviceSettingsClass must not be null");
 			@Nonnull
 			java.lang.reflect.Method getLockMethod = adviceSettingsClass.getDeclaredMethod("getSettingsLock");
 			@Nonnull
@@ -149,21 +171,21 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 			try {
 				return Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", false, null);
 			} catch (ClassNotFoundException ex) {
-				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.class.not.found.exception", "JavaAOPTestCaseSettings"), ex);
+				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+						.localize("security.advice.class.not.found.exception", "JavaAOPTestCaseSettings"), ex);
 			}
 		}
 	}
 
 	/**
 	 * Decrements the value at a specified index in an integer array setting.
-	 *
 	 * <p>
 	 * Description: Retrieves an integer array from settings, decrements the value
 	 * at the given position, and updates the array back to the settings class. This
 	 * operation is synchronized to prevent race conditions.
 	 *
 	 * @param settingsArray the name of the array field in settings
-	 * @param position the index position of the value to decrement
+	 * @param position      the index position of the value to decrement
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */
@@ -183,14 +205,13 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	/**
 	 * Atomically checks if the value at a specified index in an integer array
 	 * setting is positive, and if so, decrements it.
-	 *
 	 * <p>
 	 * Description: This method combines the check and decrement into a single
 	 * atomic operation to prevent race conditions where multiple threads could pass
 	 * the check simultaneously.
 	 *
 	 * @param settingsArray the name of the array field in settings
-	 * @param position the index position of the value to check and decrement
+	 * @param position      the index position of the value to check and decrement
 	 * @return true if the value was positive and successfully decremented, false if
 	 *         the quota is exhausted
 	 * @since 2.0.0
@@ -216,12 +237,11 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 
 	/**
 	 * Retrieves a localized message based on a key and optional arguments.
-	 *
 	 * <p>
 	 * Description: Attempts to fetch a localized string from the Messages class
 	 * using reflection. Falls back to the key if localization fails.
 	 *
-	 * @param key the localization key identifying the message
+	 * @param key  the localization key identifying the message
 	 * @param args optional arguments to format the localized message
 	 * @return the localized message string, or the key itself if localization fails
 	 * @since 2.0.0
@@ -231,7 +251,8 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	public static String localize(@Nonnull String key, @Nullable Object... args) {
 		try {
 			@Nonnull
-			Class<?> messagesClass = Class.forName("de.tum.cit.ase.ares.api.localization.Messages", true, Thread.currentThread().getContextClassLoader());
+			Class<?> messagesClass = Class.forName("de.tum.cit.ase.ares.api.localization.Messages", true,
+					Thread.currentThread().getContextClassLoader());
 			@Nonnull
 			Method localized = messagesClass.getDeclaredMethod("localized", String.class, Object[].class);
 			@Nullable
@@ -239,9 +260,11 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 			if (result instanceof String str) {
 				return str;
 			} else {
-				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.localization.method.return.type"));
+				throw new SecurityException(
+						JavaInstrumentationAdviceAbstractToolbox.localize("security.localization.method.return.type"));
 			}
-		} catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
+		} catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException
+				| IllegalAccessException e) {
 			// Fallback: Return the key if localization fails
 			return key;
 		}
@@ -252,7 +275,6 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 
 	/**
 	 * Determines if a call stack element is in the allow list.
-	 *
 	 * <p>
 	 * Description: Checks whether the class name of the provided stack trace
 	 * element starts with any of the allowed class name prefixes.
@@ -263,7 +285,8 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */
-	public static boolean checkIfCallstackElementIsAllowed(@Nonnull String[] allowedClasses, @Nonnull StackTraceElement elementToCheck) {
+	public static boolean checkIfCallstackElementIsAllowed(@Nonnull String[] allowedClasses,
+			@Nonnull StackTraceElement elementToCheck) {
 		String className = elementToCheck.getClassName();
 		for (@Nonnull
 		String allowedClass : allowedClasses) {
@@ -276,14 +299,13 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 
 	/**
 	 * Checks the current call stack for violations of restricted packages.
-	 *
 	 * <p>
 	 * Description: Examines the stack trace to find the first element whose class
 	 * name starts with the restricted package but is not in the allowed classes
 	 * list, skipping any classes in the ignore list.
 	 *
 	 * @param restrictedPackage the prefix of restricted package names
-	 * @param allowedClasses the array of allowed class name prefixes
+	 * @param allowedClasses    the array of allowed class name prefixes
 	 * @return the fully qualified method name that violates criteria, or null if
 	 *         none
 	 * @since 2.0.0
@@ -316,7 +338,6 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	/**
 	 * Finds the caller directly above the first method on the current call stack
 	 * that belongs to the given restricted package.
-	 *
 	 * <p>
 	 * Description: Iterates the stack trace, skipping frames in
 	 * {@link #IGNORE_CALLSTACK}. When the first frame whose class starts with the
@@ -349,7 +370,8 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 			if (isIgnorable) {
 				continue;
 			}
-			if (className.startsWith(restrictedPackage) && !className.startsWith("de.tum.cit.ase.ares.api.aop.java.instrumentation")) {
+			if (className.startsWith(restrictedPackage)
+					&& !className.startsWith("de.tum.cit.ase.ares.api.aop.java.instrumentation")) {
 				// Find the first non-ignored caller above this restricted frame.
 				for (int j = i + 1; j < stackTrace.length; j++) {
 					StackTraceElement caller = stackTrace[j];
@@ -376,13 +398,12 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 
 	/**
 	 * Filters variables based on the IgnoreValues criteria.
-	 *
 	 * <p>
 	 * Description: Returns a new array of variables, excluding those that match the
 	 * ignore criteria. If all variables are ignored, returns an empty array. If all
 	 * except one variable is ignored, returns an array with only that variable.
 	 *
-	 * @param variables the original array of variables
+	 * @param variables       the original array of variables
 	 * @param ignoreVariables criteria determining which variables to skip
 	 * @return a filtered array of variables
 	 * @since 2.0.0
@@ -393,33 +414,36 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 		@Nonnull
 		ArrayList<Object> newVariables = new ArrayList<>(Arrays.asList(variables.clone()));
 		switch (ignoreVariables.getType()) {
-			// No variable is ignored
-			case "NONE" :
-				break;
-			// All variables are ignored
-			case "ALL" :
-				newVariables.clear();
-				break;
-			// All variables except the one at the given index are ignored
-			case "ALL_EXCEPT" :
-				if (ignoreVariables.getIndex() < 0 || ignoreVariables.getIndex() >= newVariables.size()) {
-					throw new SecurityException(
-							JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.ignore.values.index.invalid", ignoreVariables.getIndex(), newVariables.size()));
-				}
-				@Nonnull
-				Object toKeep = newVariables.get(ignoreVariables.getIndex());
-				newVariables.clear();
-				newVariables.add(toKeep);
-				break;
-			case "NONE_EXCEPT" :
-				if (ignoreVariables.getIndex() < 0 || ignoreVariables.getIndex() >= newVariables.size()) {
-					throw new SecurityException(
-							JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.ignore.values.index.invalid", ignoreVariables.getIndex(), newVariables.size()));
-				}
-				newVariables.remove(ignoreVariables.getIndex());
-				break;
-			default :
-				throw new IllegalArgumentException(JavaInstrumentationAdviceAbstractToolbox.localize("aop.ignore.unknown.type", ignoreVariables.getType()));
+		// No variable is ignored
+		case "NONE":
+			break;
+		// All variables are ignored
+		case "ALL":
+			newVariables.clear();
+			break;
+		// All variables except the one at the given index are ignored
+		case "ALL_EXCEPT":
+			if (ignoreVariables.getIndex() < 0 || ignoreVariables.getIndex() >= newVariables.size()) {
+				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+						"security.instrumentation.ignore.values.index.invalid", ignoreVariables.getIndex(),
+						newVariables.size()));
+			}
+			@Nonnull
+			Object toKeep = newVariables.get(ignoreVariables.getIndex());
+			newVariables.clear();
+			newVariables.add(toKeep);
+			break;
+		case "NONE_EXCEPT":
+			if (ignoreVariables.getIndex() < 0 || ignoreVariables.getIndex() >= newVariables.size()) {
+				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+						"security.instrumentation.ignore.values.index.invalid", ignoreVariables.getIndex(),
+						newVariables.size()));
+			}
+			newVariables.remove(ignoreVariables.getIndex());
+			break;
+		default:
+			throw new IllegalArgumentException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("aop.ignore.unknown.type", ignoreVariables.getType()));
 		}
 		return newVariables.toArray();
 	}

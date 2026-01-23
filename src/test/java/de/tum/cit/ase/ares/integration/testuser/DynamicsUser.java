@@ -22,7 +22,8 @@ public class DynamicsUser {
 	private static final String SUBJECT_PACKAGE = "de.tum.cit.ase.ares.integration.testuser.subject.structural";
 
 	private static final DynamicClass<?> SomeClass = DynamicClass.toDynamic(SUBJECT_PACKAGE + ".SomeClass");
-	private static final DynamicClass<?> SomeAbstractClass = DynamicClass.toDynamic(SUBJECT_PACKAGE + ".SomeAbstractClass");
+	private static final DynamicClass<?> SomeAbstractClass = DynamicClass
+			.toDynamic(SUBJECT_PACKAGE + ".SomeAbstractClass");
 
 	private static final DynamicConstructor<?> SomeClass_new = SomeClass.constructor();
 	private static final DynamicConstructor<?> SomeClass_newBool = SomeClass.constructor(Boolean.class);
@@ -32,8 +33,10 @@ public class DynamicsUser {
 	private static final DynamicField<Integer> SomeClass_SOME_CONSTANT = SomeClass.field(int.class, "SOME_CONSTANT");
 	private static final DynamicField<String> SomeClass_someAttribute = SomeClass.field(String.class, "someAttribute");
 
-	private static final DynamicMethod<String> SomeClass_getSomeAttribute = SomeClass.method(String.class, "getSomeAttribute");
-	private static final DynamicMethod<Integer> SomeClass_doSomethingElse = SomeClass.method(int.class, "doSomethingElse", int.class);
+	private static final DynamicMethod<String> SomeClass_getSomeAttribute = SomeClass.method(String.class,
+			"getSomeAttribute");
+	private static final DynamicMethod<Integer> SomeClass_doSomethingElse = SomeClass.method(int.class,
+			"doSomethingElse", int.class);
 	private static final DynamicMethod<Void> SomeClass_throwException = SomeClass.method(void.class, "throwException");
 
 	@Test
@@ -90,11 +93,14 @@ public class DynamicsUser {
 
 	@Test
 	void class_searchPublicOrProtectedMethods() {
-		int checked = SomeAbstractClass.checkForPublicOrProtectedMethods(SomeAbstractClass.method(void.class, "nonAbstractProtected"));
+		int checked = SomeAbstractClass
+				.checkForPublicOrProtectedMethods(SomeAbstractClass.method(void.class, "nonAbstractProtected"));
 		assertThat(checked).isEqualTo(4);
 
-		SomeClass.checkForPublicOrProtectedMethods(SomeClass_getSomeAttribute, SomeClass_doSomethingElse, SomeClass_throwException, SomeClass.method(Integer.class, "getAnotherAttribute"),
-				SomeClass.method(void.class, "setSomeAttribute", String.class), SomeClass.method(Class.class, "initializeFailingClass"));
+		SomeClass.checkForPublicOrProtectedMethods(SomeClass_getSomeAttribute, SomeClass_doSomethingElse,
+				SomeClass_throwException, SomeClass.method(Integer.class, "getAnotherAttribute"),
+				SomeClass.method(void.class, "setSomeAttribute", String.class),
+				SomeClass.method(Class.class, "initializeFailingClass"));
 	}
 
 	@Test

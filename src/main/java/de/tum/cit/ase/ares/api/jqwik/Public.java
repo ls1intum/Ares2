@@ -8,10 +8,10 @@ import java.lang.annotation.*;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 
+import net.jqwik.api.*;
+
 import de.tum.cit.ase.ares.api.context.TestType;
 import de.tum.cit.ase.ares.api.io.IOTester;
-
-import net.jqwik.api.*;
 
 /**
  * Marks a <b>PUBLIC</b> {@link Property}/{@link Example}, uses the

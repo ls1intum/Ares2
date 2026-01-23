@@ -16,13 +16,11 @@ import de.tum.cit.ase.ares.api.util.FileTools;
 
 /**
  * Reads essential configurations from YAML files.
- *
  * <p>
  * Description: This class implements the EssentialReader interface to provide
  * functionality for reading essential classes and packages from YAML files. It
  * utilises Jackson's YAMLFactory and ObjectMapper for parsing YAML content.
  * </p>
- *
  * <p>
  * Design Rationale: By encapsulating YAML parsing logic in this class, it
  * allows for clear separation of concerns and easy modification of the parsing
@@ -41,7 +39,7 @@ public class EssentialDataYAMLReader implements EssentialDataReader {
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 * @param essentialClassesPath the path to the YAML file containing essential
-	 *            classes
+	 *                             classes
 	 * @return an EssentialClasses instance parsed from the YAML file
 	 */
 	@Override
@@ -50,7 +48,8 @@ public class EssentialDataYAMLReader implements EssentialDataReader {
 		@Nonnull
 		Path path = Preconditions.checkNotNull(essentialClassesPath, "The essential classes path must not be null!");
 		@Nonnull
-		Class<EssentialClasses> yamlClass = Preconditions.checkNotNull(EssentialClasses.class, "The essential classes class must not be null!");
+		Class<EssentialClasses> yamlClass = Preconditions.checkNotNull(EssentialClasses.class,
+				"The essential classes class must not be null!");
 		try {
 			return FileTools.readYamlFile(FileTools.readFile(path), yamlClass);
 		} catch (StreamReadException e) {
@@ -71,7 +70,7 @@ public class EssentialDataYAMLReader implements EssentialDataReader {
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 * @param essentialPackagesPath the path to the YAML file containing essential
-	 *            packages
+	 *                              packages
 	 * @return an EssentialPackages instance parsed from the YAML file
 	 */
 	@Override
@@ -80,7 +79,8 @@ public class EssentialDataYAMLReader implements EssentialDataReader {
 		@Nonnull
 		Path path = Preconditions.checkNotNull(essentialPackagesPath, "The essential packages path must not be null!");
 		@Nonnull
-		Class<EssentialPackages> yamlClass = Preconditions.checkNotNull(EssentialPackages.class, "The essential packages class must not be null!");
+		Class<EssentialPackages> yamlClass = Preconditions.checkNotNull(EssentialPackages.class,
+				"The essential packages class must not be null!");
 		try {
 			return FileTools.readYamlFile(FileTools.readFile(path), yamlClass);
 		} catch (StreamReadException e) {

@@ -57,23 +57,30 @@ class FileSystemAccessTest {
 	/**
 	 * Common helper that verifies the expected general parts of the error message.
 	 *
-	 * @param actualMessage The message from the thrown exception.
+	 * @param actualMessage   The message from the thrown exception.
 	 * @param operationTextEN The operation-specific substring in English (e.g.,
-	 *            "illegally read from", "illegally write from", "illegally execute
-	 *            from").
+	 *                        "illegally read from", "illegally write from",
+	 *                        "illegally execute from").
 	 * @param operationTextDE The operation-specific substring in German (e.g.,
-	 *            "illegally read from", "illegally write from", "illegally execute
-	 *            from").
+	 *                        "illegally read from", "illegally write from",
+	 *                        "illegally execute from").
 	 */
 	private void assertGeneralErrorMessage(String actualMessage, String operationTextEN, String operationTextDE) {
 		assertTrue(actualMessage.contains("Ares Security Error") || actualMessage.contains("Ares Sicherheitsfehler"),
-				"Exception message should contain 'Ares Security Error'" + System.lineSeparator() + actualMessage + "or 'Ares Sicherheitsfehler'" + System.lineSeparator() + actualMessage);
-		assertTrue(actualMessage.contains("Student-Code"), "Exception message should contain 'Student-Code'" + System.lineSeparator() + actualMessage);
-		assertTrue(actualMessage.contains("Execution") || actualMessage.contains("Ausf�hrung"), "Exception message should contain 'Execution'" + System.lineSeparator() + actualMessage);
+				"Exception message should contain 'Ares Security Error'" + System.lineSeparator() + actualMessage
+						+ "or 'Ares Sicherheitsfehler'" + System.lineSeparator() + actualMessage);
+		assertTrue(actualMessage.contains("Student-Code"),
+				"Exception message should contain 'Student-Code'" + System.lineSeparator() + actualMessage);
+		assertTrue(actualMessage.contains("Execution") || actualMessage.contains("Ausf�hrung"),
+				"Exception message should contain 'Execution'" + System.lineSeparator() + actualMessage);
 		assertTrue(actualMessage.contains(new File(System.getProperty("user.dir"), "pom123.xml").getAbsolutePath()),
-				"Exception message should contain the forbidden file location: " + (new File(System.getProperty("user.dir"), "pom123.xml").getAbsolutePath()) + System.lineSeparator() + actualMessage);
-		assertTrue(actualMessage.contains(operationTextEN) || actualMessage.contains(operationTextDE), "Exception message should indicate the expected operation by containing '" + operationTextEN
-				+ "'" + System.lineSeparator() + actualMessage + "or '" + operationTextDE + "'" + System.lineSeparator() + actualMessage);
+				"Exception message should contain the forbidden file location: "
+						+ (new File(System.getProperty("user.dir"), "pom123.xml").getAbsolutePath())
+						+ System.lineSeparator() + actualMessage);
+		assertTrue(actualMessage.contains(operationTextEN) || actualMessage.contains(operationTextDE),
+				"Exception message should indicate the expected operation by containing '" + operationTextEN + "'"
+						+ System.lineSeparator() + actualMessage + "or '" + operationTextDE + "'"
+						+ System.lineSeparator() + actualMessage);
 	}
 
 	/**
@@ -125,11 +132,9 @@ class FileSystemAccessTest {
 	// <editor-fold desc="Other Tests">
 	/*
 	 * OUTCOMMENTED: Conceptually not possible anymore
-	 * 
 	 * @TestTest void test_accessPathAllFiles() {
 	 * tests.assertThatEvents().haveExactly(1, testFailedWith(accessPathAllFiles,
 	 * SecurityException.class)); }
-	 * 
 	 * @TestTest void test_accessPathAllowed() {
 	 * tests.assertThatEvents().haveExactly(1,
 	 * finishedSuccessfully(accessPathAllowed)); }
@@ -346,14 +351,16 @@ class FileSystemAccessTest {
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
 		void test_accessFileSystemViaInputStreamReaderAspectJ() throws IOException {
-			assertAresSecurityExceptionRead(FileSystemAccessPenguin::accessFileSystemViaInputStreamReader);// Expected exception
+			assertAresSecurityExceptionRead(FileSystemAccessPenguin::accessFileSystemViaInputStreamReader);// Expected
+																											// exception
 		}
 
 		@TestTest
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
 		void test_accessFileSystemViaInputStreamReaderInstrumentation() throws IOException {
-			assertAresSecurityExceptionRead(FileSystemAccessPenguin::accessFileSystemViaInputStreamReader);// Expected exception
+			assertAresSecurityExceptionRead(FileSystemAccessPenguin::accessFileSystemViaInputStreamReader);// Expected
+																											// exception
 		}
 		// </editor-fold>
 
@@ -384,7 +391,8 @@ class FileSystemAccessTest {
 		@TestTest
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
-		void test_accessFileSystemViaFilesReadInstrumentation() throws IOException, ClassNotFoundException, IllegalAccessException {
+		void test_accessFileSystemViaFilesReadInstrumentation()
+				throws IOException, ClassNotFoundException, IllegalAccessException {
 			assertAresSecurityExceptionRead(FileSystemAccessPenguin::accessFileSystemViaFilesRead);
 		}
 		// </editor-fold>

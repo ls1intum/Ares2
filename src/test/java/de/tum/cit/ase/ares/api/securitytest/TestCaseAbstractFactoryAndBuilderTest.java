@@ -67,13 +67,14 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 		projectPath = Paths.get("test/project");
 
 		// Setup default mock behaviors
-		when(mockEssentialDataReader.readEssentialPackagesFrom(essentialPackagesPath)).thenReturn(mockEssentialPackages);
+		when(mockEssentialDataReader.readEssentialPackagesFrom(essentialPackagesPath))
+				.thenReturn(mockEssentialPackages);
 		when(mockEssentialDataReader.readEssentialClassesFrom(essentialClassesPath)).thenReturn(mockEssentialClasses);
 		when(mockEssentialPackages.getEssentialPackages()).thenReturn(List.of("java.lang", "java.util"));
 		when(mockEssentialClasses.getEssentialClasses()).thenReturn(List.of("java.lang.Object", "java.lang.String"));
 
 		when(mockProjectScanner.scanForBuildMode()).thenReturn(BuildMode.MAVEN);
-		when(mockProjectScanner.scanForTestClasses()).thenReturn(new String[]{ "TestClass1", "TestClass2" });
+		when(mockProjectScanner.scanForTestClasses()).thenReturn(new String[] { "TestClass1", "TestClass2" });
 		when(mockProjectScanner.scanForPackageName()).thenReturn("com.example");
 		when(mockProjectScanner.scanForMainClassInPackage()).thenReturn("Main");
 	}
@@ -83,9 +84,12 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 		private final List<Path> testCasePaths;
 		private boolean executed = false;
 
-		public TestableFactoryAndBuilder(Creator creator, Writer writer, Executer executer, EssentialDataReader essentialDataReader, ProjectScanner projectScanner, Path essentialPackagesPath,
-				Path essentialClassesPath, BuildMode buildMode, ArchitectureMode architectureMode, AOPMode aopMode, SecurityPolicy securityPolicy, Path projectPath) {
-			super(creator, writer, executer, essentialDataReader, projectScanner, essentialPackagesPath, essentialClassesPath, buildMode, architectureMode, aopMode, securityPolicy, projectPath);
+		public TestableFactoryAndBuilder(Creator creator, Writer writer, Executer executer,
+				EssentialDataReader essentialDataReader, ProjectScanner projectScanner, Path essentialPackagesPath,
+				Path essentialClassesPath, BuildMode buildMode, ArchitectureMode architectureMode, AOPMode aopMode,
+				SecurityPolicy securityPolicy, Path projectPath) {
+			super(creator, writer, executer, essentialDataReader, projectScanner, essentialPackagesPath,
+					essentialClassesPath, buildMode, architectureMode, aopMode, securityPolicy, projectPath);
 			this.testCasePaths = new ArrayList<>();
 		}
 
@@ -118,23 +122,26 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 		@DisplayName("Should initialize with all required parameters")
 		void shouldInitializeWithAllRequiredParameters() {
 			// Act
-			TestableFactoryAndBuilder factory = new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter, mockEssentialDataReader, mockProjectScanner, essentialPackagesPath,
-					essentialClassesPath, BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, mockSecurityPolicy, projectPath);
+			TestableFactoryAndBuilder factory = new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter,
+					mockEssentialDataReader, mockProjectScanner, essentialPackagesPath, essentialClassesPath,
+					BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, mockSecurityPolicy, projectPath);
 
 			// Assert
 			assertNotNull(factory);
 			verify(mockEssentialDataReader).readEssentialPackagesFrom(essentialPackagesPath);
 			verify(mockEssentialDataReader).readEssentialClassesFrom(essentialClassesPath);
-			verify(mockCreator).createTestCases(eq(BuildMode.MAVEN), eq(ArchitectureMode.ARCHUNIT), eq(AOPMode.ASPECTJ), anyList(), anyList(), anyList(), anyString(), anyString(), anyList(),
-					anyList(), anyList(), any(ResourceAccesses.class), eq(projectPath));
+			verify(mockCreator).createTestCases(eq(BuildMode.MAVEN), eq(ArchitectureMode.ARCHUNIT), eq(AOPMode.ASPECTJ),
+					anyList(), anyList(), anyList(), anyString(), anyString(), anyList(), anyList(), anyList(),
+					any(ResourceAccesses.class), eq(projectPath));
 		}
 
 		@Test
 		@DisplayName("Should use defaults when modes are null")
 		void shouldUseDefaultsWhenModesAreNull() {
 			// Act
-			TestableFactoryAndBuilder factory = new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter, mockEssentialDataReader, mockProjectScanner, essentialPackagesPath,
-					essentialClassesPath, null, null, null, null, projectPath);
+			TestableFactoryAndBuilder factory = new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter,
+					mockEssentialDataReader, mockProjectScanner, essentialPackagesPath, essentialClassesPath, null,
+					null, null, null, projectPath);
 
 			// Assert
 			assertNotNull(factory);
@@ -142,7 +149,8 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 			verify(mockCreator).createTestCases(eq(BuildMode.MAVEN), // from mock
 					eq(ArchitectureMode.WALA), // default
 					eq(AOPMode.INSTRUMENTATION), // default
-					anyList(), anyList(), anyList(), anyString(), anyString(), anyList(), anyList(), anyList(), any(ResourceAccesses.class), eq(projectPath));
+					anyList(), anyList(), anyList(), anyString(), anyString(), anyList(), anyList(), anyList(),
+					any(ResourceAccesses.class), eq(projectPath));
 		}
 
 		@Test
@@ -150,14 +158,15 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 		void shouldUseSecurityPolicyWhenProvided() {
 			// Arrange
 			when(mockSecurityPolicy.regardingTheSupervisedCode()).thenReturn(mockSupervisedCode);
-			when(mockSupervisedCode.theFollowingClassesAreTestClasses()).thenReturn(new String[]{ "PolicyTest" });
+			when(mockSupervisedCode.theFollowingClassesAreTestClasses()).thenReturn(new String[] { "PolicyTest" });
 			when(mockSupervisedCode.theSupervisedCodeUsesTheFollowingPackage()).thenReturn("com.policy");
 			when(mockSupervisedCode.theMainClassInsideThisPackageIs()).thenReturn("PolicyMain");
 			when(mockSupervisedCode.theFollowingResourceAccessesArePermitted()).thenReturn(mockResourceAccesses);
 
 			// Act
-			TestableFactoryAndBuilder factory = new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter, mockEssentialDataReader, mockProjectScanner, essentialPackagesPath,
-					essentialClassesPath, BuildMode.GRADLE, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, mockSecurityPolicy, projectPath);
+			TestableFactoryAndBuilder factory = new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter,
+					mockEssentialDataReader, mockProjectScanner, essentialPackagesPath, essentialClassesPath,
+					BuildMode.GRADLE, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, mockSecurityPolicy, projectPath);
 
 			// Assert
 			assertNotNull(factory);
@@ -172,56 +181,70 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 		@DisplayName("Should throw NullPointerException for null creator")
 		void shouldThrowNullPointerExceptionForNullCreator() {
 			// Act & Assert
-			assertThrows(NullPointerException.class, () -> new TestableFactoryAndBuilder(null, mockWriter, mockExecuter, mockEssentialDataReader, mockProjectScanner, essentialPackagesPath,
-					essentialClassesPath, BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, mockSecurityPolicy, projectPath));
+			assertThrows(NullPointerException.class,
+					() -> new TestableFactoryAndBuilder(null, mockWriter, mockExecuter, mockEssentialDataReader,
+							mockProjectScanner, essentialPackagesPath, essentialClassesPath, BuildMode.MAVEN,
+							ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, mockSecurityPolicy, projectPath));
 		}
 
 		@Test
 		@DisplayName("Should throw NullPointerException for null writer")
 		void shouldThrowNullPointerExceptionForNullWriter() {
 			// Act & Assert
-			assertThrows(NullPointerException.class, () -> new TestableFactoryAndBuilder(mockCreator, null, mockExecuter, mockEssentialDataReader, mockProjectScanner, essentialPackagesPath,
-					essentialClassesPath, BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, mockSecurityPolicy, projectPath));
+			assertThrows(NullPointerException.class,
+					() -> new TestableFactoryAndBuilder(mockCreator, null, mockExecuter, mockEssentialDataReader,
+							mockProjectScanner, essentialPackagesPath, essentialClassesPath, BuildMode.MAVEN,
+							ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, mockSecurityPolicy, projectPath));
 		}
 
 		@Test
 		@DisplayName("Should throw NullPointerException for null executer")
 		void shouldThrowNullPointerExceptionForNullExecuter() {
 			// Act & Assert
-			assertThrows(NullPointerException.class, () -> new TestableFactoryAndBuilder(mockCreator, mockWriter, null, mockEssentialDataReader, mockProjectScanner, essentialPackagesPath,
-					essentialClassesPath, BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, mockSecurityPolicy, projectPath));
+			assertThrows(NullPointerException.class,
+					() -> new TestableFactoryAndBuilder(mockCreator, mockWriter, null, mockEssentialDataReader,
+							mockProjectScanner, essentialPackagesPath, essentialClassesPath, BuildMode.MAVEN,
+							ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, mockSecurityPolicy, projectPath));
 		}
 
 		@Test
 		@DisplayName("Should throw NullPointerException for null essential data reader")
 		void shouldThrowNullPointerExceptionForNullEssentialDataReader() {
 			// Act & Assert
-			assertThrows(NullPointerException.class, () -> new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter, null, mockProjectScanner, essentialPackagesPath, essentialClassesPath,
-					BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, mockSecurityPolicy, projectPath));
+			assertThrows(NullPointerException.class,
+					() -> new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter, null, mockProjectScanner,
+							essentialPackagesPath, essentialClassesPath, BuildMode.MAVEN, ArchitectureMode.ARCHUNIT,
+							AOPMode.ASPECTJ, mockSecurityPolicy, projectPath));
 		}
 
 		@Test
 		@DisplayName("Should throw NullPointerException for null project scanner")
 		void shouldThrowNullPointerExceptionForNullProjectScanner() {
 			// Act & Assert
-			assertThrows(NullPointerException.class, () -> new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter, mockEssentialDataReader, null, essentialPackagesPath,
-					essentialClassesPath, BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, mockSecurityPolicy, projectPath));
+			assertThrows(NullPointerException.class,
+					() -> new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter, mockEssentialDataReader,
+							null, essentialPackagesPath, essentialClassesPath, BuildMode.MAVEN,
+							ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, mockSecurityPolicy, projectPath));
 		}
 
 		@Test
 		@DisplayName("Should throw NullPointerException for null essential packages path")
 		void shouldThrowNullPointerExceptionForNullEssentialPackagesPath() {
 			// Act & Assert
-			assertThrows(NullPointerException.class, () -> new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter, mockEssentialDataReader, mockProjectScanner, null, essentialClassesPath,
-					BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, mockSecurityPolicy, projectPath));
+			assertThrows(NullPointerException.class,
+					() -> new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter, mockEssentialDataReader,
+							mockProjectScanner, null, essentialClassesPath, BuildMode.MAVEN, ArchitectureMode.ARCHUNIT,
+							AOPMode.ASPECTJ, mockSecurityPolicy, projectPath));
 		}
 
 		@Test
 		@DisplayName("Should throw NullPointerException for null essential classes path")
 		void shouldThrowNullPointerExceptionForNullEssentialClassesPath() {
 			// Act & Assert
-			assertThrows(NullPointerException.class, () -> new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter, mockEssentialDataReader, mockProjectScanner, essentialPackagesPath,
-					null, BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, mockSecurityPolicy, projectPath));
+			assertThrows(NullPointerException.class,
+					() -> new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter, mockEssentialDataReader,
+							mockProjectScanner, essentialPackagesPath, null, BuildMode.MAVEN, ArchitectureMode.ARCHUNIT,
+							AOPMode.ASPECTJ, mockSecurityPolicy, projectPath));
 		}
 	}
 
@@ -233,7 +256,8 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 
 		@BeforeEach
 		void setUp() {
-			factory = new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter, mockEssentialDataReader, mockProjectScanner, essentialPackagesPath, essentialClassesPath, BuildMode.MAVEN,
+			factory = new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter, mockEssentialDataReader,
+					mockProjectScanner, essentialPackagesPath, essentialClassesPath, BuildMode.MAVEN,
 					ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, mockSecurityPolicy, projectPath);
 		}
 
@@ -286,8 +310,9 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 		@DisplayName("Should handle complete workflow")
 		void shouldHandleCompleteWorkflow() {
 			// Arrange
-			TestableFactoryAndBuilder factory = new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter, mockEssentialDataReader, mockProjectScanner, essentialPackagesPath,
-					essentialClassesPath, BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, mockSecurityPolicy, projectPath);
+			TestableFactoryAndBuilder factory = new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter,
+					mockEssentialDataReader, mockProjectScanner, essentialPackagesPath, essentialClassesPath,
+					BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, mockSecurityPolicy, projectPath);
 
 			// Act
 			List<Path> writtenPaths = factory.writeTestCases(Paths.get("output"));
@@ -303,8 +328,9 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 		@DisplayName("Should work with minimal configuration")
 		void shouldWorkWithMinimalConfiguration() {
 			// Act
-			TestableFactoryAndBuilder factory = new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter, mockEssentialDataReader, mockProjectScanner, essentialPackagesPath,
-					essentialClassesPath, null, null, null, null, null);
+			TestableFactoryAndBuilder factory = new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter,
+					mockEssentialDataReader, mockProjectScanner, essentialPackagesPath, essentialClassesPath, null,
+					null, null, null, null);
 
 			// Assert
 			assertNotNull(factory);
@@ -315,13 +341,15 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 		@DisplayName("Should handle mixed null and non-null parameters")
 		void shouldHandleMixedNullAndNonNullParameters() {
 			// Act
-			TestableFactoryAndBuilder factory = new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter, mockEssentialDataReader, mockProjectScanner, essentialPackagesPath,
-					essentialClassesPath, BuildMode.GRADLE, null, AOPMode.ASPECTJ, null, projectPath);
+			TestableFactoryAndBuilder factory = new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter,
+					mockEssentialDataReader, mockProjectScanner, essentialPackagesPath, essentialClassesPath,
+					BuildMode.GRADLE, null, AOPMode.ASPECTJ, null, projectPath);
 
 			// Assert
 			assertNotNull(factory);
 			verify(mockCreator).createTestCases(eq(BuildMode.GRADLE), eq(ArchitectureMode.WALA), // default
-					eq(AOPMode.ASPECTJ), anyList(), anyList(), anyList(), anyString(), anyString(), anyList(), anyList(), anyList(), any(ResourceAccesses.class), eq(projectPath));
+					eq(AOPMode.ASPECTJ), anyList(), anyList(), anyList(), anyString(), anyString(), anyList(),
+					anyList(), anyList(), any(ResourceAccesses.class), eq(projectPath));
 		}
 	}
 }

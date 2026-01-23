@@ -18,15 +18,16 @@ class ClassMemberAccessor {
 	 * Also recursively searches for an inherited method in all superclasses and
 	 * implemented interfaces.
 	 *
-	 * @param clazz The class that declares or inherits the method.
-	 * @param methodName The name of the method.
-	 * @param findNonPublic True, if this method should search for (package) private
-	 *            or protected (inherited) methods.
+	 * @param clazz          The class that declares or inherits the method.
+	 * @param methodName     The name of the method.
+	 * @param findNonPublic  True, if this method should search for (package)
+	 *                       private or protected (inherited) methods.
 	 * @param parameterTypes The parameter types of this method.
 	 * @return The wanted method.
 	 * @throws NoSuchMethodException Thrown if the specified method cannot be found.
 	 */
-	static Method getMethod(Class<?> clazz, String methodName, boolean findNonPublic, Class<?>[] parameterTypes) throws NoSuchMethodException {
+	static Method getMethod(Class<?> clazz, String methodName, boolean findNonPublic, Class<?>[] parameterTypes)
+			throws NoSuchMethodException {
 		if (findNonPublic) {
 			return getNonPublicMethod(clazz, methodName, parameterTypes);
 		}
@@ -50,12 +51,13 @@ class ClassMemberAccessor {
 	 * visible outside the declaring class.
 	 *
 	 * @param declaringClass The class that declares or inherits the method.
-	 * @param methodName The name of the method.
+	 * @param methodName     The name of the method.
 	 * @param parameterTypes The parameter types of this method.
 	 * @return The wanted method.
 	 * @throws NoSuchMethodException Thrown if the specified method cannot be found.
 	 */
-	private static Method getNonPublicMethod(Class<?> declaringClass, String methodName, Class<?>[] parameterTypes) throws NoSuchMethodException {
+	private static Method getNonPublicMethod(Class<?> declaringClass, String methodName, Class<?>[] parameterTypes)
+			throws NoSuchMethodException {
 		return getClassHierarchy(declaringClass).flatMap(c -> {
 			try {
 				return getInheritedMethod(declaringClass, c, methodName, parameterTypes).stream();
@@ -69,15 +71,16 @@ class ClassMemberAccessor {
 	 * Searches for a method in the target class that might be inherited from the
 	 * declaring class.
 	 *
-	 * @param targetClass The class in which the method should be accessible.
+	 * @param targetClass    The class in which the method should be accessible.
 	 * @param declaringClass The class from which the method might be inherited.
-	 * @param methodName The name of the method.
+	 * @param methodName     The name of the method.
 	 * @param parameterTypes The parameter types of the method.
 	 * @return A method that is accessible in the target class.
 	 * @throws NoSuchMethodException Thrown if no method as specified could be found
-	 *             in either class.
+	 *                               in either class.
 	 */
-	private static Optional<Method> getInheritedMethod(Class<?> targetClass, Class<?> declaringClass, String methodName, Class<?>[] parameterTypes) throws NoSuchMethodException {
+	private static Optional<Method> getInheritedMethod(Class<?> targetClass, Class<?> declaringClass, String methodName,
+			Class<?>[] parameterTypes) throws NoSuchMethodException {
 		Method method = declaringClass.getDeclaredMethod(methodName, parameterTypes);
 		if (isInheritable(targetClass, declaringClass, method.getModifiers(), true)) {
 			return Optional.of(method);
@@ -92,10 +95,10 @@ class ClassMemberAccessor {
 	 * implemented interfaces. Finds a field even if it is not declared to be
 	 * visible outside the declaring class.
 	 *
-	 * @param clazz The class that declares or inherits the field.
-	 * @param fieldName The name of the attribute.
+	 * @param clazz         The class that declares or inherits the field.
+	 * @param fieldName     The name of the attribute.
 	 * @param findNonPublic True, if this method should search for (package) private
-	 *            or protected (inherited) attributes.
+	 *                      or protected (inherited) attributes.
 	 * @return The wanted field.
 	 * @throws NoSuchFieldException Thrown if the specified field cannot be found.
 	 */
@@ -122,7 +125,7 @@ class ClassMemberAccessor {
 	 * implemented interfaces.
 	 *
 	 * @param declaringClass The class that declares or inherits the field.
-	 * @param fieldName The name of the attribute.
+	 * @param fieldName      The name of the attribute.
 	 * @return The wanted field.
 	 * @throws NoSuchFieldException Thrown if the specified field cannot be found.
 	 */
@@ -140,14 +143,15 @@ class ClassMemberAccessor {
 	 * Searches for a field in the target class that might be inherited from the
 	 * declaring class.
 	 *
-	 * @param targetClass The class in which the field should be accessible.
+	 * @param targetClass    The class in which the field should be accessible.
 	 * @param declaringClass The class from which the field might be inherited.
-	 * @param fieldName The name of the attribute.
+	 * @param fieldName      The name of the attribute.
 	 * @return A field that is accessible in the target class.
 	 * @throws NoSuchFieldException Thrown if no field with the given name could be
-	 *             found in either class.
+	 *                              found in either class.
 	 */
-	private static Optional<Field> getInheritedField(Class<?> targetClass, Class<?> declaringClass, String fieldName) throws NoSuchFieldException {
+	private static Optional<Field> getInheritedField(Class<?> targetClass, Class<?> declaringClass, String fieldName)
+			throws NoSuchFieldException {
 		Field field = declaringClass.getDeclaredField(fieldName);
 		if (isInheritable(targetClass, declaringClass, field.getModifiers(), false)) {
 			return Optional.of(field);
@@ -166,24 +170,28 @@ class ClassMemberAccessor {
 	 *         inherits from.
 	 */
 	private static Stream<Class<?>> getClassHierarchy(Class<?> clazz) {
-		Stream<Class<?>> directSuperclasses = Stream.concat(Stream.of(clazz.getSuperclass()), Arrays.stream(clazz.getInterfaces())).filter(Objects::nonNull);
+		Stream<Class<?>> directSuperclasses = Stream
+				.concat(Stream.of(clazz.getSuperclass()), Arrays.stream(clazz.getInterfaces()))
+				.filter(Objects::nonNull);
 		return Stream.concat(Stream.of(clazz), directSuperclasses.flatMap(ClassMemberAccessor::getClassHierarchy));
 	}
 
 	/**
 	 * Checks if a field or method member of a class is accessible in a subclass.
 	 *
-	 * @param targetClass The class in which the class member of
-	 *            {@code declaredInClass} should be accessible. Assumes that
-	 *            {@code declaredInClass} is a superclass of {@code targetClass}.
+	 * @param targetClass     The class in which the class member of
+	 *                        {@code declaredInClass} should be accessible. Assumes
+	 *                        that {@code declaredInClass} is a superclass of
+	 *                        {@code targetClass}.
 	 * @param declaredInClass The class in which the member was declared.
-	 * @param modifier The modifiers of the member.
-	 * @param isMethod True, if the inheritance check should be performed for a
-	 *            method.
+	 * @param modifier        The modifiers of the member.
+	 * @param isMethod        True, if the inheritance check should be performed for
+	 *                        a method.
 	 * @return True, if the class member of {@code declaredInClass} is accessible in
 	 *         its subclass {@code targetClass}.
 	 */
-	private static boolean isInheritable(Class<?> targetClass, Class<?> declaredInClass, int modifier, boolean isMethod) {
+	private static boolean isInheritable(Class<?> targetClass, Class<?> declaredInClass, int modifier,
+			boolean isMethod) {
 		if (targetClass.equals(declaredInClass)) {
 			return true;
 		}
@@ -195,7 +203,8 @@ class ClassMemberAccessor {
 			return false;
 		}
 		boolean isInheritable = Modifier.isProtected(modifier) || Modifier.isPublic(modifier);
-		boolean isInheritableInPackage = !Modifier.isPrivate(modifier) && targetClass.getPackage().equals(declaredInClass.getPackage());
+		boolean isInheritableInPackage = !Modifier.isPrivate(modifier)
+				&& targetClass.getPackage().equals(declaredInClass.getPackage());
 		return isInheritable || isInheritableInPackage;
 	}
 }

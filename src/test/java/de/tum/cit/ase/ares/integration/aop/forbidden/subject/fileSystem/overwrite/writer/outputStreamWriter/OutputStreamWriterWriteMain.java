@@ -10,7 +10,8 @@ public class OutputStreamWriterWriteMain {
 	private static final String NOT_TRUSTED_FILE = NOT_TRUSTED_DIR + "/nottrusted.txt";
 
 	private OutputStreamWriterWriteMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/* ------------------------------------------------------------- */
@@ -31,7 +32,7 @@ public class OutputStreamWriterWriteMain {
 
 	public static void accessFileSystemViaOutputStreamWriterWriteCharArray() throws IOException {
 		try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(NOT_TRUSTED_FILE))) {
-			writer.write(new char[]{ 'H', 'e', 'l', 'l', 'o', ' ', 'W', 'o', 'r', 'l', 'd' });
+			writer.write(new char[] { 'H', 'e', 'l', 'l', 'o', ' ', 'W', 'o', 'r', 'l', 'd' });
 		}
 	}
 

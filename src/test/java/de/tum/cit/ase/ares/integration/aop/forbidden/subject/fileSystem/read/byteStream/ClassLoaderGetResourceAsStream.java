@@ -6,7 +6,8 @@ import java.io.InputStream;
 public class ClassLoaderGetResourceAsStream {
 
 	private ClassLoaderGetResourceAsStream() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/**
@@ -16,7 +17,8 @@ public class ClassLoaderGetResourceAsStream {
 	 */
 	public static void accessFileSystemViaClassLoaderGetResourceAsStream() throws IOException {
 		ClassLoader cl = ClassLoaderGetResourceAsStream.class.getClassLoader();
-		try (InputStream is = cl.getResourceAsStream("de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt")) {
+		try (InputStream is = cl
+				.getResourceAsStream("de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt")) {
 			if (is != null) {
 				is.read(); // Read a single byte from the resource
 			}

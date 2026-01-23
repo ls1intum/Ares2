@@ -16,13 +16,11 @@ import de.tum.cit.ase.ares.api.securitytest.TestCaseAbstractFactoryAndBuilder;
 
 /**
  * Security policy file reader and test case director.
- *
  * <p>
  * Description: Handles the reading of a security policy from a security policy
  * file and manages the respective creation, the writing, and the execution of
  * security test cases. Acts as a client of the Abstract Factory Design Pattern,
  * and a director in the Builder Design Pattern.
- *
  * <p>
  * Design Rationale: By separating the responsibilities of file reading and test
  * case management, this class adheres to the Single Responsibility Principle,
@@ -81,7 +79,7 @@ public class SecurityPolicyReaderAndDirector {
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 * @param securityPolicyFilePath the path to the security policy file.
-	 * @param projectFolderPath the path to the project folder.
+	 * @param projectFolderPath      the path to the project folder.
 	 */
 	public SecurityPolicyReaderAndDirector(@Nullable Path securityPolicyFilePath, @Nullable Path projectFolderPath) {
 		this.securityPolicyFilePath = securityPolicyFilePath;
@@ -99,18 +97,22 @@ public class SecurityPolicyReaderAndDirector {
 	 */
 	public SecurityPolicyReaderAndDirector createTestCases() {
 		@Nullable
-		SecurityPolicy securityPolicy = Optional.fromNullable(securityPolicyFilePath).transform(securityPolicyFilePath -> {
-			securityPolicyReader = SecurityPolicyReader.selectSecurityPolicyReader(this.securityPolicyFilePath);
-			if (securityPolicyReader != null) {
-				return securityPolicyReader.readSecurityPolicyFrom(securityPolicyFilePath);
-			} else {
-				throw new IllegalArgumentException(Messages.localized("policy.reader.no.suitable.reader", securityPolicyFilePath));
-			}
-		}).orNull();
-		this.securityTestCaseFactoryAndBuilder = Optional.fromNullable(securityPolicy).transform(securityPolicyExisting -> {
-			securityPolicyDirector = SecurityPolicyDirector.selectSecurityPolicyDirector(securityPolicyExisting);
-			return securityPolicyDirector.createTestCases(securityPolicyExisting, projectFolderPath);
-		}).orNull();
+		SecurityPolicy securityPolicy = Optional.fromNullable(securityPolicyFilePath)
+				.transform(securityPolicyFilePath -> {
+					securityPolicyReader = SecurityPolicyReader.selectSecurityPolicyReader(this.securityPolicyFilePath);
+					if (securityPolicyReader != null) {
+						return securityPolicyReader.readSecurityPolicyFrom(securityPolicyFilePath);
+					} else {
+						throw new IllegalArgumentException(
+								Messages.localized("policy.reader.no.suitable.reader", securityPolicyFilePath));
+					}
+				}).orNull();
+		this.securityTestCaseFactoryAndBuilder = Optional.fromNullable(securityPolicy)
+				.transform(securityPolicyExisting -> {
+					securityPolicyDirector = SecurityPolicyDirector
+							.selectSecurityPolicyDirector(securityPolicyExisting);
+					return securityPolicyDirector.createTestCases(securityPolicyExisting, projectFolderPath);
+				}).orNull();
 		// .or(SecurityPolicyDirector.selectSecurityPolicyDirector(null).createTestCases(null,
 		// projectFolderPath));
 		return this;
@@ -128,7 +130,8 @@ public class SecurityPolicyReaderAndDirector {
 	 */
 	@Nonnull
 	public List<Path> writeTestCases(Path testFolderPath) {
-		return Preconditions.checkNotNull(this.securityTestCaseFactoryAndBuilder, "securityTestCaseFactoryAndBuilder must not be null").writeTestCases(testFolderPath);
+		return Preconditions.checkNotNull(this.securityTestCaseFactoryAndBuilder,
+				"securityTestCaseFactoryAndBuilder must not be null").writeTestCases(testFolderPath);
 	}
 
 	/**
@@ -140,7 +143,8 @@ public class SecurityPolicyReaderAndDirector {
 	 */
 	@Nonnull
 	public SecurityPolicyReaderAndDirector writeTestCasesAndContinue(Path testFolderPath) {
-		Preconditions.checkNotNull(this.securityTestCaseFactoryAndBuilder, "securityTestCaseFactoryAndBuilder must not be null").writeTestCases(testFolderPath);
+		Preconditions.checkNotNull(this.securityTestCaseFactoryAndBuilder,
+				"securityTestCaseFactoryAndBuilder must not be null").writeTestCases(testFolderPath);
 		return this;
 	}
 	// </editor-fold>
@@ -154,7 +158,8 @@ public class SecurityPolicyReaderAndDirector {
 	 * @author Markus Paulsen
 	 */
 	public SecurityPolicyReaderAndDirector executeTestCases() {
-		Preconditions.checkNotNull(this.securityTestCaseFactoryAndBuilder, "securityTestCaseFactoryAndBuilder must not be null").executeTestCases();
+		Preconditions.checkNotNull(this.securityTestCaseFactoryAndBuilder,
+				"securityTestCaseFactoryAndBuilder must not be null").executeTestCases();
 		return this;
 	}
 	// </editor-fold>
@@ -188,5 +193,4 @@ public class SecurityPolicyReaderAndDirector {
 		}
 	}
 	// </editor-fold>
-
 }

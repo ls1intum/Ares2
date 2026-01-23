@@ -29,7 +29,6 @@ import de.tum.cit.ase.ares.api.securitytest.java.writer.Writer;
 
 /**
  * Security test case factory and builder.
- *
  * <p>
  * Description: Factory and builder interface for producing and executing
  * security test cases in any programming language. This interface combines
@@ -37,7 +36,6 @@ import de.tum.cit.ase.ares.api.securitytest.java.writer.Writer;
  * configure, and execute security test cases. Implementations are responsible
  * for creating security test case instances, writing them to files, and
  * executing them according to a specified security policy.
- *
  * <p>
  * Design Rationale: Using a combined factory and builder approach provides
  * flexibility in test case creation and execution, while promoting modular
@@ -183,24 +181,28 @@ public abstract class TestCaseAbstractFactoryAndBuilder {
 	 * policy. If the testPath is null, a default path is used.
 	 * </p>
 	 *
-	 * @param buildMode the build tool used in the project; must not be null.
-	 * @param architectureMode the architecture mode used in the project; must not
-	 *            be null.
-	 * @param aopMode the AOP mode used in the project; must not be null.
-	 * @param essentialDataReader the reader for essential configuration; must not
-	 *            be null.
+	 * @param buildMode             the build tool used in the project; must not be
+	 *                              null.
+	 * @param architectureMode      the architecture mode used in the project; must
+	 *                              not be null.
+	 * @param aopMode               the AOP mode used in the project; must not be
+	 *                              null.
+	 * @param essentialDataReader   the reader for essential configuration; must not
+	 *                              be null.
 	 * @param essentialPackagesPath the path to the essential packages
-	 *            configuration; must not be null.
-	 * @param essentialClassesPath the path to the essential classes configuration;
-	 *            must not be null.
-	 * @param projectPath the project path where test cases will be generated; if
-	 *            null, a default is used.
-	 * @param securityPolicy the security policy to enforce; may be null.
+	 *                              configuration; must not be null.
+	 * @param essentialClassesPath  the path to the essential classes configuration;
+	 *                              must not be null.
+	 * @param projectPath           the project path where test cases will be
+	 *                              generated; if null, a default is used.
+	 * @param securityPolicy        the security policy to enforce; may be null.
 	 */
-	public TestCaseAbstractFactoryAndBuilder(@Nonnull Creator creator, @Nonnull Writer writer, @Nonnull Executer executer, @Nonnull EssentialDataReader essentialDataReader,
-			@Nonnull ProjectScanner projectScanner, @Nonnull Path essentialPackagesPath, @Nonnull Path essentialClassesPath, @Nullable BuildMode buildMode, @Nullable ArchitectureMode architectureMode,
-			@Nullable AOPMode aopMode, @Nullable SecurityPolicy securityPolicy, @Nullable Path projectPath) {
-
+	public TestCaseAbstractFactoryAndBuilder(@Nonnull Creator creator, @Nonnull Writer writer,
+			@Nonnull Executer executer, @Nonnull EssentialDataReader essentialDataReader,
+			@Nonnull ProjectScanner projectScanner, @Nonnull Path essentialPackagesPath,
+			@Nonnull Path essentialClassesPath, @Nullable BuildMode buildMode,
+			@Nullable ArchitectureMode architectureMode, @Nullable AOPMode aopMode,
+			@Nullable SecurityPolicy securityPolicy, @Nullable Path projectPath) {
 		// <editor-fold desc="Tools">
 		this.creator = Preconditions.checkNotNull(creator);
 		this.writer = Preconditions.checkNotNull(writer);
@@ -217,27 +219,39 @@ public abstract class TestCaseAbstractFactoryAndBuilder {
 		// </editor-fold>
 
 		// <editor-fold desc="Essential Data">
-		this.essentialPackagesPath = Preconditions.checkNotNull(essentialPackagesPath, "essentialPackagesPath must not be null");
-		this.essentialClassesPath = Preconditions.checkNotNull(essentialClassesPath, "essentialClassesPath must not be null");
-		this.essentialPackages = Preconditions.checkNotNull(essentialDataReader, "essentialPackagesReader must not be null").readEssentialPackagesFrom(this.essentialPackagesPath)
-				.getEssentialPackages();
-		this.essentialClasses = Preconditions.checkNotNull(essentialDataReader, "essentialClassesReader must not be null").readEssentialClassesFrom(this.essentialClassesPath).getEssentialClasses();
+		this.essentialPackagesPath = Preconditions.checkNotNull(essentialPackagesPath,
+				"essentialPackagesPath must not be null");
+		this.essentialClassesPath = Preconditions.checkNotNull(essentialClassesPath,
+				"essentialClassesPath must not be null");
+		this.essentialPackages = Preconditions
+				.checkNotNull(essentialDataReader, "essentialPackagesReader must not be null")
+				.readEssentialPackagesFrom(this.essentialPackagesPath).getEssentialPackages();
+		this.essentialClasses = Preconditions
+				.checkNotNull(essentialDataReader, "essentialClassesReader must not be null")
+				.readEssentialClassesFrom(this.essentialClassesPath).getEssentialClasses();
 		// </editor-fold>
 
 		// <editor-fold desc="Configuration">
-		final SupervisedCode supervisedCode = Optional.ofNullable(securityPolicy).map(SecurityPolicy::regardingTheSupervisedCode).orElse(null);
+		final SupervisedCode supervisedCode = Optional.ofNullable(securityPolicy)
+				.map(SecurityPolicy::regardingTheSupervisedCode).orElse(null);
 		final Optional<SupervisedCode> supervisedCodeOptional = Optional.ofNullable(supervisedCode);
-		String[] testClassesArray = supervisedCodeOptional.map(SupervisedCode::theFollowingClassesAreTestClasses).orElseGet(projectScanner::scanForTestClasses);
-		this.packageName = supervisedCodeOptional.map(SupervisedCode::theSupervisedCodeUsesTheFollowingPackage).orElseGet(projectScanner::scanForPackageName);
-		this.mainClassInPackageName = supervisedCodeOptional.map(SupervisedCode::theMainClassInsideThisPackageIs).orElseGet(projectScanner::scanForMainClassInPackage);
-		this.resourceAccesses = supervisedCodeOptional.map(SupervisedCode::theFollowingResourceAccessesArePermitted).orElseGet(ResourceAccesses::createRestrictive);
+		String[] testClassesArray = supervisedCodeOptional.map(SupervisedCode::theFollowingClassesAreTestClasses)
+				.orElseGet(projectScanner::scanForTestClasses);
+		this.packageName = supervisedCodeOptional.map(SupervisedCode::theSupervisedCodeUsesTheFollowingPackage)
+				.orElseGet(projectScanner::scanForPackageName);
+		this.mainClassInPackageName = supervisedCodeOptional.map(SupervisedCode::theMainClassInsideThisPackageIs)
+				.orElseGet(projectScanner::scanForMainClassInPackage);
+		this.resourceAccesses = supervisedCodeOptional.map(SupervisedCode::theFollowingResourceAccessesArePermitted)
+				.orElseGet(ResourceAccesses::createRestrictive);
 		this.testClasses = new ArrayList<>(Arrays.asList(testClassesArray));
 
 		// </editor-fold>
 
 		// <editor-fold desc="Test Case Creation">
-		this.creator.createTestCases(this.buildMode, this.architectureMode, this.aopMode, this.essentialPackages, this.essentialClasses, this.testClasses, this.packageName,
-				this.mainClassInPackageName, this.architectureTestCases, this.aopTestCases, this.phobosTestCases, this.resourceAccesses, this.projectPath);
+		this.creator.createTestCases(this.buildMode, this.architectureMode, this.aopMode, this.essentialPackages,
+				this.essentialClasses, this.testClasses, this.packageName, this.mainClassInPackageName,
+				this.architectureTestCases, this.aopTestCases, this.phobosTestCases, this.resourceAccesses,
+				this.projectPath);
 		// </editor-fold>
 	}
 	// </editor-fold>
@@ -249,7 +263,7 @@ public abstract class TestCaseAbstractFactoryAndBuilder {
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 * @param testFolderPath the target directory where Ares 2 saves test case
-	 *            files. It may be null.
+	 *                       files. It may be null.
 	 * @return a non-null list of Path objects representing the generated test case
 	 *         files.
 	 */
@@ -264,5 +278,4 @@ public abstract class TestCaseAbstractFactoryAndBuilder {
 	 */
 	public abstract void executeTestCases();
 	// </editor-fold>
-
 }

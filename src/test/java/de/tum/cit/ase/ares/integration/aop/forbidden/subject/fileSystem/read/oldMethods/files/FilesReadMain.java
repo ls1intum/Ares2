@@ -12,59 +12,77 @@ import java.util.stream.Stream;
 public class FilesReadMain {
 
 	private FilesReadMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	public static byte[] accessFileSystemViaFilesRead() throws IOException {
-		return Files.readAllBytes(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
+		return Files.readAllBytes(
+				Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
 	}
 
 	public static List<String> accessFileSystemViaFilesReadAllLines() throws IOException {
-		return Files.readAllLines(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
+		return Files.readAllLines(
+				Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
 	}
 
 	public static List<String> accessFileSystemViaFilesReadAllLinesCharset() throws IOException {
-		return Files.readAllLines(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"), StandardCharsets.UTF_8);
+		return Files.readAllLines(
+				Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"),
+				StandardCharsets.UTF_8);
 	}
 
 	public static String accessFileSystemViaFilesReadString() throws IOException {
-		return Files.readString(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
+		return Files.readString(
+				Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
 	}
 
 	public static String accessFileSystemViaFilesReadStringCharset() throws IOException {
-		return Files.readString(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"), StandardCharsets.UTF_8);
+		return Files.readString(
+				Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"),
+				StandardCharsets.UTF_8);
 	}
 
 	public static Stream<String> accessFileSystemViaFilesLines() throws IOException {
-		return Files.lines(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
+		return Files
+				.lines(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
 	}
 
 	public static Stream<String> accessFileSystemViaFilesLinesCharset() throws IOException {
-		return Files.lines(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"), StandardCharsets.UTF_8);
+		return Files.lines(
+				Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"),
+				StandardCharsets.UTF_8);
 	}
 
 	public static java.io.BufferedReader accessFileSystemViaFilesNewBufferedReaderCharset() throws IOException {
-		return Files.newBufferedReader(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"), StandardCharsets.UTF_8);
+		return Files.newBufferedReader(
+				Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"),
+				StandardCharsets.UTF_8);
 	}
 
 	public static java.io.BufferedReader accessFileSystemViaFilesNewBufferedReader() throws IOException {
-		return Files.newBufferedReader(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
+		return Files.newBufferedReader(
+				Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
 	}
 
 	public static InputStream accessFileSystemViaFilesNewInputStream() throws IOException {
-		return Files.newInputStream(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
+		return Files.newInputStream(
+				Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
 	}
 
 	public static SeekableByteChannel accessFileSystemViaFilesNewByteChannel() throws IOException {
-		return Files.newByteChannel(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
+		return Files.newByteChannel(
+				Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
 	}
 
 	public static long accessFileSystemViaFilesCopyPathToOutputStream() throws IOException {
-		return Files.copy(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"), new java.io.ByteArrayOutputStream());
+		return Files.copy(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"),
+				new java.io.ByteArrayOutputStream());
 	}
 
 	public static long accessFileSystemViaFilesCopyInputStreamToPath() throws IOException {
-		return Files.copy(new java.io.ByteArrayInputStream("test".getBytes()), Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
+		return Files.copy(new java.io.ByteArrayInputStream("test".getBytes()),
+				Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
 	}
 
 	public static Path accessFileSystemViaFilesMovePath() throws IOException {
@@ -73,7 +91,8 @@ public class FilesReadMain {
 	}
 
 	public static long accessFileSystemViaFilesMismatch() throws IOException {
-		return Files.mismatch(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"),
+		return Files.mismatch(
+				Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"),
 				Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
 	}
 }

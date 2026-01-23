@@ -46,23 +46,25 @@ public class RecursionCheck {
 	 * Check if the startingNode has no recursive call
 	 *
 	 * @param pathToSrcRoot Path to the source root
-	 * @param level JavaParser Language Level
-	 * @param startingNode String to start the recursion check from, which may be
-	 *            {@code null}
+	 * @param level         JavaParser Language Level
+	 * @param startingNode  String to start the recursion check from, which may be
+	 *                      {@code null}
 	 * @return Optional.empty() if no recursive call is detected, otherwise an error
 	 *         message with methods in the detected cycle
 	 */
-	public static Optional<String> hasNoCycle(Path pathToSrcRoot, ParserConfiguration.LanguageLevel level, String startingNode, Set<String> excludedMethods) {
+	public static Optional<String> hasNoCycle(Path pathToSrcRoot, ParserConfiguration.LanguageLevel level,
+			String startingNode, Set<String> excludedMethods) {
 		MethodCallGraph graph = createMethodCallGraph(pathToSrcRoot, level, excludedMethods);
-		return checkCycle(graph, startingNode).stream().map(vertex -> formatVertexInfoWithinCycle(vertex, graph, pathToSrcRoot)).reduce(String::concat);
+		return checkCycle(graph, startingNode).stream()
+				.map(vertex -> formatVertexInfoWithinCycle(vertex, graph, pathToSrcRoot)).reduce(String::concat);
 	}
 
 	/**
 	 * Check if the graph has a cycle
 	 *
-	 * @param graph String call graph
+	 * @param graph        String call graph
 	 * @param startingNode String to start the recursion check from, which may be
-	 *            {@code null}
+	 *                     {@code null}
 	 * @return Set of methods in the detected cycle
 	 */
 	private static Set<String> checkCycle(MethodCallGraph graph, String startingNode) {
@@ -78,10 +80,11 @@ public class RecursionCheck {
 	 * Create a method call graph from the source root
 	 *
 	 * @param pathToSrcRoot Path to the source root
-	 * @param level JavaParser Language Level
+	 * @param level         JavaParser Language Level
 	 * @return String call graph
 	 */
-	public static MethodCallGraph createMethodCallGraph(Path pathToSrcRoot, ParserConfiguration.LanguageLevel level, Set<String> excludedMethods) {
+	public static MethodCallGraph createMethodCallGraph(Path pathToSrcRoot, ParserConfiguration.LanguageLevel level,
+			Set<String> excludedMethods) {
 		MethodCallGraph methodCallGraph = new MethodCallGraph(excludedMethods);
 		List<Optional<CompilationUnit>> asts = parseFromSourceRoot(pathToSrcRoot, level);
 		for (Optional<CompilationUnit> ast : asts) {
@@ -95,7 +98,7 @@ public class RecursionCheck {
 	 * Format the vertex information within a cycle
 	 *
 	 * @param vertexName Vertex name
-	 * @param graph Method call graph
+	 * @param graph      Method call graph
 	 * @return Formatted vertex information
 	 */
 	public static String formatVertexInfoWithinCycle(String vertexName, MethodCallGraph graph, Path pathOfSourceRoot) {
@@ -111,19 +114,23 @@ public class RecursionCheck {
 			throw new IllegalStateException(localized("ast.node.position.not.determined"));
 		}
 
-		return localized("ast.method.get_formatted_file_string_prefix", pathOfSourceRoot.toString() + File.separator + Objects.requireNonNull(extractClassName(vertexName))) + System.lineSeparator()
-				+ localized("ast.method.get_formatted_unwanted_node_string_prefix", "Unwanted Recursion") + System.lineSeparator()
-				+ localized("ast.check.begin_end_prefix", nodePosition.toString(), vertexName) + System.lineSeparator();
+		return localized("ast.method.get_formatted_file_string_prefix",
+				pathOfSourceRoot.toString() + File.separator + Objects.requireNonNull(extractClassName(vertexName)))
+				+ System.lineSeparator()
+				+ localized("ast.method.get_formatted_unwanted_node_string_prefix", "Unwanted Recursion")
+				+ System.lineSeparator() + localized("ast.check.begin_end_prefix", nodePosition.toString(), vertexName)
+				+ System.lineSeparator();
 	}
 
 	/**
 	 * Parse all Java files in the source root
 	 *
 	 * @param pathToSourceRoot Path to the source root
-	 * @param level JavaParser Language Level
+	 * @param level            JavaParser Language Level
 	 * @return List of CompilationUnit
 	 */
-	public static List<Optional<CompilationUnit>> parseFromSourceRoot(Path pathToSourceRoot, ParserConfiguration.LanguageLevel level) {
+	public static List<Optional<CompilationUnit>> parseFromSourceRoot(Path pathToSourceRoot,
+			ParserConfiguration.LanguageLevel level) {
 		// A container for type solvers. All solving is done by the contained type
 		// solvers. This helps you when an API asks for a single type solver, but you
 		// need several.
@@ -151,7 +158,8 @@ public class RecursionCheck {
 		// the injection for you.
 		JavaSymbolSolver symbolSolver = new JavaSymbolSolver(combinedTypeSolver);
 
-		SourceRoot sourceRoot = new SourceRoot(pathToSourceRoot, new ParserConfiguration().setSymbolResolver(symbolSolver).setLanguageLevel(level));
+		SourceRoot sourceRoot = new SourceRoot(pathToSourceRoot,
+				new ParserConfiguration().setSymbolResolver(symbolSolver).setLanguageLevel(level));
 
 		List<ParseResult<CompilationUnit>> parseResults;
 		try {

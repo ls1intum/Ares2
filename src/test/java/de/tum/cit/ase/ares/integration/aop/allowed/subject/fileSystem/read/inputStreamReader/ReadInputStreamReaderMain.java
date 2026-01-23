@@ -7,7 +7,8 @@ import java.io.InputStreamReader;
 public class ReadInputStreamReaderMain {
 
 	private ReadInputStreamReaderMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/**
@@ -16,7 +17,8 @@ public class ReadInputStreamReaderMain {
 	 * @return The content of the trusted file
 	 */
 	public static String accessFileSystemViaInputStreamReader() throws IOException {
-		try (InputStreamReader reader = new InputStreamReader(new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"))) {
+		try (InputStreamReader reader = new InputStreamReader(
+				new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"))) {
 			char[] buffer = new char[1024];
 			StringBuilder content = new StringBuilder();
 			int charsRead;
@@ -33,7 +35,8 @@ public class ReadInputStreamReaderMain {
 	 * int length).
 	 */
 	public static String accessFileSystemViaInputStreamReaderReadCharArrayOffsetLength() throws IOException {
-		try (InputStreamReader reader = new InputStreamReader(new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"))) {
+		try (InputStreamReader reader = new InputStreamReader(
+				new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"))) {
 			char[] buffer = new char[1024];
 			StringBuilder content = new StringBuilder();
 			int charsRead;
@@ -49,7 +52,8 @@ public class ReadInputStreamReaderMain {
 	 * Access the file system using InputStreamReader.ready() method.
 	 */
 	public static String accessFileSystemViaInputStreamReaderReady() throws IOException {
-		try (InputStreamReader reader = new InputStreamReader(new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"))) {
+		try (InputStreamReader reader = new InputStreamReader(
+				new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"))) {
 			boolean ready = reader.ready();
 			return "Ready: " + ready;
 		}

@@ -14,8 +14,7 @@ public abstract class AbstractLine implements Line {
 
 	@Override
 	public String toString() {
-		return lineNumber == -1
-				? localized("abstract_line.plain_line", text()) //$NON-NLS-1$
+		return lineNumber == -1 ? localized("abstract_line.plain_line", text()) //$NON-NLS-1$
 				: localized("abstract_line.numbered_line", lineNumber, text()); //$NON-NLS-1$
 	}
 

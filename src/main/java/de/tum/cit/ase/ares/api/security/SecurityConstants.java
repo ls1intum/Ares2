@@ -25,7 +25,8 @@ public final class SecurityConstants {
 		ThreadGroup rootThreadGroup = TestUtils.getRootThreadGroup();
 		ThreadGroup[] threadGroups = new ThreadGroup[rootThreadGroup.activeGroupCount() + 10];
 		rootThreadGroup.enumerate(threadGroups, true);
-		MAIN_THREAD_GROUP = Stream.of(threadGroups).filter(Objects::nonNull).filter(threadGroup -> "main".equals(threadGroup.getName())) //$NON-NLS-1$
+		MAIN_THREAD_GROUP = Stream.of(threadGroups).filter(Objects::nonNull)
+				.filter(threadGroup -> "main".equals(threadGroup.getName())) //$NON-NLS-1$
 				.findFirst().orElse(null);
 		// Search for additional trusted packages specified by system properties
 		String additionalTurstedPackages = System.getProperty(AresSystemProperties.ARES_SECURITY_TRUSTED_PACKAGES);
@@ -38,11 +39,15 @@ public final class SecurityConstants {
 	static final String SECURITY_PACKAGE_NAME = SecurityConstants.class.getPackageName();
 
 	private static final Set<String> STATIC_STACK_WHITELIST = Set.of("java.", "org.junit.", "jdk.", "org.eclipse.", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
-			"com.intellij", "org.assertj", "org.opentest4j.", "com.sun.", "sun.", "org.apache.", "de.tum.cit.ase.ares.api", //$NON-NLS-1$//$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$ //$NON-NLS-7$
+			"com.intellij", "org.assertj", "org.opentest4j.", "com.sun.", "sun.", "org.apache.", //$NON-NLS-1$//$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$
+			"de.tum.cit.ase.ares.api", //$NON-NLS-1$
 			"net.jqwik.", "ch.qos.logback", "org.jacoco", "javax.", "org.json", "org.gradle", "worker.org.gradle", //$NON-NLS-1$//$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$ //$NON-NLS-7$
 			"com.github.javaparser");
-	static final Set<String> STACK_WHITELIST = Stream.concat(STATIC_STACK_WHITELIST.stream(), USER_DEFINED_STACK_WHITELIST.stream()).collect(Collectors.toUnmodifiableSet());
-	static final Set<String> STACK_BLACKLIST = Set.of(BlacklistedInvoker.class.getName(), "org.junit.platform.commons.util.ReflectionUtils.getUnderlyingCause"); //$NON-NLS-1$
+	static final Set<String> STACK_WHITELIST = Stream
+			.concat(STATIC_STACK_WHITELIST.stream(), USER_DEFINED_STACK_WHITELIST.stream())
+			.collect(Collectors.toUnmodifiableSet());
+	static final Set<String> STACK_BLACKLIST = Set.of(BlacklistedInvoker.class.getName(),
+			"org.junit.platform.commons.util.ReflectionUtils.getUnderlyingCause"); //$NON-NLS-1$
 
 	static final Set<String> PACKAGE_USE_BLACKLIST = Set.of(SECURITY_PACKAGE_NAME, "de.tum.cit.ase.ares.api.internal", //$NON-NLS-1$
 			"jdk.internal", "sun."); //$NON-NLS-1$ //$NON-NLS-2$

@@ -18,8 +18,8 @@ public class Localisation {
 	}
 
 	public static List<Path> filesToCopy() {
-		return getCopyConfigurationEntries().stream().map(entry -> entry.get(0).split("/")).map(FileTools::resolveFileOnSourceDirectory).toList();
-
+		return getCopyConfigurationEntries().stream().map(entry -> entry.get(0).split("/"))
+				.map(FileTools::resolveFileOnSourceDirectory).toList();
 	}
 
 	public static List<List<String>> getCopyConfigurationEntries() {
@@ -31,6 +31,7 @@ public class Localisation {
 	}
 
 	public static List<Path> targetsToCopyTo(@Nonnull Path targetPath) {
-		return getCopyConfigurationEntries().stream().map(entry -> entry.get(2).split("/")).map(path -> FileTools.resolveFileOnTargetDirectory(targetPath, path)).toList();
+		return getCopyConfigurationEntries().stream().map(entry -> entry.get(2).split("/"))
+				.map(path -> FileTools.resolveFileOnTargetDirectory(targetPath, path)).toList();
 	}
 }

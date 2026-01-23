@@ -9,10 +9,8 @@ import de.tum.cit.ase.ares.api.localization.Messages;
 
 /**
  * Class with elevated Privilegues.
- *
  * <p>
  * Description: Specifies the class, which is not restricted by Ares 2.
- *
  * <p>
  * Design Rationale: Explicitly declaring elevated classes enables minimal and
  * restricted opening of the general protection.
@@ -21,7 +19,7 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  * @author Markus Paulsen
  * @since 2.0.0
  * @param className the name of the class that recieves elevated privilegues;
- *            must not be null.
+ *                  must not be null.
  */
 public record ClassPermission(@Nonnull String className) {
 
@@ -52,10 +50,8 @@ public record ClassPermission(@Nonnull String className) {
 
 	/**
 	 * Builder for ClassPermission.
-	 *
 	 * <p>
 	 * Description: Provides a fluent API to construct a ClassPermission instance.
-	 *
 	 * <p>
 	 * Design Rationale: This builder allows for flexible configuration of class
 	 * privilegue elevation.

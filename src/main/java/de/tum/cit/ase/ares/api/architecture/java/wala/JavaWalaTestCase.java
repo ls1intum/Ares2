@@ -37,7 +37,8 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 
 	// <editor-fold desc="Constructors">
 
-	public JavaWalaTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported, @Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
+	public JavaWalaTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
+			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
 			@Nonnull CallGraph callGraph) {
 		super(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, callGraph);
 	}
@@ -54,7 +55,9 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		if (allowedPackages.isEmpty()) {
 			return "Set.of()";
 		}
-		String inner = allowedPackages.stream().map(pp -> String.format("new %s(\"%s\")", PackagePermission.class.getSimpleName(), pp.importTheFollowingPackage())).collect(Collectors.joining(", "));
+		String inner = allowedPackages.stream().map(pp -> String.format("new %s(\"%s\")",
+				PackagePermission.class.getSimpleName(), pp.importTheFollowingPackage()))
+				.collect(Collectors.joining(", "));
 		return "Set.of(" + inner + ")";
 	}
 
@@ -63,7 +66,8 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	 * ClassFileImporter.importPackages(...) String.
 	 */
 	private String javaClassesAsCode() {
-		Set<String> packages = javaClasses.stream().map(JavaClass::getPackageName).collect(Collectors.toCollection(HashSet::new));
+		Set<String> packages = javaClasses.stream().map(JavaClass::getPackageName)
+				.collect(Collectors.toCollection(HashSet::new));
 
 		if (packages.isEmpty()) {
 			return "new ClassFileImporter().importPackages()";
@@ -78,7 +82,8 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	 */
 	private String callGraphAsCode() {
 		String classPathExpr = "System.getProperty(\"java.class.path\")";
-		return "new de.tum.cit.ase.ares.api.architecture.java.wala.CustomCallgraphBuilder(" + classPathExpr + ")" + ".buildCallGraph(" + classPathExpr + ")";
+		return "new de.tum.cit.ase.ares.api.architecture.java.wala.CustomCallgraphBuilder(" + classPathExpr + ")"
+				+ ".buildCallGraph(" + classPathExpr + ")";
 	}
 
 	/**
@@ -89,9 +94,13 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	@Nonnull
 	public String writeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
 		try {
-			String testWithPlaceholders = FileTools.readRuleFile(FileTools.readFile(FileTools.resolveFileOnSourceDirectory("templates", "architecture", "java", "wala", "rules",
-					((JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported).name() + ".txt"))).stream().reduce("", (acc, line) -> acc + line + "\n");
-			return testWithPlaceholders.replace("${allowedPackages}", allowedPackagesAsCode()).replace("${javaClasses}", javaClassesAsCode()).replace("${callGraph}", callGraphAsCode());
+			String testWithPlaceholders = FileTools
+					.readRuleFile(FileTools.readFile(FileTools.resolveFileOnSourceDirectory("templates", "architecture",
+							"java", "wala", "rules",
+							((JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported).name() + ".txt")))
+					.stream().reduce("", (acc, line) -> acc + line + "\n");
+			return testWithPlaceholders.replace("${allowedPackages}", allowedPackagesAsCode())
+					.replace("${javaClasses}", javaClassesAsCode()).replace("${callGraph}", callGraphAsCode());
 		} catch (AssertionError | IOException e) {
 			throw new SecurityException(Messages.localized("architecture.illegal.statement", e.getMessage()));
 		}
@@ -107,16 +116,18 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	public void executeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
 		try {
 			switch ((JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported) {
-				case FILESYSTEM_INTERACTION -> JavaWalaTestCaseCollection.NO_CLASS_MUST_ACCESS_FILE_SYSTEM.check(callGraph);
-				case NETWORK_CONNECTION -> JavaWalaTestCaseCollection.NO_CLASS_MUST_ACCESS_NETWORK.check(callGraph);
-				case COMMAND_EXECUTION -> JavaWalaTestCaseCollection.NO_CLASS_MUST_EXECUTE_COMMANDS.check(callGraph);
-				case THREAD_CREATION -> JavaWalaTestCaseCollection.NO_CLASS_MUST_CREATE_THREADS.check(callGraph);
-				case PACKAGE_IMPORT -> JavaWalaTestCaseCollection.noClassMustImportForbiddenPackages(allowedPackages).check(javaClasses);
-				case REFLECTION -> JavaWalaTestCaseCollection.NO_CLASS_MUST_USE_REFLECTION.check(callGraph);
-				case TERMINATE_JVM -> JavaWalaTestCaseCollection.NO_CLASS_MUST_TERMINATE_JVM.check(callGraph);
-				case SERIALIZATION -> JavaWalaTestCaseCollection.NO_CLASS_MUST_SERIALIZE.check(callGraph);
-				case CLASS_LOADING -> JavaWalaTestCaseCollection.NO_CLASS_MUST_USE_CLASSLOADERS.check(callGraph);
-				default -> throw new SecurityException(Messages.localized("security.common.unsupported.operation", this.architectureTestCaseSupported));
+			case FILESYSTEM_INTERACTION -> JavaWalaTestCaseCollection.NO_CLASS_MUST_ACCESS_FILE_SYSTEM.check(callGraph);
+			case NETWORK_CONNECTION -> JavaWalaTestCaseCollection.NO_CLASS_MUST_ACCESS_NETWORK.check(callGraph);
+			case COMMAND_EXECUTION -> JavaWalaTestCaseCollection.NO_CLASS_MUST_EXECUTE_COMMANDS.check(callGraph);
+			case THREAD_CREATION -> JavaWalaTestCaseCollection.NO_CLASS_MUST_CREATE_THREADS.check(callGraph);
+			case PACKAGE_IMPORT -> JavaWalaTestCaseCollection.noClassMustImportForbiddenPackages(allowedPackages)
+					.check(javaClasses);
+			case REFLECTION -> JavaWalaTestCaseCollection.NO_CLASS_MUST_USE_REFLECTION.check(callGraph);
+			case TERMINATE_JVM -> JavaWalaTestCaseCollection.NO_CLASS_MUST_TERMINATE_JVM.check(callGraph);
+			case SERIALIZATION -> JavaWalaTestCaseCollection.NO_CLASS_MUST_SERIALIZE.check(callGraph);
+			case CLASS_LOADING -> JavaWalaTestCaseCollection.NO_CLASS_MUST_USE_CLASSLOADERS.check(callGraph);
+			default -> throw new SecurityException(
+					Messages.localized("security.common.unsupported.operation", this.architectureTestCaseSupported));
 			}
 		} catch (AssertionError e) {
 			JavaArchitectureTestCase.parseErrorMessage(e);
@@ -158,13 +169,15 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		 * @since 2.0.0
 		 * @author Sarp Sahinalp
 		 * @param javaArchitectureTestCaseSupported The type of architecture test case
-		 *            to support
+		 *                                          to support
 		 * @return This builder instance for method chaining
 		 * @throws SecurityException if the parameter is null
 		 */
 		@Nonnull
-		public JavaWalaTestCase.Builder javaArchitectureTestCaseSupported(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported) {
-			this.javaArchitectureTestCaseSupported = Preconditions.checkNotNull(javaArchitectureTestCaseSupported, "javaArchitecturalTestCaseSupported must not be null");
+		public JavaWalaTestCase.Builder javaArchitectureTestCaseSupported(
+				@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported) {
+			this.javaArchitectureTestCaseSupported = Preconditions.checkNotNull(javaArchitectureTestCaseSupported,
+					"javaArchitecturalTestCaseSupported must not be null");
 			return this;
 		}
 
@@ -222,8 +235,11 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		 */
 		@Nonnull
 		public JavaWalaTestCase build() {
-			return new JavaWalaTestCase(Preconditions.checkNotNull(javaArchitectureTestCaseSupported, "javaArchitecturalTestCaseSupported must not be null"),
-					Preconditions.checkNotNull(allowedPackages, "allowedPackages must not be null"), Preconditions.checkNotNull(javaClasses, "javaClasses must not be null"),
+			return new JavaWalaTestCase(
+					Preconditions.checkNotNull(javaArchitectureTestCaseSupported,
+							"javaArchitecturalTestCaseSupported must not be null"),
+					Preconditions.checkNotNull(allowedPackages, "allowedPackages must not be null"),
+					Preconditions.checkNotNull(javaClasses, "javaClasses must not be null"),
 					Preconditions.checkNotNull(callGraph, "callGraph must not be null"));
 		}
 	}

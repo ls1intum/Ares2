@@ -32,7 +32,8 @@ public final class TestGuardUtils {
 	 * the ones in {@link ZoneId#SHORT_IDS} do as well.
 	 */
 	private static final String ZONE_ID_START_PATTERN = "[-+A-Za-z].*"; //$NON-NLS-1$
-	private static final Pattern DURATION_PATTERN = Pattern.compile("(?:(?<d>\\d++)d)?\\s*+(?:\\b(?<h>\\d++)h)?\\s*+(?:\\b(?<m>\\d++)m)?", Pattern.CASE_INSENSITIVE); //$NON-NLS-1$
+	private static final Pattern DURATION_PATTERN = Pattern
+			.compile("(?:(?<d>\\d++)d)?\\s*+(?:\\b(?<h>\\d++)h)?\\s*+(?:\\b(?<m>\\d++)m)?", Pattern.CASE_INSENSITIVE); //$NON-NLS-1$
 
 	private TestGuardUtils() {
 	}
@@ -41,7 +42,8 @@ public final class TestGuardUtils {
 		if (hasAnnotationType(context, TestType.HIDDEN)) {
 			// check if there are both, that would be a mistake
 			if (hasAnnotationType(context, TestType.PUBLIC))
-				throw new AnnotationFormatError(localized("test_guard.test_cannot_be_public_and_hidden", context.displayName())); //$NON-NLS-1$
+				throw new AnnotationFormatError(
+						localized("test_guard.test_cannot_be_public_and_hidden", context.displayName())); //$NON-NLS-1$
 
 			var now = ZonedDateTime.now();
 			var finalDeadline = extractDeadline(context);
@@ -55,7 +57,8 @@ public final class TestGuardUtils {
 			throw localizedFailure("test_guard.hidden_test_before_deadline_message"); //$NON-NLS-1$
 		}
 		if (hasAnnotation(context, Deadline.class) || hasAnnotation(context, ExtendedDeadline.class)) {
-			throw new AnnotationFormatError(localized("test_guard.public_test_cannot_have_deadline", context.displayName())); //$NON-NLS-1$
+			throw new AnnotationFormatError(
+					localized("test_guard.public_test_cannot_have_deadline", context.displayName())); //$NON-NLS-1$
 		}
 	}
 
@@ -83,9 +86,12 @@ public final class TestGuardUtils {
 		if (methodLevel.isPresent())
 			return methodLevel.map(dl -> dl.plus(methodDelta.orElse(Duration.ZERO)));
 		// look in the class otherwise
-		var classLevel = findAnnotation(testClass, Deadline.class).map(Deadline::value).map(TestGuardUtils::parseDeadline);
-		var classDelta = findAnnotation(testClass, ExtendedDeadline.class).map(ExtendedDeadline::value).map(TestGuardUtils::parseDuration);
-		return classLevel.map(dl -> dl.plus(classDelta.orElse(Duration.ZERO))).map(dl -> dl.plus(methodDelta.orElse(Duration.ZERO)));
+		var classLevel = findAnnotation(testClass, Deadline.class).map(Deadline::value)
+				.map(TestGuardUtils::parseDeadline);
+		var classDelta = findAnnotation(testClass, ExtendedDeadline.class).map(ExtendedDeadline::value)
+				.map(TestGuardUtils::parseDuration);
+		return classLevel.map(dl -> dl.plus(classDelta.orElse(Duration.ZERO)))
+				.map(dl -> dl.plus(methodDelta.orElse(Duration.ZERO)));
 	}
 
 	public static Optional<ZonedDateTime> extractActivationBefore(TestContext context) {
@@ -98,11 +104,13 @@ public final class TestGuardUtils {
 	}
 
 	public static Optional<Duration> getExtensionDurationOf(Optional<? extends AnnotatedElement> element) {
-		return findAnnotation(element, ExtendedDeadline.class).map(ExtendedDeadline::value).map(TestGuardUtils::parseDuration);
+		return findAnnotation(element, ExtendedDeadline.class).map(ExtendedDeadline::value)
+				.map(TestGuardUtils::parseDuration);
 	}
 
 	public static Optional<ZonedDateTime> getActivationBeforeOf(Optional<? extends AnnotatedElement> element) {
-		return findAnnotation(element, ActivateHiddenBefore.class).map(ActivateHiddenBefore::value).map(TestGuardUtils::parseDeadline);
+		return findAnnotation(element, ActivateHiddenBefore.class).map(ActivateHiddenBefore::value)
+				.map(TestGuardUtils::parseDeadline);
 	}
 
 	/**
@@ -139,7 +147,7 @@ public final class TestGuardUtils {
 	 * present
 	 *
 	 * @param deadlineString the deadline string of format ISO-LOCAL-DATE(T|
-	 *            )ISO-LOCAL-TIME( ZONE-ID)?
+	 *                       )ISO-LOCAL-TIME( ZONE-ID)?
 	 * @return always a string array of length two, the first part is always the
 	 *         local date time part and not null, the second is the zone part and
 	 *         can be null
@@ -148,19 +156,19 @@ public final class TestGuardUtils {
 	private static String[] splitIntoDateTimeAndZone(String deadlineString) {
 		int firstSpace = deadlineString.indexOf(' ');
 		if (firstSpace == -1)
-			return new String[]{ deadlineString, null };
+			return new String[] { deadlineString, null };
 		int lastSpace = deadlineString.lastIndexOf(' ');
 		var potentialZoneIdString = deadlineString.substring(lastSpace + 1);
 		// either it has two spaces and thereby three parts (YYYY-MM-DD hh:mm ZONE) or
 		// the last part matches a ZoneId start
 		if (firstSpace != lastSpace || potentialZoneIdString.matches(ZONE_ID_START_PATTERN))
-			return new String[]{ deadlineString.substring(0, lastSpace), potentialZoneIdString };
-		return new String[]{ deadlineString, null };
+			return new String[] { deadlineString.substring(0, lastSpace), potentialZoneIdString };
+		return new String[] { deadlineString, null };
 	}
 
 	/**
 	 * @param durationString a String of format like described in
-	 *            {@link ExtendedDeadline}
+	 *                       {@link ExtendedDeadline}
 	 * @return the {@link Duration}, never <code>null</code>
 	 * @throws AnnotationFormatError if the given String's format is invalid
 	 * @author Christian Femers

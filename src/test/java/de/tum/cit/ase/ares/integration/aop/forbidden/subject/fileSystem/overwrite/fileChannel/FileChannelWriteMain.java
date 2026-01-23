@@ -14,14 +14,16 @@ public class FileChannelWriteMain {
 	private static final String NOT_TRUSTED_COPY = NOT_TRUSTED_FILE_DIR + "/nottrusted-copy.txt";
 
 	private FileChannelWriteMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/**
 	 * Access the file system using NIO {@link FileChannel} for writing.
 	 */
 	public static void accessFileSystemViaNIOChannel() throws IOException {
-		try (FileChannel channel = FileChannel.open(Path.of(NOT_TRUSTED_FILE), StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
+		try (FileChannel channel = FileChannel.open(Path.of(NOT_TRUSTED_FILE), StandardOpenOption.CREATE,
+				StandardOpenOption.WRITE)) {
 			ByteBuffer buffer = ByteBuffer.wrap("Hello, world!".getBytes());
 			channel.write(buffer);
 		}
@@ -33,7 +35,8 @@ public class FileChannelWriteMain {
 	 * included separately for completeness.
 	 */
 	public static void accessFileSystemViaFileChannelWrite() throws IOException {
-		try (FileChannel channel = FileChannel.open(Path.of(NOT_TRUSTED_FILE), StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
+		try (FileChannel channel = FileChannel.open(Path.of(NOT_TRUSTED_FILE), StandardOpenOption.CREATE,
+				StandardOpenOption.WRITE)) {
 			ByteBuffer buffer = ByteBuffer.wrap("Using write(ByteBuffer) method".getBytes());
 			int bytesWritten = channel.write(buffer);
 			System.out.println("Bytes written: " + bytesWritten);
@@ -45,8 +48,10 @@ public class FileChannelWriteMain {
 	 * {@link FileChannel#write(ByteBuffer[], int, int)} for writing.
 	 */
 	public static void accessFileSystemViaFileChannelWriteBuffers() throws IOException {
-		try (FileChannel channel = FileChannel.open(Path.of(NOT_TRUSTED_FILE), StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
-			ByteBuffer[] buffers = new ByteBuffer[]{ ByteBuffer.wrap("First buffer. ".getBytes()), ByteBuffer.wrap("Second buffer. ".getBytes()), ByteBuffer.wrap("Third buffer.".getBytes()) };
+		try (FileChannel channel = FileChannel.open(Path.of(NOT_TRUSTED_FILE), StandardOpenOption.CREATE,
+				StandardOpenOption.WRITE)) {
+			ByteBuffer[] buffers = new ByteBuffer[] { ByteBuffer.wrap("First buffer. ".getBytes()),
+					ByteBuffer.wrap("Second buffer. ".getBytes()), ByteBuffer.wrap("Third buffer.".getBytes()) };
 
 			long bytesWritten = channel.write(buffers, 0, buffers.length);
 			System.out.println("Bytes written from multiple buffers: " + bytesWritten);
@@ -58,7 +63,8 @@ public class FileChannelWriteMain {
 	 * for writing at a specific position.
 	 */
 	public static void accessFileSystemViaFileChannelWritePosition() throws IOException {
-		try (FileChannel channel = FileChannel.open(Path.of(NOT_TRUSTED_FILE), StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
+		try (FileChannel channel = FileChannel.open(Path.of(NOT_TRUSTED_FILE), StandardOpenOption.CREATE,
+				StandardOpenOption.WRITE)) {
 			// First write some content
 			channel.write(ByteBuffer.wrap("Initial content. ".getBytes()));
 
@@ -74,8 +80,8 @@ public class FileChannelWriteMain {
 	 * a file.
 	 */
 	public static void accessFileSystemViaFileChannelTruncate() throws IOException {
-		try (FileChannel channel = FileChannel.open(Path.of(NOT_TRUSTED_FILE), StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.READ)) {
-
+		try (FileChannel channel = FileChannel.open(Path.of(NOT_TRUSTED_FILE), StandardOpenOption.CREATE,
+				StandardOpenOption.WRITE, StandardOpenOption.READ)) {
 			// Write some content
 			channel.write(ByteBuffer.wrap("This is a longer content that will be truncated.".getBytes()));
 
@@ -95,14 +101,15 @@ public class FileChannelWriteMain {
 		Path targetPath = Path.of(NOT_TRUSTED_COPY);
 
 		// First create source file with content
-		try (FileChannel sourceChannel = FileChannel.open(sourcePath, StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
+		try (FileChannel sourceChannel = FileChannel.open(sourcePath, StandardOpenOption.CREATE,
+				StandardOpenOption.WRITE)) {
 			sourceChannel.write(ByteBuffer.wrap("Content to be transferred to another file.".getBytes()));
 		}
 
 		// Then transfer its content to another file
 		try (FileChannel sourceChannel = FileChannel.open(sourcePath, StandardOpenOption.READ);
-				FileChannel targetChannel = FileChannel.open(targetPath, StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
-
+				FileChannel targetChannel = FileChannel.open(targetPath, StandardOpenOption.CREATE,
+						StandardOpenOption.WRITE)) {
 			long bytesTransferred = sourceChannel.transferTo(0, sourceChannel.size(), targetChannel);
 			System.out.println("Bytes transferred: " + bytesTransferred);
 		}

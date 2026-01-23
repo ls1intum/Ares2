@@ -6,7 +6,8 @@ import java.io.IOException;
 public class ReadFileInputStreamMain {
 
 	private ReadFileInputStreamMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/**
@@ -15,7 +16,8 @@ public class ReadFileInputStreamMain {
 	 * @return The content of the trusted file as string
 	 */
 	public static String accessFileSystemViaFileInputStream() throws IOException {
-		try (FileInputStream fis = new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt")) {
+		try (FileInputStream fis = new FileInputStream(
+				"src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt")) {
 			byte[] buffer = new byte[1024];
 			StringBuilder content = new StringBuilder();
 			int bytesRead;

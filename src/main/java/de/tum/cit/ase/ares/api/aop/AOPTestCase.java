@@ -11,12 +11,10 @@ import de.tum.cit.ase.ares.api.aop.threadSystem.ThreadSystemExtractor;
 
 /**
  * Interface for AOP test case configurations.
- *
  * <p>
  * Description: Defines methods for generating and executing AOP test cases that
  * enforce security via aspect-oriented programming.
  * </p>
- *
  * <p>
  * Design Rationale: Abstracting AOP test cases into a unified interface allows
  * for consistent integration and language-specific implementation of security
@@ -56,21 +54,30 @@ public abstract class AOPTestCase {
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param aopTestCaseSupported The type of aop test case supported, determining
-	 *            which rules to apply
-	 * @param fileSystemExtractor The extractor for file system operations
+	 * @param aopTestCaseSupported       The type of aop test case supported,
+	 *                                   determining which rules to apply
+	 * @param fileSystemExtractor        The extractor for file system operations
 	 * @param networkConnectionExtractor The extractor for network system operations
-	 * @param commandExecutionExtractor The extractor for command execution
-	 *            operations
-	 * @param threadCreationExtractor The extractor for thread creation operations
+	 * @param commandExecutionExtractor  The extractor for command execution
+	 *                                   operations
+	 * @param threadCreationExtractor    The extractor for thread creation
+	 *                                   operations
 	 */
-	protected AOPTestCase(@Nonnull AOPTestCaseSupported aopTestCaseSupported, @Nonnull FileSystemExtractor fileSystemExtractor, @Nonnull NetworkSystemExtractor networkConnectionExtractor,
-			@Nonnull CommandSystemExtractor commandExecutionExtractor, @Nonnull ThreadSystemExtractor threadCreationExtractor) {
-		this.aopTestCaseSupported = Preconditions.checkNotNull(aopTestCaseSupported, "aopTestCaseSupported must not be null");
-		this.fileSystemExtractor = Preconditions.checkNotNull(fileSystemExtractor, "fileSystemExtractor must not be null");
-		this.networkConnectionExtractor = Preconditions.checkNotNull(networkConnectionExtractor, "networkConnectionExtractor must not be null");
-		this.commandExecutionExtractor = Preconditions.checkNotNull(commandExecutionExtractor, "commandExecutionExtractor must not be null");
-		this.threadCreationExtractor = Preconditions.checkNotNull(threadCreationExtractor, "threadCreationExtractor must not be null");
+	protected AOPTestCase(@Nonnull AOPTestCaseSupported aopTestCaseSupported,
+			@Nonnull FileSystemExtractor fileSystemExtractor,
+			@Nonnull NetworkSystemExtractor networkConnectionExtractor,
+			@Nonnull CommandSystemExtractor commandExecutionExtractor,
+			@Nonnull ThreadSystemExtractor threadCreationExtractor) {
+		this.aopTestCaseSupported = Preconditions.checkNotNull(aopTestCaseSupported,
+				"aopTestCaseSupported must not be null");
+		this.fileSystemExtractor = Preconditions.checkNotNull(fileSystemExtractor,
+				"fileSystemExtractor must not be null");
+		this.networkConnectionExtractor = Preconditions.checkNotNull(networkConnectionExtractor,
+				"networkConnectionExtractor must not be null");
+		this.commandExecutionExtractor = Preconditions.checkNotNull(commandExecutionExtractor,
+				"commandExecutionExtractor must not be null");
+		this.threadCreationExtractor = Preconditions.checkNotNull(threadCreationExtractor,
+				"threadCreationExtractor must not be null");
 	}
 	// </editor-fold>
 
@@ -109,7 +116,7 @@ public abstract class AOPTestCase {
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 * @param architectureMode the identifier for the architecture mode.
-	 * @param aopMode the identifier for the AOP mode.
+	 * @param aopMode          the identifier for the AOP mode.
 	 * @return the AOP test case content as a string.
 	 */
 	@Nonnull
@@ -121,7 +128,7 @@ public abstract class AOPTestCase {
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 * @param architectureMode the identifier for the architecture mode.
-	 * @param aopMode the identifier for the AOP mode.
+	 * @param aopMode          the identifier for the AOP mode.
 	 */
 	public abstract void executeAOPTestCase(@Nonnull String architectureMode, @Nonnull String aopMode);
 	// </editor-fold>

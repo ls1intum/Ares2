@@ -46,7 +46,8 @@ public class MethodCallGraph {
 	 *         vertex
 	 */
 	public Graph<String, DefaultEdge> extractSubgraph(String startVertex) {
-		DefaultDirectedGraph<String, DefaultEdge> subgraph = new DefaultDirectedGraph<>(null, graph.getEdgeSupplier(), false);
+		DefaultDirectedGraph<String, DefaultEdge> subgraph = new DefaultDirectedGraph<>(null, graph.getEdgeSupplier(),
+				false);
 
 		// Set to keep track of visited vertices
 		Set<String> visited = new HashSet<>();

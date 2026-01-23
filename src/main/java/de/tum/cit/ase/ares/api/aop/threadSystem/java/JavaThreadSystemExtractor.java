@@ -22,7 +22,8 @@ public class JavaThreadSystemExtractor implements ThreadSystemExtractor {
 	 * access supplier.
 	 *
 	 * @param resourceAccessSupplier the supplier for the resource accesses
-	 *            permitted as defined in the security policy, must not be null.
+	 *                               permitted as defined in the security policy,
+	 *                               must not be null.
 	 */
 	public JavaThreadSystemExtractor(@Nonnull Supplier<List<?>> resourceAccessSupplier) {
 		this.resourceAccessSupplier = resourceAccessSupplier;
@@ -59,7 +60,8 @@ public class JavaThreadSystemExtractor implements ThreadSystemExtractor {
 	 */
 	@Nonnull
 	public List<Integer> getPermittedNumberOfThreads() {
-		return ((List<ThreadPermission>) resourceAccessSupplier.get()).stream().map(ThreadPermission::createTheFollowingNumberOfThreads).toList();
+		return ((List<ThreadPermission>) resourceAccessSupplier.get()).stream()
+				.map(ThreadPermission::createTheFollowingNumberOfThreads).toList();
 	}
 
 	/**
@@ -69,7 +71,8 @@ public class JavaThreadSystemExtractor implements ThreadSystemExtractor {
 	 */
 	@Nonnull
 	public List<String> getPermittedThreadClasses() {
-		return ((List<ThreadPermission>) resourceAccessSupplier.get()).stream().map(ThreadPermission::ofThisClass).toList();
+		return ((List<ThreadPermission>) resourceAccessSupplier.get()).stream().map(ThreadPermission::ofThisClass)
+				.toList();
 	}
 	// </editor-fold>
 }

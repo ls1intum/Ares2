@@ -9,11 +9,9 @@ import de.tum.cit.ase.ares.api.localization.Messages;
 
 /**
  * Allowed network operations.
- *
  * <p>
  * Description: Specifies permissions for opening connections, sending data, and
  * receiving data on a specified host and port.
- *
  * <p>
  * Design Rationale: Clearly defining network permissions helps protect against
  * unauthorised network interactions.
@@ -22,13 +20,14 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  * @author Markus Paulsen
  * @since 2.0.0
  * @param openConnections whether opening network connections is permitted.
- * @param sendData whether sending data is permitted.
- * @param receiveData whether receiving data is permitted.
- * @param onTheHost the host where these operations are permitted; must not be
- *            null.
- * @param onThePort the port number where these operations are permitted.
+ * @param sendData        whether sending data is permitted.
+ * @param receiveData     whether receiving data is permitted.
+ * @param onTheHost       the host where these operations are permitted; must
+ *                        not be null.
+ * @param onThePort       the port number where these operations are permitted.
  */
-public record NetworkPermission(@Nonnull String onTheHost, int onThePort, boolean openConnections, boolean sendData, boolean receiveData) {
+public record NetworkPermission(@Nonnull String onTheHost, int onThePort, boolean openConnections, boolean sendData,
+		boolean receiveData) {
 
 	/**
 	 * Constructs a NetworkPermission instance.
@@ -57,7 +56,8 @@ public record NetworkPermission(@Nonnull String onTheHost, int onThePort, boolea
 	 */
 	@Nonnull
 	public static NetworkPermission createRestrictive(@Nonnull String onTheHost, int onThePort) {
-		return builder().onTheHost(Objects.requireNonNull(onTheHost, "onTheHost must not be null")).onThePort(onThePort).openConnections(false).receiveData(false).sendData(false).build();
+		return builder().onTheHost(Objects.requireNonNull(onTheHost, "onTheHost must not be null")).onThePort(onThePort)
+				.openConnections(false).receiveData(false).sendData(false).build();
 	}
 
 	/**
@@ -74,10 +74,8 @@ public record NetworkPermission(@Nonnull String onTheHost, int onThePort, boolea
 
 	/**
 	 * Builder for NetworkPermission.
-	 *
 	 * <p>
 	 * Description: Provides a fluent API to construct a NetworkPermission instance.
-	 *
 	 * <p>
 	 * Design Rationale: This builder facilitates stepwise configuration of network
 	 * permissions.
@@ -182,7 +180,8 @@ public record NetworkPermission(@Nonnull String onTheHost, int onThePort, boolea
 		 * @return a new NetworkPermission instance.
 		 */
 		public NetworkPermission build() {
-			return new NetworkPermission(Objects.requireNonNull(onTheHost, "onTheHost must not be null"), onThePort, openConnections, sendData, receiveData);
+			return new NetworkPermission(Objects.requireNonNull(onTheHost, "onTheHost must not be null"), onThePort,
+					openConnections, sendData, receiveData);
 		}
 	}
 }

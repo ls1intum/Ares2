@@ -11,7 +11,7 @@ public interface FileSystemExtractor {
 	 * type.
 	 *
 	 * @param filePermission the type of file permission to filter by (e.g., "read",
-	 *            "overwrite"), must not be null.
+	 *                       "overwrite"), must not be null.
 	 * @return a list of permitted file paths for the specified file permission
 	 *         type.
 	 */

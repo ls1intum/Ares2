@@ -42,7 +42,8 @@ class InputOutputTest {
 
 	@TestTest
 	void test_noneManagerInvalidParameter() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(noneManagerInvalidParameter, ParameterResolutionException.class));
+		tests.assertThatEvents().haveExactly(1,
+				testFailedWith(noneManagerInvalidParameter, ParameterResolutionException.class));
 	}
 
 	@TestTest

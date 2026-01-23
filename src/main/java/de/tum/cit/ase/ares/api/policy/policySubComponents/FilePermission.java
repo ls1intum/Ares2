@@ -9,11 +9,9 @@ import de.tum.cit.ase.ares.api.localization.Messages;
 
 /**
  * Allowed file operations.
- *
  * <p>
  * Description: Specifies whether reading, overwriting, executing, and deleting
  * files is permitted on a given path.
- *
  * <p>
  * Design Rationale: Explicitly defining file operation permissions helps ensure
  * secure code execution.
@@ -21,15 +19,16 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  * @since 2.0.0
  * @author Markus Paulsen
  * @since 2.0.0
- * @param readAllFiles whether reading all files is permitted.
- * @param overwriteAllFiles whether overwriting all files is permitted.
- * @param createAllFiles whether creating files is permitted.
- * @param executeAllFiles whether executing all files is permitted.
- * @param deleteAllFiles whether deleting all files is permitted.
+ * @param readAllFiles               whether reading all files is permitted.
+ * @param overwriteAllFiles          whether overwriting all files is permitted.
+ * @param createAllFiles             whether creating files is permitted.
+ * @param executeAllFiles            whether executing all files is permitted.
+ * @param deleteAllFiles             whether deleting all files is permitted.
  * @param onThisPathAndAllPathsBelow the path where these permissions apply;
- *            must not be null.
+ *                                   must not be null.
  */
-public record FilePermission(@Nonnull String onThisPathAndAllPathsBelow, boolean readAllFiles, boolean overwriteAllFiles, boolean createAllFiles, boolean executeAllFiles, boolean deleteAllFiles) {
+public record FilePermission(@Nonnull String onThisPathAndAllPathsBelow, boolean readAllFiles,
+		boolean overwriteAllFiles, boolean createAllFiles, boolean executeAllFiles, boolean deleteAllFiles) {
 
 	/**
 	 * Constructs a FilePermission instance.
@@ -54,7 +53,8 @@ public record FilePermission(@Nonnull String onThisPathAndAllPathsBelow, boolean
 	 */
 	@Nonnull
 	public static FilePermission createRestrictive(String path) {
-		return builder().onThisPathAndAllPathsBelow(Objects.requireNonNull(path, "path must not be null")).readAllFiles(false).overwriteAllFiles(false).createAllFiles(false).executeAllFiles(false)
+		return builder().onThisPathAndAllPathsBelow(Objects.requireNonNull(path, "path must not be null"))
+				.readAllFiles(false).overwriteAllFiles(false).createAllFiles(false).executeAllFiles(false)
 				.deleteAllFiles(false).build();
 	}
 
@@ -72,10 +72,8 @@ public record FilePermission(@Nonnull String onThisPathAndAllPathsBelow, boolean
 
 	/**
 	 * Builder for FilePermission.
-	 *
 	 * <p>
 	 * Description: Provides a fluent API to construct a FilePermission instance.
-	 *
 	 * <p>
 	 * Design Rationale: The builder pattern facilitates the step-by-step
 	 * construction of file permissions.
@@ -121,7 +119,8 @@ public record FilePermission(@Nonnull String onThisPathAndAllPathsBelow, boolean
 		 */
 		@Nonnull
 		public Builder onThisPathAndAllPathsBelow(@Nonnull String onThisPathAndAllPathsBelow) {
-			this.onThisPathAndAllPathsBelow = Objects.requireNonNull(onThisPathAndAllPathsBelow, "onThisPathAndAllPathsBelow must not be null");
+			this.onThisPathAndAllPathsBelow = Objects.requireNonNull(onThisPathAndAllPathsBelow,
+					"onThisPathAndAllPathsBelow must not be null");
 			return this;
 		}
 
@@ -204,7 +203,8 @@ public record FilePermission(@Nonnull String onThisPathAndAllPathsBelow, boolean
 		 */
 		@Nonnull
 		public FilePermission build() {
-			return new FilePermission(Objects.requireNonNull(onThisPathAndAllPathsBelow, "path must not be null"), readAllFiles, overwriteAllFiles, createAllFiles, executeAllFiles, deleteAllFiles);
+			return new FilePermission(Objects.requireNonNull(onThisPathAndAllPathsBelow, "path must not be null"),
+					readAllFiles, overwriteAllFiles, createAllFiles, executeAllFiles, deleteAllFiles);
 		}
 	}
 }

@@ -162,7 +162,9 @@ public final class ThreadPenguin extends Thread {
 	}
 
 	public static void completableFutureSlide2() {
-		CompletableFuture.supplyAsync(() -> "Task 1").thenCompose(task1Result -> CompletableFuture.supplyAsync(() -> task1Result + " + Task 2")).thenAccept(System.out::println);
+		CompletableFuture.supplyAsync(() -> "Task 1")
+				.thenCompose(task1Result -> CompletableFuture.supplyAsync(() -> task1Result + " + Task 2"))
+				.thenAccept(System.out::println);
 	}
 
 	public static void completableFutureSlide3Combine() {
@@ -214,6 +216,7 @@ public final class ThreadPenguin extends Thread {
 			System.out.println("Subscribed to temperature readings.");
 			subscription.request(10); // Request 10 readings at a time
 		}
+
 		@Override
 		public void onNext(Integer temperature) {
 			System.out.println("Received temperature: " + temperature + "°C");
@@ -221,10 +224,12 @@ public final class ThreadPenguin extends Thread {
 				System.out.println("Warning: High temperature detected!");
 			}
 		}
+
 		@Override
 		public void onError(Throwable throwable) {
 			System.err.println("Error occurred: " + throwable.getMessage());
 		}
+
 		@Override
 		public void onComplete() {
 			System.out.println("All temperature readings processed.");

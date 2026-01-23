@@ -34,8 +34,8 @@ public final class TestContextUtils {
 	 * superclasses, if {@link Inherited})</li>
 	 * </ul>
 	 *
-	 * @param <A> The type of the annotation
-	 * @param context the {@link TestContext} to search in
+	 * @param <A>        The type of the annotation
+	 * @param context    the {@link TestContext} to search in
 	 * @param annotation the annotation to look for
 	 * @return the first occurrence of <code>A</code> in the described order as
 	 *         Optional, never null
@@ -43,7 +43,8 @@ public final class TestContextUtils {
 	 * @author Christian Femers
 	 */
 	public static <A extends Annotation> Optional<A> findAnnotationIn(TestContext context, Class<A> annotation) {
-		return getAnnotatedElementsInnermostFirst(context).map(e -> findAnnotation(e, annotation)).filter(Optional::isPresent).map(Optional::get).findFirst();
+		return getAnnotatedElementsInnermostFirst(context).map(e -> findAnnotation(e, annotation))
+				.filter(Optional::isPresent).map(Optional::get).findFirst();
 	}
 
 	/**
@@ -57,16 +58,18 @@ public final class TestContextUtils {
 	 * superclasses, if {@link Inherited})</li>
 	 * </ul>
 	 *
-	 * @param <A> The type of the annotation
-	 * @param context the {@link TestContext} to search in
+	 * @param <A>        The type of the annotation
+	 * @param context    the {@link TestContext} to search in
 	 * @param annotation the annotation to look for
 	 * @return all occurrences of <code>A</code> in the described order as Stream,
 	 *         never null
 	 * @see AnnotationSupport#findRepeatableAnnotations(AnnotatedElement, Class)
 	 * @author Christian Femers
 	 */
-	public static <A extends Annotation> Stream<A> findRepeatableAnnotationsIn(TestContext context, Class<A> annotation) {
-		return getAnnotatedElementsInnermostFirst(context).flatMap(e -> findRepeatableAnnotations(e, annotation).stream());
+	public static <A extends Annotation> Stream<A> findRepeatableAnnotationsIn(TestContext context,
+			Class<A> annotation) {
+		return getAnnotatedElementsInnermostFirst(context)
+				.flatMap(e -> findRepeatableAnnotations(e, annotation).stream());
 	}
 
 	/**
@@ -79,7 +82,8 @@ public final class TestContextUtils {
 	 * @author Christian Femers
 	 */
 	public static Stream<Class<?>> getClassNestingInnermostFirst(TestContext context) {
-		return Stream.<Class<?>>iterate(context.testClass().orElse(null), Class::getEnclosingClass).takeWhile(Objects::nonNull);
+		return Stream.<Class<?>>iterate(context.testClass().orElse(null), Class::getEnclosingClass)
+				.takeWhile(Objects::nonNull);
 	}
 
 	/**

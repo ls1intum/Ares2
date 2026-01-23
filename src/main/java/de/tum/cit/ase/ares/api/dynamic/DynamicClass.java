@@ -11,8 +11,9 @@ import org.apiguardian.api.API.Status;
 @API(status = Status.MAINTAINED)
 public class DynamicClass<T> implements Checkable {
 
-	private static final Map<Class<?>, Class<?>> primitiveWrappers = Map.of(Boolean.TYPE, Boolean.class, Byte.TYPE, Byte.class, Character.TYPE, Character.class, Short.TYPE, Short.class, Integer.TYPE,
-			Integer.class, Long.TYPE, Long.class, Float.TYPE, Float.class, Double.TYPE, Double.class);
+	private static final Map<Class<?>, Class<?>> primitiveWrappers = Map.of(Boolean.TYPE, Boolean.class, Byte.TYPE,
+			Byte.class, Character.TYPE, Character.class, Short.TYPE, Short.class, Integer.TYPE, Integer.class,
+			Long.TYPE, Long.class, Float.TYPE, Float.class, Double.TYPE, Double.class);
 
 	private final String name;
 	private Class<T> clazz;
@@ -89,7 +90,8 @@ public class DynamicClass<T> implements Checkable {
 		}
 		if (classOrStringOrDynamicClass instanceof DynamicClass)
 			return name.equals(((DynamicClass<?>) classOrStringOrDynamicClass).name);
-		throw new IllegalArgumentException("Internal Test Error, isClass supplied with " + classOrStringOrDynamicClass.getClass()); //$NON-NLS-1$
+		throw new IllegalArgumentException(
+				"Internal Test Error, isClass supplied with " + classOrStringOrDynamicClass.getClass()); //$NON-NLS-1$
 	}
 
 	@SuppressWarnings("unchecked")
@@ -141,7 +143,8 @@ public class DynamicClass<T> implements Checkable {
 			return toDynamic((Class<?>) classOrStringOrDynamicClass);
 		if (classOrStringOrDynamicClass instanceof DynamicClass)
 			return (DynamicClass<?>) classOrStringOrDynamicClass;
-		throw new IllegalArgumentException("Internal Test Error, toDynamic supplied with " + classOrStringOrDynamicClass.getClass()); //$NON-NLS-1$
+		throw new IllegalArgumentException(
+				"Internal Test Error, toDynamic supplied with " + classOrStringOrDynamicClass.getClass()); //$NON-NLS-1$
 	}
 
 	public static DynamicClass<?>[] toDynamic(Object[] classesOrStringsOrDynamicClasses) { // NOSONAR
@@ -155,7 +158,8 @@ public class DynamicClass<T> implements Checkable {
 		var classes = new Class<?>[dynamicClasses.length];
 		for (var i = 0; i < classes.length; i++) {
 			final int x = i;
-			classes[x] = Objects.requireNonNull(dynamicClasses[i].toClass(), () -> dynamicClasses[x] + " could not be resolved"); //$NON-NLS-1$
+			classes[x] = Objects.requireNonNull(dynamicClasses[i].toClass(),
+					() -> dynamicClasses[x] + " could not be resolved"); //$NON-NLS-1$
 		}
 		return classes;
 	}

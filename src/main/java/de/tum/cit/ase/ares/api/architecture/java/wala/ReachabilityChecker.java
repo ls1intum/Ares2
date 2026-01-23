@@ -26,7 +26,8 @@ import de.tum.cit.ase.ares.api.localization.Messages;
 public class ReachabilityChecker {
 	// <editor-fold desc="Constructor">
 	private ReachabilityChecker() {
-		throw new SecurityException(Messages.localized("security.general.utility.initialization", "ReachabilityChecker"));
+		throw new SecurityException(
+				Messages.localized("security.general.utility.initialization", "ReachabilityChecker"));
 	}
 	// </editor-fold>
 
@@ -34,13 +35,14 @@ public class ReachabilityChecker {
 	 * Checks if a target node is reachable from a set of start nodes in a call
 	 * graph.
 	 *
-	 * @param callGraph The call graph to search in.
-	 * @param startNodes The start nodes to search from.
+	 * @param callGraph        The call graph to search in.
+	 * @param startNodes       The start nodes to search from.
 	 * @param targetNodeFilter A filter to determine if a node is a target node.
 	 * @return A list of nodes that are reachable from the start nodes and match the
 	 *         target node filter.
 	 */
-	public static List<CGNode> findReachableMethods(CallGraph callGraph, Iterator<CGNode> startNodes, Predicate<CGNode> targetNodeFilter) {
+	public static List<CGNode> findReachableMethods(CallGraph callGraph, Iterator<CGNode> startNodes,
+			Predicate<CGNode> targetNodeFilter) {
 		if (callGraph == null) {
 			throw new SecurityException(Messages.localized("security.common.not.null", "CallGraph"));
 		}
@@ -60,11 +62,12 @@ public class ReachabilityChecker {
 	/**
 	 * Get entry points from a student submission.
 	 *
-	 * @param classPath The path to the student submission.
+	 * @param classPath                 The path to the student submission.
 	 * @param applicationClassHierarchy The class hierarchy of the application.
 	 * @return A list of entry points from the student submission.
 	 */
-	public static List<DefaultEntrypoint> getEntryPointsFromStudentSubmission(String classPath, ClassHierarchy applicationClassHierarchy) {
+	public static List<DefaultEntrypoint> getEntryPointsFromStudentSubmission(String classPath,
+			ClassHierarchy applicationClassHierarchy) {
 		if (classPath == null || classPath.trim().isEmpty()) {
 			throw new SecurityException(Messages.localized("security.common.not.null", "classPath"));
 		}
@@ -73,9 +76,12 @@ public class ReachabilityChecker {
 		}
 		try {
 			return new ArrayList<>(io.vavr.collection.Stream.ofAll(createClassHierarchy(classPath)).toJavaStream()
-					.filter(iClass -> iClass.getClassLoader().getReference().equals(ClassLoaderReference.Application)).map(IClass::getDeclaredMethods).map(io.vavr.collection.Stream::ofAll)
-					.flatMap(io.vavr.collection.Stream::toJavaStream).filter(iMethod -> !iMethod.getName().toString().equals("main")).map(IMethod::getReference)
-					.map(methodReference -> new DefaultEntrypoint(methodReference, applicationClassHierarchy)).toList());
+					.filter(iClass -> iClass.getClassLoader().getReference().equals(ClassLoaderReference.Application))
+					.map(IClass::getDeclaredMethods).map(io.vavr.collection.Stream::ofAll)
+					.flatMap(io.vavr.collection.Stream::toJavaStream)
+					.filter(iMethod -> !iMethod.getName().toString().equals("main")).map(IMethod::getReference)
+					.map(methodReference -> new DefaultEntrypoint(methodReference, applicationClassHierarchy))
+					.toList());
 		} catch (ClassHierarchyException | IOException | UnimplementedError e) {
 			throw new SecurityException(Messages.localized("security.architecture.class.hierarchy.error"));
 		}

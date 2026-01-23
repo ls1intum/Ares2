@@ -23,18 +23,25 @@ import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 public final class JupiterSecurityExtension implements UnifiedInvocationInterceptor {
 
 	@Override
-	public <T> T interceptGenericInvocation(Invocation<T> invocation, ExtensionContext extensionContext, Optional<ReflectiveInvocationContext<?>> invocationContext) throws Throwable {
+	public <T> T interceptGenericInvocation(Invocation<T> invocation, ExtensionContext extensionContext,
+			Optional<ReflectiveInvocationContext<?>> invocationContext) throws Throwable {
 		JupiterContext testContext = JupiterContext.of(extensionContext);
 
 		if (hasAnnotation(testContext, Policy.class)) {
-			findAnnotation(testContext.testMethod(), Policy.class).ifPresent(policy -> SecurityPolicyReaderAndDirector.builder()
-					.securityPolicyFilePath(!policy.value().isBlank() ? JupiterSecurityExtension.testAndGetPolicyValue(policy) : null)
-					.projectFolderPath(!policy.withinPath().isBlank() ? JupiterSecurityExtension.testAndGetPolicyWithinPath(policy) : Path.of("")).build().createTestCases().executeTestCases());
+			findAnnotation(testContext.testMethod(), Policy.class).ifPresent(policy -> SecurityPolicyReaderAndDirector
+					.builder()
+					.securityPolicyFilePath(
+							!policy.value().isBlank() ? JupiterSecurityExtension.testAndGetPolicyValue(policy) : null)
+					.projectFolderPath(
+							!policy.withinPath().isBlank() ? JupiterSecurityExtension.testAndGetPolicyWithinPath(policy)
+									: Path.of(""))
+					.build().createTestCases().executeTestCases());
 		} else {
 			// We have to reset both the settings classes in the runtime and the bootstrap
 			// class loader to be able to run multiple tests in the same JVM instance.
 			String className = "de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings";
-			Try.call(() -> Class.forName(className, true, Thread.currentThread().getContextClassLoader())).ifSuccess(JupiterSecurityExtension::resetSettings);
+			Try.call(() -> Class.forName(className, true, Thread.currentThread().getContextClassLoader()))
+					.ifSuccess(JupiterSecurityExtension::resetSettings);
 
 			Try.call(() -> Class.forName(className, true, null)).ifSuccess(JupiterSecurityExtension::resetSettings);
 		}

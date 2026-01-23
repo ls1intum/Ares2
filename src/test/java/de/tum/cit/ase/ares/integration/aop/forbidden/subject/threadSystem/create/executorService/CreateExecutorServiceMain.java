@@ -13,7 +13,8 @@ import de.tum.cit.ase.ares.integration.aop.forbidden.subject.IllegalThread;
 public class CreateExecutorServiceMain {
 
 	private CreateExecutorServiceMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/**
@@ -24,7 +25,6 @@ public class CreateExecutorServiceMain {
 			ExecutorService executorService = Executors.newSingleThreadExecutor();
 			executorService.execute(new IllegalThread());
 		} finally {
-
 		}
 	}
 

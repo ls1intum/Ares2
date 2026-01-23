@@ -48,16 +48,19 @@ public class DependencyManager {
 	/**
 	 * Adds a dependency to the build file (pom.xml or build.gradle).
 	 *
-	 * @param groupId the group ID of the dependency
+	 * @param groupId    the group ID of the dependency
 	 * @param artifactId the artifact ID of the dependency
-	 * @param version the version of the dependency
-	 * @throws IOException if an I/O error occurs while accessing the file
+	 * @param version    the version of the dependency
+	 * @throws IOException                  if an I/O error occurs while accessing
+	 *                                      the file
 	 * @throws ParserConfigurationException if a document builder cannot be created
-	 * @throws TransformerException if an error occurs during the transformation of
-	 *             the XML document
-	 * @throws SAXException if an error occurs while parsing the XML file
+	 * @throws TransformerException         if an error occurs during the
+	 *                                      transformation of the XML document
+	 * @throws SAXException                 if an error occurs while parsing the XML
+	 *                                      file
 	 */
-	public void addDependency(String groupId, String artifactId, String version) throws IOException, ParserConfigurationException, TransformerException, SAXException {
+	public void addDependency(String groupId, String artifactId, String version)
+			throws IOException, ParserConfigurationException, TransformerException, SAXException {
 		if (filePath.trim().endsWith("pom.xml")) {
 			addDependencyToPom(groupId, artifactId, version);
 		} else if (filePath.trim().endsWith("build.gradle")) {
@@ -68,7 +71,7 @@ public class DependencyManager {
 	/**
 	 * Removes a dependency from the build file (pom.xml or build.gradle).
 	 *
-	 * @param groupId the group ID of the dependency to remove
+	 * @param groupId    the group ID of the dependency to remove
 	 * @param artifactId the artifact ID of the dependency to remove
 	 * @throws Exception if an error occurs while processing the file
 	 */
@@ -83,16 +86,19 @@ public class DependencyManager {
 	/**
 	 * Adds a dependency to the pom.xml file.
 	 *
-	 * @param groupId the group ID of the dependency
+	 * @param groupId    the group ID of the dependency
 	 * @param artifactId the artifact ID of the dependency
-	 * @param version the version of the dependency
+	 * @param version    the version of the dependency
 	 * @throws ParserConfigurationException if a document builder cannot be created
-	 * @throws IOException if an I/O error occurs while accessing the file
-	 * @throws SAXException if an error occurs while parsing the XML file
-	 * @throws TransformerException if an error occurs during the transformation of
-	 *             the XML document
+	 * @throws IOException                  if an I/O error occurs while accessing
+	 *                                      the file
+	 * @throws SAXException                 if an error occurs while parsing the XML
+	 *                                      file
+	 * @throws TransformerException         if an error occurs during the
+	 *                                      transformation of the XML document
 	 */
-	private void addDependencyToPom(String groupId, String artifactId, String version) throws ParserConfigurationException, IOException, SAXException, TransformerException {
+	private void addDependencyToPom(String groupId, String artifactId, String version)
+			throws ParserConfigurationException, IOException, SAXException, TransformerException {
 		File pomFile = new File(filePath);
 		var docFactory = DocumentBuilderFactory.newInstance();
 		DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
@@ -144,7 +150,7 @@ public class DependencyManager {
 	/**
 	 * Removes a dependency from the pom.xml file.
 	 *
-	 * @param groupId the group ID of the dependency to remove
+	 * @param groupId    the group ID of the dependency to remove
 	 * @param artifactId the artifact ID of the dependency to remove
 	 * @throws Exception if an error occurs while processing the XML file
 	 */
@@ -176,9 +182,9 @@ public class DependencyManager {
 	/**
 	 * Adds a dependency to the build.gradle file.
 	 *
-	 * @param groupId the group ID of the dependency
+	 * @param groupId    the group ID of the dependency
 	 * @param artifactId the artifact ID of the dependency
-	 * @param version the version of the dependency
+	 * @param version    the version of the dependency
 	 * @throws IOException if an I/O error occurs while reading or writing the file
 	 */
 	private void addDependencyToGradle(String groupId, String artifactId, String version) throws IOException {
@@ -214,7 +220,7 @@ public class DependencyManager {
 	/**
 	 * Removes a dependency from the build.gradle file.
 	 *
-	 * @param groupId the group ID of the dependency to remove
+	 * @param groupId    the group ID of the dependency to remove
 	 * @param artifactId the artifact ID of the dependency to remove
 	 * @throws IOException if an I/O error occurs while reading or writing the file
 	 */
@@ -229,14 +235,15 @@ public class DependencyManager {
 	/**
 	 * Adds a plugin to the pom.xml file.
 	 *
-	 * @param groupId the group ID of the plugin
-	 * @param artifactId the artifact ID of the plugin
-	 * @param version the version of the plugin
+	 * @param groupId        the group ID of the plugin
+	 * @param artifactId     the artifact ID of the plugin
+	 * @param version        the version of the plugin
 	 * @param configurations additional configurations for the plugin
-	 * @param executions optional executions to configure the plugin
+	 * @param executions     optional executions to configure the plugin
 	 * @throws Exception if an error occurs while processing the XML file
 	 */
-	public void addPlugin(String groupId, String artifactId, String version, List<Element> configurations, List<Element> executions) throws Exception {
+	public void addPlugin(String groupId, String artifactId, String version, List<Element> configurations,
+			List<Element> executions) throws Exception {
 		if (filePath.trim().endsWith("pom.xml")) {
 			addPluginToPom(groupId, artifactId, version, configurations, executions);
 		} else {
@@ -247,7 +254,8 @@ public class DependencyManager {
 	/**
 	 * Adds a plugin to the pom.xml file, if not already present
 	 */
-	private void addPluginToPom(String groupId, String artifactId, String version, List<Element> configurations, List<Element> executions)
+	private void addPluginToPom(String groupId, String artifactId, String version, List<Element> configurations,
+			List<Element> executions)
 			throws ParserConfigurationException, IOException, SAXException, TransformerException {
 		File pomFile = new File(filePath);
 		var docFactory = DocumentBuilderFactory.newInstance();
@@ -410,10 +418,10 @@ public class DependencyManager {
 			execution2.appendChild(goals2);
 
 			// Add the plugin with dependencies, configuration, and executions
-			manager.addPlugin("dev.aspectj", "aspectj-maven-plugin", "1.14", List.of(complianceLevel, aspectDirectory), List.of(execution1, execution2));
+			manager.addPlugin("dev.aspectj", "aspectj-maven-plugin", "1.14", List.of(complianceLevel, aspectDirectory),
+					List.of(execution1, execution2));
 		} catch (Exception e) {
 			log.error(e.getMessage());
 		}
 	}
-
 }

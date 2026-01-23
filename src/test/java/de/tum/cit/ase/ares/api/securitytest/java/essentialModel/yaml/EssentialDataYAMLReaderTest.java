@@ -35,7 +35,8 @@ public class EssentialDataYAMLReaderTest {
 		@DisplayName("Should read essential packages from valid YAML file")
 		void shouldReadEssentialPackagesFromValidYAMLFile() {
 			// Arrange
-			Path packagesPath = Paths.get("src/main/resources/de/tum/cit/ase/ares/api/configuration/essentialFiles/java/EssentialPackages.yaml");
+			Path packagesPath = Paths.get(
+					"src/main/resources/de/tum/cit/ase/ares/api/configuration/essentialFiles/java/EssentialPackages.yaml");
 
 			// Act
 			EssentialPackages result = reader.readEssentialPackagesFrom(packagesPath);
@@ -58,7 +59,8 @@ public class EssentialDataYAMLReaderTest {
 			assertTrue(result.essentialAspectJPackages().contains("org.java.aspectj"));
 
 			// Check that instrumentation packages contain expected package
-			assertTrue(result.essentialInstrumentationPackages().contains("de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut"));
+			assertTrue(result.essentialInstrumentationPackages()
+					.contains("de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut"));
 		}
 
 		@Test
@@ -66,7 +68,8 @@ public class EssentialDataYAMLReaderTest {
 		void shouldThrowNullPointerExceptionWhenPathIsNull() {
 			// Act & Assert using reflection to bypass @Nonnull compile-time analysis
 			InvocationTargetException ex = assertThrows(InvocationTargetException.class,
-					() -> EssentialDataYAMLReader.class.getMethod("readEssentialPackagesFrom", Path.class).invoke(reader, new Object[]{ null }));
+					() -> EssentialDataYAMLReader.class.getMethod("readEssentialPackagesFrom", Path.class)
+							.invoke(reader, new Object[] { null }));
 			assertTrue(ex.getCause() instanceof NullPointerException);
 		}
 
@@ -121,7 +124,8 @@ public class EssentialDataYAMLReaderTest {
 		@DisplayName("Should read essential classes from valid YAML file")
 		void shouldReadEssentialClassesFromValidYAMLFile() {
 			// Arrange
-			Path classesPath = Paths.get("src/main/resources/de/tum/cit/ase/ares/api/configuration/essentialFiles/java/EssentialClasses.yaml");
+			Path classesPath = Paths.get(
+					"src/main/resources/de/tum/cit/ase/ares/api/configuration/essentialFiles/java/EssentialClasses.yaml");
 
 			// Act
 			EssentialClasses result = reader.readEssentialClassesFrom(classesPath);
@@ -137,10 +141,12 @@ public class EssentialDataYAMLReaderTest {
 			assertNotNull(result.essentialJUnitClasses());
 
 			// Check specific classes
-			assertTrue(result.essentialArchunitClasses().contains("de.tum.cit.ase.ares.api.architecture.java.archunit"));
+			assertTrue(
+					result.essentialArchunitClasses().contains("de.tum.cit.ase.ares.api.architecture.java.archunit"));
 			assertTrue(result.essentialWalaClasses().contains("de.tum.cit.ase.ares.api.architecture.java.wala"));
 			assertTrue(result.essentialAspectJClasses().contains("de.tum.cit.ase.ares.api.aop.java.aspectj"));
-			assertTrue(result.essentialInstrumentationClasses().contains("de.tum.cit.ase.ares.api.aop.java.instrumentation"));
+			assertTrue(result.essentialInstrumentationClasses()
+					.contains("de.tum.cit.ase.ares.api.aop.java.instrumentation"));
 			assertTrue(result.essentialJUnitClasses().contains("de.tum.cit.ase.ares.api.jupiter"));
 
 			// Check some Ares classes
@@ -153,7 +159,8 @@ public class EssentialDataYAMLReaderTest {
 		void shouldThrowNullPointerExceptionWhenPathIsNull() {
 			// Act & Assert using reflection to bypass @Nonnull compile-time analysis
 			InvocationTargetException ex = assertThrows(InvocationTargetException.class,
-					() -> EssentialDataYAMLReader.class.getMethod("readEssentialClassesFrom", Path.class).invoke(reader, new Object[]{ null }));
+					() -> EssentialDataYAMLReader.class.getMethod("readEssentialClassesFrom", Path.class).invoke(reader,
+							new Object[] { null }));
 			assertTrue(ex.getCause() instanceof NullPointerException);
 		}
 
@@ -207,8 +214,10 @@ public class EssentialDataYAMLReaderTest {
 		@DisplayName("Should read and process both packages and classes successfully")
 		void shouldReadAndProcessBothPackagesAndClassesSuccessfully() {
 			// Arrange
-			Path packagesPath = Paths.get("de/tum/cit/ase/ares/api/configuration/essentialFiles/java/EssentialPackages.yaml");
-			Path classesPath = Paths.get("de/tum/cit/ase/ares/api/configuration/essentialFiles/java/EssentialClasses.yaml");
+			Path packagesPath = Paths
+					.get("de/tum/cit/ase/ares/api/configuration/essentialFiles/java/EssentialPackages.yaml");
+			Path classesPath = Paths
+					.get("de/tum/cit/ase/ares/api/configuration/essentialFiles/java/EssentialClasses.yaml");
 
 			// Act
 			EssentialPackages packages = reader.readEssentialPackagesFrom(packagesPath);

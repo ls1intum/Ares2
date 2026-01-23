@@ -6,9 +6,9 @@ import java.util.Optional;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 
-import de.tum.cit.ase.ares.api.context.*;
-
 import net.jqwik.api.lifecycle.PropertyLifecycleContext;
+
+import de.tum.cit.ase.ares.api.context.*;
 
 @API(status = Status.INTERNAL)
 public class JqwikContext extends TestContext {

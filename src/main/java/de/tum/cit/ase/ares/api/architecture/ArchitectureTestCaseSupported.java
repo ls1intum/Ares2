@@ -4,13 +4,11 @@ import java.util.List;
 
 /**
  * Interface for supported architecture test cases in Java.
- *
  * <p>
  * Description: Provides methods to access lists of static and dynamic
  * architecture test cases that enforce architectural constraints in an
  * application.
  * </p>
- *
  * <p>
  * Design Rationale: Abstracting test cases into distinct categories promotes
  * modularity and extensibility, allowing the integration of diverse static and

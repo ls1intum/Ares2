@@ -9,7 +9,8 @@ import org.opentest4j.MultipleFailuresError;
 enum MultipleFailuresErrorSanitizer implements SpecificThrowableSanitizer {
 	INSTANCE;
 
-	private final Set<Class<? extends Throwable>> types = Set.of(MultipleFailuresError.class, AssertJMultipleFailuresError.class);
+	private final Set<Class<? extends Throwable>> types = Set.of(MultipleFailuresError.class,
+			AssertJMultipleFailuresError.class);
 
 	@Override
 	public boolean canSanitize(Throwable t) {
@@ -21,7 +22,8 @@ enum MultipleFailuresErrorSanitizer implements SpecificThrowableSanitizer {
 		MultipleFailuresError mfe = (MultipleFailuresError) t;
 		ThrowableInfo info = ThrowableInfo.getEssentialInfosSafeFrom(mfe).sanitize();
 		// list is safe here because of defensive copying in MultipleFailuresError
-		List<Throwable> failures = mfe.getFailures().stream().map(ThrowableSanitizer::sanitize).collect(Collectors.toUnmodifiableList());
+		List<Throwable> failures = mfe.getFailures().stream().map(ThrowableSanitizer::sanitize)
+				.collect(Collectors.toUnmodifiableList());
 		/*
 		 * Message already contains the failures and separating both is more difficult.
 		 * So we just pass the message constructed be the old object, as the new object

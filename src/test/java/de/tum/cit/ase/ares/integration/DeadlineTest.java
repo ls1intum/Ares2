@@ -26,7 +26,8 @@ class DeadlineTest {
 
 	@TestTest
 	void test_testHiddenCustomDeadlineFuture() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testHiddenCustomDeadlineFuture, AssertionFailedError.class));
+		tests.assertThatEvents().haveExactly(1,
+				testFailedWith(testHiddenCustomDeadlineFuture, AssertionFailedError.class));
 	}
 
 	@TestTest

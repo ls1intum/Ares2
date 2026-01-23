@@ -10,10 +10,10 @@ import java.util.function.Supplier;
 import org.junit.experimental.theories.internal.ParameterizedAssertionError;
 import org.slf4j.*;
 
+import junit.framework.*;
+
 import de.tum.cit.ase.ares.api.internal.sanitization.ThrowableInfo.PropertyKey;
 import de.tum.cit.ase.ares.api.util.LruCache;
-
-import junit.framework.*;
 
 enum SafeTypeThrowableSanitizer implements SpecificThrowableSanitizer {
 	INSTANCE;
@@ -45,7 +45,8 @@ enum SafeTypeThrowableSanitizer implements SpecificThrowableSanitizer {
 					new ThrowableCreatorWrapper(ParameterizedAssertionErrorCreator::new)) //
 	);
 
-	final Map<Class<? extends Throwable>, ThrowableCreator> cachedThrowableCreators = Collections.synchronizedMap(new LruCache<>(1000));
+	final Map<Class<? extends Throwable>, ThrowableCreator> cachedThrowableCreators = Collections
+			.synchronizedMap(new LruCache<>(1000));
 
 	@Override
 	public boolean canSanitize(Throwable t) {
@@ -59,7 +60,8 @@ enum SafeTypeThrowableSanitizer implements SpecificThrowableSanitizer {
 	public Throwable sanitize(Throwable t, MessageTransformer messageTransformer) {
 		Class<? extends Throwable> type = t.getClass();
 		// this is OK because we are only dealing with safe types here
-		var info = ThrowableInfo.of(type, ThrowableUtils.retrievePropertyValues(t, ThrowableUtils.getRelevantPropertiesWithMethods(type, ThrowableUtils.IGNORE_PROPERTIES)));
+		var info = ThrowableInfo.of(type, ThrowableUtils.retrievePropertyValues(t,
+				ThrowableUtils.getRelevantPropertiesWithMethods(type, ThrowableUtils.IGNORE_PROPERTIES)));
 		info.sanitize(ThrowableUtils.PROPERTY_SANITIZER);
 		info.setMessage(messageTransformer.apply(info));
 		var throwableCreator = cachedThrowableCreators.computeIfAbsent(type, this::findThrowableCreator);

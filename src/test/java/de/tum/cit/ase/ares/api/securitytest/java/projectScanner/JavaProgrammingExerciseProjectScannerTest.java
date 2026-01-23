@@ -18,7 +18,6 @@ import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 
 /**
  * Comprehensive unit tests for {@link JavaProgrammingExerciseProjectScanner}.
- * 
  * <p>
  * This test suite validates the functionality of the
  * JavaProgrammingExerciseProjectScanner class, which extends JavaProjectScanner

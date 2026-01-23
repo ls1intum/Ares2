@@ -9,7 +9,8 @@ import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 
 public interface JavaFileLoader {
-	List<List<String>> loadCopyData(ArchitectureMode mode, boolean formatStringFileRequested) throws IOException, CsvException;
+	List<List<String>> loadCopyData(ArchitectureMode mode, boolean formatStringFileRequested)
+			throws IOException, CsvException;
 
 	List<List<String>> loadCopyData(AOPMode mode, boolean formatStringFileRequested) throws IOException, CsvException;
 

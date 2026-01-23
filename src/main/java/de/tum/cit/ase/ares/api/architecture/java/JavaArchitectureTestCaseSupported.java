@@ -8,11 +8,9 @@ import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCaseSupported;
 
 /**
  * Enum of supported architecture test cases for Java.
- *
  * <p>
  * Description: This enum defines the different types of architecture test cases
  * available for static and dynamic code analysis in Java applications.
- *
  * <p>
  * Design Rationale: Using an enum simplifies management of test cases and
  * facilitates clear separation between static and dynamic analysis categories.
@@ -77,7 +75,8 @@ public enum JavaArchitectureTestCaseSupported implements ArchitectureTestCaseSup
 	 */
 	@Nonnull
 	public List<ArchitectureTestCaseSupported> getStatic() {
-		return List.of(JavaArchitectureTestCaseSupported.PACKAGE_IMPORT, JavaArchitectureTestCaseSupported.TERMINATE_JVM, JavaArchitectureTestCaseSupported.REFLECTION,
+		return List.of(JavaArchitectureTestCaseSupported.PACKAGE_IMPORT,
+				JavaArchitectureTestCaseSupported.TERMINATE_JVM, JavaArchitectureTestCaseSupported.REFLECTION,
 				JavaArchitectureTestCaseSupported.SERIALIZATION, JavaArchitectureTestCaseSupported.CLASS_LOADING);
 	}
 
@@ -90,7 +89,8 @@ public enum JavaArchitectureTestCaseSupported implements ArchitectureTestCaseSup
 	 */
 	@Nonnull
 	public List<ArchitectureTestCaseSupported> getDynamic() {
-		return List.of(JavaArchitectureTestCaseSupported.FILESYSTEM_INTERACTION, JavaArchitectureTestCaseSupported.NETWORK_CONNECTION, JavaArchitectureTestCaseSupported.COMMAND_EXECUTION,
-				JavaArchitectureTestCaseSupported.THREAD_CREATION);
+		return List.of(JavaArchitectureTestCaseSupported.FILESYSTEM_INTERACTION,
+				JavaArchitectureTestCaseSupported.NETWORK_CONNECTION,
+				JavaArchitectureTestCaseSupported.COMMAND_EXECUTION, JavaArchitectureTestCaseSupported.THREAD_CREATION);
 	}
 }

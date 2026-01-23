@@ -80,11 +80,13 @@ public class SecurityPolicyJavaDirectorTest {
 
 	private void setupSupervisedCodeInstances() {
 		// Create a SupervisedCode instance with valid configuration
-		ResourceAccesses validResourceAccesses = ResourceAccesses.builder().regardingFileSystemInteractions(List.of()).regardingNetworkConnections(List.of()).regardingCommandExecutions(List.of())
+		ResourceAccesses validResourceAccesses = ResourceAccesses.builder().regardingFileSystemInteractions(List.of())
+				.regardingNetworkConnections(List.of()).regardingCommandExecutions(List.of())
 				.regardingThreadCreations(List.of()).regardingPackageImports(List.of()).build();
 
-		supervisedCodeWithValidConfig = new SupervisedCode(ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ, "de.example.test", "MainClass",
-				new String[]{ "TestClass1", "TestClass2" }, validResourceAccesses);
+		supervisedCodeWithValidConfig = new SupervisedCode(
+				ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ, "de.example.test", "MainClass",
+				new String[] { "TestClass1", "TestClass2" }, validResourceAccesses);
 
 		// Note: We cannot create a SupervisedCode with null config directly
 		// because the Record constructor validates parameters.
@@ -92,23 +94,33 @@ public class SecurityPolicyJavaDirectorTest {
 	}
 
 	private SupervisedCode createSupervisedCodeWithConfig(ProgrammingLanguageConfiguration config) {
-		ResourceAccesses resourceAccesses = ResourceAccesses.builder().regardingFileSystemInteractions(List.of()).regardingNetworkConnections(List.of()).regardingCommandExecutions(List.of())
+		ResourceAccesses resourceAccesses = ResourceAccesses.builder().regardingFileSystemInteractions(List.of())
+				.regardingNetworkConnections(List.of()).regardingCommandExecutions(List.of())
 				.regardingThreadCreations(List.of()).regardingPackageImports(List.of()).build();
 
-		return new SupervisedCode(config, "de.example.test", "MainClass", new String[]{ "TestClass1", "TestClass2" }, resourceAccesses);
+		return new SupervisedCode(config, "de.example.test", "MainClass", new String[] { "TestClass1", "TestClass2" },
+				resourceAccesses);
 	}
 
 	private void setupEssentialDataMocks() {
 		// Create mock EssentialPackages
-		EssentialPackages mockEssentialPackages = EssentialPackages.builder().essentialJavaPackages(List.of("java.lang", "java.util")).essentialArchunitPackages(List.of("com.tngtech.archunit"))
-				.essentialWalaPackages(List.of("com.ibm.wala")).essentialAspectJPackages(List.of("org.aspectj")).essentialInstrumentationPackages(List.of("java.lang.instrument"))
-				.essentialAresPackages(List.of("de.tum.cit.ase.ares")).essentialJUnitPackages(List.of("org.junit")).build();
+		EssentialPackages mockEssentialPackages = EssentialPackages.builder()
+				.essentialJavaPackages(List.of("java.lang", "java.util"))
+				.essentialArchunitPackages(List.of("com.tngtech.archunit"))
+				.essentialWalaPackages(List.of("com.ibm.wala")).essentialAspectJPackages(List.of("org.aspectj"))
+				.essentialInstrumentationPackages(List.of("java.lang.instrument"))
+				.essentialAresPackages(List.of("de.tum.cit.ase.ares")).essentialJUnitPackages(List.of("org.junit"))
+				.build();
 
 		// Create mock EssentialClasses
-		EssentialClasses mockEssentialClasses = EssentialClasses.builder().essentialJavaClasses(List.of("java.lang.Object", "java.lang.String"))
-				.essentialArchunitClasses(List.of("com.tngtech.archunit.core.domain.JavaClass")).essentialWalaClasses(List.of("com.ibm.wala.classLoader.IClass"))
-				.essentialAspectJClasses(List.of("org.aspectj.lang.ProceedingJoinPoint")).essentialInstrumentationClasses(List.of("java.lang.instrument.Instrumentation"))
-				.essentialAresClasses(List.of("de.tum.cit.ase.ares.api.Ares")).essentialJUnitClasses(List.of("org.junit.jupiter.api.Test")).build();
+		EssentialClasses mockEssentialClasses = EssentialClasses.builder()
+				.essentialJavaClasses(List.of("java.lang.Object", "java.lang.String"))
+				.essentialArchunitClasses(List.of("com.tngtech.archunit.core.domain.JavaClass"))
+				.essentialWalaClasses(List.of("com.ibm.wala.classLoader.IClass"))
+				.essentialAspectJClasses(List.of("org.aspectj.lang.ProceedingJoinPoint"))
+				.essentialInstrumentationClasses(List.of("java.lang.instrument.Instrumentation"))
+				.essentialAresClasses(List.of("de.tum.cit.ase.ares.api.Ares"))
+				.essentialJUnitClasses(List.of("org.junit.jupiter.api.Test")).build();
 
 		// Setup mocks to return these objects
 		when(mockEssentialDataReader.readEssentialPackagesFrom(any(Path.class))).thenReturn(mockEssentialPackages);
@@ -118,7 +130,7 @@ public class SecurityPolicyJavaDirectorTest {
 	private void setupProjectScannerMocks() {
 		// Setup JavaProjectScanner to return valid values to prevent null pointer
 		// exceptions
-		when(mockProjectScanner.scanForTestClasses()).thenReturn(new String[]{ "TestClass1", "TestClass2" });
+		when(mockProjectScanner.scanForTestClasses()).thenReturn(new String[] { "TestClass1", "TestClass2" });
 		when(mockProjectScanner.scanForPackageName()).thenReturn("com.example.package");
 		when(mockProjectScanner.scanForMainClassInPackage()).thenReturn("MainClass");
 	}
@@ -131,8 +143,8 @@ public class SecurityPolicyJavaDirectorTest {
 		@DisplayName("Should create instance with valid parameters")
 		void shouldCreateInstanceWithValidParameters() {
 			// Act
-			SecurityPolicyJavaDirector director = new SecurityPolicyJavaDirector(mockCreator, mockWriter, mockExecuter, mockEssentialDataReader, mockProjectScanner, essentialPackagesPath,
-					essentialClassesPath);
+			SecurityPolicyJavaDirector director = new SecurityPolicyJavaDirector(mockCreator, mockWriter, mockExecuter,
+					mockEssentialDataReader, mockProjectScanner, essentialPackagesPath, essentialClassesPath);
 
 			// Assert
 			assertNotNull(director);
@@ -147,8 +159,10 @@ public class SecurityPolicyJavaDirectorTest {
 		@DisplayName("Should build instance using builder pattern")
 		void shouldBuildInstanceUsingBuilderPattern() {
 			// Act
-			SecurityPolicyJavaDirector director = SecurityPolicyJavaDirector.javaBuilder().creator(mockCreator).writer(mockWriter).executer(mockExecuter).essentialDataReader(mockEssentialDataReader)
-					.javaScanner(mockProjectScanner).essentialPackagesPath(essentialPackagesPath).essentialClassesPath(essentialClassesPath).build();
+			SecurityPolicyJavaDirector director = SecurityPolicyJavaDirector.javaBuilder().creator(mockCreator)
+					.writer(mockWriter).executer(mockExecuter).essentialDataReader(mockEssentialDataReader)
+					.javaScanner(mockProjectScanner).essentialPackagesPath(essentialPackagesPath)
+					.essentialClassesPath(essentialClassesPath).build();
 
 			// Assert
 			assertNotNull(director);
@@ -168,16 +182,18 @@ public class SecurityPolicyJavaDirectorTest {
 		@DisplayName("Should throw exception when building with null creator")
 		void shouldThrowExceptionWhenBuildingWithNullCreator() {
 			// Act & Assert
-			assertThrows(NullPointerException.class, () -> SecurityPolicyJavaDirector.javaBuilder().writer(mockWriter).executer(mockExecuter).essentialDataReader(mockEssentialDataReader)
-					.javaScanner(mockProjectScanner).essentialPackagesPath(essentialPackagesPath).essentialClassesPath(essentialClassesPath).build());
+			assertThrows(NullPointerException.class, () -> SecurityPolicyJavaDirector.javaBuilder().writer(mockWriter)
+					.executer(mockExecuter).essentialDataReader(mockEssentialDataReader).javaScanner(mockProjectScanner)
+					.essentialPackagesPath(essentialPackagesPath).essentialClassesPath(essentialClassesPath).build());
 		}
 
 		@Test
 		@DisplayName("Should throw exception when building with null writer")
 		void shouldThrowExceptionWhenBuildingWithNullWriter() {
 			// Act & Assert
-			assertThrows(NullPointerException.class, () -> SecurityPolicyJavaDirector.javaBuilder().creator(mockCreator).executer(mockExecuter).essentialDataReader(mockEssentialDataReader)
-					.javaScanner(mockProjectScanner).essentialPackagesPath(essentialPackagesPath).essentialClassesPath(essentialClassesPath).build());
+			assertThrows(NullPointerException.class, () -> SecurityPolicyJavaDirector.javaBuilder().creator(mockCreator)
+					.executer(mockExecuter).essentialDataReader(mockEssentialDataReader).javaScanner(mockProjectScanner)
+					.essentialPackagesPath(essentialPackagesPath).essentialClassesPath(essentialClassesPath).build());
 		}
 
 		@Test
@@ -191,8 +207,10 @@ public class SecurityPolicyJavaDirectorTest {
 		@DisplayName("Should allow chaining builder methods")
 		void shouldAllowChainingBuilderMethods() {
 			// Act
-			SecurityPolicyJavaDirector.Builder builder = SecurityPolicyJavaDirector.javaBuilder().creator(mockCreator).writer(mockWriter).executer(mockExecuter)
-					.essentialDataReader(mockEssentialDataReader).javaScanner(mockProjectScanner).essentialPackagesPath(essentialPackagesPath).essentialClassesPath(essentialClassesPath);
+			SecurityPolicyJavaDirector.Builder builder = SecurityPolicyJavaDirector.javaBuilder().creator(mockCreator)
+					.writer(mockWriter).executer(mockExecuter).essentialDataReader(mockEssentialDataReader)
+					.javaScanner(mockProjectScanner).essentialPackagesPath(essentialPackagesPath)
+					.essentialClassesPath(essentialClassesPath);
 
 			// Assert
 			assertNotNull(builder);
@@ -209,7 +227,8 @@ public class SecurityPolicyJavaDirectorTest {
 
 		@BeforeEach
 		void setUp() {
-			director = new SecurityPolicyJavaDirector(mockCreator, mockWriter, mockExecuter, mockEssentialDataReader, mockProjectScanner, essentialPackagesPath, essentialClassesPath);
+			director = new SecurityPolicyJavaDirector(mockCreator, mockWriter, mockExecuter, mockEssentialDataReader,
+					mockProjectScanner, essentialPackagesPath, essentialClassesPath);
 		}
 
 		@Test
@@ -223,7 +242,8 @@ public class SecurityPolicyJavaDirectorTest {
 		@DisplayName("Should create test cases for MAVEN_ARCHUNIT_ASPECTJ configuration")
 		void shouldCreateTestCasesForMavenArchunitAspectJConfiguration() {
 			// Arrange
-			SecurityPolicy securityPolicy = SecurityPolicy.builder().regardingTheSupervisedCode(supervisedCodeWithValidConfig).build();
+			SecurityPolicy securityPolicy = SecurityPolicy.builder()
+					.regardingTheSupervisedCode(supervisedCodeWithValidConfig).build();
 
 			// Act
 			TestCaseAbstractFactoryAndBuilder result = director.createTestCases(securityPolicy, projectPath);
@@ -237,7 +257,8 @@ public class SecurityPolicyJavaDirectorTest {
 		@DisplayName("Should create test cases for MAVEN_ARCHUNIT_INSTRUMENTATION configuration")
 		void shouldCreateTestCasesForMavenArchunitInstrumentationConfiguration() {
 			// Arrange
-			SupervisedCode supervisedCode = createSupervisedCodeWithConfig(ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION);
+			SupervisedCode supervisedCode = createSupervisedCodeWithConfig(
+					ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION);
 			SecurityPolicy securityPolicy = SecurityPolicy.builder().regardingTheSupervisedCode(supervisedCode).build();
 
 			// Act
@@ -252,7 +273,8 @@ public class SecurityPolicyJavaDirectorTest {
 		@DisplayName("Should create test cases for MAVEN_WALA_ASPECTJ configuration")
 		void shouldCreateTestCasesForMavenWalaAspectJConfiguration() {
 			// Arrange
-			SupervisedCode supervisedCode = createSupervisedCodeWithConfig(ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_WALA_AND_ASPECTJ);
+			SupervisedCode supervisedCode = createSupervisedCodeWithConfig(
+					ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_WALA_AND_ASPECTJ);
 			SecurityPolicy securityPolicy = SecurityPolicy.builder().regardingTheSupervisedCode(supervisedCode).build();
 
 			// Act
@@ -267,7 +289,8 @@ public class SecurityPolicyJavaDirectorTest {
 		@DisplayName("Should create test cases for MAVEN_WALA_INSTRUMENTATION configuration")
 		void shouldCreateTestCasesForMavenWalaInstrumentationConfiguration() {
 			// Arrange
-			SupervisedCode supervisedCode = createSupervisedCodeWithConfig(ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_WALA_AND_INSTRUMENTATION);
+			SupervisedCode supervisedCode = createSupervisedCodeWithConfig(
+					ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_WALA_AND_INSTRUMENTATION);
 			SecurityPolicy securityPolicy = SecurityPolicy.builder().regardingTheSupervisedCode(supervisedCode).build();
 
 			// Act
@@ -282,7 +305,8 @@ public class SecurityPolicyJavaDirectorTest {
 		@DisplayName("Should create test cases for GRADLE_ARCHUNIT_ASPECTJ configuration")
 		void shouldCreateTestCasesForGradleArchunitAspectJConfiguration() {
 			// Arrange
-			SupervisedCode supervisedCode = createSupervisedCodeWithConfig(ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_ARCHUNIT_AND_ASPECTJ);
+			SupervisedCode supervisedCode = createSupervisedCodeWithConfig(
+					ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_ARCHUNIT_AND_ASPECTJ);
 			SecurityPolicy securityPolicy = SecurityPolicy.builder().regardingTheSupervisedCode(supervisedCode).build();
 
 			// Act
@@ -297,7 +321,8 @@ public class SecurityPolicyJavaDirectorTest {
 		@DisplayName("Should create test cases for GRADLE_ARCHUNIT_INSTRUMENTATION configuration")
 		void shouldCreateTestCasesForGradleArchunitInstrumentationConfiguration() {
 			// Arrange
-			SupervisedCode supervisedCode = createSupervisedCodeWithConfig(ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION);
+			SupervisedCode supervisedCode = createSupervisedCodeWithConfig(
+					ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION);
 			SecurityPolicy securityPolicy = SecurityPolicy.builder().regardingTheSupervisedCode(supervisedCode).build();
 
 			// Act
@@ -312,7 +337,8 @@ public class SecurityPolicyJavaDirectorTest {
 		@DisplayName("Should create test cases for GRADLE_WALA_ASPECTJ configuration")
 		void shouldCreateTestCasesForGradleWalaAspectJConfiguration() {
 			// Arrange
-			SupervisedCode supervisedCode = createSupervisedCodeWithConfig(ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_WALA_AND_ASPECTJ);
+			SupervisedCode supervisedCode = createSupervisedCodeWithConfig(
+					ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_WALA_AND_ASPECTJ);
 			SecurityPolicy securityPolicy = SecurityPolicy.builder().regardingTheSupervisedCode(supervisedCode).build();
 
 			// Act
@@ -327,7 +353,8 @@ public class SecurityPolicyJavaDirectorTest {
 		@DisplayName("Should create test cases for GRADLE_WALA_INSTRUMENTATION configuration")
 		void shouldCreateTestCasesForGradleWalaInstrumentationConfiguration() {
 			// Arrange
-			SupervisedCode supervisedCode = createSupervisedCodeWithConfig(ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_WALA_AND_INSTRUMENTATION);
+			SupervisedCode supervisedCode = createSupervisedCodeWithConfig(
+					ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_WALA_AND_INSTRUMENTATION);
 			SecurityPolicy securityPolicy = SecurityPolicy.builder().regardingTheSupervisedCode(supervisedCode).build();
 
 			// Act
@@ -342,7 +369,8 @@ public class SecurityPolicyJavaDirectorTest {
 		@DisplayName("Should handle null project folder path")
 		void shouldHandleNullProjectFolderPath() {
 			// Arrange
-			SupervisedCode supervisedCode = createSupervisedCodeWithConfig(ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ);
+			SupervisedCode supervisedCode = createSupervisedCodeWithConfig(
+					ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ);
 			SecurityPolicy securityPolicy = SecurityPolicy.builder().regardingTheSupervisedCode(supervisedCode).build();
 
 			// Act
@@ -374,7 +402,8 @@ public class SecurityPolicyJavaDirectorTest {
 
 			// Erstelle ein Security Policy mit einem gemockten SupervisedCode (verwendet
 			// ein reales Objekt mit Spy)
-			SupervisedCode supervisedCode = createSupervisedCodeWithConfig(ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ);
+			SupervisedCode supervisedCode = createSupervisedCodeWithConfig(
+					ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ);
 			SupervisedCode spyCode = spy(supervisedCode);
 
 			// Simuliere, dass die Programmiersprachen-Konfiguration null ist

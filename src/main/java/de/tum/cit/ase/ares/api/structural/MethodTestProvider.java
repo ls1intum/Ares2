@@ -33,12 +33,13 @@ public abstract class MethodTestProvider extends StructuralTestProvider {
 	 * @return A dynamic test container containing the test for each class which is
 	 *         then executed by JUnit.
 	 * @throws URISyntaxException an exception if the URI of the class name cannot
-	 *             be generated (which seems to be unlikely)
+	 *                            be generated (which seems to be unlikely)
 	 */
 	protected DynamicContainer generateTestsForAllClasses() throws URISyntaxException {
 		List<DynamicNode> tests = new ArrayList<>();
 		if (structureOracleJSON == null)
-			throw failure("The MethodTest test can only run if the structural oracle (test.json) is present. If you do not provide it, delete MethodTest.java!"); //$NON-NLS-1$
+			throw failure(
+					"The MethodTest test can only run if the structural oracle (test.json) is present. If you do not provide it, delete MethodTest.java!"); //$NON-NLS-1$
 		for (var i = 0; i < structureOracleJSON.length(); i++) {
 			var expectedClassJSON = structureOracleJSON.getJSONObject(i);
 			// Only test the classes that have methods defined in the structure oracle.
@@ -46,13 +47,15 @@ public abstract class MethodTestProvider extends StructuralTestProvider {
 				var expectedClassPropertiesJSON = expectedClassJSON.getJSONObject(JSON_PROPERTY_CLASS);
 				var expectedClassName = expectedClassPropertiesJSON.getString(JSON_PROPERTY_NAME);
 				var expectedPackageName = expectedClassPropertiesJSON.getString(JSON_PROPERTY_PACKAGE);
-				var expectedClassStructure = new ExpectedClassStructure(expectedClassName, expectedPackageName, expectedClassJSON);
+				var expectedClassStructure = new ExpectedClassStructure(expectedClassName, expectedPackageName,
+						expectedClassJSON);
 				tests.add(dynamicTest("testMethods[" + expectedClassName + "]", //$NON-NLS-1$ //$NON-NLS-2$
 						() -> testMethods(expectedClassStructure)));
 			}
 		}
 		if (tests.isEmpty())
-			throw failure("No tests for methods available in the structural oracle (test.json). Either provide attributes information or delete MethodTest.java!"); //$NON-NLS-1$
+			throw failure(
+					"No tests for methods available in the structural oracle (test.json). Either provide attributes information or delete MethodTest.java!"); //$NON-NLS-1$
 		/*
 		 * Using a custom URI here to workaround surefire rendering the JUnit XML
 		 * without the correct test names.
@@ -66,7 +69,7 @@ public abstract class MethodTestProvider extends StructuralTestProvider {
 	 * the assignment and then proceeds to check its methods.
 	 *
 	 * @param expectedClassStructure The class structure that we expect to find and
-	 *            test against.
+	 *                               test against.
 	 */
 	public static void testMethods(ExpectedClassStructure expectedClassStructure) {
 		var expectedClassName = expectedClassStructure.getExpectedClassName();
@@ -82,11 +85,13 @@ public abstract class MethodTestProvider extends StructuralTestProvider {
 	 * defined in the structure oracle.
 	 *
 	 * @param expectedClassName The simple name of the class, mainly used for error
-	 *            messages.
-	 * @param observedClass The class that needs to be checked as a Class object.
-	 * @param expectedMethods The information on the expected methods contained in a
-	 *            JSON array. This information consists of the name, parameter
-	 *            types, return type and the visibility modifiers of each method.
+	 *                          messages.
+	 * @param observedClass     The class that needs to be checked as a Class
+	 *                          object.
+	 * @param expectedMethods   The information on the expected methods contained in
+	 *                          a JSON array. This information consists of the name,
+	 *                          parameter types, return type and the visibility
+	 *                          modifiers of each method.
 	 */
 	protected static void checkMethods(String expectedClassName, Class<?> observedClass, JSONArray expectedMethods) {
 		for (var i = 0; i < expectedMethods.length(); i++) {
@@ -102,11 +107,13 @@ public abstract class MethodTestProvider extends StructuralTestProvider {
 				// TODO: check if overloading is supported properly
 				if (expectedName.equals(observedMethod.getName())) {
 					checks.name = true;
-					checks.parameters = checkParameters(observedMethod.getParameterTypes(), expectedParameters, strictParameterOrder);
+					checks.parameters = checkParameters(observedMethod.getParameterTypes(), expectedParameters,
+							strictParameterOrder);
 					checks.modifiers = checkModifiers(Modifier.toString(observedMethod.getModifiers()).split(" "), //$NON-NLS-1$
 							expectedModifiers);
 					checks.annotations = checkAnnotations(observedMethod.getAnnotations(), expectedAnnotations);
-					checks.returnType = checkExpectedType(observedMethod.getReturnType(), observedMethod.getGenericReturnType(), expectedReturnType);
+					checks.returnType = checkExpectedType(observedMethod.getReturnType(),
+							observedMethod.getGenericReturnType(), expectedReturnType);
 
 					// If all are correct, then we found the desired method and we can break the
 					// loop
@@ -122,7 +129,8 @@ public abstract class MethodTestProvider extends StructuralTestProvider {
 		}
 	}
 
-	private static void checkMethodCorrectness(String expectedClassName, String expectedName, JSONArray expectedParameters, MethodChecks methodChecks) {
+	private static void checkMethodCorrectness(String expectedClassName, String expectedName,
+			JSONArray expectedParameters, MethodChecks methodChecks) {
 		String parameters = StructuralTestProvider.describeParameters(expectedParameters);
 		if (!methodChecks.name)
 			throw localizedFailure("structural.method.name", expectedName, expectedClassName, parameters); //$NON-NLS-1$

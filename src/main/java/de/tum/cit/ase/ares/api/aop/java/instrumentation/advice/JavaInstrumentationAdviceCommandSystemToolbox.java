@@ -12,7 +12,6 @@ import javax.annotation.Nullable;
 
 /**
  * Utility class for Java instrumentation command system security advice.
- *
  * <p>
  * Description: Provides static methods to enforce command system security
  * policies at runtime by checking command system interactions (create) against
@@ -21,7 +20,6 @@ import javax.annotation.Nullable;
  * localization utilities. Designed to prevent unauthorized command system
  * operations during Java application execution, especially in test and
  * instrumentation scenarios.
- *
  * <p>
  * Design Rationale: Centralizes command system security checks for Java
  * instrumentation advice, ensuring consistent enforcement of security policies.
@@ -41,31 +39,30 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
 	/**
 	 * Map of methods with attribute index exceptions for command system ignore
 	 * logic.
-	 *
 	 * <p>
 	 * Description: Specifies for certain methods which attribute index should be
 	 * exempted from ignore rules during command system checks.
 	 */
 	@Nonnull
-	private static final Map<String, IgnoreValues> COMMAND_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT = Map.ofEntries(Map.entry("java.lang.ProcessBuilder.start", IgnoreValues.allExcept(1)));
+	private static final Map<String, IgnoreValues> COMMAND_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT = Map
+			.ofEntries(Map.entry("java.lang.ProcessBuilder.start", IgnoreValues.allExcept(1)));
 
 	/**
 	 * Map of methods with parameter index exceptions for command system ignore
 	 * logic.
-	 *
 	 * <p>
 	 * Description: Specifies for certain methods which parameter index should be
 	 * exempted from ignore rules during command system checks.
 	 */
 	@Nonnull
-	private static final Map<String, IgnoreValues> COMMAND_SYSTEM_IGNORE_PARAMETERS_EXCEPT = Map.ofEntries(Map.entry("java.lang.Runtime.exec", IgnoreValues.allExcept(0)));
+	private static final Map<String, IgnoreValues> COMMAND_SYSTEM_IGNORE_PARAMETERS_EXCEPT = Map
+			.ofEntries(Map.entry("java.lang.Runtime.exec", IgnoreValues.allExcept(0)));
 	// </editor-fold>
 
 	// <editor-fold desc="Constructor">
 
 	/**
 	 * Private constructor to prevent instantiation of this utility class.
-	 *
 	 * <p>
 	 * Description: Throws a SecurityException if instantiation is attempted,
 	 * enforcing the utility class pattern.
@@ -74,7 +71,8 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
 	 * @author Markus Paulsen
 	 */
 	private JavaInstrumentationAdviceCommandSystemToolbox() {
-		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.utility.initialization", "JavaInstrumentationAdviceCommandSystemToolbox"));
+		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+				"security.instrumentation.utility.initialization", "JavaInstrumentationAdviceCommandSystemToolbox"));
 	}
 	// </editor-fold>
 
@@ -86,7 +84,6 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
 
 	/**
 	 * Checks if a class name is outside of the allowed paths whitelist.
-	 *
 	 * <p>
 	 * Description: Returns true if allowedPaths not null or if the given path does
 	 * not match one of the allowedPatterns.
@@ -94,21 +91,25 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
 	 * @since 2.0.0
 	 * @author Markus
 	 * @param actualFullCommand the class name of the command being requested
-	 * @param allowedCommands the command classes that are allowed to be created
-	 * @param allowedArguments the number of commands allowed to be created
+	 * @param allowedCommands   the command classes that are allowed to be created
+	 * @param allowedArguments  the number of commands allowed to be created
 	 * @return true if path is forbidden; false otherwise
 	 */
-	private static boolean checkIfCommandIsForbidden(@Nullable String[] actualFullCommand, @Nullable String[] allowedCommands, @Nullable String[][] allowedArguments) {
+	private static boolean checkIfCommandIsForbidden(@Nullable String[] actualFullCommand,
+			@Nullable String[] allowedCommands, @Nullable String[][] allowedArguments) {
 		if (actualFullCommand == null) {
 			return false;
 		}
-		if (allowedCommands == null || allowedCommands.length == 0 || allowedArguments == null || allowedArguments.length == 0) {
+		if (allowedCommands == null || allowedCommands.length == 0 || allowedArguments == null
+				|| allowedArguments.length == 0) {
 			return true;
 		}
 		@Nullable
 		String actualCommand = actualFullCommand[0];
 		@Nullable
-		String[] actualArgument = actualFullCommand.length > 1 ? Arrays.copyOfRange(actualFullCommand, 1, actualFullCommand.length) : new String[0];
+		String[] actualArgument = actualFullCommand.length > 1
+				? Arrays.copyOfRange(actualFullCommand, 1, actualFullCommand.length)
+				: new String[0];
 
 		for (int i = 0; i < allowedCommands.length; i++) {
 			@Nonnull
@@ -126,7 +127,6 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
 	/**
 	 * Checks if actual arguments match allowed arguments with flexible path
 	 * matching.
-	 *
 	 * <p>
 	 * Description: Compares argument arrays with support for suffix matching. When
 	 * an actual argument ends with an allowed argument (path suffix), it's
@@ -134,7 +134,7 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
 	 * paths at runtime.
 	 *
 	 * @param allowedArguments the allowed arguments from policy
-	 * @param actualArguments the actual arguments from the command
+	 * @param actualArguments  the actual arguments from the command
 	 * @return true if arguments match, false otherwise
 	 * @since 2.0.0
 	 * @author Markus Paulsen
@@ -174,7 +174,6 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
 
 	/**
 	 * Converts a variable value to a command string array.
-	 *
 	 * <p>
 	 * Description: Converts various input types to a command array representation.
 	 * For String inputs, uses shell-like parsing that properly handles quoted
@@ -191,7 +190,8 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
 			return null;
 		} else if (variableValue instanceof String[] && ((String[]) variableValue).length != 0) {
 			return (String[]) variableValue;
-		} else if (variableValue instanceof List<?> && ((List<?>) variableValue).stream().allMatch(o -> o instanceof String)) {
+		} else if (variableValue instanceof List<?>
+				&& ((List<?>) variableValue).stream().allMatch(o -> o instanceof String)) {
 			@SuppressWarnings("unchecked")
 			List<String> stringList = (List<String>) variableValue;
 			return stringList.toArray(new String[0]);
@@ -204,7 +204,6 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
 
 	/**
 	 * Parses a command string into an array of arguments, handling quoted strings.
-	 *
 	 * <p>
 	 * Description: Implements shell-like parsing that properly handles
 	 * single-quoted, double-quoted, and unquoted arguments. This prevents command
@@ -278,7 +277,6 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
 
 	/**
 	 * Analyzes a variable to determine if it violates allowed paths.
-	 *
 	 * <p>
 	 * Description: Recursively checks if the variable or its elements (if an array
 	 * or List) are in violation of the allowed paths. Returns true if any element
@@ -287,11 +285,12 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
 	 * @since 2.0.0
 	 * @author Markus
 	 * @param observedVariable the variable to analyze
-	 * @param allowedCommands whitelist of allowed command classes
+	 * @param allowedCommands  whitelist of allowed command classes
 	 * @param allowedArguments the number of commands allowed to be created
 	 * @return true if a violation is found, false otherwise
 	 */
-	public static boolean analyseViolation(@Nullable Object observedVariable, @Nullable String[] allowedCommands, @Nullable String[][] allowedArguments) {
+	public static boolean analyseViolation(@Nullable Object observedVariable, @Nullable String[] allowedCommands,
+			@Nullable String[][] allowedArguments) {
 		if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
 			return false;
 		} else if (observedVariable instanceof List<?>) {
@@ -304,7 +303,8 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
 				}
 			}
 		}
-		if (observedVariable.getClass().isArray() || observedVariable instanceof String || observedVariable instanceof List<?>) {
+		if (observedVariable.getClass().isArray() || observedVariable instanceof String
+				|| observedVariable instanceof List<?>) {
 			String[] command = variableToCommand(observedVariable);
 			return checkIfCommandIsForbidden(command, allowedCommands, allowedArguments);
 		}
@@ -314,7 +314,6 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
 	/**
 	 * Extracts and returns the first violating path string from an array or list
 	 * variable.
-	 *
 	 * <p>
 	 * Description: Iterates through the variable’s elements (array or List),
 	 * converts each to a Path if possible, and returns the string of the first path
@@ -323,12 +322,13 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
 	 * @since 2.0.0
 	 * @author Markus
 	 * @param observedVariable the array or List to inspect
-	 * @param allowedCommands the command classes that are allowed to be created
+	 * @param allowedCommands  the command classes that are allowed to be created
 	 * @param allowedArguments the number of commands allowed to be created
 	 * @return the first violating path as a String, or null if none found
 	 */
 	@Nullable
-	private static String extractViolationPath(@Nullable Object observedVariable, @Nullable String[] allowedCommands, @Nullable String[][] allowedArguments) {
+	private static String extractViolationPath(@Nullable Object observedVariable, @Nullable String[] allowedCommands,
+			@Nullable String[][] allowedArguments) {
 		if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
 			return null;
 		} else if (observedVariable instanceof List<?>) {
@@ -342,7 +342,8 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
 				}
 			}
 		}
-		if (observedVariable.getClass().isArray() || observedVariable instanceof String || observedVariable instanceof List<?>) {
+		if (observedVariable.getClass().isArray() || observedVariable instanceof String
+				|| observedVariable instanceof List<?>) {
 			String[] observedVariableAsCommand = variableToCommand(observedVariable);
 			if (checkIfCommandIsForbidden(observedVariableAsCommand, allowedCommands, allowedArguments)) {
 				return String.join(" ", observedVariableAsCommand);
@@ -353,7 +354,6 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
 
 	/**
 	 * Checks an array of observedVariables against allowed file system paths.
-	 *
 	 * <p>
 	 * Description: Iterates through the filtered observedVariables (excluding those
 	 * matching ignoreVariables). For each non-null variable, if it is an array or a
@@ -363,15 +363,17 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
 	 *
 	 * @since 2.0.0
 	 * @author Markus
-	 * @param observedVariables array of values to validate
+	 * @param observedVariables           array of values to validate
 	 * @param commandsAllowedToBeExecuted whitelist of allowed command classes
-	 * @param argumentsAllowedToBePassed the number of commands allowed to be
-	 *            created
-	 * @param ignoreVariables criteria determining which observedVariables to skip
+	 * @param argumentsAllowedToBePassed  the number of commands allowed to be
+	 *                                    created
+	 * @param ignoreVariables             criteria determining which
+	 *                                    observedVariables to skip
 	 * @return the first path (as String) that is not allowed, or null if none
 	 *         violate
 	 */
-	private static String checkIfVariableCriteriaIsViolated(@Nonnull Object[] observedVariables, @Nullable String[] commandsAllowedToBeExecuted, @Nullable String[][] argumentsAllowedToBePassed,
+	private static String checkIfVariableCriteriaIsViolated(@Nonnull Object[] observedVariables,
+			@Nullable String[] commandsAllowedToBeExecuted, @Nullable String[][] argumentsAllowedToBePassed,
 			@Nonnull IgnoreValues ignoreVariables) {
 		for (@Nullable
 		Object observedVariable : filterVariables(observedVariables, ignoreVariables)) {
@@ -389,24 +391,24 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
 
 	/**
 	 * Validates a command system interaction against security policies.
-	 *
 	 * <p>
 	 * Description: Verifies that the specified action (create) complies with
 	 * allowed commands and call stack criteria. Throws SecurityException if a
 	 * policy violation is detected.
 	 *
-	 * @param action the command system action being performed
+	 * @param action            the command system action being performed
 	 * @param declaringTypeName the fully qualified class name of the caller
-	 * @param methodName the name of the method invoked
-	 * @param methodSignature the method signature descriptor
-	 * @param attributes optional method attributes
-	 * @param parameters optional method parameters
+	 * @param methodName        the name of the method invoked
+	 * @param methodSignature   the method signature descriptor
+	 * @param attributes        optional method attributes
+	 * @param parameters        optional method parameters
 	 * @throws SecurityException if unauthorized access is detected
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */
-	public static void checkCommandSystemInteraction(@Nonnull String action, @Nonnull String declaringTypeName, @Nonnull String methodName, @Nonnull String methodSignature,
-			@Nullable Object[] attributes, @Nullable Object[] parameters) {
+	public static void checkCommandSystemInteraction(@Nonnull String action, @Nonnull String declaringTypeName,
+			@Nonnull String methodName, @Nonnull String methodSignature, @Nullable Object[] attributes,
+			@Nullable Object[] parameters) {
 		// <editor-fold desc="Get information from settings">
 		@Nullable
 		final String aopMode = getValueFromSettings("aopMode");
@@ -420,13 +422,16 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
 
 		@Nullable
 		String[] commandsAllowedToBeExecuted = getValueFromSettings("commandsAllowedToBeExecuted");
-		int commandsAllowedToBeExecutedSize = commandsAllowedToBeExecuted == null ? 0 : commandsAllowedToBeExecuted.length;
+		int commandsAllowedToBeExecutedSize = commandsAllowedToBeExecuted == null ? 0
+				: commandsAllowedToBeExecuted.length;
 		@Nullable
 		String[][] argumentsAllowedToBePassed = getValueFromSettings("argumentsAllowedToBePassed");
 		int argumentsAllowedToBePassedSize = argumentsAllowedToBePassed == null ? 0 : argumentsAllowedToBePassed.length;
 
 		if (commandsAllowedToBeExecutedSize != argumentsAllowedToBePassedSize) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.command.allowed.size", argumentsAllowedToBePassedSize, commandsAllowedToBeExecutedSize));
+			throw new SecurityException(
+					JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.command.allowed.size",
+							argumentsAllowedToBePassedSize, commandsAllowedToBeExecutedSize));
 		}
 		// </editor-fold>
 		// <editor-fold desc="Get information from attributes">
@@ -435,7 +440,8 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
 		// </editor-fold>
 		// <editor-fold desc="Check callstack">
 		@Nullable
-		String commandSystemMethodToCheck = (restrictedPackage == null) ? null : checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses);
+		String commandSystemMethodToCheck = (restrictedPackage == null) ? null
+				: checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses);
 		if (commandSystemMethodToCheck == null) {
 			return;
 		}
@@ -444,24 +450,28 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
 		// </editor-fold>
 		// <editor-fold desc="Check parameters">
 		@Nullable
-		String commandIllegallyExecutedThroughParameter = (parameters == null || parameters.length == 0)
-				? null
+		String commandIllegallyExecutedThroughParameter = (parameters == null || parameters.length == 0) ? null
 				: checkIfVariableCriteriaIsViolated(parameters, commandsAllowedToBeExecuted, argumentsAllowedToBePassed,
-						COMMAND_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
+						COMMAND_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
+								IgnoreValues.NONE));
 		if (commandIllegallyExecutedThroughParameter != null) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.illegal.command.execution", commandSystemMethodToCheck, action,
-					commandIllegallyExecutedThroughParameter, fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+					"security.advice.illegal.command.execution", commandSystemMethodToCheck, action,
+					commandIllegallyExecutedThroughParameter, fullMethodSignature
+							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
 		}
 		// </editor-fold>
 		// <editor-fold desc="Check attributes">
 		@Nullable
-		String commandIllegallyExecutedThroughAttribute = (attributes == null || attributes.length == 0)
-				? null
+		String commandIllegallyExecutedThroughAttribute = (attributes == null || attributes.length == 0) ? null
 				: checkIfVariableCriteriaIsViolated(attributes, commandsAllowedToBeExecuted, argumentsAllowedToBePassed,
-						COMMAND_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
+						COMMAND_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
+								IgnoreValues.NONE));
 		if (commandIllegallyExecutedThroughAttribute != null) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.illegal.command.execution", commandSystemMethodToCheck, action,
-					commandIllegallyExecutedThroughAttribute, fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+					"security.advice.illegal.command.execution", commandSystemMethodToCheck, action,
+					commandIllegallyExecutedThroughAttribute, fullMethodSignature
+							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
 		}
 		// </editor-fold>
 	}

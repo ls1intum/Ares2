@@ -20,6 +20,6 @@ public class CommandExecutingPenguin {
 	}
 
 	public void runtimeExecNewerVersion() throws IOException {
-		Runtime.getRuntime().exec(new String[]{ "ls" });
+		Runtime.getRuntime().exec(new String[] { "ls" });
 	}
 }

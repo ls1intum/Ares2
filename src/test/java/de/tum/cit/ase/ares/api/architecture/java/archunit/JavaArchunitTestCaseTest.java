@@ -45,9 +45,12 @@ public class JavaArchunitTestCaseTest {
 	void builder_allParameters_buildsSuccessfully() {
 		Set<PackagePermission> allowed = new HashSet<>();
 		allowed.add(new PackagePermission("com.example"));
-		JavaClasses javaClasses = new ClassFileImporter().importPackages("de.tum.cit.ase.ares.api.architecture.java.archunit");
+		JavaClasses javaClasses = new ClassFileImporter()
+				.importPackages("de.tum.cit.ase.ares.api.architecture.java.archunit");
 
-		JavaArchunitTestCase testCase = builder.javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.REFLECTION).allowedPackages(allowed).javaClasses(javaClasses).build();
+		JavaArchunitTestCase testCase = builder
+				.javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.REFLECTION)
+				.allowedPackages(allowed).javaClasses(javaClasses).build();
 
 		assertNotNull(testCase);
 	}
@@ -55,8 +58,11 @@ public class JavaArchunitTestCaseTest {
 	@Test
 	void allowedPackagesAsCode_emptySet_returnsSetOf() throws Exception {
 		Set<PackagePermission> allowed = Collections.emptySet();
-		JavaClasses javaClasses = new ClassFileImporter().importPackages("de.tum.cit.ase.ares.api.architecture.java.archunit");
-		JavaArchunitTestCase testCase = builder.javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.REFLECTION).allowedPackages(allowed).javaClasses(javaClasses).build();
+		JavaClasses javaClasses = new ClassFileImporter()
+				.importPackages("de.tum.cit.ase.ares.api.architecture.java.archunit");
+		JavaArchunitTestCase testCase = builder
+				.javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.REFLECTION)
+				.allowedPackages(allowed).javaClasses(javaClasses).build();
 
 		Method method = JavaArchunitTestCase.class.getDeclaredMethod("allowedPackagesAsCode");
 		method.setAccessible(true);
@@ -68,8 +74,11 @@ public class JavaArchunitTestCaseTest {
 	void allowedPackagesAsCode_nonEmptySet_returnsCorrectLiteral() throws Exception {
 		Set<PackagePermission> allowed = new HashSet<>();
 		allowed.add(new PackagePermission("com.test.pkg"));
-		JavaClasses javaClasses = new ClassFileImporter().importPackages("de.tum.cit.ase.ares.api.architecture.java.archunit");
-		JavaArchunitTestCase testCase = builder.javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.REFLECTION).allowedPackages(allowed).javaClasses(javaClasses).build();
+		JavaClasses javaClasses = new ClassFileImporter()
+				.importPackages("de.tum.cit.ase.ares.api.architecture.java.archunit");
+		JavaArchunitTestCase testCase = builder
+				.javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.REFLECTION)
+				.allowedPackages(allowed).javaClasses(javaClasses).build();
 
 		Method method = JavaArchunitTestCase.class.getDeclaredMethod("allowedPackagesAsCode");
 		method.setAccessible(true);
@@ -84,7 +93,9 @@ public class JavaArchunitTestCaseTest {
 		JavaClasses emptyClasses = new ClassFileImporter().importPackages("non.existent.package");
 		Set<PackagePermission> allowed = new HashSet<>();
 		allowed.add(new PackagePermission("com.example"));
-		JavaArchunitTestCase testCase = builder.javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.REFLECTION).allowedPackages(allowed).javaClasses(emptyClasses).build();
+		JavaArchunitTestCase testCase = builder
+				.javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.REFLECTION)
+				.allowedPackages(allowed).javaClasses(emptyClasses).build();
 
 		Method method = JavaArchunitTestCase.class.getDeclaredMethod("javaClassesAsCode");
 		method.setAccessible(true);
@@ -94,10 +105,13 @@ public class JavaArchunitTestCaseTest {
 
 	@Test
 	void javaClassesAsCode_nonEmptyClasses_returnsImportWithPackages() throws Exception {
-		JavaClasses javaClasses = new ClassFileImporter().importPackages("de.tum.cit.ase.ares.api.architecture.java.archunit");
+		JavaClasses javaClasses = new ClassFileImporter()
+				.importPackages("de.tum.cit.ase.ares.api.architecture.java.archunit");
 		Set<PackagePermission> allowed = new HashSet<>();
 		allowed.add(new PackagePermission("com.example"));
-		JavaArchunitTestCase testCase = builder.javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.REFLECTION).allowedPackages(allowed).javaClasses(javaClasses).build();
+		JavaArchunitTestCase testCase = builder
+				.javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.REFLECTION)
+				.allowedPackages(allowed).javaClasses(javaClasses).build();
 
 		Method method = JavaArchunitTestCase.class.getDeclaredMethod("javaClassesAsCode");
 		method.setAccessible(true);

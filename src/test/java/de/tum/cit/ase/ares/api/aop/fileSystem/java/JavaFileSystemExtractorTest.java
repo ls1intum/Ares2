@@ -10,11 +10,9 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
 
 /**
  * Unit tests for JavaFileSystemExtractor.
- *
  * <p>
  * Description: Verifies extraction and filtering of file system permissions for
  * read, overwrite, execute, and delete operations.
- *
  * <p>
  * Design Rationale: Ensures full coverage across all permission types and
  * invalid inputs.
@@ -28,7 +26,6 @@ public class JavaFileSystemExtractorTest {
 	/**
 	 * Tests extractPaths for all permission predicates: read, overwrite, execute,
 	 * delete.
-	 *
 	 * <p>
 	 * Description: Supplies mixed FilePermission instances and asserts correct
 	 * filtering per predicate.
@@ -38,12 +35,19 @@ public class JavaFileSystemExtractorTest {
 	 */
 	@Test
 	public void testExtractPathsAllPermissionTypesAndValid() {
-		List<FilePermission> configs = List.of(FilePermission.builder().onThisPathAndAllPathsBelow("/a").readAllFiles(true).overwriteAllFiles(true).executeAllFiles(true).deleteAllFiles(true).build(),
-				FilePermission.builder().onThisPathAndAllPathsBelow("/b").readAllFiles(true).overwriteAllFiles(false).executeAllFiles(false).deleteAllFiles(false).build(),
-				FilePermission.builder().onThisPathAndAllPathsBelow("/c").readAllFiles(false).overwriteAllFiles(true).executeAllFiles(false).deleteAllFiles(false).build(),
-				FilePermission.builder().onThisPathAndAllPathsBelow("/d").readAllFiles(false).overwriteAllFiles(false).executeAllFiles(true).deleteAllFiles(false).build(),
-				FilePermission.builder().onThisPathAndAllPathsBelow("/e").readAllFiles(false).overwriteAllFiles(false).executeAllFiles(false).deleteAllFiles(true).build(),
-				FilePermission.builder().onThisPathAndAllPathsBelow("/f").readAllFiles(false).overwriteAllFiles(false).executeAllFiles(false).deleteAllFiles(false).build());
+		List<FilePermission> configs = List.of(
+				FilePermission.builder().onThisPathAndAllPathsBelow("/a").readAllFiles(true).overwriteAllFiles(true)
+						.executeAllFiles(true).deleteAllFiles(true).build(),
+				FilePermission.builder().onThisPathAndAllPathsBelow("/b").readAllFiles(true).overwriteAllFiles(false)
+						.executeAllFiles(false).deleteAllFiles(false).build(),
+				FilePermission.builder().onThisPathAndAllPathsBelow("/c").readAllFiles(false).overwriteAllFiles(true)
+						.executeAllFiles(false).deleteAllFiles(false).build(),
+				FilePermission.builder().onThisPathAndAllPathsBelow("/d").readAllFiles(false).overwriteAllFiles(false)
+						.executeAllFiles(true).deleteAllFiles(false).build(),
+				FilePermission.builder().onThisPathAndAllPathsBelow("/e").readAllFiles(false).overwriteAllFiles(false)
+						.executeAllFiles(false).deleteAllFiles(true).build(),
+				FilePermission.builder().onThisPathAndAllPathsBelow("/f").readAllFiles(false).overwriteAllFiles(false)
+						.executeAllFiles(false).deleteAllFiles(false).build());
 		// read
 		List<String> readPathsExpected = List.of("/a", "/b");
 		List<String> readPathsActual = JavaFileSystemExtractor.extractPaths(configs, FilePermission::readAllFiles);
@@ -51,12 +55,14 @@ public class JavaFileSystemExtractorTest {
 
 		// overwrite
 		List<String> overwritePathsExpected = List.of("/a", "/c");
-		List<String> overwritePathsActual = JavaFileSystemExtractor.extractPaths(configs, FilePermission::overwriteAllFiles);
+		List<String> overwritePathsActual = JavaFileSystemExtractor.extractPaths(configs,
+				FilePermission::overwriteAllFiles);
 		Assertions.assertEquals(overwritePathsExpected, overwritePathsActual);
 
 		// execute
 		List<String> executePathsExpected = List.of("/a", "/d");
-		List<String> executePathsActual = JavaFileSystemExtractor.extractPaths(configs, FilePermission::executeAllFiles);
+		List<String> executePathsActual = JavaFileSystemExtractor.extractPaths(configs,
+				FilePermission::executeAllFiles);
 		Assertions.assertEquals(executePathsExpected, executePathsActual);
 
 		// delete
@@ -68,7 +74,6 @@ public class JavaFileSystemExtractorTest {
 	/**
 	 * Tests getPermittedFilePaths for each permission type and verifies invalid
 	 * input.
-	 *
 	 * <p>
 	 * Description: Uses a stubbed supplier and asserts correct results for read,
 	 * overwrite, execute, delete, and exception case.
@@ -79,12 +84,18 @@ public class JavaFileSystemExtractorTest {
 	@Test
 	public void testGetPermittedFilePathsAllPermissionTypesAndInvalid() {
 		Supplier<List<?>> supplier = () -> List.of(
-				FilePermission.builder().onThisPathAndAllPathsBelow("/a").readAllFiles(true).overwriteAllFiles(true).executeAllFiles(true).deleteAllFiles(true).build(),
-				FilePermission.builder().onThisPathAndAllPathsBelow("/b").readAllFiles(true).overwriteAllFiles(false).executeAllFiles(false).deleteAllFiles(false).build(),
-				FilePermission.builder().onThisPathAndAllPathsBelow("/c").readAllFiles(false).overwriteAllFiles(true).executeAllFiles(false).deleteAllFiles(false).build(),
-				FilePermission.builder().onThisPathAndAllPathsBelow("/d").readAllFiles(false).overwriteAllFiles(false).executeAllFiles(true).deleteAllFiles(false).build(),
-				FilePermission.builder().onThisPathAndAllPathsBelow("/e").readAllFiles(false).overwriteAllFiles(false).executeAllFiles(false).deleteAllFiles(true).build(),
-				FilePermission.builder().onThisPathAndAllPathsBelow("/f").readAllFiles(false).overwriteAllFiles(false).executeAllFiles(false).deleteAllFiles(false).build());
+				FilePermission.builder().onThisPathAndAllPathsBelow("/a").readAllFiles(true).overwriteAllFiles(true)
+						.executeAllFiles(true).deleteAllFiles(true).build(),
+				FilePermission.builder().onThisPathAndAllPathsBelow("/b").readAllFiles(true).overwriteAllFiles(false)
+						.executeAllFiles(false).deleteAllFiles(false).build(),
+				FilePermission.builder().onThisPathAndAllPathsBelow("/c").readAllFiles(false).overwriteAllFiles(true)
+						.executeAllFiles(false).deleteAllFiles(false).build(),
+				FilePermission.builder().onThisPathAndAllPathsBelow("/d").readAllFiles(false).overwriteAllFiles(false)
+						.executeAllFiles(true).deleteAllFiles(false).build(),
+				FilePermission.builder().onThisPathAndAllPathsBelow("/e").readAllFiles(false).overwriteAllFiles(false)
+						.executeAllFiles(false).deleteAllFiles(true).build(),
+				FilePermission.builder().onThisPathAndAllPathsBelow("/f").readAllFiles(false).overwriteAllFiles(false)
+						.executeAllFiles(false).deleteAllFiles(false).build());
 		JavaFileSystemExtractor extractor = new JavaFileSystemExtractor(supplier);
 
 		// read

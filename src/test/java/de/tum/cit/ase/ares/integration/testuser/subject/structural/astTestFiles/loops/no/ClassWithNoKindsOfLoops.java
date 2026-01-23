@@ -21,15 +21,15 @@ public class ClassWithNoKindsOfLoops {
 	public void switchStatement() {
 		String output;
 		switch (3) {
-			case 1 :
-				output = "Hello";
-				break;
-			case 0 :
-				output = "World";
-				break;
-			default :
-				output = "!";
-				break;
+		case 1:
+			output = "Hello";
+			break;
+		case 0:
+			output = "World";
+			break;
+		default:
+			output = "!";
+			break;
 		}
 		System.out.println(output);
 	}

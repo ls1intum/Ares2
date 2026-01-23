@@ -117,7 +117,8 @@ public final class OutputTester implements LineAcceptor {
 	}
 
 	public String getOutputAsString(OutputTestOptions... outputOptions) {
-		return processLines(outputOptions).stream().map(Line::text).collect(Collectors.joining(IOTester.LINE_SEPARATOR));
+		return processLines(outputOptions).stream().map(Line::text)
+				.collect(Collectors.joining(IOTester.LINE_SEPARATOR));
 	}
 
 	public List<String> getLinesAsString(OutputTestOptions... outputOptions) {
@@ -156,10 +157,10 @@ public final class OutputTester implements LineAcceptor {
 	 *
 	 * Both special formats can be escaped by a <code>\</code> at the beginning.
 	 *
-	 * @param message the error message for the assertion failure.
+	 * @param message       the error message for the assertion failure.
 	 * @param expectedLines the expected line patterns as described above. The
-	 *            strings are allowed to contain line breaks, which means a Java 15+
-	 *            text block can be used as well.
+	 *                      strings are allowed to contain line breaks, which means
+	 *                      a Java 15+ text block can be used as well.
 	 * @author Christian Femers
 	 */
 	public void assertLinesMatch(String message, String... expectedLines) {
@@ -190,11 +191,11 @@ public final class OutputTester implements LineAcceptor {
 	 *
 	 * Both special formats can be escaped by a <code>\</code> at the beginning.
 	 *
-	 * @param message the error message for the assertion failure.
+	 * @param message       the error message for the assertion failure.
 	 * @param outputOptions the {@link OutputTestOptions} for this test.
 	 * @param expectedLines the expected line patterns as described above. The
-	 *            strings are allowed to contain line breaks, which means a Java 15+
-	 *            text block can be used as well.
+	 *                      strings are allowed to contain line breaks, which means
+	 *                      a Java 15+ text block can be used as well.
 	 * @author Christian Femers
 	 */
 	public void assertLinesMatch(String message, OutputTestOptions[] outputOptions, String... expectedLines) {
@@ -253,12 +254,14 @@ public final class OutputTester implements LineAcceptor {
 			if (startsWithEscape(expectedLine))
 				cleanExpectedLine.append('`').setCharAt(0, '`');
 			else if (isRegExLine(expectedLine))
-				cleanExpectedLine.delete(0, 2).delete(cleanExpectedLine.length() - 2, cleanExpectedLine.length()).insert(0, " `").insert(0, localized("output_tester.line_matching_regex_mismatch")) //$NON-NLS-1$ //$NON-NLS-2$
+				cleanExpectedLine.delete(0, 2).delete(cleanExpectedLine.length() - 2, cleanExpectedLine.length())
+						.insert(0, " `").insert(0, localized("output_tester.line_matching_regex_mismatch")) //$NON-NLS-1$ //$NON-NLS-2$
 						.append('`');
 			else
 				cleanExpectedLine.insert(0, '`').append('`');
 			String newFailureMessage = matcher.replaceFirst(cleanExpectedLine.toString());
-			return new AssertionFailedError(newFailureMessage, tryReplaceExpected(lines, afe.getExpected()), afe.getActual().getEphemeralValue());
+			return new AssertionFailedError(newFailureMessage, tryReplaceExpected(lines, afe.getExpected()),
+					afe.getActual().getEphemeralValue());
 		}
 		return afe;
 	}

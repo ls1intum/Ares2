@@ -52,10 +52,8 @@ public record ResourceLimitsPermission(long timeout) {
 
 	/**
 	 * Builder for TimeoutPermission.
-	 *
 	 * <p>
 	 * Description: Provides a fluent API to construct a TimeoutPermission instance.
-	 *
 	 * <p>
 	 * Design Rationale: This builder enables step-by-step configuration of timeout
 	 * permission.
@@ -90,5 +88,4 @@ public record ResourceLimitsPermission(long timeout) {
 			return new ResourceLimitsPermission(timeout);
 		}
 	}
-
 }

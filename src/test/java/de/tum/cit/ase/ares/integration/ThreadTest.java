@@ -42,7 +42,8 @@ class ThreadTest {
 
 	@TestTest
 	void test_commonPoolInterruptable() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(commonPoolInterruptable, AssertionError.class, "execution timed out after 300 ms"));
+		tests.assertThatEvents().haveExactly(1,
+				testFailedWith(commonPoolInterruptable, AssertionError.class, "execution timed out after 300 ms"));
 
 		assertCommonPoolIdleAndIntact();
 	}
@@ -51,7 +52,8 @@ class ThreadTest {
 		ThreadGroup root = TestUtils.getRootThreadGroup();
 		Thread[] allThreads = new Thread[root.activeCount() + 10];
 		TestUtils.getRootThreadGroup().enumerate(allThreads, true);
-		Map<String, State> commonPoolThreadStates = Stream.of(allThreads).filter(Objects::nonNull).peek(System.out::println).filter(t -> t.getName().contains("commonPool"))
+		Map<String, State> commonPoolThreadStates = Stream.of(allThreads).filter(Objects::nonNull)
+				.peek(System.out::println).filter(t -> t.getName().contains("commonPool"))
 				.collect(Collectors.toMap(Thread::getName, Thread::getState));
 		assertThat(commonPoolThreadStates).doesNotContainValue(State.RUNNABLE);
 		assertThat(commonPoolThreadStates).doesNotContainValue(State.TERMINATED);
@@ -63,15 +65,24 @@ class ThreadTest {
 	 *
 	 * @param actualMessage The actual exception message to be verified.
 	 * @param operationText The specific operation text to check in the exception
-	 *            message.
+	 *                      message.
 	 */
 	private void assertThreadErrorMessage(String actualMessage, String operationText) {
-		assertTrue(actualMessage.contains("Thread Security Error"), "Exception message should contain 'Thread Security Error'" + System.lineSeparator() + actualMessage);
-		assertTrue(actualMessage.contains("Student-Code"), "Exception message should contain 'Student-Code'" + System.lineSeparator() + actualMessage);
-		assertTrue(actualMessage.contains("Execution"), "Exception message should contain 'Execution'" + System.lineSeparator() + actualMessage);
-		assertTrue(actualMessage.contains("ThreadAccessPenguin"), "Exception message should contain the class name 'ThreadAccessPenguin'" + System.lineSeparator() + actualMessage);
-		assertTrue(actualMessage.contains("TODO:Forbidden-test"), "Exception message should contain the forbidden thread operation: " + System.lineSeparator() + actualMessage);
-		assertTrue(actualMessage.contains(operationText), "Exception message should indicate the expected operation by containing '" + operationText + "'" + System.lineSeparator() + actualMessage);
+		assertTrue(actualMessage.contains("Thread Security Error"),
+				"Exception message should contain 'Thread Security Error'" + System.lineSeparator() + actualMessage);
+		assertTrue(actualMessage.contains("Student-Code"),
+				"Exception message should contain 'Student-Code'" + System.lineSeparator() + actualMessage);
+		assertTrue(actualMessage.contains("Execution"),
+				"Exception message should contain 'Execution'" + System.lineSeparator() + actualMessage);
+		assertTrue(actualMessage.contains("ThreadAccessPenguin"),
+				"Exception message should contain the class name 'ThreadAccessPenguin'" + System.lineSeparator()
+						+ actualMessage);
+		assertTrue(actualMessage.contains("TODO:Forbidden-test"),
+				"Exception message should contain the forbidden thread operation: " + System.lineSeparator()
+						+ actualMessage);
+		assertTrue(actualMessage.contains(operationText),
+				"Exception message should indicate the expected operation by containing '" + operationText + "'"
+						+ System.lineSeparator() + actualMessage);
 	}
 
 	/**

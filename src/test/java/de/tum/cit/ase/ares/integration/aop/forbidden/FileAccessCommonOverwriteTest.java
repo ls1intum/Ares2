@@ -22,7 +22,8 @@ import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdp
 
 class FileAccessCommonOverwriteTest extends SystemAccessTest {
 
-	private static final Path NOT_TRUSTED_DIR = Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/nottrusteddir");
+	private static final Path NOT_TRUSTED_DIR = Path.of(
+			"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/nottrusteddir");
 	private static final Path NOT_TRUSTED_GZ = Path.of(NOT_TRUSTED_DIR + "/nottrusted.txt.gz");
 	private static final Path NOT_TRUSTED_FILE_PATH = Path.of(NOT_TRUSTED_DIR + "/nottrusted.txt");
 
@@ -51,274 +52,323 @@ class FileAccessCommonOverwriteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = FILES_WITHIN_PATH)
 	void test_accessFileSystemViaFilesWriteMavenArchunitAspectJ() {
-		assertAresSecurityExceptionOverwrite(WriteFilesWriteMain::accessFileSystemViaFilesWrite, WriteFilesWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(WriteFilesWriteMain::accessFileSystemViaFilesWrite,
+				WriteFilesWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = FILES_WITHIN_PATH)
 	void test_accessFileSystemViaFilesWriteMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionOverwrite(WriteFilesWriteMain::accessFileSystemViaFilesWrite, WriteFilesWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(WriteFilesWriteMain::accessFileSystemViaFilesWrite,
+				WriteFilesWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = FILES_WITHIN_PATH)
 	void test_accessFileSystemViaFilesWriteMavenWalaAspectJ() {
-		assertAresSecurityExceptionOverwrite(WriteFilesWriteMain::accessFileSystemViaFilesWrite, WriteFilesWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(WriteFilesWriteMain::accessFileSystemViaFilesWrite,
+				WriteFilesWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = FILES_WITHIN_PATH)
 	void test_accessFileSystemViaFilesWriteMavenWalaInstrumentation() {
-		assertAresSecurityExceptionOverwrite(WriteFilesWriteMain::accessFileSystemViaFilesWrite, WriteFilesWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(WriteFilesWriteMain::accessFileSystemViaFilesWrite,
+				WriteFilesWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = BUFFERED_WRITER_WITHIN_PATH)
 	void test_accessFileSystemViaBufferedWriterMavenArchunitAspectJ() {
-		assertAresSecurityExceptionOverwrite(BufferedWriterWriteMain::accessFileSystemViaBufferedWriter, BufferedWriterWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(BufferedWriterWriteMain::accessFileSystemViaBufferedWriter,
+				BufferedWriterWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = BUFFERED_WRITER_WITHIN_PATH)
 	void test_accessFileSystemViaBufferedWriterMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionOverwrite(BufferedWriterWriteMain::accessFileSystemViaBufferedWriter, BufferedWriterWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(BufferedWriterWriteMain::accessFileSystemViaBufferedWriter,
+				BufferedWriterWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = BUFFERED_WRITER_WITHIN_PATH)
 	void test_accessFileSystemViaBufferedWriterMavenWalaAspectJ() {
-		assertAresSecurityExceptionOverwrite(BufferedWriterWriteMain::accessFileSystemViaBufferedWriter, BufferedWriterWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(BufferedWriterWriteMain::accessFileSystemViaBufferedWriter,
+				BufferedWriterWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = BUFFERED_WRITER_WITHIN_PATH)
 	void test_accessFileSystemViaBufferedWriterMavenWalaInstrumentation() {
-		assertAresSecurityExceptionOverwrite(BufferedWriterWriteMain::accessFileSystemViaBufferedWriter, BufferedWriterWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(BufferedWriterWriteMain::accessFileSystemViaBufferedWriter,
+				BufferedWriterWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = THIRD_PARTY_PACKAGE_WITHIN_PATH)
 	void test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ() {
-
-		assertAresSecurityExceptionOverwrite(() -> WriteThirdPartyPackageMain.accessFileSystemViaThirdPartyPackage(NOT_TRUSTED_FILE_PATH), ThirdPartyPackagePenguin.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(
+				() -> WriteThirdPartyPackageMain.accessFileSystemViaThirdPartyPackage(NOT_TRUSTED_FILE_PATH),
+				ThirdPartyPackagePenguin.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = THIRD_PARTY_PACKAGE_WITHIN_PATH)
 	void test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionOverwrite(() -> WriteThirdPartyPackageMain.accessFileSystemViaThirdPartyPackage(NOT_TRUSTED_FILE_PATH), ThirdPartyPackagePenguin.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(
+				() -> WriteThirdPartyPackageMain.accessFileSystemViaThirdPartyPackage(NOT_TRUSTED_FILE_PATH),
+				ThirdPartyPackagePenguin.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = THIRD_PARTY_PACKAGE_WITHIN_PATH)
 	void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ() {
-		assertAresSecurityExceptionOverwrite(() -> WriteThirdPartyPackageMain.accessFileSystemViaThirdPartyPackage(NOT_TRUSTED_FILE_PATH), ThirdPartyPackagePenguin.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(
+				() -> WriteThirdPartyPackageMain.accessFileSystemViaThirdPartyPackage(NOT_TRUSTED_FILE_PATH),
+				ThirdPartyPackagePenguin.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = THIRD_PARTY_PACKAGE_WITHIN_PATH)
 	void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation() {
-		assertAresSecurityExceptionOverwrite(() -> WriteThirdPartyPackageMain.accessFileSystemViaThirdPartyPackage(NOT_TRUSTED_FILE_PATH), ThirdPartyPackagePenguin.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(
+				() -> WriteThirdPartyPackageMain.accessFileSystemViaThirdPartyPackage(NOT_TRUSTED_FILE_PATH),
+				ThirdPartyPackagePenguin.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = FILE_CHANNEL_WITHIN_PATH)
 	void test_accessFileSystemViaNIOChannelMavenArchunitAspectJ() {
-		assertAresSecurityExceptionOverwrite(FileChannelWriteMain::accessFileSystemViaNIOChannel, FileChannelWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(FileChannelWriteMain::accessFileSystemViaNIOChannel,
+				FileChannelWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = FILE_CHANNEL_WITHIN_PATH)
 	void test_accessFileSystemViaNIOChannelMavenArchunitInstrumentation() {
 		// first file is opened so we test for read access
-		assertAresSecurityExceptionRead(FileChannelWriteMain::accessFileSystemViaNIOChannel, FileChannelWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionRead(FileChannelWriteMain::accessFileSystemViaNIOChannel, FileChannelWriteMain.class,
+				NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = FILE_CHANNEL_WITHIN_PATH)
 	void test_accessFileSystemViaNIOChannelMavenWalaAspectJ() {
-		assertAresSecurityExceptionOverwrite(FileChannelWriteMain::accessFileSystemViaNIOChannel, FileChannelWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(FileChannelWriteMain::accessFileSystemViaNIOChannel,
+				FileChannelWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = FILE_CHANNEL_WITHIN_PATH)
 	void test_accessFileSystemViaNIOChannelMavenWalaInstrumentation() {
 		// first file is opened so we test for read access
-		assertAresSecurityExceptionRead(FileChannelWriteMain::accessFileSystemViaNIOChannel, FileChannelWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionRead(FileChannelWriteMain::accessFileSystemViaNIOChannel, FileChannelWriteMain.class,
+				NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = FILE_CHANNEL_WITHIN_PATH)
 	void test_accessFileSystemViaFileChannelWriteBuffersMavenArchunitAspectJ() {
-		assertAresSecurityExceptionOverwrite(FileChannelWriteMain::accessFileSystemViaFileChannelWriteBuffers, FileChannelWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(FileChannelWriteMain::accessFileSystemViaFileChannelWriteBuffers,
+				FileChannelWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = FILE_CHANNEL_WITHIN_PATH)
 	void test_accessFileSystemViaFileChannelWriteBuffersMavenArchunitInstrumentation() {
 		//
-		assertAresSecurityExceptionRead(FileChannelWriteMain::accessFileSystemViaFileChannelWriteBuffers, FileChannelWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionRead(FileChannelWriteMain::accessFileSystemViaFileChannelWriteBuffers,
+				FileChannelWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = FILE_CHANNEL_WITHIN_PATH)
 	void test_accessFileSystemViaFileChannelWriteBuffersMavenWalaAspectJ() {
-		assertAresSecurityExceptionOverwrite(FileChannelWriteMain::accessFileSystemViaFileChannelWriteBuffers, FileChannelWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(FileChannelWriteMain::accessFileSystemViaFileChannelWriteBuffers,
+				FileChannelWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = FILE_CHANNEL_WITHIN_PATH)
 	void test_accessFileSystemViaFileChannelWriteBuffersMavenWalaInstrumentation() {
 		// first file is opened so we test for read access
-		assertAresSecurityExceptionRead(FileChannelWriteMain::accessFileSystemViaFileChannelWriteBuffers, FileChannelWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionRead(FileChannelWriteMain::accessFileSystemViaFileChannelWriteBuffers,
+				FileChannelWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = GZIP_OUTPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaGZIPOutputStreamMavenArchunitAspectJ() {
-		assertAresSecurityExceptionOverwrite(GZIPOutputStreamWriteMain::accessFileSystemViaGZIPOutputStream, GZIPOutputStreamWriteMain.class, NOT_TRUSTED_GZ);
+		assertAresSecurityExceptionOverwrite(GZIPOutputStreamWriteMain::accessFileSystemViaGZIPOutputStream,
+				GZIPOutputStreamWriteMain.class, NOT_TRUSTED_GZ);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = GZIP_OUTPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaGZIPOutputStreamMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionOverwrite(GZIPOutputStreamWriteMain::accessFileSystemViaGZIPOutputStream, GZIPOutputStreamWriteMain.class, NOT_TRUSTED_GZ);
+		assertAresSecurityExceptionOverwrite(GZIPOutputStreamWriteMain::accessFileSystemViaGZIPOutputStream,
+				GZIPOutputStreamWriteMain.class, NOT_TRUSTED_GZ);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = GZIP_OUTPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaGZIPOutputStreamMavenWalaAspectJ() {
-		assertAresSecurityExceptionOverwrite(GZIPOutputStreamWriteMain::accessFileSystemViaGZIPOutputStream, GZIPOutputStreamWriteMain.class, NOT_TRUSTED_GZ);
+		assertAresSecurityExceptionOverwrite(GZIPOutputStreamWriteMain::accessFileSystemViaGZIPOutputStream,
+				GZIPOutputStreamWriteMain.class, NOT_TRUSTED_GZ);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = GZIP_OUTPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaGZIPOutputStreamMavenWalaInstrumentation() {
-		assertAresSecurityExceptionOverwrite(GZIPOutputStreamWriteMain::accessFileSystemViaGZIPOutputStream, GZIPOutputStreamWriteMain.class, NOT_TRUSTED_GZ);
+		assertAresSecurityExceptionOverwrite(GZIPOutputStreamWriteMain::accessFileSystemViaGZIPOutputStream,
+				GZIPOutputStreamWriteMain.class, NOT_TRUSTED_GZ);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = RANDOM_ACCESS_FILE_WITHIN_PATH)
 	void test_accessFileSystemViaRandomAccessFileWriteBooleanMavenArchunitAspectJ() {
 		// first file is opened so we test for read access
-		assertAresSecurityExceptionRead(RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteBoolean, RandomAccessFileWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionRead(RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteBoolean,
+				RandomAccessFileWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = RANDOM_ACCESS_FILE_WITHIN_PATH)
 	void test_accessFileSystemViaRandomAccessFileWriteBooleanMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionOverwrite(RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteBoolean, RandomAccessFileWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteBoolean,
+				RandomAccessFileWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = RANDOM_ACCESS_FILE_WITHIN_PATH)
 	void test_accessFileSystemViaRandomAccessFileWriteBooleanMavenWalaAspectJ() {
 		// first file is opened so we test for read access
-		assertAresSecurityExceptionRead(RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteBoolean, RandomAccessFileWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionRead(RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteBoolean,
+				RandomAccessFileWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = RANDOM_ACCESS_FILE_WITHIN_PATH)
 	void test_accessFileSystemViaRandomAccessFileWriteBooleanMavenWalaInstrumentation() {
-		assertAresSecurityExceptionOverwrite(RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteBoolean, RandomAccessFileWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteBoolean,
+				RandomAccessFileWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = DATA_OUTPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaDataOutputStreamMavenArchunitAspectJ() {
-		assertAresSecurityExceptionOverwrite(DataOutputStreamWriteMain::accessFileSystemViaDataOutputStream, DataOutputStreamWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(DataOutputStreamWriteMain::accessFileSystemViaDataOutputStream,
+				DataOutputStreamWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = DATA_OUTPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaDataOutputStreamMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionOverwrite(DataOutputStreamWriteMain::accessFileSystemViaDataOutputStream, DataOutputStreamWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(DataOutputStreamWriteMain::accessFileSystemViaDataOutputStream,
+				DataOutputStreamWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = DATA_OUTPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaDataOutputStreamMavenWalaAspectJ() {
-		assertAresSecurityExceptionOverwrite(DataOutputStreamWriteMain::accessFileSystemViaDataOutputStream, DataOutputStreamWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(DataOutputStreamWriteMain::accessFileSystemViaDataOutputStream,
+				DataOutputStreamWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = DATA_OUTPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaDataOutputStreamMavenWalaInstrumentation() {
-		assertAresSecurityExceptionOverwrite(DataOutputStreamWriteMain::accessFileSystemViaDataOutputStream, DataOutputStreamWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(DataOutputStreamWriteMain::accessFileSystemViaDataOutputStream,
+				DataOutputStreamWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = INFLATER_OUTPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaInflaterOutputStreamMavenArchunitAspectJ() {
-		assertAresSecurityExceptionOverwrite(InflaterOutputStreamWriteMain::accessFileSystemViaInflaterOutputStream, InflaterOutputStreamWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(InflaterOutputStreamWriteMain::accessFileSystemViaInflaterOutputStream,
+				InflaterOutputStreamWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = INFLATER_OUTPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaInflaterOutputStreamMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionOverwrite(InflaterOutputStreamWriteMain::accessFileSystemViaInflaterOutputStream, InflaterOutputStreamWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(InflaterOutputStreamWriteMain::accessFileSystemViaInflaterOutputStream,
+				InflaterOutputStreamWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = INFLATER_OUTPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaInflaterOutputStreamMavenWalaAspectJ() {
-		assertAresSecurityExceptionOverwrite(InflaterOutputStreamWriteMain::accessFileSystemViaInflaterOutputStream, InflaterOutputStreamWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(InflaterOutputStreamWriteMain::accessFileSystemViaInflaterOutputStream,
+				InflaterOutputStreamWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = INFLATER_OUTPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaInflaterOutputStreamMavenWalaInstrumentation() {
-		assertAresSecurityExceptionOverwrite(InflaterOutputStreamWriteMain::accessFileSystemViaInflaterOutputStream, InflaterOutputStreamWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(InflaterOutputStreamWriteMain::accessFileSystemViaInflaterOutputStream,
+				InflaterOutputStreamWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = ZIP_OUTPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaZipOutputStreamMavenArchunitAspectJ() {
-		assertAresSecurityExceptionOverwrite(ZipOutputStreamWriteMain::accessFileSystemViaZipOutputStream, ZipOutputStreamWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(ZipOutputStreamWriteMain::accessFileSystemViaZipOutputStream,
+				ZipOutputStreamWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = ZIP_OUTPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaZipOutputStreamMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionOverwrite(ZipOutputStreamWriteMain::accessFileSystemViaZipOutputStream, ZipOutputStreamWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(ZipOutputStreamWriteMain::accessFileSystemViaZipOutputStream,
+				ZipOutputStreamWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = ZIP_OUTPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaZipOutputStreamMavenWalaAspectJ() {
-		assertAresSecurityExceptionOverwrite(ZipOutputStreamWriteMain::accessFileSystemViaZipOutputStream, ZipOutputStreamWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(ZipOutputStreamWriteMain::accessFileSystemViaZipOutputStream,
+				ZipOutputStreamWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = ZIP_OUTPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaZipOutputStreamMavenWalaInstrumentation() {
-		assertAresSecurityExceptionOverwrite(ZipOutputStreamWriteMain::accessFileSystemViaZipOutputStream, ZipOutputStreamWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(ZipOutputStreamWriteMain::accessFileSystemViaZipOutputStream,
+				ZipOutputStreamWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = RANDOM_ACCESS_FILE_WITHIN_PATH)
 	void test_accessFileSystemViaRandomAccessFileWriteByteArrayMavenArchunitAspectJ() {
 		// first file is opened so we test for read access
-		assertAresSecurityExceptionRead(RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteByteArray, RandomAccessFileWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionRead(RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteByteArray,
+				RandomAccessFileWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = RANDOM_ACCESS_FILE_WITHIN_PATH)
 	void test_accessFileSystemViaRandomAccessFileWriteByteArrayMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionOverwrite(RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteByteArray, RandomAccessFileWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(
+				RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteByteArray,
+				RandomAccessFileWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = RANDOM_ACCESS_FILE_WITHIN_PATH)
 	void test_accessFileSystemViaRandomAccessFileWriteByteArrayMavenWalaAspectJ() {
 		// first file is opened so we test for read access
-		assertAresSecurityExceptionRead(RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteByteArray, RandomAccessFileWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionRead(RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteByteArray,
+				RandomAccessFileWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = RANDOM_ACCESS_FILE_WITHIN_PATH)
 	void test_accessFileSystemViaRandomAccessFileWriteByteArrayMavenWalaInstrumentation() {
-		assertAresSecurityExceptionOverwrite(RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteByteArray, RandomAccessFileWriteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(
+				RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteByteArray,
+				RandomAccessFileWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@AfterEach

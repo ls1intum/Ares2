@@ -11,13 +11,11 @@ import de.tum.cit.ase.ares.api.aop.AOPTestCaseSupported;
 
 /**
  * Test suite for JavaAOPTestCaseSupported enum.
- *
  * <p>
  * Description: This class contains unit tests that verify the correctness and
  * completeness of the JavaAOPTestCaseSupported enum, ensuring that all
  * constants are present in the declared order and that the getDynamic method
  * returns the expected list.
- *
  * <p>
  * Design Rationale: Centralizing all tests for enum constants and dynamic
  * behavior in a single test class improves maintainability, readability, and
@@ -32,7 +30,6 @@ public class JavaAOPTestCaseSupportedTest {
 	/**
 	 * Validates that the enum defines all expected constants in the declared order
 	 * and that each constant implements the AOPTestCaseSupported interface.
-	 *
 	 * <p>
 	 * Description: This test retrieves the values of the enum and confirms the
 	 * count matches the expected number of constants. It also checks that the
@@ -45,19 +42,21 @@ public class JavaAOPTestCaseSupportedTest {
 	@Test
 	public void testEnumConstantsAndInterfaceImplementation() {
 		JavaAOPTestCaseSupported[] actual = JavaAOPTestCaseSupported.values();
-		JavaAOPTestCaseSupported[] expected = new JavaAOPTestCaseSupported[]{ JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION, JavaAOPTestCaseSupported.NETWORK_CONNECTION,
+		JavaAOPTestCaseSupported[] expected = new JavaAOPTestCaseSupported[] {
+				JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION, JavaAOPTestCaseSupported.NETWORK_CONNECTION,
 				JavaAOPTestCaseSupported.COMMAND_EXECUTION, JavaAOPTestCaseSupported.THREAD_CREATION };
 
-		Assertions.assertAll("Enum constants and interface implementation", () -> Assertions.assertNotNull(actual, "actual must not be null"),
+		Assertions.assertAll("Enum constants and interface implementation",
+				() -> Assertions.assertNotNull(actual, "actual must not be null"),
 				() -> Assertions.assertEquals(4, actual.length, "actual should contain exactly four values"),
 				() -> Assertions.assertArrayEquals(expected, actual, "actual must match the order of expected"),
-				() -> Assertions.assertTrue(Arrays.stream(actual).allMatch(Objects::nonNull), "All values of actual must not be null"));
+				() -> Assertions.assertTrue(Arrays.stream(actual).allMatch(Objects::nonNull),
+						"All values of actual must not be null"));
 	}
 
 	/**
 	 * Ensures that getDynamic returns all enum constants in their declared order
 	 * and is not null.
-	 *
 	 * <p>
 	 * Description: This test calls getDynamic() on one of the enum constants and
 	 * verifies that the returned list contains exactly the four enum constants, in
@@ -69,12 +68,14 @@ public class JavaAOPTestCaseSupportedTest {
 	@Test
 	public void testGetDynamicReturnsAllConstantsInOrder() {
 		List<AOPTestCaseSupported> actual = JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION.getDynamic();
-		List<AOPTestCaseSupported> expected = List.of(JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION, JavaAOPTestCaseSupported.NETWORK_CONNECTION, JavaAOPTestCaseSupported.COMMAND_EXECUTION,
+		List<AOPTestCaseSupported> expected = List.of(JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION,
+				JavaAOPTestCaseSupported.NETWORK_CONNECTION, JavaAOPTestCaseSupported.COMMAND_EXECUTION,
 				JavaAOPTestCaseSupported.THREAD_CREATION);
 
 		Assertions.assertAll("getDynamic result", () -> Assertions.assertNotNull(actual, "actual must not be null"),
 				() -> Assertions.assertEquals(4, actual.size(), "actual should contain exactly four values"),
 				() -> Assertions.assertEquals(expected, actual, "actual must match the order of expected"),
-				() -> Assertions.assertTrue(actual.stream().allMatch(Objects::nonNull), "All values of actual must not be null"));
+				() -> Assertions.assertTrue(actual.stream().allMatch(Objects::nonNull),
+						"All values of actual must not be null"));
 	}
 }

@@ -65,11 +65,13 @@ public final class PackageRule {
 	}
 
 	public static Stream<PackageRule> allOf(WhitelistPackage whitelistedPackage) {
-		return Stream.of(whitelistedPackage.value()).map(packagePattern -> new PackageRule(RuleType.WHITELIST, packagePattern));
+		return Stream.of(whitelistedPackage.value())
+				.map(packagePattern -> new PackageRule(RuleType.WHITELIST, packagePattern));
 	}
 
 	public static Stream<PackageRule> allOf(BlacklistPackage blacklistedPackage) {
-		return Stream.of(blacklistedPackage.value()).map(packagePattern -> new PackageRule(RuleType.BLACKLIST, packagePattern));
+		return Stream.of(blacklistedPackage.value())
+				.map(packagePattern -> new PackageRule(RuleType.BLACKLIST, packagePattern));
 	}
 
 	public static Stream<PackageRule> from(RuleType ruleType, String... packagePatterns) {

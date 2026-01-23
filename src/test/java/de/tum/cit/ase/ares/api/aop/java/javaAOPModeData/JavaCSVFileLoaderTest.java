@@ -54,7 +54,8 @@ public class JavaCSVFileLoaderTest {
 				return missing;
 			}
 		};
-		Assertions.assertThrows(IOException.class, () -> loader.loadCopyData(AOPMode.ASPECTJ, true), "Expected IOException for missing file");
+		Assertions.assertThrows(IOException.class, () -> loader.loadCopyData(AOPMode.ASPECTJ, true),
+				"Expected IOException for missing file");
 	}
 
 	@Test
@@ -74,7 +75,8 @@ public class JavaCSVFileLoaderTest {
 			}
 		};
 
-		Assertions.assertThrows(CsvException.class, () -> loader.loadCopyData(ArchitectureMode.WALA, false), "Expected CsvException for malformed content");
+		Assertions.assertThrows(CsvException.class, () -> loader.loadCopyData(ArchitectureMode.WALA, false),
+				"Expected CsvException for malformed content");
 	}
 
 	@Test
@@ -110,7 +112,8 @@ public class JavaCSVFileLoaderTest {
 				return missing;
 			}
 		};
-		Assertions.assertThrows(IOException.class, () -> loader.loadEditData(ArchitectureMode.ARCHUNIT), "Expected IOException for missing file");
+		Assertions.assertThrows(IOException.class, () -> loader.loadEditData(ArchitectureMode.ARCHUNIT),
+				"Expected IOException for missing file");
 	}
 
 	@Test
@@ -130,6 +133,7 @@ public class JavaCSVFileLoaderTest {
 			}
 		};
 
-		Assertions.assertThrows(CsvException.class, () -> loader.loadEditData(AOPMode.ASPECTJ), "Expected CsvException for malformed content");
+		Assertions.assertThrows(CsvException.class, () -> loader.loadEditData(AOPMode.ASPECTJ),
+				"Expected CsvException for malformed content");
 	}
 }

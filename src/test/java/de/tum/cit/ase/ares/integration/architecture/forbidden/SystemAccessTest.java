@@ -67,29 +67,37 @@ public abstract class SystemAccessTest {
 	/**
 	 * Common helper that verifies the expected general parts of the error message.
 	 *
-	 * @param actualMessage The message from the thrown exception
+	 * @param actualMessage   The message from the thrown exception
 	 * @param operationTextEN The operation-specific substring in English
 	 * @param operationTextDE The operation-specific substring in German
-	 * @param clazz The class that should be mentioned in the security violation
+	 * @param clazz           The class that should be mentioned in the security
+	 *                        violation
 	 */
-	protected void assertGeneralErrorMessage(String actualMessage, String operationTextEN, String operationTextDE, Class<?> clazz) {
-
+	protected void assertGeneralErrorMessage(String actualMessage, String operationTextEN, String operationTextDE,
+			Class<?> clazz) {
 		Assertions.assertTrue(actualMessage.contains(ERR_SECURITY_EN) || actualMessage.contains(ERR_SECURITY_DE),
-				() -> String.format("Exception message should contain '%s' or '%s', but was:%n%s", ERR_SECURITY_EN, ERR_SECURITY_DE, actualMessage));
+				() -> String.format("Exception message should contain '%s' or '%s', but was:%n%s", ERR_SECURITY_EN,
+						ERR_SECURITY_DE, actualMessage));
 
 		Assertions.assertTrue(actualMessage.contains(REASON_EN) || actualMessage.contains(REASON_DE),
-				() -> String.format("Exception message should contain '%s' or '%s', but was:%n%s", REASON_EN, REASON_DE, actualMessage));
+				() -> String.format("Exception message should contain '%s' or '%s', but was:%n%s", REASON_EN, REASON_DE,
+						actualMessage));
 
 		Assertions.assertTrue(actualMessage.contains(TRIED_EN) || actualMessage.contains(TRIED_DE),
-				() -> String.format("Exception message should contain '%s' or '%s', but was:%n%s", TRIED_EN, TRIED_DE, actualMessage));
+				() -> String.format("Exception message should contain '%s' or '%s', but was:%n%s", TRIED_EN, TRIED_DE,
+						actualMessage));
 
-		Assertions.assertTrue(actualMessage.contains(clazz.getName()), () -> String.format("Exception message should contain '%s', but was:%n%s", clazz.getName(), actualMessage));
+		Assertions.assertTrue(actualMessage.contains(clazz.getName()), () -> String
+				.format("Exception message should contain '%s', but was:%n%s", clazz.getName(), actualMessage));
 
 		Assertions.assertTrue(actualMessage.contains(operationTextEN) || actualMessage.contains(operationTextDE),
-				() -> String.format("Exception message should indicate the operation by containing '%s' or '%s', but was:%n%s", operationTextEN, operationTextDE, actualMessage));
+				() -> String.format(
+						"Exception message should indicate the operation by containing '%s' or '%s', but was:%n%s",
+						operationTextEN, operationTextDE, actualMessage));
 
 		Assertions.assertTrue(actualMessage.contains(BLOCKED_EN) || actualMessage.contains(BLOCKED_DE),
-				() -> String.format("Exception message should contain '%s' or '%s', but was:%n%s", BLOCKED_EN, BLOCKED_DE, actualMessage));
+				() -> String.format("Exception message should contain '%s' or '%s', but was:%n%s", BLOCKED_EN,
+						BLOCKED_DE, actualMessage));
 	}
 	// </editor-fold>
 
@@ -100,15 +108,18 @@ public abstract class SystemAccessTest {
 	 * This version is used for file system access tests where path validation is
 	 * required.
 	 *
-	 * @param actualMessage The message from the thrown exception.
+	 * @param actualMessage   The message from the thrown exception.
 	 * @param operationTextEN The operation-specific substring in English (e.g.,
-	 *            "illegally read from", "illegally write from", "illegally execute
-	 *            from").
+	 *                        "illegally read from", "illegally write from",
+	 *                        "illegally execute from").
 	 * @param operationTextDE The operation-specific substring in German (e.g.,
-	 *            "illegal read von", "illegal write von", "illegal execute von").
-	 * @param clazz The class that should be mentioned in the security violation
+	 *                        "illegal read von", "illegal write von", "illegal
+	 *                        execute von").
+	 * @param clazz           The class that should be mentioned in the security
+	 *                        violation
 	 */
-	protected void assertGeneralErrorMessageWithPath(Path expectedPath, String actualMessage, String operationTextEN, String operationTextDE, Class<?> clazz) {
+	protected void assertGeneralErrorMessageWithPath(Path expectedPath, String actualMessage, String operationTextEN,
+			String operationTextDE, Class<?> clazz) {
 		String nativePath = expectedPath.toString();
 		String unixPath = nativePath.replace(expectedPath.getFileSystem().getSeparator(), "/");
 
@@ -117,7 +128,8 @@ public abstract class SystemAccessTest {
 
 		// Additional path validation for file system operations
 		Assertions.assertTrue(Stream.of(nativePath, unixPath).anyMatch(actualMessage::contains),
-				() -> String.format("Exception message should contain the path '%s' (or '%s'), but was:%n%s", nativePath, unixPath, actualMessage));
+				() -> String.format("Exception message should contain the path '%s' (or '%s'), but was:%n%s",
+						nativePath, unixPath, actualMessage));
 	}
 
 	/**
@@ -125,20 +137,25 @@ public abstract class SystemAccessTest {
 	 * message for file system read operations.
 	 *
 	 * @param executable The executable that should throw a SecurityException
-	 * @param clazz The class that performed the read operation
+	 * @param clazz      The class that performed the read operation
 	 */
 	protected void assertAresSecurityExceptionRead(Executable executable, Class<?> clazz) {
-		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable, ERROR_MESSAGE);
+		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable,
+				ERROR_MESSAGE);
 
-		Path expectedPath = Paths.get("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration", "aop", "forbidden", "subject", "nottrusted.txt");
+		Path expectedPath = Paths.get("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration", "aop",
+				"forbidden", "subject", "nottrusted.txt");
 
-		assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally read", "illegal read", clazz);
+		assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally read",
+				"illegal read", clazz);
 	}
 
 	protected void assertAresSecurityExceptionRead(Executable executable, Class<?> clazz, Path expectedPath) {
-		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable, ERROR_MESSAGE);
+		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable,
+				ERROR_MESSAGE);
 
-		assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally read", "illegal read", clazz);
+		assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally read",
+				"illegal read", clazz);
 	}
 
 	/**
@@ -146,18 +163,23 @@ public abstract class SystemAccessTest {
 	 * message for file system overwrite operations.
 	 *
 	 * @param executable The executable that should throw a SecurityException
-	 * @param clazz The class that performed the overwrite operation
+	 * @param clazz      The class that performed the overwrite operation
 	 */
 	protected void assertAresSecurityExceptionOverwrite(Executable executable, Class<?> clazz) {
-		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable, ERROR_MESSAGE);
+		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable,
+				ERROR_MESSAGE);
 
-		Path expectedPath = Paths.get("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration", "aop", "forbidden", "subject", "nottrusted.txt");
-		assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally overwrite", "illegal overwrite", clazz);
+		Path expectedPath = Paths.get("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration", "aop",
+				"forbidden", "subject", "nottrusted.txt");
+		assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally overwrite",
+				"illegal overwrite", clazz);
 	}
 
 	protected void assertAresSecurityExceptionOverwrite(Executable executable, Class<?> clazz, Path expectedPath) {
-		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable, ERROR_MESSAGE);
-		assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally overwrite", "illegal overwrite", clazz);
+		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable,
+				ERROR_MESSAGE);
+		assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally overwrite",
+				"illegal overwrite", clazz);
 	}
 
 	/**
@@ -165,12 +187,15 @@ public abstract class SystemAccessTest {
 	 * message for file system execution operations.
 	 *
 	 * @param executable The executable that should throw a SecurityException
-	 * @param clazz The class that performed the execution operation
+	 * @param clazz      The class that performed the execution operation
 	 */
 	protected void assertAresSecurityExceptionExecution(Executable executable, Class<?> clazz) {
-		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable, ERROR_MESSAGE);
-		Path expectedPath = Paths.get("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration", "aop", "forbidden", "subject", "nottrusted.txt");
-		assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally execute", "illegal execute", clazz);
+		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable,
+				ERROR_MESSAGE);
+		Path expectedPath = Paths.get("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration", "aop",
+				"forbidden", "subject", "nottrusted.txt");
+		assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally execute",
+				"illegal execute", clazz);
 	}
 
 	/**
@@ -178,12 +203,15 @@ public abstract class SystemAccessTest {
 	 * message for file system delete operations.
 	 *
 	 * @param executable The executable that should throw a SecurityException
-	 * @param clazz The class that performed the delete operation
+	 * @param clazz      The class that performed the delete operation
 	 */
 	protected void assertAresSecurityExceptionDelete(Executable executable, Class<?> clazz) {
-		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable, ERROR_MESSAGE);
-		Path expectedPath = Paths.get("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration", "aop", "forbidden", "subject", "nottrusted.txt");
-		assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally delete", "illegal delete", clazz);
+		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable,
+				ERROR_MESSAGE);
+		Path expectedPath = Paths.get("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration", "aop",
+				"forbidden", "subject", "nottrusted.txt");
+		assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally delete",
+				"illegal delete", clazz);
 	}
 	// </editor-fold>
 
@@ -193,34 +221,38 @@ public abstract class SystemAccessTest {
 	 * This version is used for command system access tests where command validation
 	 * is required.
 	 *
-	 * @param actualMessage The message from the thrown exception.
+	 * @param actualMessage   The message from the thrown exception.
 	 * @param operationTextEN The operation-specific substring in English (e.g.,
-	 *            "illegally execute command", "illegally run command").
+	 *                        "illegally execute command", "illegally run command").
 	 * @param operationTextDE The operation-specific substring in German (e.g.,
-	 *            "illegal Befehle ausf�hren", "illegal Befehle ausf�hren").
-	 * @param clazz The class that should be mentioned in the security violation
+	 *                        "illegal Befehle ausf�hren", "illegal Befehle
+	 *                        ausf�hren").
+	 * @param clazz           The class that should be mentioned in the security
+	 *                        violation
 	 */
-	protected void assertGeneralErrorMessageWithCommand(String actualMessage, String operationTextEN, String operationTextDE, Class<?> clazz) {
-
+	protected void assertGeneralErrorMessageWithCommand(String actualMessage, String operationTextEN,
+			String operationTextDE, Class<?> clazz) {
 		// Validate common error message parts
 		assertGeneralErrorMessage(actualMessage, operationTextEN, operationTextDE, clazz);
 
 		// Additional command-specific validation
-		Assertions.assertTrue(actualMessage.contains("command") || actualMessage.contains("Befehl"),
-				() -> String.format("Exception message should contain 'command' or 'Befehl', but was:%n%s", actualMessage));
+		Assertions.assertTrue(actualMessage.contains("command") || actualMessage.contains("Befehl"), () -> String
+				.format("Exception message should contain 'command' or 'Befehl', but was:%n%s", actualMessage));
 	}
 
 	/**
 	 * Test that the given executable DOES throw a SecurityException with the
 	 * expected message for command execution operations.
 	 *
-	 * @param executable The executable that should throw a SecurityException
+	 * @param executable    The executable that should throw a SecurityException
 	 * @param expectedClass The class that should be mentioned in the security
-	 *            violation
+	 *                      violation
 	 */
 	protected void assertAresSecurityExceptionCommand(Executable executable, Class<?> expectedClass) {
-		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable, ERROR_MESSAGE);
-		assertGeneralErrorMessageWithCommand(securityException.getMessage(), "illegally execute", "illegal ausgef�hrt", expectedClass);
+		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable,
+				ERROR_MESSAGE);
+		assertGeneralErrorMessageWithCommand(securityException.getMessage(), "illegally execute", "illegal ausgef�hrt",
+				expectedClass);
 	}
 	// </editor-fold>
 
@@ -230,21 +262,24 @@ public abstract class SystemAccessTest {
 	 * This version is used for thread system access tests where thread name
 	 * validation is required.
 	 *
-	 * @param actualMessage The message from the thrown exception.
+	 * @param actualMessage   The message from the thrown exception.
 	 * @param operationTextEN The operation-specific substring in English (e.g.,
-	 *            "illegally create threads", "illegally start threads").
+	 *                        "illegally create threads", "illegally start
+	 *                        threads").
 	 * @param operationTextDE The operation-specific substring in German (e.g.,
-	 *            "illegal Threads erstellen", "illegal Threads starten").
-	 * @param clazz The class that should be mentioned in the security violation
+	 *                        "illegal Threads erstellen", "illegal Threads
+	 *                        starten").
+	 * @param clazz           The class that should be mentioned in the security
+	 *                        violation
 	 */
-	protected void assertGeneralErrorMessageWithThread(String actualMessage, String operationTextEN, String operationTextDE, Class<?> clazz) {
-
+	protected void assertGeneralErrorMessageWithThread(String actualMessage, String operationTextEN,
+			String operationTextDE, Class<?> clazz) {
 		// Validate common error message parts
 		assertGeneralErrorMessage(actualMessage, operationTextEN, operationTextDE, clazz);
 
 		// Additional thread-specific validation
-		Assertions.assertTrue(actualMessage.contains("Thread") || actualMessage.contains("thread"),
-				() -> String.format("Exception message should contain 'Thread' or 'thread', but was:%n%s", actualMessage));
+		Assertions.assertTrue(actualMessage.contains("Thread") || actualMessage.contains("thread"), () -> String
+				.format("Exception message should contain 'Thread' or 'thread', but was:%n%s", actualMessage));
 	}
 
 	/**
@@ -252,11 +287,13 @@ public abstract class SystemAccessTest {
 	 * message for thread creation operations.
 	 *
 	 * @param executable The executable that should throw a SecurityException
-	 * @param clazz The class that performed the thread creation operation
+	 * @param clazz      The class that performed the thread creation operation
 	 */
 	protected void assertAresSecurityExceptionThread(Executable executable, Class<?> clazz) {
-		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable, ERROR_MESSAGE);
-		assertGeneralErrorMessageWithThread(securityException.getMessage(), "illegally create", "illegal create", clazz);
+		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable,
+				ERROR_MESSAGE);
+		assertGeneralErrorMessageWithThread(securityException.getMessage(), "illegally create", "illegal create",
+				clazz);
 	}
 	// </editor-fold>
 
@@ -264,14 +301,16 @@ public abstract class SystemAccessTest {
 	 * Common test helper that executes a test method and verifies it fails with a
 	 * SecurityException.
 	 *
-	 * @param clazz The test class containing the method
+	 * @param clazz      The test class containing the method
 	 * @param methodName The name of the test method to execute
 	 */
 	protected void executeTestAndExpectSecurityException(Class<?> clazz, String methodName) {
-		Events testEvents = EngineTestKit.engine("junit-jupiter").configurationParameter("junit.jupiter.conditions.deactivate", "org.junit.*DisabledCondition")
+		Events testEvents = EngineTestKit.engine("junit-jupiter")
+				.configurationParameter("junit.jupiter.conditions.deactivate", "org.junit.*DisabledCondition")
 				.selectors(selectMethod(clazz, methodName)).execute().testEvents();
 
 		testEvents.assertStatistics(stats -> stats.failed(1).aborted(0).succeeded(0));
-		testEvents.assertThatEvents().haveExactly(1, event(test(methodName), finishedWithFailure(instanceOf(SecurityException.class))));
+		testEvents.assertThatEvents().haveExactly(1,
+				event(test(methodName), finishedWithFailure(instanceOf(SecurityException.class))));
 	}
 }

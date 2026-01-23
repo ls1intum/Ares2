@@ -9,7 +9,8 @@ import de.tum.cit.ase.ares.integration.aop.allowed.subject.LegalThread;
 public class CreateThreadPoolExecutorMain {
 
 	private CreateThreadPoolExecutorMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/**
@@ -17,7 +18,8 @@ public class CreateThreadPoolExecutorMain {
 	 */
 	public static void executeRunnable() {
 		try {
-			ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
+			ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS,
+					new LinkedBlockingQueue<>());
 			threadPoolExecutor.execute(new LegalThread());
 		} catch (Exception e) {
 			throw new RuntimeException(e);

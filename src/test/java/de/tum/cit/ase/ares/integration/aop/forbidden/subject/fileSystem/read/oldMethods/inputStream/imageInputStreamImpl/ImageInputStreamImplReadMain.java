@@ -8,7 +8,8 @@ import javax.imageio.stream.ImageInputStreamImpl;
 public class ImageInputStreamImplReadMain {
 
 	private ImageInputStreamImplReadMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	// Custom implementation of ImageInputStreamImpl for testing purposes
@@ -42,14 +43,16 @@ public class ImageInputStreamImplReadMain {
 	}
 
 	public static int accessFileSystemViaImageInputStreamImplRead() throws IOException {
-		try (FileInputStream fis = new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
+		try (FileInputStream fis = new FileInputStream(
+				"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
 				TestImageInputStreamImpl reader = new TestImageInputStreamImpl(fis)) {
 			return reader.read();
 		}
 	}
 
 	public static int accessFileSystemViaImageInputStreamImplReadByteArray() throws IOException {
-		try (FileInputStream fis = new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
+		try (FileInputStream fis = new FileInputStream(
+				"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
 				TestImageInputStreamImpl reader = new TestImageInputStreamImpl(fis)) {
 			byte[] buffer = new byte[1024];
 			return reader.read(buffer);
@@ -57,7 +60,8 @@ public class ImageInputStreamImplReadMain {
 	}
 
 	public static int accessFileSystemViaImageInputStreamImplReadByteArrayOffsetLength() throws IOException {
-		try (FileInputStream fis = new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
+		try (FileInputStream fis = new FileInputStream(
+				"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
 				TestImageInputStreamImpl reader = new TestImageInputStreamImpl(fis)) {
 			byte[] buffer = new byte[1024];
 			return reader.read(buffer, 0, buffer.length);
@@ -65,7 +69,8 @@ public class ImageInputStreamImplReadMain {
 	}
 
 	public static void accessFileSystemViaImageInputStreamImplReadFully() throws IOException {
-		try (FileInputStream fis = new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
+		try (FileInputStream fis = new FileInputStream(
+				"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
 				TestImageInputStreamImpl reader = new TestImageInputStreamImpl(fis)) {
 			byte[] buffer = new byte[1024];
 			reader.readFully(buffer);
@@ -73,7 +78,8 @@ public class ImageInputStreamImplReadMain {
 	}
 
 	public static void accessFileSystemViaImageInputStreamImplReadFullyWithOffset() throws IOException {
-		try (FileInputStream fis = new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
+		try (FileInputStream fis = new FileInputStream(
+				"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
 				TestImageInputStreamImpl reader = new TestImageInputStreamImpl(fis)) {
 			byte[] buffer = new byte[1024];
 			reader.readFully(buffer, 0, buffer.length);
@@ -81,63 +87,72 @@ public class ImageInputStreamImplReadMain {
 	}
 
 	public static boolean accessFileSystemViaImageInputStreamImplReadBoolean() throws IOException {
-		try (FileInputStream fis = new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
+		try (FileInputStream fis = new FileInputStream(
+				"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
 				TestImageInputStreamImpl reader = new TestImageInputStreamImpl(fis)) {
 			return reader.readBoolean();
 		}
 	}
 
 	public static byte[] accessFileSystemViaImageInputStreamImplReadByte() throws IOException {
-		try (FileInputStream fis = new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
+		try (FileInputStream fis = new FileInputStream(
+				"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
 				TestImageInputStreamImpl reader = new TestImageInputStreamImpl(fis)) {
-			return new byte[]{ reader.readByte() };
+			return new byte[] { reader.readByte() };
 		}
 	}
 
 	public static int accessFileSystemViaImageInputStreamImplReadUnsignedByte() throws IOException {
-		try (FileInputStream fis = new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
+		try (FileInputStream fis = new FileInputStream(
+				"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
 				TestImageInputStreamImpl reader = new TestImageInputStreamImpl(fis)) {
 			return reader.readUnsignedByte();
 		}
 	}
 
 	public static char accessFileSystemViaImageInputStreamImplReadChar() throws IOException {
-		try (FileInputStream fis = new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
+		try (FileInputStream fis = new FileInputStream(
+				"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
 				TestImageInputStreamImpl reader = new TestImageInputStreamImpl(fis)) {
 			return reader.readChar();
 		}
 	}
 
 	public static double accessFileSystemViaImageInputStreamImplReadDouble() throws IOException {
-		try (FileInputStream fis = new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
+		try (FileInputStream fis = new FileInputStream(
+				"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
 				TestImageInputStreamImpl reader = new TestImageInputStreamImpl(fis)) {
 			return reader.readDouble();
 		}
 	}
 
 	public static float accessFileSystemViaImageInputStreamImplReadFloat() throws IOException {
-		try (FileInputStream fis = new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
+		try (FileInputStream fis = new FileInputStream(
+				"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
 				TestImageInputStreamImpl reader = new TestImageInputStreamImpl(fis)) {
 			return reader.readFloat();
 		}
 	}
 
 	public static long accessFileSystemViaImageInputStreamImplReadLong() throws IOException {
-		try (FileInputStream fis = new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
+		try (FileInputStream fis = new FileInputStream(
+				"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
 				TestImageInputStreamImpl reader = new TestImageInputStreamImpl(fis)) {
 			return reader.readLong();
 		}
 	}
 
 	public static short accessFileSystemViaImageInputStreamImplReadShort() throws IOException {
-		try (FileInputStream fis = new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
+		try (FileInputStream fis = new FileInputStream(
+				"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
 				TestImageInputStreamImpl reader = new TestImageInputStreamImpl(fis)) {
 			return reader.readShort();
 		}
 	}
 
 	public static int accessFileSystemViaImageInputStreamImplReadUnsignedShort() throws IOException {
-		try (FileInputStream fis = new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
+		try (FileInputStream fis = new FileInputStream(
+				"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
 				TestImageInputStreamImpl reader = new TestImageInputStreamImpl(fis)) {
 			return reader.readUnsignedShort();
 		}

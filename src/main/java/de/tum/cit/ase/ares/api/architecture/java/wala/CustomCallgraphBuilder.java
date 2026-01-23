@@ -31,12 +31,10 @@ import de.tum.cit.ase.ares.api.util.FileTools;
 
 /**
  * Utility to build a call graph for Java binaries using WALA framework.
- *
  * <p>
  * Description: This class reads .class files from a specified classpath builds
  * an analysis scope constructs a class hierarchy and generates a call graph
  * representing method call relationships.
- *
  * <p>
  * Design Rationale: To provide a reusable component for architecture tests that
  * require static analysis of Java bytecode call relationships enabling
@@ -50,7 +48,6 @@ public class CustomCallgraphBuilder {
 
 	/**
 	 * Importer for reading .class files from URLs into Archunit domain model.
-	 *
 	 * <p>
 	 * Description: Used to import individual class files skipping Java runtime
 	 * modules.
@@ -59,7 +56,6 @@ public class CustomCallgraphBuilder {
 
 	/**
 	 * Analysis scope containing application classes and required dependencies.
-	 *
 	 * <p>
 	 * Description: Defines which classes are included in the static analysis
 	 * context.
@@ -68,7 +64,6 @@ public class CustomCallgraphBuilder {
 
 	/**
 	 * Class hierarchy derived from analysis scope to resolve types.
-	 *
 	 * <p>
 	 * Description: Used to look up classes and their relationships based on loaded
 	 * dependencies.
@@ -77,7 +72,6 @@ public class CustomCallgraphBuilder {
 
 	/**
 	 * Temporary storage for generated call graph once built.
-	 *
 	 * <p>
 	 * Description: Caches the result of buildCallGraph to avoid rebuilding multiple
 	 * times.
@@ -87,7 +81,6 @@ public class CustomCallgraphBuilder {
 	/**
 	 * Initializes importer, analysis scope, and class hierarchy for building call
 	 * graphs.
-	 *
 	 * <p>
 	 * Description: Sets up WALA analysis by reading classpath, loading exclusions,
 	 * and constructing hierarchy.
@@ -100,8 +93,9 @@ public class CustomCallgraphBuilder {
 		classFileImporter = new ClassFileImporter();
 		try {
 			// Build analysis scope from current classpath and exclusion list
-			scope = Java9AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(classPath + File.pathSeparator + System.getProperty("java.class.path"),
-					FileTools.readFile(FileTools.resolveFileOnSourceDirectory("templates", "architecture", "java", "exclusions.txt")));
+			scope = Java9AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(
+					classPath + File.pathSeparator + System.getProperty("java.class.path"), FileTools.readFile(FileTools
+							.resolveFileOnSourceDirectory("templates", "architecture", "java", "exclusions.txt")));
 			// Construct class hierarchy from scope
 			classHierarchy = ClassHierarchyFactory.make(scope);
 		} catch (ClassHierarchyException | IOException e) {
@@ -112,7 +106,6 @@ public class CustomCallgraphBuilder {
 
 	/**
 	 * Converts a Java type name to a resource path for its .class file.
-	 *
 	 * <p>
 	 * Description: Transforms "com.example.MyClass" into
 	 * "/com/example/MyClass.class".
@@ -133,7 +126,6 @@ public class CustomCallgraphBuilder {
 
 	/**
 	 * Converts a Java type name to WALA's internal format.
-	 *
 	 * <p>
 	 * Description: Transforms "com.example.MyClass" into "Lcom/example/MyClass" for
 	 * WALA lookups.
@@ -154,7 +146,6 @@ public class CustomCallgraphBuilder {
 
 	/**
 	 * Attempts to resolve a class by its name, ignoring certain known types.
-	 *
 	 * <p>
 	 * Description: Skips excluded advice classes, locates the .class resource,
 	 * imports it, and returns the JavaClass.
@@ -166,7 +157,8 @@ public class CustomCallgraphBuilder {
 	 */
 	private Optional<JavaClass> tryResolve(String typeName) {
 		// Define classes to ignore to avoid infinite loops
-		List<String> ignoredTypeNames = List.of("de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemAdviceDefinitions");
+		List<String> ignoredTypeNames = List.of(
+				"de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemAdviceDefinitions");
 		if (ignoredTypeNames.contains(typeName)) {
 			return Optional.empty(); // skip forbidden names
 		}
@@ -186,7 +178,6 @@ public class CustomCallgraphBuilder {
 
 	/**
 	 * Finds immediate subclasses of a given class name.
-	 *
 	 * <p>
 	 * Description: Uses WALA ClassHierarchy to retrieve direct descendants of the
 	 * specified type.
@@ -199,7 +190,8 @@ public class CustomCallgraphBuilder {
 	@SuppressWarnings("unused")
 	public Set<JavaClass> getImmediateSubclasses(String typeName) {
 		// Create WALA type reference for application loader
-		TypeReference reference = TypeReference.find(ClassLoaderReference.Application, convertTypeNameToWalaName(typeName));
+		TypeReference reference = TypeReference.find(ClassLoaderReference.Application,
+				convertTypeNameToWalaName(typeName));
 		if (reference == null) {
 			return Collections.emptySet(); // no reference
 		}
@@ -219,7 +211,6 @@ public class CustomCallgraphBuilder {
 
 	/**
 	 * Builds and caches a call graph for analysis.
-	 *
 	 * <p>
 	 * Description: Computes method call relationships for all non-main methods in
 	 * the provided class path using a 0-1-CFA builder.
@@ -236,11 +227,13 @@ public class CustomCallgraphBuilder {
 				return callGraph;
 			}
 			// Determine entry points: all methods except main in student code
-			List<DefaultEntrypoint> customEntryPoints = ReachabilityChecker.getEntryPointsFromStudentSubmission(classPathToAnalyze, classHierarchy);
+			List<DefaultEntrypoint> customEntryPoints = ReachabilityChecker
+					.getEntryPointsFromStudentSubmission(classPathToAnalyze, classHierarchy);
 			// Configure analysis options with scope and entry points
 			AnalysisOptions options = new AnalysisOptions(scope, customEntryPoints);
 			// Create context-sensitive call graph builder
-			CallGraphBuilder<?> builder = Util.makeZeroOneCFABuilder(Language.JAVA, options, new AnalysisCacheImpl(), classHierarchy);
+			CallGraphBuilder<?> builder = Util.makeZeroOneCFABuilder(Language.JAVA, options, new AnalysisCacheImpl(),
+					classHierarchy);
 			// Generate call graph
 			callGraph = builder.makeCallGraph(options, null);
 			return callGraph;

@@ -11,7 +11,8 @@ import java.nio.file.Path;
 public class ThirdPartyPackagePenguin {
 
 	public static String readFile() throws IOException {
-		return Files.readString(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
+		return Files.readString(
+				Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
 	}
 
 	public static Path overwriteFile(Path pathToUntrustedFile) throws IOException {
@@ -20,10 +21,12 @@ public class ThirdPartyPackagePenguin {
 	}
 
 	public static Process executeFile() throws IOException {
-		return Runtime.getRuntime().exec("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
+		return Runtime.getRuntime()
+				.exec("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
 	}
 
 	public static void deleteFile() throws IOException {
-		Files.delete(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/nottrusteddir/nottrusted.txt"));
+		Files.delete(Path.of(
+				"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/nottrusteddir/nottrusted.txt"));
 	}
 }

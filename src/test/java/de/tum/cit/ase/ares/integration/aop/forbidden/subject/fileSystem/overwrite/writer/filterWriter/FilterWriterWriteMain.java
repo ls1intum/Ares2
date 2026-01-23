@@ -11,7 +11,8 @@ public class FilterWriterWriteMain {
 	private static final String NOT_TRUSTED_FILE = NOT_TRUSTED_DIR + "/nottrusted.txt";
 
 	private FilterWriterWriteMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/* ------------------------------------------------------------- */
@@ -42,7 +43,7 @@ public class FilterWriterWriteMain {
 
 	public static void accessFileSystemViaFilterWriterWriteCharArray() throws IOException {
 		try (FilterWriter writer = new SimpleFilterWriter(new FileWriter(NOT_TRUSTED_FILE))) {
-			writer.write(new char[]{ 'H', 'e', 'l', 'l', 'o', ' ', 'W', 'o', 'r', 'l', 'd' });
+			writer.write(new char[] { 'H', 'e', 'l', 'l', 'o', ' ', 'W', 'o', 'r', 'l', 'd' });
 		}
 	}
 

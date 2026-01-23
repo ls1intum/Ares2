@@ -6,13 +6,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox;
-
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
+
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox;
 
 /**
  * This class contains the pointcut definitions for the Java instrumentation
@@ -30,7 +30,8 @@ public class JavaInstrumentationPointcutDefinitions {
 	 * This constructor is private to prevent instantiation of this utility class.
 	 */
 	private JavaInstrumentationPointcutDefinitions() {
-		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.general.utility.initialization", "JavaInstrumentationPointcutDefinitions"));
+		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+				.localize("security.general.utility.initialization", "JavaInstrumentationPointcutDefinitions"));
 	}
 	// </editor-fold>
 
@@ -39,14 +40,12 @@ public class JavaInstrumentationPointcutDefinitions {
 	/**
 	 * Creates a type matcher that selects exactly the classes (and their subtypes)
 	 * named in the given pointcut map.
-	 *
 	 * <p>
 	 * The map keys represent fully qualified class names whose methods or
 	 * constructors are candidates for instrumentation. This matcher will match any
 	 * class whose {@link TypeDescription#getName() name} equals one of these keys,
 	 * or which has a supertype matching one of these keys.
 	 * </p>
-	 *
 	 * <p>
 	 * Internally, this is built by starting from {@code ElementMatchers.none()}
 	 * (always false) and OR’ing in for each target class:
@@ -65,8 +64,8 @@ public class JavaInstrumentationPointcutDefinitions {
 	 * </pre>
 	 *
 	 * @param methodsMap A map whose keys are the fully qualified names of classes
-	 *            to match, and whose values are the pointcut method names (ignored
-	 *            here).
+	 *                   to match, and whose values are the pointcut method names
+	 *                   (ignored here).
 	 * @return A Byte-Buddy {@code ElementMatcher<TypeDescription>} that matches
 	 *         exactly those classes and any of their subtypes.
 	 * @see net.bytebuddy.matcher.ElementMatchers#named(String)
@@ -81,14 +80,16 @@ public class JavaInstrumentationPointcutDefinitions {
 
 		ElementMatcher.Junction<TypeDescription> matcher = ElementMatchers.none();
 		for (String target : targets) {
-			matcher = matcher.or(ElementMatchers.named(target)).or(ElementMatchers.hasSuperType(ElementMatchers.named(target)));
+			matcher = matcher.or(ElementMatchers.named(target))
+					.or(ElementMatchers.hasSuperType(ElementMatchers.named(target)));
 		}
 
 		// Exclude internal JVM implementation classes (sun.*, jdk.internal.*)
 		// These classes have different method signatures than the public API and
 		// cannot be properly analyzed for OpenOptions or other context.
 		// The public API methods (e.g., FileChannel.open) will still be instrumented.
-		matcher = matcher.and(ElementMatchers.not(ElementMatchers.nameStartsWith("sun.")).and(ElementMatchers.not(ElementMatchers.nameStartsWith("jdk.internal."))));
+		matcher = matcher.and(ElementMatchers.not(ElementMatchers.nameStartsWith("sun."))
+				.and(ElementMatchers.not(ElementMatchers.nameStartsWith("jdk.internal."))));
 
 		return matcher;
 	}
@@ -166,7 +167,6 @@ public class JavaInstrumentationPointcutDefinitions {
 	/**
 	 * Creates a constructor matcher for the given type description and pointcut
 	 * map.
-	 *
 	 * <p>
 	 * This matcher selects constructors of classes that appear in
 	 * {@code methodsMap}. Entries can either specify {@code "<init>"} (to match all
@@ -175,15 +175,16 @@ public class JavaInstrumentationPointcutDefinitions {
 	 * </p>
 	 *
 	 * @param typeDescription The Byte-Buddy description of the class being
-	 *            evaluated.
-	 * @param methodsMap A map with class names as keys and lists of constructor or
-	 *            method specifications as values.
+	 *                        evaluated.
+	 * @param methodsMap      A map with class names as keys and lists of
+	 *                        constructor or method specifications as values.
 	 * @return A {@code ElementMatcher<MethodDescription>} matching the configured
 	 *         constructors declared by the matched classes (or their subtypes).
 	 * @see net.bytebuddy.matcher.ElementMatchers#isConstructor()
 	 * @see net.bytebuddy.matcher.ElementMatchers#isDeclaredBy(ElementMatcher)
 	 */
-	static ElementMatcher<MethodDescription> getConstructorsMatcher(TypeDescription typeDescription, Map<String, List<String>> methodsMap) {
+	static ElementMatcher<MethodDescription> getConstructorsMatcher(TypeDescription typeDescription,
+			Map<String, List<String>> methodsMap) {
 		ElementMatcher.Junction<TypeDescription> hierarchyMatcher = ElementMatchers.none();
 		List<MethodPointcutSpec> constructorSpecs = new ArrayList<>();
 		for (String key : methodsMap.keySet()) {
@@ -210,13 +211,15 @@ public class JavaInstrumentationPointcutDefinitions {
 
 		ElementMatcher.Junction<MethodDescription> matcher = ElementMatchers.none();
 		for (MethodPointcutSpec spec : constructorSpecs) {
-			ElementMatcher.Junction<MethodDescription> specMatcher = ElementMatchers.isConstructor().and(ElementMatchers.isDeclaredBy(hierarchyMatcher));
+			ElementMatcher.Junction<MethodDescription> specMatcher = ElementMatchers.isConstructor()
+					.and(ElementMatchers.isDeclaredBy(hierarchyMatcher));
 
 			if (spec.hasParameters()) {
 				List<String> parameterTypes = spec.getParameterTypeNames();
 				specMatcher = specMatcher.and(ElementMatchers.takesArguments(parameterTypes.size()));
 				for (int i = 0; i < parameterTypes.size(); i++) {
-					specMatcher = specMatcher.and(ElementMatchers.takesArgument(i, ElementMatchers.named(parameterTypes.get(i))));
+					specMatcher = specMatcher
+							.and(ElementMatchers.takesArgument(i, ElementMatchers.named(parameterTypes.get(i))));
 				}
 			}
 
@@ -229,19 +232,18 @@ public class JavaInstrumentationPointcutDefinitions {
 	 * Methods listed here (by declaring class -> method name) will be excluded from
 	 * the matcher produced by {@link #getMethodsMatcher(TypeDescription, Map)}.
 	 * This allows fine-grained suppression of specific methods from otherwise
-	 * instrumented classes.
-	 *
-	 * Keys are fully qualified class names; values are simple method names.
-	 * Initially empty; add entries as needed, e.g.:
+	 * instrumented classes. Keys are fully qualified class names; values are simple
+	 * method names. Initially empty; add entries as needed, e.g.:
 	 * Map.ofEntries(Map.entry("java.lang.Runtime", List.of("exec")))
 	 */
-	public static final Map<String, List<String>> ignoredMethodsByClass = Map.ofEntries(Map.entry("java.io.ByteArrayInputStream", List.of("read")),
-			Map.entry("java.io.RandomAccessFile", List.of("readFully")), Map.entry("java.util.zip.InflaterInputStream", List.of("read")),
+	public static final Map<String, List<String>> ignoredMethodsByClass = Map.ofEntries(
+			Map.entry("java.io.ByteArrayInputStream", List.of("read")),
+			Map.entry("java.io.RandomAccessFile", List.of("readFully")),
+			Map.entry("java.util.zip.InflaterInputStream", List.of("read")),
 			Map.entry("java.util.zip.ZipFile$ZipFileInputStream", List.of("read")));
 
 	/**
 	 * Creates a method matcher for the given type description and pointcut map.
-	 *
 	 * <p>
 	 * This matcher will select methods whose names appear in the pointcut list for
 	 * any class matching the hierarchy. The steps are:
@@ -260,9 +262,10 @@ public class JavaInstrumentationPointcutDefinitions {
 	 * </ol>
 	 *
 	 * @param typeDescription The Byte-Buddy description of the class whose methods
-	 *            are under consideration.
-	 * @param methodsMap A map from fully qualified class names to lists of method
-	 *            names that should be instrumented (excluding constructors).
+	 *                        are under consideration.
+	 * @param methodsMap      A map from fully qualified class names to lists of
+	 *                        method names that should be instrumented (excluding
+	 *                        constructors).
 	 * @return A {@code ElementMatcher<MethodDescription>} that matches any method
 	 *         declared by or overriding one of the listed pointcut names in the
 	 *         matching classes.
@@ -270,7 +273,8 @@ public class JavaInstrumentationPointcutDefinitions {
 	 * @see net.bytebuddy.matcher.ElementMatchers#isDeclaredBy(ElementMatcher)
 	 * @see net.bytebuddy.matcher.ElementMatchers#isOverriddenFrom(ElementMatcher)
 	 */
-	static ElementMatcher<MethodDescription> getMethodsMatcher(TypeDescription typeDescription, Map<String, List<String>> methodsMap) {
+	static ElementMatcher<MethodDescription> getMethodsMatcher(TypeDescription typeDescription,
+			Map<String, List<String>> methodsMap) {
 		// Start with an empty hierarchy matcher
 		ElementMatcher.Junction<TypeDescription> hierarchyMatcher = ElementMatchers.none();
 		// Initialize a set to collect merthod-pointcut names
@@ -285,7 +289,8 @@ public class JavaInstrumentationPointcutDefinitions {
 			// Matcher for the case when the class is the key
 			ElementMatcher.Junction<TypeDescription> keyClassMatcher = ElementMatchers.named(key);
 			// Matcher for the case when a subclass is the key
-			ElementMatcher.Junction<TypeDescription> keySuperClassMatcher = ElementMatchers.hasSuperType(keyClassMatcher);
+			ElementMatcher.Junction<TypeDescription> keySuperClassMatcher = ElementMatchers
+					.hasSuperType(keyClassMatcher);
 			// Combine both matchers
 			ElementMatcher.Junction<TypeDescription> keyMatcher = keyClassMatcher.or(keySuperClassMatcher);
 			// Check if typeDescription matches the key matcher
@@ -306,7 +311,8 @@ public class JavaInstrumentationPointcutDefinitions {
 				String key = entry.getKey();
 				List<String> values = entry.getValue();
 				ElementMatcher.Junction<TypeDescription> keyClassMatcher = ElementMatchers.named(key);
-				ElementMatcher.Junction<TypeDescription> keySuperClassMatcher = ElementMatchers.hasSuperType(keyClassMatcher);
+				ElementMatcher.Junction<TypeDescription> keySuperClassMatcher = ElementMatchers
+						.hasSuperType(keyClassMatcher);
 				ElementMatcher.Junction<TypeDescription> keyMatcher = keyClassMatcher.or(keySuperClassMatcher);
 				if (keyMatcher.matches(typeDescription)) {
 					for (String name : values) {
@@ -324,8 +330,10 @@ public class JavaInstrumentationPointcutDefinitions {
 		} else {
 			String[] namesArray = pointcutNames.toArray(new String[0]);
 			ElementMatcher.Junction<NamedElement> nameMatcher = ElementMatchers.namedOneOf(namesArray);
-			ElementMatcher.Junction<MethodDescription> declaredMatcher = nameMatcher.and(ElementMatchers.isDeclaredBy(hierarchyMatcher));
-			ElementMatcher.Junction<MethodDescription> overrideMatcher = nameMatcher.and(ElementMatchers.isOverriddenFrom(hierarchyMatcher));
+			ElementMatcher.Junction<MethodDescription> declaredMatcher = nameMatcher
+					.and(ElementMatchers.isDeclaredBy(hierarchyMatcher));
+			ElementMatcher.Junction<MethodDescription> overrideMatcher = nameMatcher
+					.and(ElementMatchers.isOverriddenFrom(hierarchyMatcher));
 			return declaredMatcher.or(overrideMatcher);
 		}
 	}
@@ -340,42 +348,58 @@ public class JavaInstrumentationPointcutDefinitions {
 	 */
 	public static final Map<String, List<String>> methodsWhichCanReadFiles = Map.ofEntries(
 			// java.io
-			Map.entry("java.io.Reader", List.of("read")), Map.entry("java.io.InputStream", List.of("read")), Map.entry("java.io.BufferedInputStream", List.of("<init>", "read")),
-			Map.entry("java.io.FileInputStream", List.of("<init>")), Map.entry("java.io.FileReader", List.of("<init>")), Map.entry("java.io.RandomAccessFile", List.of("<init>", "read")),
+			Map.entry("java.io.Reader", List.of("read")), Map.entry("java.io.InputStream", List.of("read")),
+			Map.entry("java.io.BufferedInputStream", List.of("<init>", "read")),
+			Map.entry("java.io.FileInputStream", List.of("<init>")), Map.entry("java.io.FileReader", List.of("<init>")),
+			Map.entry("java.io.RandomAccessFile", List.of("<init>", "read")),
 			Map.entry("java.io.BufferedReader", List.of("<init>", "read")),
 			Map.entry("java.io.DataInput",
-					List.of("read", "readBoolean", "readByte", "readChar", "readDouble", "readFloat", "readFully", "readInt", "readLine", "readLong", "readShort", "readUnsignedByte",
-							"readUnsignedShort", "readUTF")),
-			Map.entry("java.io.DataInputStream", List.of("<init>", "read", "readFully", "readUTF")), Map.entry("java.io.ObjectInput", List.of("read", "readObject")),
-			Map.entry("java.io.ObjectInputStream", List.of("<init>", "read", "readObject")), Map.entry("java.io.InputStreamReader", List.of("read")),
-			Map.entry("java.io.File", List.of("normalizedList", "list", "listFiles", "listRoots", "lastModified", "length", "getFreeSpace", "getTotalSpace", "getUsableSpace")),
+					List.of("read", "readBoolean", "readByte", "readChar", "readDouble", "readFloat", "readFully",
+							"readInt", "readLine", "readLong", "readShort", "readUnsignedByte", "readUnsignedShort",
+							"readUTF")),
+			Map.entry("java.io.DataInputStream", List.of("<init>", "read", "readFully", "readUTF")),
+			Map.entry("java.io.ObjectInput", List.of("read", "readObject")),
+			Map.entry("java.io.ObjectInputStream", List.of("<init>", "read", "readObject")),
+			Map.entry("java.io.InputStreamReader", List.of("read")),
+			Map.entry("java.io.File",
+					List.of("normalizedList", "list", "listFiles", "listRoots", "lastModified", "length",
+							"getFreeSpace", "getTotalSpace", "getUsableSpace")),
 			// java.nio
 			Map.entry("java.nio.file.Files",
-					List.of("find", "lines", "list", "newBufferedReader", "newByteChannel", "newDirectoryStream", "newInputStream", "readAllBytes", "readAllLines", "readString", "walk",
-							"walkFileTree", "isSameFile", "size", "getLastModifiedTime", "getOwner", "getPosixFilePermissions", "getAttribute", "getFileStore", "probeContentType",
-							"readSymbolicLink")),
-			Map.entry("java.nio.channels.FileChannel", List.of("map", "open", "read", "transferFrom")), Map.entry("java.nio.channels.AsynchronousFileChannel", List.of("open", "read")),
-			Map.entry("java.nio.channels.SeekableByteChannel", List.of("read")), Map.entry("java.nio.file.FileSystem", List.of("newWatchService")),
+					List.of("find", "lines", "list", "newBufferedReader", "newByteChannel", "newDirectoryStream",
+							"newInputStream", "readAllBytes", "readAllLines", "readString", "walk", "walkFileTree",
+							"isSameFile", "size", "getLastModifiedTime", "getOwner", "getPosixFilePermissions",
+							"getAttribute", "getFileStore", "probeContentType", "readSymbolicLink")),
+			Map.entry("java.nio.channels.FileChannel", List.of("map", "open", "read", "transferFrom")),
+			Map.entry("java.nio.channels.AsynchronousFileChannel", List.of("open", "read")),
+			Map.entry("java.nio.channels.SeekableByteChannel", List.of("read")),
+			Map.entry("java.nio.file.FileSystem", List.of("newWatchService")),
 			Map.entry("java.nio.file.spi.FileSystemProvider",
-					List.of("newAsynchronousFileChannel", "newByteChannel", "newDirectoryStream", "newFileChannel", "newInputStream", "newWatchService", "getFileStore", "isSameFile",
-							"readSymbolicLink")),
+					List.of("newAsynchronousFileChannel", "newByteChannel", "newDirectoryStream", "newFileChannel",
+							"newInputStream", "newWatchService", "getFileStore", "isSameFile", "readSymbolicLink")),
 			// java.net
 			Map.entry("java.net.JarURLConnection", List.of("getInputStream")),
 			// java.lang
 			Map.entry("java.lang.ClassLoader", List.of("getResourceAsStream")),
 			// java.awt
-			Map.entry("java.awt.Toolkit", List.of("createImage", "getImage")), Map.entry("java.awt.image.PixelGrabber", List.of("grabPixels")),
+			Map.entry("java.awt.Toolkit", List.of("createImage", "getImage")),
+			Map.entry("java.awt.image.PixelGrabber", List.of("grabPixels")),
 			// javax.imageio
 			Map.entry("javax.imageio.ImageIO", List.of("createImageInputStream", "getImageReaders", "read")),
 			// javax.xml
-			Map.entry("javax.xml.parsers.DocumentBuilder", List.of("parse")), Map.entry("javax.xml.parsers.SAXParser", List.of("parse")),
+			Map.entry("javax.xml.parsers.DocumentBuilder", List.of("parse")),
+			Map.entry("javax.xml.parsers.SAXParser", List.of("parse")),
 			Map.entry("javax.xml.bind.Unmarshaller", List.of("unmarshal")),
 			// javax.sound
-			Map.entry("javax.sound.sampled.AudioSystem", List.of("getAudioInputStream")), Map.entry("javax.sound.midi.MidiSystem", List.of("getSoundbank")),
+			Map.entry("javax.sound.sampled.AudioSystem", List.of("getAudioInputStream")),
+			Map.entry("javax.sound.midi.MidiSystem", List.of("getSoundbank")),
 			// java.util
-			Map.entry("java.util.Scanner", List.of("<init>")), Map.entry("java.util.zip.ZipFile", List.of("<init>", "entries", "getInputStream")),
-			Map.entry("java.util.zip.ZipInputStream", List.of("<init>", "getNextEntry", "read")), Map.entry("java.util.zip.GZIPInputStream", List.of("<init>", "read")),
-			Map.entry("java.util.jar.JarFile", List.of("<init>", "entries", "getInputStream")), Map.entry("java.util.jar.JarInputStream", List.of("<init>", "getNextJarEntry")),
+			Map.entry("java.util.Scanner", List.of("<init>")),
+			Map.entry("java.util.zip.ZipFile", List.of("<init>", "entries", "getInputStream")),
+			Map.entry("java.util.zip.ZipInputStream", List.of("<init>", "getNextEntry", "read")),
+			Map.entry("java.util.zip.GZIPInputStream", List.of("<init>", "read")),
+			Map.entry("java.util.jar.JarFile", List.of("<init>", "entries", "getInputStream")),
+			Map.entry("java.util.jar.JarInputStream", List.of("<init>", "getNextJarEntry")),
 			Map.entry("java.util.Properties", List.of("load", "loadFromXML")));
 	// </editor-fold>
 
@@ -389,20 +413,31 @@ public class JavaInstrumentationPointcutDefinitions {
 			// java.io
 			// Issues with System.out and System.err, as they call Writer.write internally.
 			// Map.entry("java.io.Writer", List.of("append", "flush", "write")),
-			Map.entry("java.io.OutputStream", List.of("write")), Map.entry("java.io.Writer", List.of("<init>", "append", "write")), Map.entry("java.io.OutputStreamWriter", List.of("<init>")),
-			Map.entry("java.io.BufferedOutputStream", List.of("<init>", "write")), Map.entry("java.io.FileOutputStream", List.of("<init>", "write")),
-			Map.entry("java.io.FileWriter", List.of("<init>", "append", "write")), Map.entry("java.io.BufferedWriter", List.of("<init>", "append", "write")),
+			Map.entry("java.io.OutputStream", List.of("write")),
+			Map.entry("java.io.Writer", List.of("<init>", "append", "write")),
+			Map.entry("java.io.OutputStreamWriter", List.of("<init>")),
+			Map.entry("java.io.BufferedOutputStream", List.of("<init>", "write")),
+			Map.entry("java.io.FileOutputStream", List.of("<init>", "write")),
+			Map.entry("java.io.FileWriter", List.of("<init>", "append", "write")),
+			Map.entry("java.io.BufferedWriter", List.of("<init>", "append", "write")),
 			Map.entry("java.io.PrintWriter", List.of("<init>")), Map.entry("java.io.PrintStream", List.of("<init>")),
 			Map.entry("java.io.DataOutputStream",
-					List.of("<init>", "write", "writeBoolean", "writeByte", "writeBytes", "writeChar", "writeChars", "writeDouble", "writeFloat", "writeInt", "writeLong", "writeShort", "writeUTF")),
-			Map.entry("java.io.ObjectOutputStream", List.of("<init>", "writeObject")), Map.entry("java.util.logging.FileHandler", List.of("<init>", "publish")),
-			Map.entry("java.util.zip.GZIPOutputStream", List.of("<init>", "write")), Map.entry("java.util.zip.InflaterOutputStream", List.of("<init>")),
+					List.of("<init>", "write", "writeBoolean", "writeByte", "writeBytes", "writeChar", "writeChars",
+							"writeDouble", "writeFloat", "writeInt", "writeLong", "writeShort", "writeUTF")),
+			Map.entry("java.io.ObjectOutputStream", List.of("<init>", "writeObject")),
+			Map.entry("java.util.logging.FileHandler", List.of("<init>", "publish")),
+			Map.entry("java.util.zip.GZIPOutputStream", List.of("<init>", "write")),
+			Map.entry("java.util.zip.InflaterOutputStream", List.of("<init>")),
 			Map.entry("java.util.zip.ZipOutputStream", List.of("<init>", "putNextEntry", "closeEntry", "write")),
-			Map.entry("java.util.jar.JarOutputStream", List.of("<init>", "putNextEntry", "closeEntry")), Map.entry("java.util.Properties", List.of("store", "storeToXML")),
+			Map.entry("java.util.jar.JarOutputStream", List.of("<init>", "putNextEntry", "closeEntry")),
+			Map.entry("java.util.Properties", List.of("store", "storeToXML")),
 			Map.entry("java.util.Formatter", List.of("<init>")),
 			Map.entry("java.io.RandomAccessFile",
-					List.of("<init>", "write", "writeBoolean", "writeByte", "writeBytes", "writeChar", "writeChars", "writeDouble", "writeFloat", "writeInt", "writeLong", "writeShort", "writeUTF")),
-			Map.entry("java.io.File", List.of("setExecutable", "setLastModified", "setReadable", "setReadOnly", "setWritable", "renameTo")),
+					List.of("<init>", "write", "writeBoolean", "writeByte", "writeBytes", "writeChar", "writeChars",
+							"writeDouble", "writeFloat", "writeInt", "writeLong", "writeShort", "writeUTF")),
+			Map.entry("java.io.File",
+					List.of("setExecutable", "setLastModified", "setReadable", "setReadOnly", "setWritable",
+							"renameTo")),
 			// java.nio
 			// Note: newByteChannel is intentionally NOT included here - it's in
 			// methodsWhichCanReadFiles.
@@ -411,7 +446,8 @@ public class JavaInstrumentationPointcutDefinitions {
 			// newByteChannel()
 			// with default READ-only options.
 			Map.entry("java.nio.file.Files",
-					List.of("copy", "move", "newBufferedWriter", "newOutputStream", "setAttribute", "setLastModifiedTime", "setOwner", "setPosixFilePermissions", "write", "writeString")),
+					List.of("copy", "move", "newBufferedWriter", "newOutputStream", "setAttribute",
+							"setLastModifiedTime", "setOwner", "setPosixFilePermissions", "write", "writeString")),
 			Map.entry("java.nio.file.attribute.UserDefinedFileAttributeView", List.of("write")),
 			// Note: "open" is intentionally NOT included here - it's in
 			// methodsWhichCanReadFiles.
@@ -419,11 +455,13 @@ public class JavaInstrumentationPointcutDefinitions {
 			// Note: "map" is intentionally NOT included here - it's in
 			// methodsWhichCanReadFiles.
 			// The actual operation is determined by MapMode via deriveActionChecks().
-			Map.entry("java.nio.channels.FileChannel", List.of("truncate", "write", "transferTo")), Map.entry("java.nio.channels.AsynchronousFileChannel", List.of("truncate", "write")),
+			Map.entry("java.nio.channels.FileChannel", List.of("truncate", "write", "transferTo")),
+			Map.entry("java.nio.channels.AsynchronousFileChannel", List.of("truncate", "write")),
 			// Note: newByteChannel is intentionally NOT included here - it's in
 			// methodsWhichCanReadFiles.
 			// The actual operation is determined by OpenOptions via deriveActionChecks().
-			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("copy", "move", "newAsynchronousFileChannel", "newOutputStream", "setAttribute")),
+			Map.entry("java.nio.file.spi.FileSystemProvider",
+					List.of("copy", "move", "newAsynchronousFileChannel", "newOutputStream", "setAttribute")),
 			// javax.print
 			Map.entry("javax.print.DocPrintJob", List.of("print")),
 			// javax.imageio
@@ -431,7 +469,8 @@ public class JavaInstrumentationPointcutDefinitions {
 			// javax.sound
 			Map.entry("javax.sound.sampled.AudioSystem", List.of("write")),
 			// javax.xml
-			Map.entry("javax.xml.transform.Transformer", List.of("transform")), Map.entry("javax.xml.bind.Marshaller", List.of("marshal")));
+			Map.entry("javax.xml.transform.Transformer", List.of("transform")),
+			Map.entry("javax.xml.bind.Marshaller", List.of("marshal")));
 	// </editor-fold>
 
 	// <editor-fold desc="Execute Path">
@@ -444,7 +483,8 @@ public class JavaInstrumentationPointcutDefinitions {
 	 */
 	public static final Map<String, List<String>> methodsWhichCanExecuteFiles = Map.ofEntries(
 			// java.lang - only load/loadLibrary, not exec (handled by Command System)
-			Map.entry("java.lang.Runtime", List.of("load", "loadLibrary")), Map.entry("java.lang.System", List.of("load", "loadLibrary")),
+			Map.entry("java.lang.Runtime", List.of("load", "loadLibrary")),
+			Map.entry("java.lang.System", List.of("load", "loadLibrary")),
 			// Note: ProcessBuilder is handled entirely by Command System
 			// java.awt
 			Map.entry("java.awt.Desktop", List.of("open", "edit", "print", "browse", "browseFileDirectory")));
@@ -462,7 +502,8 @@ public class JavaInstrumentationPointcutDefinitions {
 			// java.io
 			Map.entry("java.io.File", List.of("delete", "deleteOnExit")),
 			// java.nio
-			Map.entry("java.nio.file.Files", List.of("delete", "deleteIfExists", "move", "copy")), Map.entry("java.nio.file.spi.FileSystemProvider", List.of("delete", "deleteIfExists")));
+			Map.entry("java.nio.file.Files", List.of("delete", "deleteIfExists", "move", "copy")),
+			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("delete", "deleteIfExists")));
 	// </editor-fold>
 
 	// <editor-fold desc="Create Path">
@@ -473,9 +514,13 @@ public class JavaInstrumentationPointcutDefinitions {
 	 * the deriveActionChecks method will detect these options and properly classify
 	 * as "create".
 	 */
-	public static final Map<String, List<String>> methodsWhichCanCreateFiles = Map.ofEntries(Map.entry("java.io.File", List.of("createNewFile", "createTempFile", "mkdir", "mkdirs")),
-			Map.entry("java.io.BufferedOutputStream", List.of("<init>")), Map.entry("java.io.BufferedWriter", List.of("<init>")), Map.entry("java.io.FileOutputStream", List.of("<init>")),
-			Map.entry("java.io.FileWriter", List.of("<init>")), Map.entry("java.io.PrintWriter", List.of("<init>")), Map.entry("java.io.RandomAccessFile", List.of("<init>")),
+	public static final Map<String, List<String>> methodsWhichCanCreateFiles = Map.ofEntries(
+			Map.entry("java.io.File", List.of("createNewFile", "createTempFile", "mkdir", "mkdirs")),
+			Map.entry("java.io.BufferedOutputStream", List.of("<init>")),
+			Map.entry("java.io.BufferedWriter", List.of("<init>")),
+			Map.entry("java.io.FileOutputStream", List.of("<init>")),
+			Map.entry("java.io.FileWriter", List.of("<init>")), Map.entry("java.io.PrintWriter", List.of("<init>")),
+			Map.entry("java.io.RandomAccessFile", List.of("<init>")),
 			// Note: FileChannel.open, AsynchronousFileChannel.open, and
 			// Files.newByteChannel are
 			// intentionally NOT included here. These methods are in
@@ -486,8 +531,10 @@ public class JavaInstrumentationPointcutDefinitions {
 			// with
 			// default READ-only options.
 			Map.entry("java.nio.file.Files",
-					List.of("createDirectories", "createDirectory", "createFile", "createLink", "createTempDirectory", "createTempFile", "createSymbolicLink", "newBufferedWriter", "newOutputStream")),
-			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("createDirectory", "createLink", "createSymbolicLink")));
+					List.of("createDirectories", "createDirectory", "createFile", "createLink", "createTempDirectory",
+							"createTempFile", "createSymbolicLink", "newBufferedWriter", "newOutputStream")),
+			Map.entry("java.nio.file.spi.FileSystemProvider",
+					List.of("createDirectory", "createLink", "createSymbolicLink")));
 	// </editor-fold>
 
 	// <editor-fold desc="Create Thread">
@@ -498,18 +545,30 @@ public class JavaInstrumentationPointcutDefinitions {
 	 */
 	public static final Map<String, List<String>> methodsWhichCanCreateThreads = Map.ofEntries(
 			// java.lang
-			Map.entry("java.lang.Thread", List.of("start", "startVirtualThread")), Map.entry("java.lang.Thread.Builder", List.of("run", "start")),
-			Map.entry("java.lang.Thread.Builder.OfPlatform", List.of("start")), Map.entry("java.lang.ThreadGroup", List.of("newThread")),
+			Map.entry("java.lang.Thread", List.of("start", "startVirtualThread")),
+			Map.entry("java.lang.Thread.Builder", List.of("run", "start")),
+			Map.entry("java.lang.Thread.Builder.OfPlatform", List.of("start")),
+			Map.entry("java.lang.ThreadGroup", List.of("newThread")),
 			// java.util
-			Map.entry("java.util.Collection", List.of("parallelStream")), Map.entry("java.util.stream.Stream", List.of("parallel")), Map.entry("java.util.stream.BaseStream", List.of("parallel")),
-			Map.entry("java.util.concurrent.Executor", List.of("execute")), Map.entry("java.util.concurrent.ExecutorService", List.of("submit", "invokeAll", "invokeAny", "execute")),
-			Map.entry("java.util.concurrent.AbstractExecutorService", List.of("submit", "invokeAll", "invokeAny")), Map.entry("java.util.concurrent.ThreadPoolExecutor", List.of("submit", "execute")),
-			Map.entry("java.util.concurrent.ScheduledExecutorService", List.of("schedule", "scheduleAtFixedRate", "scheduleWithFixedDelay")),
-			Map.entry("java.util.concurrent.ScheduledThreadPoolExecutor", List.of("schedule", "scheduleAtFixedRate", "scheduleWithFixedDelay")),
-			Map.entry("java.util.concurrent.CompletableFuture", List.of("runAsync", "supplyAsync", "thenApplyAsync", "thenCombineAsync", "thenCombine")),
-			Map.entry("java.util.concurrent.ForkJoinPool", List.of("submit", "execute")), Map.entry("java.util.concurrent.ThreadFactory", List.of("newThread")),
-			Map.entry("java.util.concurrent.Executors$DelegatedExecutorService", List.of("submit", "invokeAll", "invokeAny")),
-			Map.entry("java.util.concurrent.Executors$DefaultThreadFactory", List.of("newThread")), Map.entry("java.util.concurrent.ExecutorCompletionService", List.of("submit")));
+			Map.entry("java.util.Collection", List.of("parallelStream")),
+			Map.entry("java.util.stream.Stream", List.of("parallel")),
+			Map.entry("java.util.stream.BaseStream", List.of("parallel")),
+			Map.entry("java.util.concurrent.Executor", List.of("execute")),
+			Map.entry("java.util.concurrent.ExecutorService", List.of("submit", "invokeAll", "invokeAny", "execute")),
+			Map.entry("java.util.concurrent.AbstractExecutorService", List.of("submit", "invokeAll", "invokeAny")),
+			Map.entry("java.util.concurrent.ThreadPoolExecutor", List.of("submit", "execute")),
+			Map.entry("java.util.concurrent.ScheduledExecutorService",
+					List.of("schedule", "scheduleAtFixedRate", "scheduleWithFixedDelay")),
+			Map.entry("java.util.concurrent.ScheduledThreadPoolExecutor",
+					List.of("schedule", "scheduleAtFixedRate", "scheduleWithFixedDelay")),
+			Map.entry("java.util.concurrent.CompletableFuture",
+					List.of("runAsync", "supplyAsync", "thenApplyAsync", "thenCombineAsync", "thenCombine")),
+			Map.entry("java.util.concurrent.ForkJoinPool", List.of("submit", "execute")),
+			Map.entry("java.util.concurrent.ThreadFactory", List.of("newThread")),
+			Map.entry("java.util.concurrent.Executors$DelegatedExecutorService",
+					List.of("submit", "invokeAll", "invokeAny")),
+			Map.entry("java.util.concurrent.Executors$DefaultThreadFactory", List.of("newThread")),
+			Map.entry("java.util.concurrent.ExecutorCompletionService", List.of("submit")));
 	// </editor-fold>
 
 	// <editor-fold desc="Execute command">
@@ -520,7 +579,7 @@ public class JavaInstrumentationPointcutDefinitions {
 	 */
 	public static final Map<String, List<String>> methodsWhichCanExecuteCommands = Map.ofEntries(
 			// java.lang
-			Map.entry("java.lang.Runtime", List.of("exec")), Map.entry("java.lang.ProcessBuilder", List.of("start", "<init>")));
+			Map.entry("java.lang.Runtime", List.of("exec")),
+			Map.entry("java.lang.ProcessBuilder", List.of("start", "<init>")));
 	// </editor-fold>
-
 }

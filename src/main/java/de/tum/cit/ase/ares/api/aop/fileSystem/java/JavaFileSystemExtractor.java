@@ -24,7 +24,8 @@ public class JavaFileSystemExtractor implements FileSystemExtractor {
 	 * supplier.
 	 *
 	 * @param resourceAccessSupplier the supplier for the resource accesses
-	 *            permitted as defined in the security policy, must not be null.
+	 *                               permitted as defined in the security policy,
+	 *                               must not be null.
 	 */
 	public JavaFileSystemExtractor(@Nonnull Supplier<List<?>> resourceAccessSupplier) {
 		this.resourceAccessSupplier = resourceAccessSupplier;
@@ -36,13 +37,14 @@ public class JavaFileSystemExtractor implements FileSystemExtractor {
 	 * Extracts the permitted file paths from the provided configurations based on
 	 * the given predicate.
 	 *
-	 * @param configs the list of JavaTestCase configurations, must not be null.
+	 * @param configs   the list of JavaTestCase configurations, must not be null.
 	 * @param predicate a filter for determining which paths are permitted, must not
-	 *            be null.
+	 *                  be null.
 	 * @return a list of permitted paths.
 	 */
 	@Nonnull
-	public static List<String> extractPaths(@Nonnull List<FilePermission> configs, @Nonnull Predicate<FilePermission> predicate) {
+	public static List<String> extractPaths(@Nonnull List<FilePermission> configs,
+			@Nonnull Predicate<FilePermission> predicate) {
 		return configs.stream().filter(predicate).map(FilePermission::onThisPathAndAllPathsBelow).toList();
 	}
 
@@ -51,24 +53,26 @@ public class JavaFileSystemExtractor implements FileSystemExtractor {
 	 * type.
 	 *
 	 * @param filePermission the type of file permission to filter by (e.g., "read",
-	 *            "overwrite", "create"), must not be null.
+	 *                       "overwrite", "create"), must not be null.
 	 * @return a list of permitted file paths for the specified file permission
 	 *         type.
 	 * @throws SecurityException if the filePermission is not a valid permission
-	 *             type
+	 *                           type
 	 */
 	@Nonnull
 	public List<String> getPermittedFilePaths(@Nonnull String filePermission) {
 		@Nonnull
 		Predicate<FilePermission> filter = switch (filePermission) {
-			case "read" -> FilePermission::readAllFiles;
-			case "overwrite" -> FilePermission::overwriteAllFiles;
-			case "create" -> FilePermission::createAllFiles;
-			case "execute" -> FilePermission::executeAllFiles;
-			case "delete" -> FilePermission::deleteAllFiles;
-			default -> throw new SecurityException(Messages.localized("security.advice.settings.invalid.file.permission", filePermission));
+		case "read" -> FilePermission::readAllFiles;
+		case "overwrite" -> FilePermission::overwriteAllFiles;
+		case "create" -> FilePermission::createAllFiles;
+		case "execute" -> FilePermission::executeAllFiles;
+		case "delete" -> FilePermission::deleteAllFiles;
+		default -> throw new SecurityException(
+				Messages.localized("security.advice.settings.invalid.file.permission", filePermission));
 		};
-		return ((List<FilePermission>) resourceAccessSupplier.get()).stream().filter(filter).map(FilePermission::onThisPathAndAllPathsBelow).toList();
+		return ((List<FilePermission>) resourceAccessSupplier.get()).stream().filter(filter)
+				.map(FilePermission::onThisPathAndAllPathsBelow).toList();
 	}
 
 	// </editor-fold>

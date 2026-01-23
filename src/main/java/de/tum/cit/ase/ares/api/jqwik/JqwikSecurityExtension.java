@@ -10,11 +10,11 @@ import java.util.Optional;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 
+import net.jqwik.api.lifecycle.*;
+
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
-
-import net.jqwik.api.lifecycle.*;
 //REMOVED: Import of ArtemisSecurityManager
 
 /**
@@ -39,14 +39,21 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
 		 * the policy file and run the security test cases.
 		 */
 		if (hasAnnotation(testContext, Policy.class)) {
-			findAnnotation(testContext.testMethod(), Policy.class).ifPresent(policy -> SecurityPolicyReaderAndDirector.builder()
-					.securityPolicyFilePath(!policy.value().isBlank() ? JupiterSecurityExtension.testAndGetPolicyValue(policy) : null)
-					.projectFolderPath(!policy.withinPath().isBlank() ? JupiterSecurityExtension.testAndGetPolicyWithinPath(policy) : Path.of("")).build().createTestCases().executeTestCases());
+			findAnnotation(testContext.testMethod(), Policy.class).ifPresent(policy -> SecurityPolicyReaderAndDirector
+					.builder()
+					.securityPolicyFilePath(
+							!policy.value().isBlank() ? JupiterSecurityExtension.testAndGetPolicyValue(policy) : null)
+					.projectFolderPath(
+							!policy.withinPath().isBlank() ? JupiterSecurityExtension.testAndGetPolicyWithinPath(policy)
+									: Path.of(""))
+					.build().createTestCases().executeTestCases());
 		} else {
 			try {
-				Class<?> javaTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings");
+				Class<?> javaTestCaseSettingsClass = Class
+						.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings");
 				resetSettings(javaTestCaseSettingsClass);
-				javaTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, null);
+				javaTestCaseSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings",
+						true, null);
 				resetSettings(javaTestCaseSettingsClass);
 			} catch (ClassNotFoundException e) {
 				throw new SecurityException(

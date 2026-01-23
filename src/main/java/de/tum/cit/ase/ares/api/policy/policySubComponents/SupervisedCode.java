@@ -7,12 +7,10 @@ import javax.annotation.Nullable;
 
 /**
  * Supervised code details.
- *
  * <p>
  * Description: Contains the details about the supervised code, including its
  * programming language configuration, package information, main class, test
  * classes, and permitted resource accesses.
- *
  * <p>
  * Design Rationale: Encapsulating all aspects of supervised code in an
  * immutable record ensures clarity and consistency.
@@ -21,18 +19,29 @@ import javax.annotation.Nullable;
  * @author Markus Paulsen
  * @since 2.0.0
  * @param theFollowingProgrammingLanguageConfigurationIsUsed the programming
- *            language configuration used by the code; must not be null.
- * @param theSupervisedCodeUsesTheFollowingPackage the base package used by the
- *            code; may be null if not applicable.
- * @param theMainClassInsideThisPackageIs the main class name; may be null if
- *            not applicable.
- * @param theFollowingClassesAreTestClasses an array of test class names; must
- *            not be null.
- * @param theFollowingResourceAccessesArePermitted the permitted resource
- *            accesses; must not be null.
+ *                                                           language
+ *                                                           configuration used
+ *                                                           by the code; must
+ *                                                           not be null.
+ * @param theSupervisedCodeUsesTheFollowingPackage           the base package
+ *                                                           used by the code;
+ *                                                           may be null if not
+ *                                                           applicable.
+ * @param theMainClassInsideThisPackageIs                    the main class
+ *                                                           name; may be null
+ *                                                           if not applicable.
+ * @param theFollowingClassesAreTestClasses                  an array of test
+ *                                                           class names; must
+ *                                                           not be null.
+ * @param theFollowingResourceAccessesArePermitted           the permitted
+ *                                                           resource accesses;
+ *                                                           must not be null.
  */
-public record SupervisedCode(@Nonnull ProgrammingLanguageConfiguration theFollowingProgrammingLanguageConfigurationIsUsed, @Nullable String theSupervisedCodeUsesTheFollowingPackage,
-		@Nullable String theMainClassInsideThisPackageIs, @Nonnull String[] theFollowingClassesAreTestClasses, @Nonnull ResourceAccesses theFollowingResourceAccessesArePermitted) {
+public record SupervisedCode(
+		@Nonnull ProgrammingLanguageConfiguration theFollowingProgrammingLanguageConfigurationIsUsed,
+		@Nullable String theSupervisedCodeUsesTheFollowingPackage, @Nullable String theMainClassInsideThisPackageIs,
+		@Nonnull String[] theFollowingClassesAreTestClasses,
+		@Nonnull ResourceAccesses theFollowingResourceAccessesArePermitted) {
 
 	/**
 	 * Constructs a SupervisedCode instance with the provided details.
@@ -41,7 +50,8 @@ public record SupervisedCode(@Nonnull ProgrammingLanguageConfiguration theFollow
 	 * @author Markus Paulsen
 	 */
 	public SupervisedCode {
-		Objects.requireNonNull(theFollowingProgrammingLanguageConfigurationIsUsed, "ProgrammingLanguageConfiguration must not be null");
+		Objects.requireNonNull(theFollowingProgrammingLanguageConfigurationIsUsed,
+				"ProgrammingLanguageConfiguration must not be null");
 		Objects.requireNonNull(theFollowingClassesAreTestClasses, "Test classes array must not be null");
 		Objects.requireNonNull(theFollowingResourceAccessesArePermitted, "ResourceAccesses must not be null");
 	}
@@ -55,11 +65,14 @@ public record SupervisedCode(@Nonnull ProgrammingLanguageConfiguration theFollow
 	 * @return a new SupervisedCode instance with restrictive settings.
 	 */
 	@Nonnull
-	public static SupervisedCode createRestrictive(@Nonnull ProgrammingLanguageConfiguration theFollowingProgrammingLanguageConfigurationIsUsed) {
+	public static SupervisedCode createRestrictive(
+			@Nonnull ProgrammingLanguageConfiguration theFollowingProgrammingLanguageConfigurationIsUsed) {
 		return builder()
 				.theFollowingProgrammingLanguageConfigurationIsUsed(
-						Objects.requireNonNull(theFollowingProgrammingLanguageConfigurationIsUsed, "theFollowingProgrammingLanguageConfigurationIsUsed must not be null"))
-				.theSupervisedCodeUsesTheFollowingPackage(null).theMainClassInsideThisPackageIs(null).theFollowingClassesAreTestClasses(new String[0])
+						Objects.requireNonNull(theFollowingProgrammingLanguageConfigurationIsUsed,
+								"theFollowingProgrammingLanguageConfigurationIsUsed must not be null"))
+				.theSupervisedCodeUsesTheFollowingPackage(null).theMainClassInsideThisPackageIs(null)
+				.theFollowingClassesAreTestClasses(new String[0])
 				.theFollowingResourceAccessesArePermitted(ResourceAccesses.createRestrictive()).build();
 	}
 
@@ -76,10 +89,8 @@ public record SupervisedCode(@Nonnull ProgrammingLanguageConfiguration theFollow
 
 	/**
 	 * Builder for SupervisedCode.
-	 *
 	 * <p>
 	 * Description: Provides a fluent API to construct a SupervisedCode instance.
-	 *
 	 * <p>
 	 * Design Rationale: The builder pattern allows for flexible and readable
 	 * construction of a SupervisedCode with various options.
@@ -107,7 +118,6 @@ public record SupervisedCode(@Nonnull ProgrammingLanguageConfiguration theFollow
 
 		/*
 		 * Constructs a new Builder instance.
-		 *
 		 * @since 2.0.0
 		 */
 		@Nullable
@@ -115,7 +125,6 @@ public record SupervisedCode(@Nonnull ProgrammingLanguageConfiguration theFollow
 
 		/*
 		 * Constructs a new Builder instance.
-		 *
 		 * @since 2.0.0
 		 */
 		@Nullable
@@ -123,7 +132,6 @@ public record SupervisedCode(@Nonnull ProgrammingLanguageConfiguration theFollow
 
 		/*
 		 * Constructs a new Builder instance.
-		 *
 		 * @since 2.0.0
 		 */
 		@Nullable
@@ -135,11 +143,13 @@ public record SupervisedCode(@Nonnull ProgrammingLanguageConfiguration theFollow
 		 * @since 2.0.0
 		 * @author Markus Paulsen
 		 * @param theFollowingProgrammingLanguageConfigurationIsUsed the programming
-		 *            language configuration.
+		 *                                                           language
+		 *                                                           configuration.
 		 * @return the updated Builder.
 		 */
 		@Nonnull
-		public Builder theFollowingProgrammingLanguageConfigurationIsUsed(@Nonnull ProgrammingLanguageConfiguration theFollowingProgrammingLanguageConfigurationIsUsed) {
+		public Builder theFollowingProgrammingLanguageConfigurationIsUsed(
+				@Nonnull ProgrammingLanguageConfiguration theFollowingProgrammingLanguageConfigurationIsUsed) {
 			this.theFollowingProgrammingLanguageConfigurationIsUsed = theFollowingProgrammingLanguageConfigurationIsUsed;
 			return this;
 		}
@@ -153,8 +163,11 @@ public record SupervisedCode(@Nonnull ProgrammingLanguageConfiguration theFollow
 		 * @return the updated Builder.
 		 */
 		@Nonnull
-		public Builder theSupervisedCodeUsesTheFollowingPackage(@Nullable String theSupervisedCodeUsesTheFollowingPackage) {
-			this.theSupervisedCodeUsesTheFollowingPackage = Objects.requireNonNull(theSupervisedCodeUsesTheFollowingPackage, "theSupervisedCodeUsesTheFollowingPackage must not be null");
+		public Builder theSupervisedCodeUsesTheFollowingPackage(
+				@Nullable String theSupervisedCodeUsesTheFollowingPackage) {
+			this.theSupervisedCodeUsesTheFollowingPackage = Objects.requireNonNull(
+					theSupervisedCodeUsesTheFollowingPackage,
+					"theSupervisedCodeUsesTheFollowingPackage must not be null");
 			return this;
 		}
 
@@ -168,7 +181,8 @@ public record SupervisedCode(@Nonnull ProgrammingLanguageConfiguration theFollow
 		 */
 		@Nonnull
 		public Builder theMainClassInsideThisPackageIs(@Nullable String theMainClassInsideThisPackageIs) {
-			this.theMainClassInsideThisPackageIs = Objects.requireNonNull(theMainClassInsideThisPackageIs, "theMainClassInsideThisPackageIs must not be null");
+			this.theMainClassInsideThisPackageIs = Objects.requireNonNull(theMainClassInsideThisPackageIs,
+					"theMainClassInsideThisPackageIs must not be null");
 			return this;
 		}
 
@@ -182,7 +196,8 @@ public record SupervisedCode(@Nonnull ProgrammingLanguageConfiguration theFollow
 		 */
 		@Nonnull
 		public Builder theFollowingClassesAreTestClasses(@Nonnull String[] theFollowingClassesAreTestClasses) {
-			this.theFollowingClassesAreTestClasses = Objects.requireNonNull(theFollowingClassesAreTestClasses, "theFollowingClassesAreTestClasses must not be null");
+			this.theFollowingClassesAreTestClasses = Objects.requireNonNull(theFollowingClassesAreTestClasses,
+					"theFollowingClassesAreTestClasses must not be null");
 			return this;
 		}
 
@@ -192,12 +207,15 @@ public record SupervisedCode(@Nonnull ProgrammingLanguageConfiguration theFollow
 		 * @since 2.0.0
 		 * @author Markus Paulsen
 		 * @param theFollowingResourceAccessesArePermitted the permitted resource
-		 *            accesses.
+		 *                                                 accesses.
 		 * @return the updated Builder.
 		 */
 		@Nonnull
-		public Builder theFollowingResourceAccessesArePermitted(@Nonnull ResourceAccesses theFollowingResourceAccessesArePermitted) {
-			this.theFollowingResourceAccessesArePermitted = Objects.requireNonNull(theFollowingResourceAccessesArePermitted, "theFollowingResourceAccessesArePermitted must not be null");
+		public Builder theFollowingResourceAccessesArePermitted(
+				@Nonnull ResourceAccesses theFollowingResourceAccessesArePermitted) {
+			this.theFollowingResourceAccessesArePermitted = Objects.requireNonNull(
+					theFollowingResourceAccessesArePermitted,
+					"theFollowingResourceAccessesArePermitted must not be null");
 			return this;
 		}
 
@@ -210,10 +228,14 @@ public record SupervisedCode(@Nonnull ProgrammingLanguageConfiguration theFollow
 		 */
 		@Nonnull
 		public SupervisedCode build() {
-			return new SupervisedCode(Objects.requireNonNull(theFollowingProgrammingLanguageConfigurationIsUsed, "theFollowingProgrammingLanguageConfigurationIsUsed must not be null"),
+			return new SupervisedCode(
+					Objects.requireNonNull(theFollowingProgrammingLanguageConfigurationIsUsed,
+							"theFollowingProgrammingLanguageConfigurationIsUsed must not be null"),
 					theSupervisedCodeUsesTheFollowingPackage, theMainClassInsideThisPackageIs,
-					Objects.requireNonNull(theFollowingClassesAreTestClasses, "theFollowingClassesAreTestClasses must not be null"),
-					Objects.requireNonNull(theFollowingResourceAccessesArePermitted, "theFollowingResourceAccessesArePermitted must not be null"));
+					Objects.requireNonNull(theFollowingClassesAreTestClasses,
+							"theFollowingClassesAreTestClasses must not be null"),
+					Objects.requireNonNull(theFollowingResourceAccessesArePermitted,
+							"theFollowingResourceAccessesArePermitted must not be null"));
 		}
 	}
 }

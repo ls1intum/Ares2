@@ -28,8 +28,14 @@ class LocaleTest {
 	private final String testUnknownFormatted = "testUnknownFormatted";
 	private final String testUnknownNormal = "testUnknownNormal";
 
-	private static final String ENGLISH_FILE_PATH = "src/main/resources/de/tum/cit/ase/ares/api/localization/messages.properties"; // Replace with actual path
-	private static final String GERMAN_FILE_PATH = "src/main/resources/de/tum/cit/ase/ares/api/localization/messages_de.properties"; // Replace with actual path
+	private static final String ENGLISH_FILE_PATH = "src/main/resources/de/tum/cit/ase/ares/api/localization/messages.properties"; // Replace
+																																	// with
+																																	// actual
+																																	// path
+	private static final String GERMAN_FILE_PATH = "src/main/resources/de/tum/cit/ase/ares/api/localization/messages_de.properties"; // Replace
+																																		// with
+																																		// actual
+																																		// path
 
 	@TestTest
 	void test_testLocaleEn() {
@@ -61,7 +67,8 @@ class LocaleTest {
 		Set<String> englishKeys = loadPropertiesKeys(ENGLISH_FILE_PATH);
 		Set<String> germanKeys = new HashSet<>(loadPropertiesKeys(GERMAN_FILE_PATH));
 
-		assertThat(germanKeys).containsExactlyInAnyOrderElementsOf(englishKeys).withFailMessage("Sets are not equal. Difference: %s", germanKeys.removeAll(englishKeys) ? germanKeys : englishKeys);
+		assertThat(germanKeys).containsExactlyInAnyOrderElementsOf(englishKeys).withFailMessage(
+				"Sets are not equal. Difference: %s", germanKeys.removeAll(englishKeys) ? germanKeys : englishKeys);
 	}
 
 	private Set<String> loadPropertiesKeys(String filePath) throws IOException {
@@ -71,5 +78,4 @@ class LocaleTest {
 		}
 		return properties.stringPropertyNames();
 	}
-
 }

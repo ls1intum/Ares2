@@ -77,7 +77,8 @@ class DynamicsTest {
 
 	@TestTest
 	void test_class_notFound() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(class_notFound, AssertionFailedError.class, "Klasse DoesNotExist nicht gefunden."));
+		tests.assertThatEvents().haveExactly(1,
+				testFailedWith(class_notFound, AssertionFailedError.class, "Klasse DoesNotExist nicht gefunden."));
 	}
 
 	@TestTest
@@ -94,7 +95,8 @@ class DynamicsTest {
 
 	@TestTest
 	void test_class_searchPublicOrProtectedMethods() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(class_searchPublicOrProtectedMethods, AssertionFailedError.class, "Methode doSomething(java.lang.String) darf nicht public sein."));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(class_searchPublicOrProtectedMethods,
+				AssertionFailedError.class, "Methode doSomething(java.lang.String) darf nicht public sein."));
 	}
 
 	@TestTest
@@ -164,12 +166,14 @@ class DynamicsTest {
 
 	@TestTest
 	void test_field_getWrongType() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(field_getWrongType, AssertionFailedError.class, "Attribut [SOME_CONSTANT] konnte nicht gefunden werden."));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(field_getWrongType, AssertionFailedError.class,
+				"Attribut [SOME_CONSTANT] konnte nicht gefunden werden."));
 	}
 
 	@TestTest
 	void test_field_noSuchField() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(field_noSuchField, AssertionFailedError.class, "Attribut [a] konnte nicht gefunden werden."));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(field_noSuchField, AssertionFailedError.class,
+				"Attribut [a] konnte nicht gefunden werden."));
 	}
 
 	@TestTest
@@ -230,14 +234,14 @@ class DynamicsTest {
 
 	@TestTest
 	void test_method_notFound() {
-		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(method_notFound, AssertionFailedError.class, "Keine Methode void de.tum.cit.ase.ares.integration.testuser.subject.structural.SomeClass.abc() gefunden."));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(method_notFound, AssertionFailedError.class,
+				"Keine Methode void de.tum.cit.ase.ares.integration.testuser.subject.structural.SomeClass.abc() gefunden."));
 	}
 
 	@TestTest
 	void test_method_notStatic() {
-		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(method_notStatic, AssertionFailedError.class, "Methode de.tum.cit.ase.ares.integration.testuser.subject.structural.SomeClass.throwException() ist nicht statisch."));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(method_notStatic, AssertionFailedError.class,
+				"Methode de.tum.cit.ase.ares.integration.testuser.subject.structural.SomeClass.throwException() ist nicht statisch."));
 	}
 
 	@TestTest

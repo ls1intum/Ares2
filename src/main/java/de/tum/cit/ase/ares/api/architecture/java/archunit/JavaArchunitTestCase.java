@@ -36,7 +36,8 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 
 	// <editor-fold desc="Constructors">
 
-	public JavaArchunitTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported, @Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses) {
+	public JavaArchunitTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
+			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses) {
 		super(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, null);
 	}
 
@@ -52,7 +53,9 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 		if (allowedPackages.isEmpty()) {
 			return "Set.of()";
 		}
-		String inner = allowedPackages.stream().map(pp -> String.format("new %s(\"%s\")", PackagePermission.class.getSimpleName(), pp.importTheFollowingPackage())).collect(Collectors.joining(", "));
+		String inner = allowedPackages.stream().map(pp -> String.format("new %s(\"%s\")",
+				PackagePermission.class.getSimpleName(), pp.importTheFollowingPackage()))
+				.collect(Collectors.joining(", "));
 		return "Set.of(" + inner + ")";
 	}
 
@@ -61,15 +64,19 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 	 * ClassFileImporter.importPackages(...) String.
 	 */
 	private String javaClassesAsCode() {
-		Set<String> packages = javaClasses.stream().map(JavaClass::getPackageName).collect(Collectors.toCollection(HashSet::new));
+		Set<String> packages = javaClasses.stream().map(JavaClass::getPackageName)
+				.collect(Collectors.toCollection(HashSet::new));
 
 		if (packages.isEmpty()) {
-			return "new ClassFileImporter()\n" + ".withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)\n" + ".withImportOption(location -> {\n"
-					+ "String path = location.toString().replace(\"\\\\\", \"/\");\n" + "return !path.contains(\"/ares/api/\");\n" + "})\n" + ".importPackages()";
+			return "new ClassFileImporter()\n" + ".withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)\n"
+					+ ".withImportOption(location -> {\n"
+					+ "String path = location.toString().replace(\"\\\\\", \"/\");\n"
+					+ "return !path.contains(\"/ares/api/\");\n" + "})\n" + ".importPackages()";
 		}
 		String packagesAsString = packages.stream().map(p -> "\"" + p + "\"").collect(Collectors.joining(", "));
-		return "new ClassFileImporter()\n" + ".withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)\n" + ".withImportOption(location -> {\n"
-				+ "String path = location.toString().replace(\"\\\\\", \"/\");\n" + "return !path.contains(\"/ares/api/\");\n" + "})\n" + ".importPackages(" + packagesAsString + ")";
+		return "new ClassFileImporter()\n" + ".withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)\n"
+				+ ".withImportOption(location -> {\n" + "String path = location.toString().replace(\"\\\\\", \"/\");\n"
+				+ "return !path.contains(\"/ares/api/\");\n" + "})\n" + ".importPackages(" + packagesAsString + ")";
 	}
 
 	/**
@@ -80,9 +87,13 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 	@Nonnull
 	public String writeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
 		try {
-			String testWithPlaceholders = FileTools.readRuleFile(FileTools.readFile(FileTools.resolveFileOnSourceDirectory("templates", "architecture", "java", "archunit", "rules",
-					((JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported).name() + ".txt"))).stream().reduce("", (acc, line) -> acc + line + "\n");
-			return testWithPlaceholders.replace("${allowedPackages}", allowedPackagesAsCode()).replace("${javaClasses}", javaClassesAsCode());
+			String testWithPlaceholders = FileTools
+					.readRuleFile(FileTools.readFile(FileTools.resolveFileOnSourceDirectory("templates", "architecture",
+							"java", "archunit", "rules",
+							((JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported).name() + ".txt")))
+					.stream().reduce("", (acc, line) -> acc + line + "\n");
+			return testWithPlaceholders.replace("${allowedPackages}", allowedPackagesAsCode()).replace("${javaClasses}",
+					javaClassesAsCode());
 		} catch (AssertionError | IOException e) {
 			throw new SecurityException(Messages.localized("architecture.illegal.statement", e.getMessage()));
 		}
@@ -98,16 +109,19 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 	public void executeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
 		try {
 			switch ((JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported) {
-				case FILESYSTEM_INTERACTION -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_ACCESS_FILE_SYSTEM.check(javaClasses);
-				case NETWORK_CONNECTION -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_ACCESS_NETWORK.check(javaClasses);
-				case COMMAND_EXECUTION -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_EXECUTE_COMMANDS.check(javaClasses);
-				case THREAD_CREATION -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_CREATE_THREADS.check(javaClasses);
-				case PACKAGE_IMPORT -> JavaArchunitTestCaseCollection.noClassMustImportForbiddenPackages(allowedPackages).check(javaClasses);
-				case REFLECTION -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_USE_REFLECTION.check(javaClasses);
-				case TERMINATE_JVM -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_TERMINATE_JVM.check(javaClasses);
-				case SERIALIZATION -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_SERIALIZE.check(javaClasses);
-				case CLASS_LOADING -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_USE_CLASSLOADERS.check(javaClasses);
-				default -> throw new SecurityException(Messages.localized("security.common.unsupported.operation", this.architectureTestCaseSupported));
+			case FILESYSTEM_INTERACTION -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_ACCESS_FILE_SYSTEM
+					.check(javaClasses);
+			case NETWORK_CONNECTION -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_ACCESS_NETWORK.check(javaClasses);
+			case COMMAND_EXECUTION -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_EXECUTE_COMMANDS.check(javaClasses);
+			case THREAD_CREATION -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_CREATE_THREADS.check(javaClasses);
+			case PACKAGE_IMPORT -> JavaArchunitTestCaseCollection.noClassMustImportForbiddenPackages(allowedPackages)
+					.check(javaClasses);
+			case REFLECTION -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_USE_REFLECTION.check(javaClasses);
+			case TERMINATE_JVM -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_TERMINATE_JVM.check(javaClasses);
+			case SERIALIZATION -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_SERIALIZE.check(javaClasses);
+			case CLASS_LOADING -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_USE_CLASSLOADERS.check(javaClasses);
+			default -> throw new SecurityException(
+					Messages.localized("security.common.unsupported.operation", this.architectureTestCaseSupported));
 			}
 		} catch (AssertionError e) {
 			JavaArchitectureTestCase.parseErrorMessage(e);
@@ -145,15 +159,17 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 		 * Sets the architecture test case type supported by this instance.
 		 *
 		 * @param javaArchitectureTestCaseSupported The type of architecture test case
-		 *            to support
+		 *                                          to support
 		 * @return This builder instance for method chaining
 		 * @throws SecurityException if the parameter is null
 		 * @author Sarp Sahinalp
 		 * @since 2.0.0
 		 */
 		@Nonnull
-		public JavaArchunitTestCase.Builder javaArchitectureTestCaseSupported(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported) {
-			this.javaArchitectureTestCaseSupported = Preconditions.checkNotNull(javaArchitectureTestCaseSupported, "javaArchitecturalTestCaseSupported must not be null");
+		public JavaArchunitTestCase.Builder javaArchitectureTestCaseSupported(
+				@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported) {
+			this.javaArchitectureTestCaseSupported = Preconditions.checkNotNull(javaArchitectureTestCaseSupported,
+					"javaArchitecturalTestCaseSupported must not be null");
 			return this;
 		}
 
@@ -196,8 +212,11 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 		 */
 		@Nonnull
 		public JavaArchunitTestCase build() {
-			return new JavaArchunitTestCase(Preconditions.checkNotNull(javaArchitectureTestCaseSupported, "javaArchitecturalTestCaseSupported must not be null"),
-					Preconditions.checkNotNull(allowedPackages, "allowedPackages must not be null"), Preconditions.checkNotNull(javaClasses, "javaClasses must not be null"));
+			return new JavaArchunitTestCase(
+					Preconditions.checkNotNull(javaArchitectureTestCaseSupported,
+							"javaArchitecturalTestCaseSupported must not be null"),
+					Preconditions.checkNotNull(allowedPackages, "allowedPackages must not be null"),
+					Preconditions.checkNotNull(javaClasses, "javaClasses must not be null"));
 		}
 	}
 	// </editor-fold>

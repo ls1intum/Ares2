@@ -39,7 +39,8 @@ public class EssentialPackagesTest {
 		@DisplayName("Should create EssentialPackages with valid parameters")
 		void shouldCreateEssentialPackagesWithValidParameters() {
 			// Act
-			EssentialPackages essentialPackages = new EssentialPackages(javaPackages, archUnitPackages, walaPackages, aspectJPackages, instrumentationPackages, aresPackages, junitPackages);
+			EssentialPackages essentialPackages = new EssentialPackages(javaPackages, archUnitPackages, walaPackages,
+					aspectJPackages, instrumentationPackages, aresPackages, junitPackages);
 
 			// Assert
 			assertNotNull(essentialPackages);
@@ -56,49 +57,56 @@ public class EssentialPackagesTest {
 		@DisplayName("Should throw NullPointerException when essentialJavaPackages is null")
 		void shouldThrowNullPointerExceptionWhenEssentialJavaPackagesIsNull() {
 			// Act & Assert
-			assertThrows(NullPointerException.class, () -> new EssentialPackages(null, archUnitPackages, walaPackages, aspectJPackages, instrumentationPackages, aresPackages, junitPackages));
+			assertThrows(NullPointerException.class, () -> new EssentialPackages(null, archUnitPackages, walaPackages,
+					aspectJPackages, instrumentationPackages, aresPackages, junitPackages));
 		}
 
 		@Test
 		@DisplayName("Should throw NullPointerException when essentialArchunitPackages is null")
 		void shouldThrowNullPointerExceptionWhenEssentialArchunitPackagesIsNull() {
 			// Act & Assert
-			assertThrows(NullPointerException.class, () -> new EssentialPackages(javaPackages, null, walaPackages, aspectJPackages, instrumentationPackages, aresPackages, junitPackages));
+			assertThrows(NullPointerException.class, () -> new EssentialPackages(javaPackages, null, walaPackages,
+					aspectJPackages, instrumentationPackages, aresPackages, junitPackages));
 		}
 
 		@Test
 		@DisplayName("Should throw NullPointerException when essentialWalaPackages is null")
 		void shouldThrowNullPointerExceptionWhenEssentialWalaPackagesIsNull() {
 			// Act & Assert
-			assertThrows(NullPointerException.class, () -> new EssentialPackages(javaPackages, archUnitPackages, null, aspectJPackages, instrumentationPackages, aresPackages, junitPackages));
+			assertThrows(NullPointerException.class, () -> new EssentialPackages(javaPackages, archUnitPackages, null,
+					aspectJPackages, instrumentationPackages, aresPackages, junitPackages));
 		}
 
 		@Test
 		@DisplayName("Should throw NullPointerException when essentialAspectJPackages is null")
 		void shouldThrowNullPointerExceptionWhenEssentialAspectJPackagesIsNull() {
 			// Act & Assert
-			assertThrows(NullPointerException.class, () -> new EssentialPackages(javaPackages, archUnitPackages, walaPackages, null, instrumentationPackages, aresPackages, junitPackages));
+			assertThrows(NullPointerException.class, () -> new EssentialPackages(javaPackages, archUnitPackages,
+					walaPackages, null, instrumentationPackages, aresPackages, junitPackages));
 		}
 
 		@Test
 		@DisplayName("Should throw NullPointerException when essentialInstrumentationPackages is null")
 		void shouldThrowNullPointerExceptionWhenEssentialInstrumentationPackagesIsNull() {
 			// Act & Assert
-			assertThrows(NullPointerException.class, () -> new EssentialPackages(javaPackages, archUnitPackages, walaPackages, aspectJPackages, null, aresPackages, junitPackages));
+			assertThrows(NullPointerException.class, () -> new EssentialPackages(javaPackages, archUnitPackages,
+					walaPackages, aspectJPackages, null, aresPackages, junitPackages));
 		}
 
 		@Test
 		@DisplayName("Should throw NullPointerException when essentialAresPackages is null")
 		void shouldThrowNullPointerExceptionWhenEssentialAresPackagesIsNull() {
 			// Act & Assert
-			assertThrows(NullPointerException.class, () -> new EssentialPackages(javaPackages, archUnitPackages, walaPackages, aspectJPackages, instrumentationPackages, null, junitPackages));
+			assertThrows(NullPointerException.class, () -> new EssentialPackages(javaPackages, archUnitPackages,
+					walaPackages, aspectJPackages, instrumentationPackages, null, junitPackages));
 		}
 
 		@Test
 		@DisplayName("Should throw NullPointerException when essentialJUnitPackages is null")
 		void shouldThrowNullPointerExceptionWhenEssentialJUnitPackagesIsNull() {
 			// Act & Assert
-			assertThrows(NullPointerException.class, () -> new EssentialPackages(javaPackages, archUnitPackages, walaPackages, aspectJPackages, instrumentationPackages, aresPackages, null));
+			assertThrows(NullPointerException.class, () -> new EssentialPackages(javaPackages, archUnitPackages,
+					walaPackages, aspectJPackages, instrumentationPackages, aresPackages, null));
 		}
 
 		@Test
@@ -108,7 +116,8 @@ public class EssentialPackagesTest {
 			List<String> emptyList = List.of();
 
 			// Act
-			EssentialPackages essentialPackages = new EssentialPackages(emptyList, emptyList, emptyList, emptyList, emptyList, emptyList, emptyList);
+			EssentialPackages essentialPackages = new EssentialPackages(emptyList, emptyList, emptyList, emptyList,
+					emptyList, emptyList, emptyList);
 
 			// Assert
 			assertNotNull(essentialPackages);
@@ -130,7 +139,8 @@ public class EssentialPackagesTest {
 		@DisplayName("Should return aggregated list of all essential packages")
 		void shouldReturnAggregatedListOfAllEssentialPackages() {
 			// Arrange
-			EssentialPackages essentialPackages = new EssentialPackages(javaPackages, archUnitPackages, walaPackages, aspectJPackages, instrumentationPackages, aresPackages, junitPackages);
+			EssentialPackages essentialPackages = new EssentialPackages(javaPackages, archUnitPackages, walaPackages,
+					aspectJPackages, instrumentationPackages, aresPackages, junitPackages);
 
 			// Act
 			List<String> result = essentialPackages.getEssentialPackages();
@@ -152,7 +162,8 @@ public class EssentialPackagesTest {
 		void shouldReturnEmptyListWhenAllPackageListsAreEmpty() {
 			// Arrange
 			List<String> emptyList = List.of();
-			EssentialPackages essentialPackages = new EssentialPackages(emptyList, emptyList, emptyList, emptyList, emptyList, emptyList, emptyList);
+			EssentialPackages essentialPackages = new EssentialPackages(emptyList, emptyList, emptyList, emptyList,
+					emptyList, emptyList, emptyList);
 
 			// Act
 			List<String> result = essentialPackages.getEssentialPackages();
@@ -174,7 +185,8 @@ public class EssentialPackagesTest {
 			List<String> ares = List.of("ares1");
 			List<String> junit = List.of("junit1");
 
-			EssentialPackages essentialPackages = new EssentialPackages(java, archUnit, wala, aspectJ, instrumentation, ares, junit);
+			EssentialPackages essentialPackages = new EssentialPackages(java, archUnit, wala, aspectJ, instrumentation,
+					ares, junit);
 
 			// Act
 			List<String> result = essentialPackages.getEssentialPackages();
@@ -211,9 +223,10 @@ public class EssentialPackagesTest {
 		@DisplayName("Should build EssentialPackages with all required fields")
 		void shouldBuildEssentialPackagesWithAllRequiredFields() {
 			// Act
-			EssentialPackages essentialPackages = EssentialPackages.builder().essentialJavaPackages(javaPackages).essentialArchunitPackages(archUnitPackages).essentialWalaPackages(walaPackages)
-					.essentialAspectJPackages(aspectJPackages).essentialInstrumentationPackages(instrumentationPackages).essentialAresPackages(aresPackages).essentialJUnitPackages(junitPackages)
-					.build();
+			EssentialPackages essentialPackages = EssentialPackages.builder().essentialJavaPackages(javaPackages)
+					.essentialArchunitPackages(archUnitPackages).essentialWalaPackages(walaPackages)
+					.essentialAspectJPackages(aspectJPackages).essentialInstrumentationPackages(instrumentationPackages)
+					.essentialAresPackages(aresPackages).essentialJUnitPackages(junitPackages).build();
 
 			// Assert
 			assertNotNull(essentialPackages);
@@ -230,10 +243,10 @@ public class EssentialPackagesTest {
 		@DisplayName("Should throw NullPointerException when building with null essentialJavaPackages")
 		void shouldThrowNullPointerExceptionWhenBuildingWithNullEssentialJavaPackages() {
 			// Act & Assert
-			assertThrows(NullPointerException.class,
-					() -> EssentialPackages.builder().essentialJavaPackages(null).essentialArchunitPackages(archUnitPackages).essentialWalaPackages(walaPackages)
-							.essentialAspectJPackages(aspectJPackages).essentialInstrumentationPackages(instrumentationPackages).essentialAresPackages(aresPackages)
-							.essentialJUnitPackages(junitPackages).build());
+			assertThrows(NullPointerException.class, () -> EssentialPackages.builder().essentialJavaPackages(null)
+					.essentialArchunitPackages(archUnitPackages).essentialWalaPackages(walaPackages)
+					.essentialAspectJPackages(aspectJPackages).essentialInstrumentationPackages(instrumentationPackages)
+					.essentialAresPackages(aresPackages).essentialJUnitPackages(junitPackages).build());
 		}
 
 		@Test
@@ -241,8 +254,10 @@ public class EssentialPackagesTest {
 		void shouldThrowNullPointerExceptionWhenBuildingWithMissingEssentialJavaPackages() {
 			// Act & Assert
 			assertThrows(NullPointerException.class,
-					() -> EssentialPackages.builder().essentialArchunitPackages(archUnitPackages).essentialWalaPackages(walaPackages).essentialAspectJPackages(aspectJPackages)
-							.essentialInstrumentationPackages(instrumentationPackages).essentialAresPackages(aresPackages).essentialJUnitPackages(junitPackages).build());
+					() -> EssentialPackages.builder().essentialArchunitPackages(archUnitPackages)
+							.essentialWalaPackages(walaPackages).essentialAspectJPackages(aspectJPackages)
+							.essentialInstrumentationPackages(instrumentationPackages)
+							.essentialAresPackages(aresPackages).essentialJUnitPackages(junitPackages).build());
 		}
 
 		@Test

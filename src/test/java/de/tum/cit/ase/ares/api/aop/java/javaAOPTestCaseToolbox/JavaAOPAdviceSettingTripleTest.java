@@ -15,12 +15,16 @@ public class JavaAOPAdviceSettingTripleTest {
 
 	@Test
 	public void testConstructorThrowsOnNullDataTyp() {
-		Assertions.assertThrows(NullPointerException.class, () -> new JavaAOPAdviceSettingTriple(null, "setting", "value"), "Expected NullPointerException for null dataTyp");
+		Assertions.assertThrows(NullPointerException.class,
+				() -> new JavaAOPAdviceSettingTriple(null, "setting", "value"),
+				"Expected NullPointerException for null dataTyp");
 	}
 
 	@Test
 	public void testConstructorThrowsOnNullAdviceSetting() {
-		Assertions.assertThrows(NullPointerException.class, () -> new JavaAOPAdviceSettingTriple("String", null, "value"), "Expected NullPointerException for null adviceSetting");
+		Assertions.assertThrows(NullPointerException.class,
+				() -> new JavaAOPAdviceSettingTriple("String", null, "value"),
+				"Expected NullPointerException for null adviceSetting");
 	}
 
 	@Test

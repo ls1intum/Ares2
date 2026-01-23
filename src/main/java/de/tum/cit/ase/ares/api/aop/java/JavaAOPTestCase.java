@@ -57,14 +57,17 @@ public class JavaAOPTestCase extends AOPTestCase {
 	 * Initializes the configuration with the given support type and resource
 	 * accesses.
 	 *
-	 * @param javaTestCaseSupported the type of security test case being supported,
-	 *            must not be null.
+	 * @param javaTestCaseSupported  the type of security test case being supported,
+	 *                               must not be null.
 	 * @param resourceAccessSupplier the resource accesses permitted as defined in
-	 *            the security policy, must not be null.
+	 *                               the security policy, must not be null.
 	 */
-	public JavaAOPTestCase(@Nonnull JavaAOPTestCaseSupported javaTestCaseSupported, @Nonnull Supplier<List<?>> resourceAccessSupplier, @Nonnull Set<ClassPermission> allowedClasses) {
-		super(javaTestCaseSupported, new JavaFileSystemExtractor(resourceAccessSupplier), new JavaNetworkSystemExtractor(resourceAccessSupplier),
-				new JavaCommandSystemExtractor(resourceAccessSupplier), new JavaThreadSystemExtractor(resourceAccessSupplier));
+	public JavaAOPTestCase(@Nonnull JavaAOPTestCaseSupported javaTestCaseSupported,
+			@Nonnull Supplier<List<?>> resourceAccessSupplier, @Nonnull Set<ClassPermission> allowedClasses) {
+		super(javaTestCaseSupported, new JavaFileSystemExtractor(resourceAccessSupplier),
+				new JavaNetworkSystemExtractor(resourceAccessSupplier),
+				new JavaCommandSystemExtractor(resourceAccessSupplier),
+				new JavaThreadSystemExtractor(resourceAccessSupplier));
 		this.resourceAccessSupplier = resourceAccessSupplier;
 		this.allowedClasses = allowedClasses;
 	}
@@ -93,32 +96,36 @@ public class JavaAOPTestCase extends AOPTestCase {
 	 * Supports multiple data types like String, String[], String[][], and int[].
 	 * </p>
 	 *
-	 * @param dataType the data type of the advice setting (e.g., "String",
-	 *            "String[]"), must not be null.
+	 * @param dataType      the data type of the advice setting (e.g., "String",
+	 *                      "String[]"), must not be null.
 	 * @param adviceSetting the name of the advice setting to generate, must not be
-	 *            null.
-	 * @param value the value to be assigned to the advice setting, can be null.
+	 *                      null.
+	 * @param value         the value to be assigned to the advice setting, can be
+	 *                      null.
 	 * @return a formatted string representing the advice setting definition.
 	 * @throws SecurityException if the value does not match the expected data type
-	 *             or formatting errors occur.
+	 *                           or formatting errors occur.
 	 */
 	@Nonnull
-	private static String generateAdviceSettingValue(@Nonnull String dataType, @Nonnull String adviceSetting, @Nullable Object value) {
+	private static String generateAdviceSettingValue(@Nonnull String dataType, @Nonnull String adviceSetting,
+			@Nullable Object value) {
 		try {
 			if (value == null) {
 				return String.format("private static %s %s = null;%n", dataType, adviceSetting);
 			}
 			return switch (dataType) {
-				case "String" -> JavaAOPTestCaseToolbox.getStringAssignment(adviceSetting, value);
-				case "String[]" -> JavaAOPTestCaseToolbox.getStringOneDArrayAssignment(adviceSetting, value);
-				case "String[][]" -> JavaAOPTestCaseToolbox.getStringTwoDArrayAssignment(adviceSetting, value);
-				case "int", "Integer" -> JavaAOPTestCaseToolbox.getIntegerAssignment(adviceSetting, value);
-				case "int[]", "Integer[]" -> JavaAOPTestCaseToolbox.getIntegerOneDArrayAssignment(adviceSetting, value);
-				case "int[][]", "Integer[][]" -> JavaAOPTestCaseToolbox.getIntegerTwoDArrayAssignment(adviceSetting, value);
-				default -> throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.settings.data.type.unknown", value, dataType, adviceSetting));
+			case "String" -> JavaAOPTestCaseToolbox.getStringAssignment(adviceSetting, value);
+			case "String[]" -> JavaAOPTestCaseToolbox.getStringOneDArrayAssignment(adviceSetting, value);
+			case "String[][]" -> JavaAOPTestCaseToolbox.getStringTwoDArrayAssignment(adviceSetting, value);
+			case "int", "Integer" -> JavaAOPTestCaseToolbox.getIntegerAssignment(adviceSetting, value);
+			case "int[]", "Integer[]" -> JavaAOPTestCaseToolbox.getIntegerOneDArrayAssignment(adviceSetting, value);
+			case "int[][]", "Integer[][]" -> JavaAOPTestCaseToolbox.getIntegerTwoDArrayAssignment(adviceSetting, value);
+			default -> throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.advice.settings.data.type.unknown", value, dataType, adviceSetting));
 			};
 		} catch (IllegalFormatException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.invalid.format", value, dataType, adviceSetting));
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.advice.invalid.format", value, dataType, adviceSetting));
 		}
 	}
 
@@ -131,14 +138,15 @@ public class JavaAOPTestCase extends AOPTestCase {
 	 * </p>
 	 *
 	 * @param adviceSettingTriple the advice setting triple to generate, must not be
-	 *            null.
+	 *                            null.
 	 * @return a formatted string representing the advice setting definition.
 	 * @throws SecurityException if the value does not match the expected data type
-	 *             or formatting errors occur.
+	 *                           or formatting errors occur.
 	 */
 	@Nonnull
 	private static String generateAdviceSettingValue(@Nonnull JavaAOPAdviceSettingTriple adviceSettingTriple) {
-		return generateAdviceSettingValue(adviceSettingTriple.dataTyp(), adviceSettingTriple.adviceSetting(), adviceSettingTriple.value());
+		return generateAdviceSettingValue(adviceSettingTriple.dataTyp(), adviceSettingTriple.adviceSetting(),
+				adviceSettingTriple.value());
 	}
 
 	/**
@@ -151,37 +159,46 @@ public class JavaAOPTestCase extends AOPTestCase {
 	 * </p>
 	 *
 	 * @param adviceSetting the name of the advice setting field, must not be null.
-	 * @param value the value to assign to the advice setting, can be null.
+	 * @param value         the value to assign to the advice setting, can be null.
 	 * @throws SecurityException if there is any error during field access or value
-	 *             assignment.
+	 *                           assignment.
 	 */
-	public static void setJavaAdviceSettingValue(@Nonnull String adviceSetting, @Nullable Object value, @Nonnull String architectureMode, @Nonnull String aopMode) {
+	public static void setJavaAdviceSettingValue(@Nonnull String adviceSetting, @Nullable Object value,
+			@Nonnull String architectureMode, @Nonnull String aopMode) {
 		try {
 			@Nullable
 			ClassLoader customClassLoader = Thread.currentThread().getContextClassLoader();
 			// Use the current context class loader during tests to ensure the class can be
 			// found
 			@Nonnull
-			Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, aopMode.equals("INSTRUMENTATION") ? null : customClassLoader);
+			Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings",
+					true, aopMode.equals("INSTRUMENTATION") ? null : customClassLoader);
 			@Nonnull
 			Field field = adviceSettingsClass.getDeclaredField(adviceSetting);
 			field.setAccessible(true);
 			field.set(null, value);
 			field.setAccessible(false);
 		} catch (LinkageError e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.creation.advice.linkage.exception", adviceSetting), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.creation.advice.linkage.exception", adviceSetting), e);
 		} catch (ClassNotFoundException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.creation.advice.class.not.found.exception", adviceSetting), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.creation.advice.class.not.found.exception", adviceSetting), e);
 		} catch (NoSuchFieldException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.creation.advice.no.such.field.exception", adviceSetting), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.creation.advice.no.such.field.exception", adviceSetting), e);
 		} catch (NullPointerException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.creation.advice.null.pointer.exception", adviceSetting), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.creation.advice.null.pointer.exception", adviceSetting), e);
 		} catch (IllegalAccessException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.creation.advice.illegal.access.exception", adviceSetting), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.creation.advice.illegal.access.exception", adviceSetting), e);
 		} catch (IllegalArgumentException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.creation.advice.illegal.argument.exception", adviceSetting, value), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.creation.advice.illegal.argument.exception", adviceSetting, value), e);
 		} catch (InaccessibleObjectException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.creation.advice.inaccessible.object.exception", adviceSetting), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.creation.advice.inaccessible.object.exception", adviceSetting), e);
 		}
 	}
 	// </editor-fold>
@@ -211,39 +228,62 @@ public class JavaAOPTestCase extends AOPTestCase {
 	 * Writes the aspect configuration content based on the provided security test
 	 * cases.
 	 *
-	 * @param aopMode the AOP mode (AspectJ or Instrumentation), must not be null.
-	 * @param restrictedPackage the restricted package, must not be null.
+	 * @param aopMode              the AOP mode (AspectJ or Instrumentation), must
+	 *                             not be null.
+	 * @param restrictedPackage    the restricted package, must not be null.
 	 * @param allowedListedClasses the list of allowed classes in the restricted
-	 *            package, must not be null.
-	 * @param filePermissions the list of file permissions, must not be null.
-	 * @param networkPermissions the list of network permissions, must not be null.
-	 * @param commandPermissions the list of command permissions, must not be null.
-	 * @param threadPermissions the list of thread permissions, must not be null.
+	 *                             package, must not be null.
+	 * @param filePermissions      the list of file permissions, must not be null.
+	 * @param networkPermissions   the list of network permissions, must not be
+	 *                             null.
+	 * @param commandPermissions   the list of command permissions, must not be
+	 *                             null.
+	 * @param threadPermissions    the list of thread permissions, must not be null.
 	 * @return a string representing the content of the AOP security test case
 	 *         configuration file.
 	 */
 	@Nonnull
-	public static String writeAOPTestCaseFile(@Nonnull String aopMode, @Nonnull String restrictedPackage, @Nonnull List<String> allowedListedClasses, @Nonnull List<FilePermission> filePermissions,
-			@Nonnull List<NetworkPermission> networkPermissions, @Nonnull List<CommandPermission> commandPermissions, @Nonnull List<ThreadPermission> threadPermissions) {
+	public static String writeAOPTestCaseFile(@Nonnull String aopMode, @Nonnull String restrictedPackage,
+			@Nonnull List<String> allowedListedClasses, @Nonnull List<FilePermission> filePermissions,
+			@Nonnull List<NetworkPermission> networkPermissions, @Nonnull List<CommandPermission> commandPermissions,
+			@Nonnull List<ThreadPermission> threadPermissions) {
 		@Nonnull
 		StringBuilder fileContentBuilder = new StringBuilder();
-		Stream.of(new JavaAOPAdviceSettingTriple("String", " aopMode", aopMode), new JavaAOPAdviceSettingTriple("String", " restrictedPackage", restrictedPackage),
+		Stream.of(new JavaAOPAdviceSettingTriple("String", " aopMode", aopMode),
+				new JavaAOPAdviceSettingTriple("String", " restrictedPackage", restrictedPackage),
 				new JavaAOPAdviceSettingTriple("String[]", " allowedListedClasses", allowedListedClasses),
-				new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeRead", JavaFileSystemExtractor.extractPaths(filePermissions, FilePermission::readAllFiles)),
-				new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeOverwritten", JavaFileSystemExtractor.extractPaths(filePermissions, FilePermission::overwriteAllFiles)),
-				new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeCreated", JavaFileSystemExtractor.extractPaths(filePermissions, FilePermission::createAllFiles)),
-				new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeExecuted", JavaFileSystemExtractor.extractPaths(filePermissions, FilePermission::executeAllFiles)),
-				new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeDeleted", JavaFileSystemExtractor.extractPaths(filePermissions, FilePermission::deleteAllFiles)),
-				new JavaAOPAdviceSettingTriple("String[]", " hostsAllowedToBeConnectedTo", JavaNetworkSystemExtractor.extractHosts(networkPermissions, NetworkPermission::openConnections)),
-				new JavaAOPAdviceSettingTriple("int[]", " portsAllowedToBeConnectedTo", JavaNetworkSystemExtractor.extractPorts(networkPermissions, NetworkPermission::openConnections)),
-				new JavaAOPAdviceSettingTriple("String[]", " hostsAllowedToBeSentTo", JavaNetworkSystemExtractor.extractHosts(networkPermissions, NetworkPermission::sendData)),
-				new JavaAOPAdviceSettingTriple("int[]", " portsAllowedToBeSentTo", JavaNetworkSystemExtractor.extractPorts(networkPermissions, NetworkPermission::sendData)),
-				new JavaAOPAdviceSettingTriple("String[]", " hostsAllowedToBeReceivedFrom", JavaNetworkSystemExtractor.extractHosts(networkPermissions, NetworkPermission::receiveData)),
-				new JavaAOPAdviceSettingTriple("int[]", " portsAllowedToBeReceivedFrom", JavaNetworkSystemExtractor.extractPorts(networkPermissions, NetworkPermission::receiveData)),
-				new JavaAOPAdviceSettingTriple("String[]", " commandsAllowedToBeExecuted", JavaCommandSystemExtractor.extractCommands(commandPermissions)),
-				new JavaAOPAdviceSettingTriple("String[][]", " argumentsAllowedToBePassed", JavaCommandSystemExtractor.extractArguments(commandPermissions)),
-				new JavaAOPAdviceSettingTriple("int[]", " threadNumberAllowedToBeCreated", JavaThreadSystemExtractor.extractThreadNumbers(threadPermissions)),
-				new JavaAOPAdviceSettingTriple("String[]", " threadClassAllowedToBeCreated", JavaThreadSystemExtractor.extractThreadClasses(threadPermissions)))
+				new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeRead",
+						JavaFileSystemExtractor.extractPaths(filePermissions, FilePermission::readAllFiles)),
+				new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeOverwritten",
+						JavaFileSystemExtractor.extractPaths(filePermissions, FilePermission::overwriteAllFiles)),
+				new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeCreated",
+						JavaFileSystemExtractor.extractPaths(filePermissions, FilePermission::createAllFiles)),
+				new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeExecuted",
+						JavaFileSystemExtractor.extractPaths(filePermissions, FilePermission::executeAllFiles)),
+				new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeDeleted",
+						JavaFileSystemExtractor.extractPaths(filePermissions, FilePermission::deleteAllFiles)),
+				new JavaAOPAdviceSettingTriple("String[]", " hostsAllowedToBeConnectedTo",
+						JavaNetworkSystemExtractor.extractHosts(networkPermissions,
+								NetworkPermission::openConnections)),
+				new JavaAOPAdviceSettingTriple("int[]", " portsAllowedToBeConnectedTo",
+						JavaNetworkSystemExtractor.extractPorts(networkPermissions,
+								NetworkPermission::openConnections)),
+				new JavaAOPAdviceSettingTriple("String[]", " hostsAllowedToBeSentTo",
+						JavaNetworkSystemExtractor.extractHosts(networkPermissions, NetworkPermission::sendData)),
+				new JavaAOPAdviceSettingTriple("int[]", " portsAllowedToBeSentTo",
+						JavaNetworkSystemExtractor.extractPorts(networkPermissions, NetworkPermission::sendData)),
+				new JavaAOPAdviceSettingTriple("String[]", " hostsAllowedToBeReceivedFrom",
+						JavaNetworkSystemExtractor.extractHosts(networkPermissions, NetworkPermission::receiveData)),
+				new JavaAOPAdviceSettingTriple("int[]", " portsAllowedToBeReceivedFrom",
+						JavaNetworkSystemExtractor.extractPorts(networkPermissions, NetworkPermission::receiveData)),
+				new JavaAOPAdviceSettingTriple("String[]", " commandsAllowedToBeExecuted",
+						JavaCommandSystemExtractor.extractCommands(commandPermissions)),
+				new JavaAOPAdviceSettingTriple("String[][]", " argumentsAllowedToBePassed",
+						JavaCommandSystemExtractor.extractArguments(commandPermissions)),
+				new JavaAOPAdviceSettingTriple("int[]", " threadNumberAllowedToBeCreated",
+						JavaThreadSystemExtractor.extractThreadNumbers(threadPermissions)),
+				new JavaAOPAdviceSettingTriple("String[]", " threadClassAllowedToBeCreated",
+						JavaThreadSystemExtractor.extractThreadClasses(threadPermissions)))
 				.map(JavaAOPTestCase::generateAdviceSettingValue).forEach(fileContentBuilder::append);
 		return fileContentBuilder.toString();
 	}
@@ -257,26 +297,44 @@ public class JavaAOPTestCase extends AOPTestCase {
 	@Override
 	public void executeAOPTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
 		switch ((JavaAOPTestCaseSupported) aopTestCaseSupported) {
-			case FILESYSTEM_INTERACTION -> Map.of("pathsAllowedToBeRead", fileSystemExtractor.getPermittedFilePaths("read").toArray(String[]::new), "pathsAllowedToBeOverwritten",
-					fileSystemExtractor.getPermittedFilePaths("overwrite").toArray(String[]::new), "pathsAllowedToBeCreated",
-					fileSystemExtractor.getPermittedFilePaths("create").toArray(String[]::new), "pathsAllowedToBeExecuted", fileSystemExtractor.getPermittedFilePaths("execute").toArray(String[]::new),
-					"pathsAllowedToBeDeleted", fileSystemExtractor.getPermittedFilePaths("delete").toArray(String[]::new))
-					.forEach((k, v) -> JavaAOPTestCase.setJavaAdviceSettingValue(k, v, architectureMode, aopMode));
-			case NETWORK_CONNECTION -> Map
-					.of("hostsAllowedToBeConnectedTo", networkConnectionExtractor.getPermittedNetworkHosts("connect").toArray(String[]::new), "portsAllowedToBeConnectedTo",
-							networkConnectionExtractor.getPermittedNetworkPorts("connect").stream().mapToInt(Integer::intValue).toArray(), "hostsAllowedToBeSentTo",
-							networkConnectionExtractor.getPermittedNetworkHosts("send").toArray(String[]::new), "portsAllowedToBeSentTo",
-							networkConnectionExtractor.getPermittedNetworkPorts("send").stream().mapToInt(Integer::intValue).toArray(), "hostsAllowedToBeReceivedFrom",
-							networkConnectionExtractor.getPermittedNetworkHosts("receive").toArray(String[]::new), "portsAllowedToBeReceivedFrom",
-							networkConnectionExtractor.getPermittedNetworkPorts("receive").stream().mapToInt(Integer::intValue).toArray())
-					.forEach((k, v) -> JavaAOPTestCase.setJavaAdviceSettingValue(k, v, architectureMode, aopMode));
-			case COMMAND_EXECUTION -> Map
-					.of("commandsAllowedToBeExecuted", commandExecutionExtractor.getPermittedCommands().toArray(String[]::new), "argumentsAllowedToBePassed",
-							commandExecutionExtractor.getPermittedArguments().stream().map(innerList -> innerList.toArray(new String[0])).toArray(String[][]::new))
-					.forEach((k, v) -> JavaAOPTestCase.setJavaAdviceSettingValue(k, v, architectureMode, aopMode));
-			case THREAD_CREATION -> Map.of("threadNumberAllowedToBeCreated", threadCreationExtractor.getPermittedNumberOfThreads().stream().mapToInt(Integer::intValue).toArray(),
-					"threadClassAllowedToBeCreated", threadCreationExtractor.getPermittedThreadClasses().toArray(String[]::new))
-					.forEach((k, v) -> JavaAOPTestCase.setJavaAdviceSettingValue(k, v, architectureMode, aopMode));
+		case FILESYSTEM_INTERACTION -> Map.of("pathsAllowedToBeRead",
+				fileSystemExtractor.getPermittedFilePaths("read").toArray(String[]::new), "pathsAllowedToBeOverwritten",
+				fileSystemExtractor.getPermittedFilePaths("overwrite").toArray(String[]::new),
+				"pathsAllowedToBeCreated", fileSystemExtractor.getPermittedFilePaths("create").toArray(String[]::new),
+				"pathsAllowedToBeExecuted", fileSystemExtractor.getPermittedFilePaths("execute").toArray(String[]::new),
+				"pathsAllowedToBeDeleted", fileSystemExtractor.getPermittedFilePaths("delete").toArray(String[]::new))
+				.forEach((k, v) -> JavaAOPTestCase.setJavaAdviceSettingValue(k, v, architectureMode, aopMode));
+		case NETWORK_CONNECTION -> Map
+				.of("hostsAllowedToBeConnectedTo",
+						networkConnectionExtractor.getPermittedNetworkHosts("connect").toArray(String[]::new),
+						"portsAllowedToBeConnectedTo",
+						networkConnectionExtractor.getPermittedNetworkPorts("connect").stream()
+								.mapToInt(Integer::intValue).toArray(),
+						"hostsAllowedToBeSentTo",
+						networkConnectionExtractor.getPermittedNetworkHosts("send").toArray(String[]::new),
+						"portsAllowedToBeSentTo",
+						networkConnectionExtractor.getPermittedNetworkPorts("send").stream().mapToInt(Integer::intValue)
+								.toArray(),
+						"hostsAllowedToBeReceivedFrom",
+						networkConnectionExtractor.getPermittedNetworkHosts("receive").toArray(String[]::new),
+						"portsAllowedToBeReceivedFrom",
+						networkConnectionExtractor.getPermittedNetworkPorts("receive").stream()
+								.mapToInt(Integer::intValue).toArray())
+				.forEach((k, v) -> JavaAOPTestCase.setJavaAdviceSettingValue(k, v, architectureMode, aopMode));
+		case COMMAND_EXECUTION -> Map
+				.of("commandsAllowedToBeExecuted",
+						commandExecutionExtractor.getPermittedCommands().toArray(String[]::new),
+						"argumentsAllowedToBePassed",
+						commandExecutionExtractor.getPermittedArguments().stream()
+								.map(innerList -> innerList.toArray(new String[0])).toArray(String[][]::new))
+				.forEach((k, v) -> JavaAOPTestCase.setJavaAdviceSettingValue(k, v, architectureMode, aopMode));
+		case THREAD_CREATION -> Map
+				.of("threadNumberAllowedToBeCreated",
+						threadCreationExtractor.getPermittedNumberOfThreads().stream().mapToInt(Integer::intValue)
+								.toArray(),
+						"threadClassAllowedToBeCreated",
+						threadCreationExtractor.getPermittedThreadClasses().toArray(String[]::new))
+				.forEach((k, v) -> JavaAOPTestCase.setJavaAdviceSettingValue(k, v, architectureMode, aopMode));
 		}
 	}
 	// </editor-fold>
@@ -300,7 +358,8 @@ public class JavaAOPTestCase extends AOPTestCase {
 
 		public JavaAOPTestCase.Builder javaAOPTestCaseSupported(JavaAOPTestCaseSupported javaAOPTestCaseSupported) {
 			if (javaAOPTestCaseSupported == null) {
-				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.common.not.null", "javaAOPTestCaseSupported"));
+				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+						.localize("security.common.not.null", "javaAOPTestCaseSupported"));
 			}
 			this.javaAOPTestCaseSupported = javaAOPTestCaseSupported;
 			return this;
@@ -308,7 +367,8 @@ public class JavaAOPTestCase extends AOPTestCase {
 
 		public JavaAOPTestCase.Builder allowedClasses(Set<ClassPermission> allowedClasses) {
 			if (allowedClasses == null) {
-				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.common.not.null", "resourceAccessSupplier"));
+				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+						.localize("security.common.not.null", "resourceAccessSupplier"));
 			}
 			this.allowedClasses = allowedClasses;
 			return this;
@@ -316,7 +376,8 @@ public class JavaAOPTestCase extends AOPTestCase {
 
 		public JavaAOPTestCase.Builder resourceAccessSupplier(Supplier<List<?>> resourceAccessSupplier) {
 			if (resourceAccessSupplier == null) {
-				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.common.not.null", "resourceAccessSupplier"));
+				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+						.localize("security.common.not.null", "resourceAccessSupplier"));
 			}
 			this.resourceAccessSupplier = resourceAccessSupplier;
 			return this;
@@ -324,13 +385,16 @@ public class JavaAOPTestCase extends AOPTestCase {
 
 		public JavaAOPTestCase build() {
 			if (javaAOPTestCaseSupported == null) {
-				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.common.not.null", "javaAOPTestCaseSupported", "JavaAOPTestCase.Builder"));
+				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+						.localize("security.common.not.null", "javaAOPTestCaseSupported", "JavaAOPTestCase.Builder"));
 			}
 			if (resourceAccessSupplier == null) {
-				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.common.not.null", "resourceAccessSupplier", "JavaAOPTestCase.Builder"));
+				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+						.localize("security.common.not.null", "resourceAccessSupplier", "JavaAOPTestCase.Builder"));
 			}
 			if (allowedClasses == null) {
-				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.common.not.null", "allowedClasses", "JavaAOPTestCase.Builder"));
+				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+						.localize("security.common.not.null", "allowedClasses", "JavaAOPTestCase.Builder"));
 			}
 			return new JavaAOPTestCase(javaAOPTestCaseSupported, resourceAccessSupplier, allowedClasses);
 		}

@@ -187,7 +187,8 @@ class SecurityTest {
 
 	@TestTest
 	void test_useReflectionPackagePrivateExecute() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(useReflectionPackagePrivateExecute, IllegalAccessException.class));
+		tests.assertThatEvents().haveExactly(1,
+				testFailedWith(useReflectionPackagePrivateExecute, IllegalAccessException.class));
 	}
 
 	@TestTest

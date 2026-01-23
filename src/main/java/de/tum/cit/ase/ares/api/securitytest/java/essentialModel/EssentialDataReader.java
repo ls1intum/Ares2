@@ -5,15 +5,14 @@ import java.nio.file.Path;
 import javax.annotation.Nonnull;
 
 import de.tum.cit.ase.ares.api.localization.Messages;
+
 /**
  * Interface for reading essential configurations from YAML files.
- *
  * <p>
  * Description: This interface defines methods for reading essential classes and
  * packages from YAML files. Implementations should provide mechanisms for
  * parsing YAML configuration files.
  * </p>
- *
  * <p>
  * Design Rationale: Abstracting the reading of essential configuration data
  * into an interface allows for flexible and interchangeable implementations.
@@ -31,7 +30,7 @@ public interface EssentialDataReader {
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 * @param essentialClassesPath the path to the YAML file containing essential
-	 *            classes
+	 *                             classes
 	 * @return an EssentialClasses instance parsed from the YAML file
 	 */
 	EssentialClasses readEssentialClassesFrom(@Nonnull Path essentialClassesPath);
@@ -42,7 +41,7 @@ public interface EssentialDataReader {
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 * @param essentialPackagesPath the path to the YAML file containing essential
-	 *            packages
+	 *                              packages
 	 * @return an EssentialPackages instance parsed from the YAML file
 	 */
 	EssentialPackages readEssentialPackagesFrom(@Nonnull Path essentialPackagesPath);
@@ -53,8 +52,8 @@ public interface EssentialDataReader {
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 * @param errorMessageIdentifier the identifier for the error message
-	 * @param errorMessageParameter a parameter to be included in the error message
-	 * @param e the exception that triggered the error
+	 * @param errorMessageParameter  a parameter to be included in the error message
+	 * @param e                      the exception that triggered the error
 	 */
 	default void throwReaderErrorMessage(String errorMessageIdentifier, String errorMessageParameter, Exception e) {
 		throw new SecurityException(Messages.localized(errorMessageIdentifier, errorMessageParameter), e);

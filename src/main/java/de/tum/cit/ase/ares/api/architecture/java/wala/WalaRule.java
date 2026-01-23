@@ -22,17 +22,23 @@ public class WalaRule {
 
 	public void check(CallGraph cg) {
 		List<CGNode> reachableNodes = ReachabilityChecker.findReachableMethods(cg, cg.getEntrypointNodes().iterator(),
-				cgNode -> forbiddenMethods.stream().anyMatch(method -> cgNode.getMethod().getSignature().startsWith(method)));
+				cgNode -> forbiddenMethods.stream()
+						.anyMatch(method -> cgNode.getMethod().getSignature().startsWith(method)));
 
 		if (reachableNodes == null || Iterables.isEmpty(reachableNodes)) {
 			return;
 		}
 		try {
-			IMethod.SourcePosition sourcePosition = reachableNodes.get(reachableNodes.size() - 1).getMethod().getSourcePosition(0);
+			IMethod.SourcePosition sourcePosition = reachableNodes.get(reachableNodes.size() - 1).getMethod()
+					.getSourcePosition(0);
 			int lineNumber = sourcePosition != null ? sourcePosition.getFirstLine() : -1;
-			throw new AssertionError(Messages.localized("security.architecture.method.call.message", ruleName, reachableNodes.get(reachableNodes.size() - 1).getMethod().getSignature(),
-					reachableNodes.get(reachableNodes.size() - 2).getMethod().getSignature(),
-					reachableNodes.get(reachableNodes.size() - 1).getMethod().getDeclaringClass().getName().getClassName().toString(), lineNumber, reachableNodes.get(0).getMethod().getSignature()));
+			throw new AssertionError(
+					Messages.localized("security.architecture.method.call.message", ruleName,
+							reachableNodes.get(reachableNodes.size() - 1).getMethod().getSignature(),
+							reachableNodes.get(reachableNodes.size() - 2).getMethod().getSignature(),
+							reachableNodes.get(reachableNodes.size() - 1).getMethod().getDeclaringClass().getName()
+									.getClassName().toString(),
+							lineNumber, reachableNodes.get(0).getMethod().getSignature()));
 		} catch (InvalidClassFileException e) {
 			throw new SecurityException(Messages.localized("security.architecture.invalid.class.file"));
 		}

@@ -45,25 +45,29 @@ class FileSystemAccessExecuteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = RUNTIME_WITHIN_PATH)
 	void test_accessFileSystemViaRuntimeArrayMavenArchunitAspectJ() {
-		assertAresSecurityExceptionExecution(RuntimeExecuteMain::accessFileSystemViaRuntimeArray, RuntimeExecuteMain.class);
+		assertAresSecurityExceptionExecution(RuntimeExecuteMain::accessFileSystemViaRuntimeArray,
+				RuntimeExecuteMain.class);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = RUNTIME_WITHIN_PATH)
 	void test_accessFileSystemViaRuntimeArrayMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionExecution(RuntimeExecuteMain::accessFileSystemViaRuntimeArray, RuntimeExecuteMain.class);
+		assertAresSecurityExceptionExecution(RuntimeExecuteMain::accessFileSystemViaRuntimeArray,
+				RuntimeExecuteMain.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = RUNTIME_WITHIN_PATH)
 	void test_accessFileSystemViaRuntimeArrayMavenWalaAspectJ() {
-		assertAresSecurityExceptionExecution(RuntimeExecuteMain::accessFileSystemViaRuntimeArray, RuntimeExecuteMain.class);
+		assertAresSecurityExceptionExecution(RuntimeExecuteMain::accessFileSystemViaRuntimeArray,
+				RuntimeExecuteMain.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = RUNTIME_WITHIN_PATH)
 	void test_accessFileSystemViaRuntimeArrayMavenWalaInstrumentation() {
-		assertAresSecurityExceptionExecution(RuntimeExecuteMain::accessFileSystemViaRuntimeArray, RuntimeExecuteMain.class);
+		assertAresSecurityExceptionExecution(RuntimeExecuteMain::accessFileSystemViaRuntimeArray,
+				RuntimeExecuteMain.class);
 	}
 	// </editor-fold>
 
@@ -123,25 +127,29 @@ class FileSystemAccessExecuteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
 	void test_accessFileSystemViaDesktopBrowseFileDirectoryMavenArchunitAspectJ() {
-		assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopBrowseFileDirectory, DesktopExecuteMain.class);
+		assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopBrowseFileDirectory,
+				DesktopExecuteMain.class);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
 	void test_accessFileSystemViaDesktopBrowseFileDirectoryMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopBrowseFileDirectory, DesktopExecuteMain.class);
+		assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopBrowseFileDirectory,
+				DesktopExecuteMain.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
 	void test_accessFileSystemViaDesktopBrowseFileDirectoryMavenWalaAspectJ() {
-		assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopBrowseFileDirectory, DesktopExecuteMain.class);
+		assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopBrowseFileDirectory,
+				DesktopExecuteMain.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
 	void test_accessFileSystemViaDesktopBrowseFileDirectoryMavenWalaInstrumentation() {
-		assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopBrowseFileDirectory, DesktopExecuteMain.class);
+		assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopBrowseFileDirectory,
+				DesktopExecuteMain.class);
 	}
 	// </editor-fold>
 
@@ -201,25 +209,29 @@ class FileSystemAccessExecuteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = PROCESS_BUILDER_WITHIN_PATH)
 	void test_accessFileSystemViaProcessBuilderMavenArchunitAspectJ() {
-		assertAresSecurityExceptionExecution(ProcessBuilderExecuteMain::accessFileSystemViaProcessBuilder, ProcessBuilderExecuteMain.class);
+		assertAresSecurityExceptionExecution(ProcessBuilderExecuteMain::accessFileSystemViaProcessBuilder,
+				ProcessBuilderExecuteMain.class);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = PROCESS_BUILDER_WITHIN_PATH)
 	void test_accessFileSystemViaProcessBuilderMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionExecution(ProcessBuilderExecuteMain::accessFileSystemViaProcessBuilder, ProcessBuilderExecuteMain.class);
+		assertAresSecurityExceptionExecution(ProcessBuilderExecuteMain::accessFileSystemViaProcessBuilder,
+				ProcessBuilderExecuteMain.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = PROCESS_BUILDER_WITHIN_PATH)
 	void test_accessFileSystemViaProcessBuilderMavenWalaAspectJ() {
-		assertAresSecurityExceptionExecution(ProcessBuilderExecuteMain::accessFileSystemViaProcessBuilder, ProcessBuilderExecuteMain.class);
+		assertAresSecurityExceptionExecution(ProcessBuilderExecuteMain::accessFileSystemViaProcessBuilder,
+				ProcessBuilderExecuteMain.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = PROCESS_BUILDER_WITHIN_PATH)
 	void test_accessFileSystemViaProcessBuilderMavenWalaInstrumentation() {
-		assertAresSecurityExceptionExecution(ProcessBuilderExecuteMain::accessFileSystemViaProcessBuilder, ProcessBuilderExecuteMain.class);
+		assertAresSecurityExceptionExecution(ProcessBuilderExecuteMain::accessFileSystemViaProcessBuilder,
+				ProcessBuilderExecuteMain.class);
 	}
 	// </editor-fold>
 
@@ -227,25 +239,29 @@ class FileSystemAccessExecuteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = THIRD_PARTY_PACKAGE_WITHIN_PATH)
 	void test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ() {
-		assertAresSecurityExceptionExecution(ExecuteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ThirdPartyPackagePenguin.class);
+		assertAresSecurityExceptionExecution(ExecuteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
+				ThirdPartyPackagePenguin.class);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = THIRD_PARTY_PACKAGE_WITHIN_PATH)
 	void test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionExecution(ExecuteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ThirdPartyPackagePenguin.class);
+		assertAresSecurityExceptionExecution(ExecuteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
+				ThirdPartyPackagePenguin.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = THIRD_PARTY_PACKAGE_WITHIN_PATH)
 	void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ() {
-		assertAresSecurityExceptionExecution(ExecuteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ThirdPartyPackagePenguin.class);
+		assertAresSecurityExceptionExecution(ExecuteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
+				ThirdPartyPackagePenguin.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = THIRD_PARTY_PACKAGE_WITHIN_PATH)
 	void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation() {
-		assertAresSecurityExceptionExecution(ExecuteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ThirdPartyPackagePenguin.class);
+		assertAresSecurityExceptionExecution(ExecuteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
+				ThirdPartyPackagePenguin.class);
 	}
 	// </editor-fold>
 }

@@ -25,13 +25,11 @@ import de.tum.cit.ase.ares.api.util.FileTools;
 
 /**
  * Enum representing the AOP modes for Java security test cases.
- *
  * <p>
  * Description: Provides different modes for AOP test case generation and
  * execution in Java. The modes determine how files and settings are copied and
  * resolved based on the underlying AOP tool.
  * </p>
- *
  * <p>
  * Design Rationale: Using an enum to represent AOP modes centralises
  * configuration and enables future extensions (e.g. supporting INSTRUMENTATION)
@@ -85,46 +83,53 @@ public enum AOPMode {
 
 	@Nonnull
 	public List<Path> fsFilesToCopy() {
-		return getCopyFSConfigurationEntries().stream().map(entry -> entry.get(0).split("/")).map(FileTools::resolveFileOnSourceDirectory).toList();
+		return getCopyFSConfigurationEntries().stream().map(entry -> entry.get(0).split("/"))
+				.map(FileTools::resolveFileOnSourceDirectory).toList();
 	}
 
 	@Nonnull
 	public List<Path> nonFSFilesToCopy() {
-		return getCopyNonFSConfigurationEntries().stream().map(entry -> entry.get(0).split("/")).map(FileTools::resolveFileOnSourceDirectory).toList();
+		return getCopyNonFSConfigurationEntries().stream().map(entry -> entry.get(0).split("/"))
+				.map(FileTools::resolveFileOnSourceDirectory).toList();
 	}
 
 	@Nonnull
 	public List<String[]> placeholderValues() {
-		return getCopyNonFSConfigurationEntries().stream().map(entry -> entry.get(1)).map(Integer::parseInt).map(entry -> switch (entry) {
-			case 0 -> new String[]{ "de.tum.cit.ase", "de.tum.cit.ase", "Main" };
-			default -> FileTools.generatePackageNameArray("de.tum.cit.ase", entry);
-		}).toList();
+		return getCopyNonFSConfigurationEntries().stream().map(entry -> entry.get(1)).map(Integer::parseInt)
+				.map(entry -> switch (entry) {
+				case 0 -> new String[] { "de.tum.cit.ase", "de.tum.cit.ase", "Main" };
+				default -> FileTools.generatePackageNameArray("de.tum.cit.ase", entry);
+				}).toList();
 	}
 
 	@Nonnull
 	public List<String[]> fsFormatValues(@Nonnull String packageName, @Nonnull String mainClassInPackageName) {
-		return getCopyFSConfigurationEntries().stream().map(entry -> entry.get(1)).map(Integer::parseInt).map(entry -> switch (entry) {
-			case 0 -> new String[]{ packageName, packageName, mainClassInPackageName };
-			default -> FileTools.generatePackageNameArray(packageName, entry);
-		}).toList();
+		return getCopyFSConfigurationEntries().stream().map(entry -> entry.get(1)).map(Integer::parseInt)
+				.map(entry -> switch (entry) {
+				case 0 -> new String[] { packageName, packageName, mainClassInPackageName };
+				default -> FileTools.generatePackageNameArray(packageName, entry);
+				}).toList();
 	}
 
 	@Nonnull
 	public List<String[]> nonFSFormatValues(@Nonnull String packageName, @Nonnull String mainClassInPackageName) {
-		return getCopyNonFSConfigurationEntries().stream().map(entry -> entry.get(1)).map(Integer::parseInt).map(entry -> switch (entry) {
-			case 0 -> new String[]{ packageName, packageName, mainClassInPackageName };
-			default -> FileTools.generatePackageNameArray(packageName, entry);
-		}).toList();
+		return getCopyNonFSConfigurationEntries().stream().map(entry -> entry.get(1)).map(Integer::parseInt)
+				.map(entry -> switch (entry) {
+				case 0 -> new String[] { packageName, packageName, mainClassInPackageName };
+				default -> FileTools.generatePackageNameArray(packageName, entry);
+				}).toList();
 	}
 
 	@Nonnull
 	public List<Path> fsTargetsToCopyTo(@Nonnull Path targetPath) {
-		return getCopyFSConfigurationEntries().stream().map(entry -> entry.get(2).split("/")).map(path -> FileTools.resolveFileOnTargetDirectory(targetPath, path)).toList();
+		return getCopyFSConfigurationEntries().stream().map(entry -> entry.get(2).split("/"))
+				.map(path -> FileTools.resolveFileOnTargetDirectory(targetPath, path)).toList();
 	}
 
 	@Nonnull
 	public List<Path> nonFSTargetsToCopyTo(@Nonnull Path targetPath) {
-		return getCopyNonFSConfigurationEntries().stream().map(entry -> entry.get(2).split("/")).map(path -> FileTools.resolveFileOnTargetDirectory(targetPath, path)).toList();
+		return getCopyNonFSConfigurationEntries().stream().map(entry -> entry.get(2).split("/"))
+				.map(path -> FileTools.resolveFileOnTargetDirectory(targetPath, path)).toList();
 	}
 	// </editor-fold>
 
@@ -139,7 +144,8 @@ public enum AOPMode {
 	 */
 	@Nonnull
 	public Path threePartedFileHeader() {
-		return getEditConfigurationEntries().stream().map(entry -> entry.get(0).split("/")).map(FileTools::resolveFileOnSourceDirectory).toList().get(0);
+		return getEditConfigurationEntries().stream().map(entry -> entry.get(0).split("/"))
+				.map(FileTools::resolveFileOnSourceDirectory).toList().get(0);
 	}
 
 	/**
@@ -147,33 +153,40 @@ public enum AOPMode {
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param aopMode the AOP mode identifier.
-	 * @param restrictedPackage the package being restricted.
+	 * @param aopMode              the AOP mode identifier.
+	 * @param restrictedPackage    the package being restricted.
 	 * @param allowedListedClasses the list of allowed classes.
-	 * @param javaAOPTestCases the list of security test cases.
+	 * @param javaAOPTestCases     the list of security test cases.
 	 * @return a string representing the body content.
 	 */
 	@Nonnull
-	public String threePartedFileBody(@Nonnull String aopMode, @Nonnull String restrictedPackage, @Nonnull List<String> allowedListedClasses, @Nonnull List<JavaAOPTestCase> javaAOPTestCases) {
-		List<FilePermission> filePermissions = extractPermissions(javaAOPTestCases, JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION);
-		List<NetworkPermission> networkPermissions = extractPermissions(javaAOPTestCases, JavaAOPTestCaseSupported.NETWORK_CONNECTION);
-		List<CommandPermission> commandPermissions = extractPermissions(javaAOPTestCases, JavaAOPTestCaseSupported.COMMAND_EXECUTION);
-		List<ThreadPermission> threadPermissions = extractPermissions(javaAOPTestCases, JavaAOPTestCaseSupported.THREAD_CREATION);
+	public String threePartedFileBody(@Nonnull String aopMode, @Nonnull String restrictedPackage,
+			@Nonnull List<String> allowedListedClasses, @Nonnull List<JavaAOPTestCase> javaAOPTestCases) {
+		List<FilePermission> filePermissions = extractPermissions(javaAOPTestCases,
+				JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION);
+		List<NetworkPermission> networkPermissions = extractPermissions(javaAOPTestCases,
+				JavaAOPTestCaseSupported.NETWORK_CONNECTION);
+		List<CommandPermission> commandPermissions = extractPermissions(javaAOPTestCases,
+				JavaAOPTestCaseSupported.COMMAND_EXECUTION);
+		List<ThreadPermission> threadPermissions = extractPermissions(javaAOPTestCases,
+				JavaAOPTestCaseSupported.THREAD_CREATION);
 
-		return JavaAOPTestCase.writeAOPTestCaseFile(aopMode, restrictedPackage, allowedListedClasses, filePermissions, networkPermissions, commandPermissions, threadPermissions);
+		return JavaAOPTestCase.writeAOPTestCaseFile(aopMode, restrictedPackage, allowedListedClasses, filePermissions,
+				networkPermissions, commandPermissions, threadPermissions);
 	}
 
 	/**
 	 * Extracts and flattens the permission lists for the given supported type.
 	 *
-	 * @param <T> the type of permission.
+	 * @param <T>       the type of permission.
 	 * @param testCases the list of JavaAOPTestCase.
 	 * @param supported the JavaAOPTestCaseSupported filter.
 	 * @return a flattened list of permissions of type T.
 	 */
 	@SuppressWarnings("unchecked")
 	private <T> List<T> extractPermissions(List<JavaAOPTestCase> testCases, JavaAOPTestCaseSupported supported) {
-		return testCases.stream().filter(testCase -> testCase.getAopTestCaseSupported() == supported).map(JavaAOPTestCase::getResourceAccessSupplier).map(Supplier::get)
+		return testCases.stream().filter(testCase -> testCase.getAopTestCaseSupported() == supported)
+				.map(JavaAOPTestCase::getResourceAccessSupplier).map(Supplier::get)
 				.map(permissions -> (List<T>) permissions).flatMap(Collection::stream).toList();
 	}
 
@@ -186,7 +199,8 @@ public enum AOPMode {
 	 */
 	@Nonnull
 	public Path threePartedFileFooter() {
-		return getEditConfigurationEntries().stream().map(entry -> entry.get(1).split("/")).map(FileTools::resolveFileOnSourceDirectory).toList().get(0);
+		return getEditConfigurationEntries().stream().map(entry -> entry.get(1).split("/"))
+				.map(FileTools::resolveFileOnSourceDirectory).toList().get(0);
 	}
 
 	/**
@@ -200,8 +214,8 @@ public enum AOPMode {
 	@Nonnull
 	public String[] formatValues(@Nonnull String packageName) {
 		return switch (this) {
-			case ASPECTJ -> FileTools.generatePackageNameArray(packageName, 1);
-			case INSTRUMENTATION -> FileTools.generatePackageNameArray(packageName, 1);
+		case ASPECTJ -> FileTools.generatePackageNameArray(packageName, 1);
+		case INSTRUMENTATION -> FileTools.generatePackageNameArray(packageName, 1);
 		};
 	}
 
@@ -216,7 +230,8 @@ public enum AOPMode {
 	 */
 	@Nonnull
 	public Path targetToCopyTo(@Nonnull Path targetPath) {
-		return getEditConfigurationEntries().stream().map(entry -> entry.get(2).split("/")).map(path -> FileTools.resolveFileOnTargetDirectory(targetPath, path)).toList().get(0);
+		return getEditConfigurationEntries().stream().map(entry -> entry.get(2).split("/"))
+				.map(path -> FileTools.resolveFileOnTargetDirectory(targetPath, path)).toList().get(0);
 	}
 	// </editor-fold>
 
@@ -231,14 +246,16 @@ public enum AOPMode {
 	 */
 	public void reset() {
 		try {
-			Class<?> settingsBootstrapClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, null);
+			Class<?> settingsBootstrapClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings",
+					true, null);
 			Method bootstrapMethod = settingsBootstrapClass.getDeclaredMethod("reset");
 			bootstrapMethod.setAccessible(true);
 			bootstrapMethod.invoke(null);
 			bootstrapMethod.setAccessible(false);
 
 			ClassLoader customClassLoader = Thread.currentThread().getContextClassLoader();
-			Class<?> settingsClassloaderClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, customClassLoader);
+			Class<?> settingsClassloaderClass = Class
+					.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, customClassLoader);
 			Method classloaderMethod = settingsClassloaderClass.getDeclaredMethod("reset");
 			classloaderMethod.setAccessible(true);
 			classloaderMethod.invoke(null);

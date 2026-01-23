@@ -1,5 +1,5 @@
-
 package de.tum.cit.ase.ares.api.aop.java.javaAOPTestCaseToolbox;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -17,7 +17,8 @@ public class JavaAOPTestCaseToolboxTest {
 	@Test
 	public void testGetStringAssignmentWithInvalidValue() {
 		Object invalidValue = 123;
-		Assertions.assertThrows(SecurityException.class, () -> JavaAOPTestCaseToolbox.getStringAssignment("myString", invalidValue));
+		Assertions.assertThrows(SecurityException.class,
+				() -> JavaAOPTestCaseToolbox.getStringAssignment("myString", invalidValue));
 	}
 
 	@Test
@@ -29,7 +30,8 @@ public class JavaAOPTestCaseToolboxTest {
 	@Test
 	public void testGetIntegerAssignmentWithInvalidValue() {
 		Object invalidValue = "notAnInt";
-		Assertions.assertThrows(SecurityException.class, () -> JavaAOPTestCaseToolbox.getIntegerAssignment("myInt", invalidValue));
+		Assertions.assertThrows(SecurityException.class,
+				() -> JavaAOPTestCaseToolbox.getIntegerAssignment("myInt", invalidValue));
 	}
 
 	@Test
@@ -42,7 +44,8 @@ public class JavaAOPTestCaseToolboxTest {
 	@Test
 	public void testGetStringOneDArrayAssignmentWithInvalidValue() {
 		Object invalidValue = "notAList";
-		Assertions.assertThrows(SecurityException.class, () -> JavaAOPTestCaseToolbox.getStringOneDArrayAssignment("myArray", invalidValue));
+		Assertions.assertThrows(SecurityException.class,
+				() -> JavaAOPTestCaseToolbox.getStringOneDArrayAssignment("myArray", invalidValue));
 	}
 
 	@Test
@@ -55,32 +58,38 @@ public class JavaAOPTestCaseToolboxTest {
 	@Test
 	public void testGetIntegerOneDArrayAssignmentWithInvalidValue() {
 		Object invalidValue = "notAList";
-		Assertions.assertThrows(SecurityException.class, () -> JavaAOPTestCaseToolbox.getIntegerOneDArrayAssignment("intArray", invalidValue));
+		Assertions.assertThrows(SecurityException.class,
+				() -> JavaAOPTestCaseToolbox.getIntegerOneDArrayAssignment("intArray", invalidValue));
 	}
 
 	@Test
 	public void testGetStringTwoDArrayAssignmentWithValidValue() {
 		List<List<String>> values = Arrays.asList(Arrays.asList("a", "b"), Arrays.asList("c", "d"));
 		String result = JavaAOPTestCaseToolbox.getStringTwoDArrayAssignment("twoDArray", values);
-		Assertions.assertEquals("private static String[][] twoDArray = new String[][] {new String[]{\"a\", \"b\"}, new String[]{\"c\", \"d\"}};\n", result);
+		Assertions.assertEquals(
+				"private static String[][] twoDArray = new String[][] {new String[]{\"a\", \"b\"}, new String[]{\"c\", \"d\"}};\n",
+				result);
 	}
 
 	@Test
 	public void testGetStringTwoDArrayAssignmentWithInvalidValue() {
 		Object invalidValue = "notAList";
-		Assertions.assertThrows(SecurityException.class, () -> JavaAOPTestCaseToolbox.getStringTwoDArrayAssignment("twoDArray", invalidValue));
+		Assertions.assertThrows(SecurityException.class,
+				() -> JavaAOPTestCaseToolbox.getStringTwoDArrayAssignment("twoDArray", invalidValue));
 	}
 
 	@Test
 	public void testGetIntegerTwoDArrayAssignmentWithValidValue() {
 		List<List<Integer>> values = Arrays.asList(Arrays.asList(1, 2), Arrays.asList(3, 4));
 		String result = JavaAOPTestCaseToolbox.getIntegerTwoDArrayAssignment("twoIntArray", values);
-		Assertions.assertEquals("private static int[][] twoIntArray = new int[][] {new int[]{1, 2}, new int[]{3, 4}};\n", result);
+		Assertions.assertEquals(
+				"private static int[][] twoIntArray = new int[][] {new int[]{1, 2}, new int[]{3, 4}};\n", result);
 	}
 
 	@Test
 	public void testGetIntegerTwoDArrayAssignmentWithInvalidValue() {
 		Object invalidValue = "notAList";
-		Assertions.assertThrows(SecurityException.class, () -> JavaAOPTestCaseToolbox.getIntegerTwoDArrayAssignment("twoIntArray", invalidValue));
+		Assertions.assertThrows(SecurityException.class,
+				() -> JavaAOPTestCaseToolbox.getIntegerTwoDArrayAssignment("twoIntArray", invalidValue));
 	}
 }

@@ -25,8 +25,10 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	private static final String FILE_DELETE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/fileDelete";
 	private static final String FILES_DELETE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/filesDelete";
 	private static final String THIRD_PARTY_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/thirdPartyPackage";
-	private static final Path NOT_TRUSTED_DIR = Path.of("test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/nottrusteddir");
-	private static final Path NOT_TRUSTED_FILE_PATH = Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/nottrusteddir/nottrusted.txt");
+	private static final Path NOT_TRUSTED_DIR = Path
+			.of("test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/nottrusteddir");
+	private static final Path NOT_TRUSTED_FILE_PATH = Path.of(
+			"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/nottrusteddir/nottrusted.txt");
 
 	/**
 	 * Ensure the test artefact exists before each test so that deletion calls have
@@ -57,7 +59,8 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	void test_fileDelete_archunit_aspectj() {
 		// This method of deleting files requires a read before, hence we test for read
 		// related errors.
-		assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaFileDelete, FileDeleteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaFileDelete, FileDeleteMain.class,
+				NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
@@ -71,7 +74,8 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	void test_fileDelete_wala_aspectj() {
 		// This method of deleting files requires a read before, hence we test for read
 		// related errors.
-		assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaFileDelete, FileDeleteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaFileDelete, FileDeleteMain.class,
+				NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
@@ -89,7 +93,8 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	void test_fileDeleteOnExit_archunit_aspectj() {
 		// This method of deleting files requires a read before, hence we test for read
 		// violation.
-		assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaFileDeleteOnExit, FileDeleteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaFileDeleteOnExit, FileDeleteMain.class,
+				NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
@@ -103,7 +108,8 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	void test_fileDeleteOnExit_wala_aspectj() {
 		// This method of deleting files requires a read before, hence we test for read
 		// violation.
-		assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaFileDeleteOnExit, FileDeleteMain.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaFileDeleteOnExit, FileDeleteMain.class,
+				NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
@@ -170,25 +176,29 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
 	void test_filesDeleteIfExists_archunit_aspectj() {
-		assertAresSecurityExceptionDelete(FilesDeleteMain::accessFileSystemViaFilesDeleteIfExists, FilesDeleteMain.class);
+		assertAresSecurityExceptionDelete(FilesDeleteMain::accessFileSystemViaFilesDeleteIfExists,
+				FilesDeleteMain.class);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
 	void test_filesDeleteIfExists_archunit_instrumentation() {
-		assertAresSecurityExceptionDelete(FilesDeleteMain::accessFileSystemViaFilesDeleteIfExists, FilesDeleteMain.class);
+		assertAresSecurityExceptionDelete(FilesDeleteMain::accessFileSystemViaFilesDeleteIfExists,
+				FilesDeleteMain.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
 	void test_filesDeleteIfExists_wala_aspectj() {
-		assertAresSecurityExceptionDelete(FilesDeleteMain::accessFileSystemViaFilesDeleteIfExists, FilesDeleteMain.class);
+		assertAresSecurityExceptionDelete(FilesDeleteMain::accessFileSystemViaFilesDeleteIfExists,
+				FilesDeleteMain.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
 	void test_filesDeleteIfExists_wala_instrumentation() {
-		assertAresSecurityExceptionDelete(FilesDeleteMain::accessFileSystemViaFilesDeleteIfExists, FilesDeleteMain.class);
+		assertAresSecurityExceptionDelete(FilesDeleteMain::accessFileSystemViaFilesDeleteIfExists,
+				FilesDeleteMain.class);
 	}
 
 	/* -------------------------------------------------------------------- */
@@ -200,9 +210,9 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
 	void test_deleteOnClose_archunit_aspectj() {
 		assertAresSecurityExceptionDelete(() -> {
-			try (java.nio.channels.SeekableByteChannel ch = java.nio.file.Files.newByteChannel(NOT_TRUSTED_FILE_PATH, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.WRITE,
+			try (java.nio.channels.SeekableByteChannel ch = java.nio.file.Files.newByteChannel(NOT_TRUSTED_FILE_PATH,
+					java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.WRITE,
 					java.nio.file.StandardOpenOption.DELETE_ON_CLOSE)) {
-
 				FilesDeleteOnClose.closeChannelToDeleteFileInChannel(ch);
 			}
 		}, FilesDeleteOnClose.class);
@@ -214,9 +224,9 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
 	void test_deleteOnClose_archunit_instrumentation() {
 		assertAresSecurityExceptionDelete(() -> {
-			try (java.nio.channels.SeekableByteChannel ch = java.nio.file.Files.newByteChannel(NOT_TRUSTED_FILE_PATH, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.WRITE,
+			try (java.nio.channels.SeekableByteChannel ch = java.nio.file.Files.newByteChannel(NOT_TRUSTED_FILE_PATH,
+					java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.WRITE,
 					java.nio.file.StandardOpenOption.DELETE_ON_CLOSE)) {
-
 				FilesDeleteOnClose.closeChannelToDeleteFileInChannel(ch);
 			}
 		}, FilesDeleteOnClose.class);
@@ -227,9 +237,9 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
 	void test_deleteOnClose_wala_aspectj() {
 		assertAresSecurityExceptionDelete(() -> {
-			try (java.nio.channels.SeekableByteChannel ch = java.nio.file.Files.newByteChannel(NOT_TRUSTED_FILE_PATH, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.WRITE,
+			try (java.nio.channels.SeekableByteChannel ch = java.nio.file.Files.newByteChannel(NOT_TRUSTED_FILE_PATH,
+					java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.WRITE,
 					java.nio.file.StandardOpenOption.DELETE_ON_CLOSE)) {
-
 				FilesDeleteOnClose.closeChannelToDeleteFileInChannel(ch);
 			}
 		}, FilesDeleteOnClose.class);
@@ -241,13 +251,12 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
 	void test_deleteOnClose_wala_instrumentation() {
 		assertAresSecurityExceptionDelete(() -> {
-
 			// Trusted test code opens the channel
-			SeekableByteChannel ch = Files.newByteChannel(NOT_TRUSTED_FILE_PATH, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.DELETE_ON_CLOSE);
+			SeekableByteChannel ch = Files.newByteChannel(NOT_TRUSTED_FILE_PATH, StandardOpenOption.CREATE,
+					StandardOpenOption.WRITE, StandardOpenOption.DELETE_ON_CLOSE);
 
 			// student code triggers the delete
 			FilesDeleteOnClose.closeChannelToDeleteFileInChannel(ch);
-
 		}, FilesDeleteOnClose.class);
 	}
 
@@ -273,7 +282,8 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	void test_sdsDeleteFile_wala_instrumentation() {
 		assertAresSecurityExceptionDelete(() -> {
 			try (SecureDirectoryStream<Path> secureDirectoryStream = openSecureDirectoryStream()) {
-				FilesDeleteSecureDirectory.accessFileSystemViaSecureDirectoryStreamDeleteDirectory(secureDirectoryStream);
+				FilesDeleteSecureDirectory
+						.accessFileSystemViaSecureDirectoryStreamDeleteDirectory(secureDirectoryStream);
 			}
 		}, FilesDeleteSecureDirectory.class);
 	}
@@ -289,7 +299,8 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	void test_sdsDeleteDirectory_archunit_aspectj() {
 		assertAresSecurityExceptionDelete(() -> {
 			try (SecureDirectoryStream<Path> secureDirectoryStream = openSecureDirectoryStream()) {
-				FilesDeleteSecureDirectory.accessFileSystemViaSecureDirectoryStreamDeleteDirectory(secureDirectoryStream);
+				FilesDeleteSecureDirectory
+						.accessFileSystemViaSecureDirectoryStreamDeleteDirectory(secureDirectoryStream);
 			}
 		}, FilesDeleteSecureDirectory.class);
 	}
@@ -301,7 +312,8 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	void test_sdsDeleteDirectory_archunit_instrumentation() {
 		assertAresSecurityExceptionDelete(() -> {
 			try (SecureDirectoryStream<Path> secureDirectoryStream = openSecureDirectoryStream()) {
-				FilesDeleteSecureDirectory.accessFileSystemViaSecureDirectoryStreamDeleteDirectory(secureDirectoryStream);
+				FilesDeleteSecureDirectory
+						.accessFileSystemViaSecureDirectoryStreamDeleteDirectory(secureDirectoryStream);
 			}
 		}, FilesDeleteSecureDirectory.class);
 	}
@@ -313,7 +325,8 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	void test_sdsDeleteDirectory_wala_aspectj() {
 		assertAresSecurityExceptionDelete(() -> {
 			try (SecureDirectoryStream<Path> secureDirectoryStream = openSecureDirectoryStream()) {
-				FilesDeleteSecureDirectory.accessFileSystemViaSecureDirectoryStreamDeleteDirectory(secureDirectoryStream);
+				FilesDeleteSecureDirectory
+						.accessFileSystemViaSecureDirectoryStreamDeleteDirectory(secureDirectoryStream);
 			}
 		}, FilesDeleteSecureDirectory.class);
 	}
@@ -325,7 +338,8 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	void test_sdsDeleteDirectory_wala_instrumentation() {
 		assertAresSecurityExceptionDelete(() -> {
 			try (SecureDirectoryStream<Path> secureDirectoryStream = openSecureDirectoryStream()) {
-				FilesDeleteSecureDirectory.accessFileSystemViaSecureDirectoryStreamDeleteDirectory(secureDirectoryStream);
+				FilesDeleteSecureDirectory
+						.accessFileSystemViaSecureDirectoryStreamDeleteDirectory(secureDirectoryStream);
 			}
 		}, FilesDeleteSecureDirectory.class);
 	}
@@ -337,25 +351,29 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = THIRD_PARTY_WITHIN_PATH)
 	void test_thirdPartyDelete_archunit_aspectj() {
-		assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ThirdPartyPackagePenguin.class);
+		assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
+				ThirdPartyPackagePenguin.class);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = THIRD_PARTY_WITHIN_PATH)
 	void test_thirdPartyDelete_archunit_instrumentation() {
-		assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ThirdPartyPackagePenguin.class);
+		assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
+				ThirdPartyPackagePenguin.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = THIRD_PARTY_WITHIN_PATH)
 	void test_thirdPartyDelete_wala_aspectj() {
-		assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ThirdPartyPackagePenguin.class);
+		assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
+				ThirdPartyPackagePenguin.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = THIRD_PARTY_WITHIN_PATH)
 	void test_thirdPartyDelete_wala_instrumentation() {
-		assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage, ThirdPartyPackagePenguin.class);
+		assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
+				ThirdPartyPackagePenguin.class);
 	}
 
 	@Disabled("This test is disabled because testing in this manner is not possible. FileSystemProvider.installedProviders() "
@@ -367,7 +385,8 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 		// will need to import
 		// and scan through the file system provider to access the delete method.
 		// (FileSystemProvider.installedProviders() needs to be called)
-		assertAresSecurityExceptionRead(DeleteThroughFileSystemProvider::accessFileSystemViaFileSystemProvider, DeleteThroughFileSystemProvider.class);
+		assertAresSecurityExceptionRead(DeleteThroughFileSystemProvider::accessFileSystemViaFileSystemProvider,
+				DeleteThroughFileSystemProvider.class);
 	}
 
 	@Disabled("This test is disabled because testing in this manner is not possible. FileSystemProvider.installedProviders() "
@@ -379,7 +398,8 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 		// will need to import
 		// and scan through the file system provider to access the delete method.
 		// (FileSystemProvider.installedProviders() needs to be called)
-		assertAresSecurityExceptionRead(DeleteThroughFileSystemProvider::accessFileSystemViaFileSystemProvider, DeleteThroughFileSystemProvider.class, NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionRead(DeleteThroughFileSystemProvider::accessFileSystemViaFileSystemProvider,
+				DeleteThroughFileSystemProvider.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@Disabled("This test is disabled because testing in this manner is not possible. FileSystemProvider.installedProviders() "
@@ -391,7 +411,8 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 		// will need to import
 		// and scan through the file system provider to access the delete method.
 		// (FileSystemProvider.installedProviders() needs to be called)
-		assertAresSecurityExceptionRead(DeleteThroughFileSystemProvider::accessFileSystemViaFileSystemProvider, DeleteThroughFileSystemProvider.class);
+		assertAresSecurityExceptionRead(DeleteThroughFileSystemProvider::accessFileSystemViaFileSystemProvider,
+				DeleteThroughFileSystemProvider.class);
 	}
 
 	@Disabled("This test is disabled because testing in this manner is not possible. FileSystemProvider.installedProviders() "
@@ -403,6 +424,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 		// will need to import
 		// and scan through the file system provider to access the delete method.
 		// (FileSystemProvider.installedProviders() needs to be called)
-		assertAresSecurityExceptionRead(DeleteThroughFileSystemProvider::accessFileSystemViaFileSystemProvider, DeleteThroughFileSystemProvider.class);
+		assertAresSecurityExceptionRead(DeleteThroughFileSystemProvider::accessFileSystemViaFileSystemProvider,
+				DeleteThroughFileSystemProvider.class);
 	}
 }

@@ -7,7 +7,8 @@ import java.nio.file.Path;
 public final class ReadFilesReadMain {
 
 	private ReadFilesReadMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/**
@@ -16,7 +17,8 @@ public final class ReadFilesReadMain {
 	 * @return the content of the trusted file as a String
 	 */
 	public static String accessFileSystemViaFilesRead() throws IOException {
-		byte[] content = Files.readAllBytes(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"));
+		byte[] content = Files
+				.readAllBytes(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"));
 		return new String(content);
 	}
 }

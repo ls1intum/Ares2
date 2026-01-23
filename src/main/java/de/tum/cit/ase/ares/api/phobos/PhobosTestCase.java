@@ -35,19 +35,25 @@ public abstract class PhobosTestCase {
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param phobosTestCaseSupported The type of phobos test case supported,
-	 *            determining which rules to apply
-	 * @param fileSystemExtractor The extractor for file system operations
+	 * @param phobosTestCaseSupported    The type of phobos test case supported,
+	 *                                   determining which rules to apply
+	 * @param fileSystemExtractor        The extractor for file system operations
 	 * @param networkConnectionExtractor The extractor for network system operations
-	 * @param resourceLimitsExtractor The extractor for resource limits such as
-	 *            timeouts and memory limits
+	 * @param resourceLimitsExtractor    The extractor for resource limits such as
+	 *                                   timeouts and memory limits
 	 */
-	protected PhobosTestCase(@Nonnull PhobosTestCaseSupported phobosTestCaseSupported, @Nonnull FileSystemExtractor fileSystemExtractor, @Nonnull NetworkSystemExtractor networkConnectionExtractor,
+	protected PhobosTestCase(@Nonnull PhobosTestCaseSupported phobosTestCaseSupported,
+			@Nonnull FileSystemExtractor fileSystemExtractor,
+			@Nonnull NetworkSystemExtractor networkConnectionExtractor,
 			@Nonnull ResourceLimitsExtractor resourceLimitsExtractor) {
-		this.phobosTestCaseSupported = Preconditions.checkNotNull(phobosTestCaseSupported, "phobosTestCaseSupported must not be null");
-		this.fileSystemExtractor = Preconditions.checkNotNull(fileSystemExtractor, "fileSystemExtractor must not be null");
-		this.networkConnectionExtractor = Preconditions.checkNotNull(networkConnectionExtractor, "networkConnectionExtractor must not be null");
-		this.resourceLimitsExtractor = Preconditions.checkNotNull(resourceLimitsExtractor, "resourceLimitsExtractor must not be null");
+		this.phobosTestCaseSupported = Preconditions.checkNotNull(phobosTestCaseSupported,
+				"phobosTestCaseSupported must not be null");
+		this.fileSystemExtractor = Preconditions.checkNotNull(fileSystemExtractor,
+				"fileSystemExtractor must not be null");
+		this.networkConnectionExtractor = Preconditions.checkNotNull(networkConnectionExtractor,
+				"networkConnectionExtractor must not be null");
+		this.resourceLimitsExtractor = Preconditions.checkNotNull(resourceLimitsExtractor,
+				"resourceLimitsExtractor must not be null");
 	}
 	// </editor-fold>
 
@@ -82,5 +88,4 @@ public abstract class PhobosTestCase {
 		return resourceLimitsExtractor;
 	}
 	// </editor-fold>
-
 }

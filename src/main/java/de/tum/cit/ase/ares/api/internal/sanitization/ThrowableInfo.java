@@ -37,7 +37,8 @@ public final class ThrowableInfo {
 
 	private boolean sanitized;
 
-	private ThrowableInfo(Class<? extends Throwable> type, String message, Throwable cause, StackTraceElement[] stackTrace, Throwable[] suppressed, Map<String, Object> additionalProperties) {
+	private ThrowableInfo(Class<? extends Throwable> type, String message, Throwable cause,
+			StackTraceElement[] stackTrace, Throwable[] suppressed, Map<String, Object> additionalProperties) {
 		this.type = type;
 		this.message = message;
 		this.cause = cause;
@@ -120,9 +121,10 @@ public final class ThrowableInfo {
 	 * Sanitizes all information in this {@link ThrowableInfo}.
 	 *
 	 * @param additionalPropertySanitizer a {@link BiFunction} that needs to be able
-	 *            to sanitize all additional properties. The first parameter is the
-	 *            property name, the second is the value. A sanitized version of the
-	 *            value should then be returned.
+	 *                                    to sanitize all additional properties. The
+	 *                                    first parameter is the property name, the
+	 *                                    second is the value. A sanitized version
+	 *                                    of the value should then be returned.
 	 * @return this
 	 */
 	public ThrowableInfo sanitize(BiFunction<String, Object, Object> additionalPropertySanitizer) {
@@ -152,8 +154,10 @@ public final class ThrowableInfo {
 		additionalProperties.put(key.name(), key.cast(newValue));
 	}
 
-	public static ThrowableInfo of(Class<? extends Throwable> type, String message, Throwable cause, StackTraceElement[] stackTrace, Throwable[] suppressed, Map<String, Object> additionalProperties) {
-		return new ThrowableInfo(type, message, cause, stackTrace.clone(), suppressed.clone(), new HashMap<>(additionalProperties));
+	public static ThrowableInfo of(Class<? extends Throwable> type, String message, Throwable cause,
+			StackTraceElement[] stackTrace, Throwable[] suppressed, Map<String, Object> additionalProperties) {
+		return new ThrowableInfo(type, message, cause, stackTrace.clone(), suppressed.clone(),
+				new HashMap<>(additionalProperties));
 	}
 
 	public static ThrowableInfo of(Class<? extends Throwable> type, Map<String, Object> properties) {

@@ -9,7 +9,8 @@ public final class FilesDeleteMain {
 	private static final String NOT_TRUSTED_FILE = "src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/nottrusteddir/nottrusted.txt";
 
 	private FilesDeleteMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): FilesDeleteMain is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): FilesDeleteMain is a utility class and should not be instantiated.");
 	}
 
 	/**
@@ -22,5 +23,4 @@ public final class FilesDeleteMain {
 	public static void accessFileSystemViaFilesDeleteIfExists() throws IOException {
 		Files.deleteIfExists(Path.of(NOT_TRUSTED_FILE));
 	}
-
 }

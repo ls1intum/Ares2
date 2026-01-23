@@ -89,21 +89,23 @@ public abstract class StructuralTestProvider {
 	 * message of the NamesScanner.
 	 *
 	 * @param expectedClassStructure The class structure that we expect to find a
-	 *            class for.
-	 * @param typeOfTest The name of the test type that currently called the
-	 *            NamesScanner. The name is displayed in the feedback, if it's
-	 *            negative.
+	 *                               class for.
+	 * @param typeOfTest             The name of the test type that currently called
+	 *                               the NamesScanner. The name is displayed in the
+	 *                               feedback, if it's negative.
 	 * @return The current class that undergoes the tests, never null.
 	 */
 	protected static Class<?> findClassForTestType(ExpectedClassStructure expectedClassStructure, String typeOfTest) {
-		var classNameScanner = new ClassNameScanner(expectedClassStructure.getExpectedClassName(), expectedClassStructure.getExpectedPackageName());
+		var classNameScanner = new ClassNameScanner(expectedClassStructure.getExpectedClassName(),
+				expectedClassStructure.getExpectedPackageName());
 		var scanResultEnum = classNameScanner.getScanResult().getResult();
 		var classNameScanMessage = classNameScanner.getScanResult().getMessage();
 		// please note: inner classes are not supported
 		if (!ScanResultType.CORRECT_NAME_CORRECT_PLACE.equals(scanResultEnum))
 			throw failure(classNameScanMessage);
 		try {
-			return Class.forName(expectedClassStructure.getQualifiedClassName(), false, StructuralTestProvider.class.getClassLoader());
+			return Class.forName(expectedClassStructure.getQualifiedClassName(), false,
+					StructuralTestProvider.class.getClassLoader());
 		} catch (@SuppressWarnings("unused") ClassNotFoundException e) {
 			// Note: this error happens when the ClassNameScanner finds the correct file,
 			// e.g. 'Course.java', but the class 'Course' was not yet created correctly in
@@ -115,8 +117,8 @@ public abstract class StructuralTestProvider {
 	/**
 	 * get the expected elements or an empty JSON array
 	 *
-	 * @param element the class, attribute, method or constructor JSON object
-	 *            element
+	 * @param element         the class, attribute, method or constructor JSON
+	 *                        object element
 	 * @param jsonPropertyKey the key used in JSON
 	 * @return a JSON array of the elements (can be empty)
 	 */
@@ -127,8 +129,8 @@ public abstract class StructuralTestProvider {
 	/**
 	 * get the expected boolean value of the element or false
 	 *
-	 * @param element the class, attribute, method or constructor JSON object
-	 *            element
+	 * @param element         the class, attribute, method or constructor JSON
+	 *                        object element
 	 * @param jsonPropertyKey the key used in JSON
 	 * @return a boolean as specified in the JSON or false if not present
 	 */
@@ -150,7 +152,7 @@ public abstract class StructuralTestProvider {
 		 * match. A note: for technical reasons, we get in case of no observed
 		 * modifiers, a string array with an empty string.
 		 */
-		if (Arrays.equals(observedModifiers, new String[]{ "" }) && expectedModifiers.isEmpty()) //$NON-NLS-1$
+		if (Arrays.equals(observedModifiers, new String[] { "" }) && expectedModifiers.isEmpty()) //$NON-NLS-1$
 			return true;
 		/*
 		 * Otherwise check if all expected necessary modifiers are contained in the
@@ -160,9 +162,12 @@ public abstract class StructuralTestProvider {
 		for (var i = 0; i < expectedModifiers.length(); i++)
 			modifierSpecifications.add(ModifierSpecification.getModifierForJsonString(expectedModifiers.getString(i)));
 		Set<String> observedModifiersSet = Set.of(observedModifiers);
-		Set<String> allowedModifiers = modifierSpecifications.stream().map(ModifierSpecification::getModifier).collect(Collectors.toSet());
-		boolean hasAllNecessaryModifiers = modifierSpecifications.stream().filter(ModifierSpecification::isRequired).map(ModifierSpecification::getModifier).allMatch(observedModifiersSet::contains);
-		boolean hasForbiddenModifier = observedModifiersSet.stream().anyMatch(modifier -> !allowedModifiers.contains(modifier));
+		Set<String> allowedModifiers = modifierSpecifications.stream().map(ModifierSpecification::getModifier)
+				.collect(Collectors.toSet());
+		boolean hasAllNecessaryModifiers = modifierSpecifications.stream().filter(ModifierSpecification::isRequired)
+				.map(ModifierSpecification::getModifier).allMatch(observedModifiersSet::contains);
+		boolean hasForbiddenModifier = observedModifiersSet.stream()
+				.anyMatch(modifier -> !allowedModifiers.contains(modifier));
 
 		return hasAllNecessaryModifiers && !hasForbiddenModifier;
 	}
@@ -217,7 +222,8 @@ public abstract class StructuralTestProvider {
 			var expectedAnnotationFound = false;
 			var expectedAnnotationAsString = (String) expectedAnnotation;
 			for (Annotation observedAnnotation : observedAnnotations)
-				if (checkExpectedType(observedAnnotation.annotationType(), observedAnnotation.annotationType(), expectedAnnotationAsString)) {
+				if (checkExpectedType(observedAnnotation.annotationType(), observedAnnotation.annotationType(),
+						expectedAnnotationAsString)) {
 					expectedAnnotationFound = true;
 					break;
 				}
@@ -236,7 +242,8 @@ public abstract class StructuralTestProvider {
 	 * @param expectedParameters The expected parameter type names as a JSONArray.
 	 * @return True if they match, false otherwise.
 	 */
-	protected static boolean checkParameters(Class<?>[] observedParameters, JSONArray expectedParameters, boolean strictOrder) {
+	protected static boolean checkParameters(Class<?>[] observedParameters, JSONArray expectedParameters,
+			boolean strictOrder) {
 		/*
 		 * If both the observed and expected elements have no parameters, then they
 		 * match.
@@ -283,8 +290,7 @@ public abstract class StructuralTestProvider {
 	 * @return A localized string describing the parameters.
 	 */
 	protected static String describeParameters(JSONArray expectedParameters) {
-		return expectedParameters.isEmpty()
-				? localized("structural.common.noParams") //$NON-NLS-1$
+		return expectedParameters.isEmpty() ? localized("structural.common.noParams") //$NON-NLS-1$
 				: localized("structural.common.withParams", expectedParameters); //$NON-NLS-1$
 	}
 
@@ -292,10 +298,10 @@ public abstract class StructuralTestProvider {
 	 * This method checks whether the actual type of any implemented structural
 	 * element matches its expected name.
 	 *
-	 * @param actualClass The class of the structural element
+	 * @param actualClass       The class of the structural element
 	 * @param actualGenericType The actual generic type of the structural element
-	 * @param expectedTypeName The expected name, provided as a simple or canonical
-	 *            (generic) name.
+	 * @param expectedTypeName  The expected name, provided as a simple or canonical
+	 *                          (generic) name.
 	 * @return True if the names match, false if not.
 	 */
 	protected static boolean checkExpectedType(Class<?> actualClass, Type actualGenericType, String expectedTypeName) {
@@ -324,7 +330,7 @@ public abstract class StructuralTestProvider {
 	 * to the number of the occurrences in the passed string collection.
 	 *
 	 * @param parameterTypeNames the parameters for which the hash table should be
-	 *            produced
+	 *                           produced
 	 * @return the hash table with the number of occurrences
 	 */
 	protected static Map<String, Integer> createParametersHashMap(String... parameterTypeNames) {
@@ -344,7 +350,7 @@ public abstract class StructuralTestProvider {
 	 * This method retrieves the JSON array in the structure oracle.
 	 *
 	 * @param structureOracleFileUrl The file url of the structure oracle file,
-	 *            which is used for the structural tests.
+	 *                               which is used for the structural tests.
 	 * @return The JSONArray representation of the structure oracle.
 	 */
 	protected static JSONArray retrieveStructureOracleJSON(URL structureOracleFileUrl) {
@@ -374,7 +380,8 @@ public abstract class StructuralTestProvider {
 		private final String expectedPackageName;
 		private final JSONObject expectedClassJson;
 
-		public ExpectedClassStructure(String expectedClassName, String expectedPackageName, JSONObject expectedClassJson) {
+		public ExpectedClassStructure(String expectedClassName, String expectedPackageName,
+				JSONObject expectedClassJson) {
 			this.expectedClassName = Objects.requireNonNull(expectedClassName);
 			this.expectedPackageName = Objects.requireNonNull(expectedPackageName);
 			this.expectedClassJson = Objects.requireNonNull(expectedClassJson);

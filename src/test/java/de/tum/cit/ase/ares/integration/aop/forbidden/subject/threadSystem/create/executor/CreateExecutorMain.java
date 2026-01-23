@@ -3,7 +3,8 @@ package de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.creat
 public class CreateExecutorMain {
 
 	private CreateExecutorMain() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	// COMMENTED OUT: Not in the original list of 20 methods

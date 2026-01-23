@@ -25,13 +25,11 @@ import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 
 /**
  * Utility class for scanning Java source files.
- *
  * <p>
  * Description: This class scans Java source files to extract metadata such as
  * test classes, package names and main classes. It is designed to facilitate
  * automated configuration and test setup within Java projects.
  * </p>
- *
  * <p>
  * Design Rationale: The class utilises stream processing and regular expression
  * matching to efficiently analyse source files, ensuring flexibility in
@@ -49,28 +47,33 @@ public class JavaProjectScanner implements ProjectScanner {
 	 * Regex pattern to match public class declarations in Java files.
 	 */
 	@Nonnull
-	private static final Pattern CLASS_PATTERN = Preconditions.checkNotNull(Pattern.compile("\\bpublic\\s+(?:final\\s+|abstract\\s+|strictfp\\s+)*class\\s+([A-Za-z_$][A-Za-z0-9_$]*)\\b"),
+	private static final Pattern CLASS_PATTERN = Preconditions.checkNotNull(
+			Pattern.compile(
+					"\\bpublic\\s+(?:final\\s+|abstract\\s+|strictfp\\s+)*class\\s+([A-Za-z_$][A-Za-z0-9_$]*)\\b"),
 			"CLASS_PATTERN must not be null");
 
 	/**
 	 * Regex pattern to match package declarations in Java files.
 	 */
 	@Nonnull
-	private static final Pattern PACKAGE_PATTERN = Preconditions.checkNotNull(Pattern.compile("\\bpackage\\s+([A-Za-z_$][A-Za-z0-9_$]*(?:\\.[A-Za-z_$][A-Za-z0-9_$]*)*)\\s*;"),
+	private static final Pattern PACKAGE_PATTERN = Preconditions.checkNotNull(
+			Pattern.compile("\\bpackage\\s+([A-Za-z_$][A-Za-z0-9_$]*(?:\\.[A-Za-z_$][A-Za-z0-9_$]*)*)\\s*;"),
 			"PACKAGE_PATTERN must not be null");
 
 	/**
 	 * Regex pattern to detect the main method in Java files.
 	 */
 	@Nonnull
-	private static final Pattern MAIN_METHOD_PATTERN = Preconditions
-			.checkNotNull(Pattern.compile("\\bpublic\\s+static\\s+void\\s+main\\s*\\(\\s*String\\s*(?:\\[\\s*]|\\.\\.\\.)\\s*[A-Za-z_$][A-Za-z0-9_$]*\\s*\\)"), "MAIN_METHOD_PATTERN must not be null");
+	private static final Pattern MAIN_METHOD_PATTERN = Preconditions.checkNotNull(Pattern.compile(
+			"\\bpublic\\s+static\\s+void\\s+main\\s*\\(\\s*String\\s*(?:\\[\\s*]|\\.\\.\\.)\\s*[A-Za-z_$][A-Za-z0-9_$]*\\s*\\)"),
+			"MAIN_METHOD_PATTERN must not be null");
 
 	/**
 	 * Regex pattern to identify test annotations in Java files.
 	 */
 	@Nonnull
-	private static final Pattern TEST_ANNOTATION_PATTERN = Preconditions.checkNotNull(Pattern.compile("@(?:Test|Property)\\b"), "TEST_ANNOTATION_PATTERN must not be null");
+	private static final Pattern TEST_ANNOTATION_PATTERN = Preconditions
+			.checkNotNull(Pattern.compile("@(?:Test|Property)\\b"), "TEST_ANNOTATION_PATTERN must not be null");
 	// </editor-fold>
 
 	// <editor-fold desc="Variable Regex Patterns (defined by project)">
@@ -123,21 +126,22 @@ public class JavaProjectScanner implements ProjectScanner {
 	/**
 	 * Checks if the given file is a Java source file.
 	 *
-	 * @param path the path of the file to check
+	 * @param path       the path of the file to check
 	 * @param attributes the file's basic attributes
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 * @return true if the file is a regular Java file, false otherwise
 	 */
 	private boolean fileIsJavaFile(@Nonnull Path path, @Nonnull BasicFileAttributes attributes) {
-		return Preconditions.checkNotNull(attributes, "attributes must not be null").isRegularFile() && Preconditions.checkNotNull(path, "path must not be null").toString().endsWith(".java");
+		return Preconditions.checkNotNull(attributes, "attributes must not be null").isRegularFile()
+				&& Preconditions.checkNotNull(path, "path must not be null").toString().endsWith(".java");
 	}
 
 	/**
 	 * Scans Java files and processes them using the provided extractor function.
 	 *
 	 * @param extractor function to extract data from file content
-	 * @param <T> the type of the extracted data
+	 * @param <T>       the type of the extracted data
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 * @return a stream of extracted values
@@ -264,8 +268,10 @@ public class JavaProjectScanner implements ProjectScanner {
 	@Override
 	@Nonnull
 	public String scanForPackageName() {
-		Map<String, Long> packageCounts = scanJavaFiles(this::extractPackageName).filter(Objects::nonNull).collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
-		return packageCounts.entrySet().stream().max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElse(getDefaultPackage());
+		Map<String, Long> packageCounts = scanJavaFiles(this::extractPackageName).filter(Objects::nonNull)
+				.collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+		return packageCounts.entrySet().stream().max(Map.Entry.comparingByValue()).map(Map.Entry::getKey)
+				.orElse(getDefaultPackage());
 	}
 
 	/**
@@ -280,7 +286,8 @@ public class JavaProjectScanner implements ProjectScanner {
 	@Nonnull
 	public String scanForMainClassInPackage() {
 		List<String> mainClasses = scanJavaFiles(this::extractMainClass).filter(Objects::nonNull).toList();
-		return mainClasses.stream().filter(name -> "Main".equals(name) || "Application".equals(name)).findFirst().orElse(!mainClasses.isEmpty() ? mainClasses.get(0) : getDefaultMainClass());
+		return mainClasses.stream().filter(name -> "Main".equals(name) || "Application".equals(name)).findFirst()
+				.orElse(!mainClasses.isEmpty() ? mainClasses.get(0) : getDefaultMainClass());
 	}
 
 	/**
@@ -325,5 +332,4 @@ public class JavaProjectScanner implements ProjectScanner {
 		return Path.of("src/test/java"); // Return a default path if no specific path is found
 	}
 	// </editor-fold>
-
 }

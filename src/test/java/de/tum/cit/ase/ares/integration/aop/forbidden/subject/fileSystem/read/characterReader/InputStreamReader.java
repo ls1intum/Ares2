@@ -6,7 +6,8 @@ import java.nio.charset.StandardCharsets;
 public class InputStreamReader {
 
 	private InputStreamReader() {
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/**
@@ -15,7 +16,8 @@ public class InputStreamReader {
 	 * read(char[], int, int) - Decode raw bytes → Unicode text
 	 */
 	public static void accessFileSystemViaInputStreamReader() throws IOException {
-		try (FileInputStream fis = new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt")) {
+		try (FileInputStream fis = new FileInputStream(
+				"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt")) {
 			// Test InputStreamReader with default charset
 			java.io.InputStreamReader isr1 = new java.io.InputStreamReader(fis);
 			isr1.read(); // Single character read
@@ -24,7 +26,8 @@ public class InputStreamReader {
 			isr1.close();
 
 			// Test InputStreamReader with explicit charset
-			try (FileInputStream fis2 = new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
+			try (FileInputStream fis2 = new FileInputStream(
+					"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
 					java.io.InputStreamReader isr2 = new java.io.InputStreamReader(fis2, StandardCharsets.UTF_8)) {
 				isr2.read(); // Single character read with UTF-8
 			}

@@ -20,12 +20,10 @@ import de.tum.cit.ase.ares.api.util.FileTools;
 /**
  * Phobos is a utility class that provides methods to handle/parse file copying
  * and configuration for the Phobos security test cases.
- *
  * <p>
  * Description: This class contains methods to retrieve file paths,
  * configuration entries, and generate security test case files based on
  * permissions.
- *
  * <p>
  * Design Rationale: The separation of concerns allows for clear organization of
  * file handling and configuration management, facilitating the generation of
@@ -49,8 +47,8 @@ public class Phobos {
 	 * @return the resolved path
 	 */
 	public static List<Path> filesToCopy() {
-		return getCopyConfigurationEntries().stream().map(entry -> entry.get(0).split("/")).map(FileTools::resolveFileOnSourceDirectory).toList();
-
+		return getCopyConfigurationEntries().stream().map(entry -> entry.get(0).split("/"))
+				.map(FileTools::resolveFileOnSourceDirectory).toList();
 	}
 
 	/**
@@ -93,13 +91,13 @@ public class Phobos {
 	 * @return a list of paths where files should be copied to
 	 */
 	public static List<Path> targetsToCopyTo(@Nonnull Path targetPath) {
-		return getCopyConfigurationEntries().stream().map(entry -> entry.get(2).split("/")).map(path -> FileTools.resolveFileOnTargetDirectory(targetPath, path)).toList();
+		return getCopyConfigurationEntries().stream().map(entry -> entry.get(2).split("/"))
+				.map(path -> FileTools.resolveFileOnTargetDirectory(targetPath, path)).toList();
 	}
 
 	/**
 	 * Retrieves the file values for a given package name containing file content
 	 * with wildcards (e.g. %s).
-	 *
 	 *
 	 * @since 2.0.0
 	 * @author Ajayvir Singh
@@ -118,7 +116,8 @@ public class Phobos {
 	 * @return the path to the header file
 	 */
 	public static Path threePartedFileHeader() {
-		return getEditConfigurationEntries().stream().map(entry -> entry.get(0).split("/")).map(FileTools::resolveFileOnSourceDirectory).toList().get(0);
+		return getEditConfigurationEntries().stream().map(entry -> entry.get(0).split("/"))
+				.map(FileTools::resolveFileOnSourceDirectory).toList().get(0);
 	}
 
 	/**
@@ -131,12 +130,15 @@ public class Phobos {
 	 * @return a string representing the body of the three-parted file
 	 */
 	public static String threePartedFileBody(@Nonnull List<JavaPhobosTestCase> javaPhobosTestCases) {
-		List<FilePermission> filePermissions = extractPermissions(javaPhobosTestCases, JavaPhobosTestCaseSupported.FILESYSTEM_INTERACTION);
-		List<NetworkPermission> networkPermissions = extractPermissions(javaPhobosTestCases, JavaPhobosTestCaseSupported.NETWORK_CONNECTION);
-		List<ResourceLimitsPermission> resourceLimitsPermissions = extractPermissions(javaPhobosTestCases, JavaPhobosTestCaseSupported.TIMEOUT);
+		List<FilePermission> filePermissions = extractPermissions(javaPhobosTestCases,
+				JavaPhobosTestCaseSupported.FILESYSTEM_INTERACTION);
+		List<NetworkPermission> networkPermissions = extractPermissions(javaPhobosTestCases,
+				JavaPhobosTestCaseSupported.NETWORK_CONNECTION);
+		List<ResourceLimitsPermission> resourceLimitsPermissions = extractPermissions(javaPhobosTestCases,
+				JavaPhobosTestCaseSupported.TIMEOUT);
 
-		return JavaPhobosTestCase.writePhobosSecurityTestCaseFile(filePermissions, networkPermissions, resourceLimitsPermissions);
-
+		return JavaPhobosTestCase.writePhobosSecurityTestCaseFile(filePermissions, networkPermissions,
+				resourceLimitsPermissions);
 	}
 
 	/**
@@ -150,8 +152,10 @@ public class Phobos {
 	 * @return a list of permissions extracted from the test cases
 	 */
 	@SuppressWarnings("unchecked")
-	private static <T> List<T> extractPermissions(List<JavaPhobosTestCase> testCases, JavaPhobosTestCaseSupported supported) {
-		return testCases.stream().filter(testCase -> testCase.getPhobosTestCaseSupported() == supported).map(JavaPhobosTestCase::getResourceAccessSupplier).map(Supplier::get)
+	private static <T> List<T> extractPermissions(List<JavaPhobosTestCase> testCases,
+			JavaPhobosTestCaseSupported supported) {
+		return testCases.stream().filter(testCase -> testCase.getPhobosTestCaseSupported() == supported)
+				.map(JavaPhobosTestCase::getResourceAccessSupplier).map(Supplier::get)
 				.map(permissions -> (List<T>) permissions).flatMap(Collection::stream).toList();
 	}
 
@@ -163,7 +167,8 @@ public class Phobos {
 	 * @return the path to the footer file
 	 */
 	public static Path threePartedFileFooter() {
-		return getEditConfigurationEntries().stream().map(entry -> entry.get(1).split("/")).map(FileTools::resolveFileOnSourceDirectory).toList().get(0);
+		return getEditConfigurationEntries().stream().map(entry -> entry.get(1).split("/"))
+				.map(FileTools::resolveFileOnSourceDirectory).toList().get(0);
 	}
 
 	public static String[] fileValue(@Nonnull String packageName) {
@@ -180,6 +185,7 @@ public class Phobos {
 	 * @return the resolved target path
 	 */
 	public static Path targetToCopyTo(Path targetPath) {
-		return getEditConfigurationEntries().stream().map(entry -> entry.get(2).split("/")).map(path -> FileTools.resolveFileOnTargetDirectory(targetPath, path)).toList().get(0);
+		return getEditConfigurationEntries().stream().map(entry -> entry.get(2).split("/"))
+				.map(path -> FileTools.resolveFileOnTargetDirectory(targetPath, path)).toList().get(0);
 	}
 }
