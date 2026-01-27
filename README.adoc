@@ -472,6 +472,13 @@ and is typically maintained separately by instructors or test authors.
 For illustration purposes only, the following example assumes that
 the `security-policy.yaml` file is placed in the project root:
 
+The security policy can either be authored manually as a YAML file
+or created using **Ares2UI**(Link: <https://github.com/ls1intum/Ares2UI>), which provides a graphical editor with
+guided configuration and validation.
+
+Both approaches result in the same `security-policy.yaml` file,
+which is used as input for the precompile phase.
+
 [source,txt]
 ----
 example_project/
@@ -493,9 +500,8 @@ example_project/
 ----
 
 
-
 With the following minimal configuration file, virtually all actions are denied
-by default, providing a strict postcompile sandbox for the sample test:
+by default, providing a strict precompile sandbox for the sample test:
 
 
 [source,yaml]
@@ -529,13 +535,6 @@ delete `secret.txt` will be intercepted and blocked during postcompile execution
 If you are interested, you may try modifying the sample code to perform file
 operations on `something.txt` instead; these operations will succeed, whereas
 accesses to `secret.txt` will correctly trigger a security exception.
-
-The security policy can either be authored manually as a YAML file
-or created using **Ares2UI**, which provides a graphical editor with
-guided configuration and validation.
-
-Both approaches result in the same `security-policy.yaml` file,
-which is used as input for the precompile phase.
 
 Once the security policy has been defined, the precompile phase can be
 executed using one of the following approaches:
