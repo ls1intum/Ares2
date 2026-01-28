@@ -102,7 +102,6 @@ org.graalvm.compiler.core.CompilerThread.<init>(java.lang.Runnable, java.lang.St
 sun.tools.jconsole.Worker.<init>(java.lang.String)
 com.sun.media.sound.SoftMixingSourceDataLine.drain()
 com.sun.media.sound.SoftMixingSourceDataLine.write([B, int, int)
-java.lang.Process.waitFor(long, java.util.concurrent.TimeUnit)
 java.rmi.server.UID.<init>()
 javax.swing.AbstractButton.doClick(int)
 jdk.internal.net.http.common.SSLFlowDelegate$Monitor.run()

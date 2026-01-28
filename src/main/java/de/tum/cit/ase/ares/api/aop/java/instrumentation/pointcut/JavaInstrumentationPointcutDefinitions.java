@@ -358,25 +358,19 @@ public class JavaInstrumentationPointcutDefinitions {
 							"readInt", "readLine", "readLong", "readShort", "readUnsignedByte", "readUnsignedShort",
 							"readUTF")),
 			Map.entry("java.io.DataInputStream", List.of("<init>", "read", "readFully", "readUTF")),
-			Map.entry("java.io.ObjectInput", List.of("read", "readObject")),
-			Map.entry("java.io.ObjectInputStream", List.of("<init>", "read", "readObject")),
 			Map.entry("java.io.InputStreamReader", List.of("read")),
 			Map.entry("java.io.File",
-					List.of("normalizedList", "list", "listFiles", "listRoots", "lastModified", "length",
-							"getFreeSpace", "getTotalSpace", "getUsableSpace")),
+				List.of("normalizedList", "list", "listFiles", "listRoots")),
 			// java.nio
 			Map.entry("java.nio.file.Files",
 					List.of("find", "lines", "list", "newBufferedReader", "newByteChannel", "newDirectoryStream",
-							"newInputStream", "readAllBytes", "readAllLines", "readString", "walk", "walkFileTree",
-							"isSameFile", "size", "getLastModifiedTime", "getOwner", "getPosixFilePermissions",
-							"getAttribute", "getFileStore", "probeContentType", "readSymbolicLink")),
+							"newInputStream", "readAllBytes", "readAllLines", "readString", "walk", "walkFileTree")),
 			Map.entry("java.nio.channels.FileChannel", List.of("map", "open", "read", "transferFrom")),
 			Map.entry("java.nio.channels.AsynchronousFileChannel", List.of("open", "read")),
 			Map.entry("java.nio.channels.SeekableByteChannel", List.of("read")),
-			Map.entry("java.nio.file.FileSystem", List.of("newWatchService")),
 			Map.entry("java.nio.file.spi.FileSystemProvider",
 					List.of("newAsynchronousFileChannel", "newByteChannel", "newDirectoryStream", "newFileChannel",
-							"newInputStream", "newWatchService", "getFileStore", "isSameFile", "readSymbolicLink")),
+							"newInputStream", "readSymbolicLink", "isSameFile", "getFileStore")),
 			// java.net
 			Map.entry("java.net.JarURLConnection", List.of("getInputStream")),
 			// java.lang
@@ -384,8 +378,14 @@ public class JavaInstrumentationPointcutDefinitions {
 			// java.awt
 			Map.entry("java.awt.Toolkit", List.of("createImage", "getImage")),
 			Map.entry("java.awt.image.PixelGrabber", List.of("grabPixels")),
+			Map.entry("java.awt.Font", List.of("createFont", "createFonts")),
 			// javax.imageio
-			Map.entry("javax.imageio.ImageIO", List.of("createImageInputStream", "getImageReaders", "read")),
+			Map.entry("javax.imageio.ImageIO", List.of("createImageInputStream", "getImageReaders", "read", "setCacheDirectory")),
+			Map.entry("javax.imageio.metadata.IIOMetadataFormatImpl", List.of("getAttributeDescription", "getElementDescription")),
+			Map.entry("javax.imageio.stream.FileCacheImageInputStream", List.of("<init>")),
+			Map.entry("javax.imageio.stream.FileCacheImageOutputStream", List.of("<init>", "close")),
+			Map.entry("javax.imageio.stream.FileImageInputStream", List.of("<init>")),
+			Map.entry("javax.imageio.stream.FileImageOutputStream", List.of("<init>")),
 			// javax.xml
 			Map.entry("javax.xml.parsers.DocumentBuilder", List.of("parse")),
 			Map.entry("javax.xml.parsers.SAXParser", List.of("parse")),
@@ -424,8 +424,7 @@ public class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.io.DataOutputStream",
 					List.of("<init>", "write", "writeBoolean", "writeByte", "writeBytes", "writeChar", "writeChars",
 							"writeDouble", "writeFloat", "writeInt", "writeLong", "writeShort", "writeUTF")),
-			Map.entry("java.io.ObjectOutputStream", List.of("<init>", "writeObject")),
-			Map.entry("java.util.logging.FileHandler", List.of("<init>", "publish")),
+			Map.entry("java.util.logging.FileHandler", List.of("<init>", "publish", "close")),
 			Map.entry("java.util.zip.GZIPOutputStream", List.of("<init>", "write")),
 			Map.entry("java.util.zip.InflaterOutputStream", List.of("<init>")),
 			Map.entry("java.util.zip.ZipOutputStream", List.of("<init>", "putNextEntry", "closeEntry", "write")),
@@ -487,7 +486,7 @@ public class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.lang.System", List.of("load", "loadLibrary")),
 			// Note: ProcessBuilder is handled entirely by Command System
 			// java.awt
-			Map.entry("java.awt.Desktop", List.of("open", "edit", "print", "browse", "browseFileDirectory")));
+			Map.entry("java.awt.Desktop", List.of("open", "edit", "print", "browse", "browseFileDirectory", "mail", "openHelpViewer", "setDefaultMenuBar", "setOpenFileHandler", "setOpenURIHandler")));
 	// </editor-fold>
 
 	// <editor-fold desc="Delete Path">

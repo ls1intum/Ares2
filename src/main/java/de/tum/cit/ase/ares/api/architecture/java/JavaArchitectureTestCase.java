@@ -89,10 +89,125 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		if (messageParts.length < 2) {
 			throw new SecurityException(Messages.localized("security.archunit.illegal.execution", e.getMessage()));
 		}
+		
+		// Extract the rule name (e.g., "Accesses file system") from first line
 		@Nonnull
-		String replacementIdentifier = ".*?'(.*?)'.*\r*";
+		String ruleNamePattern = ".*?'(.*?)'.*";
+		@Nonnull
+		String ruleName = messageParts[0].replaceAll(ruleNamePattern, "$1").trim();
+		
+		// Check if this is a package import violation (different message format)
+		if (ruleName.toLowerCase().contains("imports forbidden packages")) {
+			// Extract all forbidden packages from the message
+			// The message can have multiple formats:
+			// 1. "Class <class> depends on <forbidden.package.Class> in (File.java:0)" - direct dependency
+			// 2. "Class <class> extends class <forbidden.package.Class> in (File.java:0)" - inheritance
+			// 3. "Constructor <class.method()> calls constructor <forbidden.package.Class.method()> in (File.java:0)" - constructor call
+			// 4. "Method <class.method()> gets field <forbidden.package.Class.field> in (File.java:0)" - field access
+			// 5. "Method <class.method()> calls method <forbidden.package.Class.method()> in (File.java:0)" - method call
+			java.util.Set<String> forbiddenPackages = new java.util.TreeSet<>();
+			
+			// Pattern to match any of: "depends on <X>", "extends class <X>", "calls constructor <X>", "calls method <X>", "gets field <X>"
+			@Nonnull
+			String accessPattern = "(?:depends on|extends class|calls constructor|calls method|gets field) <([^>]+)>";
+			java.util.regex.Pattern accessRegex = java.util.regex.Pattern.compile(accessPattern);
+			
+			for (int i = 1; i < messageParts.length; i++) {
+				java.util.regex.Matcher accessMatcher = accessRegex.matcher(messageParts[i]);
+				while (accessMatcher.find()) {
+					String fullName = accessMatcher.group(1);
+					// Extract package name from fully qualified class/method/field name
+					// For methods/fields like "package.Class.method", we want "package"
+					// For classes like "package.Class", we want "package"
+					if (fullName.contains(".")) {
+						// Remove method/field part if present (last part after the class name)
+						// Class names start with uppercase, packages with lowercase
+						String[] parts = fullName.split("\\.");
+						StringBuilder packageBuilder = new StringBuilder();
+						for (int j = 0; j < parts.length; j++) {
+							// Stop when we hit the class name (starts with uppercase)
+							if (parts[j].length() > 0 && Character.isUpperCase(parts[j].charAt(0))) {
+								break;
+							}
+							if (packageBuilder.length() > 0) {
+								packageBuilder.append(".");
+							}
+							packageBuilder.append(parts[j]);
+						}
+						String packageName = packageBuilder.toString();
+						if (!packageName.isEmpty()) {
+							forbiddenPackages.add(packageName);
+						}
+					}
+				}
+			}
+			
+			if (forbiddenPackages.isEmpty()) {
+				// Fallback if no packages could be extracted
+				throw new SecurityException(Messages.localized("security.archunit.package.import.violation", "unknown packages"));
+			}
+			
+			String packageList = String.join(", ", forbiddenPackages);
+			throw new SecurityException(Messages.localized("security.archunit.package.import.violation", packageList));
+		}
+		
+		// Parse the detail lines to extract caller, target method, and location info
+		// Format: "Method <caller> calls method <target> in (File.java:line) accesses <target> in (File.java:line)"
+		@Nonnull
+		String detailLine = messageParts[1].trim();
+		
+		// Extract the caller method (between "Method <" and "> ")
+		// Handle nested angle brackets like <init> by using a greedy match up to "> " or end
+		@Nonnull
+		String callerPattern = "Method <(.+?)> ";
+		java.util.regex.Pattern callerRegex = java.util.regex.Pattern.compile(callerPattern);
+		java.util.regex.Matcher callerMatcher = callerRegex.matcher(detailLine);
+		@Nonnull
+		String caller = callerMatcher.find() ? callerMatcher.group(1) : "unknown";
+		
+		// Extract the target method (between "accesses <" and "> in")
+		// Handle nested angle brackets like <init> by matching up to "> in"
+		@Nonnull
+		String targetPattern = "accesses <(.+?)> in";
+		java.util.regex.Pattern targetRegex = java.util.regex.Pattern.compile(targetPattern);
+		java.util.regex.Matcher targetMatcher = targetRegex.matcher(detailLine);
+		@Nonnull
+		String target = targetMatcher.find() ? targetMatcher.group(1) : "unknown";
+		
+		// Extract parent caller from the caller (class.method -> extract class)
+		@Nonnull
+		String parentCaller = caller.contains(".") ? caller.substring(0, caller.lastIndexOf('.')) : caller;
+		
+		// Determine the action based on the rule name
+		@Nonnull
+		String action = mapRuleNameToAction(ruleName);
+		
 		throw new SecurityException(Messages.localized("security.archunit.violation.error",
-				messageParts[0].replaceAll(replacementIdentifier, "$1"), messageParts[1]));
+				caller, action, target, parentCaller));
+	}
+	
+	/**
+	 * Maps an ArchUnit rule name to a human-readable action description.
+	 *
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 * @param ruleName The name of the violated rule
+	 * @return A human-readable action description
+	 */
+	@Nonnull
+	private static String mapRuleNameToAction(@Nonnull String ruleName) {
+		return switch (ruleName.toLowerCase()) {
+			case "accesses file system" -> "access the file system";
+			case "accesses network" -> "access the network";
+			case "terminates jvm" -> "terminate the JVM";
+			case "uses reflection" -> "use reflection";
+			case "executes commands" -> "execute a command";
+			case "manipulates threads" -> "manipulate threads";
+			case "imports forbidden packages" -> "import forbidden packages";
+			case "serializes objects" -> "serialize objects";
+			case "manipulates the loading of classes" -> "manipulate class loading";
+			default -> ruleName;
+		};
 	}
 	// </editor-fold>
 

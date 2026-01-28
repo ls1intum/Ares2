@@ -16,16 +16,29 @@ public aspect JavaAspectJThreadSystemPointcutDefinitions {
             call(* java.util.concurrent.AbstractExecutorService.submit(..)) ||
             call(* java.util.concurrent.AbstractExecutorService.invokeAll(..)) ||
             call(* java.util.concurrent.AbstractExecutorService.invokeAny(..)) ||
+            call(* java.util.concurrent.AbstractExecutorService.execute(..)) ||
             call(* java.util.concurrent.ThreadPoolExecutor.execute(..)) ||
             call(* java.util.concurrent.ThreadPoolExecutor.submit(..)) ||
+            call(* java.util.concurrent.ThreadPoolExecutor.invokeAll(..)) ||
+            call(* java.util.concurrent.ThreadPoolExecutor.invokeAny(..)) ||
             call(* java.util.concurrent.ScheduledExecutorService.schedule(..)) ||
             call(* java.util.concurrent.ScheduledExecutorService.scheduleAtFixedRate(..)) ||
             call(* java.util.concurrent.ScheduledExecutorService.scheduleWithFixedDelay(..)) ||
+            call(* java.util.concurrent.ScheduledExecutorService.submit(..)) ||
+            call(* java.util.concurrent.ScheduledExecutorService.invokeAll(..)) ||
+            call(* java.util.concurrent.ScheduledExecutorService.invokeAny(..)) ||
+            call(* java.util.concurrent.ScheduledExecutorService.execute(..)) ||
             call(* java.util.concurrent.ScheduledThreadPoolExecutor.schedule(..)) ||
             call(* java.util.concurrent.ScheduledThreadPoolExecutor.scheduleAtFixedRate(..)) ||
             call(* java.util.concurrent.ScheduledThreadPoolExecutor.scheduleWithFixedDelay(..)) ||
+            call(* java.util.concurrent.ScheduledThreadPoolExecutor.submit(..)) ||
+            call(* java.util.concurrent.ScheduledThreadPoolExecutor.execute(..)) ||
+            call(* java.util.concurrent.ScheduledThreadPoolExecutor.invokeAll(..)) ||
+            call(* java.util.concurrent.ScheduledThreadPoolExecutor.invokeAny(..)) ||
             call(* java.util.concurrent.ForkJoinPool.execute(..)) ||
             call(* java.util.concurrent.ForkJoinPool.submit(..)) ||
+            call(* java.util.concurrent.ForkJoinPool.invokeAll(..)) ||
+            call(* java.util.concurrent.ForkJoinPool.invokeAny(..)) ||
             call(* java.util.concurrent.CompletableFuture.runAsync(..)) ||
             call(* java.util.concurrent.CompletableFuture.supplyAsync(..)) ||
             call(* java.util.concurrent.CompletableFuture.thenApplyAsync(..)) ||

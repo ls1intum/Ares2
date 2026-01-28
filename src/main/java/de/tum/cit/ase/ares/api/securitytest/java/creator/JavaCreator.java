@@ -74,8 +74,8 @@ public class JavaCreator implements Creator {
 	}
 
 	/**
-	 * Prepares the set of allowed packages based on essential packages and security
-	 * policy.
+	 * Prepares the set of allowed packages based on essential packages, security
+	 * policy, and test classes.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
@@ -84,11 +84,14 @@ public class JavaCreator implements Creator {
 	 * @param essentialPackages the list of essential packages; must not be null
 	 * @param packageName       the name of the package containing the main class;
 	 *                          must not be null
+	 * @param testClasses       the list of test classes whose packages should be
+	 *                          allowed; must not be null
 	 * @return a set of allowed package permissions; never null
 	 */
 	@Nonnull
 	private Set<PackagePermission> prepareAllowedPackages(@Nonnull List<String> essentialPackages,
-			@Nonnull ResourceAccesses resourceAccesses, @Nonnull String packageName) {
+			@Nonnull ResourceAccesses resourceAccesses, @Nonnull String packageName,
+			@Nonnull List<String> testClasses) {
 		return Stream.of(
 				// Essential packages are allowed to do anything
 				essentialPackages.stream().map(PackagePermission::new),
@@ -98,7 +101,18 @@ public class JavaCreator implements Creator {
 				 * The package of the restricted student code is allowed (else the student would
 				 * not be able to use his/her own code)
 				 */
-				Stream.of(new PackagePermission(packageName))
+				Stream.of(new PackagePermission(packageName)),
+				/*
+				 * The packages of the test classes are allowed (test infrastructure classes
+				 * like ProtectedResourceAccess need to be accessible from the supervised code)
+				 */
+				testClasses.stream()
+						.map(className -> {
+							int lastDot = className.lastIndexOf('.');
+							return lastDot > 0 ? className.substring(0, lastDot) : className;
+						})
+						.distinct()
+						.map(PackagePermission::new)
 
 		).flatMap(Function.identity()).collect(Collectors.toSet());
 	}
@@ -331,19 +345,20 @@ public class JavaCreator implements Creator {
 			@Nonnull Path projectPath) {
 		// <editor-fold desc="Extraction">
 		@Nonnull
-		String classPath = cacheResult(projectPath + "_classPath", () -> buildMode.getClasspath(projectPath)).get();
+		String classPath = cacheResult(projectPath + "_" + packageName + "_classPath", 
+				() -> buildMode.getClasspath(projectPath, packageName)).get();
 		@Nonnull
-		JavaClasses javaClasses = cacheResult(projectPath + "_javaClasses",
+		JavaClasses javaClasses = cacheResult(projectPath + "_" + packageName + "_javaClasses",
 				() -> architectureMode.getJavaClasses(classPath)).get();
 		@Nonnull
-		CallGraph callGraph = cacheResult(projectPath + "_callGraph", () -> architectureMode.getCallGraph(classPath))
+		CallGraph callGraph = cacheResult(projectPath + "_" + packageName + "_callGraph", () -> architectureMode.getCallGraph(classPath))
 				.get();
 		// </editor-fold>
 
 		// <editor-fold desc="Preparation">
 		@Nonnull
 		Set<PackagePermission> allowedPackages = prepareAllowedPackages(essentialPackages, resourceAccesses,
-				packageName);
+				packageName, testClasses);
 		@Nonnull
 		Set<ClassPermission> allowedClasses = prepareAllowedClasses(essentialClasses, testClasses);
 		// </editor-fold>

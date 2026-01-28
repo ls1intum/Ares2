@@ -7,18 +7,12 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.io.File.list(..)) ||
                     call(* java.io.File.listFiles(..)) ||
                     call(* java.io.File.listRoots(..)) ||
-                    call(* java.io.File.lastModified(..)) ||
-                    call(* java.io.File.length(..)) ||
-                    call(* java.io.File.getFreeSpace(..)) ||
-                    call(* java.io.File.getTotalSpace(..)) ||
-                    call(* java.io.File.getUsableSpace(..)) ||
                     call(* java.io.RandomAccessFile.read(..)));
 
     pointcut fileWriteMethods():
             (call(java.io.RandomAccessFile.new(..)) ||
                     call(java.io.BufferedOutputStream.new(..)) ||
                     call(java.io.DataOutputStream.new(..)) ||
-                    call(java.io.ObjectOutputStream.new(..)) ||
                     call(java.io.PrintStream.new(..)) ||
                     call(java.util.logging.FileHandler.new(..)) ||
                     call(java.util.zip.GZIPOutputStream.new(..)) ||
@@ -33,8 +27,14 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.io.File.setWritable(..)) ||
                     call(* java.io.File.renameTo(..)) ||
                     call(* java.io.OutputStream.write(..)) ||
+                    call(* java.io.OutputStream.flush(..)) ||
+                    call(* java.io.OutputStream.close(..)) ||
                     call(* java.io.BufferedOutputStream.write(..)) ||
+                    call(* java.io.BufferedOutputStream.flush(..)) ||
+                    call(* java.io.BufferedOutputStream.close(..)) ||
                     call(* java.io.DataOutputStream.write(..)) ||
+                    call(* java.io.DataOutputStream.flush(..)) ||
+                    call(* java.io.DataOutputStream.close(..)) ||
                     call(* java.io.DataOutputStream.writeBoolean(..)) ||
                     call(* java.io.DataOutputStream.writeByte(..)) ||
                     call(* java.io.DataOutputStream.writeBytes(..)) ||
@@ -46,7 +46,6 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.io.DataOutputStream.writeLong(..)) ||
                     call(* java.io.DataOutputStream.writeShort(..)) ||
                     call(* java.io.DataOutputStream.writeUTF(..)) ||
-                    call(* java.io.ObjectOutputStream.writeObject(..)) ||
                     call(* java.io.RandomAccessFile.writeBoolean(..)) ||
                     call(* java.io.RandomAccessFile.writeByte(..)) ||
                     call(* java.io.RandomAccessFile.writeBytes(..)) ||
@@ -72,12 +71,18 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.util.zip.ZipOutputStream.putNextEntry(..)) ||
                     call(* java.util.zip.ZipOutputStream.closeEntry(..)) ||
                     call(* java.util.zip.ZipOutputStream.write(..)) ||
+                    call(* java.util.zip.ZipOutputStream.flush(..)) ||
+                    call(* java.util.zip.ZipOutputStream.close(..)) ||
                     call(* java.util.zip.GZIPOutputStream.write(..)) ||
+                    call(* java.util.zip.GZIPOutputStream.flush(..)) ||
+                    call(* java.util.zip.GZIPOutputStream.close(..)) ||
                     call(* java.util.jar.JarOutputStream.putNextEntry(..)) ||
                     call(* java.util.jar.JarOutputStream.closeEntry(..)) ||
                     call(* java.util.Properties.store(..)) ||
                     call(* java.util.Properties.storeToXML(..)) ||
                     call(* java.io.FileOutputStream.write(..)) ||
+                    call(* java.io.FileOutputStream.flush(..)) ||
+                    call(* java.io.FileOutputStream.close(..)) ||
                     call(* java.io.RandomAccessFile.write(..)));
 
     pointcut fileCreateMethods():
@@ -92,11 +97,10 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(java.io.PrintWriter.new(..)) ||
                     call(java.io.RandomAccessFile.new(..)));
 
+    // Note: ProcessBuilder.start, startPipeline, and Runtime.exec are handled by the Command System
+    // in Byte Buddy mode, as they execute commands rather than individual files.
     pointcut fileExecuteMethods():
-            (call(* java.lang.ProcessBuilder.start(..)) ||
-                    call(* java.lang.ProcessBuilder.startPipeline(..)) ||
-                    call(* java.lang.Runtime.exec(..)) ||
-                    call(* java.lang.Runtime.load(..)) ||
+            (call(* java.lang.Runtime.load(..)) ||
                     call(* java.lang.Runtime.loadLibrary(..)) ||
                     call(* java.lang.System.load(..)) ||
                     call(* java.lang.System.loadLibrary(..)) ||
@@ -104,7 +108,12 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.awt.Desktop.edit(..)) ||
                     call(* java.awt.Desktop.print(..)) ||
                     call(* java.awt.Desktop.browse(..)) ||
-                    call(* java.awt.Desktop.browseFileDirectory(..)));
+                    call(* java.awt.Desktop.browseFileDirectory(..)) ||
+                    call(* java.awt.Desktop.mail(..)) ||
+                    call(* java.awt.Desktop.openHelpViewer(..)) ||
+                    call(* java.awt.Desktop.setDefaultMenuBar(..)) ||
+                    call(* java.awt.Desktop.setOpenFileHandler(..)) ||
+                    call(* java.awt.Desktop.setOpenURIHandler(..)));
 
     pointcut fileDeleteMethods():
             (call(* java.awt.Desktop.moveToTrash(..)) ||
@@ -129,10 +138,11 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
             (call(* java.awt.Toolkit.createImage(..)) ||
                     call(* java.awt.Toolkit.getImage(..)) ||
                     call(* java.awt.image.PixelGrabber.grabPixels(..)) ||
+                    call(* java.awt.Font.createFont(..)) ||
+                    call(* java.awt.Font.createFonts(..)) ||
                     call(java.io.BufferedInputStream.new(..)) ||
                     call(* java.io.BufferedInputStream.read(..)) ||
                     call(java.io.DataInputStream.new(..)) ||
-                    call(java.io.ObjectInputStream.new(..)) ||
                     call(* java.io.DataInput.read(..)) ||
                     call(* java.io.DataInput.readBoolean(..)) ||
                     call(* java.io.DataInput.readByte(..)) ||
@@ -152,10 +162,6 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.io.DataInputStream.readUTF(..)) ||
                     call(* java.io.BufferedReader.read(..)) ||
                     call(* java.io.InputStream.read(..)) ||
-                    call(* java.io.ObjectInput.readObject(..)) ||
-                    call(* java.io.ObjectInput.read(..)) ||
-                    call(* java.io.ObjectInputStream.readObject(..)) ||
-                    call(* java.io.ObjectInputStream.read(..)) ||
                     call(* java.io.Reader.read(..)) ||
                     call(* java.io.InputStreamReader.read(..)) ||
                     call(* java.lang.ClassLoader.getResourceAsStream(..)) ||
@@ -172,27 +178,22 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.nio.file.Files.readAllBytes(..)) ||
                     call(* java.nio.file.Files.readAllLines(..)) ||
                     call(* java.nio.file.Files.readString(..)) ||
-                    call(* java.nio.file.Files.isSameFile(..)) ||
-                    call(* java.nio.file.Files.size(..)) ||
-                    call(* java.nio.file.Files.getLastModifiedTime(..)) ||
-                    call(* java.nio.file.Files.getOwner(..)) ||
-                    call(* java.nio.file.Files.getPosixFilePermissions(..)) ||
-                    call(* java.nio.file.Files.getAttribute(..)) ||
-                    call(* java.nio.file.Files.getFileStore(..)) ||
-                    call(* java.nio.file.Files.probeContentType(..)) ||
-                    call(* java.nio.file.Files.readSymbolicLink(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider.newAsynchronousFileChannel(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider.newByteChannel(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider.newDirectoryStream(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider.newFileChannel(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider.newInputStream(..)) ||
-                    call(* java.nio.file.spi.FileSystemProvider.newWatchService(..)) ||
-                    call(* java.nio.file.spi.FileSystemProvider.getFileStore(..)) ||
-                    call(* java.nio.file.spi.FileSystemProvider.isSameFile(..)) ||
-                    call(* java.nio.file.spi.FileSystemProvider.readSymbolicLink(..)) ||
                     call(* javax.imageio.ImageIO.createImageInputStream(..)) ||
                     call(* javax.imageio.ImageIO.getImageReaders(..)) ||
                     call(* javax.imageio.ImageIO.read(..)) ||
+                    call(* javax.imageio.ImageIO.setCacheDirectory(..)) ||
+                    call(* javax.imageio.metadata.IIOMetadataFormatImpl.getAttributeDescription(..)) ||
+                    call(* javax.imageio.metadata.IIOMetadataFormatImpl.getElementDescription(..)) ||
+                    call(javax.imageio.stream.FileCacheImageInputStream.new(..)) ||
+                    call(javax.imageio.stream.FileCacheImageOutputStream.new(..)) ||
+                    call(* javax.imageio.stream.FileCacheImageOutputStream.close(..)) ||
+                    call(javax.imageio.stream.FileImageInputStream.new(..)) ||
+                    call(javax.imageio.stream.FileImageOutputStream.new(..)) ||
                     call(* javax.sound.midi.MidiSystem.getSoundbank(..)) ||
                     call(* javax.sound.sampled.AudioSystem.getAudioInputStream(..)) ||
                     call(* javax.xml.parsers.DocumentBuilder.parse(..)) ||
@@ -219,6 +220,8 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
     // is determined by the OpenOptions passed to it. The deriveActionChecks() method handles
     // the semantic classification based on the options. Methods like Files.readString() and
     // Files.readAllLines() internally call newByteChannel() with default READ-only options.
+    // Note: Files.copy and Files.move are included here AND in filesDeleteMethods,
+    // matching Byte Buddy which monitors them for both WRITE and DELETE operations.
     pointcut filesWriteMethods():
             (call(* java.nio.file.Files.write(..)) ||
                     call(* java.nio.file.Files.writeString(..)) ||
@@ -254,7 +257,9 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
 
     pointcut filesDeleteMethods():
             (call(* java.nio.file.Files.delete(..)) ||
-                    call(* java.nio.file.Files.deleteIfExists(..)));
+                    call(* java.nio.file.Files.deleteIfExists(..)) ||
+                    call(* java.nio.file.Files.copy(..)) ||
+                    call(* java.nio.file.Files.move(..)));
 
     pointcut fileSystemReadMethods(): if(false);
 
@@ -298,12 +303,16 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
              (call(java.io.Writer.new(..)) ||
                     call(java.io.OutputStreamWriter.new(..)) ||
                     call(* java.io.Writer.append(..)) ||
-                    call(* java.io.Writer.write(..)));
+                    call(* java.io.Writer.write(..)) ||
+                    call(* java.io.OutputStreamWriter.append(..)) ||
+                    call(* java.io.OutputStreamWriter.write(..)));
 
     pointcut fileWriterMethods():
             (call(java.io.FileWriter.new(..)) ||
                     call(* java.io.FileWriter.append(..)) ||
-                    call(* java.io.FileWriter.write(..)));
+                    call(* java.io.FileWriter.write(..)) ||
+                    call(* java.io.OutputStreamWriter.append(..)) ||
+                    call(* java.io.OutputStreamWriter.write(..)));
 
     pointcut bufferedWriterMethods():
             call(java.io.BufferedWriter.new(..)) ||
@@ -312,13 +321,13 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
 
     pointcut fileHandlerMethods():
             (call(java.util.logging.FileHandler.new(..)) ||
-                    call(* java.util.logging.FileHandler.publish(..)));
+                    call(* java.util.logging.FileHandler.publish(..)) ||
+                    call(* java.util.logging.FileHandler.close(..)));
 
     pointcut midiSystemMethods():
             call(* javax.sound.midi.MidiSystem.getSoundbank(..));
 
-    pointcut fileSystemsReadMethods():
-            call(* java.nio.file.FileSystem.newWatchService(..));
+    pointcut fileSystemsReadMethods(): if(false);
 
     pointcut defaultFileSystemExecuteMethods(): if(false);
 
@@ -353,7 +362,7 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
 
     pointcut bufferedReaderInitMethods(): call(java.io.BufferedReader.new(..));
 
-    pointcut scannerInitMethods(): call(java.util.Scanner.new(java.io.File, ..));
+    pointcut scannerInitMethods(): call(java.util.Scanner.new(..));
 
     pointcut fileReaderInitMethods(): call(java.io.FileReader.new(..));
 

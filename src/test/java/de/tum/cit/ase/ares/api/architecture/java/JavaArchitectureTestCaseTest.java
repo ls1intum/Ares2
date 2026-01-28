@@ -86,4 +86,22 @@ public class JavaArchitectureTestCaseTest {
 						.allowedPackages(Collections.emptySet()).javaClasses(null).build(),
 				"Builder should throw NullPointerException if required fields are missing");
 	}
+
+	@Test
+	void testParseErrorMessage_withPackageImportViolation_extractsForbiddenPackages() {
+		// Test that parseErrorMessage correctly extracts forbidden packages from
+		// package import violation messages
+		String message = "Architecture Violation [Priority: MEDIUM] - Rule 'Imports forbidden packages' was violated (2 times):\n"
+				+ "Class <com.example.Test> depends on <java.io.File> in (Test.java:0)\n"
+				+ "Class <com.example.Test> depends on <java.nio.file.Path> in (Test.java:0)";
+		AssertionError error = new AssertionError(message);
+		SecurityException thrown = assertThrows(SecurityException.class,
+				() -> JavaArchitectureTestCase.parseErrorMessage(error),
+				"parseErrorMessage should throw SecurityException for package import violations");
+		// The message should contain the forbidden packages
+		assertTrue(thrown.getMessage().contains("java.io") || thrown.getMessage().contains("java.nio.file"),
+				"Exception message should include the forbidden packages from the violation");
+		assertTrue(thrown.getMessage().contains("Ares Security Error") || thrown.getMessage().contains("Ares Sicherheitsfehler"),
+				"Exception message should contain Ares Security Error prefix");
+	}
 }

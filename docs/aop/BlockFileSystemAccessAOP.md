@@ -215,9 +215,6 @@ Read APIs listed below access file contents or metadata without modifying them.
 | java.awt.Toolkit | createImage | ✅ | ✅ | ❌ |
 | java.awt.Toolkit | getImage | ✅ | ✅ | ❌ |
 | java.awt.image.PixelGrabber | grabPixels | ✅ | ✅ | ❌ |
-| java.io.ObjectInput | readObject | ✅ | ✅ | ❌ |
-| java.io.ObjectInputStream | `<new>` | ✅ | ✅ | ✅ |
-| java.io.ObjectInputStream | readObject | ✅ | ✅ | ✅ |
 | javax.imageio.ImageIO | createImageInputStream | ✅ | ✅ | ❌ |
 | javax.imageio.ImageIO | getImageReaders | ✅ | ✅ | ❌ |
 | javax.imageio.ImageIO | read | ✅ | ✅ | ❌ |
@@ -276,8 +273,6 @@ Read APIs listed below access file contents or metadata without modifying them.
 | java.io.DataInputStream | readUTF | ✅ | ✅ | ✅ |
 | java.io.InputStream | read | ✅ | ✅ | ❌ |
 | java.io.InputStreamReader | read | ✅ | ✅ | ❌ |
-| java.io.ObjectInput | read | ✅ | ✅ | ❌ |
-| java.io.ObjectInputStream | read | ✅ | ✅ | ❌ |
 | java.io.RandomAccessFile | read | ✅ | ✅ | ❌ |
 | java.io.Reader | read | ✅ | ✅ | ❌ |
 | java.io.BufferedReader | read | ✅ | ✅ | ❌ |
@@ -315,36 +310,35 @@ Read APIs listed below access file contents or metadata without modifying them.
 > - `java.io.File.isDirectory()`
 > - `java.io.File.isFile()`
 > - `java.io.File.isHidden()`
+> - `java.io.File.lastModified()`
+> - `java.io.File.length()`
+> - `java.io.File.getFreeSpace()`
+> - `java.io.File.getTotalSpace()`
+> - `java.io.File.getUsableSpace()`
 > - `java.nio.file.Files.isDirectory()`
 > - `java.nio.file.Files.isRegularFile()`
 > - `java.nio.file.Files.isSymbolicLink()`
 > - `java.nio.file.Files.isHidden()`
+> - `java.nio.file.Files.isSameFile()`
+> - `java.nio.file.Files.size()`
+> - `java.nio.file.Files.getLastModifiedTime()`
+> - `java.nio.file.Files.getOwner()`
+> - `java.nio.file.Files.getPosixFilePermissions()`
+> - `java.nio.file.Files.getAttribute()`
+> - `java.nio.file.Files.getFileStore()`
+> - `java.nio.file.Files.probeContentType()`
+> - `java.nio.file.Files.readSymbolicLink()`
 > - `java.nio.file.Files.getFileAttributeView()`
+> - `java.nio.file.spi.FileSystemProvider.getFileStore()`
+> - `java.nio.file.spi.FileSystemProvider.isSameFile()`
+> - `java.nio.file.spi.FileSystemProvider.readSymbolicLink()`
 > - `java.nio.file.spi.FileSystemProvider.getFileAttributeView()`
 > - `java.nio.file.spi.FileSystemProvider.isHidden()`
 > - `java.nio.file.spi.FileSystemProvider.checkAccess()`
 >
 > **Reason:** These methods are commonly used for pre-validation checks (e.g., checking if a file exists before reading it). Instrumenting them causes SecurityExceptions to be thrown prematurely in validation code, before the actual file operation occurs. Since these methods only query metadata and don't perform actual file I/O, they are safe to exclude from monitoring.
 
-| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.io.File | lastModified | ✅ | ✅ | ❌ |
-| java.io.File | length | ✅ | ✅ | ❌ |
-| java.io.File | getFreeSpace | ✅ | ✅ | ❌ |
-| java.io.File | getTotalSpace | ✅ | ✅ | ❌ |
-| java.io.File | getUsableSpace | ✅ | ✅ | ❌ |
-| java.nio.file.Files | isSameFile | ✅ | ✅ | ❌ |
-| java.nio.file.Files | size | ✅ | ✅ | ❌ |
-| java.nio.file.Files | getLastModifiedTime | ✅ | ✅ | ❌ |
-| java.nio.file.Files | getOwner | ✅ | ✅ | ❌ |
-| java.nio.file.Files | getPosixFilePermissions | ✅ | ✅ | ❌ |
-| java.nio.file.Files | getAttribute | ✅ | ✅ | ❌ |
-| java.nio.file.Files | getFileStore | ✅ | ✅ | ❌ |
-| java.nio.file.Files | probeContentType | ✅ | ✅ | ❌ |
-| java.nio.file.Files | readSymbolicLink | ✅ | ✅ | ❌ |
-| java.nio.file.spi.FileSystemProvider | getFileStore | ✅ | ✅ | ❌ |
-| java.nio.file.spi.FileSystemProvider | isSameFile | ✅ | ✅ | ❌ |
-| java.nio.file.spi.FileSystemProvider | readSymbolicLink | ✅ | ✅ | ❌ |
+*No monitored methods in this category - all metadata methods have been removed from instrumentation.*
 
 ---
 
@@ -359,6 +353,10 @@ Write APIs listed below modify existing content or attributes.
 
 **Writes any format fully to a file**
 
+> **Note:** `FileChannel.open`, `AsynchronousFileChannel.open`, and `FileChannel.map` do NOT have dedicated WRITE pointcuts. These methods are monitored via READ pointcuts, and the actual operation type is determined dynamically:
+> - `FileChannel.open` / `AsynchronousFileChannel.open`: Classified based on `OpenOption` parameters via `deriveActionChecks()`
+> - `FileChannel.map`: Classified based on `MapMode` parameter (e.g., `READ_WRITE` vs `READ_ONLY`)
+
 | Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
 | --- | --- | --- | --- | --- |
 | java.io.FileOutputStream | `<new>` | ✅ | ✅ | ✅ |
@@ -371,10 +369,10 @@ Write APIs listed below modify existing content or attributes.
 | java.io.Writer | `<new>` | ✅ | ✅ | ❌ |
 | java.io.OutputStreamWriter | `<new>` | ✅ | ✅ | ❌ |
 | java.nio.channels.AsynchronousFileChannel | write | ✅ | ✅ | ❌ |
-| java.nio.channels.AsynchronousFileChannel | open | ✅ | ✅ | ❌ |
+| java.nio.channels.AsynchronousFileChannel | open | ❌ (via OpenOptions) | ❌ (via OpenOptions) | ❌ |
 | java.io.BufferedOutputStream | write | ✅ | ✅ | ✅ |
-| java.nio.channels.FileChannel | open | ✅ | ✅ | ✅ |
-| java.nio.channels.FileChannel | map | ✅ | ✅ | ✅ |
+| java.nio.channels.FileChannel | open | ❌ (via OpenOptions) | ❌ (via OpenOptions) | ✅ |
+| java.nio.channels.FileChannel | map | ❌ (via MapMode) | ❌ (via MapMode) | ✅ |
 | java.nio.channels.FileChannel | write | ✅ | ✅ | ✅ |
 | java.nio.file.Files | newBufferedWriter | ✅ | ✅ | ✅ |
 | java.nio.file.Files | newByteChannel | ❌ | ✅ | ✅ |
@@ -504,6 +502,8 @@ Link creation APIs and conditional creates (e.g., `FileChannel.open` with create
 
 **Creates files**
 
+> **Note:** `FileChannel.open` and `AsynchronousFileChannel.open` do NOT have dedicated CREATE pointcuts in either AspectJ or Byte Buddy. These methods are monitored via READ pointcuts, and the actual operation type (read/write/create) is determined dynamically by analyzing the `OpenOption` parameters via `deriveActionChecks()`. When called with `CREATE` or `CREATE_NEW` options, they are classified as create operations at runtime.
+
 | Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
 | --- | --- | --- | --- | --- |
 | java.io.File | createNewFile | ✅ | ✅ | ✅ |
@@ -514,8 +514,8 @@ Link creation APIs and conditional creates (e.g., `FileChannel.open` with create
 | java.io.FileWriter | `<new>` | ✅ | ✅ | ✅ |
 | java.io.PrintWriter | `<new>` | ✅ | ✅ | ✅ |
 | java.io.RandomAccessFile | `<new>` | ✅ | ✅ | ✅ |
-| java.nio.channels.AsynchronousFileChannel | open | ✅ | ✅ | ❌ |
-| java.nio.channels.FileChannel | open | ✅ | ✅ | ✅ |
+| java.nio.channels.AsynchronousFileChannel | open | ❌ (via OpenOptions) | ❌ (via OpenOptions) | ❌ |
+| java.nio.channels.FileChannel | open | ❌ (via OpenOptions) | ❌ (via OpenOptions) | ✅ |
 | java.nio.file.Files | createFile | ✅ | ✅ | ✅ |
 | java.nio.file.Files | createLink | ✅ | ✅ | ✅ |
 | java.nio.file.Files | createSymbolicLink | ✅ | ✅ | ✅ |
@@ -571,9 +571,12 @@ Delete APIs listed below can remove files and empty directories.
 | java.nio.file.spi.FileSystemProvider | delete | ✅ | ✅ | ❌ |
 | java.nio.file.spi.FileSystemProvider | deleteIfExists | ✅ | ✅ | ❌ |
 
-**Does not delete (still monitored in delete pointcuts in Byte Buddy only)**
+**Also monitored in delete pointcuts (can delete source file)**
 
-- `java.nio.file.Files`: copy, move (Note: AspectJ does NOT monitor these in delete pointcuts)
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.nio.file.Files | copy | ✅ | ✅ | ❌ |
+| java.nio.file.Files | move | ✅ | ✅ | ❌ |
 
 ---
 
@@ -590,13 +593,13 @@ Execute APIs listed below trigger execution-like behavior on files.
 
 **Executes the file on the console (command line execution)**
 
-> **Note:** In Byte Buddy mode, `ProcessBuilder.start()`, `ProcessBuilder.startPipeline()`, and `Runtime.exec()` are handled by the **Command System** rather than the File System, as they execute commands rather than individual files. The File System pointcuts for execute only cover library loading (`load`/`loadLibrary`).
+> **Note:** `ProcessBuilder.start()`, `ProcessBuilder.startPipeline()`, and `Runtime.exec()` are handled by the **Command System** rather than the File System in both AspectJ and Byte Buddy modes, as they execute commands rather than individual files. The File System pointcuts for execute only cover library loading (`load`/`loadLibrary`).
 
 | Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
 | --- | --- | --- | --- | --- |
-| java.lang.ProcessBuilder | start | ✅ | ❌ (Command System) | ✅ |
-| java.lang.ProcessBuilder | startPipeline | ✅ | ❌ (Command System) | ✅ |
-| java.lang.Runtime | exec | ✅ | ❌ (Command System) | ✅ |
+| java.lang.ProcessBuilder | start | ❌ (Command System) | ❌ (Command System) | ✅ |
+| java.lang.ProcessBuilder | startPipeline | ❌ (Command System) | ❌ (Command System) | ✅ |
+| java.lang.Runtime | exec | ❌ (Command System) | ❌ (Command System) | ✅ |
 | java.lang.Runtime | load | ✅ | ✅ | ❌ |
 | java.lang.Runtime | loadLibrary | ✅ | ✅ | ❌ |
 | java.lang.System | load | ✅ | ✅ | ❌ |
@@ -611,6 +614,11 @@ Execute APIs listed below trigger execution-like behavior on files.
 | java.awt.Desktop | print | ✅ | ✅ | ❌ |
 | java.awt.Desktop | browse | ✅ | ✅ | ❌ |
 | java.awt.Desktop | browseFileDirectory | ✅ | ✅ | ❌ |
+| java.awt.Desktop | mail | ✅ | ✅ | ❌ |
+| java.awt.Desktop | openHelpViewer | ✅ | ✅ | ❌ |
+| java.awt.Desktop | setDefaultMenuBar | ✅ | ✅ | ❌ |
+| java.awt.Desktop | setOpenFileHandler | ✅ | ✅ | ❌ |
+| java.awt.Desktop | setOpenURIHandler | ✅ | ✅ | ❌ |
 
 ---
 

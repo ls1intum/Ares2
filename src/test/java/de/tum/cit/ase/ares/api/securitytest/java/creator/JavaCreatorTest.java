@@ -134,7 +134,7 @@ public class JavaCreatorTest {
 			List<PhobosTestCase> phobosTestCases = new ArrayList<>();
 
 			String classpath = "/test/classpath";
-			when(buildMode.getClasspath(tempDir)).thenReturn(classpath);
+			when(buildMode.getClasspath(tempDir, packageName)).thenReturn(classpath);
 			when(architectureMode.getJavaClasses(classpath)).thenReturn(javaClasses);
 			when(architectureMode.getCallGraph(classpath)).thenReturn(callGraph);
 			when(resourceAccesses.regardingPackageImports())
@@ -146,7 +146,7 @@ public class JavaCreatorTest {
 					aopTestCases, phobosTestCases, resourceAccesses, tempDir));
 
 			// Assert
-			verify(buildMode).getClasspath(tempDir);
+			verify(buildMode).getClasspath(tempDir, packageName);
 			verify(architectureMode).getJavaClasses(classpath);
 			verify(architectureMode).getCallGraph(classpath);
 			verify(resourceAccesses).regardingPackageImports();
@@ -166,7 +166,7 @@ public class JavaCreatorTest {
 			List<PhobosTestCase> phobosTestCases = new ArrayList<>();
 
 			String classpath = "/test/classpath";
-			when(buildMode.getClasspath(tempDir)).thenReturn(classpath);
+			when(buildMode.getClasspath(tempDir, packageName)).thenReturn(classpath);
 			when(architectureMode.getJavaClasses(classpath)).thenReturn(javaClasses);
 			when(architectureMode.getCallGraph(classpath)).thenReturn(callGraph);
 			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
@@ -191,7 +191,7 @@ public class JavaCreatorTest {
 			List<PhobosTestCase> phobosTestCases = new ArrayList<>();
 
 			String classpath = "/test/classpath";
-			when(buildMode.getClasspath(tempDir)).thenReturn(classpath);
+			when(buildMode.getClasspath(tempDir, packageName)).thenReturn(classpath);
 			when(architectureMode.getJavaClasses(classpath)).thenReturn(javaClasses);
 			when(architectureMode.getCallGraph(classpath)).thenReturn(callGraph);
 			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
@@ -216,7 +216,7 @@ public class JavaCreatorTest {
 			List<PhobosTestCase> phobosTestCases = new ArrayList<>();
 
 			String classpath = "/test/classpath";
-			when(buildMode.getClasspath(tempDir)).thenReturn(classpath);
+			when(buildMode.getClasspath(tempDir, packageName)).thenReturn(classpath);
 			when(architectureMode.getJavaClasses(classpath)).thenReturn(javaClasses);
 			when(architectureMode.getCallGraph(classpath)).thenReturn(callGraph);
 			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
@@ -231,7 +231,7 @@ public class JavaCreatorTest {
 					resourceAccesses, tempDir);
 
 			// Assert - Each method should be called twice due to new cache instances
-			verify(buildMode, times(2)).getClasspath(tempDir);
+			verify(buildMode, times(2)).getClasspath(tempDir, packageName);
 			verify(architectureMode, times(2)).getJavaClasses(classpath);
 			verify(architectureMode, times(2)).getCallGraph(classpath);
 		}
@@ -250,7 +250,7 @@ public class JavaCreatorTest {
 			List<PhobosTestCase> phobosTestCases = new ArrayList<>();
 
 			String classpath = "/test/classpath";
-			when(buildMode.getClasspath(tempDir)).thenReturn(classpath);
+			when(buildMode.getClasspath(tempDir, packageName)).thenReturn(classpath);
 			when(architectureMode.getJavaClasses(classpath)).thenReturn(javaClasses);
 			when(architectureMode.getCallGraph(classpath)).thenReturn(callGraph);
 			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
@@ -304,7 +304,7 @@ public class JavaCreatorTest {
 			List<PhobosTestCase> phobosTestCases = new ArrayList<>();
 
 			// Mock buildMode to throw exception to test error handling
-			when(buildMode.getClasspath(tempDir)).thenThrow(new IllegalArgumentException("Invalid path"));
+			when(buildMode.getClasspath(tempDir, packageName)).thenThrow(new IllegalArgumentException("Invalid path"));
 
 			// Act & Assert - Should propagate exceptions properly
 			assertThrows(IllegalArgumentException.class,
@@ -326,7 +326,7 @@ public class JavaCreatorTest {
 			List<AOPTestCase> aopTestCases = new ArrayList<>();
 			List<PhobosTestCase> phobosTestCases = new ArrayList<>();
 
-			when(buildMode.getClasspath(tempDir)).thenThrow(new RuntimeException("Build error"));
+			when(buildMode.getClasspath(tempDir, packageName)).thenThrow(new RuntimeException("Build error"));
 
 			// Act & Assert
 			assertThrows(RuntimeException.class,

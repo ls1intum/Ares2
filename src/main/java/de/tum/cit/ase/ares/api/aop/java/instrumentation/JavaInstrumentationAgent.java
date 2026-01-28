@@ -167,18 +167,29 @@ public class JavaInstrumentationAgent {
 	 * applies a pointcut to match the methods and installs the transformer for
 	 * bytecode modification.
 	 *
-	 * @param inst        The instrumentation instance used to instrument bytecode.
-	 * @param methodsMap  A map containing method signatures as keys with lists of
-	 *                    method names or parameters as values. These define the
-	 *                    pointcuts for instrumentation.
-	 * @param transformer The transformer responsible for applying the bytecode
-	 *                    modifications at runtime.
+	 * @param inst          The instrumentation instance used to instrument
+	 *                      bytecode.
+	 * @param unsafeFactory Factory for unsafe class injection.
+	 * @param methodsMap    A map containing method signatures as keys with lists of
+	 *                      method names. These define which method CALLS should be
+	 *                      intercepted.
+	 * @param transformer   The transformer responsible for applying the bytecode
+	 *                      modifications at runtime.
 	 * @throws SecurityException If the installation of the agent builder fails.
 	 */
 	private static void installAgentBuilder(Instrumentation inst, ClassInjector.UsingUnsafe.Factory unsafeFactory,
 			Map<String, List<String>> methodsMap, AgentBuilder.Transformer transformer) {
 		try {
-			new AgentBuilder.Default().ignore(ElementMatchers.nameStartsWith("net.bytebuddy."))
+			new AgentBuilder.Default()
+					// Ignore ByteBuddy's own classes to avoid infinite recursion
+					.ignore(ElementMatchers.nameStartsWith("net.bytebuddy."))
+					// Ignore JDK internal classes that should not be instrumented
+					.ignore(ElementMatchers.nameStartsWith("sun."))
+					.ignore(ElementMatchers.nameStartsWith("jdk.internal."))
+					.ignore(ElementMatchers.nameStartsWith("java.lang.invoke."))
+					.ignore(ElementMatchers.nameStartsWith("java.lang.reflect."))
+					// Ignore Ares internal classes to avoid self-instrumentation
+					.ignore(ElementMatchers.nameStartsWith("de.tum.cit.ase.ares.api.aop.java.instrumentation."))
 					.with(AgentBuilder.TypeStrategy.Default.REBASE)
 					.with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
 					.with(new AgentBuilder.InjectionStrategy.UsingUnsafe.OfFactory(unsafeFactory))

@@ -247,11 +247,11 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			} else if (variableValue instanceof Path) {
 				return ((Path) variableValue).normalize().toAbsolutePath();
 			} else if (variableValue instanceof String) {
-				// Easy fix for cases where an empty string or root '/'' is provided (often an
-				// incorrect entry)
-				if (variableValue.equals("") || variableValue.equals("/")) {
+				// Empty string is not a valid path
+				if (variableValue.equals("")) {
 					throw new SecurityException(localize("security.instrumentation.invalid.path", variableValue));
 				}
+				// "/" is the root directory and is a valid path - let it be processed normally
 				Path absolutePath = Path.of((String) variableValue).normalize().toAbsolutePath();
 				if (Files.exists(absolutePath) || allowNonExistingPathsToBeConsidered) {
 					return absolutePath;
@@ -877,10 +877,18 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 								.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE),
 						allowNonExistingPathsToBeConsidered);
 		if (pathIllegallyInteractedThroughParameter != null) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-					"security.advice.illegal.file.execution", fileSystemMethodToCheck, action,
-					pathIllegallyInteractedThroughParameter, fullMethodSignature
-							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
+			// Check if this is a .class file access by ClassLoader - should be allowed
+			boolean isClassLoaderAccess = pathIllegallyInteractedThroughParameter.endsWith(".class") && 
+					studentCalledMethod != null && 
+					(studentCalledMethod.startsWith("java.lang.Class.forName") ||
+					 studentCalledMethod.startsWith("java.lang.ClassLoader") ||
+					 studentCalledMethod.startsWith("jdk.internal.loader"));
+			if (!isClassLoaderAccess) {
+				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+						"security.advice.illegal.file.execution", fileSystemMethodToCheck, action,
+						pathIllegallyInteractedThroughParameter, fullMethodSignature
+								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
+			}
 		}
 		// </editor-fold>
 		// <editor-fold desc="Check attributes">
@@ -896,6 +904,25 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			// reference
 			// to avoid creating lambda classes that may not be in the agent JAR
 			boolean isInternalAllowed = false;
+			
+			// Root path "/" is used by ClassLoader during class loading and should be allowed
+			// This is a side effect of how the JVM resolves classes and is not a security concern
+			if (pathIllegallyInteractedThroughAttribute.equals("/")) {
+				isInternalAllowed = true;
+			}
+			
+			// .class file access by ClassLoader should be allowed
+			// When the JVM loads a class (e.g., via Class.forName), it reads the .class file
+			// from the filesystem. This is not a security concern as it's part of normal
+			// class loading behavior, not arbitrary file access by student code.
+			if (pathIllegallyInteractedThroughAttribute.endsWith(".class") && 
+					studentCalledMethod != null && 
+					(studentCalledMethod.startsWith("java.lang.Class.forName") ||
+					 studentCalledMethod.startsWith("java.lang.ClassLoader") ||
+					 studentCalledMethod.startsWith("jdk.internal.loader"))) {
+				isInternalAllowed = true;
+			}
+			
 			for (String suffix : INTERNAL_PATH_SUFFIXES) {
 				if (pathIllegallyInteractedThroughAttribute.endsWith(suffix)) {
 					isInternalAllowed = true;

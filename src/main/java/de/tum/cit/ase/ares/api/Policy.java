@@ -36,7 +36,7 @@ public @interface Policy {
 	 *
 	 * @return the path of the policy-file as a String.
 	 */
-	String value();
+	String value() default "";
 
 	/**
 	 * The path of the test-file as a String.
@@ -44,4 +44,19 @@ public @interface Policy {
 	 * @return the path of the test-file as a String.
 	 */
 	String withinPath() default "";
+
+	/**
+	 * Whether the policy should be activated.
+	 * <p>
+	 * When set to {@code false}, the security policy will not be enforced and
+	 * {@link de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings#reset()}
+	 * will be called on both the bootstrap and application class loaders to
+	 * disable all AOP advices. This is useful for tests that should run without
+	 * any Ares security restrictions (UNPROTECTED mode).
+	 * </p>
+	 *
+	 * @return {@code true} if the policy should be activated (default),
+	 *         {@code false} to disable all security checks.
+	 */
+	boolean activated() default true;
 }
