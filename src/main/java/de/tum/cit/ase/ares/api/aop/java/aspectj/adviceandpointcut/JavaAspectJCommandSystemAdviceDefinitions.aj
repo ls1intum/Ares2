@@ -253,6 +253,8 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
         @Nonnull Object[] parameters = thisJoinPoint.getArgs();
         @Nullable Object instance = thisJoinPoint.getTarget();
         @Nonnull final String fullMethodSignature = thisJoinPoint.getSignature().toLongString();
+        @Nonnull final String declaringTypeName = thisJoinPoint.getSignature().getDeclaringTypeName();
+        @Nonnull final String methodName = thisJoinPoint.getSignature().getName();
         //</editor-fold>
         //<editor-fold desc="Extract attributes from object instance">
         @Nonnull Object[] attributes = new Object[0];
@@ -282,7 +284,7 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
         }
         //</editor-fold>
         //<editor-fold desc="Check callstack">
-        @Nullable String commandSystemMethodToCheck = (restrictedPackage == null) ? null : checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses);
+        @Nullable String commandSystemMethodToCheck = (restrictedPackage == null) ? null : checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses, declaringTypeName, methodName);
         if (commandSystemMethodToCheck == null) {
             return;
         }

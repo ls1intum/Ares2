@@ -915,7 +915,7 @@ java.nio.file.Files.writeString(Ljava/nio/file/Path;Ljava/lang/CharSequence;)Lja
     <dependency>
         <groupId>de.tum.cit.ase</groupId>
         <artifactId>ares</artifactId>
-        <version>2.0.1-Beta5</version>
+        <version>2.0.1-Beta6</version>
     </dependency>
 </dependencies>
 ```

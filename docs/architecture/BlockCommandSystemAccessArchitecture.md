@@ -918,7 +918,7 @@ java.lang.ProcessBuilder.start()Ljava/lang/Process;
     <dependency>
         <groupId>de.tum.cit.ase</groupId>
         <artifactId>ares</artifactId>
-        <version>2.0.1-Beta5</version>
+        <version>2.0.1-Beta6</version>
     </dependency>
 </dependencies>
 ```

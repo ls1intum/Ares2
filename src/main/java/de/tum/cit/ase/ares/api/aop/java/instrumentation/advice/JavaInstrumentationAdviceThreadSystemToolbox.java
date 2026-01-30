@@ -581,7 +581,7 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 		// <editor-fold desc="Check callstack">
 		@Nullable
 		String threadSystemMethodToCheck = (restrictedPackage == null) ? null
-				: checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses);
+				: checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses, declaringTypeName, methodName);
 		if (threadSystemMethodToCheck == null) {
 			return;
 		}

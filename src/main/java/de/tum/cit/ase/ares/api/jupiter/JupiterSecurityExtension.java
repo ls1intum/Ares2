@@ -26,21 +26,10 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
 	public <T> T interceptGenericInvocation(Invocation<T> invocation, ExtensionContext extensionContext,
 			Optional<ReflectiveInvocationContext<?>> invocationContext) throws Throwable {
 		JupiterContext testContext = JupiterContext.of(extensionContext);
-
-		System.err.println("[DEBUG] extensionContext.getTestMethod()=" + extensionContext.getTestMethod().map(Method::getName).orElse("NONE"));
-		System.err.println("[DEBUG] extensionContext.getDisplayName()=" + extensionContext.getDisplayName());
-		System.err.println("[DEBUG] invocationContext.isPresent()=" + invocationContext.isPresent());
-		if (invocationContext.isPresent()) {
-			System.err.println("[DEBUG] invocationContext.get().getExecutable()=" + invocationContext.get().getExecutable());
-		}
-		System.err.println("[DEBUG] testMethod=" + testContext.testMethod().map(Method::getName).orElse("NONE"));
-		System.err.println("[DEBUG] annotations on method=" + testContext.testMethod().map(m -> java.util.Arrays.toString(m.getAnnotations())).orElse("NONE"));
 		
 		Optional<Policy> policyOpt = findAnnotation(testContext.testMethod(), Policy.class);
 		boolean hasPolicyAnnotation = hasAnnotation(testContext, Policy.class);
 		boolean isPolicyActivated = policyOpt.map(Policy::activated).orElse(false);
-		
-		System.err.println("[DEBUG] policyOpt.isPresent()=" + policyOpt.isPresent() + ", hasPolicyAnnotation=" + hasPolicyAnnotation + ", isPolicyActivated=" + isPolicyActivated);
 
 		// ALWAYS reset settings first to ensure clean state for every test.
 		// This prevents settings from a previous @Policy test from affecting the current test.
@@ -72,7 +61,6 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
 			failure = t;
 		} finally {
 			try {
-				System.err.println("[DEBUG] Entering finally block. hasPolicyAnnotation=" + hasPolicyAnnotation + ", isPolicyActivated=" + isPolicyActivated);
 				// REMOVED: Uninstallation of ArtemisSecurityManager
 				// ALWAYS reset settings AFTER the test to ensure clean state for subsequent tests.
 				// This is critical because tests without @Policy annotation do not trigger this extension,
@@ -81,7 +69,6 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
 					Try.call(() -> Class.forName(className, true, Thread.currentThread().getContextClassLoader()))
 							.ifSuccess(JupiterSecurityExtension::resetSettings);
 					resetSettingsInBootstrapClassLoader();
-					System.err.println("[DEBUG] Settings reset AFTER @Policy test completed");
 				}
 			} catch (Exception e) {
 				if (failure == null)
@@ -123,11 +110,10 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
 			resetMethod.setAccessible(true);
 			resetMethod.invoke(null);
 			resetMethod.setAccessible(false);
-			System.err.println("[DEBUG] Bootstrap ClassLoader settings reset successfully");
 		} catch (ClassNotFoundException e) {
-			System.err.println("[DEBUG] Bootstrap ClassLoader settings class not found (OK if no instrumentation yet)");
+			// Class not yet loaded in Bootstrap ClassLoader - OK if no instrumentation yet
 		} catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-			System.err.println("[DEBUG] Bootstrap ClassLoader settings reset failed: " + e.getMessage());
+			// Reset failed - log silently
 		}
 	}
 

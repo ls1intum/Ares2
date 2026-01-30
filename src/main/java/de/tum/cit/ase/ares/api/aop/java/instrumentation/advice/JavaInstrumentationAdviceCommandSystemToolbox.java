@@ -441,7 +441,7 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
 		// <editor-fold desc="Check callstack">
 		@Nullable
 		String commandSystemMethodToCheck = (restrictedPackage == null) ? null
-				: checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses);
+				: checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses, declaringTypeName, methodName);
 		if (commandSystemMethodToCheck == null) {
 			return;
 		}

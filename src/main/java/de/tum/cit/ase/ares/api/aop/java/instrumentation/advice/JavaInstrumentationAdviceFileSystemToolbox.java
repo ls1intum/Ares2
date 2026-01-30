@@ -978,7 +978,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		// <editor-fold desc="Check callstack">
 		@Nullable
 		String fileSystemMethodToCheck = (restrictedPackage == null) ? null
-				: checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses);
+				: checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses, declaringTypeName, methodName);
 		if (fileSystemMethodToCheck == null) {
 			return;
 		}

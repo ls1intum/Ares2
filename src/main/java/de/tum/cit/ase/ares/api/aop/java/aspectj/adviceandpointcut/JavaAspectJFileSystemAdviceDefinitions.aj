@@ -683,6 +683,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
         @Nonnull Object[] parameters = thisJoinPoint.getArgs();
         @Nullable Object instance = thisJoinPoint.getTarget();
         @Nonnull final String fullMethodSignature = thisJoinPoint.getSignature().toLongString();
+        @Nonnull String declaringTypeName = thisJoinPoint.getSignature().getDeclaringTypeName();
+        @Nonnull String methodName = thisJoinPoint.getSignature().getName();
         //</editor-fold>
         //<editor-fold desc="Extract attributes from object instance">
         @Nonnull Object[] attributes = new Object[0];
@@ -710,13 +712,12 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
         }
         //</editor-fold>
         //<editor-fold desc="Check callstack">
-        @Nullable String systemMethodToCheck = (restrictedPackage == null) ? null : checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses);
+        @Nullable String systemMethodToCheck = (restrictedPackage == null) ? null : checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses, declaringTypeName, methodName);
         if (systemMethodToCheck == null) {
             return;
         }
         //</editor-fold>
         @Nullable String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
-        @Nonnull String declaringTypeName = thisJoinPoint.getSignature().getDeclaringTypeName();
         List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action, declaringTypeName, parameters);
         for (Map.Entry<String, Boolean> actionCheck : actionsToValidate) {
             String actionToCheck = actionCheck.getKey();

@@ -25,7 +25,9 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
             "de.tum.cit.ase.ares.api.",
             "de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension",
             "de.tum.cit.ase.ares.api.jqwik.JqwikSecurityExtension",
-            "de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationBindingDefinitions"
+            "de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationBindingDefinitions",
+            "jdk.internal.loader.",
+            "jdk.internal.reflect."
     );
     //</editor-fold>
 
@@ -193,19 +195,45 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
     /**
      * Checks the current call stack for violations of restricted packages.
      *
-     * <p>Description: Examines the stack trace to find the first element whose class name
+     * <p>Description: First checks if the direct caller of the intercepted method is
+     * in IGNORE_CALLSTACK (e.g., ClassLoader). If so, the operation is allowed.
+     * Otherwise, examines the stack trace to find the first element whose class name
      * starts with the restricted package but is not in the allowed classes list,
      * skipping any classes in the ignore list.
      *
      * @param restrictedPackage the prefix of restricted package names
      * @param allowedClasses the array of allowed class name prefixes
+     * @param declaringTypeName the class name of the intercepted method
+     * @param methodName the name of the intercepted method
      * @return the fully qualified method name that violates criteria, or null if none
      * @since 2.0.0
      * @author Markus Paulsen
      */
     @Nullable
-    protected static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses) {
+    protected static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses,
+            String declaringTypeName, String methodName) {
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+        // Find the intercepted method and check if its direct caller is in IGNORE_CALLSTACK
+        for (int i = 0; i < stackTrace.length; i++) {
+            StackTraceElement element = stackTrace[i];
+            // Handle constructor names: "<init>" in bytecode vs constructor name in stack trace
+            String stackMethodName = element.getMethodName();
+            boolean methodMatches = stackMethodName.equals(methodName) 
+                    || (methodName.equals("<init>") && stackMethodName.equals("<init>"));
+            if (element.getClassName().equals(declaringTypeName) && methodMatches) {
+                // Found the intercepted method, check caller at [i+1]
+                if (i + 1 < stackTrace.length) {
+                    String callerClass = stackTrace[i + 1].getClassName();
+                    for (@Nonnull String ignore : IGNORE_CALLSTACK) {
+                        if (callerClass.startsWith(ignore)) {
+                            return null; // Direct caller is trusted (e.g., ClassLoader) -> allow
+                        }
+                    }
+                }
+                break;
+            }
+        }
+        // Continue with existing logic: search for student code in the stack
         for (@Nonnull StackTraceElement element : stackTrace) {
             String className = element.getClassName();
             boolean ignoreFound = false;
