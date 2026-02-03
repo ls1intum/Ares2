@@ -11,7 +11,6 @@ import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwrite.fileChannel.FileChannelWriteMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwrite.files.WriteFilesWriteMain;
-import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwrite.outputStream.dataOutputStream.DataOutputStreamWriteMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwrite.outputStream.gZIPOutputStream.GZIPOutputStreamWriteMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwrite.outputStream.inflaterOutputStream.InflaterOutputStreamWriteMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwrite.outputStream.zipOutputStream.ZipOutputStreamWriteMain;
@@ -33,7 +32,6 @@ class FileAccessCommonOverwriteTest extends SystemAccessTest {
 	private static final String FILE_CHANNEL_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/fileChannel";
 	private static final String GZIP_OUTPUT_STREAM_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/outputStream/gZIPOutputStream";
 	private static final String RANDOM_ACCESS_FILE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/randomAccessFile";
-	private static final String DATA_OUTPUT_STREAM_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/outputStream/dataOutputStream";
 	private static final String INFLATER_OUTPUT_STREAM_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/outputStream/inflaterOutputStream";
 	private static final String ZIP_OUTPUT_STREAM_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/outputStream/zipOutputStream";
 
@@ -253,34 +251,6 @@ class FileAccessCommonOverwriteTest extends SystemAccessTest {
 	void test_accessFileSystemViaRandomAccessFileWriteBooleanMavenWalaInstrumentation() {
 		assertAresSecurityExceptionOverwrite(RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteBoolean,
 				RandomAccessFileWriteMain.class, NOT_TRUSTED_FILE_PATH);
-	}
-
-	@PublicTest
-	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = DATA_OUTPUT_STREAM_WITHIN_PATH)
-	void test_accessFileSystemViaDataOutputStreamMavenArchunitAspectJ() {
-		assertAresSecurityExceptionOverwrite(DataOutputStreamWriteMain::accessFileSystemViaDataOutputStream,
-				DataOutputStreamWriteMain.class, NOT_TRUSTED_FILE_PATH);
-	}
-
-	@PublicTest
-	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = DATA_OUTPUT_STREAM_WITHIN_PATH)
-	void test_accessFileSystemViaDataOutputStreamMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionOverwrite(DataOutputStreamWriteMain::accessFileSystemViaDataOutputStream,
-				DataOutputStreamWriteMain.class, NOT_TRUSTED_FILE_PATH);
-	}
-
-	@PublicTest
-	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = DATA_OUTPUT_STREAM_WITHIN_PATH)
-	void test_accessFileSystemViaDataOutputStreamMavenWalaAspectJ() {
-		assertAresSecurityExceptionOverwrite(DataOutputStreamWriteMain::accessFileSystemViaDataOutputStream,
-				DataOutputStreamWriteMain.class, NOT_TRUSTED_FILE_PATH);
-	}
-
-	@PublicTest
-	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = DATA_OUTPUT_STREAM_WITHIN_PATH)
-	void test_accessFileSystemViaDataOutputStreamMavenWalaInstrumentation() {
-		assertAresSecurityExceptionOverwrite(DataOutputStreamWriteMain::accessFileSystemViaDataOutputStream,
-				DataOutputStreamWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest

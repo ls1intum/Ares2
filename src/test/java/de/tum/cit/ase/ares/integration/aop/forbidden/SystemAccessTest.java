@@ -336,6 +336,29 @@ abstract class SystemAccessTest {
 		assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally delete",
 				"illegal delete", clazz);
 	}
+
+	/**
+	 * Test that the given executable throws a SecurityException with the expected
+	 * message for file system create operations.
+	 *
+	 * @param executable The executable that should throw a SecurityException
+	 * @param clazz      The class that performed the create operation
+	 */
+	protected void assertAresSecurityExceptionCreate(Executable executable, Class<?> clazz) {
+		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable,
+				ERROR_MESSAGE);
+		Path expectedPath = Paths.get("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration", "aop",
+				"forbidden", "subject", "fileSystem", "create", "nottrusteddir");
+		assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally create",
+				"illegal create", clazz);
+	}
+
+	protected void assertAresSecurityExceptionCreate(Executable executable, Class<?> clazz, Path expectedPath) {
+		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable,
+				ERROR_MESSAGE);
+		assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally create",
+				"illegal create", clazz);
+	}
 	// </editor-fold>
 
 	// <editor-fold desc="Command System Access Tests">

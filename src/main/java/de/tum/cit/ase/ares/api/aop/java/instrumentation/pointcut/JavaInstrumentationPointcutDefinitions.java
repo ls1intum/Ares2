@@ -348,44 +348,35 @@ public class JavaInstrumentationPointcutDefinitions {
 	 */
 	public static final Map<String, List<String>> methodsWhichCanReadFiles = Map.ofEntries(
 			// java.io
-			Map.entry("java.io.Reader", List.of("read")), Map.entry("java.io.InputStream", List.of("read")),
-			Map.entry("java.io.BufferedInputStream", List.of("<init>", "read")),
-			Map.entry("java.io.FileInputStream", List.of("<init>")), Map.entry("java.io.FileReader", List.of("<init>")),
+			Map.entry("java.io.Reader", List.of("<init>", "read")), Map.entry("java.io.InputStream", List.of("read")),
+			Map.entry("java.io.BufferedInputStream", List.of("<init>")),
+			Map.entry("java.io.FileInputStream", List.of("<init>")),
 			Map.entry("java.io.RandomAccessFile", List.of("<init>", "read")),
-			Map.entry("java.io.BufferedReader", List.of("<init>", "read")),
 			Map.entry("java.io.DataInput",
 					List.of("read", "readBoolean", "readByte", "readChar", "readDouble", "readFloat", "readFully",
 							"readInt", "readLine", "readLong", "readShort", "readUnsignedByte", "readUnsignedShort",
 							"readUTF")),
-			Map.entry("java.io.DataInputStream", List.of("<init>", "read", "readFully", "readUTF")),
-			Map.entry("java.io.InputStreamReader", List.of("read")),
+			Map.entry("java.io.DataInputStream", List.of("<init>")),
 			Map.entry("java.io.File",
 				List.of("normalizedList", "list", "listFiles", "listRoots")),
 			// java.nio
 			Map.entry("java.nio.file.Files",
 					List.of("find", "lines", "list", "newBufferedReader", "newByteChannel", "newDirectoryStream",
 							"newInputStream", "readAllBytes", "readAllLines", "readString", "walk", "walkFileTree")),
-			Map.entry("java.nio.channels.FileChannel", List.of("map", "open", "read", "transferFrom")),
+			Map.entry("java.nio.channels.FileChannel", List.of("map", "open")),
 			Map.entry("java.nio.channels.AsynchronousFileChannel", List.of("open", "read")),
 			Map.entry("java.nio.channels.SeekableByteChannel", List.of("read")),
 			Map.entry("java.nio.file.spi.FileSystemProvider",
-					List.of("newAsynchronousFileChannel", "newByteChannel", "newDirectoryStream", "newFileChannel",
-							"newInputStream", "readSymbolicLink", "isSameFile", "getFileStore")),
-			// java.net
-			Map.entry("java.net.JarURLConnection", List.of("getInputStream")),
+					List.of("newDirectoryStream")),
 			// java.lang
 			Map.entry("java.lang.ClassLoader", List.of("getResourceAsStream")),
 			// java.awt
 			Map.entry("java.awt.Toolkit", List.of("createImage", "getImage")),
-			Map.entry("java.awt.image.PixelGrabber", List.of("grabPixels")),
 			Map.entry("java.awt.Font", List.of("createFont", "createFonts")),
 			// javax.imageio
-			Map.entry("javax.imageio.ImageIO", List.of("createImageInputStream", "getImageReaders", "read", "setCacheDirectory")),
-			Map.entry("javax.imageio.metadata.IIOMetadataFormatImpl", List.of("getAttributeDescription", "getElementDescription")),
+			Map.entry("javax.imageio.ImageIO", List.of("createImageInputStream", "getImageReaders", "read")),
 			Map.entry("javax.imageio.stream.FileCacheImageInputStream", List.of("<init>")),
-			Map.entry("javax.imageio.stream.FileCacheImageOutputStream", List.of("<init>", "close")),
 			Map.entry("javax.imageio.stream.FileImageInputStream", List.of("<init>")),
-			Map.entry("javax.imageio.stream.FileImageOutputStream", List.of("<init>")),
 			// javax.xml
 			Map.entry("javax.xml.parsers.DocumentBuilder", List.of("parse")),
 			Map.entry("javax.xml.parsers.SAXParser", List.of("parse")),
@@ -396,8 +387,8 @@ public class JavaInstrumentationPointcutDefinitions {
 			// java.util
 			Map.entry("java.util.Scanner", List.of("<init>")),
 			Map.entry("java.util.zip.ZipFile", List.of("<init>", "entries", "getInputStream")),
-			Map.entry("java.util.zip.ZipInputStream", List.of("<init>", "getNextEntry", "read")),
-			Map.entry("java.util.zip.GZIPInputStream", List.of("<init>", "read")),
+			Map.entry("java.util.zip.ZipInputStream", List.of("<init>", "getNextEntry")),
+			Map.entry("java.util.zip.GZIPInputStream", List.of("<init>")),
 			Map.entry("java.util.jar.JarFile", List.of("<init>", "entries", "getInputStream")),
 			Map.entry("java.util.jar.JarInputStream", List.of("<init>", "getNextJarEntry")),
 			Map.entry("java.util.Properties", List.of("load", "loadFromXML")));
@@ -411,29 +402,25 @@ public class JavaInstrumentationPointcutDefinitions {
 	 */
 	public static final Map<String, List<String>> methodsWhichCanOverwriteFiles = Map.ofEntries(
 			// java.io
-			// Issues with System.out and System.err, as they call Writer.write internally.
-			// Map.entry("java.io.Writer", List.of("append", "flush", "write")),
-			Map.entry("java.io.OutputStream", List.of("write")),
-			Map.entry("java.io.Writer", List.of("<init>", "append", "write")),
-			Map.entry("java.io.OutputStreamWriter", List.of("<init>")),
-			Map.entry("java.io.BufferedOutputStream", List.of("<init>", "write")),
-			Map.entry("java.io.FileOutputStream", List.of("<init>", "write")),
-			Map.entry("java.io.FileWriter", List.of("<init>", "append", "write")),
-			Map.entry("java.io.BufferedWriter", List.of("<init>", "append", "write")),
-			Map.entry("java.io.PrintWriter", List.of("<init>")), Map.entry("java.io.PrintStream", List.of("<init>")),
-			Map.entry("java.io.DataOutputStream",
-					List.of("<init>", "write", "writeBoolean", "writeByte", "writeBytes", "writeChar", "writeChars",
-							"writeDouble", "writeFloat", "writeInt", "writeLong", "writeShort", "writeUTF")),
+			// Note: Generic write/append/flush/close methods are NOT monitored here.
+			// Reason: System.out/System.err internally use these methods, which would cause
+			// false positives. File access is already blocked at constructor level.
+			Map.entry("java.io.Writer", List.of("<init>")),
+			Map.entry("java.io.BufferedOutputStream", List.of("<init>")),
+			Map.entry("java.io.FileOutputStream", List.of("<init>")),
+			Map.entry("java.io.PrintStream", List.of("<init>")),
+			Map.entry("java.io.DataOutput",
+					List.of("writeBoolean", "writeByte", "writeBytes", "writeChar", "writeChars", "writeDouble",
+							"writeFloat", "writeInt", "writeLong", "writeShort", "writeUTF")),
+			Map.entry("java.io.DataOutputStream", List.of("<init>")),
 			Map.entry("java.util.logging.FileHandler", List.of("<init>", "publish", "close")),
-			Map.entry("java.util.zip.GZIPOutputStream", List.of("<init>", "write")),
+			Map.entry("java.util.zip.GZIPOutputStream", List.of("<init>")),
 			Map.entry("java.util.zip.InflaterOutputStream", List.of("<init>")),
-			Map.entry("java.util.zip.ZipOutputStream", List.of("<init>", "putNextEntry", "closeEntry", "write")),
+			Map.entry("java.util.zip.ZipOutputStream", List.of("<init>", "putNextEntry", "closeEntry")),
 			Map.entry("java.util.jar.JarOutputStream", List.of("<init>", "putNextEntry", "closeEntry")),
 			Map.entry("java.util.Properties", List.of("store", "storeToXML")),
 			Map.entry("java.util.Formatter", List.of("<init>")),
-			Map.entry("java.io.RandomAccessFile",
-					List.of("<init>", "write", "writeBoolean", "writeByte", "writeBytes", "writeChar", "writeChars",
-							"writeDouble", "writeFloat", "writeInt", "writeLong", "writeShort", "writeUTF")),
+			Map.entry("java.io.RandomAccessFile", List.of("<init>")),
 			Map.entry("java.io.File",
 					List.of("setExecutable", "setLastModified", "setReadable", "setReadOnly", "setWritable",
 							"renameTo")),
@@ -460,7 +447,7 @@ public class JavaInstrumentationPointcutDefinitions {
 			// methodsWhichCanReadFiles.
 			// The actual operation is determined by OpenOptions via deriveActionChecks().
 			Map.entry("java.nio.file.spi.FileSystemProvider",
-					List.of("copy", "move", "newAsynchronousFileChannel", "newOutputStream", "setAttribute")),
+					List.of("copy", "move", "setAttribute")),
 			// javax.print
 			Map.entry("javax.print.DocPrintJob", List.of("print")),
 			// javax.imageio
@@ -501,8 +488,7 @@ public class JavaInstrumentationPointcutDefinitions {
 			// java.io
 			Map.entry("java.io.File", List.of("delete", "deleteOnExit")),
 			// java.nio
-			Map.entry("java.nio.file.Files", List.of("delete", "deleteIfExists", "move", "copy")),
-			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("delete", "deleteIfExists")));
+			Map.entry("java.nio.file.Files", List.of("delete", "deleteIfExists", "move", "copy")));
 	// </editor-fold>
 
 	// <editor-fold desc="Create Path">
@@ -532,8 +518,7 @@ public class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.nio.file.Files",
 					List.of("createDirectories", "createDirectory", "createFile", "createLink", "createTempDirectory",
 							"createTempFile", "createSymbolicLink", "newBufferedWriter", "newOutputStream")),
-			Map.entry("java.nio.file.spi.FileSystemProvider",
-					List.of("createDirectory", "createLink", "createSymbolicLink")));
+			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("createDirectory")));
 	// </editor-fold>
 
 	// <editor-fold desc="Create Thread">

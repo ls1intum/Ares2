@@ -29,4 +29,15 @@ public class FileChannelRead {
 			channel.read(buffer); // Read again
 		}
 	}
+
+	/**
+	 * Access the file system using FileChannel.map(MapMode mode, long position,
+	 * long size).
+	 */
+	public static void accessFileSystemViaFileChannelMap() throws IOException {
+		Path path = Paths.get("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
+		try (FileChannel channel = FileChannel.open(path, StandardOpenOption.READ)) {
+			channel.map(FileChannel.MapMode.READ_ONLY, 0, Math.min(channel.size(), 1024));
+		}
+	}
 }

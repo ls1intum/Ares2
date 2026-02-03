@@ -17,6 +17,7 @@ import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwrit
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwrite.printWriter.WritePrintWriterMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwrite.randomAccessFile.RandomAccessFileWriteMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwrite.thirdPartyPackage.WriteThirdPartyPackageMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwrite.writer.baseWriter.WriterWriteMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwrite.writer.bufferedWriter.BufferedWriterWriteMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwrite.writer.fileWriter.FileWriterWriteMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwrite.writer.filterWriter.FilterWriterWriteMain;
@@ -46,6 +47,7 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 	private static final String FILTER_WRITER_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/writer/filterWriter";
 	private static final String OUTPUT_STREAM_WRITER_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/writer/outputStreamWriter";
 	private static final String FILE_WRITER_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/writer/fileWriter";
+	private static final String BASE_WRITER_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/writer/baseWriter";
 
 	// <editor-fold desc="accessFileSystemViaFilesWrite">
 	@PublicTest
@@ -621,36 +623,6 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 	}
 	// </editor-fold>
 
-	// <editor-fold desc="accessFileSystemViaDataOutputStream">
-	@PublicTest
-	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = DATA_OUTPUT_STREAM_WITHIN_PATH)
-	void test_accessFileSystemViaDataOutputStreamMavenArchunitAspectJ() {
-		assertAresSecurityExceptionOverwrite(DataOutputStreamWriteMain::accessFileSystemViaDataOutputStream,
-				DataOutputStreamWriteMain.class);
-	}
-
-	@PublicTest
-	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = DATA_OUTPUT_STREAM_WITHIN_PATH)
-	void test_accessFileSystemViaDataOutputStreamMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionOverwrite(DataOutputStreamWriteMain::accessFileSystemViaDataOutputStream,
-				DataOutputStreamWriteMain.class);
-	}
-
-	@PublicTest
-	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = DATA_OUTPUT_STREAM_WITHIN_PATH)
-	void test_accessFileSystemViaDataOutputStreamMavenWalaAspectJ() {
-		assertAresSecurityExceptionOverwrite(DataOutputStreamWriteMain::accessFileSystemViaDataOutputStream,
-				DataOutputStreamWriteMain.class);
-	}
-
-	@PublicTest
-	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = DATA_OUTPUT_STREAM_WITHIN_PATH)
-	void test_accessFileSystemViaDataOutputStreamMavenWalaInstrumentation() {
-		assertAresSecurityExceptionOverwrite(DataOutputStreamWriteMain::accessFileSystemViaDataOutputStream,
-				DataOutputStreamWriteMain.class);
-	}
-	// </editor-fold>
-
 	// <editor-fold desc="accessFileSystemViaObjectOutputStream">
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = OBJECT_OUTPUT_STREAM_WITHIN_PATH)
@@ -918,6 +890,36 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 	void test_accessFileSystemViaFileWriterMavenWalaInstrumentation() {
 		assertAresSecurityExceptionOverwrite(FileWriterWriteMain::accessFileSystemViaFileWriter,
 				FileWriterWriteMain.class);
+	}
+	// </editor-fold>
+
+	// <editor-fold desc="accessFileSystemViaWriterConstructor">
+	@PublicTest
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = BASE_WRITER_WITHIN_PATH)
+	void test_accessFileSystemViaWriterConstructorMavenArchunitAspectJ() {
+		assertAresSecurityExceptionOverwrite(WriterWriteMain::accessFileSystemViaWriterConstructor,
+				WriterWriteMain.class);
+	}
+
+	@PublicTest
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = BASE_WRITER_WITHIN_PATH)
+	void test_accessFileSystemViaWriterConstructorMavenArchunitInstrumentation() {
+		assertAresSecurityExceptionOverwrite(WriterWriteMain::accessFileSystemViaWriterConstructor,
+				WriterWriteMain.class);
+	}
+
+	@PublicTest
+	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = BASE_WRITER_WITHIN_PATH)
+	void test_accessFileSystemViaWriterConstructorMavenWalaAspectJ() {
+		assertAresSecurityExceptionOverwrite(WriterWriteMain::accessFileSystemViaWriterConstructor,
+				WriterWriteMain.class);
+	}
+
+	@PublicTest
+	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = BASE_WRITER_WITHIN_PATH)
+	void test_accessFileSystemViaWriterConstructorMavenWalaInstrumentation() {
+		assertAresSecurityExceptionOverwrite(WriterWriteMain::accessFileSystemViaWriterConstructor,
+				WriterWriteMain.class);
 	}
 	// </editor-fold>
 

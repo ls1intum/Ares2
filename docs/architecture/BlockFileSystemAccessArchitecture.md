@@ -1,88 +1,118 @@
-# File System Security Mechanism (Architecture Analysis)
+<a id="file-system-security-mechanism"></a>
+# Ares 2 Architecture File System Access Control: File System Security Mechanism (Architecture Analysis)
 
+<a id="table-of-contents"></a>
 ## Table of Contents
 
-1. [High-Level Overview](#1-high-level-overview)
-   - [1.1 Architecture Analysis Approach](#11-architecture-analysis-approach)
-   - [1.2 Configuration Settings](#12-configuration-settings)
-   - [1.3 Summary: When Is File Access Blocked?](#13-summary-when-is-file-access-blocked)
-   - [1.4 What Code Is Trusted vs. Restricted?](#14-what-code-is-trusted-vs-restricted)
-2. [Ares Monitors FileSystem Methods](#2-ares-monitors-filesystem-methods)
-   - [2.1 FILE SYSTEM - READ Operations](#21-file-system---read-operations)
-   - [2.2 FILE SYSTEM - WRITE/OVERWRITE Operations](#22-file-system---writeoverwrite-operations)
-   - [2.3 FILE SYSTEM - CREATE Operations](#23-file-system---create-operations)
-   - [2.4 FILE SYSTEM - DELETE Operations](#24-file-system---delete-operations)
-   - [2.5 FILE SYSTEM - EXECUTE Operations](#25-file-system---execute-operations)
-3. [Student Code Triggers Security Check](#3-student-code-triggers-security-check)
-4. [Ares Collects Information About the File Access](#4-ares-collects-information-about-the-file-access)
+1. [Ares 2 Architecture File System Access Control: High-Level Overview](#1-ares-2-architecture-file-system-access-control-high-level-overview)
+   - [1.1 How Does The UML Activity Diagram look like?](#11-how-does-the-uml-activity-diagram-look-like)
+   - [1.2 What Is Architecture Testing?](#12-what-is-architecture-testing)
+   - [1.3 Which Architecture Modes / Implementations Are There?](#13-which-architecture-modes--implementations-are-there)
+   - [1.4 What Are The Internal Configuration Settings?](#14-what-are-the-internal-configuration-settings)
+   - [1.5 When Is File Access Generally Blocked?](#15-when-is-file-access-generally-blocked)
+2. [Ares 2 Architecture File System Access Control: Ares Monitors FileSystem Methods](#2-ares-2-architecture-file-system-access-control-ares-monitors-filesystem-methods)
+   - [2.1 Which Operations Does Ares 2 Architecture File System Access Control Monitor?](#21-which-operations-does-ares-2-architecture-file-system-access-control-monitor)
+   - [2.2 What Are The Monitored READ Operations?](#22-what-are-the-monitored-read-operations)
+   - [2.3 What Are The Monitored WRITE/OVERWRITE Operations?](#23-what-are-the-monitored-writeoverwrite-operations)
+   - [2.4 What Are The Monitored CREATE Operations?](#24-what-are-the-monitored-create-operations)
+   - [2.5 What Are The Monitored DELETE Operations?](#25-what-are-the-monitored-delete-operations)
+   - [2.6 What Are The Monitored EXECUTE Operations?](#26-what-are-the-monitored-execute-operations)
+3. [Ares 2 Architecture File System Access Control: Student Code Triggers Security Check](#3-ares-2-architecture-file-system-access-control-student-code-triggers-security-check)
+4. [Ares 2 Architecture File System Access Control: Ares Collects Information About the File Access](#4-ares-2-architecture-file-system-access-control-ares-collects-information-about-the-file-access)
    - [4.1 Loading Java Classes (ArchUnit)](#41-loading-java-classes-archunit)
    - [4.2 Building the Call Graph (WALA)](#42-building-the-call-graph-wala)
-5. [Ares Validates the File Access](#5-ares-validates-the-file-access)
+5. [Ares 2 Architecture File System Access Control: Ares Validates the File Access](#5-ares-2-architecture-file-system-access-control-ares-validates-the-file-access)
    - [5.1 ArchUnit Mode: Static Analysis](#51-archunit-mode-static-analysis)
    - [5.2 WALA Mode: Call Graph Analysis](#52-wala-mode-call-graph-analysis)
    - [5.3 Transitive Access Detection](#53-transitive-access-detection)
    - [5.4 Reachability Analysis (WALA)](#54-reachability-analysis-wala)
    - [5.5 False Positive Filtering (WALA)](#55-false-positive-filtering-wala)
-6. [Conclusion](#6-conclusion)
+6. [Ares 2 Architecture File System Access Control: Operation Type Classification](#6-ares-2-architecture-file-system-access-control-operation-type-classification)
+7. [Ares 2 Architecture File System Access Control: Conclusion](#7-ares-2-architecture-file-system-access-control-conclusion)
+   - [7.1 Summary for Programming Instructors (TL;DR)](#71-summary-for-programming-instructors-tldr)
+   - [7.2 Technical Details](#72-technical-details)
 
 ---
 
-# 1. High-Level Overview
+<a id="1-ares-2-architecture-file-system-access-control-high-level-overview"></a>
+# 1. Ares 2 Architecture File System Access Control: High-Level Overview
 
-This document describes how Ares 2 prevents unauthorized file system access in student code using **static code analysis** techniques via Architecture Testing frameworks.
+This document explains how Ares 2 decides whether student code may access the file system through static code analysis. It checks:
+- The code structure for file system method calls
+- Which methods are reachable from student code
+- Whether the accessed classes are in allowed packages
 
-**Key Difference from AOP Approach:**
+---
+
+<a id="11-how-does-the-uml-activity-diagram-look-like"></a>
+## 1.1 How Does The UML Activity Diagram look like?
+
+Below is a general overview of the process for deciding whether to allow or block file access as an UML activity diagram. Throughout this document, you will find the following symbols:
+- **🔴 Red** = File access blocked (security policy violation detected)
+- **🌕 Yellow** = Intermediate condition met → continue to the next verification step
+- **🟢 Green** = File access permitted (no security policy violation detected)
+
+![File System Security Validation Flow](BlockFileSystemAccessArchitecture.drawio.png)
+
+---
+
+<a id="12-what-is-architecture-testing"></a>
+## 1.2 What Is Architecture Testing?
+
+Architecture Testing is a technique that validates code follows specific structural rules by analyzing compiled bytecode **before** execution. Think of it like a building inspector reviewing building plans before construction to ensure doors don't open into forbidden areas - the code doesn't run, but the structure gets checked automatically.
+
+**Concrete Example:**
+
+**Without Architecture Testing:** You would have to manually review student code for file system calls.
+```java
+public void readFile(String path) {
+    Files.readString(Path.of(path));  // Would this be caught? Manual review needed!
+}
+```
+
+**With Architecture Testing:** Ares automatically analyzes bytecode and detects ALL file system method calls, no execution required.
+```java
+public void readFile(String path) {
+    Files.readString(Path.of(path));  // Detected at compile/test time! ArchUnit/WALA finds this.
+}
+```
+
+**Key Difference from AOP:**
 - **AOP (Runtime)**: Monitors method calls during program execution and blocks forbidden operations in real-time
 - **Architecture (Static)**: Analyzes compiled bytecode before execution to detect potential security violations in the code structure
 
 ---
 
-## 1.1 Architecture Analysis Approach
+<a id="13-which-architecture-modes--implementations-are-there"></a>
+## 1.3 Which Architecture Modes / Implementations Are There?
 
-**What is Architecture Testing?**
+Ares automatically detects file system operations by analyzing compiled bytecode using one of two Architecture implementations:
 
-Architecture testing validates that code follows specific structural rules by analyzing compiled bytecode. Instead of running the code and intercepting method calls (AOP), it examines the program structure to find violations.
+- **ArchUnit (Static Analysis)**: Pure static analysis using the ArchUnit framework. Fast analysis without call graph construction.
+- **WALA (Call Graph Analysis)**: Static analysis with dynamic modeling using IBM WALA framework. Precise call path detection with false positive filtering.
 
-**Think of it like:**
-- **AOP = Security Guard**: Checks IDs when people actually enter the building
-- **Architecture = Building Inspector**: Reviews building plans before construction to ensure doors don't open into forbidden areas
+Both implementations analyze the **code structure** to find forbidden method calls, but differ in precision and performance:
 
-**Two Analysis Frameworks:**
-
-### **ArchUnit (Static Analysis)**
-- **Type**: Pure static analysis using Archunit framework
-- **Strength**: Fast, no call graph needed
-- **Method**: Analyzes class dependencies and method calls in compiled bytecode
-- **Use Case**: Detecting direct and transitive method access patterns
-
-### **WALA (Dynamic Call Graph Analysis)**
-- **Type**: Static analysis with dynamic modeling using IBM WALA framework
-- **Strength**: Precise call path detection, understands complex call chains
-- **Method**: Builds a complete call graph representing all possible method invocations
-- **Use Case**: Finding reachable forbidden methods through complex call chains
-
-**Validation Flow:**
-
-1. **Load Classes**: Import compiled `.class` files from classpath
-2. **Build Analysis Model**: 
-   - ArchUnit: Load class metadata and dependencies
-   - WALA: Build complete call graph with entry points
-3. **Define Rules**: Specify forbidden method patterns (file system operations)
-4. **Execute Analysis**: Check if student code violates rules
-5. **Report Violations**: Generate detailed error messages with call paths
+| Aspect | ArchUnit | WALA |
+|--------|----------|------|
+| **Speed** | Fast | Slower |
+| **Precision** | Good | Very precise |
+| **False Positives** | Possible | Filtered |
+| **Call Graphs** | No | Yes |
 
 ---
 
-## 1.2 Configuration Settings
+<a id="14-what-are-the-internal-configuration-settings"></a>
+## 1.4 What Are The Internal Configuration Settings?
 
-Security policies are configured through settings that instructors can adjust:
+Instructors define architecture policies, and Ares 2 translates them into the following analysis settings:
 
 | Setting | Type | Description | Example |
 |---------|------|-------------|---------|
-| **architectureMode** | `String` | Analysis framework | `"ARCHUNIT"` or `"WALA"` |
+| **architectureMode** | `String` | The used analysis framework | `"ARCHUNIT"` or `"WALA"` |
+| **restrictedPackage** | `String` | The package containing the student code (the code to be analyzed) | `"de.student."` |
 | **allowedPackages** | `PackagePermission[]` | Packages allowed to be imported/used | `[new PackagePermission("java.io")]` |
 | **classPath** | `String` | Path to compiled student code | `"target/classes"` |
-| **restrictedPackage** | `String` | Package containing student code | `"de.student."` |
 
 **Architecture-Specific Configuration:**
 - No path-based permissions (no `pathsAllowedToBeRead`, etc.) - Architecture testing detects ANY file system access attempt
@@ -91,16 +121,17 @@ Security policies are configured through settings that instructors can adjust:
 
 ---
 
-## 1.3 Summary: When Is File Access Blocked?
+<a id="15-when-is-file-access-generally-blocked"></a>
+## 1.5 When Is File Access Generally Blocked?
 
-Access is **BLOCKED** 🔴 when **ALL** conditions are true:
+**Access is BLOCKED 🔴 if ALL of the following conditions apply:**
 
-1. **Architecture Mode Enabled**: `architectureMode == "ARCHUNIT"` or `architectureMode == "WALA"`
+1. **Architecture Mode Enabled**: `architectureMode` is set to `"ARCHUNIT"` or `"WALA"`
 2. **Student Code Contains File System Calls**: Analysis detects method calls to file system APIs
 3. **Calls Are Reachable**: The forbidden methods can be reached from student code (directly or transitively)
 4. **Not in Allowed Packages**: The accessed classes are not in the `allowedPackages` list
 
-**If ANY condition fails → No Violation Detected** 🟢
+**Access is ALLOWED 🟢 if ANY of the aforementioned conditions do not apply**
 
 **Key Differences from AOP:**
 - 🔴 Detected at analysis time (before execution), not at runtime
@@ -111,18 +142,10 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 - 🔴 AssertionError thrown → Security violation detected in code structure
 - 🟢 No violations found → Code passes architecture analysis
 
----
-
-## 1.4 What Code Is Trusted vs. Restricted?
-
-**Trusted Code (No Restrictions):**
-- Code outside the `restrictedPackage`
-- JDK standard library (unless explicitly checking imports)
-- Ares internal code
-
-**Restricted Code (Subject to Security Checks):**
-- All code within `restrictedPackage`
-- All classes that call file system methods from the forbidden lists
+Summarising this, Ares trusts code when: 
+- It is located outside of the `restrictedPackage`
+- It accesses classes that are in the `allowedPackages` list
+- It is listed as Ares internal code
 
 **Security Assumptions:** 
 - Student code is compiled and available as `.class` files
@@ -131,7 +154,23 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 
 ---
 
-# 2. Ares Monitors FileSystem Methods
+<a id="2-ares-2-architecture-file-system-access-control-ares-monitors-filesystem-methods"></a>
+# 2. Ares 2 Architecture File System Access Control: Ares Monitors FileSystem Methods
+
+<a id="21-which-operations-does-ares-2-architecture-file-system-access-control-monitor"></a>
+## 2.1 Which Operations Does Ares 2 Architecture File System Access Control Monitor?
+
+Ares classifies file system interactions into five action types. These labels determine which method patterns are checked during static analysis.
+
+- **READ**: Accessing file contents or metadata without modifying them (streams, read APIs, attribute queries).
+- **OVERWRITE**: Writing or mutating existing content/attributes (write/append/truncate, metadata setters).
+- **CREATE**: Creating new files, directories, or links (create* APIs, file system creation/open).
+- **DELETE**: Removing files or scheduling deletion/trash operations.
+- **EXECUTE**: Operations that launch or open files with external programs (for example, `Desktop.open(...)` or process-related operations).
+
+Some APIs can appear under multiple actions because they imply more than one permission (for example, `copy`/`move` or methods that create and write simultaneously).
+
+---
 
 Both ArchUnit and WALA modes monitor the same set of file system methods, loaded from template files:
 
@@ -149,7 +188,8 @@ Instead of intercepting method calls at runtime (AOP approach), architecture tes
 
 ---
 
-## 2.1 FILE SYSTEM - READ Operations
+<a id="22-what-are-the-monitored-read-operations"></a>
+## 2.2 What Are The Monitored READ Operations?
 
 **Monitored Methods (loaded from `file-system-access-methods.txt`):**
 
@@ -183,7 +223,8 @@ java.nio.file.Files.readString(Ljava/nio/file/Path;)Ljava/lang/String;
 
 ---
 
-## 2.2 FILE SYSTEM - WRITE/OVERWRITE Operations
+<a id="23-what-are-the-monitored-writeoverwrite-operations"></a>
+## 2.3 What Are The Monitored WRITE/OVERWRITE Operations?
 
 **Monitored Methods:**
 - `FileOutputStream` write methods
@@ -197,7 +238,8 @@ java.nio.file.Files.readString(Ljava/nio/file/Path;)Ljava/lang/String;
 
 ---
 
-## 2.3 FILE SYSTEM - CREATE Operations
+<a id="24-what-are-the-monitored-create-operations"></a>
+## 2.4 What Are The Monitored CREATE Operations?
 
 **Monitored Methods:**
 - `File.createNewFile()`, `File.mkdir()`, `File.mkdirs()`
@@ -210,17 +252,18 @@ java.nio.file.Files.readString(Ljava/nio/file/Path;)Ljava/lang/String;
 
 ---
 
-## 2.4 FILE SYSTEM - DELETE Operations
+<a id="25-what-are-the-monitored-delete-operations"></a>
+## 2.5 What Are The Monitored DELETE Operations?
 
 **Monitored Methods:**
 - `File.delete()`, `File.deleteOnExit()`
 - `Files.delete()`, `Files.deleteIfExists()`
 - `Desktop.moveToTrash()`
-- `FileSystemProvider.delete()`
 
 ---
 
-## 2.5 FILE SYSTEM - EXECUTE Operations
+<a id="26-what-are-the-monitored-execute-operations"></a>
+## 2.6 What Are The Monitored EXECUTE Operations?
 
 **Monitored Methods:**
 - `Files.move()`, `Files.copy()`
@@ -230,7 +273,8 @@ java.nio.file.Files.readString(Ljava/nio/file/Path;)Ljava/lang/String;
 
 ---
 
-# 3. Student Code Triggers Security Check
+<a id="3-ares-2-architecture-file-system-access-control-student-code-triggers-security-check"></a>
+# 3. Ares 2 Architecture File System Access Control: Student Code Triggers Security Check
 
 When student code (any code within the configured restricted package) attempts to use one of these file system methods, the architecture analysis will detect it during the test phase.
 
@@ -271,12 +315,14 @@ public class StudentSolution {
 
 ---
 
-# 4. Ares Collects Information About the File Access
+<a id="4-ares-2-architecture-file-system-access-control-ares-collects-information-about-the-file-access"></a>
+# 4. Ares 2 Architecture File System Access Control: Ares Collects Information About the File Access
 
 During architecture analysis, Ares collects information about the code structure to detect file system access patterns.
 
 ---
 
+<a id="41-loading-java-classes-archunit"></a>
 ## 4.1 Loading Java Classes (ArchUnit)
 
 **Framework:** TNGs ArchUnit (https://www.archunit.org/)
@@ -318,6 +364,7 @@ JavaClasses javaClasses = new ClassFileImporter()
 
 ---
 
+<a id="42-building-the-call-graph-wala"></a>
 ## 4.2 Building the Call Graph (WALA)
 
 **Framework:** IBM WALA (T.J. Watson Libraries for Analysis)
@@ -437,10 +484,12 @@ CallGraph:
 
 ---
 
-# 5. Ares Validates the File Access
+<a id="5-ares-2-architecture-file-system-access-control-ares-validates-the-file-access"></a>
+# 5. Ares 2 Architecture File System Access Control: Ares Validates the File Access
 
 ---
 
+<a id="51-archunit-mode-static-analysis"></a>
 ## 5.1 ArchUnit Mode: Static Analysis
 
 **How it works:**
@@ -544,6 +593,7 @@ Method <de.student.StudentCode.exploit()> transitively accesses method <java.io.
 
 ---
 
+<a id="52-wala-mode-call-graph-analysis"></a>
 ## 5.2 WALA Mode: Call Graph Analysis
 
 **How it works:**
@@ -597,6 +647,7 @@ Called by test method: 'org.example.TestClass.testExploit()V'
 
 ---
 
+<a id="53-transitive-access-detection"></a>
 ## 5.3 Transitive Access Detection
 
 **How TransitivelyAccessesMethodsCondition Works:**
@@ -638,6 +689,7 @@ Result: Path found = [StudentCode.main → Helper.processData → Files.readStri
 
 ---
 
+<a id="54-reachability-analysis-wala"></a>
 ## 5.4 Reachability Analysis (WALA)
 
 **Step 4: Find Paths to Forbidden Methods**
@@ -722,6 +774,7 @@ Path: [StudentCode.processData, Helper.loadConfig, FileInputStream.<init>]
 
 ---
 
+<a id="55-false-positive-filtering-wala"></a>
 ## 5.5 False Positive Filtering (WALA)
 
 **Challenge:** JDK classes legitimately use file system operations internally (e.g., `Files.list()` creates threads internally for directory traversal).
@@ -799,7 +852,39 @@ private static final List<String> JDK_THREAD_HELPERS = List.of(
 // Detects real violations: StudentCode → Files.readString → (no internal helper)
 ```
 
-## Summary for Programming Instructors (TL;DR)
+<a id="6-ares-2-architecture-file-system-access-control-operation-type-classification"></a>
+# 6. Ares 2 Architecture File System Access Control: Operation Type Classification
+
+This section explains how architecture testing classifies operations differently from AOP-based runtime analysis. Understanding these differences is essential for correctly interpreting analysis results.
+
+**Key Difference from AOP:**
+
+Unlike AOP which can analyze runtime parameters (like `StandardOpenOption` values), architecture testing classifies operations based on **method signatures** in the forbidden methods list. This means:
+
+- **No parameter inspection**: Cannot distinguish `Files.newByteChannel(path, READ)` from `Files.newByteChannel(path, WRITE)` at analysis time
+- **Method-level classification**: Each method is pre-classified as READ, WRITE, CREATE, DELETE, or EXECUTE based on its typical usage
+- **Conservative approach**: Methods that could perform multiple operations are often classified under the most restrictive category
+
+**Classification Strategy:**
+
+| Method Pattern | Classified As | Reason |
+|----------------|---------------|--------|
+| `Files.readString`, `Files.readAllBytes` | READ | Primary purpose is reading |
+| `Files.writeString`, `Files.write` | WRITE | Primary purpose is writing |
+| `Files.createFile`, `Files.createDirectory` | CREATE | Primary purpose is creation |
+| `Files.delete`, `Files.deleteIfExists` | DELETE | Primary purpose is deletion |
+| `Desktop.open`, `Desktop.edit` | EXECUTE | Launches external programs |
+| `Files.newByteChannel`, `FileChannel.open` | Multiple | Listed under multiple categories |
+
+**Consequence:** Architecture testing may flag more violations than AOP because it cannot distinguish read-only from write access when the same method is used for both.
+
+---
+
+<a id="7-ares-2-architecture-file-system-access-control-conclusion"></a>
+# 7. Ares 2 Architecture File System Access Control: Conclusion
+
+<a id="71-summary-for-programming-instructors-tldr"></a>
+## 7.1 Summary for Programming Instructors (TL;DR)
 
 **What does Architecture Testing do?**
 - ✅ Analyzes **compiled bytecode** to detect forbidden file system operations
@@ -822,7 +907,22 @@ private static final List<String> JDK_THREAD_HELPERS = List.of(
 
 ---
 
-## Comparison: Architecture vs. AOP
+<a id="72-technical-details"></a>
+## 7.2 Technical Details
+
+The file system security mechanism provides **comprehensive protection** through:
+
+1. **Extensive API Coverage**: Detection of all file system method calls in bytecode
+2. **Transitive Analysis**: Finds violations through helper methods and indirect calls
+3. **Call Graph Analysis**: WALA mode provides precise reachability information
+4. **False Positive Filtering**: WALA mode filters out JDK-internal helper paths
+5. **Clear Error Messages**: Detailed violation reports with complete call chains
+
+The system operates **at compile/test time**, requiring no runtime overhead, and detects violations **before** dangerous code can execute.
+
+> 💡 **ArchUnit vs. WALA:** For most use cases the detection is similar, but precision differs. ArchUnit is faster but may have more false positives; WALA is slower but filters JDK-internal paths.
+
+**Comparison: Architecture vs. AOP**
 
 | Aspect | Architecture (ArchUnit/WALA) | AOP (Byte Buddy/AspectJ) |
 |--------|------------------------------|--------------------------|
@@ -836,110 +936,19 @@ private static final List<String> JDK_THREAD_HELPERS = List.of(
 | **Use Case** | Pre-submission validation | Runtime security enforcement |
 | **Error Timing** | Test phase | Production execution |
 
----
+**Implementation Differences:**
 
-## Technical Details
+| Aspect | ArchUnit | WALA |
+|--------|----------|------|
+| **Analysis Type** | Static dependency analysis | Call graph construction |
+| **Configuration** | `architectureMode = "ARCHUNIT"` | `architectureMode = "WALA"` |
+| **Speed** | Fast | Slower |
+| **Precision** | Good | Very precise |
+| **False Positive Handling** | None | JDK helper filtering |
+| **Memory Usage** | Low | Higher |
+| **Use Case** | Quick validation | Production-grade analysis |
 
-### **ArchUnit Mode (Static Analysis)**
-
-**Implementation:**
-- Uses ArchUnit's `ArchRule` and custom `TransitivelyAccessesMethodsCondition`
-- Analyzes class dependencies and method access patterns
-- No call graph construction required
-
-**Violation Example:**
-```
-Architecture Violation [Priority: MEDIUM] - Rule 'No class should access file system' was violated (1 times):
-Method <de.student.StudentCode.exploit()> transitively accesses method <java.io.FileInputStream.<init>(Ljava/lang/String;)V> by 
-  [de.student.StudentCode.exploit() -> de.student.Helper.readFile() -> java.io.FileInputStream.<init>()]
-```
-
-**Best For:**
-- Quick validation during development
-- Broad detection of file system usage patterns
-- When exact call paths are not critical
-
----
-
-### **WALA Mode (Call Graph Analysis)**
-
-**Implementation:**
-- Builds complete call graph using IBM WALA framework
-- Performs reachability analysis from entry points to forbidden methods
-- Includes false positive filtering for JDK internals
-
-**Violation Example:**
-```
-Forbidden method 'java.io.FileInputStream.<init>(Ljava/lang/String;)V' is reachable from 'de.student.StudentCode.exploit()V' 
-in class 'de.student.StudentCode' at line 42
-Called by test method: 'org.example.TestClass.testExploit()V'
-```
-
-**Best For:**
-- Precise violation detection
-- Understanding exact call paths
-- Production-grade security validation
-- Reducing false positives
-
----
-
-### **Forbidden Method Templates**
-
-Both modes load forbidden methods from text files:
-
-**File Format:**
-```
-# READ operations
-java.io.FileInputStream.<init>(Ljava/lang/String;)V
-java.io.FileReader.<init>(Ljava/lang/String;)V
-java.nio.file.Files.readString(Ljava/nio/file/Path;)Ljava/lang/String;
-
-# WRITE operations  
-java.io.FileOutputStream.<init>(Ljava/lang/String;)V
-java.nio.file.Files.writeString(Ljava/nio/file/Path;Ljava/lang/CharSequence;)Ljava/nio/file/Path;
-
-# ... more methods
-```
-
-**Template Locations:**
-- ArchUnit: `src/main/resources/templates/architecture/java/archunit/methods/file-system-access-methods.txt`
-- WALA: `src/main/resources/templates/architecture/java/wala/methods/file-system-access-methods.txt`
-
----
-
-### **Integration Example**
-
-**Maven Project Setup:**
-```xml
-<dependencies>
-    <dependency>
-        <groupId>de.tum.cit.ase</groupId>
-        <artifactId>ares</artifactId>
-        <version>2.0.1-Beta6</version>
-    </dependency>
-</dependencies>
-```
-
-**Test Class:**
-```java
-@Test
-void testNoFileSystemAccess() {
-    // Load student classes
-    JavaClasses javaClasses = new ClassFileImporter()
-        .importPackages("de.student");
-    
-    // Create test case
-    JavaArchitectureTestCase testCase = JavaArchitectureTestCase.builder()
-        .javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.FILESYSTEM_INTERACTION)
-        .allowedPackages(Set.of())
-        .javaClasses(javaClasses)
-        .callGraph(null)  // null for ArchUnit mode
-        .build();
-    
-    // Execute
-    testCase.executeArchitectureTestCase("ARCHUNIT", "");
-}
-```
+**Both implementations provide the same validation goal; the detected APIs and precision differ by mode.**
 
 ---
 
