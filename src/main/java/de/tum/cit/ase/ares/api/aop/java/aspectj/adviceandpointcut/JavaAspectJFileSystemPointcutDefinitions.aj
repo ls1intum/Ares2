@@ -53,7 +53,7 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.util.jar.JarOutputStream+.putNextEntry(..)) ||
                     call(* java.util.jar.JarOutputStream+.closeEntry(..)) ||
                     call(* java.util.Properties+.store(..)) ||
-                    call(* java.util.Properties+.storeToXML(..)) ||
+                    call(* java.util.Properties+.storeToXML(..))
                     );
 
     pointcut fileCreateMethods():

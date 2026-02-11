@@ -38,13 +38,12 @@
      - [5.4.5 Allow Ares Internal Files](#545-allow-ares-internal-files)
    - [5.5 Check 5: Block Access with Detailed Error Message](#55-check-5-block-access-with-detailed-error-message)
 6. [Ares 2 AOP File System Access Control: Operation Type Classification](#6-ares-2-aop-file-system-access-control-operation-type-classification)
-   - [6.1 Kategorie A: OpenOptions-Priorisierung](#61-kategorie-a-openoptions-priorisierung)
-   - [6.2 Kategorie B: RandomAccessFile Mode-Erkennung](#62-kategorie-b-randomaccessfile-mode-erkennung)
-   - [6.3 Kategorie C: Vorbereitende Operationen](#63-kategorie-c-vorbereitende-operationen)
-   - [6.4 Kategorie D: Falsches Subsystem](#64-kategorie-d-falsches-subsystem)
+   - [6.1 Category A: OpenOptions Prioritization](#61-category-a-openoptions-prioritization)
+   - [6.2 Category B: RandomAccessFile Mode Detection](#62-category-b-randomaccessfile-mode-detection)
+   - [6.3 Category C: Preparatory Operations](#63-category-c-preparatory-operations)
+   - [6.4 Category D: Wrong Subsystem](#64-category-d-wrong-subsystem)
 7. [Ares 2 AOP File System Access Control: Conclusion](#7-ares-2-aop-file-system-access-control-conclusion)
-   - [7.1 Summary for Programming Instructors (TL;DR)](#71-summary-for-programming-instructors-tldr)
-   - [7.2 Technical Details](#72-technical-details)
+   - [7.1 Technical Details](#71-technical-details)
 
 ---
 
@@ -55,6 +54,46 @@ This document explains how Ares 2 decides whether student code may access the fi
 - The caller of the monitored file system method
 - The operations the monitored file system method wants to conduct
 - The paths the monitored file system method wants to access
+
+---
+
+## Summary for Programming Instructors (TL;DR)
+
+**What does Ares do?**
+- ✅ Monitors a **broad set of file system APIs** automatically (Read, Write, Create, Delete, Execute)
+- ✅ Blocks **student code** from accessing **forbidden paths**
+- ✅ **Configurable via YAML** - You determine which paths are allowed
+- ✅ Works **without code changes** to student code (via AOP)
+- ✅ Provides **clear error messages** with exact source (which method, which path, which test)
+
+**When do you need this?**
+- When students should practice file operations (e.g., reading/writing files)
+- But you want to prevent them from reading sensitive files or deleting system files
+- Example: Allow `/tmp` for exercises, block `/etc` and `/home`
+
+**How does it work (simplified)?**
+1. Student calls `Files.readString("/etc/passwd")`
+2. Ares intercepts the call (AOP) and checks:
+   - Does this come from student code? ✓ Yes
+   - Is `/etc/passwd` in the allowed list? ✗ No
+3. Ares blocks and throws a meaningful exception
+
+---
+
+## Comparison: AOP vs. Architecture
+
+| Aspect | AOP (Byte Buddy/AspectJ) | Architecture (ArchUnit/WALA) |
+|--------|--------------------------|------------------------------|
+| **Analysis Time** | During execution (runtime) | Before execution (static) |
+| **Detection** | Intercepts method calls | Analyzes code structure |
+| **Granularity** | Path-based permissions | Binary (allowed/forbidden) |
+| **Performance Impact** | Runtime overhead on every call | Analysis overhead only |
+| **False Positives** | None (only executed code checked) | Possible (unreachable code) |
+| **Coverage** | Only executed paths | All code paths |
+| **Configuration** | Path-level permissions | Package-level permissions |
+| **Use Case** | Runtime security enforcement | Pre-submission validation |
+| **Error Timing** | Production execution | Test phase |
+
 ---
 
 <a id="11-how-does-the-uml-activity-diagram-look-like"></a>
@@ -162,7 +201,7 @@ Ares classifies file system interactions into five action types. These labels dr
 - **OVERWRITE**: Writing or mutating existing content/attributes (write/append/truncate, metadata setters).
 - **CREATE**: Creating new files, directories, or links (create* APIs, file system creation/open).
 - **DELETE**: Removing files or scheduling deletion/trash operations.
-- **EXECUTE**: Operations that launch or open files with external programs (for example, `Runtime.exec(...)` or `ProcessBuilder.start(...)`).
+- **EXECUTE**: In Ares, 'Execute' is a broad category covering execution of binaries, opening files in external applications, and complex file manipulations like moving/copying (for example, `Runtime.exec(...)` or `ProcessBuilder.start(...)`).
 
 Some APIs can appear under multiple actions because they imply more than one permission (for example, `copy`/`move` or `StandardOpenOption` combinations).
 
@@ -1346,8 +1385,8 @@ Test method: org.junit.TestClass.testStudent
 
 This section explains why the **detected operation type** may differ from the **intuitively expected operation** based on the API being tested. Understanding these categories is essential for correctly configuring security expectations in test scenarios.
 
-<a id="61-kategorie-a-openoptions-priorisierung"></a>
-## 6.1 Kategorie A: OpenOptions-Priorisierung
+<a id="61-category-a-openoptions-prioritization"></a>
+## 6.1 Category A: OpenOptions Prioritization
 
 **Problem:** When multiple `StandardOpenOption` values are passed to NIO methods, certain options take precedence over others in the `deriveActionChecks()` method.
 
@@ -1390,8 +1429,8 @@ for (StandardOpenOption option : options) {
 | FileSystemDeleteAccess#8 | delete | overwrite | `FileChannel.open(DELETE_ON_CLOSE, WRITE)` - WRITE has precedence |
 | FileSystemWriteAccess#14 | overwrite | read | `MappedByteBuffer` requires `FileChannel.open(READ)` first |
 
-<a id="62-kategorie-b-randomaccessfile-mode-erkennung"></a>
-## 6.2 Kategorie B: RandomAccessFile Mode-Erkennung
+<a id="62-category-b-randomaccessfile-mode-detection"></a>
+## 6.2 Category B: RandomAccessFile Mode Detection
 
 **Problem:** `RandomAccessFile` uses mode strings (`"r"`, `"rw"`, `"rws"`, `"rwd"`) instead of `StandardOpenOption`, requiring special handling.
 
@@ -1423,8 +1462,8 @@ private static String getRandomAccessFileModeAction(Object[] parameters) {
 | FileSystemCreateAccess#11 | create | overwrite | `new RandomAccessFile(file, "rw")` - "rw" mode → overwrite |
 | FileSystemDeleteAccess#11 | delete | overwrite | `RandomAccessFile` with "rw" blocks before delete can occur |
 
-<a id="63-kategorie-c-vorbereitende-operationen"></a>
-## 6.3 Kategorie C: Vorbereitende Operationen
+<a id="63-category-c-preparatory-operations"></a>
+## 6.3 Category C: Preparatory Operations
 
 **Problem:** Some test methods require preparatory file system operations before the main intended operation. Ares blocks the **first** forbidden operation encountered.
 
@@ -1453,8 +1492,8 @@ When a test method calls multiple file system APIs in sequence, Ares intercepts 
 | FileSystemExecuteAccess#4 | execute | create | `File.createTempFile` | createTempOutputFile() for redirect |
 | FileSystemExecuteAccess#5 | execute | create | `File.createTempFile` | createTempOutputFile() for inheritIO |
 
-<a id="64-kategorie-d-falsches-subsystem"></a>
-## 6.4 Kategorie D: Falsches Subsystem
+<a id="64-category-d-wrong-subsystem"></a>
+## 6.4 Category D: Wrong Subsystem
 
 **Problem:** Some file system operations trigger security checks in **other subsystems** (e.g., Thread system) before the file system check can occur.
 
@@ -1477,32 +1516,8 @@ When a test method calls multiple file system APIs in sequence, Ares intercepts 
 <a id="7-ares-2-aop-file-system-access-control-conclusion"></a>
 # 7. Ares 2 AOP File System Access Control: Conclusion
 
-<a id="71-summary-for-programming-instructors-tldr"></a>
-## 7.1 Summary for Programming Instructors (TL;DR)
-
-**What does Ares do?**
-- ✅ Monitors a **broad set of file system APIs** automatically (Read, Write, Create, Delete, Execute)
-- ✅ Blocks **student code** from accessing **forbidden paths**
-- ✅ **Configurable via YAML** - You determine which paths are allowed
-- ✅ Works **without code changes** to student code (via AOP)
-- ✅ Provides **clear error messages** with exact source (which method, which path, which test)
-
-**When do you need this?**
-- When students should practice file operations (e.g., reading/writing files)
-- But you want to prevent them from reading sensitive files or deleting system files
-- Example: Allow `/tmp` for exercises, block `/etc` and `/home`
-
-**How does it work (simplified)?**
-1. Student calls `Files.readString("/etc/passwd")`
-2. Ares intercepts the call (AOP) and checks:
-   - Does this come from student code? ✓ Yes
-   - Is `/etc/passwd` in the allowed list? ✗ No
-3. Ares blocks and throws a meaningful exception
-
----
-
-<a id="72-technical-details"></a>
-## 7.2 Technical Details
+<a id="71-technical-details"></a>
+## 7.1 Technical Details
 
 The file system security mechanism provides **comprehensive protection** through:
 

@@ -90,6 +90,7 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 			throw new SecurityException(Messages.localized("security.archunit.illegal.execution", e.getMessage()));
 		}
 		
+		
 		// Extract the rule name (e.g., "Accesses file system") from first line
 		@Nonnull
 		String ruleNamePattern = ".*?'(.*?)'.*";
@@ -151,39 +152,70 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 			throw new SecurityException(Messages.localized("security.archunit.package.import.violation", packageList));
 		}
 		
-		// Parse the detail lines to extract caller, target method, and location info
-		// Format: "Method <caller> calls method <target> in (File.java:line) accesses <target> in (File.java:line)"
+		// Parse the detail line to extract caller and target method info.
+		// Typical formats:
+		// - "Method <caller> calls method <target> in (File.java:line)"
+		// - "Method <caller> calls constructor <target> in (File.java:line)"
+		// - "Constructor <caller> calls constructor <target> in (File.java:line)"
+		// - "Method <caller> accesses <target> by [chain]"
 		@Nonnull
 		String detailLine = messageParts[1].trim();
+
+		// Extract the caller (Method/Constructor) and target (accesses/calls) with fallbacks.
+		String caller = null;
+		String target = null;
 		
-		// Extract the caller method (between "Method <" and "> ")
-		// Handle nested angle brackets like <init> by using a greedy match up to "> " or end
-		@Nonnull
-		String callerPattern = "Method <(.+?)> ";
-		java.util.regex.Pattern callerRegex = java.util.regex.Pattern.compile(callerPattern);
-		java.util.regex.Matcher callerMatcher = callerRegex.matcher(detailLine);
-		@Nonnull
-		String caller = callerMatcher.find() ? callerMatcher.group(1) : "unknown";
+		java.util.regex.Matcher callerMatcher = java.util.regex.Pattern
+				.compile("(?:Method|Constructor) <(.+?)>(?:\\s|$)")
+				.matcher(detailLine);
+		if (callerMatcher.find()) {
+			caller = callerMatcher.group(1);
+		}
 		
-		// Extract the target method (between "accesses <" and "> in")
-		// Handle nested angle brackets like <init> by matching up to "> in"
+		java.util.regex.Matcher targetMatcher = java.util.regex.Pattern
+				.compile("(?:accesses|calls method|calls constructor|calls|gets field|sets field) <(.+?)>(?:\\s|$)")
+				.matcher(detailLine);
+		if (targetMatcher.find()) {
+			target = targetMatcher.group(1);
+		}
+		
+		if (caller == null || target == null) {
+			java.util.List<String> angleMatches = new java.util.ArrayList<>();
+			java.util.regex.Matcher angleMatcher = java.util.regex.Pattern
+					.compile("<(.+?)>(?=\\s|$)")
+					.matcher(detailLine);
+			while (angleMatcher.find()) {
+				angleMatches.add(angleMatcher.group(1));
+			}
+			if (caller == null && !angleMatches.isEmpty()) {
+				caller = angleMatches.get(0);
+			}
+			if (target == null) {
+				if (angleMatches.size() >= 2) {
+					target = angleMatches.get(angleMatches.size() - 1);
+				} else if (angleMatches.size() == 1) {
+					target = angleMatches.get(0);
+				}
+			}
+		}
+		
 		@Nonnull
-		String targetPattern = "accesses <(.+?)> in";
-		java.util.regex.Pattern targetRegex = java.util.regex.Pattern.compile(targetPattern);
-		java.util.regex.Matcher targetMatcher = targetRegex.matcher(detailLine);
+		String callerResolved = caller != null ? caller : "unknown";
 		@Nonnull
-		String target = targetMatcher.find() ? targetMatcher.group(1) : "unknown";
+		String targetResolved = target != null ? target : "unknown";
 		
 		// Extract parent caller from the caller (class.method -> extract class)
 		@Nonnull
-		String parentCaller = caller.contains(".") ? caller.substring(0, caller.lastIndexOf('.')) : caller;
+		String parentCaller = callerResolved.contains(".")
+				? callerResolved.substring(0, callerResolved.lastIndexOf('.'))
+				: callerResolved;
 		
 		// Determine the action based on the rule name
 		@Nonnull
 		String action = mapRuleNameToAction(ruleName);
 		
 		throw new SecurityException(Messages.localized("security.archunit.violation.error",
-				caller, action, target, parentCaller));
+				callerResolved, action, targetResolved, parentCaller));
 	}
 	
 	/**

@@ -29,8 +29,7 @@
    - [5.5 False Positive Filtering (WALA)](#55-false-positive-filtering-wala)
 6. [Ares 2 Architecture File System Access Control: Operation Type Classification](#6-ares-2-architecture-file-system-access-control-operation-type-classification)
 7. [Ares 2 Architecture File System Access Control: Conclusion](#7-ares-2-architecture-file-system-access-control-conclusion)
-   - [7.1 Summary for Programming Instructors (TL;DR)](#71-summary-for-programming-instructors-tldr)
-   - [7.2 Technical Details](#72-technical-details)
+   - [7.1 Technical Details](#71-technical-details)
 
 ---
 
@@ -41,6 +40,45 @@ This document explains how Ares 2 decides whether student code may access the fi
 - The code structure for file system method calls
 - Which methods are reachable from student code
 - Whether the accessed classes are in allowed packages
+
+---
+
+## Summary for Programming Instructors (TL;DR)
+
+**What does Architecture Testing do?**
+- ✅ Analyzes **compiled bytecode** to detect forbidden file system operations
+- ✅ Works **before code execution** - catches violations during testing phase
+- ✅ Provides **two analysis modes**: Fast (ArchUnit) and Precise (WALA)
+- ✅ Detects **transitive calls** - finds violations even through helper methods
+- ✅ Generates **clear error messages** with complete call chains
+
+**When do you need this?**
+- When you want to prevent students from using file system operations entirely
+- For pre-submission checks (CI/CD pipelines)
+- When runtime monitoring (AOP) is not feasible or desired
+- For comprehensive code structure validation
+
+**How does it work (simplified)?**
+1. Compile student code to `.class` files
+2. Architecture analysis scans bytecode for file system method calls
+3. If forbidden patterns detected → Report violation with call chain
+4. Unlike AOP, this happens during testing, not when code runs
+
+---
+
+## Comparison: Architecture vs. AOP
+
+| Aspect | Architecture (ArchUnit/WALA) | AOP (Byte Buddy/AspectJ) |
+|--------|------------------------------|---------------------------|
+| **Analysis Time** | Before execution (static) | During execution (runtime) |
+| **Detection** | Analyzes code structure | Intercepts method calls |
+| **Granularity** | Binary (allowed/forbidden) | Path-based permissions |
+| **Performance Impact** | Analysis overhead only | Runtime overhead on every call |
+| **False Positives** | Possible (unreachable code) | None (only executed code checked) |
+| **Coverage** | All code paths | Only executed paths |
+| **Configuration** | Package-level permissions | Path-level permissions |
+| **Use Case** | Pre-submission validation | Runtime security enforcement |
+| **Error Timing** | Test phase | Production execution |
 
 ---
 
@@ -166,7 +204,7 @@ Ares classifies file system interactions into five action types. These labels de
 - **OVERWRITE**: Writing or mutating existing content/attributes (write/append/truncate, metadata setters).
 - **CREATE**: Creating new files, directories, or links (create* APIs, file system creation/open).
 - **DELETE**: Removing files or scheduling deletion/trash operations.
-- **EXECUTE**: Operations that launch or open files with external programs (for example, `Desktop.open(...)` or process-related operations).
+- **EXECUTE**: In Ares, 'Execute' is a broad category covering execution of binaries, opening files in external applications, and complex file manipulations like moving/copying (for example, `Desktop.open(...)` or process-related operations).
 
 Some APIs can appear under multiple actions because they imply more than one permission (for example, `copy`/`move` or methods that create and write simultaneously).
 
@@ -178,98 +216,364 @@ Both ArchUnit and WALA modes monitor the same set of file system methods, loaded
 - **ArchUnit**: `src/main/resources/templates/architecture/java/archunit/methods/file-system-access-methods.txt`
 - **WALA**: `src/main/resources/templates/architecture/java/wala/methods/file-system-access-methods.txt`
 
-**What is Architecture Testing?**
-
-Instead of intercepting method calls at runtime (AOP approach), architecture testing analyzes the compiled bytecode to detect which file system methods the student code accesses. This happens during the test phase, before the code actually runs.
-
-**Two Analysis Approaches:**
-- **ArchUnit**: Fast static analysis of class dependencies
-- **WALA**: Precise call graph analysis with false positive filtering
-
 ---
 
 <a id="22-what-are-the-monitored-read-operations"></a>
 ## 2.2 What Are The Monitored READ Operations?
 
-**Monitored Methods (loaded from `file-system-access-methods.txt`):**
+**Security Component:** Read operation monitor
 
-**java.io Package:**
-- `FileInputStream` constructors and read methods
-- `FileReader` constructors
-- `RandomAccessFile` read methods
-- `File.exists()`, `File.canRead()`, `File.length()`, etc.
+**Monitored APIs:**
 
-**java.nio.file Package:**
-- `Files.readAllBytes()`, `Files.readAllLines()`, `Files.readString()`
-- `Files.newInputStream()`, `Files.newBufferedReader()`
-- `Files.list()`, `Files.walk()`, `Files.find()`
-- `Files.readAttributes()`, `Files.getAttribute()`
+Read APIs listed below access file contents or metadata without modifying them.
 
-**java.nio.channels Package:**
-- `FileChannel.open()`, `FileChannel.read()`
-- `AsynchronousFileChannel.open()`, `AsynchronousFileChannel.read()`
+> **Note on "Tested by RP" column:** A ✅ means that this API is the **primary target** of a dedicated test in the Reproducibility Package. For example, if a test uses `BufferedInputStream` to wrap a `FileInputStream`, only the wrapper (`BufferedInputStream.<new>`) is marked as ✅, not the underlying `FileInputStream.<new>` which is merely a helper call in that context.
 
-**Other Packages:**
-- `ImageIO.read()`
-- `Scanner` constructors with file parameters
-- `DocumentBuilder.parse()`
-- `AudioSystem.getAudioInputStream()`
+**Reads any formatted file fully**
 
-**Method Signature Format:**
-```
-java.io.FileInputStream.<init>(Ljava/lang/String;)V
-java.nio.file.Files.readString(Ljava/nio/file/Path;)Ljava/lang/String;
-```
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.io.FileInputStream | `<new>` | ✅ | ✅ | ✅ |
+| java.io.BufferedInputStream | `<new>` | ✅ | ✅ | ✅ |
+| java.io.RandomAccessFile | `<new>` | ✅ | ✅ | ✅ |
+| java.nio.channels.AsynchronousFileChannel | read | ✅ | ✅ | ❌ (triggers Thread security) |
+| java.nio.channels.AsynchronousFileChannel | open | ✅ | ✅ | ❌ (triggers Thread security) |
+| java.nio.channels.FileChannel | open | ✅ | ✅ | ✅ |
+| java.nio.channels.FileChannel | map | ✅ | ✅ | ✅ |
+| java.nio.file.Files | newByteChannel | ✅ | ✅ | ✅ |
+| java.nio.file.Files | newInputStream | ✅ | ✅ | ✅ |
+| java.nio.file.Files | readAllBytes | ✅ | ✅ | ✅ |
+| java.lang.ClassLoader | getResourceAsStream | ✅ | ✅ | ❌ (triggers Reflection security) |
+
+**Reads UTF-8 text/tokens fully**
+
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.io.Reader | `<new>` | ✅ | ✅ | ✅ |
+| java.nio.file.Files | newBufferedReader | ✅ | ✅ | ✅ |
+| java.nio.file.Files | readString | ✅ | ✅ | ✅ |
+| java.nio.file.Files | lines | ✅ | ✅ | ✅ |
+| java.nio.file.Files | readAllLines | ✅ | ✅ | ✅ |
+| java.util.Scanner | `<new>` | ✅ | ✅ | ✅ |
+
+**Reads only specifically formatted files fully**
+
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.io.DataInputStream | `<new>` | ✅ | ✅ | ❌ |
+| java.io.DataInput | read | ✅ | ✅ | ❌ |
+| java.io.DataInput | readBoolean | ✅ | ✅ | ❌ |
+| java.io.DataInput | readByte | ✅ | ✅ | ❌ |
+| java.io.DataInput | readChar | ✅ | ✅ | ❌ |
+| java.io.DataInput | readDouble | ✅ | ✅ | ❌ |
+| java.io.DataInput | readFloat | ✅ | ✅ | ❌ |
+| java.io.DataInput | readFully | ✅ | ✅ | ❌ |
+| java.io.DataInput | readInt | ✅ | ✅ | ❌ |
+| java.io.DataInput | readLine | ✅ | ✅ | ❌ |
+| java.io.DataInput | readLong | ✅ | ✅ | ❌ |
+| java.io.DataInput | readShort | ✅ | ✅ | ❌ |
+| java.io.DataInput | readUTF | ✅ | ✅ | ❌ |
+| java.io.DataInput | readUnsignedByte | ✅ | ✅ | ❌ |
+| java.io.DataInput | readUnsignedShort | ✅ | ✅ | ❌ |
+| javax.imageio.ImageIO | createImageInputStream | ✅ | ✅ | ❌ |
+| javax.imageio.ImageIO | read | ✅ | ✅ | ❌ |
+| javax.sound.sampled.AudioSystem | getAudioInputStream | ✅ | ✅ | ❌ |
+| javax.xml.bind.Unmarshaller | unmarshal | ✅ | ✅ | ❌ |
+| javax.xml.parsers.DocumentBuilder | parse | ✅ | ✅ | ❌ |
+| javax.xml.parsers.SAXParser | parse | ✅ | ✅ | ❌ |
+| java.awt.Toolkit | createImage | ✅ | ✅ | ❌ |
+| java.awt.Toolkit | getImage | ✅ | ✅ | ❌ |
+| javax.imageio.ImageIO | getImageReaders | ✅ | ✅ | ❌ |
+| javax.sound.midi.MidiSystem | getSoundbank | ✅ | ✅ | ❌ |
+| java.awt.Font | createFont | ✅ | ✅ | ❌ |
+| java.awt.Font | createFonts | ✅ | ✅ | ❌ |
+| javax.imageio.stream.FileCacheImageInputStream | `<new>` | ✅ | ✅ | ❌ |
+| javax.imageio.stream.FileImageInputStream | `<new>` | ✅ | ✅ | ❌ |
+
+**Reads archive files (ZIP/JAR/GZIP)**
+
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.util.zip.ZipInputStream | `<new>` | ✅ | ✅ | ❌ |
+| java.util.zip.ZipInputStream | getNextEntry | ✅ | ✅ | ❌ |
+| java.util.jar.JarInputStream | `<new>` | ✅ | ✅ | ❌ |
+| java.util.jar.JarInputStream | getNextJarEntry | ✅ | ✅ | ❌ |
+| java.util.zip.GZIPInputStream | `<new>` | ✅ | ✅ | ❌ |
+| java.util.zip.ZipFile | `<new>` | ✅ | ✅ | ❌ |
+| java.util.zip.ZipFile | entries | ✅ | ✅ | ❌ |
+| java.util.zip.ZipFile | getInputStream | ✅ | ✅ | ❌ |
+| java.util.jar.JarFile | `<new>` | ✅ | ✅ | ❌ |
+| java.util.jar.JarFile | entries | ✅ | ✅ | ❌ |
+| java.util.jar.JarFile | getInputStream | ✅ | ✅ | ❌ |
+
+**Reads configuration/properties files**
+
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.util.Properties | load | ✅ | ✅ | ❌ |
+| java.util.Properties | loadFromXML | ✅ | ✅ | ❌ |
+
+**Reads only specific parts of a file**
+
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.io.RandomAccessFile | read | ✅ | ✅ | ❌ |
+| java.io.InputStream | read | ✅ | ✅ | ❌ |
+| java.io.Reader | read | ✅ | ✅ | ❌ |
+| java.nio.channels.SeekableByteChannel | read | ✅ | ✅ | ❌ |
+
+**Only reads the file hierarchy**
+
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.io.File | normalizedList | ✅ | ✅ | ❌ |
+| java.io.File | list | ✅ | ✅ | ❌ |
+| java.io.File | listFiles | ✅ | ✅ | ❌ |
+| java.io.File | listRoots | ✅ | ✅ | ❌ |
+| java.nio.file.Files | find | ✅ | ✅ | ❌ |
+| java.nio.file.Files | list | ✅ | ✅ | ❌ |
+| java.nio.file.Files | newDirectoryStream | ✅ | ✅ | ❌ |
+| java.nio.file.Files | walk | ✅ | ✅ | ❌ |
+| java.nio.file.Files | walkFileTree | ✅ | ✅ | ❌ |
+| java.nio.file.spi.FileSystemProvider | newDirectoryStream | ✅ | ✅ | ❌ |
 
 ---
 
 <a id="23-what-are-the-monitored-writeoverwrite-operations"></a>
 ## 2.3 What Are The Monitored WRITE/OVERWRITE Operations?
 
-**Monitored Methods:**
-- `FileOutputStream` write methods
-- `FileWriter` write methods
-- `RandomAccessFile.write()`
-- `Files.write()`, `Files.writeString()`
-- `Files.newOutputStream()`, `Files.newBufferedWriter()`
-- `Files.setAttribute()`, `File.setReadable()`, etc.
-- `ImageIO.write()`
-- `Transformer.transform()` (XML output to file)
+**Security Component:** Write operation monitor
+
+**Monitored APIs:**
+
+Write APIs listed below modify existing content or attributes.
+
+> **Note on "Tested by RP" column:** A ✅ means that this API is the **primary target** of a dedicated test in the Reproducibility Package. For example, if a test uses `BufferedWriter` to wrap a `FileWriter`, only the wrapper (`BufferedWriter.<new>`) is marked as ✅, not the underlying `FileWriter.<new>` which is merely a helper call in that context.
+
+**Writes any format fully to a file**
+
+> **Note:** Unlike AOP mode, architecture testing cannot inspect `OpenOption` or `MapMode` parameters at analysis time. Methods like `FileChannel.open` and `Files.newByteChannel` are detected regardless of the options used. The operation classification is based on method signatures, not runtime parameters.
+
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.io.FileOutputStream | `<new>` | ✅ | ✅ | ✅ |
+| java.io.BufferedOutputStream | `<new>` | ✅ | ✅ | ✅ |
+| java.io.RandomAccessFile | `<new>` | ✅ | ✅ | ✅ |
+| java.nio.channels.AsynchronousFileChannel | write | ✅ | ✅ | ❌ |
+| java.nio.channels.AsynchronousFileChannel | open | ✅ | ✅ | ❌ |
+| java.nio.channels.FileChannel | open | ✅ | ✅ | ✅ |
+| java.nio.channels.FileChannel | map | ✅ | ✅ | ✅ |
+| java.nio.channels.FileChannel | write | ✅ | ✅ | ✅ |
+| java.nio.file.Files | newByteChannel | ✅ | ✅ | ✅ |
+| java.nio.file.Files | newOutputStream | ✅ | ✅ | ✅ |
+| java.nio.file.Files | write | ✅ | ✅ | ✅ |
+
+**Writes UTF-8 text/tokens fully**
+
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.io.Writer | `<new>` | ✅ | ✅ | ✅ |
+| java.nio.file.Files | newBufferedWriter | ✅ | ✅ | ✅ |
+| java.nio.file.Files | writeString | ✅ | ✅ | ✅ |
+
+**Writes only specifically formatted files fully**
+
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.io.DataOutputStream | `<new>` | ✅ | ✅ | ❌ |
+| java.io.DataOutput | writeBoolean | ✅ | ✅ | ❌ |
+| java.io.DataOutput | writeByte | ✅ | ✅ | ❌ |
+| java.io.DataOutput | writeBytes | ✅ | ✅ | ❌ |
+| java.io.DataOutput | writeChar | ✅ | ✅ | ❌ |
+| java.io.DataOutput | writeChars | ✅ | ✅ | ❌ |
+| java.io.DataOutput | writeDouble | ✅ | ✅ | ❌ |
+| java.io.DataOutput | writeFloat | ✅ | ✅ | ❌ |
+| java.io.DataOutput | writeInt | ✅ | ✅ | ❌ |
+| java.io.DataOutput | writeLong | ✅ | ✅ | ❌ |
+| java.io.DataOutput | writeShort | ✅ | ✅ | ❌ |
+| java.io.DataOutput | writeUTF | ✅ | ✅ | ❌ |
+| javax.imageio.ImageIO | write | ✅ | ✅ | ❌ |
+| javax.imageio.ImageIO | createImageOutputStream | ✅ | ✅ | ❌ |
+| javax.sound.sampled.AudioSystem | write | ✅ | ✅ | ❌ |
+| javax.xml.bind.Marshaller | marshal | ✅ | ✅ | ❌ |
+| javax.xml.transform.Transformer | transform | ✅ | ✅ | ❌ |
+| java.io.PrintStream | `<new>` | ✅ | ✅ | ❌ |
+| java.util.logging.FileHandler | `<new>` | ✅ | ✅ | ❌ |
+| java.util.logging.FileHandler | publish | ✅ | ✅ | ❌ |
+| java.util.logging.FileHandler | close | ✅ | ✅ | ❌ |
+| java.util.zip.InflaterOutputStream | `<new>` | ✅ | ✅ | ❌ |
+| javax.print.DocPrintJob | print | ✅ | ✅ | ❌ |
+
+**Writes archive files (ZIP/JAR/GZIP)**
+
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.util.zip.ZipOutputStream | `<new>` | ✅ | ✅ | ❌ |
+| java.util.zip.ZipOutputStream | putNextEntry | ✅ | ✅ | ❌ |
+| java.util.jar.JarOutputStream | `<new>` | ✅ | ✅ | ❌ |
+| java.util.jar.JarOutputStream | putNextEntry | ✅ | ✅ | ❌ |
+| java.util.zip.GZIPOutputStream | `<new>` | ✅ | ✅ | ❌ |
+| java.util.zip.ZipOutputStream | closeEntry | ✅ | ✅ | ❌ |
+| java.util.jar.JarOutputStream | closeEntry | ✅ | ✅ | ❌ |
+
+**Writes configuration/properties files**
+
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.util.Properties | store | ✅ | ✅ | ❌ |
+| java.util.Properties | storeToXML | ✅ | ✅ | ❌ |
+| java.util.Formatter | `<new>` | ✅ | ✅ | ❌ |
+
+**Writes only specific parts to a file**
+
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.nio.channels.AsynchronousFileChannel | truncate | ✅ | ✅ | ❌ |
+| java.nio.channels.FileChannel | truncate | ✅ | ✅ | ❌ |
+| java.nio.channels.FileChannel | transferTo | ✅ | ✅ | ❌ |
+| java.nio.file.attribute.UserDefinedFileAttributeView | write | ✅ | ✅ | ❌ |
+
+**Only writes the file hierarchy (metadata/attributes)**
+
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.io.File | setExecutable | ✅ | ✅ | ❌ |
+| java.io.File | setLastModified | ✅ | ✅ | ❌ |
+| java.io.File | setReadOnly | ✅ | ✅ | ❌ |
+| java.io.File | setReadable | ✅ | ✅ | ❌ |
+| java.io.File | setWritable | ✅ | ✅ | ❌ |
+| java.io.File | renameTo | ✅ | ✅ | ❌ |
+| java.nio.file.Files | copy | ✅ | ✅ | ❌ |
+| java.nio.file.Files | move | ✅ | ✅ | ❌ |
+| java.nio.file.Files | setAttribute | ✅ | ✅ | ❌ |
+| java.nio.file.Files | setLastModifiedTime | ✅ | ✅ | ❌ |
+| java.nio.file.Files | setOwner | ✅ | ✅ | ❌ |
+| java.nio.file.Files | setPosixFilePermissions | ✅ | ✅ | ❌ |
+| java.nio.file.spi.FileSystemProvider | copy | ✅ | ✅ | ❌ |
+| java.nio.file.spi.FileSystemProvider | move | ✅ | ✅ | ❌ |
+| java.nio.file.spi.FileSystemProvider | setAttribute | ✅ | ✅ | ❌ |
 
 ---
 
 <a id="24-what-are-the-monitored-create-operations"></a>
 ## 2.4 What Are The Monitored CREATE Operations?
 
-**Monitored Methods:**
-- `File.createNewFile()`, `File.mkdir()`, `File.mkdirs()`
-- `File.createTempFile()`
-- `Files.createFile()`, `Files.createDirectory()`, `Files.createDirectories()`
-- `Files.createTempFile()`, `Files.createTempDirectory()`
-- `Files.createLink()`, `Files.createSymbolicLink()`
-- `FileChannel.open()` with CREATE option
-- `FileSystemProvider.newFileSystem()`
+**Security Component:** Create operation monitor
+
+**Monitored APIs:**
+
+Link creation APIs and conditional creates are listed under Creates files.
+
+**Creates files**
+
+> **Note:** Unlike AOP mode, architecture testing cannot inspect `OpenOption` parameters to determine if CREATE or CREATE_NEW is used. Methods like `FileChannel.open` are detected as potentially creating files regardless of the actual options passed.
+
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.io.File | createNewFile | ✅ | ✅ | ✅ |
+| java.io.File | createTempFile | ✅ | ✅ | ✅ |
+| java.nio.file.Files | createFile | ✅ | ✅ | ✅ |
+| java.nio.file.Files | createTempFile | ✅ | ✅ | ✅ |
+| java.nio.file.Files | createLink | ✅ | ✅ | ✅ |
+| java.nio.file.Files | createSymbolicLink | ✅ | ✅ | ✅ |
+| java.io.BufferedOutputStream | `<new>` | ✅ | ✅ | ✅ |
+| java.io.BufferedWriter | `<new>` | ✅ | ✅ | ✅ |
+| java.io.FileOutputStream | `<new>` | ✅ | ✅ | ✅ |
+| java.io.FileWriter | `<new>` | ✅ | ✅ | ✅ |
+| java.io.PrintWriter | `<new>` | ✅ | ✅ | ✅ |
+| java.io.RandomAccessFile | `<new>` | ✅ | ✅ | ✅ |
+| java.nio.file.Files | newBufferedWriter | ✅ | ✅ | ✅ |
+| java.nio.file.Files | newOutputStream | ✅ | ✅ | ✅ |
+| java.nio.channels.AsynchronousFileChannel | open | ✅ | ✅ | ❌ |
+| java.nio.channels.FileChannel | open | ✅ | ✅ | ✅ |
+
+**Creates folders**
+
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.io.File | mkdir | ✅ | ✅ | ✅ |
+| java.io.File | mkdirs | ✅ | ✅ | ✅ |
+| java.nio.file.Files | createDirectories | ✅ | ✅ | ✅ |
+| java.nio.file.Files | createDirectory | ✅ | ✅ | ✅ |
+| java.nio.file.Files | createTempDirectory | ✅ | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | createDirectory | ✅ | ✅ | ✅ |
 
 ---
 
 <a id="25-what-are-the-monitored-delete-operations"></a>
 ## 2.5 What Are The Monitored DELETE Operations?
 
-**Monitored Methods:**
-- `File.delete()`, `File.deleteOnExit()`
-- `Files.delete()`, `Files.deleteIfExists()`
-- `Desktop.moveToTrash()`
+**Security Component:** Delete operation monitor
+
+**Monitored APIs:**
+
+Delete APIs listed below can remove files and empty directories.
+
+**Delete files**
+
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.io.File | delete | ✅ | ✅ | ✅ |
+| java.nio.file.Files | delete | ✅ | ✅ | ✅ |
+| java.nio.file.Files | deleteIfExists | ✅ | ✅ | ✅ |
+| java.awt.Desktop | moveToTrash | ✅ | ✅ | ❌ |
+| java.io.File | deleteOnExit | ✅ | ✅ | ✅ |
+
+**Delete folders**
+
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.io.File | delete | ✅ | ✅ | ✅ |
+| java.nio.file.Files | delete | ✅ | ✅ | ✅ |
+| java.nio.file.Files | deleteIfExists | ✅ | ✅ | ✅ |
+| java.awt.Desktop | moveToTrash | ✅ | ✅ | ❌ |
+| java.io.File | deleteOnExit | ✅ | ✅ | ✅ |
+
+**Also monitored in delete analysis (can delete source file)**
+
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.nio.file.Files | copy | ✅ | ✅ | ❌ |
+| java.nio.file.Files | move | ✅ | ✅ | ❌ |
 
 ---
 
 <a id="26-what-are-the-monitored-execute-operations"></a>
 ## 2.6 What Are The Monitored EXECUTE Operations?
 
-**Monitored Methods:**
-- `Files.move()`, `Files.copy()`
-- `File.renameTo()`
-- `Desktop.open()`, `Desktop.edit()`, `Desktop.print()`
-- `FileSystemProvider.move()`, `FileSystemProvider.copy()`
+**What does "Execute" mean?** File system actions that trigger execution-like behavior such as launching processes or opening files with their default programs (e.g., `Runtime.exec(...)` or `ProcessBuilder.start(...)`).
+
+**Security Component:** Execute operation monitor
+
+**Monitored APIs:**
+
+Execute APIs listed below trigger execution-like behavior on files.
+
+**Executes the file on the console (command line execution)**
+
+> **Note:** `ProcessBuilder.start()`, `ProcessBuilder.startPipeline()`, and `Runtime.exec()` are handled by the **Command System** rather than the File System in architecture testing, as they execute commands rather than individual files. The File System detection for execute only covers library loading (`load`/`loadLibrary`).
+
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.lang.Runtime | load | ✅ | ✅ | ❌ |
+| java.lang.Runtime | loadLibrary | ✅ | ✅ | ❌ |
+| java.lang.System | load | ✅ | ✅ | ❌ |
+| java.lang.System | loadLibrary | ✅ | ✅ | ❌ |
+
+**Opens files with default applications (Desktop integration)**
+
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
+| --- | --- | --- | --- | --- |
+| java.awt.Desktop | open | ✅ | ✅ | ❌ |
+| java.awt.Desktop | edit | ✅ | ✅ | ❌ |
+| java.awt.Desktop | print | ✅ | ✅ | ❌ |
+| java.awt.Desktop | browse | ✅ | ✅ | ❌ |
+| java.awt.Desktop | browseFileDirectory | ✅ | ✅ | ❌ |
+| java.awt.Desktop | mail | ✅ | ✅ | ❌ |
+| java.awt.Desktop | openHelpViewer | ✅ | ✅ | ❌ |
+| java.awt.Desktop | setDefaultMenuBar | ✅ | ✅ | ❌ |
+| java.awt.Desktop | setOpenFileHandler | ✅ | ✅ | ❌ |
+| java.awt.Desktop | setOpenURIHandler | ✅ | ✅ | ❌ |
 
 ---
 
@@ -883,32 +1187,8 @@ Unlike AOP which can analyze runtime parameters (like `StandardOpenOption` value
 <a id="7-ares-2-architecture-file-system-access-control-conclusion"></a>
 # 7. Ares 2 Architecture File System Access Control: Conclusion
 
-<a id="71-summary-for-programming-instructors-tldr"></a>
-## 7.1 Summary for Programming Instructors (TL;DR)
-
-**What does Architecture Testing do?**
-- ✅ Analyzes **compiled bytecode** to detect forbidden file system operations
-- ✅ Works **before code execution** - catches violations during testing phase
-- ✅ Provides **two analysis modes**: Fast (ArchUnit) and Precise (WALA)
-- ✅ Detects **transitive calls** - finds violations even through helper methods
-- ✅ Generates **clear error messages** with complete call chains
-
-**When do you need this?**
-- When you want to prevent students from using file system operations entirely
-- For pre-submission checks (CI/CD pipelines)
-- When runtime monitoring (AOP) is not feasible or desired
-- For comprehensive code structure validation
-
-**How does it work (simplified)?**
-1. Compile student code to `.class` files
-2. Architecture analysis scans bytecode for file system method calls
-3. If forbidden patterns detected → Report violation with call chain
-4. Unlike AOP, this happens during testing, not when code runs
-
----
-
-<a id="72-technical-details"></a>
-## 7.2 Technical Details
+<a id="71-technical-details"></a>
+## 7.1 Technical Details
 
 The file system security mechanism provides **comprehensive protection** through:
 
@@ -921,20 +1201,6 @@ The file system security mechanism provides **comprehensive protection** through
 The system operates **at compile/test time**, requiring no runtime overhead, and detects violations **before** dangerous code can execute.
 
 > 💡 **ArchUnit vs. WALA:** For most use cases the detection is similar, but precision differs. ArchUnit is faster but may have more false positives; WALA is slower but filters JDK-internal paths.
-
-**Comparison: Architecture vs. AOP**
-
-| Aspect | Architecture (ArchUnit/WALA) | AOP (Byte Buddy/AspectJ) |
-|--------|------------------------------|--------------------------|
-| **Analysis Time** | Before execution (static) | During execution (runtime) |
-| **Detection** | Analyzes code structure | Intercepts method calls |
-| **Granularity** | Binary (allowed/forbidden) | Path-based permissions |
-| **Performance Impact** | Analysis overhead only | Runtime overhead on every call |
-| **False Positives** | Possible (unreachable code) | None (only executed code checked) |
-| **Coverage** | All code paths | Only executed paths |
-| **Configuration** | Package-level permissions | Path-level permissions |
-| **Use Case** | Pre-submission validation | Runtime security enforcement |
-| **Error Timing** | Test phase | Production execution |
 
 **Implementation Differences:**
 

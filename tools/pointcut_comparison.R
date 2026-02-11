@@ -25,6 +25,9 @@ WALA_FILE <- file.path(ARES_ROOT,
 DOCUMENTATION_FILE <- file.path(ARES_ROOT,
   "docs/aop/BlockFileSystemAccessAOP.md")
 
+ARCHITECTURE_DOCUMENTATION_FILE <- file.path(ARES_ROOT,
+  "docs/architecture/BlockFileSystemAccessArchitecture.md")
+
 OUTPUT_FILE <- file.path(ARES_ROOT, "tools/pointcut_comparison.csv")
 
 # ============================================================================
@@ -305,6 +308,96 @@ parse_documentation <- function(filepath) {
 }
 
 # ============================================================================
+# 5. Parse Architecture Documentation (BlockFileSystemAccessArchitecture.md)
+# ============================================================================
+
+parse_architecture_documentation <- function(filepath) {
+  lines <- readLines(filepath, warn = FALSE)
+  
+  results <- data.frame(
+    class = character(),
+    method = character(),
+    action = character(),
+    archunit_doc = character(),
+    wala_doc = character(),
+    source = character(),
+    stringsAsFactors = FALSE
+  )
+  
+  current_action <- NA
+  
+  for (i in 1:length(lines)) {
+    line <- lines[i]
+    
+    # Detect section headers for actions
+    if (grepl("^## 2\\.2 What Are The Monitored READ Operations", line)) {
+      current_action <- "READ"
+    } else if (grepl("^## 2\\.3 What Are The Monitored WRITE", line) ||
+               grepl("^## 2\\.3 What Are The Monitored OVERWRITE", line)) {
+      current_action <- "OVERWRITE"
+    } else if (grepl("^## 2\\.4 What Are The Monitored CREATE Operations", line)) {
+      current_action <- "CREATE"
+    } else if (grepl("^## 2\\.5 What Are The Monitored DELETE Operations", line)) {
+      current_action <- "DELETE"
+    } else if (grepl("^## 2\\.6 What Are The Monitored EXECUTE Operations", line)) {
+      current_action <- "EXECUTE"
+    } else if (grepl("^## 3\\.", line) || grepl("^# 3\\.", line)) {
+      # End of monitored operations sections
+      current_action <- NA
+    }
+    
+    # Parse table rows: | class | method | ArchUnit | WALA | Tested |
+    if (!is.na(current_action) && grepl("^\\|\\s*[a-z]", line)) {
+      # Split by |
+      parts <- strsplit(line, "\\|")[[1]]
+      parts <- trimws(parts)
+      parts <- parts[parts != ""]
+      
+      if (length(parts) >= 4) {
+        class_name <- parts[1]
+        method_name <- parts[2]
+        archunit_status <- parts[3]
+        wala_status <- parts[4]
+        
+        # Clean up method name (remove backticks)
+        method_name <- gsub("`", "", method_name)
+        # Convert <new> to <init>
+        if (method_name == "<new>") method_name <- "<init>"
+        
+        # Clean up status (extract just the emoji or status)
+        if (grepl("✅", archunit_status)) {
+          archunit_clean <- "YES"
+        } else if (grepl("❌", archunit_status)) {
+          archunit_clean <- "NO"
+        } else {
+          archunit_clean <- "UNKNOWN"
+        }
+        
+        if (grepl("✅", wala_status)) {
+          wala_clean <- "YES"
+        } else if (grepl("❌", wala_status)) {
+          wala_clean <- "NO"
+        } else {
+          wala_clean <- "UNKNOWN"
+        }
+        
+        results <- rbind(results, data.frame(
+          class = class_name,
+          method = method_name,
+          action = current_action,
+          archunit_doc = archunit_clean,
+          wala_doc = wala_clean,
+          source = "ARCH_DOCUMENTATION",
+          stringsAsFactors = FALSE
+        ))
+      }
+    }
+  }
+  
+  return(results)
+}
+
+# ============================================================================
 # Main Execution
 # ============================================================================
 
@@ -328,6 +421,10 @@ cat("Parsing Documentation...\n")
 doc_df <- parse_documentation(DOCUMENTATION_FILE)
 cat(sprintf("  Found %d entries\n", nrow(doc_df)))
 
+cat("Parsing Architecture Documentation...\n")
+arch_doc_df <- parse_architecture_documentation(ARCHITECTURE_DOCUMENTATION_FILE)
+cat(sprintf("  Found %d entries\n", nrow(arch_doc_df)))
+
 # ============================================================================
 # Merge into unified table
 # ============================================================================
@@ -337,7 +434,8 @@ cat("\nMerging results...\n")
 # Create unique key for each class+method combination from all sources
 # Add doc_df (without the extra columns) to the combined sources
 doc_simple <- doc_df[, c("class", "method", "action", "source")]
-all_sources <- rbind(instr_df, aspectj_df, archunit_df, wala_df, doc_simple)
+arch_doc_simple <- arch_doc_df[, c("class", "method", "action", "source")]
+all_sources <- rbind(instr_df, aspectj_df, archunit_df, wala_df, doc_simple, arch_doc_simple)
 
 # Pivot to wide format
 unique_methods <- unique(all_sources[, c("class", "method")])
@@ -350,6 +448,9 @@ merged$DOC_ASPECTJ <- NA
 merged$DOC_BYTEBUDDY <- NA
 merged$ARCHUNIT <- FALSE
 merged$WALA <- FALSE
+merged$ARCH_DOCUMENTATION <- NA
+merged$DOC_ARCHUNIT <- NA
+merged$DOC_WALA <- NA
 
 for (i in 1:nrow(merged)) {
   cls <- merged$class[i]
@@ -367,7 +468,7 @@ for (i in 1:nrow(merged)) {
     merged$ASPECTJ[i] <- paste(unique(aspectj_match$action), collapse = ",")
   }
   
-  # Check Documentation
+  # Check Documentation (AOP)
   doc_match <- doc_df[doc_df$class == cls & doc_df$method == mth, ]
   if (nrow(doc_match) > 0) {
     merged$DOCUMENTATION[i] <- paste(unique(doc_match$action), collapse = ",")
@@ -380,6 +481,14 @@ for (i in 1:nrow(merged)) {
   
   # Check WALA
   merged$WALA[i] <- any(wala_df$class == cls & wala_df$method == mth)
+  
+  # Check Architecture Documentation
+  arch_doc_match <- arch_doc_df[arch_doc_df$class == cls & arch_doc_df$method == mth, ]
+  if (nrow(arch_doc_match) > 0) {
+    merged$ARCH_DOCUMENTATION[i] <- paste(unique(arch_doc_match$action), collapse = ",")
+    merged$DOC_ARCHUNIT[i] <- paste(unique(arch_doc_match$archunit_doc), collapse = ",")
+    merged$DOC_WALA[i] <- paste(unique(arch_doc_match$wala_doc), collapse = ",")
+  }
 }
 
 # Sort by class and method
@@ -394,9 +503,10 @@ cat(sprintf("Total unique class+method combinations: %d\n", nrow(merged)))
 cat("\n=== Summary ===\n")
 cat(sprintf("Methods in INSTRUMENTATION: %d\n", sum(!is.na(merged$INSTRUMENTATION))))
 cat(sprintf("Methods in ASPECTJ: %d\n", sum(!is.na(merged$ASPECTJ))))
-cat(sprintf("Methods in DOCUMENTATION: %d\n", sum(!is.na(merged$DOCUMENTATION))))
+cat(sprintf("Methods in DOCUMENTATION (AOP): %d\n", sum(!is.na(merged$DOCUMENTATION))))
 cat(sprintf("Methods in ARCHUNIT: %d\n", sum(merged$ARCHUNIT)))
 cat(sprintf("Methods in WALA: %d\n", sum(merged$WALA)))
+cat(sprintf("Methods in ARCH_DOCUMENTATION: %d\n", sum(!is.na(merged$ARCH_DOCUMENTATION))))
 
 # ============================================================================
 # Show ALL discrepancies (all 20 directions for 5 sources)
@@ -439,18 +549,21 @@ print_discrepancies <- function(df, source_a, source_b, col_a, col_b, max_items 
   return(count)
 }
 
-# Define all 5 sources
+cat("\n=== ALL Discrepancies (30 directions) ===\n")
+
+# Define all 7 sources (added ARCH_DOCUMENTATION)
 sources <- list(
   list(name = "INSTRUMENTATION", col = "INSTRUMENTATION"),
   list(name = "ASPECTJ", col = "ASPECTJ"),
   list(name = "DOCUMENTATION", col = "DOCUMENTATION"),
   list(name = "ARCHUNIT", col = "ARCHUNIT"),
-  list(name = "WALA", col = "WALA")
+  list(name = "WALA", col = "WALA"),
+  list(name = "ARCH_DOCUMENTATION", col = "ARCH_DOCUMENTATION")
 )
 
-# Generate all 20 comparisons (5 * 4 = 20)
+# Generate all 30 comparisons (6 * 5 = 30)
 total_discrepancies <- 0
-discrepancy_matrix <- matrix(0, nrow = 5, ncol = 5)
+discrepancy_matrix <- matrix(0, nrow = 6, ncol = 6)
 rownames(discrepancy_matrix) <- sapply(sources, function(s) s$name)
 colnames(discrepancy_matrix) <- sapply(sources, function(s) s$name)
 
@@ -490,14 +603,14 @@ for (i in 1:nrow(discrepancy_matrix)) {
   cat("\n")
 }
 
-cat(sprintf("\nTotal discrepancies across all 20 directions: %d\n", total_discrepancies))
+cat(sprintf("\nTotal discrepancies across all 30 directions: %d\n", total_discrepancies))
 
 # ============================================================================
-# Check Documentation Accuracy (DOC_ASPECTJ and DOC_BYTEBUDDY correctness)
+# Check Documentation Accuracy (DOC_ASPECTJ, DOC_BYTEBUDDY, DOC_ARCHUNIT, DOC_WALA correctness)
 # ============================================================================
 
 cat("\n=== Documentation Accuracy Check ===\n")
-cat("(Verifying DOC_ASPECTJ and DOC_BYTEBUDDY columns match actual code)\n")
+cat("(Verifying DOC_ASPECTJ, DOC_BYTEBUDDY, DOC_ARCHUNIT, and DOC_WALA columns match actual code)\n")
 
 doc_errors <- data.frame(
   class = character(),
@@ -509,45 +622,84 @@ doc_errors <- data.frame(
 )
 
 for (i in 1:nrow(merged)) {
-  # Skip if not in documentation
-  if (is.na(merged$DOCUMENTATION[i])) next
-  
   cls <- merged$class[i]
   mth <- merged$method[i]
   
-  # Check DOC_ASPECTJ accuracy
-  in_aspectj <- !is.na(merged$ASPECTJ[i])
-  doc_aspectj <- merged$DOC_ASPECTJ[i]
-  
-  if (!is.na(doc_aspectj) && !grepl("via", doc_aspectj, ignore.case = TRUE)) {
-    expected_aspectj <- if (in_aspectj) "YES" else "NO"
-    if (doc_aspectj != expected_aspectj) {
-      doc_errors <- rbind(doc_errors, data.frame(
-        class = cls,
-        method = mth,
-        column = "DOC_ASPECTJ",
-        doc_value = doc_aspectj,
-        expected = expected_aspectj,
-        stringsAsFactors = FALSE
-      ))
+  # Check AOP Documentation (DOC_ASPECTJ and DOC_BYTEBUDDY)
+  if (!is.na(merged$DOCUMENTATION[i])) {
+    # Check DOC_ASPECTJ accuracy
+    in_aspectj <- !is.na(merged$ASPECTJ[i])
+    doc_aspectj <- merged$DOC_ASPECTJ[i]
+    
+    if (!is.na(doc_aspectj) && !grepl("via", doc_aspectj, ignore.case = TRUE)) {
+      expected_aspectj <- if (in_aspectj) "YES" else "NO"
+      if (doc_aspectj != expected_aspectj) {
+        doc_errors <- rbind(doc_errors, data.frame(
+          class = cls,
+          method = mth,
+          column = "DOC_ASPECTJ",
+          doc_value = doc_aspectj,
+          expected = expected_aspectj,
+          stringsAsFactors = FALSE
+        ))
+      }
+    }
+    
+    # Check DOC_BYTEBUDDY accuracy
+    in_instrumentation <- !is.na(merged$INSTRUMENTATION[i])
+    doc_bytebuddy <- merged$DOC_BYTEBUDDY[i]
+    
+    if (!is.na(doc_bytebuddy) && !grepl("via", doc_bytebuddy, ignore.case = TRUE)) {
+      expected_bytebuddy <- if (in_instrumentation) "YES" else "NO"
+      if (doc_bytebuddy != expected_bytebuddy) {
+        doc_errors <- rbind(doc_errors, data.frame(
+          class = cls,
+          method = mth,
+          column = "DOC_BYTEBUDDY",
+          doc_value = doc_bytebuddy,
+          expected = expected_bytebuddy,
+          stringsAsFactors = FALSE
+        ))
+      }
     }
   }
   
-  # Check DOC_BYTEBUDDY accuracy
-  in_instrumentation <- !is.na(merged$INSTRUMENTATION[i])
-  doc_bytebuddy <- merged$DOC_BYTEBUDDY[i]
-  
-  if (!is.na(doc_bytebuddy) && !grepl("via", doc_bytebuddy, ignore.case = TRUE)) {
-    expected_bytebuddy <- if (in_instrumentation) "YES" else "NO"
-    if (doc_bytebuddy != expected_bytebuddy) {
-      doc_errors <- rbind(doc_errors, data.frame(
-        class = cls,
-        method = mth,
-        column = "DOC_BYTEBUDDY",
-        doc_value = doc_bytebuddy,
-        expected = expected_bytebuddy,
-        stringsAsFactors = FALSE
-      ))
+  # Check Architecture Documentation (DOC_ARCHUNIT and DOC_WALA)
+  if (!is.na(merged$ARCH_DOCUMENTATION[i])) {
+    # Check DOC_ARCHUNIT accuracy
+    in_archunit <- merged$ARCHUNIT[i]
+    doc_archunit <- merged$DOC_ARCHUNIT[i]
+    
+    if (!is.na(doc_archunit)) {
+      expected_archunit <- if (in_archunit) "YES" else "NO"
+      if (doc_archunit != expected_archunit) {
+        doc_errors <- rbind(doc_errors, data.frame(
+          class = cls,
+          method = mth,
+          column = "DOC_ARCHUNIT",
+          doc_value = doc_archunit,
+          expected = expected_archunit,
+          stringsAsFactors = FALSE
+        ))
+      }
+    }
+    
+    # Check DOC_WALA accuracy
+    in_wala <- merged$WALA[i]
+    doc_wala <- merged$DOC_WALA[i]
+    
+    if (!is.na(doc_wala)) {
+      expected_wala <- if (in_wala) "YES" else "NO"
+      if (doc_wala != expected_wala) {
+        doc_errors <- rbind(doc_errors, data.frame(
+          class = cls,
+          method = mth,
+          column = "DOC_WALA",
+          doc_value = doc_wala,
+          expected = expected_wala,
+          stringsAsFactors = FALSE
+        ))
+      }
     }
   }
 }
@@ -560,6 +712,8 @@ if (nrow(doc_errors) == 0) {
   # Group by column
   aspectj_errors <- doc_errors[doc_errors$column == "DOC_ASPECTJ", ]
   bytebuddy_errors <- doc_errors[doc_errors$column == "DOC_BYTEBUDDY", ]
+  archunit_errors <- doc_errors[doc_errors$column == "DOC_ARCHUNIT", ]
+  wala_errors <- doc_errors[doc_errors$column == "DOC_WALA", ]
   
   if (nrow(aspectj_errors) > 0) {
     cat(sprintf("DOC_ASPECTJ errors (%d):\n", nrow(aspectj_errors)))
@@ -577,6 +731,26 @@ if (nrow(doc_errors) == 0) {
       cat(sprintf("  %s.%s: marked %s, should be %s\n", 
         bytebuddy_errors$class[i], bytebuddy_errors$method[i],
         bytebuddy_errors$doc_value[i], bytebuddy_errors$expected[i]))
+    }
+    cat("\n")
+  }
+  
+  if (nrow(archunit_errors) > 0) {
+    cat(sprintf("DOC_ARCHUNIT errors (%d):\n", nrow(archunit_errors)))
+    for (i in 1:nrow(archunit_errors)) {
+      cat(sprintf("  %s.%s: marked %s, should be %s\n", 
+        archunit_errors$class[i], archunit_errors$method[i],
+        archunit_errors$doc_value[i], archunit_errors$expected[i]))
+    }
+    cat("\n")
+  }
+  
+  if (nrow(wala_errors) > 0) {
+    cat(sprintf("DOC_WALA errors (%d):\n", nrow(wala_errors)))
+    for (i in 1:nrow(wala_errors)) {
+      cat(sprintf("  %s.%s: marked %s, should be %s\n", 
+        wala_errors$class[i], wala_errors$method[i],
+        wala_errors$doc_value[i], wala_errors$expected[i]))
     }
   }
 }
