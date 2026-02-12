@@ -8,7 +8,7 @@ import javax.annotation.Nullable;
 import de.tum.cit.ase.ares.api.localization.Messages;
 
 /**
- * Class with elevated Privilegues.
+ * Class with elevated Privileges.
  * <p>
  * Description: Specifies the class, which is not restricted by Ares 2.
  * <p>
@@ -18,7 +18,7 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  * @since 2.0.0
  * @author Markus Paulsen
  * @since 2.0.0
- * @param className the name of the class that recieves elevated privilegues;
+ * @param className the name of the class that receives elevated privileges;
  *                  must not be null.
  */
 public record ClassPermission(@Nonnull String className) {
@@ -54,7 +54,7 @@ public record ClassPermission(@Nonnull String className) {
 	 * Description: Provides a fluent API to construct a ClassPermission instance.
 	 * <p>
 	 * Design Rationale: This builder allows for flexible configuration of class
-	 * privilegue elevation.
+	 * privilege elevation.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
