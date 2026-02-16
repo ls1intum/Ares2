@@ -3,10 +3,6 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
 public aspect JavaAspectJThreadSystemPointcutDefinitions {
 
     pointcut threadCreateMethodsWithParameters(): (
-            call(* java.lang.Thread+.startVirtualThread(..)) ||
-            call(* java.lang.Thread.Builder+.start(..)) ||
-            call(* java.lang.Thread.Builder+.run(..)) ||
-            call(* java.lang.Thread.Builder.OfPlatform+.start(..)) ||
             call(* java.lang.ThreadGroup+.newThread(..)) ||
             call(* java.util.concurrent.Executor+.execute(..)) ||
             call(* java.util.concurrent.ExecutorService+.submit(..)) ||

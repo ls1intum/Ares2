@@ -407,8 +407,7 @@
 					<source>17</source>
 					<target>17</target>
 					<showWeaveInfo>true</showWeaveInfo>
-					<weaveTest>true</weaveTest>
-				</configuration>
+					</configuration>
 				<executions>
 					<execution>
 						<id>weave-test-classes</id>

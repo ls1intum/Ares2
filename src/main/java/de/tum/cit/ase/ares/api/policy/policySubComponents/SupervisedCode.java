@@ -165,9 +165,7 @@ public record SupervisedCode(
 		@Nonnull
 		public Builder theSupervisedCodeUsesTheFollowingPackage(
 				@Nullable String theSupervisedCodeUsesTheFollowingPackage) {
-			this.theSupervisedCodeUsesTheFollowingPackage = Objects.requireNonNull(
-					theSupervisedCodeUsesTheFollowingPackage,
-					"theSupervisedCodeUsesTheFollowingPackage must not be null");
+			this.theSupervisedCodeUsesTheFollowingPackage = theSupervisedCodeUsesTheFollowingPackage;
 			return this;
 		}
 
@@ -181,8 +179,7 @@ public record SupervisedCode(
 		 */
 		@Nonnull
 		public Builder theMainClassInsideThisPackageIs(@Nullable String theMainClassInsideThisPackageIs) {
-			this.theMainClassInsideThisPackageIs = Objects.requireNonNull(theMainClassInsideThisPackageIs,
-					"theMainClassInsideThisPackageIs must not be null");
+			this.theMainClassInsideThisPackageIs = theMainClassInsideThisPackageIs;
 			return this;
 		}
 

@@ -46,7 +46,6 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* javax.imageio.ImageIO+.createImageOutputStream(..)) ||
                     call(* javax.print.DocPrintJob+.print(..)) ||
                     call(* javax.sound.sampled.AudioSystem+.write(..)) ||
-                    call(* javax.xml.bind.Marshaller+.marshal(..)) ||
                     call(* javax.xml.transform.Transformer+.transform(..)) ||
                     call(* java.util.zip.ZipOutputStream+.putNextEntry(..)) ||
                     call(* java.util.zip.ZipOutputStream+.closeEntry(..)) ||
@@ -153,7 +152,6 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* javax.sound.sampled.AudioSystem+.getAudioInputStream(..)) ||
                     call(* javax.xml.parsers.DocumentBuilder+.parse(..)) ||
                     call(* javax.xml.parsers.SAXParser+.parse(..)) ||
-                    call(* javax.xml.bind.Unmarshaller+.unmarshal(..)) ||
                     call(java.util.zip.ZipFile+.new(..)) ||
                     call(* java.util.zip.ZipFile+.entries(..)) ||
                     call(* java.util.zip.ZipFile+.getInputStream(..)) ||
