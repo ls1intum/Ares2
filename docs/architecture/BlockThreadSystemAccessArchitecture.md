@@ -136,8 +136,8 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 Both ArchUnit and WALA modes monitor the same set of thread creation methods, loaded from template files:
 
 **Template Locations:**
-- **ArchUnit**: `src/main/resources/templates/architecture/java/archunit/methods/thread-manipulation-methods.txt`
-- **WALA**: `src/main/resources/templates/architecture/java/wala/methods/thread-manipulation-methods.txt`
+- **ArchUnit**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/archunit/methods/thread-manipulation-methods.txt`
+- **WALA**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/wala/methods/thread-manipulation-methods.txt`
 
 **What is Architecture Testing?**
 
@@ -350,8 +350,8 @@ With filtering:
 Both ArchUnit and WALA modes monitor the same set of thread creation methods, loaded from template files:
 
 **Template Locations:**
-- **ArchUnit**: `src/main/resources/templates/architecture/java/archunit/methods/thread-manipulation-methods.txt`
-- **WALA**: `src/main/resources/templates/architecture/java/wala/methods/thread-manipulation-methods.txt`
+- **ArchUnit**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/archunit/methods/thread-manipulation-methods.txt`
+- **WALA**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/wala/methods/thread-manipulation-methods.txt`
 
 ---
 
@@ -1219,8 +1219,8 @@ java.util.stream.Stream.parallel()Ljava/util/stream/Stream;
 ```
 
 **Template Locations:**
-- ArchUnit: `src/main/resources/templates/architecture/java/archunit/methods/thread-manipulation-methods.txt`
-- WALA: `src/main/resources/templates/architecture/java/wala/methods/thread-manipulation-methods.txt`
+- ArchUnit: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/archunit/methods/thread-manipulation-methods.txt`
+- WALA: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/wala/methods/thread-manipulation-methods.txt`
 
 ---
 

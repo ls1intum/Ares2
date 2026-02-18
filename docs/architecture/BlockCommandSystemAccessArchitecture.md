@@ -132,8 +132,8 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 Both ArchUnit and WALA modes monitor the same set of command execution methods, loaded from template files:
 
 **Template Locations:**
-- **ArchUnit**: `src/main/resources/templates/architecture/java/archunit/methods/command-execution-methods.txt`
-- **WALA**: `src/main/resources/templates/architecture/java/wala/methods/command-execution-methods.txt`
+- **ArchUnit**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/archunit/methods/command-execution-methods.txt`
+- **WALA**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/wala/methods/command-execution-methods.txt`
 
 **What is Architecture Testing?**
 
@@ -329,8 +329,8 @@ private static final List<String> JDK_HELPERS = List.of(
 Both ArchUnit and WALA modes monitor the same set of command execution methods, loaded from template files:
 
 **Template Locations:**
-- **ArchUnit**: `src/main/resources/templates/architecture/java/archunit/methods/command-execution-methods.txt`
-- **WALA**: `src/main/resources/templates/architecture/java/wala/methods/command-execution-methods.txt`
+- **ArchUnit**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/archunit/methods/command-execution-methods.txt`
+- **WALA**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/wala/methods/command-execution-methods.txt`
 
 ---
 
@@ -905,8 +905,8 @@ java.lang.ProcessBuilder.start()Ljava/lang/Process;
 ```
 
 **Template Locations:**
-- ArchUnit: `src/main/resources/templates/architecture/java/archunit/methods/command-execution-methods.txt`
-- WALA: `src/main/resources/templates/architecture/java/wala/methods/command-execution-methods.txt`
+- ArchUnit: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/archunit/methods/command-execution-methods.txt`
+- WALA: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/wala/methods/command-execution-methods.txt`
 
 ---
 

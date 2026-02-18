@@ -1206,6 +1206,7 @@ void testSquareCorrect(IOTester tester) { //<1>
     line break) is equal to the given text block (if you use text
     blocks, be aware of their newline handling).
 
+[[showing-standard-output]]
 Note that Ares2 normalizes the line breaks to `\n`, and
 https://github.com/ls1intum/Ares2/blob/main/src/main/java/de/tum/cit/ase/ares/api/io/OutputTester.java[`OutputTester`]
 offers many different approaches to checking output (e.g. single string, list of strings, ...).
@@ -1339,7 +1340,7 @@ void testWithMockedService() {
 
 You can set a locale for Ares2 (and the rest of Java) by adding the
 `@UseLocale` JUnit extension to classes/methods, which will set the Java
-https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/Locale.html#setDefault(java.util.Locale)[default locale]
+default locale via `Locale.setDefault(Locale)`
 that is also used by Ares2. The locale is changed only for the scope
 where the annotation is applied.
 

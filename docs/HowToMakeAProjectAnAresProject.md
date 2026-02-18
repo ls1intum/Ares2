@@ -109,7 +109,7 @@ dependencies {
 }
 ```
 
-> **Tip (Gradle version catalog):** If your project uses a `gradle/libs.versions.toml`, you can declare the version centrally:
+> **Tip (Gradle version catalog):** If your project uses a Gradle version catalog file (for example `gradle/<versions-catalog>.toml`), you can declare the version centrally:
 > ```toml
 > [versions]
 > ares = "2.0.1-Beta6"

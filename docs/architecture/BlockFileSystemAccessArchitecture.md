@@ -90,7 +90,7 @@ Below is a general overview of the process for deciding whether to allow or bloc
 - **🌕 Yellow** = Intermediate condition met → continue to the next verification step
 - **🟢 Green** = File access permitted (no security policy violation detected)
 
-![File System Security Validation Flow](BlockFileSystemAccessArchitecture.drawio.png)
+Diagram note: the rendered PNG is not committed in this repository snapshot. The textual flow in this section is authoritative.
 
 ---
 
@@ -213,8 +213,8 @@ Some APIs can appear under multiple actions because they imply more than one per
 Both ArchUnit and WALA modes monitor the same set of file system methods, loaded from template files:
 
 **Template Locations:**
-- **ArchUnit**: `src/main/resources/templates/architecture/java/archunit/methods/file-system-access-methods.txt`
-- **WALA**: `src/main/resources/templates/architecture/java/wala/methods/file-system-access-methods.txt`
+- **ArchUnit**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/archunit/methods/file-system-access-methods.txt`
+- **WALA**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/wala/methods/file-system-access-methods.txt`
 
 ---
 
