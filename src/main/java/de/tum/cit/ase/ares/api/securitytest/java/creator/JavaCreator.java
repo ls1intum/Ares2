@@ -237,6 +237,34 @@ public class JavaCreator implements Creator {
 	}
 
 	/**
+	 * Adds priority architecture test cases that must be checked before variable
+	 * (dynamic) domains. These represent domain-specific checks (e.g., native code,
+	 * agent attach) whose APIs overlap with broader domains like FILESYSTEM or
+	 * REFLECTION. By running them first, the more specific domain fires before
+	 * the broader one.
+	 *
+	 * @since 2.0.1
+	 * @param javaArchitectureTestCases the list to populate with architecture test
+	 *                                  cases; must not be null
+	 * @param classes                   the Java classes to analyze; must not be null
+	 * @param callGraph                 the call graph to analyze; must not be null
+	 * @param allowedPackages           the set of allowed package permissions; must
+	 *                                  not be null
+	 * @param allowedClasses            the set of allowed class names; must not be
+	 *                                  null
+	 */
+	private void addPriorityTestCases(@Nonnull List<ArchitectureTestCase> javaArchitectureTestCases,
+			@Nonnull JavaClasses classes, @Nonnull CallGraph callGraph, @Nonnull Set<PackagePermission> allowedPackages,
+			@Nonnull Set<ClassPermission> allowedClasses) {
+		javaArchitectureTestCases.addAll(JavaArchitectureTestCaseSupported
+				.NATIVE_CODE.getPriority().stream()
+						.map(priorityCase -> createArchitectureTestCase(
+								(JavaArchitectureTestCaseSupported) priorityCase,
+								classes, callGraph, allowedPackages, allowedClasses))
+						.toList());
+	}
+
+	/**
 	 * Adds fixed architecture test cases that are always required.
 	 *
 	 * @since 2.0.0
@@ -361,6 +389,10 @@ public class JavaCreator implements Creator {
 				packageName, testClasses);
 		@Nonnull
 		Set<ClassPermission> allowedClasses = prepareAllowedClasses(essentialClasses, testClasses);
+		// </editor-fold>
+
+		// <editor-fold desc="Create priority rules code (checked before variable domains)">
+		addPriorityTestCases(architectureTestCases, javaClasses, callGraph, allowedPackages, allowedClasses);
 		// </editor-fold>
 
 		// <editor-fold desc="Create variable rules code">

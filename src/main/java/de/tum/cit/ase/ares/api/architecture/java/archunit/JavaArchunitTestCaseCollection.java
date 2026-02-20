@@ -142,5 +142,41 @@ public class JavaArchunitTestCaseCollection {
 			Messages.localized("security.architecture.class.loading"),
 			FileHandlerConstants.ARCHUNIT_CLASSLOADER_METHODS);
 	// </editor-fold>
+
+	// <editor-fold desc="Native code related rule">
+	/**
+	 * This method checks if any class in the given package accesses native code.
+	 */
+	public static final ArchRule NO_CLASS_MUST_ACCESS_NATIVE_CODE = createNoClassShouldHaveMethodRule(
+			Messages.localized("security.architecture.native.code.access"),
+			FileHandlerConstants.ARCHUNIT_NATIVE_CODE_METHODS);
+	// </editor-fold>
+
+	// <editor-fold desc="Agent attach related rule">
+	/**
+	 * This method checks if any class in the given package attaches agents.
+	 */
+	public static final ArchRule NO_CLASS_MUST_ATTACH_AGENTS = createNoClassShouldHaveMethodRule(
+			Messages.localized("security.architecture.agent.attach"),
+			FileHandlerConstants.ARCHUNIT_AGENT_ATTACH_METHODS);
+	// </editor-fold>
+
+	// <editor-fold desc="Environment access related rule">
+	/**
+	 * This method checks if any class in the given package accesses the environment.
+	 */
+	public static final ArchRule NO_CLASS_MUST_ACCESS_ENVIRONMENT = createNoClassShouldHaveMethodRule(
+			Messages.localized("security.architecture.environment.access"),
+			FileHandlerConstants.ARCHUNIT_ENVIRONMENT_ACCESS_METHODS);
+	// </editor-fold>
+
+	// <editor-fold desc="Module system related rule">
+	/**
+	 * This method checks if any class in the given package accesses the module system.
+	 */
+	public static final ArchRule NO_CLASS_MUST_ACCESS_MODULE_SYSTEM = createNoClassShouldHaveMethodRule(
+			Messages.localized("security.architecture.module.system.access"),
+			FileHandlerConstants.ARCHUNIT_MODULE_SYSTEM_METHODS);
+	// </editor-fold>
 	// </editor-fold>
 }

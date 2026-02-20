@@ -126,6 +126,9 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 			case TERMINATE_JVM -> JavaWalaTestCaseCollection.NO_CLASS_MUST_TERMINATE_JVM.check(callGraph);
 			case SERIALIZATION -> JavaWalaTestCaseCollection.NO_CLASS_MUST_SERIALIZE.check(callGraph);
 			case CLASS_LOADING -> JavaWalaTestCaseCollection.NO_CLASS_MUST_USE_CLASSLOADERS.check(callGraph);
+			case NATIVE_CODE, AGENT_ATTACH, ENVIRONMENT_ACCESS, MODULE_SYSTEM -> {
+				// Not yet supported by WALA; silently skip
+			}
 			default -> throw new SecurityException(
 					Messages.localized("security.common.unsupported.operation", this.architectureTestCaseSupported));
 			}

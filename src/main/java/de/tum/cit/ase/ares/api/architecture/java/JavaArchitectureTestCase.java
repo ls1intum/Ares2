@@ -238,6 +238,10 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 			case "imports forbidden packages" -> "import forbidden packages";
 			case "serializes objects" -> "serialize objects";
 			case "manipulates the loading of classes" -> "manipulate class loading";
+			case "accesses native code" -> "access native code";
+			case "attaches agents" -> "attach an agent";
+			case "accesses environment" -> "access the environment";
+			case "accesses module system" -> "access the module system";
 			default -> ruleName;
 		};
 	}

@@ -64,7 +64,27 @@ public enum JavaArchitectureTestCaseSupported implements ArchitectureTestCaseSup
 	/**
 	 * Test case for class loading.
 	 */
-	CLASS_LOADING;
+	CLASS_LOADING,
+
+	/**
+	 * Test case for native code access (load/loadLibrary, Unsafe).
+	 */
+	NATIVE_CODE,
+
+	/**
+	 * Test case for agent attach access (Instrumentation API, VirtualMachine).
+	 */
+	AGENT_ATTACH,
+
+	/**
+	 * Test case for environment access (System.getenv, System properties, ProcessHandle).
+	 */
+	ENVIRONMENT_ACCESS,
+
+	/**
+	 * Test case for module system manipulation (Module.addExports/addOpens, privateLookupIn).
+	 */
+	MODULE_SYSTEM;
 
 	/**
 	 * Retrieves the static architecture test cases.
@@ -73,6 +93,14 @@ public enum JavaArchitectureTestCaseSupported implements ArchitectureTestCaseSup
 	 * @author Markus Paulsen
 	 * @return a list of static architecture test cases.
 	 */
+	@Nonnull
+	public List<ArchitectureTestCaseSupported> getPriority() {
+		return List.of(JavaArchitectureTestCaseSupported.NATIVE_CODE,
+				JavaArchitectureTestCaseSupported.AGENT_ATTACH,
+				JavaArchitectureTestCaseSupported.ENVIRONMENT_ACCESS,
+				JavaArchitectureTestCaseSupported.MODULE_SYSTEM);
+	}
+
 	@Nonnull
 	public List<ArchitectureTestCaseSupported> getStatic() {
 		return List.of(JavaArchitectureTestCaseSupported.PACKAGE_IMPORT,

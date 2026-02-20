@@ -1,0 +1,5 @@
+@Test
+public void nativeCodeShouldNotBeAccessed() {
+    javaClasses = ${javaClasses};
+    JavaArchunitTestCaseCollection.NO_CLASS_MUST_ACCESS_NATIVE_CODE.check(javaClasses);
+}

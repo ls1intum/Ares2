@@ -29,6 +29,14 @@ public class FileHandlerConstants {
 			"architecture", "java", "archunit", "methods", "serializable-methods.txt");
 	public static final Path ARCHUNIT_CLASSLOADER_METHODS = FileTools.resolveFileOnSourceDirectory("templates",
 			"architecture", "java", "archunit", "methods", "classloader-methods.txt");
+	public static final Path ARCHUNIT_NATIVE_CODE_METHODS = FileTools.resolveFileOnSourceDirectory("templates",
+			"architecture", "java", "archunit", "methods", "native-code-access-methods.txt");
+	public static final Path ARCHUNIT_AGENT_ATTACH_METHODS = FileTools.resolveFileOnSourceDirectory("templates",
+			"architecture", "java", "archunit", "methods", "agent-attach-methods.txt");
+	public static final Path ARCHUNIT_ENVIRONMENT_ACCESS_METHODS = FileTools.resolveFileOnSourceDirectory("templates",
+			"architecture", "java", "archunit", "methods", "environment-access-methods.txt");
+	public static final Path ARCHUNIT_MODULE_SYSTEM_METHODS = FileTools.resolveFileOnSourceDirectory("templates",
+			"architecture", "java", "archunit", "methods", "module-system-access-methods.txt");
 	// </editor-fold>
 
 	// <editor-fold desc="WALA Methods">
