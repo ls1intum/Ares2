@@ -49,10 +49,10 @@ public @interface Policy {
 	 * Whether the policy should be activated.
 	 * <p>
 	 * When set to {@code false}, the security policy will not be enforced and
-	 * {@link de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings#reset()}
-	 * will be called on both the bootstrap and application class loaders to
-	 * disable all AOP advices. This is useful for tests that should run without
-	 * any Ares security restrictions (UNPROTECTED mode).
+	 * {@link de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings#reset()} will
+	 * be called on both the bootstrap and application class loaders to disable all
+	 * AOP advices. This is useful for tests that should run without any Ares
+	 * security restrictions (UNPROTECTED mode).
 	 * </p>
 	 *
 	 * @return {@code true} if the policy should be activated (default),

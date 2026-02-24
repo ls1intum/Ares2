@@ -15,7 +15,9 @@ public final class FileSystemProviderCreateDirectoryMain {
 				"Ares Security Error (Reason: Ares-Code; Stage: Test): FileSystemProviderCreateDirectoryMain is a utility class and should not be instantiated.");
 	}
 
-	/** {@link java.nio.file.spi.FileSystemProvider#createDirectory(Path, java.nio.file.attribute.FileAttribute...)} */
+	/**
+	 * {@link java.nio.file.spi.FileSystemProvider#createDirectory(Path, java.nio.file.attribute.FileAttribute...)}
+	 */
 	public static void accessFileSystemViaFileSystemProviderCreateDirectory() throws IOException {
 		FileSystemProvider provider = FileSystems.getDefault().provider();
 		provider.createDirectory(NOT_TRUSTED_DIR);

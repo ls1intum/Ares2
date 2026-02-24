@@ -10,8 +10,8 @@ class SupervisedCodeTest {
 
 	@Test
 	void createRestrictiveShouldAllowNullPackageAndMainClass() {
-		SupervisedCode supervisedCode = SupervisedCode.createRestrictive(
-				ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION);
+		SupervisedCode supervisedCode = SupervisedCode
+				.createRestrictive(ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION);
 
 		assertNotNull(supervisedCode);
 		assertNull(supervisedCode.theSupervisedCodeUsesTheFollowingPackage());
@@ -25,11 +25,9 @@ class SupervisedCodeTest {
 		SupervisedCode supervisedCode = SupervisedCode.builder()
 				.theFollowingProgrammingLanguageConfigurationIsUsed(
 						ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION)
-				.theSupervisedCodeUsesTheFollowingPackage(null)
-				.theMainClassInsideThisPackageIs(null)
+				.theSupervisedCodeUsesTheFollowingPackage(null).theMainClassInsideThisPackageIs(null)
 				.theFollowingClassesAreTestClasses(new String[0])
-				.theFollowingResourceAccessesArePermitted(ResourceAccesses.createRestrictive())
-				.build();
+				.theFollowingResourceAccessesArePermitted(ResourceAccesses.createRestrictive()).build();
 
 		assertNotNull(supervisedCode);
 		assertNull(supervisedCode.theSupervisedCodeUsesTheFollowingPackage());

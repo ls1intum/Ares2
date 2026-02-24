@@ -89,30 +89,35 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		if (messageParts.length < 2) {
 			throw new SecurityException(Messages.localized("security.archunit.illegal.execution", e.getMessage()));
 		}
-		
-		
+
 		// Extract the rule name (e.g., "Accesses file system") from first line
 		@Nonnull
 		String ruleNamePattern = ".*?'(.*?)'.*";
 		@Nonnull
 		String ruleName = messageParts[0].replaceAll(ruleNamePattern, "$1").trim();
-		
+
 		// Check if this is a package import violation (different message format)
 		if (ruleName.toLowerCase().contains("imports forbidden packages")) {
 			// Extract all forbidden packages from the message
 			// The message can have multiple formats:
-			// 1. "Class <class> depends on <forbidden.package.Class> in (File.java:0)" - direct dependency
-			// 2. "Class <class> extends class <forbidden.package.Class> in (File.java:0)" - inheritance
-			// 3. "Constructor <class.method()> calls constructor <forbidden.package.Class.method()> in (File.java:0)" - constructor call
-			// 4. "Method <class.method()> gets field <forbidden.package.Class.field> in (File.java:0)" - field access
-			// 5. "Method <class.method()> calls method <forbidden.package.Class.method()> in (File.java:0)" - method call
+			// 1. "Class <class> depends on <forbidden.package.Class> in (File.java:0)" -
+			// direct dependency
+			// 2. "Class <class> extends class <forbidden.package.Class> in (File.java:0)" -
+			// inheritance
+			// 3. "Constructor <class.method()> calls constructor
+			// <forbidden.package.Class.method()> in (File.java:0)" - constructor call
+			// 4. "Method <class.method()> gets field <forbidden.package.Class.field> in
+			// (File.java:0)" - field access
+			// 5. "Method <class.method()> calls method <forbidden.package.Class.method()>
+			// in (File.java:0)" - method call
 			java.util.Set<String> forbiddenPackages = new java.util.TreeSet<>();
-			
-			// Pattern to match any of: "depends on <X>", "extends class <X>", "calls constructor <X>", "calls method <X>", "gets field <X>"
+
+			// Pattern to match any of: "depends on <X>", "extends class <X>", "calls
+			// constructor <X>", "calls method <X>", "gets field <X>"
 			@Nonnull
 			String accessPattern = "(?:depends on|extends class|calls constructor|calls method|gets field) <([^>]+)>";
 			java.util.regex.Pattern accessRegex = java.util.regex.Pattern.compile(accessPattern);
-			
+
 			for (int i = 1; i < messageParts.length; i++) {
 				java.util.regex.Matcher accessMatcher = accessRegex.matcher(messageParts[i]);
 				while (accessMatcher.find()) {
@@ -142,16 +147,17 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 					}
 				}
 			}
-			
+
 			if (forbiddenPackages.isEmpty()) {
 				// Fallback if no packages could be extracted
-				throw new SecurityException(Messages.localized("security.archunit.package.import.violation", "unknown packages"));
+				throw new SecurityException(
+						Messages.localized("security.archunit.package.import.violation", "unknown packages"));
 			}
-			
+
 			String packageList = String.join(", ", forbiddenPackages);
 			throw new SecurityException(Messages.localized("security.archunit.package.import.violation", packageList));
 		}
-		
+
 		// Parse the detail line to extract caller and target method info.
 		// Typical formats:
 		// - "Method <caller> calls method <target> in (File.java:line)"
@@ -161,28 +167,27 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		@Nonnull
 		String detailLine = messageParts[1].trim();
 
-		// Extract the caller (Method/Constructor) and target (accesses/calls) with fallbacks.
+		// Extract the caller (Method/Constructor) and target (accesses/calls) with
+		// fallbacks.
 		String caller = null;
 		String target = null;
-		
+
 		java.util.regex.Matcher callerMatcher = java.util.regex.Pattern
-				.compile("(?:Method|Constructor) <(.+?)>(?:\\s|$)")
-				.matcher(detailLine);
+				.compile("(?:Method|Constructor) <(.+?)>(?:\\s|$)").matcher(detailLine);
 		if (callerMatcher.find()) {
 			caller = callerMatcher.group(1);
 		}
-		
+
 		java.util.regex.Matcher targetMatcher = java.util.regex.Pattern
 				.compile("(?:accesses|calls method|calls constructor|calls|gets field|sets field) <(.+?)>(?:\\s|$)")
 				.matcher(detailLine);
 		if (targetMatcher.find()) {
 			target = targetMatcher.group(1);
 		}
-		
+
 		if (caller == null || target == null) {
 			java.util.List<String> angleMatches = new java.util.ArrayList<>();
-			java.util.regex.Matcher angleMatcher = java.util.regex.Pattern
-					.compile("<(.+?)>(?=\\s|$)")
+			java.util.regex.Matcher angleMatcher = java.util.regex.Pattern.compile("<(.+?)>(?=\\s|$)")
 					.matcher(detailLine);
 			while (angleMatcher.find()) {
 				angleMatches.add(angleMatcher.group(1));
@@ -198,26 +203,26 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 				}
 			}
 		}
-		
+
 		@Nonnull
 		String callerResolved = caller != null ? caller : "unknown";
 		@Nonnull
 		String targetResolved = target != null ? target : "unknown";
-		
+
 		// Extract parent caller from the caller (class.method -> extract class)
 		@Nonnull
 		String parentCaller = callerResolved.contains(".")
 				? callerResolved.substring(0, callerResolved.lastIndexOf('.'))
 				: callerResolved;
-		
+
 		// Determine the action based on the rule name
 		@Nonnull
 		String action = mapRuleNameToAction(ruleName);
-		
-		throw new SecurityException(Messages.localized("security.archunit.violation.error",
-				callerResolved, action, targetResolved, parentCaller));
+
+		throw new SecurityException(Messages.localized("security.archunit.violation.error", callerResolved, action,
+				targetResolved, parentCaller));
 	}
-	
+
 	/**
 	 * Maps an ArchUnit rule name to a human-readable action description.
 	 *
@@ -229,20 +234,20 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	@Nonnull
 	private static String mapRuleNameToAction(@Nonnull String ruleName) {
 		return switch (ruleName.toLowerCase()) {
-			case "accesses file system" -> "access the file system";
-			case "accesses network" -> "access the network";
-			case "terminates jvm" -> "terminate the JVM";
-			case "uses reflection" -> "use reflection";
-			case "executes commands" -> "execute a command";
-			case "manipulates threads" -> "manipulate threads";
-			case "imports forbidden packages" -> "import forbidden packages";
-			case "serializes objects" -> "serialize objects";
-			case "manipulates the loading of classes" -> "manipulate class loading";
-			case "accesses native code" -> "access native code";
-			case "attaches agents" -> "attach an agent";
-			case "accesses environment" -> "access the environment";
-			case "accesses module system" -> "access the module system";
-			default -> ruleName;
+		case "accesses file system" -> "access the file system";
+		case "accesses network" -> "access the network";
+		case "terminates jvm" -> "terminate the JVM";
+		case "uses reflection" -> "use reflection";
+		case "executes commands" -> "execute a command";
+		case "manipulates threads" -> "manipulate threads";
+		case "imports forbidden packages" -> "import forbidden packages";
+		case "serializes objects" -> "serialize objects";
+		case "manipulates the loading of classes" -> "manipulate class loading";
+		case "accesses native code" -> "access native code";
+		case "attaches agents" -> "attach an agent";
+		case "accesses environment" -> "access the environment";
+		case "accesses module system" -> "access the module system";
+		default -> ruleName;
 		};
 	}
 	// </editor-fold>

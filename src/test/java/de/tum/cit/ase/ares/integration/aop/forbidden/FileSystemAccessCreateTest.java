@@ -14,8 +14,8 @@ class FileSystemAccessCreateTest extends SystemAccessTest {
 	private static final String FILES_CREATE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/create/files";
 	private static final String FILE_SYSTEM_PROVIDER_CREATE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/create/fileSystemProvider";
 
-	private static final Path NOT_TRUSTED_BASE_DIR = Path.of(
-			"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/create/nottrusteddir");
+	private static final Path NOT_TRUSTED_BASE_DIR = Path
+			.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/create/nottrusteddir");
 	private static final Path NOT_TRUSTED_FILE_MKDIR = NOT_TRUSTED_BASE_DIR.resolve("createdDir");
 	private static final Path NOT_TRUSTED_FILE_MKDIRS = NOT_TRUSTED_BASE_DIR.resolve("nested/dir");
 	private static final Path NOT_TRUSTED_FILES_CREATE_DIR = NOT_TRUSTED_BASE_DIR.resolve("filesCreateDir");

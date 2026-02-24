@@ -357,8 +357,7 @@ public class JavaInstrumentationPointcutDefinitions {
 							"readInt", "readLine", "readLong", "readShort", "readUnsignedByte", "readUnsignedShort",
 							"readUTF")),
 			Map.entry("java.io.DataInputStream", List.of("<init>")),
-			Map.entry("java.io.File",
-				List.of("normalizedList", "list", "listFiles", "listRoots")),
+			Map.entry("java.io.File", List.of("normalizedList", "list", "listFiles", "listRoots")),
 			// java.nio
 			Map.entry("java.nio.file.Files",
 					List.of("find", "lines", "list", "newBufferedReader", "newByteChannel", "newDirectoryStream",
@@ -366,8 +365,7 @@ public class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.nio.channels.FileChannel", List.of("map", "open")),
 			Map.entry("java.nio.channels.AsynchronousFileChannel", List.of("open", "read")),
 			Map.entry("java.nio.channels.SeekableByteChannel", List.of("read")),
-			Map.entry("java.nio.file.spi.FileSystemProvider",
-					List.of("newDirectoryStream")),
+			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("newDirectoryStream")),
 			// java.lang
 			Map.entry("java.lang.ClassLoader", List.of("getResourceAsStream")),
 			// java.awt
@@ -446,8 +444,7 @@ public class JavaInstrumentationPointcutDefinitions {
 			// Note: newByteChannel is intentionally NOT included here - it's in
 			// methodsWhichCanReadFiles.
 			// The actual operation is determined by OpenOptions via deriveActionChecks().
-			Map.entry("java.nio.file.spi.FileSystemProvider",
-					List.of("copy", "move", "setAttribute")),
+			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("copy", "move", "setAttribute")),
 			// javax.print
 			Map.entry("javax.print.DocPrintJob", List.of("print")),
 			// javax.imageio
@@ -473,7 +470,8 @@ public class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.lang.System", List.of("load", "loadLibrary")),
 			// Note: ProcessBuilder is handled entirely by Command System
 			// java.awt
-			Map.entry("java.awt.Desktop", List.of("open", "edit", "print", "browse", "browseFileDirectory", "mail", "openHelpViewer", "setDefaultMenuBar", "setOpenFileHandler", "setOpenURIHandler")));
+			Map.entry("java.awt.Desktop", List.of("open", "edit", "print", "browse", "browseFileDirectory", "mail",
+					"openHelpViewer", "setDefaultMenuBar", "setOpenFileHandler", "setOpenURIHandler")));
 	// </editor-fold>
 
 	// <editor-fold desc="Delete Path">

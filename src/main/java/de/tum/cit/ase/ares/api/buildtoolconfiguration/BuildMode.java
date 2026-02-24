@@ -61,33 +61,39 @@ public enum BuildMode {
 	}
 
 	/**
-	 * Computes the classpath for class loading based on the project path and package name.
+	 * Computes the classpath for class loading based on the project path and
+	 * package name.
 	 * <p>
 	 * The projectPath (from @Policy withinPath) can have different formats:
 	 * <ul>
-	 *   <li>null or empty - uses packageName to construct the classpath</li>
-	 *   <li>"classes/java/main/package/..." - Gradle-style bytecode path, converted to actual build path</li>
-	 *   <li>"classes/package/..." - Maven-style bytecode path, converted to actual build path</li>
-	 *   <li>"test-classes/..." - Test classes path (handled similarly)</li>
+	 * <li>null or empty - uses packageName to construct the classpath</li>
+	 * <li>"classes/java/main/package/..." - Gradle-style bytecode path, converted
+	 * to actual build path</li>
+	 * <li>"classes/package/..." - Maven-style bytecode path, converted to actual
+	 * build path</li>
+	 * <li>"test-classes/..." - Test classes path (handled similarly)</li>
 	 * </ul>
 	 *
-	 * @param projectPath the path specified in @Policy withinPath (can be null or empty)
-	 * @param packageName the package name from the security policy (e.g., "anonymous" or "de.tum.cit.ase")
+	 * @param projectPath the path specified in @Policy withinPath (can be null or
+	 *                    empty)
+	 * @param packageName the package name from the security policy (e.g.,
+	 *                    "anonymous" or "de.tum.cit.ase")
 	 * @return the actual filesystem classpath for class loading
 	 */
 	public String getClasspath(Path projectPath, String packageName) {
 		// If projectPath is null or empty, use packageName to construct the classpath
 		if (projectPath == null || projectPath.toString().isEmpty()) {
 			if (packageName != null && !packageName.isEmpty()) {
-				// Convert package name to path: "anonymous" -> "anonymous", "de.tum.cit" -> "de/tum/cit"
+				// Convert package name to path: "anonymous" -> "anonymous", "de.tum.cit" ->
+				// "de/tum/cit"
 				String packagePath = packageName.replace(".", "/");
 				return Paths.get(getBuildDirectory(), packagePath).toString();
 			}
 			return getBuildDirectory();
 		}
-		
+
 		String projectPathStr = projectPath.toString();
-		
+
 		// Handle bytecode paths that start with "classes/" or "test-classes/"
 		// These need to be converted to actual build tool paths
 		if (projectPathStr.startsWith("classes/java/main/")) {
@@ -96,7 +102,7 @@ public enum BuildMode {
 			String extractedPackagePath = projectPathStr.substring("classes/java/main/".length());
 			return Paths.get(getBuildDirectory(), extractedPackagePath).toString();
 		} else if (projectPathStr.startsWith("classes/")) {
-			// Maven-style path: classes/package/subpackage  
+			// Maven-style path: classes/package/subpackage
 			// Extract package path and prepend actual build directory
 			String extractedPackagePath = projectPathStr.substring("classes/".length());
 			return Paths.get(getBuildDirectory(), extractedPackagePath).toString();
@@ -104,20 +110,20 @@ public enum BuildMode {
 			// Gradle test classes
 			String extractedPackagePath = projectPathStr.substring("test-classes/java/test/".length());
 			String testBuildDir = switch (this) {
-				case MAVEN -> "target/test-classes";
-				case GRADLE -> "build/classes/java/test";
+			case MAVEN -> "target/test-classes";
+			case GRADLE -> "build/classes/java/test";
 			};
 			return Paths.get(testBuildDir, extractedPackagePath).toString();
 		} else if (projectPathStr.startsWith("test-classes/")) {
 			// Maven test classes
 			String extractedPackagePath = projectPathStr.substring("test-classes/".length());
 			String testBuildDir = switch (this) {
-				case MAVEN -> "target/test-classes";
-				case GRADLE -> "build/classes/java/test";
+			case MAVEN -> "target/test-classes";
+			case GRADLE -> "build/classes/java/test";
 			};
 			return Paths.get(testBuildDir, extractedPackagePath).toString();
 		}
-		
+
 		// Otherwise, assume it's a package path and combine with build directory
 		return Paths.get(getBuildDirectory(), projectPathStr).toString();
 	}

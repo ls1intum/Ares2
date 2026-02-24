@@ -106,13 +106,10 @@ public class JavaCreator implements Creator {
 				 * The packages of the test classes are allowed (test infrastructure classes
 				 * like ProtectedResourceAccess need to be accessible from the supervised code)
 				 */
-				testClasses.stream()
-						.map(className -> {
-							int lastDot = className.lastIndexOf('.');
-							return lastDot > 0 ? className.substring(0, lastDot) : className;
-						})
-						.distinct()
-						.map(PackagePermission::new)
+				testClasses.stream().map(className -> {
+					int lastDot = className.lastIndexOf('.');
+					return lastDot > 0 ? className.substring(0, lastDot) : className;
+				}).distinct().map(PackagePermission::new)
 
 		).flatMap(Function.identity()).collect(Collectors.toSet());
 	}
@@ -240,13 +237,14 @@ public class JavaCreator implements Creator {
 	 * Adds priority architecture test cases that must be checked before variable
 	 * (dynamic) domains. These represent domain-specific checks (e.g., native code,
 	 * agent attach) whose APIs overlap with broader domains like FILESYSTEM or
-	 * REFLECTION. By running them first, the more specific domain fires before
-	 * the broader one.
+	 * REFLECTION. By running them first, the more specific domain fires before the
+	 * broader one.
 	 *
 	 * @since 2.0.1
 	 * @param javaArchitectureTestCases the list to populate with architecture test
 	 *                                  cases; must not be null
-	 * @param classes                   the Java classes to analyze; must not be null
+	 * @param classes                   the Java classes to analyze; must not be
+	 *                                  null
 	 * @param callGraph                 the call graph to analyze; must not be null
 	 * @param allowedPackages           the set of allowed package permissions; must
 	 *                                  not be null
@@ -256,12 +254,10 @@ public class JavaCreator implements Creator {
 	private void addPriorityTestCases(@Nonnull List<ArchitectureTestCase> javaArchitectureTestCases,
 			@Nonnull JavaClasses classes, @Nonnull CallGraph callGraph, @Nonnull Set<PackagePermission> allowedPackages,
 			@Nonnull Set<ClassPermission> allowedClasses) {
-		javaArchitectureTestCases.addAll(JavaArchitectureTestCaseSupported
-				.NATIVE_CODE.getPriority().stream()
-						.map(priorityCase -> createArchitectureTestCase(
-								(JavaArchitectureTestCaseSupported) priorityCase,
-								classes, callGraph, allowedPackages, allowedClasses))
-						.toList());
+		javaArchitectureTestCases.addAll(JavaArchitectureTestCaseSupported.NATIVE_CODE.getPriority().stream()
+				.map(priorityCase -> createArchitectureTestCase((JavaArchitectureTestCaseSupported) priorityCase,
+						classes, callGraph, allowedPackages, allowedClasses))
+				.toList());
 	}
 
 	/**
@@ -373,14 +369,14 @@ public class JavaCreator implements Creator {
 			@Nonnull Path projectPath) {
 		// <editor-fold desc="Extraction">
 		@Nonnull
-		String classPath = cacheResult(projectPath + "_" + packageName + "_classPath", 
+		String classPath = cacheResult(projectPath + "_" + packageName + "_classPath",
 				() -> buildMode.getClasspath(projectPath, packageName)).get();
 		@Nonnull
 		JavaClasses javaClasses = cacheResult(projectPath + "_" + packageName + "_javaClasses",
 				() -> architectureMode.getJavaClasses(classPath)).get();
 		@Nonnull
-		CallGraph callGraph = cacheResult(projectPath + "_" + packageName + "_callGraph", () -> architectureMode.getCallGraph(classPath))
-				.get();
+		CallGraph callGraph = cacheResult(projectPath + "_" + packageName + "_callGraph",
+				() -> architectureMode.getCallGraph(classPath)).get();
 		// </editor-fold>
 
 		// <editor-fold desc="Preparation">
@@ -391,7 +387,8 @@ public class JavaCreator implements Creator {
 		Set<ClassPermission> allowedClasses = prepareAllowedClasses(essentialClasses, testClasses);
 		// </editor-fold>
 
-		// <editor-fold desc="Create priority rules code (checked before variable domains)">
+		// <editor-fold desc="Create priority rules code (checked before variable
+		// domains)">
 		addPriorityTestCases(architectureTestCases, javaClasses, callGraph, allowedPackages, allowedClasses);
 		// </editor-fold>
 

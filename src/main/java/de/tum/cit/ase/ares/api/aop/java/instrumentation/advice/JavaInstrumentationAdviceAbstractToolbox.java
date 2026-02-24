@@ -319,18 +319,21 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	public static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses,
 			String declaringTypeName, String methodName) {
 		StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-		// Find the intercepted method and check if its direct caller is in IGNORE_CALLSTACK
+		// Find the intercepted method and check if its direct caller is in
+		// IGNORE_CALLSTACK
 		for (int i = 0; i < stackTrace.length; i++) {
 			StackTraceElement element = stackTrace[i];
-			// Handle constructor names: "<init>" in bytecode vs constructor name in stack trace
+			// Handle constructor names: "<init>" in bytecode vs constructor name in stack
+			// trace
 			String stackMethodName = element.getMethodName();
-			boolean methodMatches = stackMethodName.equals(methodName) 
+			boolean methodMatches = stackMethodName.equals(methodName)
 					|| (methodName.equals("<init>") && stackMethodName.equals("<init>"));
 			if (element.getClassName().equals(declaringTypeName) && methodMatches) {
 				// Found the intercepted method, check caller at [i+1]
 				if (i + 1 < stackTrace.length) {
 					String callerClass = stackTrace[i + 1].getClassName();
-					for (@Nonnull String ignore : IGNORE_CALLSTACK) {
+					for (@Nonnull
+					String ignore : IGNORE_CALLSTACK) {
 						if (callerClass.startsWith(ignore)) {
 							return null; // Direct caller is trusted (e.g., ClassLoader) -> allow
 						}

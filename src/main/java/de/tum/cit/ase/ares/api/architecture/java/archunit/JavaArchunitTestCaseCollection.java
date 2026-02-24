@@ -163,7 +163,8 @@ public class JavaArchunitTestCaseCollection {
 
 	// <editor-fold desc="Environment access related rule">
 	/**
-	 * This method checks if any class in the given package accesses the environment.
+	 * This method checks if any class in the given package accesses the
+	 * environment.
 	 */
 	public static final ArchRule NO_CLASS_MUST_ACCESS_ENVIRONMENT = createNoClassShouldHaveMethodRule(
 			Messages.localized("security.architecture.environment.access"),
@@ -172,7 +173,8 @@ public class JavaArchunitTestCaseCollection {
 
 	// <editor-fold desc="Module system related rule">
 	/**
-	 * This method checks if any class in the given package accesses the module system.
+	 * This method checks if any class in the given package accesses the module
+	 * system.
 	 */
 	public static final ArchRule NO_CLASS_MUST_ACCESS_MODULE_SYSTEM = createNoClassShouldHaveMethodRule(
 			Messages.localized("security.architecture.module.system.access"),

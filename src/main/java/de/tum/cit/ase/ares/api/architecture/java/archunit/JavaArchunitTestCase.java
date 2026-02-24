@@ -122,7 +122,8 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 			case CLASS_LOADING -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_USE_CLASSLOADERS.check(javaClasses);
 			case NATIVE_CODE -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_ACCESS_NATIVE_CODE.check(javaClasses);
 			case AGENT_ATTACH -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_ATTACH_AGENTS.check(javaClasses);
-			case ENVIRONMENT_ACCESS -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_ACCESS_ENVIRONMENT.check(javaClasses);
+			case ENVIRONMENT_ACCESS -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_ACCESS_ENVIRONMENT
+					.check(javaClasses);
 			case MODULE_SYSTEM -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_ACCESS_MODULE_SYSTEM.check(javaClasses);
 			default -> throw new SecurityException(
 					Messages.localized("security.common.unsupported.operation", this.architectureTestCaseSupported));

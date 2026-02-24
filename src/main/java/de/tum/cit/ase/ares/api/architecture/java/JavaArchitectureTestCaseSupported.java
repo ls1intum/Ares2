@@ -77,12 +77,14 @@ public enum JavaArchitectureTestCaseSupported implements ArchitectureTestCaseSup
 	AGENT_ATTACH,
 
 	/**
-	 * Test case for environment access (System.getenv, System properties, ProcessHandle).
+	 * Test case for environment access (System.getenv, System properties,
+	 * ProcessHandle).
 	 */
 	ENVIRONMENT_ACCESS,
 
 	/**
-	 * Test case for module system manipulation (Module.addExports/addOpens, privateLookupIn).
+	 * Test case for module system manipulation (Module.addExports/addOpens,
+	 * privateLookupIn).
 	 */
 	MODULE_SYSTEM;
 
@@ -95,10 +97,8 @@ public enum JavaArchitectureTestCaseSupported implements ArchitectureTestCaseSup
 	 */
 	@Nonnull
 	public List<ArchitectureTestCaseSupported> getPriority() {
-		return List.of(JavaArchitectureTestCaseSupported.NATIVE_CODE,
-				JavaArchitectureTestCaseSupported.AGENT_ATTACH,
-				JavaArchitectureTestCaseSupported.ENVIRONMENT_ACCESS,
-				JavaArchitectureTestCaseSupported.MODULE_SYSTEM);
+		return List.of(JavaArchitectureTestCaseSupported.NATIVE_CODE, JavaArchitectureTestCaseSupported.AGENT_ATTACH,
+				JavaArchitectureTestCaseSupported.ENVIRONMENT_ACCESS, JavaArchitectureTestCaseSupported.MODULE_SYSTEM);
 	}
 
 	@Nonnull

@@ -166,10 +166,12 @@ public class JavaAOPTestCaseSettings {
 	/**
 	 * Resets the configuration settings to their default values.
 	 * <p>
-	 * This method is called via reflection from {@link de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension}
-	 * when a test does not have a {@link de.tum.cit.ase.ares.api.Policy} annotation or when the policy
-	 * is explicitly deactivated with {@code @Policy(activated = false)}. This ensures that AOP advices
-	 * from previous tests do not affect subsequent tests running in the same JVM instance.
+	 * This method is called via reflection from
+	 * {@link de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension} when a test
+	 * does not have a {@link de.tum.cit.ase.ares.api.Policy} annotation or when the
+	 * policy is explicitly deactivated with {@code @Policy(activated = false)}.
+	 * This ensures that AOP advices from previous tests do not affect subsequent
+	 * tests running in the same JVM instance.
 	 * </p>
 	 */
 	public static void reset() {

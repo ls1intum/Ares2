@@ -101,7 +101,9 @@ public class JavaArchitectureTestCaseTest {
 		// The message should contain the forbidden packages
 		assertTrue(thrown.getMessage().contains("java.io") || thrown.getMessage().contains("java.nio.file"),
 				"Exception message should include the forbidden packages from the violation");
-		assertTrue(thrown.getMessage().contains("Ares Security Error") || thrown.getMessage().contains("Ares Sicherheitsfehler"),
+		assertTrue(
+				thrown.getMessage().contains("Ares Security Error")
+						|| thrown.getMessage().contains("Ares Sicherheitsfehler"),
 				"Exception message should contain Ares Security Error prefix");
 	}
 }
