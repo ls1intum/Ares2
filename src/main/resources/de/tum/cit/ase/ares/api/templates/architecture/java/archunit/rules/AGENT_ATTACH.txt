@@ -1,0 +1,5 @@
+@Test
+public void agentAttachShouldNotBeAccessed() {
+    javaClasses = ${javaClasses};
+    JavaArchunitTestCaseCollection.NO_CLASS_MUST_ATTACH_AGENTS.check(javaClasses);
+}

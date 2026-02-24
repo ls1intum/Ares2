@@ -1,24 +1,27 @@
 package de.tum.cit.ase.ares.api.securitytest.java.specific;
 
-import com.tngtech.archunit.core.importer.Location;
-import com.tngtech.archunit.junit.LocationProvider;
-import de.tum.cit.ase.ares.api.securitytest.java.StudentCompiledClassesPath;
+import static org.junit.jupiter.api.Assertions.*;
+
+import java.util.Set;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockitoAnnotations;
 
-import java.util.Set;
+import com.tngtech.archunit.core.importer.Location;
+import com.tngtech.archunit.junit.LocationProvider;
 
-import static org.junit.jupiter.api.Assertions.*;
+import de.tum.cit.ase.ares.api.securitytest.java.StudentCompiledClassesPath;
 
 /**
  * Comprehensive unit tests for {@link PathLocationProvider}.
- * 
- * <p>This test suite validates the functionality of the PathLocationProvider class,
- * ensuring proper location detection from annotated test classes and appropriate
- * error handling for missing annotations.</p>
+ * <p>
+ * This test suite validates the functionality of the PathLocationProvider
+ * class, ensuring proper location detection from annotated test classes and
+ * appropriate error handling for missing annotations.
+ * </p>
  * 
  * @author Test Implementation
  * @version 2.0.0
@@ -27,283 +30,279 @@ import static org.junit.jupiter.api.Assertions.*;
 @DisplayName("PathLocationProvider Tests")
 public class PathLocationProviderTest {
 
-    private PathLocationProvider provider;
+	private PathLocationProvider provider;
 
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-        provider = new PathLocationProvider();
-    }
+	@BeforeEach
+	void setUp() {
+		MockitoAnnotations.openMocks(this);
+		provider = new PathLocationProvider();
+	}
 
-    @Nested
-    @DisplayName("Interface Implementation Tests")
-    class InterfaceImplementationTests {
+	@Nested
+	@DisplayName("Interface Implementation Tests")
+	class InterfaceImplementationTests {
 
-        @Test
-        @DisplayName("Should implement LocationProvider interface")
-        void testImplementsLocationProviderInterface() {
-            // Given & When & Then
-            assertTrue(provider instanceof LocationProvider);
-        }
-    }
+		@Test
+		@DisplayName("Should implement LocationProvider interface")
+		void testImplementsLocationProviderInterface() {
+			// Given & When & Then
+			assertTrue(provider instanceof LocationProvider);
+		}
+	}
 
-    @Nested
-    @DisplayName("Successful Location Retrieval Tests")
-    class SuccessfulLocationRetrievalTests {
+	@Nested
+	@DisplayName("Successful Location Retrieval Tests")
+	class SuccessfulLocationRetrievalTests {
 
-        @StudentCompiledClassesPath("target/classes")
-        static class AnnotatedTestClass {
-        }
+		@StudentCompiledClassesPath("target/classes")
+		static class AnnotatedTestClass {
+		}
 
-        @StudentCompiledClassesPath("/custom/path/to/classes")
-        static class CustomPathTestClass {
-        }
+		@StudentCompiledClassesPath("/custom/path/to/classes")
+		static class CustomPathTestClass {
+		}
 
-        @StudentCompiledClassesPath("build/classes/java/main")
-        static class GradleStyleTestClass {
-        }
+		@StudentCompiledClassesPath("build/classes/java/main")
+		static class GradleStyleTestClass {
+		}
 
-        @Test
-        @DisplayName("Should retrieve location from annotated test class")
-        void testGetLocation_WithAnnotation() {
-            // Given & When
-            Set<Location> result = provider.get(AnnotatedTestClass.class);
+		@Test
+		@DisplayName("Should retrieve location from annotated test class")
+		void testGetLocation_WithAnnotation() {
+			// Given & When
+			Set<Location> result = provider.get(AnnotatedTestClass.class);
 
-            // Then
-            assertNotNull(result);
-            assertEquals(1, result.size());
-            Location location = result.iterator().next();
-            assertTrue(location.asURI().toString().contains("target/classes"));
-        }
+			// Then
+			assertNotNull(result);
+			assertEquals(1, result.size());
+			Location location = result.iterator().next();
+			assertTrue(location.asURI().toString().contains("target/classes"));
+		}
 
-        @Test
-        @DisplayName("Should handle custom path correctly")
-        void testGetLocation_CustomPath() {
-            // Given & When
-            Set<Location> result = provider.get(CustomPathTestClass.class);
+		@Test
+		@DisplayName("Should handle custom path correctly")
+		void testGetLocation_CustomPath() {
+			// Given & When
+			Set<Location> result = provider.get(CustomPathTestClass.class);
 
-            // Then
-            assertNotNull(result);
-            assertEquals(1, result.size());
-            Location location = result.iterator().next();
-            assertTrue(location.asURI().toString().contains("custom/path/to/classes"));
-        }
+			// Then
+			assertNotNull(result);
+			assertEquals(1, result.size());
+			Location location = result.iterator().next();
+			assertTrue(location.asURI().toString().contains("custom/path/to/classes"));
+		}
 
-        @Test
-        @DisplayName("Should handle Gradle-style paths")
-        void testGetLocation_GradlePath() {
-            // Given & When
-            Set<Location> result = provider.get(GradleStyleTestClass.class);
+		@Test
+		@DisplayName("Should handle Gradle-style paths")
+		void testGetLocation_GradlePath() {
+			// Given & When
+			Set<Location> result = provider.get(GradleStyleTestClass.class);
 
-            // Then
-            assertNotNull(result);
-            assertEquals(1, result.size());
-            Location location = result.iterator().next();
-            assertTrue(location.asURI().toString().contains("build/classes/java/main"));
-        }
-    }
+			// Then
+			assertNotNull(result);
+			assertEquals(1, result.size());
+			Location location = result.iterator().next();
+			assertTrue(location.asURI().toString().contains("build/classes/java/main"));
+		}
+	}
 
-    @Nested
-    @DisplayName("Error Handling Tests")
-    class ErrorHandlingTests {
+	@Nested
+	@DisplayName("Error Handling Tests")
+	class ErrorHandlingTests {
 
-        static class NonAnnotatedTestClass {
-        }
+		static class NonAnnotatedTestClass {
+		}
 
-        @Test
-        @DisplayName("Should throw SecurityException for non-annotated class")
-        void testGetLocation_NoAnnotation() {
-            // Given & When & Then
-            SecurityException exception = assertThrows(SecurityException.class, 
-                () -> provider.get(NonAnnotatedTestClass.class));
-            
-            assertTrue(exception.getMessage().contains("Ares Security Error"));
-            assertTrue(exception.getMessage().contains("PathLocationProvider"));
-            assertTrue(exception.getMessage().contains("StudentCompiledClassesPath"));
-        }
+		@Test
+		@DisplayName("Should throw SecurityException for non-annotated class")
+		void testGetLocation_NoAnnotation() {
+			// Given & When & Then
+			SecurityException exception = assertThrows(SecurityException.class,
+					() -> provider.get(NonAnnotatedTestClass.class));
 
-        @Test
-        @DisplayName("Should throw NullPointerException for null test class")
-        @SuppressWarnings("null")
-        void testGetLocation_NullTestClass() {
-            // Given & When & Then
-            assertThrows(NullPointerException.class, 
-                () -> provider.get(null));
-        }
+			assertTrue(exception.getMessage().contains("Ares Security Error"));
+			assertTrue(exception.getMessage().contains("PathLocationProvider"));
+			assertTrue(exception.getMessage().contains("StudentCompiledClassesPath"));
+		}
 
-        @Test
-        @DisplayName("Should provide specific error message format")
-        void testGetLocation_ErrorMessageFormat() {
-            // Given & When
-            SecurityException exception = assertThrows(SecurityException.class, 
-                () -> provider.get(NonAnnotatedTestClass.class));
+		@Test
+		@DisplayName("Should throw NullPointerException for null test class")
+		@SuppressWarnings("null")
+		void testGetLocation_NullTestClass() {
+			// Given & When & Then
+			assertThrows(NullPointerException.class, () -> provider.get(null));
+		}
 
-            // Then
-            String expectedMessage = String.format(
-                "Ares Security Error (Reason: Ares-Code; Stage: Creation): %s can only be used on classes annotated with @%s",
-                "PathLocationProvider", "StudentCompiledClassesPath"
-            );
-            assertEquals(expectedMessage, exception.getMessage());
-        }
-    }
+		@Test
+		@DisplayName("Should provide specific error message format")
+		void testGetLocation_ErrorMessageFormat() {
+			// Given & When
+			SecurityException exception = assertThrows(SecurityException.class,
+					() -> provider.get(NonAnnotatedTestClass.class));
 
-    @Nested
-    @DisplayName("Return Value Tests")
-    class ReturnValueTests {
+			// Then
+			String expectedMessage = String.format(
+					"Ares Security Error (Reason: Ares-Code; Stage: Creation): %s can only be used on classes annotated with @%s",
+					"PathLocationProvider", "StudentCompiledClassesPath");
+			assertEquals(expectedMessage, exception.getMessage());
+		}
+	}
 
-        @StudentCompiledClassesPath("test/path")
-        static class TestClass {
-        }
+	@Nested
+	@DisplayName("Return Value Tests")
+	class ReturnValueTests {
 
-        @Test
-        @DisplayName("Should return non-null set")
-        void testGetLocation_NonNullReturn() {
-            // Given & When
-            Set<Location> result = provider.get(TestClass.class);
+		@StudentCompiledClassesPath("test/path")
+		static class TestClass {
+		}
 
-            // Then
-            assertNotNull(result);
-        }
+		@Test
+		@DisplayName("Should return non-null set")
+		void testGetLocation_NonNullReturn() {
+			// Given & When
+			Set<Location> result = provider.get(TestClass.class);
 
-        @Test
-        @DisplayName("Should return singleton set")
-        void testGetLocation_SingletonSet() {
-            // Given & When
-            Set<Location> result = provider.get(TestClass.class);
+			// Then
+			assertNotNull(result);
+		}
 
-            // Then
-            assertEquals(1, result.size());
-        }
+		@Test
+		@DisplayName("Should return singleton set")
+		void testGetLocation_SingletonSet() {
+			// Given & When
+			Set<Location> result = provider.get(TestClass.class);
 
-        @Test
-        @DisplayName("Should return immutable set")
-        void testGetLocation_ImmutableSet() {
-            // Given & When
-            Set<Location> result = provider.get(TestClass.class);
+			// Then
+			assertEquals(1, result.size());
+		}
 
-            // Then
-            assertThrows(UnsupportedOperationException.class, 
-                () -> result.clear());
-        }
-    }
+		@Test
+		@DisplayName("Should return immutable set")
+		void testGetLocation_ImmutableSet() {
+			// Given & When
+			Set<Location> result = provider.get(TestClass.class);
 
-    @Nested
-    @DisplayName("Annotation Processing Tests")
-    class AnnotationProcessingTests {
+			// Then
+			assertThrows(UnsupportedOperationException.class, () -> result.clear());
+		}
+	}
 
-        @StudentCompiledClassesPath("")
-        static class EmptyPathTestClass {
-        }
+	@Nested
+	@DisplayName("Annotation Processing Tests")
+	class AnnotationProcessingTests {
 
-        @StudentCompiledClassesPath("relative/path")
-        static class RelativePathTestClass {
-        }
+		@StudentCompiledClassesPath("")
+		static class EmptyPathTestClass {
+		}
 
-        @StudentCompiledClassesPath("./current/directory")
-        static class CurrentDirectoryTestClass {
-        }
+		@StudentCompiledClassesPath("relative/path")
+		static class RelativePathTestClass {
+		}
 
-        @Test
-        @DisplayName("Should handle empty path annotation")
-        void testGetLocation_EmptyPath() {
-            // Given & When
-            Set<Location> result = provider.get(EmptyPathTestClass.class);
+		@StudentCompiledClassesPath("./current/directory")
+		static class CurrentDirectoryTestClass {
+		}
 
-            // Then
-            assertNotNull(result);
-            assertEquals(1, result.size());
-            // Empty path should result in current directory
-        }
+		@Test
+		@DisplayName("Should handle empty path annotation")
+		void testGetLocation_EmptyPath() {
+			// Given & When
+			Set<Location> result = provider.get(EmptyPathTestClass.class);
 
-        @Test
-        @DisplayName("Should handle relative paths")
-        void testGetLocation_RelativePath() {
-            // Given & When
-            Set<Location> result = provider.get(RelativePathTestClass.class);
+			// Then
+			assertNotNull(result);
+			assertEquals(1, result.size());
+			// Empty path should result in current directory
+		}
 
-            // Then
-            assertNotNull(result);
-            assertEquals(1, result.size());
-            Location location = result.iterator().next();
-            assertTrue(location.asURI().toString().contains("relative/path"));
-        }
+		@Test
+		@DisplayName("Should handle relative paths")
+		void testGetLocation_RelativePath() {
+			// Given & When
+			Set<Location> result = provider.get(RelativePathTestClass.class);
 
-        @Test
-        @DisplayName("Should handle current directory notation")
-        void testGetLocation_CurrentDirectory() {
-            // Given & When
-            Set<Location> result = provider.get(CurrentDirectoryTestClass.class);
+			// Then
+			assertNotNull(result);
+			assertEquals(1, result.size());
+			Location location = result.iterator().next();
+			assertTrue(location.asURI().toString().contains("relative/path"));
+		}
 
-            // Then
-            assertNotNull(result);
-            assertEquals(1, result.size());
-            Location location = result.iterator().next();
-            assertTrue(location.asURI().toString().contains("current/directory"));
-        }
-    }
+		@Test
+		@DisplayName("Should handle current directory notation")
+		void testGetLocation_CurrentDirectory() {
+			// Given & When
+			Set<Location> result = provider.get(CurrentDirectoryTestClass.class);
 
-    @Nested
-    @DisplayName("Security Tests")
-    class SecurityTests {
+			// Then
+			assertNotNull(result);
+			assertEquals(1, result.size());
+			Location location = result.iterator().next();
+			assertTrue(location.asURI().toString().contains("current/directory"));
+		}
+	}
 
-        @Test
-        @DisplayName("Should enforce annotation presence as security measure")
-        void testSecurity_AnnotationRequired() {
-            // Given
-            class UnauthorizedClass {
-            }
+	@Nested
+	@DisplayName("Security Tests")
+	class SecurityTests {
 
-            // When & Then
-            SecurityException exception = assertThrows(SecurityException.class, 
-                () -> provider.get(UnauthorizedClass.class));
-            
-            assertTrue(exception.getMessage().startsWith("Ares Security Error"));
-        }
+		@Test
+		@DisplayName("Should enforce annotation presence as security measure")
+		void testSecurity_AnnotationRequired() {
+			// Given
+			class UnauthorizedClass {
+			}
 
-        @Test
-        @DisplayName("Should validate test class is not null")
-        @SuppressWarnings("null")
-        void testSecurity_NonNullValidation() {
-            // Given & When & Then
-            assertThrows(NullPointerException.class, 
-                () -> provider.get(null));
-        }
-    }
+			// When & Then
+			SecurityException exception = assertThrows(SecurityException.class,
+					() -> provider.get(UnauthorizedClass.class));
 
-    @Nested
-    @DisplayName("Edge Case Tests")
-    class EdgeCaseTests {
+			assertTrue(exception.getMessage().startsWith("Ares Security Error"));
+		}
 
-        @StudentCompiledClassesPath("very/long/path/with/many/segments/that/could/potentially/cause/issues")
-        static class LongPathTestClass {
-        }
+		@Test
+		@DisplayName("Should validate test class is not null")
+		@SuppressWarnings("null")
+		void testSecurity_NonNullValidation() {
+			// Given & When & Then
+			assertThrows(NullPointerException.class, () -> provider.get(null));
+		}
+	}
 
-        @StudentCompiledClassesPath("/absolute/unix/path")
-        static class UnixAbsolutePathTestClass {
-        }
+	@Nested
+	@DisplayName("Edge Case Tests")
+	class EdgeCaseTests {
 
-        @Test
-        @DisplayName("Should handle long paths")
-        void testGetLocation_LongPath() {
-            // Given & When
-            Set<Location> result = provider.get(LongPathTestClass.class);
+		@StudentCompiledClassesPath("very/long/path/with/many/segments/that/could/potentially/cause/issues")
+		static class LongPathTestClass {
+		}
 
-            // Then
-            assertNotNull(result);
-            assertEquals(1, result.size());
-        }
+		@StudentCompiledClassesPath("/absolute/unix/path")
+		static class UnixAbsolutePathTestClass {
+		}
 
-        @Test
-        @DisplayName("Should handle absolute Unix paths")
-        void testGetLocation_AbsoluteUnixPath() {
-            // Given & When
-            Set<Location> result = provider.get(UnixAbsolutePathTestClass.class);
+		@Test
+		@DisplayName("Should handle long paths")
+		void testGetLocation_LongPath() {
+			// Given & When
+			Set<Location> result = provider.get(LongPathTestClass.class);
 
-            // Then
-            assertNotNull(result);
-            assertEquals(1, result.size());
-            Location location = result.iterator().next();
-            assertTrue(location.asURI().toString().contains("absolute/unix/path"));
-        }
-    }
+			// Then
+			assertNotNull(result);
+			assertEquals(1, result.size());
+		}
+
+		@Test
+		@DisplayName("Should handle absolute Unix paths")
+		void testGetLocation_AbsoluteUnixPath() {
+			// Given & When
+			Set<Location> result = provider.get(UnixAbsolutePathTestClass.class);
+
+			// Then
+			assertNotNull(result);
+			assertEquals(1, result.size());
+			Location location = result.iterator().next();
+			assertTrue(location.asURI().toString().contains("absolute/unix/path"));
+		}
+	}
 }

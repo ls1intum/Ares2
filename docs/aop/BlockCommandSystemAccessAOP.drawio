@@ -1,0 +1,173 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:146.0) Gecko/20100101 Firefox/146.0" version="29.3.0">
+  <diagram name="Command System Security Validation Flow" id="command-system-flow">
+    <mxGraphModel dx="1851" dy="1216" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="cmd-1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Student Code: Calls command execution via the method&lt;i&gt;&lt;br&gt;Runtime.getRuntime().exec(&quot;rm -rf /&quot;)&lt;/i&gt;" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd-2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Intercepts the method execution BEFORE the command runs and activates the security check for the command system" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd-3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;fontStyle=0;fontFamily=Helvetica;fontSize=12;" value="Collected information:&lt;br&gt;• Class: &lt;i&gt;java.lang.Runtime&lt;/i&gt;&lt;br&gt;• Method:&amp;nbsp;&lt;i&gt;exec(Ljava/lang/String;)Ljava/lang/Process;&lt;/i&gt;&lt;br&gt;• Attributes: &lt;i&gt;[...runtime fields...]&lt;/i&gt;&lt;br&gt;• Parameters: &lt;i&gt;[&quot;rm -rf /&quot;]&lt;/i&gt;" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd-4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Passes the collected information to the command system access security validator with the respective action type:&lt;br&gt;&lt;i&gt;checkCommandSystemInteraction(&quot;execute&quot;, ...)&lt;/i&gt;" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="680" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd-edge-1" edge="1" parent="1" source="cmd-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;align=center;" target="cmd-7" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd-edge-1-label" connectable="0" parent="cmd-edge-1" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=12;" value="🟡" vertex="1">
+          <mxGeometry relative="1" x="0.005" y="-1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cmd-5" parent="1" style="rhombus;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Is the respective security enabled?" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="840" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd-6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Continue the method execution" vertex="1">
+          <mxGeometry height="80" width="320" x="440" y="840" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd-7" parent="1" style="rhombus;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Does the potentially violating method&lt;br&gt;call come from the Student Code?" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="1320" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd-8-cont" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Continue the method execution" vertex="1">
+          <mxGeometry height="80" width="320" x="440" y="1320" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd-edge-params" edge="1" parent="1" source="cmd-9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;align=center;" target="cmd-10" value="🟡">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd-9" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Prepares command validation:&lt;br&gt;• Loads allowed commands and arguments&lt;br&gt;• Applies method-specific filter rules (IgnoreValues)&lt;br&gt;• Extracts commands from parameters" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="1480" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd-edge-check" edge="1" parent="1" source="cmd-15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;align=center;" target="cmd-19">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd-edge-check-label" connectable="0" parent="cmd-edge-check" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=12;" value="🔴 false" vertex="1">
+          <mxGeometry relative="1" x="-0.415" y="2" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cmd-15" parent="1" style="rhombus;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Commands (parameters &amp;amp; object state) allowed?" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="1800" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd-16" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Continue the method execution" vertex="1">
+          <mxGeometry height="80" width="320" x="440" y="1800" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd-19" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=0;fontSize=12;align=center;fontFamily=Helvetica;" value="Ares: Block the method execution" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="1960" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd-edge-start" edge="1" parent="1" source="cmd-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" target="cmd-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd-edge-start-label" connectable="0" parent="cmd-edge-start" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=12;" value="🟡" vertex="1">
+          <mxGeometry relative="1" x="-0.075" y="2" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cmd-edge-collect" edge="1" parent="1" source="cmd-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" target="cmd-collect-1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd-edge-collect-label" connectable="0" parent="cmd-edge-collect" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=12;" value="🟡" vertex="1">
+          <mxGeometry relative="1" x="-0.1371" y="3" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cmd-edge-info" edge="1" parent="1" source="cmd-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" target="cmd-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd-edge-info-label" connectable="0" parent="cmd-edge-info" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=12;" value="🟡" vertex="1">
+          <mxGeometry relative="1" x="-0.0577" y="-1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cmd-edge-pass" edge="1" parent="1" source="cmd-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" target="cmd-5" value="🟡">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd-edge-sec-yes" edge="1" parent="1" source="cmd-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" target="cmd-sec-collect">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd-edge-sec-yes-label" connectable="0" parent="cmd-edge-sec-yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=0;fontFamily=Helvetica;fontSize=12;" value="🌕 true" vertex="1">
+          <mxGeometry relative="1" x="-0.2" y="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cmd-edge-sec-no" edge="1" parent="1" source="cmd-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" target="cmd-6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd-edge-sec-no-label" connectable="0" parent="cmd-edge-sec-no" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=0;fontFamily=Helvetica;fontSize=12;" value="🟢 false" vertex="1">
+          <mxGeometry relative="1" x="-0.2" y="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cmd-edge-student-yes" edge="1" parent="1" source="cmd-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" target="cmd-9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd-edge-student-yes-label" connectable="0" parent="cmd-edge-student-yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=0;fontFamily=Helvetica;fontSize=12;" value="🌕 true" vertex="1">
+          <mxGeometry relative="1" x="-0.2" y="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cmd-edge-student-no" edge="1" parent="1" source="cmd-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" target="cmd-8-cont">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd-edge-student-no-label" connectable="0" parent="cmd-edge-student-no" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=0;fontFamily=Helvetica;fontSize=12;" value="🟢 false" vertex="1">
+          <mxGeometry relative="1" x="-0.2" y="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cmd-edge-validate" edge="1" parent="1" source="cmd-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" target="cmd-15">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="200" y="1840" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cmd-edge-validate-label" connectable="0" parent="cmd-edge-validate" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=0;fontFamily=Helvetica;fontSize=12;" value="🌕" vertex="1">
+          <mxGeometry relative="1" x="-0.2" y="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cmd-edge-allowed" edge="1" parent="1" source="cmd-15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" target="cmd-16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd-edge-allowed-label" connectable="0" parent="cmd-edge-allowed" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=0;fontFamily=Helvetica;fontSize=12;" value="🟢 true" vertex="1">
+          <mxGeometry relative="1" x="-0.2" y="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cmd-edge-collect2" edge="1" parent="1" source="cmd-collect-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;align=center;" target="cmd-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd-edge-collect2-label" connectable="0" parent="cmd-edge-collect2" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=12;" value="🟡" vertex="1">
+          <mxGeometry relative="1" x="-0.1543" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cmd-8" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Collected information:&lt;br&gt;• Potentially violating method&lt;i&gt;:&lt;br&gt;&lt;/i&gt;&lt;i&gt;&quot;java.lang.Runtime.exec&quot;&lt;/i&gt;&lt;br&gt;• Student Code Method:&lt;i&gt;&lt;br&gt;&quot;de.student.solution.StudentSolution.executeCommand&quot;&lt;/i&gt;" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="1160" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd-collect-1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Collects information at the interception point on:&lt;div&gt;• The class of intercepted method&lt;br&gt;• The intercepted method and its signature&lt;br&gt;• The field values (attributes) of the object instance&lt;br&gt;• The parameters of the intercepted method&lt;/div&gt;" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd-sec-collect" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Collects information at the interception point on:&lt;br&gt;• The method potentially violating a security policy&lt;br&gt;• The student code method calling that violating method" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="1000" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd-10" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Collected information:&lt;br&gt;• Allowed commands: &lt;i&gt;[&quot;ls&quot;, &quot;echo&quot;]&lt;/i&gt;&lt;br&gt;• Allowed arguments: &lt;i&gt;[[&quot;--help&quot;], [&quot;Hello&quot;]]&lt;/i&gt;&lt;br&gt;• Extracted command: &lt;i&gt;[&quot;rm&quot;, &quot;-rf&quot;, &quot;/&quot;]&lt;/i&gt;" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="1640" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd-edge-sec2" edge="1" parent="1" source="cmd-sec-collect" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;align=center;" target="cmd-8" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="190" y="1270" as="sourcePoint" />
+            <mxPoint x="190" y="1350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cmd-edge-sec2-label" connectable="0" parent="cmd-edge-sec2" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=12;" value="🟡" vertex="1">
+          <mxGeometry relative="1" x="-0.215" y="-1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

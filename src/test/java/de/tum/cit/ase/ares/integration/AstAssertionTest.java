@@ -244,8 +244,8 @@ public class AstAssertionTest {
 			tests.assertThatEvents().haveExactly(1, testFailedWith(testHasBelowNoIfConditional_Fail,
 					AssertionError.class,
 					"Unwanted statement found:" + System.lineSeparator() + " - In "
-							+ Path.of("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration", "testuser",
-									"subject", "structural", "astTestFiles", "conditionals", "yes",
+							+ Path.of("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration",
+									"testuser", "subject", "structural", "astTestFiles", "conditionals", "yes",
 									"ClassWithAnyKindsOfConditionals.java")
 							+ ":" + System.lineSeparator() + "  - If-Expression was found:" + System.lineSeparator()
 							+ "   - Between line 18 (column 22) and line 18 (column 64)" + System.lineSeparator()
@@ -294,8 +294,8 @@ public class AstAssertionTest {
 			tests.assertThatEvents().haveExactly(1, testFailedWith(testHasBelowNoSwitchConditional_Fail,
 					AssertionError.class,
 					"Unwanted statement found:" + System.lineSeparator() + " - In "
-							+ Path.of("src", "test", "resources", "de", "tum", "cit", "ase", "ares", "integration", "testuser",
-									"javaClassesWithUnsupportedFeatures", "conditionals", "yes",
+							+ Path.of("src", "test", "resources", "de", "tum", "cit", "ase", "ares", "integration",
+									"testuser", "javaClassesWithUnsupportedFeatures", "conditionals", "yes",
 									"ClassWithAnyKindsOfUnsupportedConditionals.java")
 							+ ":" + System.lineSeparator() + "  - Switch-Expression was found:" + System.lineSeparator()
 							+ "   - Between line 38 (column 28) and line 43 (column 9)"));
@@ -317,8 +317,8 @@ public class AstAssertionTest {
 			String testHasBelowNoAnyClass_Fail = "testHasBelowNoAnyIf_Fail";
 			tests.assertThatEvents().haveExactly(1, testFailedWith(testHasBelowNoAnyClass_Fail, AssertionError.class,
 					"Unwanted statement found:" + System.lineSeparator() + " - In "
-							+ Path.of("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration", "testuser",
-									"subject", "structural", "astTestFiles", "conditionals", "yes",
+							+ Path.of("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration",
+									"testuser", "subject", "structural", "astTestFiles", "conditionals", "yes",
 									"ClassWithAnyKindsOfConditionals.java")
 							+ ":" + System.lineSeparator() + "  - If-Statement was found:" + System.lineSeparator()
 							+ "   - Between line 7 (column 3) and line 13 (column 3)" + System.lineSeparator()
@@ -344,8 +344,8 @@ public class AstAssertionTest {
 			String testHasBelowNoAnyClass_Fail = "testHasBelowNoAnySwitch_Fail";
 			tests.assertThatEvents().haveExactly(1, testFailedWith(testHasBelowNoAnyClass_Fail, AssertionError.class,
 					"Unwanted statement found:" + System.lineSeparator() + " - In "
-							+ Path.of("src", "test", "resources", "de", "tum", "cit", "ase", "ares", "integration", "testuser",
-									"javaClassesWithUnsupportedFeatures", "conditionals", "yes",
+							+ Path.of("src", "test", "resources", "de", "tum", "cit", "ase", "ares", "integration",
+									"testuser", "javaClassesWithUnsupportedFeatures", "conditionals", "yes",
 									"ClassWithAnyKindsOfUnsupportedConditionals.java")
 							+ ":" + System.lineSeparator() + "  - Switch-Statement was found:" + System.lineSeparator()
 							+ "   - Between line 23 (column 9) and line 33 (column 9)" + System.lineSeparator()
@@ -370,8 +370,8 @@ public class AstAssertionTest {
 			tests.assertThatEvents().haveExactly(1, testFailedWith(testHasBelowNoAnyConditional_Fail,
 					AssertionError.class,
 					"Unwanted statement found:" + System.lineSeparator() + " - In "
-							+ Path.of("src", "test", "resources", "de", "tum", "cit", "ase", "ares", "integration", "testuser",
-									"javaClassesWithUnsupportedFeatures", "conditionals", "yes",
+							+ Path.of("src", "test", "resources", "de", "tum", "cit", "ase", "ares", "integration",
+									"testuser", "javaClassesWithUnsupportedFeatures", "conditionals", "yes",
 									"ClassWithAnyKindsOfUnsupportedConditionals.java")
 							+ ":" + System.lineSeparator() + "  - If-Statement was found:" + System.lineSeparator()
 							+ "   - Between line 7 (column 9) and line 13 (column 9)" + System.lineSeparator()
@@ -425,15 +425,13 @@ public class AstAssertionTest {
 		@TestTest
 		void test_testHasBelowNoRecord_Fail() {
 			String testHasBelowNoRecord_Fail = "testHasBelowNoRecord_Fail";
-			tests.assertThatEvents().haveExactly(1,
-					testFailedWith(testHasBelowNoRecord_Fail, AssertionError.class,
-							"Unwanted statement found:" + System.lineSeparator() + " - In "
-									+ Path.of("src", "test", "resources", "de", "tum", "cit", "ase", "ares", "integration",
-											"testuser", "javaClassesWithUnsupportedFeatures", "classes", "yes",
-											"ClassWithAnyKindsOfUnsupportedClasses.java")
-									+ ":" + System.lineSeparator() + "  - Local-Record-Statement was found:"
-									+ System.lineSeparator()
-									+ "   - Between line 11 (column 9) and line 12 (column 9)"));
+			tests.assertThatEvents().haveExactly(1, testFailedWith(testHasBelowNoRecord_Fail, AssertionError.class,
+					"Unwanted statement found:" + System.lineSeparator() + " - In "
+							+ Path.of("src", "test", "resources", "de", "tum", "cit", "ase", "ares", "integration",
+									"testuser", "javaClassesWithUnsupportedFeatures", "classes", "yes",
+									"ClassWithAnyKindsOfUnsupportedClasses.java")
+							+ ":" + System.lineSeparator() + "  - Local-Record-Statement was found:"
+							+ System.lineSeparator() + "   - Between line 11 (column 9) and line 12 (column 9)"));
 		}
 	}
 
@@ -450,17 +448,15 @@ public class AstAssertionTest {
 		@TestTest
 		void test_testHasBelowNoAnyClass_Fail() {
 			String testHasBelowNoClass_Fail = "testHasBelowNoAnyClass_Fail";
-			tests.assertThatEvents().haveExactly(1,
-					testFailedWith(testHasBelowNoClass_Fail, AssertionError.class,
-							"Unwanted statement found:" + System.lineSeparator() + " - In "
-									+ Path.of("src", "test", "resources", "de", "tum", "cit", "ase", "ares", "integration",
-											"testuser", "javaClassesWithUnsupportedFeatures", "classes", "yes",
-											"ClassWithAnyKindsOfUnsupportedClasses.java")
-									+ ":" + System.lineSeparator() + "  - Local-Class-Statement was found:"
-									+ System.lineSeparator() + "   - Between line 6 (column 9) and line 7 (column 9)"
-									+ System.lineSeparator() + "  - Local-Record-Statement was found:"
-									+ System.lineSeparator()
-									+ "   - Between line 11 (column 9) and line 12 (column 9)"));
+			tests.assertThatEvents().haveExactly(1, testFailedWith(testHasBelowNoClass_Fail, AssertionError.class,
+					"Unwanted statement found:" + System.lineSeparator() + " - In "
+							+ Path.of("src", "test", "resources", "de", "tum", "cit", "ase", "ares", "integration",
+									"testuser", "javaClassesWithUnsupportedFeatures", "classes", "yes",
+									"ClassWithAnyKindsOfUnsupportedClasses.java")
+							+ ":" + System.lineSeparator() + "  - Local-Class-Statement was found:"
+							+ System.lineSeparator() + "   - Between line 6 (column 9) and line 7 (column 9)"
+							+ System.lineSeparator() + "  - Local-Record-Statement was found:" + System.lineSeparator()
+							+ "   - Between line 11 (column 9) and line 12 (column 9)"));
 		}
 	}
 
@@ -481,8 +477,8 @@ public class AstAssertionTest {
 			tests.assertThatEvents().haveExactly(1, testFailedWith(testHasBelowNoAssertExceptionHandling_Fail,
 					AssertionError.class,
 					"Unwanted statement found:" + System.lineSeparator() + " - In "
-							+ Path.of("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration", "testuser",
-									"subject", "structural", "astTestFiles", "exceptionHandlings", "yes",
+							+ Path.of("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration",
+									"testuser", "subject", "structural", "astTestFiles", "exceptionHandlings", "yes",
 									"ClassWithAnyKindsOfExceptionHandlings.java")
 							+ ":" + System.lineSeparator() + "  - Assert-Statement was found:" + System.lineSeparator()
 							+ "   - Between line 6 (column 3) and line 6 (column 16)"));
@@ -656,8 +652,8 @@ public class AstAssertionTest {
 					testFailedWith(testExcludeMain_Fail, AssertionError.class,
 							"Unwanted statement found:" + System.lineSeparator() + " - In "
 									+ Path.of("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration",
-									"testuser", "subject", "structural", "astTestFiles", "excludeMain", "yes",
-									"ClassWithLoopOutsideMainMethod.java")
+											"testuser", "subject", "structural", "astTestFiles", "excludeMain", "yes",
+											"ClassWithLoopOutsideMainMethod.java")
 									+ ":" + System.lineSeparator() + "  - For-Statement was found:"
 									+ System.lineSeparator() + "   - Between line 6 (column 3) and line 8 (column 3)"));
 		}
@@ -669,10 +665,11 @@ public class AstAssertionTest {
 					testFailedWith(testWithoutExcludeMain_Fail, AssertionError.class,
 							"Unwanted statement found:" + System.lineSeparator() + " - In "
 									+ Path.of("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration",
-									"testuser", "subject", "structural", "astTestFiles", "excludeMain", "no",
-									"ClassWithNoLoopsOutsideMainMethod.java")
+											"testuser", "subject", "structural", "astTestFiles", "excludeMain", "no",
+											"ClassWithNoLoopsOutsideMainMethod.java")
 									+ ":" + System.lineSeparator() + "  - For-Statement was found:"
-									+ System.lineSeparator() + "   - Between line 53 (column 3) and line 55 (column 3)"));
+									+ System.lineSeparator()
+									+ "   - Between line 53 (column 3) and line 55 (column 3)"));
 		}
 	}
 
@@ -689,10 +686,15 @@ public class AstAssertionTest {
 		@TestTest
 		void test_testExcludesPassedMethod_Fail() {
 			String testExcludesPassedMethod_Fail = "testExcludesPassedMethod_Fail";
-			tests.assertThatEvents().haveExactly(1, testFailedWith(testExcludesPassedMethod_Fail, AssertionError.class, "Unwanted statement found:" + System.lineSeparator() + " - In "
-					+ Path.of("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration", "testuser", "subject", "structural", "astTestFiles", "recursions" , "excludeMethods", "ClassWithNoExcludeMethods.java")
-					+ ":" + System.lineSeparator() + "  - Unwanted Recursion was found:"
-					+ System.lineSeparator() + "   - Between line 5 (column 5) and line 7 (column 5) in Method de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.ClassWithNoExcludeMethods.something(de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.RandomParameterThatShouldBeResolved)" + System.lineSeparator()));
+			tests.assertThatEvents().haveExactly(1, testFailedWith(testExcludesPassedMethod_Fail, AssertionError.class,
+					"Unwanted statement found:" + System.lineSeparator() + " - In "
+							+ Path.of("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration",
+									"testuser", "subject", "structural", "astTestFiles", "recursions", "excludeMethods",
+									"ClassWithNoExcludeMethods.java")
+							+ ":" + System.lineSeparator() + "  - Unwanted Recursion was found:"
+							+ System.lineSeparator()
+							+ "   - Between line 5 (column 5) and line 7 (column 5) in Method de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.ClassWithNoExcludeMethods.something(de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.RandomParameterThatShouldBeResolved)"
+							+ System.lineSeparator()));
 		}
 
 		@TestTest
@@ -704,7 +706,8 @@ public class AstAssertionTest {
 		@TestTest
 		void test_testShouldNotDetectRecursionGivenStartingNode() {
 			String testShouldNotDetectRecursionGivenStartingNode = "testShouldNotDetectRecursionGivenStartingNode";
-			tests.assertThatEvents().haveExactly(1, finishedSuccessfully(testShouldNotDetectRecursionGivenStartingNode));
+			tests.assertThatEvents().haveExactly(1,
+					finishedSuccessfully(testShouldNotDetectRecursionGivenStartingNode));
 		}
 
 		@TestTest

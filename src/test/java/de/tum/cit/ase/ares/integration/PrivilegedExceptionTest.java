@@ -34,8 +34,9 @@ class PrivilegedExceptionTest {
 
 	@TestTest
 	void test_nonprivilegedExceptionTry() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1, testFailedWith(nonprivilegedExceptionTry, AssertionError.class, "ABC"));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(1,
+		// testFailedWith(nonprivilegedExceptionTry, AssertionError.class, "ABC"));
 	}
 
 	@TestTest

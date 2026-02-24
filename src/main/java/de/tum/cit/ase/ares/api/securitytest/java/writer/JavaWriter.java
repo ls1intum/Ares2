@@ -1,32 +1,36 @@
 package de.tum.cit.ase.ares.api.securitytest.java.writer;
 
-import de.tum.cit.ase.ares.api.aop.AOPMode;
-import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
-import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
-import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
-import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
-import de.tum.cit.ase.ares.api.localization.Localisation;
-import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
-import de.tum.cit.ase.ares.api.phobos.Phobos;
-import de.tum.cit.ase.ares.api.util.FileTools;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import de.tum.cit.ase.ares.api.aop.AOPMode;
+import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
+import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
+import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
+import de.tum.cit.ase.ares.api.localization.Localisation;
+import de.tum.cit.ase.ares.api.localization.Messages;
+import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
+import de.tum.cit.ase.ares.api.phobos.Phobos;
+import de.tum.cit.ase.ares.api.util.FileTools;
+
 /**
  * Writes security test cases in Java programming language.
- *
- * <p>Description: This class is responsible for creating and writing security test files
- * for Java projects, including both architecture test files and AOP test files.
- *
- * <p>Design Rationale: The JavaWriter implements the Writer interface following the
- * Strategy design pattern to allow for different implementation strategies for writing
- * security test cases for different programming languages and frameworks.
+ * <p>
+ * Description: This class is responsible for creating and writing security test
+ * files for Java projects, including both architecture test files and AOP test
+ * files.
+ * <p>
+ * Design Rationale: The JavaWriter implements the Writer interface following
+ * the Strategy design pattern to allow for different implementation strategies
+ * for writing security test cases for different programming languages and
+ * frameworks.
  *
  * @since 2.0.0
  * @author Markus Paulsen
@@ -34,220 +38,172 @@ import java.util.stream.Stream;
  */
 public class JavaWriter implements Writer {
 
-    //<editor-fold desc="Helper methods">
+	// <editor-fold desc="Helper methods">
 
-    /**
-     * Creates Java architecture test files.
-     *
-     * @since 2.0.0
-     * @author Markus Paulsen
-     * @param architectureMode the Java architecture mode to use; must not be null
-     * @param essentialPackages the list of essential packages; must not be null
-     * @param packageName the name of the package containing the main class; must not be null
-     * @param mainClassInPackageName the name of the main class; must not be null
-     * @param javaArchitectureTestCases the list of architecture test cases; must not be null
-     * @param testFolderPath the directory of the project; may be null
-     * @return a list of paths to the created files
-     */
-    @Nonnull
-    private List<Path> createJavaArchitectureFiles(
-            @Nonnull ArchitectureMode architectureMode,
-            @Nonnull List<String> essentialPackages,
-            @Nonnull String packageName,
-            @Nonnull String mainClassInPackageName,
-            @Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
-            @Nullable Path testFolderPath
-    ) {
-        return Stream.concat(Stream.concat(
-                        FileTools.copyAndFormatFSFiles(
-                                architectureMode.fsFilesToCopy(),
-                                architectureMode.fsTargetsToCopyTo(FileTools.resolveOnPath(testFolderPath, packageName.split("\\."))),
-                                architectureMode.fsFormatValues(packageName, mainClassInPackageName)
-                        ).stream(),
-                        FileTools.copyAndFormatNonFSFiles(
-                                architectureMode.nonFSFilesToCopy(),
-                                architectureMode.nonFSTargetsToCopyTo(FileTools.resolveOnPath(testFolderPath, packageName.split("\\."))),
-                                architectureMode.placeholderValues(),
-                                architectureMode.nonFSFormatValues(packageName, mainClassInPackageName)
-                        ).stream()),
-                Stream.of(FileTools.createThreePartedFormatStringFile(
-                        architectureMode.threePartedFileHeader(),
-                        architectureMode.threePartedFileBody(javaArchitectureTestCases),
-                        architectureMode.threePartedFileFooter(),
-                        architectureMode.targetToCopyTo(FileTools.resolveOnPath(testFolderPath, packageName.split("\\."))),
-                        architectureMode.formatValues(packageName)
-                ))
-        ).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
-    }
+	/**
+	 * Creates Java architecture test files.
+	 *
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 * @param architectureMode          the Java architecture mode to use; must not
+	 *                                  be null
+	 * @param essentialPackages         the list of essential packages; must not be
+	 *                                  null
+	 * @param packageName               the name of the package containing the main
+	 *                                  class; must not be null
+	 * @param mainClassInPackageName    the name of the main class; must not be null
+	 * @param javaArchitectureTestCases the list of architecture test cases; must
+	 *                                  not be null
+	 * @param testFolderPath            the directory of the project; may be null
+	 * @return a list of paths to the created files
+	 */
+	@Nonnull
+	private List<Path> createJavaArchitectureFiles(@Nonnull ArchitectureMode architectureMode,
+			@Nonnull List<String> essentialPackages, @Nonnull String packageName,
+			@Nonnull String mainClassInPackageName, @Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
+			@Nullable Path testFolderPath) {
+		return Stream
+				.concat(Stream.concat(
+						FileTools
+								.copyAndFormatFSFiles(architectureMode.fsFilesToCopy(),
+										architectureMode.fsTargetsToCopyTo(
+												FileTools.resolveOnPath(testFolderPath, packageName.split("\\."))),
+										architectureMode.fsFormatValues(packageName, mainClassInPackageName))
+								.stream(),
+						FileTools
+								.copyAndFormatNonFSFiles(architectureMode.nonFSFilesToCopy(),
+										architectureMode.nonFSTargetsToCopyTo(
+												FileTools.resolveOnPath(testFolderPath, packageName.split("\\."))),
+										architectureMode.placeholderValues(),
+										architectureMode.nonFSFormatValues(packageName, mainClassInPackageName))
+								.stream()),
+						Stream.of(FileTools.createThreePartedFormatStringFile(architectureMode.threePartedFileHeader(),
+								architectureMode.threePartedFileBody(javaArchitectureTestCases),
+								architectureMode.threePartedFileFooter(),
+								architectureMode.targetToCopyTo(
+										FileTools.resolveOnPath(testFolderPath, packageName.split("\\."))),
+								architectureMode.formatValues(packageName))))
+				.collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+	}
 
-    /**
-     * Creates Java AOP test files.
-     *
-     * @since 2.0.0
-     * @author Markus Paulsen
-     * @param aopMode the Java AOP mode to use; must not be null
-     * @param essentialClasses the list of essential classes; must not be null
-     * @param testClasses the list of test classes; must not be null
-     * @param packageName the name of the package containing the main class; must not be null
-     * @param mainClassInPackageName the name of the main class; must not be null
-     * @param javaAOPTestCases the list of AOP test cases; must not be null
-     * @param testFolderPath the directory of the project; may be null
-     * @return a list of paths to the created files
-     */
-    @Nonnull
-    private List<Path> createJavaAOPFiles(
-            @Nonnull AOPMode aopMode,
-            @Nonnull List<String> essentialClasses,
-            @Nonnull List<String> testClasses,
-            @Nonnull String packageName,
-            @Nonnull String mainClassInPackageName,
-            @Nonnull List<JavaAOPTestCase> javaAOPTestCases,
-            @Nullable Path testFolderPath
-    ) {
-        @Nonnull ArrayList<String> allowedClasses = Stream.concat(
-                essentialClasses.stream(),
-                testClasses.stream()
-        ).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
-        return Stream.concat(Stream.concat(
-                        FileTools.copyAndFormatFSFiles(
-                                aopMode.fsFilesToCopy(),
-                                aopMode.fsTargetsToCopyTo(FileTools.resolveOnPath(testFolderPath, packageName.split("\\."))),
-                                aopMode.fsFormatValues(packageName, mainClassInPackageName)
-                        ).stream(),
-                        FileTools.copyAndFormatNonFSFiles(
-                                aopMode.nonFSFilesToCopy(),
-                                aopMode.nonFSTargetsToCopyTo(FileTools.resolveOnPath(testFolderPath, packageName.split("\\."))),
-                                aopMode.placeholderValues(),
-                                aopMode.nonFSFormatValues(packageName, mainClassInPackageName)
-                        ).stream()),
-                Stream.of(FileTools.createThreePartedFormatStringFile(
-                        aopMode.threePartedFileHeader(),
-                        aopMode.threePartedFileBody(aopMode.toString(), packageName, allowedClasses, javaAOPTestCases),
-                        aopMode.threePartedFileFooter(),
-                        aopMode.targetToCopyTo(FileTools.resolveOnPath(testFolderPath, packageName.split("\\."))),
-                        aopMode.formatValues(packageName)
-                ))
-        ).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
-    }
+	/**
+	 * Creates Java AOP test files.
+	 *
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 * @param aopMode                the Java AOP mode to use; must not be null
+	 * @param essentialClasses       the list of essential classes; must not be null
+	 * @param testClasses            the list of test classes; must not be null
+	 * @param packageName            the name of the package containing the main
+	 *                               class; must not be null
+	 * @param mainClassInPackageName the name of the main class; must not be null
+	 * @param javaAOPTestCases       the list of AOP test cases; must not be null
+	 * @param testFolderPath         the directory of the project; may be null
+	 * @return a list of paths to the created files
+	 */
+	@Nonnull
+	private List<Path> createJavaAOPFiles(@Nonnull AOPMode aopMode, @Nonnull List<String> essentialClasses,
+			@Nonnull List<String> testClasses, @Nonnull String packageName, @Nonnull String mainClassInPackageName,
+			@Nonnull List<JavaAOPTestCase> javaAOPTestCases, @Nullable Path testFolderPath) {
+		@Nonnull
+		ArrayList<String> allowedClasses = Stream.concat(essentialClasses.stream(), testClasses.stream())
+				.collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+		return Stream.concat(
+				Stream.concat(
+						FileTools.copyAndFormatFSFiles(
+								aopMode.fsFilesToCopy(),
+								aopMode.fsTargetsToCopyTo(
+										FileTools.resolveOnPath(testFolderPath, packageName.split("\\."))),
+								aopMode.fsFormatValues(packageName, mainClassInPackageName)).stream(),
+						FileTools.copyAndFormatNonFSFiles(aopMode.nonFSFilesToCopy(),
+								aopMode.nonFSTargetsToCopyTo(
+										FileTools.resolveOnPath(testFolderPath, packageName.split("\\."))),
+								aopMode.placeholderValues(),
+								aopMode.nonFSFormatValues(packageName, mainClassInPackageName)).stream()),
+				Stream.of(FileTools.createThreePartedFormatStringFile(aopMode.threePartedFileHeader(),
+						aopMode.threePartedFileBody(aopMode.toString(), packageName, allowedClasses, javaAOPTestCases),
+						aopMode.threePartedFileFooter(),
+						aopMode.targetToCopyTo(FileTools.resolveOnPath(testFolderPath, packageName.split("\\."))),
+						aopMode.formatValues(packageName))))
+				.collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+	}
 
-    @Nonnull
-    private List<Path> createLocalisationFiles(
-            @Nonnull String packageName,
-            @Nullable Path testFolderPath
-    ) {
-        if (testFolderPath == null) {
-            return List.of();
-        }
+	@Nonnull
+	private List<Path> createLocalisationFiles(@Nonnull String packageName, @Nullable Path testFolderPath) {
+		if (testFolderPath == null) {
+			return List.of();
+		}
 
-        int nameCount = testFolderPath.getNameCount();
-        if (nameCount < 2) {
-            throw new IllegalArgumentException("Unexpected test folder path: " + testFolderPath);
-        }
+		int nameCount = testFolderPath.getNameCount();
+		if (nameCount < 2) {
+			throw new IllegalArgumentException(
+					Messages.localized("securitytest.unexpected.test.folder.path", testFolderPath));
+		}
 
-        Path parentPath = testFolderPath.subpath(0, nameCount - 2);
+		Path parentPath = testFolderPath.subpath(0, nameCount - 2);
 
-        Path root = testFolderPath.getRoot();
-        Path resourcesFolderPath = (root == null)
-                ? Paths.get(parentPath.toString(), "resources")
-                : Paths.get(root.toString(), parentPath.toString(), "resources");
+		Path root = testFolderPath.getRoot();
+		Path resourcesFolderPath = (root == null) ? Paths.get(parentPath.toString(), "resources")
+				: Paths.get(root.toString(), parentPath.toString(), "resources");
 
-        return FileTools.copyFiles(
-                Localisation.filesToCopy(),
-                Localisation.targetsToCopyTo(resourcesFolderPath)
-        );
-    }
+		return FileTools.copyFiles(Localisation.filesToCopy(), Localisation.targetsToCopyTo(resourcesFolderPath));
+	}
 
+	@Nonnull
+	private List<Path> createPhobosFiles(@Nonnull String packageName,
+			@Nonnull List<JavaPhobosTestCase> javaPhobosTestCases, @Nullable Path testFolderPath) {
+		return Stream
+				.concat(FileTools.copyFiles(Phobos.filesToCopy(), Phobos.targetsToCopyTo(testFolderPath)).stream(),
+						Stream.of(FileTools.createThreePartedFormatStringFile(Phobos.threePartedFileHeader(),
+								Phobos.threePartedFileBody(javaPhobosTestCases), Phobos.threePartedFileFooter(),
+								Phobos.targetToCopyTo(testFolderPath), Phobos.fileValue(packageName))))
+				.collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+	}
 
+	// </editor-fold>
 
-    @Nonnull
-    private List<Path> createPhobosFiles(
-            @Nonnull String packageName,
-            @Nonnull List<JavaPhobosTestCase> javaPhobosTestCases,
-            @Nullable Path testFolderPath
-    ) {
-        return Stream.concat(
-                FileTools.copyFiles(
-                        Phobos.filesToCopy(),
-                        Phobos.targetsToCopyTo(testFolderPath)
-                ).stream(),
-                Stream.of(FileTools.createThreePartedFormatStringFile(
-                        Phobos.threePartedFileHeader(),
-                        Phobos.threePartedFileBody(javaPhobosTestCases),
-                        Phobos.threePartedFileFooter(),
-                        Phobos.targetToCopyTo(testFolderPath),
-                        Phobos.fileValue(packageName)
-                ))
-        ).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
-    }
+	// <editor-fold desc="Write security test cases methods">
 
-    //</editor-fold>
-
-    //<editor-fold desc="Write security test cases methods">
-
-    /**
-     * Writes security test cases to files.
-     *
-     * @since 2.0.0
-     * @author Markus Paulsen
-     * @param buildMode the Java build mode to use; must not be null
-     * @param architectureMode the Java architecture mode to use; must not be null
-     * @param aopMode the Java AOP mode to use; must not be null
-     * @param essentialPackages the list of essential packages; must not be null
-     * @param essentialClasses the list of essential classes; must not be null
-     * @param testClasses the list of test classes; must not be null
-     * @param packageName the name of the package containing the main class; must not be null
-     * @param mainClassInPackageName the name of the main class; must not be null
-     * @param javaArchitectureTestCases the list of architecture test cases; must not be null
-     * @param javaAOPTestCases the list of AOP test cases; must not be null
-     * @param javaPhobosTestCases the list of Phobos test cases; must not be null
-     * @param testFolderPath the directory of the project; may be null
-     * @return a list of paths to the created files
-     */
-    @Nonnull
-    public List<Path> writeTestCases(
-            @Nonnull BuildMode buildMode,
-            @Nonnull ArchitectureMode architectureMode,
-            @Nonnull AOPMode aopMode,
-            @Nonnull List<String> essentialPackages,
-            @Nonnull List<String> essentialClasses,
-            @Nonnull List<String> testClasses,
-            @Nonnull String packageName,
-            @Nonnull String mainClassInPackageName,
-            @Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
-            @Nonnull List<JavaAOPTestCase> javaAOPTestCases,
-            @Nonnull List<JavaPhobosTestCase> javaPhobosTestCases,
-            @Nullable Path testFolderPath
-    ) {
-        return Stream.of(
-                        createJavaArchitectureFiles(
-                                architectureMode,
-                                essentialPackages,
-                                packageName,
-                                mainClassInPackageName,
-                                javaArchitectureTestCases,
-                                testFolderPath
-                        ).stream(),
-                        createJavaAOPFiles(
-                                aopMode,
-                                essentialClasses,
-                                testClasses,
-                                packageName,
-                                mainClassInPackageName,
-                                javaAOPTestCases,
-                                testFolderPath
-                        ).stream(),
-                        createLocalisationFiles(
-                                packageName,
-                                testFolderPath
-                        ).stream(),
-                        createPhobosFiles(
-                                packageName,
-                                javaPhobosTestCases,
-                                testFolderPath
-                        ).stream()
-                )
-                .flatMap(s -> s)
-                .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
-    }
-    //</editor-fold>
+	/**
+	 * Writes security test cases to files.
+	 *
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 * @param buildMode                 the Java build mode to use; must not be null
+	 * @param architectureMode          the Java architecture mode to use; must not
+	 *                                  be null
+	 * @param aopMode                   the Java AOP mode to use; must not be null
+	 * @param essentialPackages         the list of essential packages; must not be
+	 *                                  null
+	 * @param essentialClasses          the list of essential classes; must not be
+	 *                                  null
+	 * @param testClasses               the list of test classes; must not be null
+	 * @param packageName               the name of the package containing the main
+	 *                                  class; must not be null
+	 * @param mainClassInPackageName    the name of the main class; must not be null
+	 * @param javaArchitectureTestCases the list of architecture test cases; must
+	 *                                  not be null
+	 * @param javaAOPTestCases          the list of AOP test cases; must not be null
+	 * @param javaPhobosTestCases       the list of Phobos test cases; must not be
+	 *                                  null
+	 * @param testFolderPath            the directory of the project; may be null
+	 * @return a list of paths to the created files
+	 */
+	@Nonnull
+	public List<Path> writeTestCases(@Nonnull BuildMode buildMode, @Nonnull ArchitectureMode architectureMode,
+			@Nonnull AOPMode aopMode, @Nonnull List<String> essentialPackages, @Nonnull List<String> essentialClasses,
+			@Nonnull List<String> testClasses, @Nonnull String packageName, @Nonnull String mainClassInPackageName,
+			@Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
+			@Nonnull List<JavaAOPTestCase> javaAOPTestCases, @Nonnull List<JavaPhobosTestCase> javaPhobosTestCases,
+			@Nullable Path testFolderPath) {
+		return Stream
+				.of(createJavaArchitectureFiles(architectureMode, essentialPackages, packageName,
+						mainClassInPackageName, javaArchitectureTestCases, testFolderPath).stream(),
+						createJavaAOPFiles(aopMode, essentialClasses, testClasses, packageName, mainClassInPackageName,
+								javaAOPTestCases, testFolderPath).stream(),
+						createLocalisationFiles(packageName, testFolderPath).stream(),
+						createPhobosFiles(packageName, javaPhobosTestCases, testFolderPath).stream())
+				.flatMap(s -> s).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+	}
+	// </editor-fold>
 }

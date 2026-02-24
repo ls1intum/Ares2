@@ -6,19 +6,20 @@ import java.io.IOException;
 
 public class ReadFileReadMain {
 
-    private ReadFileReadMain() {
-        throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
-    }
+	private ReadFileReadMain() {
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+	}
 
-    /**
-     * Access the file system using the {@link File} class for reading.
-     */
-    public static String accessFileSystemViaFileRead() throws IOException {
-        File file = new File("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt");
-        try (FileInputStream fis = new FileInputStream(file)) {
-            byte[] data = new byte[(int) file.length()];
-            fis.read(data);
-            return new String(data);
-        }
-    }
+	/**
+	 * Access the file system using the {@link File} class for reading.
+	 */
+	public static String accessFileSystemViaFileRead() throws IOException {
+		File file = new File("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt");
+		try (FileInputStream fis = new FileInputStream(file)) {
+			byte[] data = new byte[(int) file.length()];
+			fis.read(data);
+			return new String(data);
+		}
+	}
 }

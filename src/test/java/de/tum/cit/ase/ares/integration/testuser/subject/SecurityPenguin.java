@@ -20,7 +20,8 @@ public final class SecurityPenguin {
 	}
 
 	public static void definePackage() {
-		//REMOVED: Checking Package Definition of the system's SecurityManager for "java.util"
+		// REMOVED: Checking Package Definition of the system's SecurityManager for
+		// "java.util"
 	}
 
 	public static void maliciousExceptionA() {
@@ -45,12 +46,12 @@ public final class SecurityPenguin {
 		new URLClassLoader(new URL[0]).close();
 	}
 
-	//REMOVED: Creating a new Security Manager
+	// REMOVED: Creating a new Security Manager
 
 	public static boolean tryEvilPermission() {
 		AtomicBoolean ab = new AtomicBoolean();
 		try {
-			//REMOVED: Checking Permission of the system's SecurityManager for "setIO"
+			// REMOVED: Checking Permission of the system's SecurityManager for "setIO"
 		} catch (@SuppressWarnings("unused") SecurityException e) {
 			// do nothing
 		}
@@ -74,7 +75,7 @@ public final class SecurityPenguin {
 		ProcessHandle.current().destroy();
 	}
 
-	//REMOVED: Setting the SecurityManager to null
+	// REMOVED: Setting the SecurityManager to null
 
 	public static void trySetSystemOut() {
 		System.setOut(new PrintStream(OutputStream.nullOutputStream()));

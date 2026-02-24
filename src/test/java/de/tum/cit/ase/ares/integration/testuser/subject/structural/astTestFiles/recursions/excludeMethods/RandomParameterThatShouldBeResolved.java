@@ -2,13 +2,13 @@ package de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles
 
 public class RandomParameterThatShouldBeResolved {
 
-    private final int value;
+	private final int value;
 
-    public RandomParameterThatShouldBeResolved(int value) {
-        this.value = value;
-    }
+	public RandomParameterThatShouldBeResolved(int value) {
+		this.value = value;
+	}
 
-    public int getValue() {
-        return value;
-    }
+	public int getValue() {
+		return value;
+	}
 }

@@ -5,6 +5,7 @@ regardingTheSupervisedCode:
   theFollowingClassesAreTestClasses:
     - "de.tum.cit.ase.ares.integration.architecture.forbidden.FileSystemAccessOverwriteTest"
     - "de.tum.cit.ase.ares.integration.aop.forbidden.FileAccessCommonOverwriteTest"
+    - "de.tum.cit.ase.ares.integration.aop.forbidden.FileSystemAccessCreateTest"
     - "de.tum.cit.ase.ares.integration.aop.forbidden.FileSystemAccessOverwriteTest"
     - "de.tum.cit.ase.ares.integration.aop.allowed.SystemAccessTest"
     - "de.tum.cit.ase.ares.integration.aop.forbidden.SystemAccessTest"
@@ -13,6 +14,7 @@ regardingTheSupervisedCode:
     regardingFileSystemInteractions:
       - readAllFiles: false
         overwriteAllFiles: true
+        createAllFiles: true
         executeAllFiles: false
         deleteAllFiles: false
         onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"

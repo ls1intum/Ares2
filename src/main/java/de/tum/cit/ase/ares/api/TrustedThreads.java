@@ -47,8 +47,8 @@ import org.apiguardian.api.API.Status;
  * student methods being invoked from the test method.
  * <p>
  * If test code requires a single thread to be whitelisted and the test code has
- * access to this thread, consider using
- * REMOVED: Link to ArtemisSecurityManager.requestThreadWhitelisting(Thread).
+ * access to this thread, consider using REMOVED: Link to
+ * ArtemisSecurityManager.requestThreadWhitelisting(Thread).
  *
  * @since 1.7.3
  * @version 1.1.0

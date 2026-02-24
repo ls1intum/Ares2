@@ -24,7 +24,7 @@ public final class TimeoutUtils {
 		/*
 		 * Initialize SecurityManager when we are still in the main thread
 		 */
-		//REMOVED: Installation of ArtemisSecurityManager;
+		// REMOVED: Installation of ArtemisSecurityManager;
 	}
 
 	private TimeoutUtils() {
@@ -58,7 +58,7 @@ public final class TimeoutUtils {
 
 	private static <T> T executeWithTimeout(Duration timeout, Callable<T> action, TestContext context)
 			throws Throwable { // NOSONAR
-		//REMOVED: Revoke thread-whitelisting from ArtemisSecurityManager
+		// REMOVED: Revoke thread-whitelisting from ArtemisSecurityManager
 		var executorService = Executors.newSingleThreadExecutor(new WhitelistedThreadFactory());
 		try {
 			Future<T> future = executorService.submit(action);
@@ -107,7 +107,7 @@ public final class TimeoutUtils {
 			var thread = new Thread(r, "ajts-to-" + TIMEOUT_THREAD_ID.getAndIncrement()); //$NON-NLS-1$
 			if (thread.getPriority() != Thread.NORM_PRIORITY)
 				thread.setPriority(Thread.NORM_PRIORITY);
-			//REMOVED: Thread-whitelisting-request to ArtemisSecurityManager
+			// REMOVED: Thread-whitelisting-request to ArtemisSecurityManager
 			return thread;
 		}
 	}

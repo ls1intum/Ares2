@@ -1,0 +1,198 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:146.0) Gecko/20100101 Firefox/146.0" version="29.3.0">
+  <diagram name="File System Security Validation Flow" id="b9U_14Xe7SMM9y2MuywH">
+    <mxGraphModel dx="1851" dy="1216" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Student Code: Calls file access via the method&lt;i&gt;&lt;br&gt;Files.readString(Path.of(&quot;/etc/passwd&quot;))&lt;/i&gt;" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Intercepts the method execution BEFORE the file opens and activates the security check for the file system" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;fontStyle=0;fontFamily=Helvetica;fontSize=12;" value="Collected information:&lt;br&gt;• Class: &lt;i&gt;java.nio.&lt;/i&gt;&lt;i&gt;Files&lt;/i&gt;&lt;br&gt;• Method:&amp;nbsp;&lt;i&gt;readString&lt;/i&gt;&lt;i&gt;(Ljava/nio/file/Path;)Ljava/lang/String;&lt;/i&gt;&lt;br&gt;• Attributes: &lt;i&gt;[]&lt;/i&gt;&lt;br&gt;• Parameters: &lt;i&gt;[Path.of(&quot;/etc/passwd&quot;)]&lt;/i&gt;" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Passes the collected information to the file system access security validator with the respective action type:&lt;br&gt;&lt;i&gt;checkFileSystemInteraction(&quot;read&quot;, ...)&lt;/i&gt;" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="680" as="geometry" />
+        </mxCell>
+        <mxCell id="DGSXT4EhuZ_coPRnHWqp-2" edge="1" parent="1" source="DGSXT4EhuZ_coPRnHWqp-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;align=center;" target="cvsNaULqjyNqcoBwYtWK-7" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="DGSXT4EhuZ_coPRnHWqp-13" connectable="0" parent="DGSXT4EhuZ_coPRnHWqp-2" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=12;" value="🟡" vertex="1">
+          <mxGeometry relative="1" x="0.005" y="-1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-5" parent="1" style="rhombus;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Is the respective security enabled?" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="840" as="geometry" />
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Continue the method execution" vertex="1">
+          <mxGeometry height="80" width="320" x="440" y="840" as="geometry" />
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-7" parent="1" style="rhombus;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Does the potentially violating method&lt;br&gt;call come from the Student Code?" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="1320" as="geometry" />
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-8" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Continue the method execution" vertex="1">
+          <mxGeometry height="80" width="320" x="440" y="1320" as="geometry" />
+        </mxCell>
+        <mxCell id="DGSXT4EhuZ_coPRnHWqp-14" edge="1" parent="1" source="cvsNaULqjyNqcoBwYtWK-9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;align=center;" target="DGSXT4EhuZ_coPRnHWqp-10" value="🟡">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-9" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Collects information at the interception point on:&lt;br&gt;• Analyzes StandardOpenOption to derive required actions&lt;br&gt;• Uses default action if no options found&lt;br&gt;• Loads allowed paths for each action&lt;br&gt;• Applies method-specific filter rules (IgnoreValues)" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="1480" as="geometry" />
+        </mxCell>
+        <mxCell id="DGSXT4EhuZ_coPRnHWqp-15" edge="1" parent="1" source="cvsNaULqjyNqcoBwYtWK-15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;align=center;" target="cvsNaULqjyNqcoBwYtWK-19">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="DGSXT4EhuZ_coPRnHWqp-16" connectable="0" parent="DGSXT4EhuZ_coPRnHWqp-15" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=12;" value="🔴 false" vertex="1">
+          <mxGeometry relative="1" x="-0.415" y="2" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-15" parent="1" style="rhombus;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Paths (parameters &amp; object state) allowed or Ares-internal?" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="1800" as="geometry" />
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-16" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Continue the method execution" vertex="1">
+          <mxGeometry height="80" width="320" x="440" y="1800" as="geometry" />
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-19" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=0;fontSize=12;align=center;fontFamily=Helvetica;" value="Ares: Block the method execution" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="1960" as="geometry" />
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-20" edge="1" parent="1" source="cvsNaULqjyNqcoBwYtWK-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" target="cvsNaULqjyNqcoBwYtWK-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="DGSXT4EhuZ_coPRnHWqp-1" connectable="0" parent="cvsNaULqjyNqcoBwYtWK-20" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=12;" value="🟡" vertex="1">
+          <mxGeometry relative="1" x="-0.075" y="2" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-21" edge="1" parent="1" source="cvsNaULqjyNqcoBwYtWK-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" target="DGSXT4EhuZ_coPRnHWqp-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="DGSXT4EhuZ_coPRnHWqp-5" connectable="0" parent="cvsNaULqjyNqcoBwYtWK-21" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=12;" value="🟡" vertex="1">
+          <mxGeometry relative="1" x="-0.1371" y="3" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-22" edge="1" parent="1" source="cvsNaULqjyNqcoBwYtWK-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" target="cvsNaULqjyNqcoBwYtWK-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="DGSXT4EhuZ_coPRnHWqp-7" connectable="0" parent="cvsNaULqjyNqcoBwYtWK-22" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=12;" value="🟡" vertex="1">
+          <mxGeometry relative="1" x="-0.0577" y="-1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-23" edge="1" parent="1" source="cvsNaULqjyNqcoBwYtWK-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" target="cvsNaULqjyNqcoBwYtWK-5" value="🟡">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-24" edge="1" parent="1" source="cvsNaULqjyNqcoBwYtWK-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" target="DGSXT4EhuZ_coPRnHWqp-9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-25" connectable="0" parent="cvsNaULqjyNqcoBwYtWK-24" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=0;fontFamily=Helvetica;fontSize=12;" value="🌕 true" vertex="1">
+          <mxGeometry relative="1" x="-0.2" y="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-26" edge="1" parent="1" source="cvsNaULqjyNqcoBwYtWK-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" target="cvsNaULqjyNqcoBwYtWK-6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-27" connectable="0" parent="cvsNaULqjyNqcoBwYtWK-26" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=0;fontFamily=Helvetica;fontSize=12;" value="🟢 false" vertex="1">
+          <mxGeometry relative="1" x="-0.2" y="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-28" edge="1" parent="1" source="cvsNaULqjyNqcoBwYtWK-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" target="cvsNaULqjyNqcoBwYtWK-9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-29" connectable="0" parent="cvsNaULqjyNqcoBwYtWK-28" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=0;fontFamily=Helvetica;fontSize=12;" value="🌕 true" vertex="1">
+          <mxGeometry relative="1" x="-0.2" y="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-30" edge="1" parent="1" source="cvsNaULqjyNqcoBwYtWK-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" target="cvsNaULqjyNqcoBwYtWK-8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-31" connectable="0" parent="cvsNaULqjyNqcoBwYtWK-30" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=0;fontFamily=Helvetica;fontSize=12;" value="🟢 false" vertex="1">
+          <mxGeometry relative="1" x="-0.2" y="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-32" edge="1" parent="1" source="DGSXT4EhuZ_coPRnHWqp-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" target="cvsNaULqjyNqcoBwYtWK-15">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="200" y="1840" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-33" connectable="0" parent="cvsNaULqjyNqcoBwYtWK-32" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=0;fontFamily=Helvetica;fontSize=12;" value="🌕" vertex="1">
+          <mxGeometry relative="1" x="-0.2" y="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-34" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontStyle=0;align=center;" target="cvsNaULqjyNqcoBwYtWK-11">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="440" y="1880" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-35" connectable="0" parent="cvsNaULqjyNqcoBwYtWK-34" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=0" value="🌕" vertex="1">
+          <mxGeometry relative="1" x="-0.2" y="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-36" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontStyle=0;align=center;" target="cvsNaULqjyNqcoBwYtWK-12">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="400" y="2140" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-37" edge="1" parent="1" source="cvsNaULqjyNqcoBwYtWK-12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontStyle=0;align=center;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="400" y="2270" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-38" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontStyle=0;align=center;" target="cvsNaULqjyNqcoBwYtWK-14">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="400" y="2340" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-40" edge="1" parent="1" source="cvsNaULqjyNqcoBwYtWK-15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" target="cvsNaULqjyNqcoBwYtWK-16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cvsNaULqjyNqcoBwYtWK-41" connectable="0" parent="cvsNaULqjyNqcoBwYtWK-40" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=0;fontFamily=Helvetica;fontSize=12;" value="🟢 true" vertex="1">
+          <mxGeometry relative="1" x="-0.2" y="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DGSXT4EhuZ_coPRnHWqp-4" edge="1" parent="1" source="DGSXT4EhuZ_coPRnHWqp-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;align=center;" target="cvsNaULqjyNqcoBwYtWK-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="DGSXT4EhuZ_coPRnHWqp-6" connectable="0" parent="DGSXT4EhuZ_coPRnHWqp-4" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=12;" value="🟡" vertex="1">
+          <mxGeometry relative="1" x="-0.1543" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DGSXT4EhuZ_coPRnHWqp-8" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Collected information:&lt;br&gt;• Potentially violating method&lt;i&gt;:&lt;br&gt;&lt;/i&gt;&lt;i&gt;&quot;java.nio.&lt;/i&gt;&lt;i&gt;Files.&lt;/i&gt;&lt;i&gt;readString&lt;/i&gt;&lt;i&gt;&quot;&lt;/i&gt;&lt;br&gt;• Student Code Method:&lt;i&gt;&lt;br&gt;&quot;de.student.solution.StudentSolution.readFile&quot;&lt;/i&gt;" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="1160" as="geometry" />
+        </mxCell>
+        <mxCell id="DGSXT4EhuZ_coPRnHWqp-3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Collects information at the interception point on:&lt;div&gt;• The class of intercepted method&lt;br&gt;• The intercepted method and its signature&lt;br&gt;• The field values (attributes) of the object instance&lt;br&gt;• The parameters of the intercepted method&lt;/div&gt;" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="DGSXT4EhuZ_coPRnHWqp-9" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Collects information at the interception point on:&lt;br&gt;• The method potentially violating a security policy&lt;br&gt;• The student code method calling that violating method" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="1000" as="geometry" />
+        </mxCell>
+        <mxCell id="DGSXT4EhuZ_coPRnHWqp-10" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Collected information:&lt;br&gt;• Actions to validate: &lt;i&gt;['read']&lt;/i&gt;&lt;br&gt;• Allowed paths for 'read': &lt;i&gt;[&quot;/tmp&quot;]&lt;/i&gt;&lt;br&gt;• Filtered parameters/attributes per method rules" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="1640" as="geometry" />
+        </mxCell>
+        <mxCell id="DGSXT4EhuZ_coPRnHWqp-11" edge="1" parent="1" source="DGSXT4EhuZ_coPRnHWqp-9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;align=center;" target="DGSXT4EhuZ_coPRnHWqp-8" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="190" y="1270" as="sourcePoint" />
+            <mxPoint x="190" y="1350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DGSXT4EhuZ_coPRnHWqp-12" connectable="0" parent="DGSXT4EhuZ_coPRnHWqp-11" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=12;" value="🟡" vertex="1">
+          <mxGeometry relative="1" x="-0.215" y="-1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

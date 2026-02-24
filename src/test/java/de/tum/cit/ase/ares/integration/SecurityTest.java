@@ -44,8 +44,9 @@ class SecurityTest {
 
 	@TestTest
 	void test_doSystemExit() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1, testFailedWith(doSystemExit, SecurityException.class));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(1, testFailedWith(doSystemExit,
+		// SecurityException.class));
 	}
 
 	@TestTest
@@ -60,8 +61,9 @@ class SecurityTest {
 
 	@TestTest
 	void test_testDefinePackage() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1, testFailedWith(testDefinePackage, SecurityException.class));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(1, testFailedWith(testDefinePackage,
+		// SecurityException.class));
 	}
 
 	@TestTest
@@ -71,88 +73,104 @@ class SecurityTest {
 
 	@TestTest
 	void test_testExecuteGit() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1, testFailedWith(testExecuteGit, SecurityException.class));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(1, testFailedWith(testExecuteGit,
+		// SecurityException.class));
 	}
 
 	@TestTest
 	void test_testMaliciousExceptionA() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1, testFailedWith(testMaliciousExceptionA, SecurityException.class));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(1,
+		// testFailedWith(testMaliciousExceptionA, SecurityException.class));
 	}
 
 	@TestTest
 	void test_testMaliciousExceptionB() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1, testFailedWith(testMaliciousExceptionB, SecurityException.class));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(1,
+		// testFailedWith(testMaliciousExceptionB, SecurityException.class));
 	}
 
 	@TestTest
 	void test_testMaliciousInvocationTargetException() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1,
-		//		testFailedWith(testMaliciousInvocationTargetException, SecurityException.class));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(1,
+		// testFailedWith(testMaliciousInvocationTargetException,
+		// SecurityException.class));
 	}
 
 	@TestTest
 	void test_testNewClassLoader() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1, testFailedWith(testNewClassLoader, SecurityException.class));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(1, testFailedWith(testNewClassLoader,
+		// SecurityException.class));
 	}
 
 	@TestTest
 	void test_testNewSecurityManager() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1, testFailedWith(testNewSecurityManager, SecurityException.class));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(1,
+		// testFailedWith(testNewSecurityManager, SecurityException.class));
 	}
 
 	@TestTest
 	void test_trustedPackageWithoutEnforcerRule() {
-		//OUTCOMMENTED: Removed configuration
-		/*tests.assertThatEvents().haveExactly(1, testFailedWith(trustedPackageWithoutEnforcerRule,
-				ConfigurationException.class,
-				"Ares has detected that the build configuration is probably incomplete."
-						+ " The following file-must-not-exist rules seem to be missing:\n"
-						+ "    <file>${project.build.outputDirectory}/xyz/</file>\n"
-						+ "    See https://github.com/ls1intum/Ares#what-you-need-to-do-outside-ares for more information."));
-		// Make sure our link is actually valid
-		assertThat(Path.of("README.adoc")).content().contains("#what-you-need-to-do-outside-ares");*/
+		// OUTCOMMENTED: Removed configuration
+		/*
+		 * tests.assertThatEvents().haveExactly(1,
+		 * testFailedWith(trustedPackageWithoutEnforcerRule,
+		 * ConfigurationException.class,
+		 * "Ares has detected that the build configuration is probably incomplete." +
+		 * " The following file-must-not-exist rules seem to be missing:\n" +
+		 * "    <file>${project.build.outputDirectory}/xyz/</file>\n" +
+		 * "    See https://github.com/ls1intum/Ares#what-you-need-to-do-outside-ares for more information."
+		 * )); // Make sure our link is actually valid
+		 * assertThat(Path.of("README.adoc")).content().contains(
+		 * "#what-you-need-to-do-outside-ares");
+		 */
 	}
 
 	@TestTest
 	void test_tryLoadNativeLibrary() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1, testFailedWith(tryLoadNativeLibrary, SecurityException.class));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(1, testFailedWith(tryLoadNativeLibrary,
+		// SecurityException.class));
 	}
 
 	@TestTest
 	void test_tryManageProcess() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1, testFailedWith(tryManageProcess, SecurityException.class));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(1, testFailedWith(tryManageProcess,
+		// SecurityException.class));
 	}
 
 	@TestTest
 	void test_trySetSecurityManager() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1, testFailedWith(trySetSecurityManager, SecurityException.class));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(1, testFailedWith(trySetSecurityManager,
+		// SecurityException.class));
 	}
 
 	@TestTest
 	void test_trySetSystemOut() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1, testFailedWith(trySetSystemOut, SecurityException.class));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(1, testFailedWith(trySetSystemOut,
+		// SecurityException.class));
 	}
 
 	@TestTest
 	void test_useCommonPoolBadNormal() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1, testFailedWith(useCommonPoolBadNormal, SecurityException.class));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(1,
+		// testFailedWith(useCommonPoolBadNormal, SecurityException.class));
 	}
 
 	@TestTest
 	void test_useCommonPoolBadTrick() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1, testFailedWith(useCommonPoolBadTrick, SecurityException.class));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(1, testFailedWith(useCommonPoolBadTrick,
+		// SecurityException.class));
 	}
 
 	@TestTest
@@ -162,8 +180,9 @@ class SecurityTest {
 
 	@TestTest
 	void test_useReflectionNormal() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1, testFailedWith(useReflectionNormal, SecurityException.class));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(1, testFailedWith(useReflectionNormal,
+		// SecurityException.class));
 	}
 
 	@TestTest
@@ -174,21 +193,24 @@ class SecurityTest {
 
 	@TestTest
 	void test_useReflectionPackagePrivateSetAccessible() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1,
-		//		testFailedWith(useReflectionPackagePrivateSetAccessible, SecurityException.class));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(1,
+		// testFailedWith(useReflectionPackagePrivateSetAccessible,
+		// SecurityException.class));
 	}
 
 	@TestTest
 	void test_useReflectionPrivileged() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1, testFailedWith(useReflectionPrivileged, SecurityException.class));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(1,
+		// testFailedWith(useReflectionPrivileged, SecurityException.class));
 	}
 
 	@TestTest
 	void test_useReflectionTrick() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1, testFailedWith(useReflectionTrick, SecurityException.class));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(1, testFailedWith(useReflectionTrick,
+		// SecurityException.class));
 	}
 
 	@TestTest

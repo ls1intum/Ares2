@@ -80,6 +80,6 @@ public final class ReportingUtils {
 
 	private static void addStackframeInfoToMessage(ThrowableInfo info) {
 		StackTraceElement[] stackTrace = info.getStackTrace();
-		//REMOVED: Asking ArtemisSecurityManager for the first forbidden thread
+		// REMOVED: Asking ArtemisSecurityManager for the first forbidden thread
 	}
 }

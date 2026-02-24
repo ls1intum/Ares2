@@ -25,15 +25,17 @@ class NetworkTest {
 
 	@TestTest
 	void test_connectRemoteNotAllowed() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1, testFailedWith(connectRemoteNotAllowed, SecurityException.class,
-		//		"network use not allowed (example.com:-1)", Option.MESSAGE_CONTAINS));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(1,
+		// testFailedWith(connectRemoteNotAllowed, SecurityException.class,
+		// "network use not allowed (example.com:-1)", Option.MESSAGE_CONTAINS));
 	}
 
 	@TestTest
 	void test_connectLocallyNotAllowed() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(2, testFailedWith(connectLocallyNotAllowed, SecurityException.class));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(2,
+		// testFailedWith(connectLocallyNotAllowed, SecurityException.class));
 	}
 
 	@TestTest
@@ -54,8 +56,9 @@ class NetworkTest {
 
 	@TestTest
 	void test_serverNotAllowed() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1, testFailedWith(serverNotAllowed, SecurityException.class,
-		//		"network use not allowed (listen port 80)", Option.MESSAGE_CONTAINS));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(1, testFailedWith(serverNotAllowed,
+		// SecurityException.class,
+		// "network use not allowed (listen port 80)", Option.MESSAGE_CONTAINS));
 	}
 }

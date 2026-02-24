@@ -22,9 +22,12 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
     @Nonnull
     protected static final List<String> IGNORE_CALLSTACK = List.of(
             "java.lang.ClassLoader",
+            "de.tum.cit.ase.ares.api.",
             "de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension",
             "de.tum.cit.ase.ares.api.jqwik.JqwikSecurityExtension",
-            "de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationBindingDefinitions"
+            "de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationBindingDefinitions",
+            "jdk.internal.loader.",
+            "jdk.internal.reflect."
     );
     //</editor-fold>
 
@@ -192,19 +195,45 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
     /**
      * Checks the current call stack for violations of restricted packages.
      *
-     * <p>Description: Examines the stack trace to find the first element whose class name
+     * <p>Description: First checks if the direct caller of the intercepted method is
+     * in IGNORE_CALLSTACK (e.g., ClassLoader). If so, the operation is allowed.
+     * Otherwise, examines the stack trace to find the first element whose class name
      * starts with the restricted package but is not in the allowed classes list,
      * skipping any classes in the ignore list.
      *
      * @param restrictedPackage the prefix of restricted package names
      * @param allowedClasses the array of allowed class name prefixes
+     * @param declaringTypeName the class name of the intercepted method
+     * @param methodName the name of the intercepted method
      * @return the fully qualified method name that violates criteria, or null if none
      * @since 2.0.0
      * @author Markus Paulsen
      */
     @Nullable
-    protected static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses) {
+    protected static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses,
+            String declaringTypeName, String methodName) {
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+        // Find the intercepted method and check if its direct caller is in IGNORE_CALLSTACK
+        for (int i = 0; i < stackTrace.length; i++) {
+            StackTraceElement element = stackTrace[i];
+            // Handle constructor names: "<init>" in bytecode vs constructor name in stack trace
+            String stackMethodName = element.getMethodName();
+            boolean methodMatches = stackMethodName.equals(methodName) 
+                    || (methodName.equals("<init>") && stackMethodName.equals("<init>"));
+            if (element.getClassName().equals(declaringTypeName) && methodMatches) {
+                // Found the intercepted method, check caller at [i+1]
+                if (i + 1 < stackTrace.length) {
+                    String callerClass = stackTrace[i + 1].getClassName();
+                    for (@Nonnull String ignore : IGNORE_CALLSTACK) {
+                        if (callerClass.startsWith(ignore)) {
+                            return null; // Direct caller is trusted (e.g., ClassLoader) -> allow
+                        }
+                    }
+                }
+                break;
+            }
+        }
+        // Continue with existing logic: search for student code in the stack
         for (@Nonnull StackTraceElement element : stackTrace) {
             String className = element.getClassName();
             boolean ignoreFound = false;
@@ -215,10 +244,63 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
                 }
             }
             if (ignoreFound) {
-                break;
+                continue;  // Skip ignored frames instead of aborting scan
             }
             if (className.startsWith(restrictedPackage) && !checkIfCallstackElementIsAllowed(allowedClasses, element)) {
                 return className + "." + element.getMethodName();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Finds the caller directly above the first method on the current call stack that belongs to the given restricted package.
+     *
+     * <p>Description: Iterates the stack trace, skipping frames in {@link #IGNORE_CALLSTACK}. When the first frame
+     * whose class starts with the provided restricted package is found, this method returns the fully qualified
+     * method name (className.methodName) of the next non-ignored frame above it (i.e., its caller). Returns null if
+     * none is found or if {@code restrictedPackage} is null.
+     *
+     * @param restrictedPackage the package prefix to search for
+     * @return the fully qualified method name of the caller above the first restricted frame, or null if none
+     * @since 2.0.2
+     */
+    @Nullable
+    protected static String findFirstMethodOutsideOfRestrictedPackage(@Nullable String restrictedPackage) {
+        if (restrictedPackage == null) {
+            return null;
+        }
+        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+        for (int i = 0; i < stackTrace.length; i++) {
+            StackTraceElement element = stackTrace[i];
+            String className = element.getClassName();
+            boolean ignoreFound = false;
+            for (String ignore : IGNORE_CALLSTACK) {
+                if (className.startsWith(ignore)) {
+                    ignoreFound = true;
+                    break;
+                }
+            }
+            if (ignoreFound) {
+                continue;
+            }
+            if (className.startsWith(restrictedPackage)
+                    && !className.startsWith("de.tum.cit.ase.ares.api.aop.java.aspectj")) {
+                for (int j = i + 1; j < stackTrace.length; j++) {
+                    StackTraceElement caller = stackTrace[j];
+                    String callerClass = caller.getClassName();
+                    boolean callerIgnorable = false;
+                    for (String ignore : IGNORE_CALLSTACK) {
+                        if (callerClass.startsWith(ignore)) {
+                            callerIgnorable = true;
+                            break;
+                        }
+                    }
+                    if (!callerIgnorable) {
+                        return callerClass + "." + caller.getMethodName();
+                    }
+                }
+                return null;
             }
         }
         return null;
@@ -253,13 +335,29 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
                 break;
             // All variables except the one at the given index are ignored
             case "ALL_EXCEPT":
+                if (ignoreVariables.getIndex() < 0 || ignoreVariables.getIndex() >= newVariables.size()) {
+                    throw new SecurityException(localize(
+                            "security.instrumentation.ignore.values.index.invalid",
+                            ignoreVariables.getIndex(),
+                            newVariables.size()
+                    ));
+                }
                 @Nonnull Object toKeep = newVariables.get(ignoreVariables.getIndex());
                 newVariables.clear();
                 newVariables.add(toKeep);
                 break;
             case "NONE_EXCEPT":
+                if (ignoreVariables.getIndex() < 0 || ignoreVariables.getIndex() >= newVariables.size()) {
+                    throw new SecurityException(localize(
+                            "security.instrumentation.ignore.values.index.invalid",
+                            ignoreVariables.getIndex(),
+                            newVariables.size()
+                    ));
+                }
                 newVariables.remove(ignoreVariables.getIndex());
                 break;
+            default:
+                throw new IllegalArgumentException(localize("aop.ignore.unknown.type", ignoreVariables.getType()));
         }
         return newVariables.toArray();
     }

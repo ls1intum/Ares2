@@ -2,15 +2,15 @@ package de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles
 
 public class ClassWithNoExcludeMethods {
 
-    public void something(RandomParameterThatShouldBeResolved parameter) {
-        something(parameter);
-    }
+	public void something(RandomParameterThatShouldBeResolved parameter) {
+		something(parameter);
+	}
 
-    public void somethingElse() {
-        something(null);
-    }
+	public void somethingElse() {
+		something(null);
+	}
 
-    public static void main(String[] args) {
-        new ClassWithNoExcludeMethods().something(null);
-    }
+	public static void main(String[] args) {
+		new ClassWithNoExcludeMethods().something(null);
+	}
 }

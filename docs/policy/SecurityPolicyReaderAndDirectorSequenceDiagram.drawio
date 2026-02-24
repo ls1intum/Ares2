@@ -1,0 +1,194 @@
+<mxfile host="app.diagrams.net" modified="2026-02-11T00:00:00.000Z" agent="Ares2 Documentation" version="21.0.0" type="device">
+  <diagram id="sequence-diagram" name="Sequence Diagram">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="&lt;b&gt;Security Policy Reader &amp; Director — Sequence Diagram&lt;/b&gt;&lt;br/&gt;(create → write → execute workflow)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="350" y="10" width="600" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Actors / Participants -->
+        <mxCell id="educator" value="&lt;b&gt;Educator&lt;/b&gt;&lt;br/&gt;(Caller)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;size=60;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="120" height="850" as="geometry" />
+        </mxCell>
+
+        <mxCell id="facade-ll" value="&lt;b&gt;SecurityPolicy&lt;br/&gt;ReaderAndDirector&lt;/b&gt;" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;size=60;" vertex="1" parent="1">
+          <mxGeometry x="260" y="80" width="140" height="850" as="geometry" />
+        </mxCell>
+
+        <mxCell id="reader-ll" value="&lt;b&gt;SecurityPolicy&lt;br/&gt;Reader&lt;/b&gt;&lt;br/&gt;(selected at runtime)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#d5e8d4;strokeColor=#82b366;size=60;" vertex="1" parent="1">
+          <mxGeometry x="500" y="80" width="140" height="850" as="geometry" />
+        </mxCell>
+
+        <mxCell id="yaml-reader-ll" value="&lt;b&gt;SecurityPolicy&lt;br/&gt;YAMLReader&lt;/b&gt;" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#d5e8d4;strokeColor=#82b366;size=60;" vertex="1" parent="1">
+          <mxGeometry x="720" y="80" width="130" height="850" as="geometry" />
+        </mxCell>
+
+        <mxCell id="director-ll" value="&lt;b&gt;SecurityPolicy&lt;br/&gt;Director&lt;/b&gt;&lt;br/&gt;(selected at runtime)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#fff2cc;strokeColor=#d6b656;size=60;" vertex="1" parent="1">
+          <mxGeometry x="930" y="80" width="140" height="850" as="geometry" />
+        </mxCell>
+
+        <mxCell id="java-dir-ll" value="&lt;b&gt;SecurityPolicy&lt;br/&gt;JavaDirector&lt;/b&gt;" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#fff2cc;strokeColor=#d6b656;size=60;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="80" width="130" height="850" as="geometry" />
+        </mxCell>
+
+        <mxCell id="factory-ll" value="&lt;b&gt;TestCase&lt;br/&gt;FactoryAndBuilder&lt;/b&gt;" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#f8cecc;strokeColor=#b85450;size=60;" vertex="1" parent="1">
+          <mxGeometry x="1370" y="80" width="140" height="850" as="geometry" />
+        </mxCell>
+
+        <!-- ===== STEP 1: Builder + build ===== -->
+        <mxCell id="msg1" value="1. builder().securityPolicyFilePath(…).projectFolderPath(…).build()" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;strokeWidth=2;" edge="1" parent="1" source="educator" target="facade-ll">
+          <mxGeometry x="0.05" relative="1" as="geometry">
+            <mxPoint y="10" as="offset" />
+            <mxPoint as="sourcePoint"><mxPoint x="120" y="200" /></mxPoint>
+            <mxPoint as="targetPoint"><mxPoint x="330" y="200" /></mxPoint>
+            <Array as="points">
+              <mxPoint x="190" y="200" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ===== STEP 2: createTestCases() ===== -->
+        <mxCell id="msg2" value="2. createTestCases()" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;strokeWidth=2;" edge="1" parent="1" source="educator" target="facade-ll">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="sourcePoint"><mxPoint x="120" y="260" /></mxPoint>
+            <mxPoint as="targetPoint"><mxPoint x="330" y="260" /></mxPoint>
+            <Array as="points">
+              <mxPoint x="190" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Facade -> Reader: selectSecurityPolicyReader(path) -->
+        <mxCell id="msg3" value="2a. selectSecurityPolicyReader(filePath)" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;strokeWidth=1;" edge="1" parent="1" source="facade-ll" target="reader-ll">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="430" y="310" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Reader -> YAML Reader: new (based on .yaml extension) -->
+        <mxCell id="msg4" value="2b. match &quot;.yaml&quot; → new YAMLReader" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;strokeWidth=1;dashed=1;" edge="1" parent="1" source="reader-ll" target="yaml-reader-ll">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="650" y="360" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- YAML Reader return -->
+        <mxCell id="msg4r" value="return YAMLReader" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;strokeWidth=1;dashed=1;" edge="1" parent="1" source="yaml-reader-ll" target="facade-ll">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="500" y="400" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Facade -> YAML Reader: readSecurityPolicyFrom(path) -->
+        <mxCell id="msg5" value="2c. readSecurityPolicyFrom(path)" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;strokeWidth=1;" edge="1" parent="1" source="facade-ll" target="yaml-reader-ll">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="500" y="440" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- YAML Reader return SecurityPolicy -->
+        <mxCell id="msg5r" value="return SecurityPolicy" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;strokeWidth=1;dashed=1;" edge="1" parent="1" source="yaml-reader-ll" target="facade-ll">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="500" y="490" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Facade -> Director: selectSecurityPolicyDirector(policy) -->
+        <mxCell id="msg6" value="2d. selectSecurityPolicyDirector(policy)" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;strokeWidth=1;" edge="1" parent="1" source="facade-ll" target="director-ll">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="600" y="530" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Director -> Java Director -->
+        <mxCell id="msg7" value="2e. match JAVA_* → new JavaDirector" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;strokeWidth=1;dashed=1;" edge="1" parent="1" source="director-ll" target="java-dir-ll">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1080" y="570" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Java Director: createTestCases -->
+        <mxCell id="msg8" value="2f. createTestCases(policy, projectPath)" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;strokeWidth=1;" edge="1" parent="1" source="facade-ll" target="java-dir-ll">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="700" y="620" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Java Director -> Factory: generateFactoryAndBuilder -->
+        <mxCell id="msg9" value="2g. generateFactoryAndBuilder(BuildMode, ArchMode, AOPMode, …)" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;strokeWidth=1;" edge="1" parent="1" source="java-dir-ll" target="factory-ll">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1300" y="660" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Factory return -->
+        <mxCell id="msg9r" value="return TestCaseFactoryAndBuilder" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;strokeWidth=1;dashed=1;" edge="1" parent="1" source="factory-ll" target="facade-ll">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="700" y="710" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ===== STEP 3: writeTestCases ===== -->
+        <mxCell id="msg10" value="3. writeTestCasesAndContinue(testFolder)" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;strokeWidth=2;" edge="1" parent="1" source="educator" target="facade-ll">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="190" y="760" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Facade -> Factory: writeTestCases -->
+        <mxCell id="msg11" value="→ factory.writeTestCases(testFolder)" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;strokeWidth=1;" edge="1" parent="1" source="facade-ll" target="factory-ll">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="800" y="800" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ===== STEP 4: executeTestCases ===== -->
+        <mxCell id="msg12" value="4. executeTestCases()" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;strokeWidth=2;" edge="1" parent="1" source="educator" target="facade-ll">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="190" y="850" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Facade -> Factory: executeTestCases -->
+        <mxCell id="msg13" value="→ factory.executeTestCases()" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;strokeWidth=1;" edge="1" parent="1" source="facade-ll" target="factory-ll">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="800" y="890" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

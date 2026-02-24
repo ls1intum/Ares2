@@ -2,13 +2,13 @@ package de.tum.cit.ase.ares.integration.testuser;
 
 import java.nio.file.Path;
 
-import de.tum.cit.ase.ares.api.ast.asserting.UnwantedRecursionAssert;
 import org.junit.jupiter.api.*;
 
 import com.github.javaparser.ParserConfiguration;
 
 import de.tum.cit.ase.ares.api.*;
 import de.tum.cit.ase.ares.api.ast.asserting.UnwantedNodesAssert;
+import de.tum.cit.ase.ares.api.ast.asserting.UnwantedRecursionAssert;
 import de.tum.cit.ase.ares.api.ast.type.*;
 import de.tum.cit.ase.ares.api.jupiter.Public;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
@@ -30,7 +30,8 @@ public class AstAssertionUser {
 		mavenOld = AresConfiguration.getPomXmlPath();
 		gradleOld = AresConfiguration.getBuildGradlePath();
 		AresConfiguration.setPomXmlPath(null);
-		AresConfiguration.setBuildGradlePath("src/test/resources/de/tum/cit/ase/ares/integration/testuser/build.gradle");
+		AresConfiguration
+				.setBuildGradlePath("src/test/resources/de/tum/cit/ase/ares/integration/testuser/build.gradle");
 	}
 
 	@AfterEach
@@ -457,8 +458,7 @@ public class AstAssertionUser {
 		@Test
 		void testHasNoLoopsOutsideMainMethod_Fail() {
 			UnwantedNodesAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".excludeMain.no")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.hasNo(LoopType.ANY);
+					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNo(LoopType.ANY);
 		}
 	}
 
@@ -470,7 +470,8 @@ public class AstAssertionUser {
 			UnwantedRecursionAssert.assertThatProjectSources()
 					.withinPackage(BASE_PACKAGE + ".recursions.excludeMethods")
 					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.excludeMethods(BASE_PACKAGE + ".recursions.excludeMethods.ClassWithNoExcludeMethods.something(de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.RandomParameterThatShouldBeResolved)")
+					.excludeMethods(BASE_PACKAGE
+							+ ".recursions.excludeMethods.ClassWithNoExcludeMethods.something(de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.RandomParameterThatShouldBeResolved)")
 					.hasNoRecursion();
 		}
 
@@ -479,91 +480,80 @@ public class AstAssertionUser {
 			UnwantedRecursionAssert.assertThatProjectSources()
 					.withinPackage(BASE_PACKAGE + ".recursions.excludeMethods")
 					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.excludeMethods("de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.startingNode.ClassWithMethodsCallingEachOther.main(java.lang.String[])")
+					.excludeMethods(
+							"de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.startingNode.ClassWithMethodsCallingEachOther.main(java.lang.String[])")
 					.hasNoRecursion();
 		}
 
 		@Test
 		void testShouldDetectRecursionGivenStartingNode() {
-			UnwantedRecursionAssert.assertThatProjectSources()
-					.withinPackage(BASE_PACKAGE + ".recursions.startingNode")
+			UnwantedRecursionAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".recursions.startingNode")
 					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.startingWithMethod("de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.startingNode.ClassWithMethodsCallingEachOther.main(java.lang.String[])")
+					.startingWithMethod(
+							"de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.startingNode.ClassWithMethodsCallingEachOther.main(java.lang.String[])")
 					.hasRecursion();
 		}
 
 		@Test
 		void testShouldNotDetectRecursionGivenStartingNode() {
-			UnwantedRecursionAssert.assertThatProjectSources()
-					.withinPackage(BASE_PACKAGE + ".recursions.startingNode")
+			UnwantedRecursionAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".recursions.startingNode")
 					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.startingWithMethod("de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.startingNode.ClassWithMethodsCallingEachOther.method3()")
+					.startingWithMethod(
+							"de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.startingNode.ClassWithMethodsCallingEachOther.method3()")
 					.hasNoRecursion();
 		}
 
 		@Test
 		void testDetectComplexNoRecursion() {
-			UnwantedRecursionAssert.assertThatProjectSources()
-					.withinPackage(BASE_PACKAGE + ".recursions.complex.no")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.hasNoRecursion();
+			UnwantedRecursionAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".recursions.complex.no")
+					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasNoRecursion();
 		}
 
 		@Test
 		void testDetectComplexRecursion() {
-			UnwantedRecursionAssert.assertThatProjectSources()
-					.withinPackage(BASE_PACKAGE + ".recursions.complex.yes")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.hasRecursion();
+			UnwantedRecursionAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".recursions.complex.yes")
+					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasRecursion();
 		}
 
 		@Test
 		void testDetectDynamicDispatchRecursion() {
 			UnwantedRecursionAssert.assertThatProjectSources()
 					.withinPackage(BASE_PACKAGE + ".recursions.dynamicDispatch")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.hasRecursion();
+					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasRecursion();
 		}
 
 		@Test
 		void testDetectOverloadedRecursion() {
 			UnwantedRecursionAssert.assertThatProjectSources()
 					.withinPackage(BASE_PACKAGE + ".recursions.overloaded.yes")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.hasRecursion();
+					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasRecursion();
 		}
 
 		@Test
 		void testDetectOverloadedNoRecursion() {
-			UnwantedRecursionAssert.assertThatProjectSources()
-					.withinPackage(BASE_PACKAGE + ".recursions.overloaded.no")
+			UnwantedRecursionAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".recursions.overloaded.no")
 					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.excludeMethods(BASE_PACKAGE + ".recursions.excludeMethods.ClassWithNoExcludeMethods.something(de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.RandomParameterThatShouldBeResolved)")
+					.excludeMethods(BASE_PACKAGE
+							+ ".recursions.excludeMethods.ClassWithNoExcludeMethods.something(de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.RandomParameterThatShouldBeResolved)")
 					.hasNoRecursion();
 		}
 
 		@Test
 		void testDetectOverriddenRecursion() {
-			UnwantedRecursionAssert.assertThatProjectSources()
-					.withinPackage(BASE_PACKAGE + ".recursions.overridden")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.hasRecursion();
+			UnwantedRecursionAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".recursions.overridden")
+					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasRecursion();
 		}
 
 		@Test
 		void testDetectSimpleRecursion() {
-			UnwantedRecursionAssert.assertThatProjectSources()
-					.withinPackage(BASE_PACKAGE + ".recursions.simple")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.hasRecursion();
+			UnwantedRecursionAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".recursions.simple")
+					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasRecursion();
 		}
 
 		@Test
 		void testDetectLambdaRecursion() {
-			UnwantedRecursionAssert.assertThatProjectSources()
-					.withinPackage(BASE_PACKAGE + ".recursions.lambda")
-					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
-					.hasRecursion();
+			UnwantedRecursionAssert.assertThatProjectSources().withinPackage(BASE_PACKAGE + ".recursions.lambda")
+					.withLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17).hasRecursion();
 		}
 	}
 }

@@ -12,9 +12,9 @@ import org.apiguardian.api.API.Status;
 
 /**
  * Allows to whitelist a package, possibly including all subpackages. Only
- * useful in combination with {@link BlacklistPackage}. The
- * REMOVED: Link to ArtemisSecurityManager will allow access for <b>non-whitelisted
- * callers</b> to the set of whitelisted packages. This annotation is
+ * useful in combination with {@link BlacklistPackage}. The REMOVED: Link to
+ * ArtemisSecurityManager will allow access for <b>non-whitelisted callers</b>
+ * to the set of whitelisted packages. This annotation is
  * {@linkplain Repeatable}, and can be placed additively on the test class and
  * test method.
  * <p>

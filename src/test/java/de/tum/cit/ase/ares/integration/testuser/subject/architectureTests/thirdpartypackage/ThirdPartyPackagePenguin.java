@@ -5,26 +5,28 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * This class is used to emulate a third-party package that is not part of the test user's codebase.
+ * This class is used to emulate a third-party package that is not part of the
+ * test user's codebase.
  */
 public class ThirdPartyPackagePenguin {
 
-    public static String readFile() throws IOException {
-        return Files.readString(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
-    }
+	public static String readFile() throws IOException {
+		return Files.readString(
+				Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
+	}
 
-    public static Path  overwriteFile(Path pathToUntrustedFile) throws IOException {
-        byte[] content = "Hello, world!".getBytes();
-        return Files.write(pathToUntrustedFile, content);
-    }
+	public static Path overwriteFile(Path pathToUntrustedFile) throws IOException {
+		byte[] content = "Hello, world!".getBytes();
+		return Files.write(pathToUntrustedFile, content);
+	}
 
+	public static Process executeFile() throws IOException {
+		return Runtime.getRuntime()
+				.exec("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
+	}
 
-
-    public static Process executeFile() throws IOException {
-        return Runtime.getRuntime().exec("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
-    }
-
-    public static void deleteFile() throws IOException {
-        Files.delete(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/nottrusteddir/nottrusted.txt"));
-    }
+	public static void deleteFile() throws IOException {
+		Files.delete(Path.of(
+				"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/nottrusteddir/nottrusted.txt"));
+	}
 }

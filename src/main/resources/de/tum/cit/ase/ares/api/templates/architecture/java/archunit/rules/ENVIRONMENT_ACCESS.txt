@@ -1,0 +1,5 @@
+@Test
+public void environmentAccessShouldNotBeAllowed() {
+    javaClasses = ${javaClasses};
+    JavaArchunitTestCaseCollection.NO_CLASS_MUST_ACCESS_ENVIRONMENT.check(javaClasses);
+}

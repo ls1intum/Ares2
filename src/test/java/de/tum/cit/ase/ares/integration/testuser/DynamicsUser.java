@@ -14,7 +14,7 @@ import de.tum.cit.ase.ares.integration.testuser.subject.structural.*;
 
 @Public
 @UseLocale("de")
-//@StrictTimeout(10)
+// @StrictTimeout(10)
 @WhitelistPath("")
 @TestMethodOrder(MethodName.class)
 public class DynamicsUser {

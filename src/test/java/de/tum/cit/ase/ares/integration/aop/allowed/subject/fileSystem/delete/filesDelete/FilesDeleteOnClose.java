@@ -6,14 +6,14 @@ import java.nio.file.*;
 
 public final class FilesDeleteOnClose {
 
-    private static final Path TRUSTED_FILE = Path.of(
-            "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/delete/trusteddir/trusted.txt");
+	private static final Path TRUSTED_FILE = Path.of(
+			"src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/delete/trusteddir/trusted.txt");
 
-    private FilesDeleteOnClose() { throw new SecurityException("utility"); }
+	private FilesDeleteOnClose() {
+		throw new SecurityException("utility");
+	}
 
-    public static void closeChannelToDeleteFileInChannel(SeekableByteChannel ch) throws IOException {
-        ch.close();    // delete happens here
-    }
-
-
+	public static void closeChannelToDeleteFileInChannel(SeekableByteChannel ch) throws IOException {
+		ch.close(); // delete happens here
+	}
 }

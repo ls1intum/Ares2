@@ -1,25 +1,32 @@
 package de.tum.cit.ase.ares.api.aop.networkSystem;
 
-import javax.annotation.Nonnull;
 import java.util.List;
+
+import javax.annotation.Nonnull;
 
 public interface NetworkSystemExtractor {
 
-    /**
-     * Retrieves the list of network hosts that are permitted for the given permission type.
-     *
-     * @param networkPermission the type of network permission to filter by (e.g., "connect", "send"), must not be null.
-     * @return a list of permitted network hosts for the specified network permission type.
-     */
-    @Nonnull
-    List<String> getPermittedNetworkHosts(@Nonnull String networkPermission);
+	/**
+	 * Retrieves the list of network hosts that are permitted for the given
+	 * permission type.
+	 *
+	 * @param networkPermission the type of network permission to filter by (e.g.,
+	 *                          "connect", "send"), must not be null.
+	 * @return a list of permitted network hosts for the specified network
+	 *         permission type.
+	 */
+	@Nonnull
+	List<String> getPermittedNetworkHosts(@Nonnull String networkPermission);
 
-    /**
-     * Retrieves the list of network ports that are permitted for the given permission type.
-     *
-     * @param networkPermission the type of network permission to filter by (e.g., "connect", "send"), must not be null.
-     * @return a list of permitted network ports for the specified network permission type.
-     */
-    @Nonnull
-    List<Integer> getPermittedNetworkPorts(@Nonnull String networkPermission);
+	/**
+	 * Retrieves the list of network ports that are permitted for the given
+	 * permission type.
+	 *
+	 * @param networkPermission the type of network permission to filter by (e.g.,
+	 *                          "connect", "send"), must not be null.
+	 * @return a list of permitted network ports for the specified network
+	 *         permission type.
+	 */
+	@Nonnull
+	List<Integer> getPermittedNetworkPorts(@Nonnull String networkPermission);
 }

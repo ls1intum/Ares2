@@ -1,0 +1,7 @@
+java.lang.Runtime.load(java.lang.String)
+java.lang.Runtime.loadLibrary(java.lang.String)
+java.lang.System.load(java.lang.String)
+java.lang.System.loadLibrary(java.lang.String)
+sun.misc.Unsafe
+jdk.internal.misc.Unsafe
+java.nio.ByteBuffer.allocateDirect

@@ -1,0 +1,173 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:146.0) Gecko/20100101 Firefox/146.0" version="29.3.0">
+  <diagram name="Thread System Security Validation Flow" id="thread-system-flow">
+    <mxGraphModel dx="1851" dy="1216" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="thr-1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Student Code: Calls thread creation via the method&lt;i&gt;&lt;br&gt;executor.submit(() -&gt; exploit())&lt;/i&gt;" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="thr-2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Intercepts the method execution BEFORE the thread starts and activates the security check for the thread system" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="thr-3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;fontStyle=0;fontFamily=Helvetica;fontSize=12;" value="Collected information:&lt;br&gt;• Class: &lt;i&gt;java.util.concurrent.ExecutorService&lt;/i&gt;&lt;br&gt;• Method:&amp;nbsp;&lt;i&gt;submit(Ljava/lang/Runnable;)Ljava/util/concurrent/Future;&lt;/i&gt;&lt;br&gt;• Attributes: &lt;i&gt;[declaringTypeName, ...executor fields...]&lt;/i&gt;&lt;br&gt;• Parameters: &lt;i&gt;[Lambda-Expression instance]&lt;/i&gt;" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="thr-4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Passes the collected information to the thread system access security validator with the respective action type:&lt;br&gt;&lt;i&gt;checkThreadSystemInteraction(&quot;create&quot;, ...)&lt;/i&gt;" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="680" as="geometry" />
+        </mxCell>
+        <mxCell id="thr-edge-1" edge="1" parent="1" source="thr-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;align=center;" target="thr-7" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="thr-edge-1-label" connectable="0" parent="thr-edge-1" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=12;" value="🟡" vertex="1">
+          <mxGeometry relative="1" x="0.005" y="-1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="thr-5" parent="1" style="rhombus;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Is the respective security enabled?" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="840" as="geometry" />
+        </mxCell>
+        <mxCell id="thr-6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Continue the method execution" vertex="1">
+          <mxGeometry height="80" width="320" x="440" y="840" as="geometry" />
+        </mxCell>
+        <mxCell id="thr-7" parent="1" style="rhombus;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Does the potentially violating method&lt;br&gt;call come from the Student Code?" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="1320" as="geometry" />
+        </mxCell>
+        <mxCell id="thr-8-cont" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Continue the method execution" vertex="1">
+          <mxGeometry height="80" width="320" x="440" y="1320" as="geometry" />
+        </mxCell>
+        <mxCell id="thr-edge-params" edge="1" parent="1" source="thr-9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;align=center;" target="thr-10" value="🟡">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="thr-9" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Prepares thread validation:&lt;br&gt;• Loads allowed thread classes and quotas&lt;br&gt;• Converts parameters to class names (Lambda detection)&lt;br&gt;• Applies class hierarchy matching" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="1480" as="geometry" />
+        </mxCell>
+        <mxCell id="thr-edge-check" edge="1" parent="1" source="thr-15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;align=center;" target="thr-19">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="thr-edge-check-label" connectable="0" parent="thr-edge-check" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=12;" value="🔴 false" vertex="1">
+          <mxGeometry relative="1" x="-0.415" y="2" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="thr-15" parent="1" style="rhombus;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Thread class allowed AND quota available?" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="1800" as="geometry" />
+        </mxCell>
+        <mxCell id="thr-16" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Continue the method execution&lt;br&gt;(decrement thread quota)" vertex="1">
+          <mxGeometry height="80" width="320" x="440" y="1800" as="geometry" />
+        </mxCell>
+        <mxCell id="thr-19" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=0;fontSize=12;align=center;fontFamily=Helvetica;" value="Ares: Block the method execution" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="1960" as="geometry" />
+        </mxCell>
+        <mxCell id="thr-edge-start" edge="1" parent="1" source="thr-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" target="thr-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="thr-edge-start-label" connectable="0" parent="thr-edge-start" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=12;" value="🟡" vertex="1">
+          <mxGeometry relative="1" x="-0.075" y="2" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="thr-edge-collect" edge="1" parent="1" source="thr-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" target="thr-collect-1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="thr-edge-collect-label" connectable="0" parent="thr-edge-collect" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=12;" value="🟡" vertex="1">
+          <mxGeometry relative="1" x="-0.1371" y="3" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="thr-edge-info" edge="1" parent="1" source="thr-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" target="thr-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="thr-edge-info-label" connectable="0" parent="thr-edge-info" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=12;" value="🟡" vertex="1">
+          <mxGeometry relative="1" x="-0.0577" y="-1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="thr-edge-pass" edge="1" parent="1" source="thr-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" target="thr-5" value="🟡">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="thr-edge-sec-yes" edge="1" parent="1" source="thr-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" target="thr-sec-collect">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="thr-edge-sec-yes-label" connectable="0" parent="thr-edge-sec-yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=0;fontFamily=Helvetica;fontSize=12;" value="🌕 true" vertex="1">
+          <mxGeometry relative="1" x="-0.2" y="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="thr-edge-sec-no" edge="1" parent="1" source="thr-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" target="thr-6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="thr-edge-sec-no-label" connectable="0" parent="thr-edge-sec-no" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=0;fontFamily=Helvetica;fontSize=12;" value="🟢 false" vertex="1">
+          <mxGeometry relative="1" x="-0.2" y="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="thr-edge-student-yes" edge="1" parent="1" source="thr-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" target="thr-9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="thr-edge-student-yes-label" connectable="0" parent="thr-edge-student-yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=0;fontFamily=Helvetica;fontSize=12;" value="🌕 true" vertex="1">
+          <mxGeometry relative="1" x="-0.2" y="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="thr-edge-student-no" edge="1" parent="1" source="thr-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" target="thr-8-cont">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="thr-edge-student-no-label" connectable="0" parent="thr-edge-student-no" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=0;fontFamily=Helvetica;fontSize=12;" value="🟢 false" vertex="1">
+          <mxGeometry relative="1" x="-0.2" y="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="thr-edge-validate" edge="1" parent="1" source="thr-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" target="thr-15">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="200" y="1840" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="thr-edge-validate-label" connectable="0" parent="thr-edge-validate" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=0;fontFamily=Helvetica;fontSize=12;" value="🌕" vertex="1">
+          <mxGeometry relative="1" x="-0.2" y="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="thr-edge-allowed" edge="1" parent="1" source="thr-15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" target="thr-16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="thr-edge-allowed-label" connectable="0" parent="thr-edge-allowed" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=0;fontFamily=Helvetica;fontSize=12;" value="🟢 true" vertex="1">
+          <mxGeometry relative="1" x="-0.2" y="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="thr-edge-collect2" edge="1" parent="1" source="thr-collect-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;align=center;" target="thr-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="thr-edge-collect2-label" connectable="0" parent="thr-edge-collect2" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=12;" value="🟡" vertex="1">
+          <mxGeometry relative="1" x="-0.1543" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="thr-8" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Collected information:&lt;br&gt;• Potentially violating method&lt;i&gt;:&lt;br&gt;&lt;/i&gt;&lt;i&gt;&quot;java.util.concurrent.ExecutorService.submit&quot;&lt;/i&gt;&lt;br&gt;• Student Code Method:&lt;i&gt;&lt;br&gt;&quot;de.student.solution.StudentSolution.createThreads&quot;&lt;/i&gt;" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="1160" as="geometry" />
+        </mxCell>
+        <mxCell id="thr-collect-1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Collects information at the interception point on:&lt;div&gt;• The class of intercepted method&lt;br&gt;• The intercepted method and its signature&lt;br&gt;• The field values (attributes) of the object instance&lt;br&gt;• The parameters of the intercepted method&lt;/div&gt;" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="thr-sec-collect" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Ares: Collects information at the interception point on:&lt;br&gt;• The method potentially violating a security policy&lt;br&gt;• The student code method calling that violating method" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="1000" as="geometry" />
+        </mxCell>
+        <mxCell id="thr-10" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontStyle=0;align=center;fontFamily=Helvetica;fontSize=12;" value="Collected information:&lt;br&gt;• Allowed thread classes: &lt;i&gt;[&quot;java.lang.Thread&quot;, &quot;Lambda-Expression&quot;]&lt;/i&gt;&lt;br&gt;• Allowed quotas: &lt;i&gt;[5, 10]&lt;/i&gt;&lt;br&gt;• Detected class: &lt;i&gt;&quot;Lambda-Expression&quot;&lt;/i&gt; (quota: 10 → 9)" vertex="1">
+          <mxGeometry height="80" width="320" x="40" y="1640" as="geometry" />
+        </mxCell>
+        <mxCell id="thr-edge-sec2" edge="1" parent="1" source="thr-sec-collect" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;align=center;" target="thr-8" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="190" y="1270" as="sourcePoint" />
+            <mxPoint x="190" y="1350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="thr-edge-sec2-label" connectable="0" parent="thr-edge-sec2" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=12;" value="🟡" vertex="1">
+          <mxGeometry relative="1" x="-0.215" y="-1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

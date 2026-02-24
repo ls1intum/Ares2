@@ -6,15 +6,17 @@ import java.nio.file.spi.FileSystemProvider;
 
 public class DeleteFileSystemProviderMain {
 
-    private DeleteFileSystemProviderMain() {
-        throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
-    }
+	private DeleteFileSystemProviderMain() {
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+	}
 
-    /**
-     * Access the file system using the {@link FileSystemProvider} class for deletion.
-     */
-    public static void accessFileSystemViaFileSystemProvider() throws IOException {
-        FileSystemProvider provider = FileSystemProvider.installedProviders().get(0);
-        provider.delete(Path.of("pom123.xml"));
-    }
+	/**
+	 * Access the file system using the {@link FileSystemProvider} class for
+	 * deletion.
+	 */
+	public static void accessFileSystemViaFileSystemProvider() throws IOException {
+		FileSystemProvider provider = FileSystemProvider.installedProviders().get(0);
+		provider.delete(Path.of("pom123.xml"));
+	}
 }

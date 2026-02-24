@@ -12,16 +12,16 @@
 
 The Artemis Java Test Sandbox
 
-image:https://github.com/ls1intum/Ares/workflows/Java%20CI/badge.svg?branch=main[Java CI]
-https://maven-badges.herokuapp.com/maven-central/de.tum.in.ase/artemis-java-test-sandbox[image:https://img.shields.io/maven-central/v/de.tum.in.ase/artemis-java-test-sandbox[Maven Central]]
-image:https://img.shields.io/nexus/s/de.tum.in.ase/artemis-java-test-sandbox?label=latest%20snapshot&server=https%3A%2F%2Foss.sonatype.org[Sonatype Nexus (Snapshots)]
+image:https://github.com/ls1intum/Ares2/workflows/Java%20CI/badge.svg?branch=main[Java CI]
+https://maven-badges.herokuapp.com/maven-central/de.tum.cit.ase/ares[image:https://img.shields.io/maven-central/v/de.tum.cit.ase/ares[Maven Central]]
+image:https://img.shields.io/nexus/s/de.tum.cit.ase/ares?label=latest%20snapshot&server=https%3A%2F%2Foss.sonatype.org[Sonatype Nexus (Snapshots)]
 
 // ----------------------------------------------------------
 // Display the following for standard GitHub AsciiDoc display
 // ----------------------------------------------------------
 ifdef::env-github[]
 
-https://ls1intum.github.io/Ares/[*View this documentation on GitHub Pages!*]
+https://ls1intum.github.io/Ares2/[*View this documentation on GitHub Pages!*]
 
 endif::env-github[]
 
@@ -31,7 +31,7 @@ It is the second Java-based implementation of the Secure COder Remote Execution 
 
 Its main features are:
 
-* a security manager to prevent students crashing the tests or cheating
+* policy-based sandboxing (static analysis + runtime instrumentation) to prevent unsafe operations and reduce cheating
 * more robust tests and builds due to limits on time, threads and io
 * support for public and hidden Artemis tests, where hidden ones obey a custom deadline
 * utilities for improved feedback in Artemis like processing multiline error
@@ -40,17 +40,17 @@ Its main features are:
 
 *Project Status*
 
-https://sonarcloud.io/dashboard?id=ls1intum_Ares[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares&metric=alert_status[Quality Gate Status]]
-https://sonarcloud.io/dashboard?id=ls1intum_Ares[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares&metric=sqale_rating[Maintainability Rating]]
-https://sonarcloud.io/dashboard?id=ls1intum_Ares[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares&metric=security_rating[Security Rating]]
-https://sonarcloud.io/dashboard?id=ls1intum_Ares[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares&metric=reliability_rating[Reliability Rating]]
+https://sonarcloud.io/dashboard?id=ls1intum_Ares2[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares2&metric=alert_status[Quality Gate Status]]
+https://sonarcloud.io/dashboard?id=ls1intum_Ares2[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares2&metric=sqale_rating[Maintainability Rating]]
+https://sonarcloud.io/dashboard?id=ls1intum_Ares2[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares2&metric=security_rating[Security Rating]]
+https://sonarcloud.io/dashboard?id=ls1intum_Ares2[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares2&metric=reliability_rating[Reliability Rating]]
 
-https://sonarcloud.io/dashboard?id=ls1intum_Ares[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares&metric=ncloc[Lines of Code]]
-https://sonarcloud.io/dashboard?id=ls1intum_Ares[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares&metric=coverage[Coverage]]
-https://sonarcloud.io/dashboard?id=ls1intum_Ares[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares&metric=sqale_index[Technical Debt]]
-https://sonarcloud.io/dashboard?id=ls1intum_Ares[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares&metric=vulnerabilities[Vulnerabilities]]
-https://sonarcloud.io/dashboard?id=ls1intum_Ares[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares&metric=bugs[Bugs]]
-https://sonarcloud.io/dashboard?id=ls1intum_Ares[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares&metric=duplicated_lines_density[Duplicated Lines (%)]]
+https://sonarcloud.io/dashboard?id=ls1intum_Ares2[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares2&metric=ncloc[Lines of Code]]
+https://sonarcloud.io/dashboard?id=ls1intum_Ares2[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares2&metric=coverage[Coverage]]
+https://sonarcloud.io/dashboard?id=ls1intum_Ares2[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares2&metric=sqale_index[Technical Debt]]
+https://sonarcloud.io/dashboard?id=ls1intum_Ares2[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares2&metric=vulnerabilities[Vulnerabilities]]
+https://sonarcloud.io/dashboard?id=ls1intum_Ares2[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares2&metric=bugs[Bugs]]
+https://sonarcloud.io/dashboard?id=ls1intum_Ares2[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares2&metric=duplicated_lines_density[Duplicated Lines (%)]]
 
 == Installation
 
@@ -64,7 +64,7 @@ environment of a Maven project, include
 <dependency>
     <groupId>de.tum.cit.ase</groupId>
     <artifactId>ares</artifactId>
-    <version>2.0.1-Beta4</version>
+    <version>2.0.1-Beta6</version>
 </dependency>
 ----
 
@@ -73,14 +73,14 @@ in the `dependencies` section.
 For Gradle projects, include
 [source,groovy]
 ----
-implementation("de.tum.cit.ase:ares:2.0.1-Beta4")
+implementation("de.tum.cit.ase:ares:2.0.1-Beta6")
 ----
 
 in the `dependencies` section.
 
-You can now remove dependencies to JUnit 5, AssertJ and Hamcrest if
-present because Ares2 already includes them. If you want to use jqwik (>=
-1.2.4) or JUnit 4 (JUnit 5 vintage), simply include them in the
+You can remove explicit JUnit 5 dependencies because Ares2 already includes them.
+Keep or add AssertJ and Hamcrest if your tests use them. If you want to use jqwik (>=
+1.2.4) or JUnit 4 (via the JUnit 5 vintage engine), include them in the
 dependencies section.
 
 == Basic Usage
@@ -107,7 +107,7 @@ looks like this:
     <dependency>
         <groupId>de.tum.cit.ase</groupId>
         <artifactId>ares</artifactId>
-        <version>2.0.1-Beta4</version>
+        <version>2.0.1-Beta6</version>
     </dependency>
 </dependencies>
 ----
@@ -190,8 +190,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
 // IMPORTANT: make sure to use the "jupiter" ones (if you are not using jqwik)
-import de.tum.in.test.api.jupiter.Hidden;
-import de.tum.in.test.api.jupiter.Public;
+import de.tum.cit.ase.ares.api.jupiter.Hidden;
+import de.tum.cit.ase.ares.api.jupiter.Public;
 
 // This example won't work just like that, see below why
 public class PenguinTest {
@@ -221,8 +221,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
 // IMPORTANT: make sure to use the "jupiter" ones (if you are not using jqwik)
-import de.tum.in.test.api.jupiter.Hidden;
-import de.tum.in.test.api.jupiter.Public;
+import de.tum.cit.ase.ares.api.jupiter.Hidden;
+import de.tum.cit.ase.ares.api.jupiter.Public;
 
 // This example won't work just like that, see below why
 public class PenguinTest {
@@ -286,7 +286,7 @@ In addition to its standard security features, Ares2 now supports advanced block
 
 Our goal is to prevent unauthorized access to key system resources, such as:
 
-* Filesystem operations (read, write, execute, delete)
+* Filesystem operations (read, create, overwrite, execute, delete)
 * Networking
 * Thread creation and management
 * Command Execution
@@ -296,7 +296,40 @@ To make this possible, Ares2 provides two complementary “compile modes” that
 
 ==== Precompile
 
+Precompile mode generates security test cases and infrastructure files *before* the student code is compiled or executed. Based on your security configuration file, Ares2 automatically creates:
+
+* Architecture test cases using ArchUnit or WALA
+* AOP configuration files for AspectJ or Instrumentation
+* Build system modifications (Maven/Gradle plugins and dependencies)
+* Test infrastructure for enforcing security policies
+
+This mode is executed once during exercise setup and produces test files that are committed to the repository. When students submit their code, these pre-generated tests run automatically to enforce the security policy.
+
+*Key advantages:*
+
+* Tests are versioned and can be reviewed before deployment
+* No runtime configuration parsing overhead
+* Clear separation between policy definition and enforcement
+* Exercise creators can validate generated tests before release
+
 ==== Postcompile
+
+Postcompile mode enforces security policies at *runtime* by instrumenting the compiled bytecode during test execution. When a test is annotated with `@Policy`, Ares2:
+
+* Loads the security configuration file
+* Instruments student code using Java agents (Byte Buddy)
+* Intercepts method calls to protected resources (files, network, threads, commands)
+* Validates each operation against the policy and blocks unauthorized access
+
+This mode activates dynamically when tests run and provides immediate, fine-grained control over student code execution without requiring pre-generated test files.
+
+*Key advantages:*
+
+* Dynamic enforcement at runtime
+* No repository modifications needed
+* Easy policy updates without regenerating tests
+* Fine-grained control over individual test cases
+* Detailed security violation messages
 
 Both modes work together: +
 Ares2 provides both steps to achieve strong isolation and predictable, student-friendly feedback.
@@ -336,6 +369,7 @@ regardingTheSupervisedCode:
       - onThisPathAndAllPathsBelow: "pom.xml"
         readAllFiles: true
         overwriteAllFiles: true
+        createAllFiles: true
         executeAllFiles: true
         deleteAllFiles: false
 
@@ -380,7 +414,7 @@ The most relevant fields in this configuration file are:
 
 - `regardingFileSystemInteractions`
   Declares which paths the student code may interact with and what operations
-  (read, write, execute, delete) are allowed.
+  (read, create, overwrite, execute, delete) are allowed.
 
 - `regardingNetworkConnections`
   Allows the student program to open connections to specific hosts and ports.
@@ -413,7 +447,7 @@ three orthogonal dimensions:
 
 3. *Runtime instrumentation backend*
    - AspectJ: Use aspect-oriented programming to intercept method calls at runtime and block access to specified operations.
-   - Instrumentation API: Use architecture-based tests to enforce rules on the structure and organization of the student code, preventing the usage of certain packages or methods.
+   - Instrumentation API: Use a Java agent (Byte Buddy) to instrument bytecode at runtime and block access to specified operations.
 
 The resulting configuration matrix contains the following eight modes:
 
@@ -494,6 +528,7 @@ regardingTheSupervisedCode:
       - onThisPathAndAllPathsBelow: "something.txt"
         readAllFiles: true
         overwriteAllFiles: true
+        createAllFiles: true
         executeAllFiles: true
         deleteAllFiles: true
     regardingNetworkConnections: [ ]
@@ -506,7 +541,7 @@ regardingTheSupervisedCode:
 This configuration explicitly permits file-system operations **only** on
 `something.txt`.
 All other paths—including `secret.txt`—are *not* listed here and are therefore
-fully denied by the sandbox. Any attempt by student code to read, write, or
+fully denied by the sandbox. Any attempt by student code to read, create, overwrite, or
 delete `secret.txt` will be intercepted and blocked during postcompile execution.
 
 If you are interested, you may try modifying the sample code to perform file
@@ -516,7 +551,7 @@ accesses to `secret.txt` will correctly trigger a security exception.
 After providing the security configuration, you can integrate precompile mode in two different ways:
 
 Using the Ares UI, which offers an interactive interface to load your project and run the precompile phase.
-(Link: <ADD LINK HERE>)
+(Link: https://github.com/ls1intum/Ares2)
 
 Using the command-line runner in the Ares2 repository, by cloning the project and executing the precompile entrypoint located in
 `src/main/java/de/tum/cit/ase/ares/api/Main.java.`
@@ -626,6 +661,7 @@ regardingTheSupervisedCode:
       - onThisPathAndAllPathsBelow: "something.txt"
         readAllFiles: true
         overwriteAllFiles: true
+        createAllFiles: true
         executeAllFiles: true
         deleteAllFiles: true
     regardingNetworkConnections: [ ]
@@ -638,7 +674,7 @@ regardingTheSupervisedCode:
 This configuration explicitly permits file-system operations **only** on
 `something.txt`.
 All other paths—including `secret.txt`—are *not* listed here and are therefore
-fully denied by the sandbox. Any attempt by student code to read, write, or
+fully denied by the sandbox. Any attempt by student code to read, create, overwrite, or
 delete `secret.txt` will be intercepted and blocked during postcompile execution.
 
 If you are interested, you may try modifying the sample code to perform file
@@ -690,7 +726,7 @@ Maven:
 ----
 <properties>
         <studentOutputDir>${project.basedir}/build/classes/java/main</studentOutputDir>
-        <ares.version>2.0.1-Beta4</ares.version>
+        <ares.version>2.0.1-Beta6</ares.version>
         <agent.dir>${project.build.directory}/agents</agent.dir>
     </properties>
 
@@ -725,7 +761,7 @@ Maven:
                                     <file>${studentOutputDir}/com/github/javaparser/</file>
                                     <file>${studentOutputDir}/com/intellij/</file>
                                     <file>${studentOutputDir}/com/sun/</file>
-                                    <file>${studentOutputDir}/de/tum/in/test/api/</file>
+                                    <file>${studentOutputDir}/de/tum/cit/ase/ares/api/</file>
                                     <file>${studentOutputDir}/java/</file>
                                     <file>${studentOutputDir}/javax/</file>
                                     <file>${studentOutputDir}/jdk/</file>
@@ -827,8 +863,8 @@ configurations {
 }
 
 dependencies {
-    aresAgent 'de.tum.cit.ase:ares:2.0.1-Beta4'
-    testImplementation("de.tum.cit.ase:ares:2.0.1-Beta4")
+    aresAgent 'de.tum.cit.ase:ares:2.0.1-Beta6'
+    testImplementation("de.tum.cit.ase:ares:2.0.1-Beta6")
 }
 
 def forbiddenPackageFolders = [
@@ -837,7 +873,7 @@ def forbiddenPackageFolders = [
     "$studentOutputDir/com/github/javaparser/",
     "$studentOutputDir/com/intellij/",
     "$studentOutputDir/com/sun/",
-    "$studentOutputDir/de/tum/in/test/api/",
+    "$studentOutputDir/de/tum/cit/ase/ares/api/",
     "$studentOutputDir/java/",
     "$studentOutputDir/javax/",
     "$studentOutputDir/jdk/",
@@ -865,7 +901,7 @@ tasks.register('buildInstrumentationAgent', Jar) {
     description 'Builds a proper Java agent from the Ares JAR with correct manifest'
     archiveFileName = 'ares-agent.jar'
     destinationDirectory = layout.buildDirectory.dir("agents")
-    from zipTree(layout.buildDirectory.file("agents/ares-2.0.1-Beta4.jar").get().asFile)
+    from zipTree(layout.buildDirectory.file("agents/ares-2.0.1-Beta6.jar").get().asFile)
     manifest {
         attributes(
                 'Manifest-Version': '1.0',
@@ -915,9 +951,56 @@ test {
 
 === But what is whitelisted?
 
+By default, Ares2 trusts certain core packages and classes that are necessary for the testing framework itself to function. The following packages are automatically whitelisted and excluded from security restrictions:
 
+*Core Java and JDK packages:*
 
+* `java.*` - Core Java API classes
+* `javax.*` - Java extension APIs
+* `jdk.*` - JDK internal classes
+* `sun.*` - Sun/Oracle internal implementation classes
 
+*Testing frameworks:*
+
+* `org.junit.*` - JUnit 5 and JUnit 4 (Vintage)
+* `org.opentest4j.*` - Open Test Alliance
+* `net.jqwik.*` - jqwik property-based testing
+* `org.assertj.*` - AssertJ assertion library
+* `org.hamcrest.*` - Hamcrest matchers
+* `org.mockito.*` - Mockito mocking framework
+
+*Ares2 framework:*
+
+* `de.tum.cit.ase.ares.api.*` - All Ares2 classes
+
+*Build and analysis tools:*
+
+* `org.apache.*` - Apache Commons and Maven
+* `org.gradle.*` - Gradle build system
+* `org.eclipse.*` - Eclipse compiler and tooling
+* `com.intellij.*` - IntelliJ IDEA integration
+* `org.jacoco.*` - JaCoCo code coverage
+
+*Static analysis and AOP:*
+
+* `com.tngtech.archunit.*` - ArchUnit
+* `com.ibm.wala.*` - WALA call graph analysis
+* `org.aspectj.*` - AspectJ
+* `net.bytebuddy.*` - Byte Buddy instrumentation
+
+*Additional libraries:*
+
+* `ch.qos.logback.*` - Logback logging
+* `com.github.javaparser.*` - JavaParser AST analysis
+* `org.json.*` - JSON parsing
+
+You can extend the whitelist for your specific needs using annotations:
+
+* `@AddTrustedPackage("com.example.library")` - Trust an additional package
+* `@WhitelistPackage("com.student.helpers")` - Allow student code in specific package
+* `@WhitelistClass("com.example.UtilityClass")` - Allow specific class
+
+*Important:* Student code should never be placed in trusted packages, as this would bypass all security restrictions. The enforcer plugin in your `pom.xml` or `build.gradle` prevents this.
 
 === Further Important Options
 
@@ -929,7 +1012,74 @@ annoyed or even enraged. To prevent that, please read on.
 
 ==== Path Access and Class Loading
 
+Ares2 carefully controls which files and directories student code can access. Understanding path access rules is crucial for writing secure tests.
 
+*Default behavior:*
+
+* Student code runs in a restricted sandbox
+* Access to most filesystem paths is blocked by default
+* Only explicitly whitelisted paths are accessible
+* Test classes run with elevated privileges (trusted)
+
+*Configuring path access:*
+
+Use the security configuration file to specify allowed paths:
+
+[source,yaml]
+----
+regardingFileSystemInteractions:
+  - onThisPathAndAllPathsBelow: "data/input.txt"
+    readAllFiles: true
+    overwriteAllFiles: false
+    createAllFiles: false
+    executeAllFiles: false
+    deleteAllFiles: false
+----
+
+Or use annotations directly in test code:
+
+[source,java]
+----
+@WhitelistPath(value = "data", type = PathType.DIRECTORY)
+@WhitelistPath(value = "**/*.txt", type = PathType.GLOB)
+@PublicTest
+void testFileAccess() {
+    // Student code can now read from data/ directory
+}
+----
+
+*Path types:*
+
+* `PathType.EXACT` - Exact file/directory path
+* `PathType.GLOB` - Glob pattern (e.g., `**/*.txt`)
+* `PathType.DIRECTORY` - Directory and all contents
+
+*Blacklisting paths:*
+
+[source,java]
+----
+@BlacklistPath(value = "secret.txt")
+@PublicTest
+void testRestrictedAccess() {
+    // Access to secret.txt will throw SecurityException
+}
+----
+
+*Class loading considerations:*
+
+* Ares2 uses a custom class loader hierarchy to isolate student code
+* Test classes are loaded by the system class loader (trusted)
+* Student classes are loaded by a restricted class loader
+* This prevents students from shadowing trusted classes
+* The enforcer plugin validates that no student code exists in trusted packages
+
+*Best practices:*
+
+* Keep whitelist as restrictive as possible
+* Use relative paths, not absolute paths
+* Whitelist only directories needed for the exercise
+* Test your path restrictions before releasing the exercise
+* Document which files students should create/modify
 
 ==== Testing the Exercise before Release
 
@@ -955,6 +1105,78 @@ extensions will be added together.
 
 ==== Threads and Concurrency
 
+Ares2 provides comprehensive control over thread creation and management to prevent students from:
+
+* Creating excessive threads that could impact system performance
+* Using threads to bypass time limits
+* Exploiting concurrency to circumvent security restrictions
+* Causing deadlocks or race conditions in the test environment
+
+*Controlling thread creation:*
+
+In your security configuration:
+
+[source,yaml]
+----
+regardingThreadCreations:
+  - createTheFollowingNumberOfThreads: 5
+    ofThisClass: "java.lang.Thread"
+----
+
+Or using annotations:
+
+[source,java]
+----
+@AllowThreads(maxActiveCount = 5)
+@PublicTest
+void testConcurrentCode() {
+    // Student code can create up to 5 threads
+}
+----
+
+*Thread trust scopes:*
+
+Ares2 distinguishes between trusted and untrusted threads:
+
+[source,java]
+----
+@TrustedThreads(TrustScope.MINIMAL)  // Only test threads trusted
+@TrustedThreads(TrustScope.EXTENDED) // Test + whitelisted student threads
+----
+
+*Handling concurrent tests:*
+
+[source,java]
+----
+@PublicTest
+@AllowThreads(maxActiveCount = 10)
+void testThreadPoolExecution() {
+    ExecutorService executor = Executors.newFixedThreadPool(5);
+    List<Future<String>> futures = new ArrayList<>();
+    
+    for (int i = 0; i < 10; i++) {
+        futures.add(executor.submit(() -> studentCode.processTask()));
+    }
+    
+    // All threads are monitored by Ares2
+    executor.shutdown();
+    executor.awaitTermination(10, TimeUnit.SECONDS);
+}
+----
+
+*Security considerations:*
+
+* Threads created by student code inherit security restrictions
+* Each thread is monitored for resource access violations
+* Thread count limits prevent resource exhaustion
+* Uncaught exceptions in student threads are properly captured
+* Daemon threads are automatically stopped after test completion
+
+*Common issues:*
+
+* *Exceeded thread limit:* Increase `maxActiveCount` or refactor student code
+* *Threads not terminating:* Use timeouts with `@StrictTimeout`
+* *Race conditions:* Consider using `@RepeatedTest` to detect flaky tests
 
 [#testing-console-interaction]
 ==== Testing Console Interaction
@@ -984,8 +1206,9 @@ void testSquareCorrect(IOTester tester) { //<1>
     line break) is equal to the given text block (if you use text
     blocks, be aware of their newline handling).
 
+[[showing-standard-output]]
 Note that Ares2 normalizes the line breaks to `\n`, and
-https://github.com/ls1intum/Ares/blob/main/src/main/java/de/tum/in/test/api/io/OutputTester.java[`OutputTester`]
+https://github.com/ls1intum/Ares2/blob/main/src/main/java/de/tum/cit/ase/ares/api/io/OutputTester.java[`OutputTester`]
 offers many different approaches to checking output (e.g. single string, list of strings, ...).
 
 If students read more lines than provided, they get the following feedback:
@@ -994,7 +1217,7 @@ java.lang.IllegalStateException: no further console input request after the last
 ...
 
 See also `IOTester` and for more examples, the
-https://github.com/ls1intum/Ares/blob/main/src/test/java/de/tum/in/test/integration/testuser/InputOutputUser.java[`InputOutputUser`]
+https://github.com/ls1intum/Ares2/blob/main/src/test/java/de/tum/cit/ase/ares/integration/testuser/InputOutputUser.java[`InputOutputUser`]
 test.
 
 <<showing-standard-output>> covers how the student output is
@@ -1007,39 +1230,198 @@ you can provide a custom implementation by applying `@WithIOManager(MyCustomOne.
 to e.g. the test class or individual methods. This also allows you to register
 a custom parameter to control IO testing with ease inside the test method.
 Have a look into the test class linked above to learn more or read the documentation of
-https://github.com/ls1intum/Ares/blob/main/src/main/java/de/tum/in/test/api/io/IOManager.java[`IOManager`].
+https://github.com/ls1intum/Ares2/blob/main/src/main/java/de/tum/cit/ase/ares/api/io/IOManager.java[`IOManager`].
 ====
 
 ==== Networking
 
+Ares2 controls all network operations to prevent students from:
+
+* Accessing external resources not required for the exercise
+* Exfiltrating data or test solutions
+* Performing denial-of-service attacks
+* Bypassing security through network-based exploits
+
+*Allowing network access:*
+
+In your security configuration:
+
+[source,yaml]
+----
+regardingNetworkConnections:
+  - onTheHost: "api.example.com"
+    onThePort: 443
+    openConnections: true
+    sendData: true
+    receiveData: true
+  - onTheHost: "localhost"
+    onThePort: 8080
+    openConnections: true
+    sendData: true
+    receiveData: true
+----
+
+Or using annotations:
+
+[source,java]
+----
+@AllowLocalPort(8080)
+@PublicTest
+void testHttpServer() {
+    // Student code can connect to localhost:8080
+}
+----
+
+*Port ranges:*
+
+[source,java]
+----
+@AllowLocalPort(above = 8000, mode = PortMode.ABOVE)
+@PublicTest
+void testDynamicPorts() {
+    // Allows all ports above 8000
+}
+----
+
+*Testing REST APIs:*
+
+[source,java]
+----
+@Policy("network-config.yaml")
+@PublicTest
+void testRestClient() {
+    // Configuration allows api.example.com:443
+    String response = studentCode.fetchData("https://api.example.com/data");
+    assertThat(response).isNotEmpty();
+}
+----
+
+*Common patterns:*
+
+*Testing a local HTTP server:*
+[source,java]
+----
+@AllowLocalPort(8080)
+@PublicTest
+void testWebServer() {
+    studentCode.startServer(8080);
+    HttpClient client = HttpClient.newHttpClient();
+    HttpRequest request = HttpRequest.newBuilder()
+        .uri(URI.create("http://localhost:8080/"))
+        .build();
+    HttpResponse<String> response = client.send(request, 
+        HttpResponse.BodyHandlers.ofString());
+    assertEquals(200, response.statusCode());
+}
+----
+
+*Mocking external services:*
+[source,java]
+----
+@PublicTest
+void testWithMockedService() {
+    // Use WireMock or similar instead of real network access
+    WireMockServer mockServer = new WireMockServer(8089);
+    mockServer.start();
+    // No @AllowLocalPort needed for test infrastructure
+    mockServer.stop();
+}
+----
+
+*Security notes:*
+
+* By default, all network access is blocked
+* DNS lookups are also controlled
+* Socket connections require explicit permission
+* Multicast and broadcast are blocked
+* Consider using mocks instead of real network access when possible
 
 ==== Locale
 
 You can set a locale for Ares2 (and the rest of Java) by adding the
 `@UseLocale` JUnit extension to classes/methods, which will set the Java
-https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/Locale.html#setDefault(java.util.Locale)[default locale]
+default locale via `Locale.setDefault(Locale)`
 that is also used by Ares2. The locale is changed only for the scope
 where the annotation is applied.
 
 Ares2 is currently localized in German (`de_DE`) and English (`en_US`),
 where `en_US` is the fallback for any other locale.
 
-See also the https://github.com/ls1intum/Ares/blob/main/src/test/java/de/tum/in/test/integration/testuser/LocaleUser.java[`LocaleUser`]
+See also the https://github.com/ls1intum/Ares2/blob/main/src/test/java/de/tum/cit/ase/ares/integration/testuser/LocaleUser.java[`LocaleUser`]
 test for more examples.
 
 === GitHub Packages
 
 GitHub Packages does currently not allow unregistered, public access to
 the packages. Therefore, you will need to authenticate to GitHub if you
-use
+use GitHub Packages as a repository source.
+
+*Maven configuration:*
+
+Add the following to your `pom.xml`:
 
 [source,xml]
 ----
+<repositories>
+    <repository>
+        <id>github</id>
+        <name>GitHub ls1intum Apache Maven Packages</name>
+        <url>https://maven.pkg.github.com/ls1intum/Ares2</url>
+    </repository>
+</repositories>
+----
 
+Then add authentication to your `~/.m2/settings.xml`:
+
+[source,xml]
+----
+<settings>
+    <servers>
+        <server>
+            <id>github</id>
+            <username>YOUR_GITHUB_USERNAME</username>
+            <password>YOUR_GITHUB_TOKEN</password>
+        </server>
+    </servers>
+</settings>
+----
+
+*Gradle configuration:*
+
+Add the following to your `build.gradle`:
+
+[source,groovy]
+----
+repositories {
+    maven {
+        url = uri("https://maven.pkg.github.com/ls1intum/Ares2")
+        credentials {
+            username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_USERNAME")
+            password = project.findProperty("gpr.token") ?: System.getenv("GITHUB_TOKEN")
+        }
+    }
+}
+----
+
+*Generating a GitHub token:*
+
+1. Go to GitHub Settings → Developer settings → Personal access tokens
+2. Generate a new token with `read:packages` scope
+3. Store the token securely in your settings
+
+*Note:* Using Maven Central is recommended for most users as it does not require authentication:
+
+[source,xml]
+----
+<dependency>
+    <groupId>de.tum.cit.ase</groupId>
+    <artifactId>ares</artifactId>
+    <version>2.0.1-Beta6</version>
+</dependency>
 ----
 
 == License
 
-Ares2 is licensed under [specify license type - e.g., MIT, Apache 2.0, etc.].
+Ares2 is licensed under the MIT License.
 
-See LICENSE file for details.
+See link:LICENSE[LICENSE] for details.
