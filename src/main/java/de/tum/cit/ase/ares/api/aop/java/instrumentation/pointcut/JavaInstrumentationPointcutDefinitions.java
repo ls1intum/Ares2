@@ -356,7 +356,6 @@ public class JavaInstrumentationPointcutDefinitions {
 					List.of("read", "readBoolean", "readByte", "readChar", "readDouble", "readFloat", "readFully",
 							"readInt", "readLine", "readLong", "readShort", "readUnsignedByte", "readUnsignedShort",
 							"readUTF")),
-			Map.entry("java.io.DataInputStream", List.of("<init>")),
 			Map.entry("java.io.File", List.of("normalizedList", "list", "listFiles", "listRoots")),
 			// java.nio
 			Map.entry("java.nio.file.Files",
@@ -410,7 +409,6 @@ public class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.io.DataOutput",
 					List.of("writeBoolean", "writeByte", "writeBytes", "writeChar", "writeChars", "writeDouble",
 							"writeFloat", "writeInt", "writeLong", "writeShort", "writeUTF")),
-			Map.entry("java.io.DataOutputStream", List.of("<init>")),
 			Map.entry("java.util.logging.FileHandler", List.of("<init>", "publish", "close")),
 			Map.entry("java.util.zip.GZIPOutputStream", List.of("<init>")),
 			Map.entry("java.util.zip.InflaterOutputStream", List.of("<init>")),

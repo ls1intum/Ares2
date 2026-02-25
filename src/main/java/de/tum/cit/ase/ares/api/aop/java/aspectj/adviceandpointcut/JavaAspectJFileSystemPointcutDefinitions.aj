@@ -12,7 +12,6 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
     pointcut fileWriteMethods():
             (call(java.io.RandomAccessFile+.new(..)) ||
                     call(java.io.BufferedOutputStream+.new(..)) ||
-                    call(java.io.DataOutputStream+.new(..)) ||
                     call(java.io.PrintStream+.new(..)) ||
                     call(java.util.logging.FileHandler+.new(..)) ||
                     call(java.util.zip.GZIPOutputStream+.new(..)) ||
@@ -111,7 +110,6 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* java.awt.Font+.createFont(..)) ||
                     call(* java.awt.Font+.createFonts(..)) ||
                     call(java.io.BufferedInputStream+.new(..)) ||
-                    call(java.io.DataInputStream+.new(..)) ||
                     call(* java.io.DataInput+.read(..)) ||
                     call(* java.io.DataInput+.readBoolean(..)) ||
                     call(* java.io.DataInput+.readByte(..)) ||
