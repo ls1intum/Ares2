@@ -61,7 +61,7 @@ First, add the AspectJ compiler plugin:
 
 ```gradle
 plugins {
-    id 'io.freefair.aspectj.post-compile-weaving' version '8.12.1'
+    id 'io.freefair.aspectj.post-compile-weaving' version '9.2.0'
 }
 ```
 
@@ -103,9 +103,9 @@ Add the Ares library to both the agent configuration and test implementation, as
 ```gradle
 dependencies {
     aresAgent "de.tum.cit.ase:ares:2.0.1-Beta6:agent"
-    aresAgent 'org.aspectj:aspectjrt:1.9.24'
+    aresAgent "org.aspectj:aspectjrt:1.9.25.1"
     testImplementation "de.tum.cit.ase:ares:2.0.1-Beta6"
-    implementation 'org.aspectj:aspectjrt:1.9.24'
+    implementation "org.aspectj:aspectjrt:1.9.25.1"
 }
 ```
 
@@ -113,7 +113,7 @@ dependencies {
 > ```toml
 > [versions]
 > ares = "2.0.1-Beta6"
-> aspectjrt = "1.9.24"
+> aspectjrt = "1.9.25.1"
 > [libraries]
 > ares = { module = "de.tum.cit.ase:ares", version.ref = "ares" }
 > aspectjrt = { module = "org.aspectj:aspectjrt", version.ref = "aspectjrt" }
