@@ -388,7 +388,9 @@ public class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.util.zip.GZIPInputStream", List.of("<init>")),
 			Map.entry("java.util.jar.JarFile", List.of("<init>", "entries", "getInputStream")),
 			Map.entry("java.util.jar.JarInputStream", List.of("<init>", "getNextJarEntry")),
-			Map.entry("java.util.Properties", List.of("load", "loadFromXML")));
+            Map.entry("java.util.Properties", List.of("load", "loadFromXML")),
+            Map.entry("java.awt.Desktop",
+                    List.of("open", "edit", "print", "browse", "browseFileDirectory")));
 	// </editor-fold>
 
 	// <editor-fold desc="Overwrite Path">
@@ -451,7 +453,9 @@ public class JavaInstrumentationPointcutDefinitions {
 			Map.entry("javax.sound.sampled.AudioSystem", List.of("write")),
 			// javax.xml
 			Map.entry("javax.xml.transform.Transformer", List.of("transform")),
-			Map.entry("javax.xml.bind.Marshaller", List.of("marshal")));
+			Map.entry("javax.xml.bind.Marshaller", List.of("marshal")),
+            Map.entry("java.awt.Desktop",
+                    List.of("open", "edit", "print", "browse", "browseFileDirectory")));
 	// </editor-fold>
 
 	// <editor-fold desc="Execute Path">
@@ -480,7 +484,7 @@ public class JavaInstrumentationPointcutDefinitions {
 	 */
 	public static final Map<String, List<String>> methodsWhichCanDeleteFiles = Map.ofEntries(
 			// java.awt
-			Map.entry("java.awt.Desktop", List.of("moveToTrash")),
+			Map.entry("java.awt.Desktop", List.of("moveToTrash", "open", "edit", "print", "browse", "browseFileDirectory")),
 			// java.io
 			Map.entry("java.io.File", List.of("delete", "deleteOnExit")),
 			// java.nio
