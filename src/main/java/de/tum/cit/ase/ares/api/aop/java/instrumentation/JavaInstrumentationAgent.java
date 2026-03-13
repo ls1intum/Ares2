@@ -15,6 +15,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceCommandSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceNetworkSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceThreadSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationBindingDefinitions;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationPointcutDefinitions;
@@ -56,6 +57,12 @@ public class JavaInstrumentationAgent {
 				JavaInstrumentationBindingDefinitions::createCreateThreadMethodBinding);
 		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteCommands,
 				JavaInstrumentationBindingDefinitions::createExecuteCommandMethodBinding);
+		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanConnectToNetwork,
+				JavaInstrumentationBindingDefinitions::createConnectNetworkMethodBinding);
+		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanSendToNetwork,
+				JavaInstrumentationBindingDefinitions::createSendNetworkMethodBinding);
+		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanReceiveFromNetwork,
+				JavaInstrumentationBindingDefinitions::createReceiveNetworkMethodBinding);
 
 		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanReadFiles,
 				JavaInstrumentationBindingDefinitions::createReadPathConstructorBinding);
@@ -71,6 +78,12 @@ public class JavaInstrumentationAgent {
 				JavaInstrumentationBindingDefinitions::createCreateThreadConstructorBinding);
 		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteCommands,
 				JavaInstrumentationBindingDefinitions::createExecuteCommandConstructorBinding);
+		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanConnectToNetwork,
+				JavaInstrumentationBindingDefinitions::createConnectNetworkConstructorBinding);
+		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanSendToNetwork,
+				JavaInstrumentationBindingDefinitions::createSendNetworkConstructorBinding);
+		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanReceiveFromNetwork,
+				JavaInstrumentationBindingDefinitions::createReceiveNetworkConstructorBinding);
 	}
 
 	/**
@@ -121,6 +134,9 @@ public class JavaInstrumentationAgent {
 								Map.entry(JavaInstrumentationAdviceThreadSystemToolbox.class.getName(),
 										ClassFileLocator.ForClassLoader
 												.read(JavaInstrumentationAdviceThreadSystemToolbox.class)),
+								Map.entry(JavaInstrumentationAdviceNetworkSystemToolbox.class.getName(),
+										ClassFileLocator.ForClassLoader
+												.read(JavaInstrumentationAdviceNetworkSystemToolbox.class)),
 								Map.entry(JavaInstrumentationAdviceCommandSystemToolbox.class.getName(),
 										ClassFileLocator.ForClassLoader
 												.read(JavaInstrumentationAdviceCommandSystemToolbox.class))));

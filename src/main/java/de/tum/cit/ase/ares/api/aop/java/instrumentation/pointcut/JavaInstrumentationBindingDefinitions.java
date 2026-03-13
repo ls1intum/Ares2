@@ -21,6 +21,8 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentati
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationCreatePathMethodAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationCreateThreadConstructorAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationCreateThreadMethodAdvice;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationConnectNetworkConstructorAdvice;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationConnectNetworkMethodAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathConstructorAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathMethodAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationExecuteCommandConstructorAdvice;
@@ -29,8 +31,12 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentati
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathMethodAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathConstructorAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathMethodAdvice;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReceiveNetworkConstructorAdvice;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReceiveNetworkMethodAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathConstructorAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathMethodAdvice;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationSendNetworkConstructorAdvice;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationSendNetworkMethodAdvice;
 
 /**
  * This class provides the definitions for the bindings of the Java
@@ -478,6 +484,90 @@ public class JavaInstrumentationBindingDefinitions {
 		} catch (Exception e) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
 					.localize("security.instrumentation.execute.command.constructor.binding.error"), e);
+		}
+	}
+	// </editor-fold>
+
+	// <editor-fold desc="Network connect">
+	public static DynamicType.Builder<?> createConnectNetworkMethodBinding(DynamicType.Builder<?> builder,
+			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
+			ProtectionDomain protectionDomain) {
+		try {
+			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+					JavaInstrumentationPointcutDefinitions.methodsWhichCanConnectToNetwork,
+					JavaInstrumentationConnectNetworkMethodAdvice.class);
+		} catch (Exception e) {
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.instrumentation.connect.network.method.binding.error"), e);
+		}
+	}
+
+	public static DynamicType.Builder<?> createConnectNetworkConstructorBinding(DynamicType.Builder<?> builder,
+			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
+			ProtectionDomain protectionDomain) {
+		try {
+			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+					JavaInstrumentationPointcutDefinitions.methodsWhichCanConnectToNetwork,
+					JavaInstrumentationConnectNetworkConstructorAdvice.class);
+		} catch (Exception e) {
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.instrumentation.connect.network.constructor.binding.error"), e);
+		}
+	}
+	// </editor-fold>
+
+	// <editor-fold desc="Network send">
+	public static DynamicType.Builder<?> createSendNetworkMethodBinding(DynamicType.Builder<?> builder,
+			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
+			ProtectionDomain protectionDomain) {
+		try {
+			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+					JavaInstrumentationPointcutDefinitions.methodsWhichCanSendToNetwork,
+					JavaInstrumentationSendNetworkMethodAdvice.class);
+		} catch (Exception e) {
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.instrumentation.send.network.method.binding.error"), e);
+		}
+	}
+
+	public static DynamicType.Builder<?> createSendNetworkConstructorBinding(DynamicType.Builder<?> builder,
+			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
+			ProtectionDomain protectionDomain) {
+		try {
+			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+					JavaInstrumentationPointcutDefinitions.methodsWhichCanSendToNetwork,
+					JavaInstrumentationSendNetworkConstructorAdvice.class);
+		} catch (Exception e) {
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.instrumentation.send.network.constructor.binding.error"), e);
+		}
+	}
+	// </editor-fold>
+
+	// <editor-fold desc="Network receive">
+	public static DynamicType.Builder<?> createReceiveNetworkMethodBinding(DynamicType.Builder<?> builder,
+			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
+			ProtectionDomain protectionDomain) {
+		try {
+			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+					JavaInstrumentationPointcutDefinitions.methodsWhichCanReceiveFromNetwork,
+					JavaInstrumentationReceiveNetworkMethodAdvice.class);
+		} catch (Exception e) {
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.instrumentation.receive.network.method.binding.error"), e);
+		}
+	}
+
+	public static DynamicType.Builder<?> createReceiveNetworkConstructorBinding(DynamicType.Builder<?> builder,
+			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
+			ProtectionDomain protectionDomain) {
+		try {
+			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+					JavaInstrumentationPointcutDefinitions.methodsWhichCanReceiveFromNetwork,
+					JavaInstrumentationReceiveNetworkConstructorAdvice.class);
+		} catch (Exception e) {
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.instrumentation.receive.network.constructor.binding.error"), e);
 		}
 	}
 	// </editor-fold>
