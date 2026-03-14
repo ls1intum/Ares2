@@ -568,8 +568,8 @@ public class JavaInstrumentationPointcutDefinitions {
 	 * This map contains the methods which can connect to network targets.
 	 */
 	public static final Map<String, List<String>> methodsWhichCanConnectToNetwork = Map.ofEntries(
-			Map.entry("java.net.Socket", List.of("<init>", "connect")),
-			Map.entry("java.net.DatagramSocket", List.of("<init>", "connect")),
+			Map.entry("java.net.Socket", List.of("connect")),
+			Map.entry("java.net.DatagramSocket", List.of("connect")),
 			Map.entry("java.nio.channels.DatagramChannel", List.of("connect")),
 			Map.entry("java.nio.channels.SocketChannel", List.of("connect")),
 			Map.entry("java.nio.channels.AsynchronousSocketChannel", List.of("connect")),
