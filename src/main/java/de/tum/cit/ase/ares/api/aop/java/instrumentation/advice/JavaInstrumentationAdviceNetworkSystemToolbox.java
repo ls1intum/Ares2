@@ -218,8 +218,14 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		if (parameters != null) {
 			for (Object parameter : parameters) {
 				if (parameter instanceof DatagramPacket datagramPacket) {
-					String host = datagramPacket.getAddress() == null ? null : datagramPacket.getAddress().getHostAddress();
-					return new NetworkTarget(host, datagramPacket.getPort());
+					InetAddress address = datagramPacket.getAddress();
+					int port = datagramPacket.getPort();
+					if (address != null && port > 0) {
+						String host = address.getHostAddress();
+						return new NetworkTarget(host, port);
+					}
+					// If the packet does not specify a usable destination, fall through
+					// and let firstResolvable resolve the target from the connected socket/channel.
 				}
 			}
 		}
