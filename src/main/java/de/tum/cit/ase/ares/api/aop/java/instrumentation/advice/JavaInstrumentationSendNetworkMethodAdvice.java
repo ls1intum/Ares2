@@ -33,7 +33,7 @@ public final class JavaInstrumentationSendNetworkMethodAdvice {
 					} else if (e instanceof NullPointerException) {
 						messageKey = "security.instrumentation.null.pointer.exception";
 					} else {
-						messageKey = "security.instrumentation.exception.in.initializer.error";
+						messageKey = "security.instrumentation.exception.in-initializer.error";
 					}
 					throw new SecurityException(JavaInstrumentationAdviceNetworkSystemToolbox.localize(
 							messageKey, fields[i].getName(), instance.getClass().getName()), e);
