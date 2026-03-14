@@ -26,6 +26,18 @@ public final class JavaInstrumentationConnectNetworkMethodAdvice {
 					throw new SecurityException(JavaInstrumentationAdviceNetworkSystemToolbox.localize(
 							"security.instrumentation.illegal.access.exception", fields[i].getName(),
 							instance.getClass().getName()), e);
+				} catch (IllegalArgumentException e) {
+					throw new SecurityException(JavaInstrumentationAdviceNetworkSystemToolbox.localize(
+							"security.instrumentation.illegal.argument.exception", fields[i].getName(),
+							instance.getClass().getName()), e);
+				} catch (NullPointerException e) {
+					throw new SecurityException(JavaInstrumentationAdviceNetworkSystemToolbox.localize(
+							"security.instrumentation.null.pointer.exception", fields[i].getName(),
+							instance.getClass().getName()), e);
+				} catch (ExceptionInInitializerError e) {
+					throw new SecurityException(JavaInstrumentationAdviceNetworkSystemToolbox.localize(
+							"security.instrumentation.exception.in.initializer.error", fields[i].getName(),
+							instance.getClass().getName()), e);
 				}
 			}
 		}
