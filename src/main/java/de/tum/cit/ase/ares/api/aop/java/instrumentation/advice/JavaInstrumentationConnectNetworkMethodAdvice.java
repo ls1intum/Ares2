@@ -29,6 +29,7 @@ public final class JavaInstrumentationConnectNetworkMethodAdvice {
 				} catch (IllegalArgumentException e) {
 					throw new SecurityException(JavaInstrumentationAdviceNetworkSystemToolbox.localize(
 							"security.instrumentation.illegal.argument.exception", fields[i].getName(),
+							fields[i].getDeclaringClass().getName(),
 							instance.getClass().getName()), e);
 				} catch (NullPointerException e) {
 					throw new SecurityException(JavaInstrumentationAdviceNetworkSystemToolbox.localize(
