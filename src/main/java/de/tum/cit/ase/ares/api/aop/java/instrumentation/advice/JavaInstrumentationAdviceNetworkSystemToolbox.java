@@ -272,8 +272,14 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	private static NetworkTarget fromReceiveSide(@Nullable Object instance, @Nullable Object[] parameters,
 			@Nullable Object[] attributes) {
 		if (instance instanceof DatagramSocket datagramSocket) {
-			InetAddress remote = datagramSocket.getInetAddress();
-			return new NetworkTarget(remote == null ? null : remote.getHostAddress(), datagramSocket.getPort());
+			// Only derive a remote target for connected DatagramSockets; for unconnected sockets
+			// getInetAddress() is null and getPort() is the local port, not the remote sender.
+			if (datagramSocket.isConnected()) {
+				InetAddress remote = datagramSocket.getInetAddress();
+				if (remote != null) {
+					return new NetworkTarget(remote.getHostAddress(), datagramSocket.getPort());
+				}
+			}
 		}
 		if (instance instanceof DatagramChannel datagramChannel) {
 			try {
