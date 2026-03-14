@@ -24,6 +24,11 @@ public final class JavaInstrumentationReceiveNetworkMethodAdvice {
 							instance.getClass().getName()), e);
 				} catch (IllegalAccessException | IllegalArgumentException | NullPointerException
 						| ExceptionInInitializerError e) {
+					if (e instanceof IllegalArgumentException) {
+						throw new SecurityException(JavaInstrumentationAdviceNetworkSystemToolbox.localize(
+								"security.instrumentation.illegal.argument.exception", fields[i].getName(),
+								instance.getClass().getName(), methodName), e);
+					}
 					throw new SecurityException(JavaInstrumentationAdviceNetworkSystemToolbox.localize(
 							"security.instrumentation.illegal.access.exception", fields[i].getName(),
 							instance.getClass().getName()), e);
