@@ -37,7 +37,7 @@ public final class JavaInstrumentationConnectNetworkMethodAdvice {
 							instance.getClass().getName()), e);
 				} catch (ExceptionInInitializerError e) {
 					throw new SecurityException(JavaInstrumentationAdviceNetworkSystemToolbox.localize(
-							"security.instrumentation.exception.in.initializer.error", fields[i].getName(),
+							"security.instrumentation.exception.in-initializer.error", fields[i].getName(),
 							instance.getClass().getName()), e);
 				}
 			}
