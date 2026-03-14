@@ -36,7 +36,8 @@ public final class JavaInstrumentationSendNetworkMethodAdvice {
 						messageKey = "security.instrumentation.exception.in-initializer.error";
 					}
 					throw new SecurityException(JavaInstrumentationAdviceNetworkSystemToolbox.localize(
-							messageKey, fields[i].getName(), instance.getClass().getName()), e);
+							messageKey, fields[i].getName(), fields[i].getDeclaringClass().getName(),
+							instance.getClass().getName()), e);
 				}
 			}
 		}
