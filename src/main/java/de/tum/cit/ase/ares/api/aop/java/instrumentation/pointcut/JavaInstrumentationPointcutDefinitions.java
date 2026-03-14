@@ -573,9 +573,8 @@ public class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.nio.channels.DatagramChannel", List.of("connect")),
 			Map.entry("java.nio.channels.SocketChannel", List.of("connect")),
 			Map.entry("java.nio.channels.AsynchronousSocketChannel", List.of("connect")),
-			Map.entry("java.net.URL", List.of("openConnection")),
-			Map.entry("java.net.URLConnection", List.of("connect")),
-			Map.entry("java.net.HttpURLConnection", List.of("connect")));
+			Map.entry("java.net.HttpURLConnection", List.of("connect")),
+			Map.entry("javax.net.ssl.HttpsURLConnection", List.of("connect")));
 	// </editor-fold>
 
 	// <editor-fold desc="Network send">
