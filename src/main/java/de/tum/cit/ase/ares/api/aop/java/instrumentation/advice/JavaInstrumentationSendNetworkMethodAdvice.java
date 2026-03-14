@@ -26,6 +26,17 @@ public final class JavaInstrumentationSendNetworkMethodAdvice {
 					throw new SecurityException(JavaInstrumentationAdviceNetworkSystemToolbox.localize(
 							"security.instrumentation.illegal.access.exception", fields[i].getName(),
 							instance.getClass().getName()), e);
+				} catch (IllegalArgumentException | NullPointerException | ExceptionInInitializerError e) {
+					final String messageKey;
+					if (e instanceof IllegalArgumentException) {
+						messageKey = "security.instrumentation.illegal.argument.exception";
+					} else if (e instanceof NullPointerException) {
+						messageKey = "security.instrumentation.null.pointer.exception";
+					} else {
+						messageKey = "security.instrumentation.exception.in.initializer.error";
+					}
+					throw new SecurityException(JavaInstrumentationAdviceNetworkSystemToolbox.localize(
+							messageKey, fields[i].getName(), instance.getClass().getName()), e);
 				}
 			}
 		}
