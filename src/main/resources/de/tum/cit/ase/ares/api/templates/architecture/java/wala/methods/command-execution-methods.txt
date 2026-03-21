@@ -1,2 +1,9 @@
-java.lang.Runtime.exec
-java.lang.ProcessBuilder.start
+java.lang.Runtime.exec(Ljava/lang/String;)
+java.lang.Runtime.exec([Ljava/lang/String;)
+java.lang.Runtime.exec(Ljava/lang/String;[Ljava/lang/String;)
+java.lang.Runtime.exec([Ljava/lang/String;[Ljava/lang/String;)
+java.lang.Runtime.exec(Ljava/lang/String;[Ljava/lang/String;Ljava/io/File;)
+java.lang.Runtime.exec([Ljava/lang/String;[Ljava/lang/String;Ljava/io/File;)
+java.lang.ProcessBuilder.start()
+java.lang.ProcessBuilder.<init>(Ljava/util/List;)
+java.lang.ProcessBuilder.<init>([Ljava/lang/String;)
