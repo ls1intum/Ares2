@@ -97,8 +97,8 @@ class ThrowableUtilsTest {
 						return false;
 					if (Modifier.isFinal(containedType.getModifiers()))
 						return false;
-                    return SAFE_PROPERTY_TYPES.stream().noneMatch(safeType -> safeType.isAssignableFrom(containedType));
-                }).collect(Collectors.toSet());
+					return SAFE_PROPERTY_TYPES.stream().noneMatch(safeType -> safeType.isAssignableFrom(containedType));
+				}).collect(Collectors.toSet());
 		assertThat(potentiallyUnsafeProperties).as("property types are all safe or sanitizable").isEmpty();
 	}
 

@@ -1,0 +1,2 @@
+SourceHeader,SourceFooter,Target
+templates/phobos/PhobosHeader.txt,templates/phobos/PhobosFooter.txt,../../../SpecificExercise.cfg

@@ -1,0 +1,5 @@
+@Test
+public void moduleSystemShouldNotBeManipulated() {
+    javaClasses = ${javaClasses};
+    JavaArchunitTestCaseCollection.NO_CLASS_MUST_ACCESS_MODULE_SYSTEM.check(javaClasses);
+}

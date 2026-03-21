@@ -1,6 +1,8 @@
 package de.tum.cit.ase.ares.integration.testuser;
 
+import static org.assertj.core.api.Fail.fail;
 import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.nio.file.Path;
 import java.util.concurrent.*;
@@ -13,11 +15,7 @@ import de.tum.cit.ase.ares.api.*;
 import de.tum.cit.ase.ares.api.MirrorOutput.MirrorOutputPolicy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
-//REMOVED: Import of ArtemisSecurityManager
 import de.tum.cit.ase.ares.integration.testuser.subject.threads.ThreadPenguin;
-
-import static org.assertj.core.api.Fail.fail;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 
 @UseLocale("en")
 @AllowThreads(maxActiveCount = 100)
@@ -31,7 +29,8 @@ public class ThreadUser {
 
 	@PublicTest
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/threads")
-	void threadAccessTest() {}
+	void threadAccessTest() {
+	}
 
 	@PublicTest
 	void commonPoolInterruptable() throws InterruptedException, ExecutionException {
@@ -77,7 +76,7 @@ public class ThreadUser {
 	void threadWhitelistingWithPathCorrect() throws Throwable {
 		AtomicReference<Throwable> failure = new AtomicReference<>();
 		Thread t = new Thread(() -> System.out.println(""));
-		//REMOVED: Thread-whitelisting-request to ArtemisSecurityManager
+		// REMOVED: Thread-whitelisting-request to ArtemisSecurityManager
 		t.setUncaughtExceptionHandler((t1, e) -> failure.set(e));
 		t.start();
 		t.join();
@@ -107,16 +106,15 @@ public class ThreadUser {
 		ThreadPenguin.tryThreadWhitelisting();
 	}
 
-
-    //	@PublicTest
-//	void zz_unstoppable() {
-//		long t = System.currentTimeMillis();
-//		while (System.currentTimeMillis() - t < 1000) {
-//			try {
-//				Thread.sleep(100);
-//			} catch (Throwable e) {
-//				// ignore
-//			}
-//		}
-//	}
+	// @PublicTest
+	// void zz_unstoppable() {
+	// long t = System.currentTimeMillis();
+	// while (System.currentTimeMillis() - t < 1000) {
+	// try {
+	// Thread.sleep(100);
+	// } catch (Throwable e) {
+	// // ignore
+	// }
+	// }
+	// }
 }

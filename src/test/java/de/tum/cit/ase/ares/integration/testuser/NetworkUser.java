@@ -16,7 +16,6 @@ import de.tum.cit.ase.ares.api.*;
 import de.tum.cit.ase.ares.api.MirrorOutput.MirrorOutputPolicy;
 import de.tum.cit.ase.ares.api.jupiter.Public;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
-//REMOVED: Import of ArtemisSecurityManager
 import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.network.NetworkPenguin;
 
 @Public
@@ -54,7 +53,7 @@ public class NetworkUser {
 				// do nothing
 			}
 		}, "server");
-		//REMOVED: Thread-whitelisting-request to ArtemisSecurityManager
+		// REMOVED: Thread-whitelisting-request to ArtemisSecurityManager
 		serverThread.start();
 	}
 
@@ -96,7 +95,7 @@ public class NetworkUser {
 			}
 		}, "server-45458");
 		serverThread.setUncaughtExceptionHandler((thread, t) -> error.set(t));
-		//REMOVED: Thread-whitelisting-request to ArtemisSecurityManager
+		// REMOVED: Thread-whitelisting-request to ArtemisSecurityManager
 		serverThread.start();
 		try (Socket s = new Socket("localhost", 45458); PrintStream out = new PrintStream(s.getOutputStream())) {
 			s.setSoTimeout(2500);

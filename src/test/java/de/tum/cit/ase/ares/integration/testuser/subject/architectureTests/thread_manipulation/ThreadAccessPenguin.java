@@ -4,9 +4,12 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 public class ThreadAccessPenguin {
 
-    void createThread() {
-        try (ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1)) {
-            executor.execute(() -> System.out.println("Hello from the thread!"));
-        }
-    }
+	void createThread() {
+		try {
+			ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1);
+			executor.execute(() -> System.out.println("Hello from the thread!"));
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
 }

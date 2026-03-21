@@ -14,7 +14,7 @@ public final class PrivilegedException extends RuntimeException {
 
 	public PrivilegedException(Throwable priviledgedThrowable) {
 		super("priviledged " + priviledgedThrowable.getClass(), null, false, false); //$NON-NLS-1$
-		//REMOVED: Asking ArtemisSecurityManager for checking the current stack
+		// REMOVED: Asking ArtemisSecurityManager for checking the current stack
 		this.priviledgedThrowable = priviledgedThrowable;
 	}
 

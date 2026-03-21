@@ -11,6 +11,11 @@ import org.apiguardian.api.API.Status;
 
 /**
  * Class for testing console input and output of programs.
+ * <p>
+ * <b>Thread Safety:</b> All static methods ({@link #isInstalled()},
+ * {@link #installNew(boolean, long)}, {@link #uninstallCurrent()}) are
+ * synchronized and thread-safe. Instance methods should only be called after
+ * installation and before uninstallation.
  *
  * @author Christian Femers
  * @since 0.1.0
@@ -19,7 +24,7 @@ import org.apiguardian.api.API.Status;
 @API(status = Status.STABLE)
 public final class IOTester {
 
-	static final String LINE_SEPERATOR = "\n"; //$NON-NLS-1$
+	static final String LINE_SEPARATOR = "\n"; //$NON-NLS-1$
 
 	static {
 		checkEncoding();
@@ -39,7 +44,12 @@ public final class IOTester {
 	private final OutputTester outTester;
 	private final OutputTester errTester;
 
-	private boolean isInstalled;
+	/**
+	 * Flag indicating whether this IOTester instance is currently installed. Marked
+	 * volatile to ensure visibility across threads when accessed from the static
+	 * synchronized methods.
+	 */
+	private volatile boolean isInstalled;
 
 	private IOTester(boolean mirrorOutput, long maxChars) {
 		// backup
@@ -60,7 +70,7 @@ public final class IOTester {
 
 	public synchronized void install() {
 		// check permission already here, we need to be allowed to set system IO
-		//REMOVED: Getting the system's SecurityManager
+		// REMOVED: Getting the system's SecurityManager
 		// if this is a problem, make sure to install the security manager after
 		// IOTester
 
@@ -135,7 +145,7 @@ public final class IOTester {
 	 */
 	@Deprecated(since = "1.3.2")
 	public String getOutputAsString() {
-		return Line.joinLinesToString(getOutput(), LINE_SEPERATOR);
+		return Line.joinLinesToString(getOutput(), LINE_SEPARATOR);
 	}
 
 	/**
@@ -149,7 +159,7 @@ public final class IOTester {
 	 */
 	@Deprecated(since = "1.3.2")
 	public String getErrorOutputAsString() {
-		return Line.joinLinesToString(getErrorOutput(), LINE_SEPERATOR);
+		return Line.joinLinesToString(getErrorOutput(), LINE_SEPARATOR);
 	}
 
 	public InputTester getInTester() {

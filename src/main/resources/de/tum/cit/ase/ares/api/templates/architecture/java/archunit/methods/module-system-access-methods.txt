@@ -1,0 +1,11 @@
+java.lang.Class.getModule
+java.lang.Module.addExports
+java.lang.Module.addOpens
+java.lang.Module.addReads
+java.lang.Module.addUses
+java.lang.Module.getDescriptor
+java.lang.Module.implAddExports
+java.lang.Module.implAddOpens
+java.lang.ModuleLayer
+java.lang.module
+java.lang.invoke.MethodHandles.privateLookupIn

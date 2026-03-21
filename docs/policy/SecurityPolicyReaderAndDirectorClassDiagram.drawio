@@ -1,0 +1,179 @@
+<mxfile host="app.diagrams.net" modified="2026-02-11T00:00:00.000Z" agent="Ares2 Documentation" version="21.0.0" type="device">
+  <diagram id="class-diagram" name="Class Diagram">
+    <mxGraphModel dx="1800" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="&lt;b&gt;Security Policy Reader &amp; Director — Class Diagram&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=18;" vertex="1" parent="1">
+          <mxGeometry x="400" y="10" width="800" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== FACADE ==================== -->
+        <mxCell id="facade" value="&lt;b&gt;SecurityPolicyReaderAndDirector&lt;/b&gt;&lt;br/&gt;(Facade / Client)&lt;hr size=&quot;1&quot;/&gt;- securityPolicyReader : SecurityPolicyReader&lt;br/&gt;- securityPolicyDirector : SecurityPolicyDirector&lt;br/&gt;- securityPolicyFilePath : Path&lt;br/&gt;- projectFolderPath : Path&lt;br/&gt;- securityTestCaseFactoryAndBuilder : TestCaseAbstractFactoryAndBuilder&lt;hr size=&quot;1&quot;/&gt;+ createTestCases() : this&lt;br/&gt;+ writeTestCases(Path) : List&amp;lt;Path&amp;gt;&lt;br/&gt;+ writeTestCasesAndContinue(Path) : this&lt;br/&gt;+ executeTestCases() : this&lt;br/&gt;+ builder() : Builder" style="swimlane;fontStyle=0;align=center;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="480" y="70" width="420" height="220" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== READER HIERARCHY ==================== -->
+        <mxCell id="reader-abstract" value="&lt;b&gt;&amp;lt;&amp;lt;abstract&amp;gt;&amp;gt;&lt;br/&gt;SecurityPolicyReader&lt;/b&gt;&lt;hr size=&quot;1&quot;/&gt;# objectMapper : ObjectMapper&lt;hr size=&quot;1&quot;/&gt;+ readSecurityPolicyFrom(Path) : SecurityPolicy {abstract}&lt;br/&gt;+ selectSecurityPolicyReader(Path) : SecurityPolicyReader {static}" style="swimlane;fontStyle=0;align=center;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="380" width="440" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="reader-yaml" value="&lt;b&gt;SecurityPolicyYAMLReader&lt;/b&gt;&lt;hr size=&quot;1&quot;/&gt;(uses YAMLMapper)&lt;hr size=&quot;1&quot;/&gt;+ readSecurityPolicyFrom(Path) : SecurityPolicy&lt;br/&gt;+ yamlBuilder() : Builder {static}" style="swimlane;fontStyle=0;align=center;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="580" width="360" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- Inheritance: YAML Reader extends Reader -->
+        <mxCell id="edge-reader-inherit" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=0;strokeWidth=2;" edge="1" source="reader-yaml" target="reader-abstract" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== DIRECTOR HIERARCHY ==================== -->
+        <mxCell id="director-abstract" value="&lt;b&gt;&amp;lt;&amp;lt;abstract&amp;gt;&amp;gt;&lt;br/&gt;SecurityPolicyDirector&lt;/b&gt;&lt;hr size=&quot;1&quot;/&gt;# creator : Creator&lt;br/&gt;# writer : Writer&lt;br/&gt;# executer : Executer&lt;br/&gt;# essentialDataReader : EssentialDataReader&lt;br/&gt;# projectScanner : ProjectScanner&lt;br/&gt;# essentialPackagesPath : Path&lt;br/&gt;# essentialClassesPath : Path&lt;hr size=&quot;1&quot;/&gt;+ createTestCases(SecurityPolicy, Path) : TestCaseAbstractFactoryAndBuilder {abstract}&lt;br/&gt;+ selectSecurityPolicyDirector(SecurityPolicy) : SecurityPolicyDirector {static}" style="swimlane;fontStyle=0;align=center;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="900" y="360" width="520" height="220" as="geometry" />
+        </mxCell>
+
+        <mxCell id="director-java" value="&lt;b&gt;SecurityPolicyJavaDirector&lt;/b&gt;&lt;hr size=&quot;1&quot;/&gt;+ DEFAULT_ESSENTIAL_PACKAGES_PATH : Path&lt;br/&gt;+ DEFAULT_ESSENTIAL_CLASSES_PATH : Path&lt;hr size=&quot;1&quot;/&gt;+ createTestCases(SecurityPolicy, Path) : TestCaseAbstractFactoryAndBuilder&lt;br/&gt;- generateFactoryAndBuilder(BuildMode, ArchitectureMode, AOPMode, SecurityPolicy, Path) : TestCaseAbstractFactoryAndBuilder&lt;br/&gt;+ javaBuilder() : Builder {static}" style="swimlane;fontStyle=0;align=center;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="940" y="650" width="460" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- Inheritance: Java Director extends Director -->
+        <mxCell id="edge-director-inherit" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=0;strokeWidth=2;" edge="1" source="director-java" target="director-abstract" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== DATA MODEL ==================== -->
+        <mxCell id="security-policy" value="&lt;b&gt;&amp;lt;&amp;lt;record&amp;gt;&amp;gt;&lt;br/&gt;SecurityPolicy&lt;/b&gt;&lt;hr size=&quot;1&quot;/&gt;+ regardingTheSupervisedCode : SupervisedCode" style="swimlane;fontStyle=0;align=center;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="380" width="280" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="supervised-code" value="&lt;b&gt;&amp;lt;&amp;lt;record&amp;gt;&amp;gt;&lt;br/&gt;SupervisedCode&lt;/b&gt;&lt;hr size=&quot;1&quot;/&gt;+ theFollowingProgrammingLanguageConfigurationIsUsed : ProgrammingLanguageConfiguration&lt;br/&gt;+ theSupervisedCodeUsesTheFollowingPackage : String&lt;br/&gt;+ theMainClassInsideThisPackageIs : String&lt;br/&gt;+ theFollowingClassesAreTestClasses : String[]&lt;br/&gt;+ theFollowingResourceAccessesArePermitted : ResourceAccesses" style="swimlane;fontStyle=0;align=center;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="480" y="500" width="400" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="resource-accesses" value="&lt;b&gt;&amp;lt;&amp;lt;record&amp;gt;&amp;gt;&lt;br/&gt;ResourceAccesses&lt;/b&gt;&lt;hr size=&quot;1&quot;/&gt;+ regardingFileSystemInteractions : List&amp;lt;FilePermission&amp;gt;&lt;br/&gt;+ regardingNetworkConnections : List&amp;lt;NetworkPermission&amp;gt;&lt;br/&gt;+ regardingCommandExecutions : List&amp;lt;CommandPermission&amp;gt;&lt;br/&gt;+ regardingThreadCreations : List&amp;lt;ThreadPermission&amp;gt;&lt;br/&gt;+ regardingPackageImports : List&amp;lt;PackagePermission&amp;gt;&lt;br/&gt;+ regardingTimeouts : List&amp;lt;ResourceLimitsPermission&amp;gt;" style="swimlane;fontStyle=0;align=center;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="720" width="380" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="plc-enum" value="&lt;b&gt;&amp;lt;&amp;lt;enum&amp;gt;&amp;gt;&lt;br/&gt;ProgrammingLanguageConfiguration&lt;/b&gt;&lt;hr size=&quot;1&quot;/&gt;JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ&lt;br/&gt;JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION&lt;br/&gt;JAVA_USING_MAVEN_WALA_AND_ASPECTJ&lt;br/&gt;JAVA_USING_MAVEN_WALA_AND_INSTRUMENTATION&lt;br/&gt;JAVA_USING_GRADLE_ARCHUNIT_AND_ASPECTJ&lt;br/&gt;JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION&lt;br/&gt;JAVA_USING_GRADLE_WALA_AND_ASPECTJ&lt;br/&gt;JAVA_USING_GRADLE_WALA_AND_INSTRUMENTATION" style="swimlane;fontStyle=0;align=center;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="720" width="260" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- Permission boxes (small) -->
+        <mxCell id="file-perm" value="&lt;b&gt;&amp;lt;&amp;lt;record&amp;gt;&amp;gt;&lt;br/&gt;FilePermission&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="60" y="940" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="net-perm" value="&lt;b&gt;&amp;lt;&amp;lt;record&amp;gt;&amp;gt;&lt;br/&gt;NetworkPermission&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="220" y="940" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd-perm" value="&lt;b&gt;&amp;lt;&amp;lt;record&amp;gt;&amp;gt;&lt;br/&gt;CommandPermission&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="390" y="940" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="thread-perm" value="&lt;b&gt;&amp;lt;&amp;lt;record&amp;gt;&amp;gt;&lt;br/&gt;ThreadPermission&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="570" y="940" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="pkg-perm" value="&lt;b&gt;&amp;lt;&amp;lt;record&amp;gt;&amp;gt;&lt;br/&gt;PackagePermission&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="740" y="940" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="timeout-perm" value="&lt;b&gt;&amp;lt;&amp;lt;record&amp;gt;&amp;gt;&lt;br/&gt;ResourceLimitsPermission&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="920" y="940" width="190" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Composition edges: SecurityPolicy -> SupervisedCode -->
+        <mxCell id="edge-sp-sc" style="edgeStyle=orthogonalEdgeStyle;endArrow=diamondThin;endFill=1;strokeWidth=2;" edge="1" source="security-policy" target="supervised-code" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Composition: SupervisedCode -> ResourceAccesses -->
+        <mxCell id="edge-sc-ra" style="edgeStyle=orthogonalEdgeStyle;endArrow=diamondThin;endFill=1;strokeWidth=2;" edge="1" source="supervised-code" target="resource-accesses" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Composition: SupervisedCode -> PLC Enum -->
+        <mxCell id="edge-sc-plc" style="edgeStyle=orthogonalEdgeStyle;endArrow=diamondThin;endFill=1;strokeWidth=2;" edge="1" source="supervised-code" target="plc-enum" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ResourceAccesses -> Permissions -->
+        <mxCell id="edge-ra-fp" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;strokeWidth=1;dashed=1;" edge="1" source="resource-accesses" target="file-perm" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-ra-np" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;strokeWidth=1;dashed=1;" edge="1" source="resource-accesses" target="net-perm" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-ra-cp" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;strokeWidth=1;dashed=1;" edge="1" source="resource-accesses" target="cmd-perm" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-ra-tp" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;strokeWidth=1;dashed=1;" edge="1" source="resource-accesses" target="thread-perm" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-ra-pp" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;strokeWidth=1;dashed=1;" edge="1" source="resource-accesses" target="pkg-perm" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-ra-to" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;strokeWidth=1;dashed=1;" edge="1" source="resource-accesses" target="timeout-perm" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Facade uses Reader -->
+        <mxCell id="edge-facade-reader" value="uses" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;strokeWidth=2;dashed=1;" edge="1" source="facade" target="reader-abstract" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Facade uses Director -->
+        <mxCell id="edge-facade-director" value="uses" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;strokeWidth=2;dashed=1;" edge="1" source="facade" target="director-abstract" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Reader produces SecurityPolicy -->
+        <mxCell id="edge-reader-policy" value="produces" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;strokeWidth=2;dashed=1;" edge="1" source="reader-abstract" target="security-policy" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Director consumes SecurityPolicy -->
+        <mxCell id="edge-director-policy" value="consumes" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;strokeWidth=2;dashed=1;" edge="1" source="director-abstract" target="security-policy" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="70" width="220" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-title" value="&lt;b&gt;Legend&lt;/b&gt;" style="text;html=1;align=center;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1270" y="75" width="80" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-blue" value="" style="rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1210" y="100" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-blue-text" value="Facade / Entry Point" style="text;html=1;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="100" width="160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-green" value="" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1210" y="125" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-green-text" value="Reader Hierarchy" style="text;html=1;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="125" width="160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-yellow" value="" style="rounded=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1210" y="150" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-yellow-text" value="Director Hierarchy" style="text;html=1;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="150" width="160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-purple" value="" style="rounded=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1210" y="175" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-purple-text" value="Data Model (Records)" style="text;html=1;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="175" width="160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-red" value="" style="rounded=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1210" y="200" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-red-text" value="Enum" style="text;html=1;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="200" width="160" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

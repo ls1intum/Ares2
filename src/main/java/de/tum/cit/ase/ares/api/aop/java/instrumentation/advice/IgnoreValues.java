@@ -1,56 +1,55 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 
-import javax.annotation.Nonnull;
 import java.util.Objects;
+
+import javax.annotation.Nonnull;
 
 public final class IgnoreValues {
 
-    public static final IgnoreValues NONE = new IgnoreValues(Type.NONE);
+	public static final IgnoreValues NONE = new IgnoreValues("NONE");
 
-    public static final IgnoreValues ALL = new IgnoreValues(Type.ALL);
+	public static final IgnoreValues ALL = new IgnoreValues("ALL");
 
-    public enum Type {
-        NONE,
-        NONE_EXCEPT,
-        ALL,
-        ALL_EXCEPT
-    }
+	private final String type;
 
-    private final Type type;
+	private final Integer index;
 
-    private final Integer index;
+	private IgnoreValues(String type) {
+		this(type, null);
+	}
 
-    private IgnoreValues(Type type) {
-        this(type, null);
-    }
+	private IgnoreValues(@Nonnull String type, Integer index) {
+		this.type = Objects.requireNonNull(type, "type must not be null");
+		this.index = index;
+	}
 
-    private IgnoreValues(@Nonnull Type type, Integer index) {
-        this.type = Objects.requireNonNull(type, "type must not be null");
-        this.index = index;
-    }
+	public static IgnoreValues noneExcept(int index) {
+		if (index < 0) {
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.instrumentation.ignore.values.index.negative"));
+		}
 
-    public static IgnoreValues noneExcept(int index) {
-        if (index < 0) {
-            throw new IllegalArgumentException("index must not be negative");
-        }
+		return new IgnoreValues("NONE_EXCEPT", index);
+	}
 
-        return new IgnoreValues(Type.NONE_EXCEPT, index);
-    }
+	public static IgnoreValues allExcept(int index) {
+		if (index < 0) {
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.instrumentation.ignore.values.index.negative"));
+		}
 
-    public static IgnoreValues allExcept(int index) {
-        if (index < 0) {
-            throw new IllegalArgumentException("index must not be negative");
-        }
+		return new IgnoreValues("ALL_EXCEPT", index);
+	}
 
-        return new IgnoreValues(Type.ALL_EXCEPT, index);
-    }
+	public String getType() {
+		return type;
+	}
 
-    public Type getType() {
-        return type;
-    }
-
-    public int getIndex() {
-        return index;
-    }
-
+	public int getIndex() {
+		if (index == null) {
+			throw new IllegalStateException(
+					JavaInstrumentationAdviceAbstractToolbox.localize("aop.ignore.index.not.available", type));
+		}
+		return index;
+	}
 }

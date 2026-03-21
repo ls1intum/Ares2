@@ -25,7 +25,7 @@ public final class NetworkPenguin {
 		try (Socket s = socketSupplier.call(); Scanner in = new Scanner(s.getInputStream())) {
 			if (expectLine != null) {
 				s.setSoTimeout(200);
-//				assertEquals(expectLine, in.nextLine());
+				// assertEquals(expectLine, in.nextLine());
 			}
 		}
 	}

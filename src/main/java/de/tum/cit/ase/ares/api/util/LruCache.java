@@ -7,7 +7,11 @@ import org.apiguardian.api.API.Status;
 
 /**
  * Implements a LRU (least recently used) cache as described in
- * {@link LinkedHashMap#removeEldestEntry}. This class is not thread safe.
+ * {@link LinkedHashMap#removeEldestEntry}.
+ * <p>
+ * <b>Thread Safety:</b> This class is NOT thread safe. For concurrent access,
+ * use {@link #synchronizedCache(int)} to create a thread-safe wrapper, or wrap
+ * instances with {@link Collections#synchronizedMap(Map)}.
  *
  * @author Christian Femers
  * @since 1.3.4
@@ -35,5 +39,21 @@ public class LruCache<K, V> extends LinkedHashMap<K, V> {
 	@Override
 	protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
 		return size() > maxCacheSize;
+	}
+
+	/**
+	 * Creates a thread-safe synchronized LRU cache.
+	 * <p>
+	 * This method wraps an {@link LruCache} with
+	 * {@link Collections#synchronizedMap(Map)} to provide thread-safe access in
+	 * concurrent environments.
+	 *
+	 * @param <K>          the type of the cache keys
+	 * @param <V>          the type of the cache values
+	 * @param maxCacheSize the maximum number of entries in the cache
+	 * @return a synchronized (thread-safe) LRU cache
+	 */
+	public static <K, V> Map<K, V> synchronizedCache(int maxCacheSize) {
+		return Collections.synchronizedMap(new LruCache<>(maxCacheSize));
 	}
 }

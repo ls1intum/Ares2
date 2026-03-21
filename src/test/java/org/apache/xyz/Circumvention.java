@@ -11,12 +11,14 @@ public class Circumvention extends Thread {
 	@Override
 	public void run() {
 		try {
-//			Thread[] theads = new Thread[Thread.currentThread().getThreadGroup().activeCount()];
-//			Thread.currentThread().getThreadGroup().enumerate(theads);
-//			System.err.println(" ==> " + Arrays.toString(theads) + " - " + Thread.currentThread());
+			// Thread[] theads = new
+			// Thread[Thread.currentThread().getThreadGroup().activeCount()];
+			// Thread.currentThread().getThreadGroup().enumerate(theads);
+			// System.err.println(" ==> " + Arrays.toString(theads) + " - " +
+			// Thread.currentThread());
 			throw new NullPointerException();
 		} catch (@SuppressWarnings("unused") NullPointerException e) {
-//			e.printStackTrace();
+			// e.printStackTrace();
 		}
 		try {
 			IOTester.class.getDeclaredFields()[0].setAccessible(true);

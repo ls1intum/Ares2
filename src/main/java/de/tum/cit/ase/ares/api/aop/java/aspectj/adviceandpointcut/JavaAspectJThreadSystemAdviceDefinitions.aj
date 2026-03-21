@@ -51,6 +51,40 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 
     //<editor-fold desc="Thread system methods">
 
+    //<editor-fold desc="Command execution bypass">
+
+    /**
+     * Checks if the current thread creation is triggered by ProcessBuilder or Runtime.exec.
+     *
+     * <p>Description: When ProcessBuilder.start() or Runtime.exec() is called, they internally
+     * create threads for process I/O handling. These thread creations should not be blocked
+     * by the Thread subsystem because the Command/Execute subsystem handles these operations.
+     * This method scans the call stack to detect if the thread creation originates from
+     * these command execution methods.
+     *
+     * @return true if thread creation is from ProcessBuilder or Runtime.exec, false otherwise
+     * @since 2.0.0
+     * @author Markus Paulsen
+     */
+    private static boolean isThreadCreationFromCommandExecution() {
+        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+        for (StackTraceElement element : stackTrace) {
+            String className = element.getClassName();
+            String methodName = element.getMethodName();
+            // Check for ProcessBuilder.start() and ProcessBuilder.startPipeline()
+            if ("java.lang.ProcessBuilder".equals(className) &&
+                    ("start".equals(methodName) || "startPipeline".equals(methodName))) {
+                return true;
+            }
+            // Check for Runtime.exec()
+            if ("java.lang.Runtime".equals(className) && "exec".equals(methodName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    //</editor-fold>
+
     //<editor-fold desc="Variable criteria methods">
 
     //<editor-fold desc="Forbidden handling">
@@ -208,17 +242,15 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
             Method getObjectMethod = unsafeClass.getMethod("getObject", Object.class, long.class);
             @Nullable Object taskValue = getObjectMethod.invoke(unsafe, threadFieldHolder, offset);
             if (taskValue == null) {
-                throw new InvalidPathException(threadFieldHolder.toString(),
-                        localize("security.advice.transform.path.exception"));
+                throw new SecurityException(localize("security.advice.transform.path.exception.detail", threadFieldHolder));
             }
             @Nonnull Class<?> taskClass = taskValue.getClass();
             return isReallyLambda(taskClass) ? "Lambda-Expression" : taskClass.getName();
         } catch (NoSuchFieldException | IllegalAccessException | NullPointerException |
                  InaccessibleObjectException e) {
-            throw new InvalidPathException(threadFieldHolder.toString(),
-                    localize("security.advice.transform.path.exception"));
+            throw new SecurityException(localize("security.advice.transform.path.exception.detail", threadFieldHolder), e);
         } catch (ClassNotFoundException | InvocationTargetException | NoSuchMethodException e) {
-            throw new RuntimeException(e);
+            throw new SecurityException(localize("security.advice.transform.path.unexpected.error"), e);
         }
     }
 
@@ -403,20 +435,82 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
             throw new SecurityException(localize("security.advice.thread.allowed.size", allowedThreadNumbersSize, allowedThreadClassesSize));
         }
         //</editor-fold>
-        //<editor-fold desc="Get information from attributes">
+        //<editor-fold desc="Get information from join point">
         @Nonnull Object[] parameters = thisJoinPoint.getArgs();
+        @Nullable Object instance = thisJoinPoint.getTarget();
         @Nonnull final String fullMethodSignature = thisJoinPoint.getSignature().toLongString();
+        @Nonnull final String declaringTypeName = thisJoinPoint.getSignature().getDeclaringTypeName();
+        @Nonnull final String methodName = thisJoinPoint.getSignature().getName();
+        //</editor-fold>
+        //<editor-fold desc="Extract attributes from object instance">
+        @Nonnull Object[] attributes = new Object[0];
+        if (instance != null) {
+            try {
+                @Nonnull java.lang.reflect.Field[] fields = instance.getClass().getDeclaredFields();
+                attributes = new Object[fields.length];
+                for (int i = 0; i < fields.length; i++) {
+                    try {
+                        fields[i].setAccessible(true);
+                        attributes[i] = fields[i].get(instance);
+                    } catch (InaccessibleObjectException e) {
+                        throw new SecurityException(localize("security.instrumentation.inaccessible.object.exception", fields[i].getName(), instance.getClass().getName()), e);
+                    } catch (IllegalAccessException e) {
+                        throw new SecurityException(localize("security.instrumentation.illegal.access.exception", fields[i].getName(), instance.getClass().getName()), e);
+                    } catch (IllegalArgumentException e) {
+                        throw new SecurityException(localize("security.instrumentation.illegal.argument.exception", fields[i].getName(), fields[i].getDeclaringClass().getName(), instance.getClass().getName()), e);
+                    } catch (NullPointerException e) {
+                        throw new SecurityException(localize("security.instrumentation.null.pointer.exception", fields[i].getName(), instance.getClass().getName()), e);
+                    } catch (ExceptionInInitializerError e) {
+                        throw new SecurityException(localize("security.instrumentation.exception.in-initializer.error", fields[i].getName(), instance.getClass().getName()), e);
+                    }
+                }
+            } catch (SecurityException e) {
+                throw e;
+            }
+        }
+        //</editor-fold>
+        //<editor-fold desc="Skip if thread creation is triggered by ProcessBuilder or Runtime.exec">
+        // When ProcessBuilder.start() or Runtime.exec() is called, they internally create threads
+        // for process I/O handling. These threads should not be blocked by the Thread subsystem
+        // because the Command/Execute subsystem will check these operations.
+        if (isThreadCreationFromCommandExecution()) {
+            return;
+        }
         //</editor-fold>
         //<editor-fold desc="Check callstack">
-        @Nullable String systemMethodToCheck = (restrictedPackage == null) ? null : checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses);
+        @Nullable String systemMethodToCheck = (restrictedPackage == null) ? null : checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses, declaringTypeName, methodName);
         if (systemMethodToCheck == null) {
             return;
         }
         //</editor-fold>
+        @Nullable String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
         //<editor-fold desc="Check parameters">
         @Nullable String illegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, allowedThreadClasses, allowedThreadNumbers, THREAD_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE));
         if (illegallyInteractedThroughParameter != null) {
-            throw new SecurityException(localize("security.advice.illegal.thread.execution", systemMethodToCheck, action, illegallyInteractedThroughParameter, fullMethodSignature));
+            throw new SecurityException(localize(
+                    "security.advice.illegal.thread.execution",
+                    systemMethodToCheck,
+                    action,
+                    illegallyInteractedThroughParameter,
+                    fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+            ));
+        }
+        //</editor-fold>
+        //<editor-fold desc="Check attributes">
+        @Nonnull Object[] attributesToCheck = new Object[attributes.length + 1];
+        attributesToCheck[0] = declaringTypeName;
+        if (attributes.length > 0) {
+            System.arraycopy(attributes, 0, attributesToCheck, 1, attributes.length);
+        }
+        @Nullable String illegallyInteractedThroughAttribute = (attributesToCheck.length == 0) ? null : checkIfVariableCriteriaIsViolated(attributesToCheck, allowedThreadClasses, allowedThreadNumbers, THREAD_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE));
+        if (illegallyInteractedThroughAttribute != null) {
+            throw new SecurityException(localize(
+                    "security.advice.illegal.thread.execution",
+                    systemMethodToCheck,
+                    action,
+                    illegallyInteractedThroughAttribute,
+                    fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+            ));
         }
         //</editor-fold>
     }

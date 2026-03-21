@@ -24,7 +24,7 @@ public final class IOExtensionUtils {
 		/*
 		 * Initialize SecurityManager when we are still in the main thread
 		 */
-		//REMOVED: Installation of ArtemisSecurityManager;
+		// REMOVED: Installation of ArtemisSecurityManager;
 	}
 
 	private static final HashMap<Class<? extends IOManager<?>>, Supplier<? extends IOManager<?>>> ioManagerCache = new HashMap<>();

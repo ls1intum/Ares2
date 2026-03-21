@@ -2,9 +2,9 @@ package de.tum.cit.ase.ares.integration;
 
 import static de.tum.cit.ase.ares.testutilities.CustomConditions.*;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.lang.Thread.State;
 import java.util.*;
@@ -12,15 +12,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.*;
 
-import de.tum.cit.ase.ares.api.Policy;
-import de.tum.cit.ase.ares.api.StrictTimeout;
-import de.tum.cit.ase.ares.api.jupiter.PublicTest;
-import de.tum.cit.ase.ares.integration.testuser.subject.threads.ThreadPenguin;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.function.Executable;
 import org.junit.platform.testkit.engine.Events;
 
+import de.tum.cit.ase.ares.api.Policy;
+import de.tum.cit.ase.ares.api.StrictTimeout;
 import de.tum.cit.ase.ares.api.TestUtils;
+import de.tum.cit.ase.ares.api.jupiter.PublicTest;
+import de.tum.cit.ase.ares.integration.testuser.subject.threads.ThreadPenguin;
 import de.tum.cit.ase.ares.testutilities.*;
 
 //@UserBased(ThreadUser.class)
@@ -60,10 +60,12 @@ class ThreadTest {
 	}
 
 	/**
-	 * Asserts that the exception message contains general error details for thread-related issues.
+	 * Asserts that the exception message contains general error details for
+	 * thread-related issues.
 	 *
 	 * @param actualMessage The actual exception message to be verified.
-	 * @param operationText The specific operation text to check in the exception message.
+	 * @param operationText The specific operation text to check in the exception
+	 *                      message.
 	 */
 	private void assertThreadErrorMessage(String actualMessage, String operationText) {
 		assertTrue(actualMessage.contains("Thread Security Error"),
@@ -73,15 +75,19 @@ class ThreadTest {
 		assertTrue(actualMessage.contains("Execution"),
 				"Exception message should contain 'Execution'" + System.lineSeparator() + actualMessage);
 		assertTrue(actualMessage.contains("ThreadAccessPenguin"),
-				"Exception message should contain the class name 'ThreadAccessPenguin'" + System.lineSeparator() + actualMessage);
+				"Exception message should contain the class name 'ThreadAccessPenguin'" + System.lineSeparator()
+						+ actualMessage);
 		assertTrue(actualMessage.contains("TODO:Forbidden-test"),
-				"Exception message should contain the forbidden thread operation: " + System.lineSeparator() + actualMessage);
+				"Exception message should contain the forbidden thread operation: " + System.lineSeparator()
+						+ actualMessage);
 		assertTrue(actualMessage.contains(operationText),
-				"Exception message should indicate the expected operation by containing '" + operationText + "'" + System.lineSeparator() + actualMessage);
+				"Exception message should indicate the expected operation by containing '" + operationText + "'"
+						+ System.lineSeparator() + actualMessage);
 	}
 
 	/**
-	 * Test that the given executable throws a SecurityException with the expected thread-related message.
+	 * Test that the given executable throws a SecurityException with the expected
+	 * thread-related message.
 	 *
 	 * @param executable The executable that should throw a SecurityException.
 	 */
@@ -103,15 +109,18 @@ class ThreadTest {
 
 	@TestTest
 	void test_testThreadGroup() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1, testFailedWith(testThreadGroup, SecurityException.class));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(1, testFailedWith(testThreadGroup,
+		// SecurityException.class));
 	}
 
 	@TestTest
 	void test_threadLimitExceeded() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1, testFailedWith(threadLimitExceeded, SecurityException.class,
-				//"too many threads: 2 (max: 1) in line 36 in ThreadPenguin.java", Option.MESSAGE_CONTAINS));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(1, testFailedWith(threadLimitExceeded,
+		// SecurityException.class,
+		// "too many threads: 2 (max: 1) in line 36 in ThreadPenguin.java",
+		// Option.MESSAGE_CONTAINS));
 	}
 
 	@TestTest
@@ -121,16 +130,16 @@ class ThreadTest {
 
 	@TestTest
 	void test_threadWhitelistingWithPathFail() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1,
-				//testFailedWith(threadWhitelistingWithPathFail, SecurityException.class));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(1,
+		// testFailedWith(threadWhitelistingWithPathFail, SecurityException.class));
 	}
 
 	@TestTest
 	void test_threadWhitelistingWithPathPenguin() {
-		//OUTCOMMENTED: Test does not pass
-		//tests.assertThatEvents().haveExactly(1,
-				//testFailedWith(threadWhitelistingWithPathPenguin, SecurityException.class));
+		// OUTCOMMENTED: Test does not pass
+		// tests.assertThatEvents().haveExactly(1,
+		// testFailedWith(threadWhitelistingWithPathPenguin, SecurityException.class));
 	}
 
 	@TestTest
@@ -192,7 +201,7 @@ class ThreadTest {
 	@TestTest
 	@PublicTest
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
-	void test_executorServiceFuture1(){
+	void test_executorServiceFuture1() {
 		assertThreadSecurityException(ThreadPenguin::executorServiceFuture1, "Task submitted...");
 	}
 

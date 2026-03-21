@@ -1,26 +1,29 @@
 package de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.execute.thirdPartyPackage;
 
-import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdpartypackage.ThirdPartyPackagePenguin;
-
 import java.io.IOException;
+
+import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdpartypackage.ThirdPartyPackagePenguin;
 
 public class ExecuteThirdPartyPackageMain {
 
-    private ExecuteThirdPartyPackageMain() {
-        throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
-    }
+	private ExecuteThirdPartyPackageMain() {
+		throw new SecurityException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
+	}
 
-    /**
-     * Access the file system using the {@link ThirdPartyPackagePenguin} class for execution.
-     */
-    public static void accessFileSystemViaThirdPartyPackage(String filePath) throws IOException {
-        ThirdPartyPackagePenguin.executeFile();
-    }
+	/**
+	 * Access the file system using the {@link ThirdPartyPackagePenguin} class for
+	 * execution.
+	 */
+	public static void accessFileSystemViaThirdPartyPackage(String filePath) throws IOException {
+		ThirdPartyPackagePenguin.executeFile();
+	}
 
-    /**
-     * Access the file system using the {@link ThirdPartyPackagePenguin} class for execution with default file.
-     */
-    public static void accessFileSystemViaThirdPartyPackage() throws IOException {
-        accessFileSystemViaThirdPartyPackage("test.txt");
-    }
+	/**
+	 * Access the file system using the {@link ThirdPartyPackagePenguin} class for
+	 * execution with default file.
+	 */
+	public static void accessFileSystemViaThirdPartyPackage() throws IOException {
+		accessFileSystemViaThirdPartyPackage("test.txt");
+	}
 }

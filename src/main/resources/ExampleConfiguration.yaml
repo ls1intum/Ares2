@@ -10,7 +10,7 @@ regardingTheSupervisedCode:
         readAllFiles: true
         overwriteAllFiles: true
         executeAllFiles: true
-        deleteAllFiles: false
+        deleteAllFiles: true
     regardingNetworkConnections:
       - onTheHost: "www.example.com"
         onThePort: 80
@@ -26,3 +26,5 @@ regardingTheSupervisedCode:
         ofThisClass: "instrumentation.lang.Thread"
     regardingPackageImports:
       - importTheFollowingPackage: "instrumentation.util"
+    regardingTimeouts:
+      - timeout: 3

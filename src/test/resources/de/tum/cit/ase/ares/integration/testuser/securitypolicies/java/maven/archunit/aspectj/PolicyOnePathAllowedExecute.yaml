@@ -11,16 +11,19 @@ regardingTheSupervisedCode:
     regardingFileSystemInteractions:
       - readAllFiles: true
         overwriteAllFiles: false
+        createAllFiles: false
         executeAllFiles: true
         deleteAllFiles: false
         onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted_execute.bat"
       - readAllFiles: true
         overwriteAllFiles: false
+        createAllFiles: false
         executeAllFiles: true
         deleteAllFiles: false
         onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted_execute.sh"
       - readAllFiles: true
         overwriteAllFiles: true
+        createAllFiles: true
         executeAllFiles: false
         deleteAllFiles: true
         onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted_output.txt"
