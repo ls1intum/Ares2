@@ -48,7 +48,7 @@ public aspect JavaAspectJThreadSystemPointcutDefinitions {
             call(* java.util.concurrent.ExecutorCompletionService+.submit(..)) ||
             call(* java.lang.Thread+.startVirtualThread(..)) ||
             call(* java.lang.Thread$Builder+.start(..)) ||
-            call(* java.lang.Thread$Builder$OfPlatform+.start(..)) ||
+            call(* java.lang.Thread$Builder$OfPlatform+.start(..))
             );
 
     pointcut threadCreateMethodsWithoutParameters(): (
