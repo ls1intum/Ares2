@@ -112,9 +112,9 @@ public class SecurityPolicyReaderAndDirector {
 					securityPolicyDirector = SecurityPolicyDirector
 							.selectSecurityPolicyDirector(securityPolicyExisting);
 					return securityPolicyDirector.createTestCases(securityPolicyExisting, projectFolderPath);
-				}).orNull();
-		// .or(SecurityPolicyDirector.selectSecurityPolicyDirector(null).createTestCases(null,
-		// projectFolderPath));
+				})
+				.or(SecurityPolicyDirector.selectSecurityPolicyDirector(null).createTestCases(null,
+						projectFolderPath));
 		return this;
 	}
 	// </editor-fold>

@@ -124,6 +124,62 @@ public class JavaProjectScanner implements ProjectScanner {
 	}
 
 	/**
+	 * Retrieves all Java file paths from the test sources directory.
+	 *
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 * @return a list of paths to Java test files
+	 */
+	@Nonnull
+	private List<Path> getTestJavaFiles() {
+		Path testPath = findTestSourcePath();
+		if (testPath != null && Files.exists(testPath)) {
+			try (Stream<Path> stream = Files.find(testPath, Integer.MAX_VALUE, this::fileIsJavaFile)) {
+				return stream.collect(Collectors.toList());
+			} catch (IOException e) {
+				return Collections.emptyList();
+			}
+		}
+		return Collections.emptyList();
+	}
+
+	/**
+	 * Finds the test source directory by inspecting the build configuration file
+	 * at the project root.
+	 *
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 * @return the path to the test source directory, or null if not found
+	 */
+	@Nullable
+	private Path findTestSourcePath() {
+		if (ProjectSourcesFinder.isGradleProject()) {
+			try {
+				String content = Files.readString(Path.of(ProjectSourcesFinder.getBuildGradlePath()));
+				if (content.contains("srcDir 'test'")) {
+					Path testPath = Path.of("test");
+					if (Files.exists(testPath)) {
+						return testPath;
+					}
+				}
+			} catch (IOException e) {
+				// fall through to default
+			}
+			Path defaultPath = Path.of("src/test/java");
+			if (Files.exists(defaultPath)) {
+				return defaultPath;
+			}
+		}
+		if (ProjectSourcesFinder.isMavenProject()) {
+			Path defaultPath = Path.of("src/test/java");
+			if (Files.exists(defaultPath)) {
+				return defaultPath;
+			}
+		}
+		return null;
+	}
+
+	/**
 	 * Checks if the given file is a Java source file.
 	 *
 	 * @param path       the path of the file to check
@@ -255,7 +311,15 @@ public class JavaProjectScanner implements ProjectScanner {
 	@Override
 	@Nonnull
 	public String[] scanForTestClasses() {
-		return scanJavaFiles(this::extractTestClass).filter(Objects::nonNull).toArray(String[]::new);
+		return getTestJavaFiles().stream().flatMap(file -> {
+			try {
+				String content = Files.readString(file);
+				String result = extractTestClass(content);
+				return result != null ? Stream.of(result) : Stream.empty();
+			} catch (IOException e) {
+				return Stream.empty();
+			}
+		}).toArray(String[]::new);
 	}
 
 	/**
@@ -301,35 +365,8 @@ public class JavaProjectScanner implements ProjectScanner {
 	@Override
 	@Nonnull
 	public Path scanForTestPath() {
-		Optional<Path> projectRoot = ProjectSourcesFinder.findProjectSourcesPath();
-		if (projectRoot.isPresent()) {
-			BuildMode buildMode = scanForBuildMode();
-			Path testPath;
-			if (buildMode == BuildMode.GRADLE) {// Check for custom test directory in Gradle projects
-				Path buildGradle = projectRoot.get().resolve("build.gradle");
-				if (Files.exists(buildGradle)) {
-					try {
-						String content = Files.readString(buildGradle);
-						if (content.contains("srcDir 'test'")) {
-							testPath = projectRoot.get().resolve("test");
-							if (Files.exists(testPath)) {
-								return testPath;
-							}
-						}
-					} catch (IOException e) {
-						// Fall back to default if file reading fails
-					}
-				}
-				// Default Gradle test path
-			}
-			testPath = projectRoot.get().resolve("src/test/java");
-
-			if (Files.exists(testPath)) {
-				return testPath;
-			}
-		}
-
-		return Path.of("src/test/java"); // Return a default path if no specific path is found
+		Path testPath = findTestSourcePath();
+		return testPath != null ? testPath : Path.of("src/test/java");
 	}
 	// </editor-fold>
 }

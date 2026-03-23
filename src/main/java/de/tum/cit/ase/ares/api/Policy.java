@@ -46,17 +46,23 @@ public @interface Policy {
 	String withinPath() default "";
 
 	/**
-	 * Whether the policy should be activated.
+	 * Whether Ares security checks are activated.
 	 * <p>
-	 * When set to {@code false}, the security policy will not be enforced and
-	 * {@link de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings#reset()} will
-	 * be called on both the bootstrap and application class loaders to disable all
-	 * AOP advices. This is useful for tests that should run without any Ares
+	 * When set to {@code true} (default), security checks are active. If no
+	 * {@code @Policy} annotation is present at all, the default most-restricted
+	 * policy is used. If a {@code value} path is specified, the custom policy from
+	 * that file is used.
+	 * </p>
+	 * <p>
+	 * When set to {@code false}, Ares security enforcement is completely disabled
+	 * and {@link de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings#reset()}
+	 * will be called on both the bootstrap and application class loaders to disable
+	 * all AOP advices. This is useful for tests that should run without any Ares
 	 * security restrictions (UNPROTECTED mode).
 	 * </p>
 	 *
-	 * @return {@code true} if the policy should be activated (default),
-	 *         {@code false} to disable all security checks.
+	 * @return {@code true} to keep security checks active (default),
+	 *         {@code false} to deactivate Ares security checks.
 	 */
 	boolean activated() default true;
 }

@@ -79,7 +79,7 @@ public class ReachabilityChecker {
 					.filter(iClass -> iClass.getClassLoader().getReference().equals(ClassLoaderReference.Application))
 					.map(IClass::getDeclaredMethods).map(io.vavr.collection.Stream::ofAll)
 					.flatMap(io.vavr.collection.Stream::toJavaStream)
-					.filter(iMethod -> !iMethod.getName().toString().equals("main")).map(IMethod::getReference)
+					.map(IMethod::getReference)
 					.map(methodReference -> new DefaultEntrypoint(methodReference, applicationClassHierarchy))
 					.toList());
 		} catch (ClassHierarchyException | IOException | UnimplementedError e) {
