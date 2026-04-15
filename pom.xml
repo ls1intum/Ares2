@@ -39,8 +39,7 @@
 		</byte-buddy-path>
 		<!-- 4. AST: 4.1 JavaParser -->
 		<java-parser-version>3.27.0</java-parser-version>
-		<!-- 5. Formats: 5.1 JSON -->
-		<json-version>20250517</json-version>
+		<!-- 5. F3.28.0</json-version>
 		<!-- 5. Formats: 5.2 YAML and XML-->
 		<yaml-version>2.20.0</yaml-version>
 		<!-- 6. Large Tooling Libraries -->
