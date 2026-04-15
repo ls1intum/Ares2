@@ -94,14 +94,24 @@ public class JavaCreator implements Creator {
 			@Nonnull List<String> testClasses) {
 		return Stream.of(
 				// Essential packages are allowed to do anything
-				essentialPackages.stream().map(PackagePermission::new),
+				essentialPackages.stream()
+						.filter(p -> p != null && !p.isBlank())
+						.map(PackagePermission::new),
 				// The permitted packages are allowed
 				resourceAccesses.regardingPackageImports().stream(),
 				/*
 				 * The package of the restricted student code is allowed (else the student would
 				 * not be able to use his/her own code)
+				 * Also allow all subpackages of the supervised package's root, so the student
+				 * can import sibling packages (e.g. anonymous.toolclasses from anonymous.agentsystem.attach)
 				 */
-				Stream.of(new PackagePermission(packageName)),
+				(packageName != null && !packageName.isBlank())
+						? Stream.of(
+								new PackagePermission(packageName),
+								new PackagePermission(packageName.contains(".")
+										? packageName.substring(0, packageName.indexOf('.'))
+										: packageName))
+						: Stream.<PackagePermission>empty(),
 				/*
 				 * The packages of the test classes are allowed (test infrastructure classes
 				 * like ProtectedResourceAccess need to be accessible from the supervised code)
@@ -109,7 +119,7 @@ public class JavaCreator implements Creator {
 				testClasses.stream().map(className -> {
 					int lastDot = className.lastIndexOf('.');
 					return lastDot > 0 ? className.substring(0, lastDot) : className;
-				}).distinct().map(PackagePermission::new)
+				}).filter(p -> !p.isBlank()).distinct().map(PackagePermission::new)
 
 		).flatMap(Function.identity()).collect(Collectors.toSet());
 	}

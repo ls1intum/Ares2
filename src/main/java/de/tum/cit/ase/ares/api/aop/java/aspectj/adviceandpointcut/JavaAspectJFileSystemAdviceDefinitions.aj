@@ -29,7 +29,7 @@ import org.aspectj.lang.JoinPoint;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
 //</editor-fold>
 
-public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstractAdviceDefinitions {
+@SuppressWarnings("AopLanguageInspection") public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstractAdviceDefinitions {
 
     //<editor-fold desc="Constants">
 
@@ -48,26 +48,57 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
     );
 
     /**
-     * Map of methods with attribute index exceptions for file system ignore logic.
+     * Resolve the index of a named field within the given class.
      *
-     * <p>Description: Specifies for certain methods which attribute index should be exempted
-     * from ignore rules during file system checks.
+     * <p>Description: Returns the positional index of the first field whose name
+     * matches {@code fieldName}.  Used to avoid hard-coding field indices that
+     * can shift across JDK versions (e.g. JDK 21 added a LOGGER field to
+     * {@link ProcessBuilder}).
      */
+    private static int findFieldIndex(Class<?> clazz, String fieldName) {
+        java.lang.reflect.Field[] fields = clazz.getDeclaredFields();
+        for (int i = 0; i < fields.length; i++) {
+            if (fieldName.equals(fields[i].getName())) {
+                return i;
+            }
+        }
+        return 0;
+    }
+
     @Nonnull
     private static final Map<String, IgnoreValues> FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT = Map.ofEntries(
-            Map.entry("java.io.File.delete", IgnoreValues.allExcept(1)),
-            Map.entry("java.io.File.deleteOnExit", IgnoreValues.allExcept(1)),
-            Map.entry("java.io.File.createNewFile", IgnoreValues.allExcept(1))
-    );
+            Map.entry("java.io.File.delete", IgnoreValues.allExcept(findFieldIndex(java.io.File.class, "path"))),
+            Map.entry("java.io.File.deleteOnExit", IgnoreValues.allExcept(findFieldIndex(java.io.File.class, "path"))),
+            Map.entry("java.io.File.createNewFile", IgnoreValues.allExcept(findFieldIndex(java.io.File.class, "path"))),
+            // ProcessBuilder.start - only check command field, resolved by name
+            Map.entry("java.lang.ProcessBuilder.start", IgnoreValues.allExcept(findFieldIndex(ProcessBuilder.class, "command"))),
+            Map.entry("java.lang.ProcessBuilder.startPipeline", IgnoreValues.allExcept(findFieldIndex(ProcessBuilder.class, "command"))));
 
     /**
      * Map of methods with parameter index exceptions for file system ignore logic.
-     *
-     * <p>Description: Specifies for certain methods which parameter index should be exempted
-     * from ignore rules during file system checks.
+     * <p>
+     * Description: Specifies for certain methods which parameter index should be
+     * exempted from ignore rules during file system checks. For methods like
+     * Files.createTempFile and Files.writeString, only the first parameter (the
+     * Path) should be checked, not content or prefix/suffix strings.
      */
     @Nonnull
-    private static final Map<String, IgnoreValues> FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT = Map.ofEntries();
+    private static final Map<String, IgnoreValues> FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT = Map.ofEntries(
+            // Files.createTempFile(Path dir, String prefix, String suffix,
+            // FileAttribute<?>...) - only check dir (index 0)
+            Map.entry("java.nio.file.Files.createTempFile", IgnoreValues.allExcept(0)),
+            // Files.writeString(Path path, CharSequence csq, OpenOption...) - only check
+            // path (index 0)
+            Map.entry("java.nio.file.Files.writeString", IgnoreValues.allExcept(0)),
+            // Files.write(Path path, byte[] bytes, OpenOption...) - only check path (index
+            // 0)
+            Map.entry("java.nio.file.Files.write", IgnoreValues.allExcept(0)),
+            // Files.readString(Path path, Charset cs) - only check path (index 0)
+            Map.entry("java.nio.file.Files.readString", IgnoreValues.allExcept(0)),
+            // File.createTempFile(String prefix, String suffix) - no path parameter at all
+            Map.entry("java.io.File.createTempFile", IgnoreValues.ALL),
+            // Runtime.exec(String[]) - only check command (index 0), not flags like "-c"
+            Map.entry("java.lang.Runtime.exec", IgnoreValues.allExcept(0)));
     //</editor-fold>
 
     //<editor-fold desc="File system methods">
@@ -78,59 +109,85 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 
     /**
      * Checks if a Path is outside of the allowed paths whitelist.
-     *
-     * <p>Description: Returns true if allowedPaths not null or if the given actualPath does not match one of the allowedPatterns.
+     * <p>
+     * Description: Returns true if allowedPathsAsStrings is null or if the given
+     * actualPath does not match one of the allowed patterns. This method resolves
+     * symlinks FIRST to prevent symlink-based sandbox escapes (TOCTOU attacks).
+     * <p>
+     * Security Note: Symlinks are resolved to their canonical form BEFORE checking
+     * against allowed paths, preventing attacks where a path like
+     * "/allowed/../../../etc/passwd" could bypass prefix checks.
      *
      * @since 2.0.0
      * @author Markus
-     * @param actualPath         the Path to test
-     * @param allowedPaths whitelist of allowed actualPath strings
-     * @param allowNonExistingPathsToBeConsidered whether non-existing paths should be considered
+     * @param actualPath                          the Path to test
+     * @param allowedPathsAsStrings               whitelist of allowed actualPath
+     *                                            strings
+     * @param allowNonExistingPathsToBeConsidered whether to allow paths that don't
+     *                                            exist yet
      * @return true if actualPath is forbidden; false otherwise
      */
-    private static boolean checkIfPathIsForbidden(@Nullable Path actualPath, @Nullable String[] allowedPaths, boolean allowNonExistingPathsToBeConsidered) {
+    private static boolean checkIfPathIsForbidden(@Nullable Path actualPath, @Nullable String[] allowedPathsAsStrings, boolean allowNonExistingPathsToBeConsidered) {
         if (actualPath == null) {
             return false;
         }
-        if (allowedPaths == null || allowedPaths.length == 0) {
+        if (allowedPathsAsStrings == null || allowedPathsAsStrings.length == 0) {
             return true;
         }
-        Path candidate = actualPath.normalize().toAbsolutePath();
-        boolean actualExists = Files.exists(candidate);
+
+        // SECURITY: Resolve symlinks FIRST to get the canonical path before any checks.
+        // This prevents TOCTOU attacks where symlinks could be manipulated between
+        // check and use.
+        Path candidate;
+        boolean actualExists = Files.exists(actualPath, LinkOption.NOFOLLOW_LINKS);
 
         if (actualExists) {
             try {
-                candidate = candidate.toRealPath(LinkOption.NOFOLLOW_LINKS);
-            } catch (IOException ignored) {
+                // Resolve ALL symlinks to get the true canonical path
+                // Do NOT use NOFOLLOW_LINKS here - we want to follow symlinks to see the real
+                // target
+                candidate = actualPath.toRealPath();
+            } catch (IOException e) {
+                // If we can't resolve the real path for an existing file, fail secure
                 if (!allowNonExistingPathsToBeConsidered) {
-                    return true;  // Cannot resolve path, treat as forbidden
+                    return true;
                 }
+                // Fall back to normalized absolute path if real path resolution fails
+                candidate = actualPath.normalize().toAbsolutePath();
             }
+        } else {
+            // For non-existing paths, use normalized absolute path
+            candidate = actualPath.normalize().toAbsolutePath();
         }
 
         boolean hasAllowedPrefix = false;
-        for (String allowedPathsAsString : allowedPaths) {
+        for (String allowedPathsAsString : allowedPathsAsStrings) {
             @Nullable Path allowedPath = variableToPath(allowedPathsAsString, allowNonExistingPathsToBeConsidered);
             if (allowedPath == null) {
                 continue;
             }
-            Path normalizedAllowedPath = allowedPath.normalize().toAbsolutePath();
-            if (!allowNonExistingPathsToBeConsidered) {
-                if (!Files.exists(normalizedAllowedPath)) {
+
+            // SECURITY: Also resolve symlinks in allowed paths to canonical form
+            Path normalizedAllowedPath;
+            boolean allowedExists = Files.exists(allowedPath, LinkOption.NOFOLLOW_LINKS);
+
+            if (allowedExists) {
+                try {
+                    // Resolve ALL symlinks in allowed path too
+                    normalizedAllowedPath = allowedPath.toRealPath();
+                } catch (IOException e) {
+                    if (!allowNonExistingPathsToBeConsidered) {
+                        continue;
+                    }
+                    normalizedAllowedPath = allowedPath.normalize().toAbsolutePath();
+                }
+            } else {
+                if (!allowNonExistingPathsToBeConsidered) {
                     continue;
                 }
-                try {
-                    normalizedAllowedPath = normalizedAllowedPath.toRealPath(LinkOption.NOFOLLOW_LINKS);
-                } catch (IOException ignored) {
-                    continue;
-                }
-            } else if (Files.exists(normalizedAllowedPath)) {
-                try {
-                    normalizedAllowedPath = normalizedAllowedPath.toRealPath(LinkOption.NOFOLLOW_LINKS);
-                } catch (IOException ignored) {
-                    // use normalized path if real path resolution fails
-                }
+                normalizedAllowedPath = allowedPath.normalize().toAbsolutePath();
             }
+
             if (candidate.startsWith(normalizedAllowedPath)) {
                 hasAllowedPrefix = true;
                 break;
@@ -153,12 +210,11 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 
     /**
      * Transforms variable values into a normalized absolute path.
-     *
-     * <p>Description: Converts the provided variable (Path, String, or File)
-     * into an absolute normalized Path for security checks.
+     * <p>
+     * Description: Converts the provided variable (Path, String, or File) into an
+     * absolute normalized Path for security checks, validating existence.
      *
      * @param variableValue the variable to transform into a Path
-     * @param allowNonExistingPathsToBeConsidered whether to allow non-existing paths
      * @return the normalized absolute Path
      * @throws InvalidPathException if transformation fails
      * @since 2.0.0
@@ -172,14 +228,13 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
             } else if (variableValue instanceof Path) {
                 return ((Path) variableValue).normalize().toAbsolutePath();
             } else if (variableValue instanceof String) {
-                if (variableValue.equals("") || variableValue.equals("/")) {
-                    throw new SecurityException(localize(
-                            "security.instrumentation.invalid.path",
-                            variableValue
-                    ));
+                // Empty string is not a valid path
+                if (variableValue.equals("")) {
+                    throw new SecurityException(localize("security.instrumentation.invalid.path", variableValue));
                 }
+                // "/" is the root directory and is a valid path - let it be processed normally
                 Path absolutePath = Path.of((String) variableValue).normalize().toAbsolutePath();
-                if (allowNonExistingPathsToBeConsidered || Files.exists(absolutePath)) {
+                if (Files.exists(absolutePath) || allowNonExistingPathsToBeConsidered) {
                     return absolutePath;
                 } else {
                     return null;
@@ -346,10 +401,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
         if (parameters == null || parameters.length == 0) {
             // PrintWriter(File) and PrintWriter(File, Charset) have no boolean append parameter
             // but always truncate the file, so they should be treated as "overwrite"
-            if ("java.io.PrintWriter".equals(declaringTypeName)) {
-                return true; // Treat as append=false (overwrite mode)
-            }
-            return false;
+            return "java.io.PrintWriter".equals(declaringTypeName); // Treat as append=false (overwrite mode)
         }
         
         Integer appendIndex = APPEND_PARAMETER_INDEX.get(declaringTypeName);
@@ -370,10 +422,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
                 }
             }
             // For PrintWriter: if no boolean found, default is to truncate (overwrite)
-            if (!foundBoolean && "java.io.PrintWriter".equals(declaringTypeName)) {
-                return true; // Treat as append=false (overwrite mode)
-            }
-            return false;
+            return !foundBoolean && "java.io.PrintWriter".equals(declaringTypeName); // Treat as append=false (overwrite mode)
         }
         
         // For fixed position, check the specific index

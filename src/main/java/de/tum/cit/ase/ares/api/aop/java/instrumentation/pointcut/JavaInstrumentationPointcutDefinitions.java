@@ -238,7 +238,9 @@ public class JavaInstrumentationPointcutDefinitions {
 	 */
 	public static final Map<String, List<String>> ignoredMethodsByClass = Map.ofEntries(
 			Map.entry("java.io.ByteArrayInputStream", List.of("read")),
-			Map.entry("java.io.RandomAccessFile", List.of("readFully")),
+			// RandomAccessFile.read is intentionally excluded to avoid recursive
+			// self-interception during class and JAR loading in instrumentation mode.
+			Map.entry("java.io.RandomAccessFile", List.of("read", "readFully")),
 			Map.entry("java.util.zip.InflaterInputStream", List.of("read")),
 			Map.entry("java.util.zip.ZipFile$ZipFileInputStream", List.of("read")));
 
@@ -351,7 +353,7 @@ public class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.io.Reader", List.of("<init>", "read")), Map.entry("java.io.InputStream", List.of("read")),
 			Map.entry("java.io.BufferedInputStream", List.of("<init>")),
 			Map.entry("java.io.FileInputStream", List.of("<init>")),
-			Map.entry("java.io.RandomAccessFile", List.of("<init>", "read")),
+			Map.entry("java.io.RandomAccessFile", List.of("<init>")),
 			Map.entry("java.io.DataInput",
 					List.of("read", "readBoolean", "readByte", "readChar", "readDouble", "readFloat", "readFully",
 							"readInt", "readLine", "readLong", "readShort", "readUnsignedByte", "readUnsignedShort",

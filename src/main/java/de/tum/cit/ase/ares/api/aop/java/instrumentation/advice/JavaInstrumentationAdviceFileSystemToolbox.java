@@ -48,20 +48,33 @@ import javax.annotation.Nullable;
 public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstrumentationAdviceAbstractToolbox {
 
 	// <editor-fold desc="Constants">
-	/**
-	 * Map of methods with attribute index exceptions for file system ignore logic.
+
+    /**
+	 * Resolve the index of a named field within the given class.
 	 * <p>
-	 * Description: Specifies for certain methods which attribute index should be
-	 * exempted from ignore rules during file system checks.
+	 * Description: Returns the positional index of the first field whose name
+	 * matches {@code fieldName}. Used to avoid hard-coding field indices that
+	 * can shift across JDK versions (e.g. JDK 21 added a LOGGER field to
+	 * {@link ProcessBuilder}).
 	 */
+	private static int findFieldIndex(Class<?> clazz, String fieldName) {
+		java.lang.reflect.Field[] fields = clazz.getDeclaredFields();
+		for (int i = 0; i < fields.length; i++) {
+			if (fieldName.equals(fields[i].getName())) {
+				return i;
+			}
+		}
+		return 0;
+	}
+
 	@Nonnull
 	private static final Map<String, IgnoreValues> FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT = Map.ofEntries(
-			Map.entry("java.io.File.delete", IgnoreValues.allExcept(1)),
-			Map.entry("java.io.File.deleteOnExit", IgnoreValues.allExcept(1)),
-			Map.entry("java.io.File.createNewFile", IgnoreValues.allExcept(1)),
-			// ProcessBuilder.start - only check command (index 0), not flags or arguments
-			Map.entry("java.lang.ProcessBuilder.start", IgnoreValues.allExcept(0)),
-			Map.entry("java.lang.ProcessBuilder.startPipeline", IgnoreValues.allExcept(0)));
+			Map.entry("java.io.File.delete", IgnoreValues.allExcept(findFieldIndex(java.io.File.class, "path"))),
+			Map.entry("java.io.File.deleteOnExit", IgnoreValues.allExcept(findFieldIndex(java.io.File.class, "path"))),
+			Map.entry("java.io.File.createNewFile", IgnoreValues.allExcept(findFieldIndex(java.io.File.class, "path"))),
+			// ProcessBuilder.start - only check command field, resolved by name
+			Map.entry("java.lang.ProcessBuilder.start", IgnoreValues.allExcept(findFieldIndex(ProcessBuilder.class, "command"))),
+			Map.entry("java.lang.ProcessBuilder.startPipeline", IgnoreValues.allExcept(findFieldIndex(ProcessBuilder.class, "command"))));
 
 	/**
 	 * Map of methods with parameter index exceptions for file system ignore logic.
@@ -426,10 +439,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			// PrintWriter(File) and PrintWriter(File, Charset) have no boolean append
 			// parameter
 			// but always truncate the file, so they should be treated as "overwrite"
-			if ("java.io.PrintWriter".equals(declaringTypeName)) {
-				return true; // Treat as append=false (overwrite mode)
-			}
-			return false;
+			return "java.io.PrintWriter".equals(declaringTypeName); // Treat as append=false (overwrite mode)
 		}
 
 		Integer appendIndex = APPEND_PARAMETER_INDEX.get(declaringTypeName);
@@ -450,10 +460,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				}
 			}
 			// For PrintWriter: if no boolean found, default is to truncate (overwrite)
-			if (!foundBoolean && "java.io.PrintWriter".equals(declaringTypeName)) {
-				return true; // Treat as append=false (overwrite mode)
-			}
-			return false;
+			return !foundBoolean && "java.io.PrintWriter".equals(declaringTypeName); // Treat as append=false (overwrite mode)
 		}
 
 		// For fixed position, check the specific index
@@ -965,11 +972,14 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		// <editor-fold desc="Check instrumentation mode early">
 		@Nullable
 		final String aopMode = getValueFromSettings("aopMode");
-		if (aopMode == null || !aopMode.equals("INSTRUMENTATION")) {
+		if (aopMode == null || aopMode.isEmpty() || !aopMode.equals("INSTRUMENTATION")) {
 			return;
 		}
 		@Nullable
 		final String restrictedPackage = getValueFromSettings("restrictedPackage");
+		if (restrictedPackage == null || restrictedPackage.isEmpty()) {
+			return;
+		}
 		@Nullable
 		final String[] allowedClasses = getValueFromSettings("allowedListedClasses");
 		// </editor-fold>

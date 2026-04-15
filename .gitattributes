@@ -39,6 +39,14 @@
 *.tgz      binary
 *.zip      binary
 
+# Compiled binaries
+*.so       binary
+*.dll      binary
+*.dylib    binary
+
+# jqwik property-based testing database
+.jqwik-database binary
+
 # Text files where line endings should be preserved
 *.patch    -text
 
@@ -53,9 +61,7 @@
 # These files are binary and should be left untouched
 # (binary is a macro for -text -diff)
 *.class         binary
-*.dll           binary
 *.ear           binary
 *.jar           binary
-*.so            binary
 *.war           binary
 *.jks           binary

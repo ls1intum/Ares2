@@ -17,9 +17,28 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
 
 //</editor-fold>
 
-public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstractAdviceDefinitions {
+@SuppressWarnings("AopLanguageInspection") public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstractAdviceDefinitions {
 
     //<editor-fold desc="Constants">
+
+    /**
+     * Resolve the index of a named field within the given class.
+     *
+     * <p>Description: Returns the positional index of the first field whose name
+     * matches {@code fieldName}.  Used to avoid hard-coding field indices that
+     * can shift across JDK versions (e.g. JDK 21 added a LOGGER field to
+     * {@link ProcessBuilder}).
+     */
+    private static int findFieldIndex(Class<?> clazz, String fieldName) {
+        java.lang.reflect.Field[] fields = clazz.getDeclaredFields();
+        for (int i = 0; i < fields.length; i++) {
+            if (fieldName.equals(fields[i].getName())) {
+                return i;
+            }
+        }
+        return 0;
+    }
+
     /**
      * Map of methods with attribute index exceptions for command system ignore logic.
      *
@@ -28,7 +47,7 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
      */
     @Nonnull
     private static final Map<String, IgnoreValues> COMMAND_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT = Map.ofEntries(
-            Map.entry("java.lang.ProcessBuilder.start", IgnoreValues.allExcept(1))
+            Map.entry("java.lang.ProcessBuilder.start", IgnoreValues.allExcept(findFieldIndex(ProcessBuilder.class, "command")))
     );
 
     /**
@@ -75,8 +94,59 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
             @Nonnull String allowedCommand = allowedCommands[i];
             @Nullable String[] allowedArgument = allowedArguments[i];
             if (allowedCommand.equals(actualCommand)) {
-                return !Arrays.deepEquals(allowedArgument, actualArgument) || actualArgument.length == 0;
+                // Use flexible argument matching that supports suffix matching for paths
+                return !argumentsMatch(allowedArgument, actualArgument) || actualArgument.length == 0;
             }
+        }
+        return true;
+    }
+
+    /**
+     * Checks if actual arguments match allowed arguments with flexible path
+     * matching.
+     * <p>
+     * Description: Compares argument arrays with support for suffix matching and
+     * contains matching. When an actual argument ends with an allowed argument
+     * (path suffix) or contains it as a substring, it's considered a match. This
+     * allows relative paths in policies to match absolute paths at runtime and
+     * shell expressions containing the allowed path to match.
+     *
+     * @param allowedArguments the allowed arguments from policy
+     * @param actualArguments  the actual arguments from the command
+     * @return true if arguments match, false otherwise
+     * @since 2.0.0
+     * @author Markus Paulsen
+     */
+    private static boolean argumentsMatch(@Nullable String[] allowedArguments, @Nullable String[] actualArguments) {
+        if (allowedArguments == null && actualArguments == null) {
+            return true;
+        }
+        if (allowedArguments == null || actualArguments == null) {
+            return false;
+        }
+        if (allowedArguments.length != actualArguments.length) {
+            return false;
+        }
+        for (int i = 0; i < allowedArguments.length; i++) {
+            @Nonnull String allowed = allowedArguments[i];
+            @Nonnull String actual = actualArguments[i];
+            // Exact match
+            if (allowed.equals(actual)) {
+                continue;
+            }
+            // Suffix match for paths: actual "/Users/.../src/main/file.sh" matches allowed
+            // "src/main/file.sh"
+            if (actual.endsWith("/" + allowed) || actual.endsWith("\\" + allowed)) {
+                continue;
+            }
+            // Contains match for shell expressions: actual
+            // "'/Users/.../file.sh' > '/tmp/out' ; cat '/tmp/out'" matches allowed
+            // "file.sh" when the actual argument contains the allowed value as a substring
+            if (actual.contains(allowed)) {
+                continue;
+            }
+            // No match
+            return false;
         }
         return true;
     }
@@ -85,9 +155,16 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
     //<editor-fold desc="Conversion handling">
 
     /**
-     * Converts a variable value to a command string.
+     * Converts a variable value to a command string array.
+     * <p>
+     * Description: Converts various input types to a command array representation.
+     * For String inputs, uses shell-like parsing that properly handles quoted
+     * arguments.
+     *
      * @param variableValue the value of the variable to convert
-     * @return the command string representation of the variable value
+     * @return the command string array representation of the variable value
+     * @since 2.0.0
+     * @author Markus Paulsen
      */
     @Nullable
     private static String[] variableToCommand(@Nullable Object variableValue) {
@@ -96,12 +173,84 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
         } else if (variableValue instanceof String[] && ((String[]) variableValue).length != 0) {
             return (String[]) variableValue;
         } else if (variableValue instanceof List<?> && ((List<?>) variableValue).stream().allMatch(o -> o instanceof String)) {
-            return ((List<String>) variableValue).toArray(new String[0]);
+            @SuppressWarnings("unchecked")
+            List<String> stringList = (List<String>) variableValue;
+            return stringList.toArray(new String[0]);
         } else if (variableValue instanceof String) {
-            return ((String) variableValue).split(" ");
+            return parseCommandString((String) variableValue);
         } else {
             return null;
         }
+    }
+
+    /**
+     * Parses a command string into an array of arguments, handling quoted strings.
+     * <p>
+     * Description: Implements shell-like parsing that properly handles
+     * single-quoted, double-quoted, and unquoted arguments. This prevents command
+     * injection attacks where malicious input could manipulate argument boundaries
+     * through spaces in quoted strings.
+     *
+     * @param command the command string to parse
+     * @return array of parsed arguments
+     * @since 2.0.0
+     * @author Markus Paulsen
+     */
+    @Nonnull
+    private static String[] parseCommandString(@Nonnull String command) {
+        List<String> args = new java.util.ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        boolean inSingleQuote = false;
+        boolean inDoubleQuote = false;
+        boolean escaped = false;
+
+        for (int i = 0; i < command.length(); i++) {
+            char c = command.charAt(i);
+
+            if (escaped) {
+                // Handle escaped characters
+                current.append(c);
+                escaped = false;
+                continue;
+            }
+
+            if (c == '\\' && !inSingleQuote) {
+                // Backslash escapes next character (except in single quotes)
+                escaped = true;
+                continue;
+            }
+
+            if (c == '\'' && !inDoubleQuote) {
+                // Toggle single quote mode (single quotes don't interpret anything)
+                inSingleQuote = !inSingleQuote;
+                continue;
+            }
+
+            if (c == '"' && !inSingleQuote) {
+                // Toggle double quote mode
+                inDoubleQuote = !inDoubleQuote;
+                continue;
+            }
+
+            if (c == ' ' && !inSingleQuote && !inDoubleQuote) {
+                // Space outside quotes - argument boundary
+                if (!current.isEmpty()) {
+                    args.add(current.toString());
+                    current = new StringBuilder();
+                }
+                continue;
+            }
+
+            // Regular character - add to current argument
+            current.append(c);
+        }
+
+        // Add final argument if present
+        if (!current.isEmpty()) {
+            args.add(current.toString());
+        }
+
+        return args.toArray(new String[0]);
     }
     //</editor-fold>
 

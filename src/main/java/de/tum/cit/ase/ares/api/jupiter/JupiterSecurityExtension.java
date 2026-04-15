@@ -1,7 +1,6 @@
 package de.tum.cit.ase.ares.api.jupiter;
 
 import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
-import static de.tum.cit.ase.ares.api.internal.TestGuardUtils.hasAnnotation;
 import static org.junit.platform.commons.support.AnnotationSupport.findAnnotation;
 
 import java.lang.reflect.InvocationTargetException;
@@ -27,8 +26,10 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
 			Optional<ReflectiveInvocationContext<?>> invocationContext) throws Throwable {
 		JupiterContext testContext = JupiterContext.of(extensionContext);
 
-		Optional<Policy> policyOpt = findAnnotation(testContext.testMethod(), Policy.class);
-		boolean hasPolicyAnnotation = hasAnnotation(testContext, Policy.class);
+		Optional<Policy> methodPolicy = findAnnotation(testContext.testMethod(), Policy.class);
+		Optional<Policy> classPolicy = findAnnotation(testContext.testClass(), Policy.class);
+		Optional<Policy> policyOpt = methodPolicy.or(() -> classPolicy);
+		boolean hasPolicyAnnotation = policyOpt.isPresent();
 		boolean isAresActivated = policyOpt.map(Policy::activated).orElse(true);
 
 		// ALWAYS reset settings first to ensure clean state for every test.
@@ -42,7 +43,9 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
 		// - @Policy(activated=true) or no @Policy → Ares active (security checks enabled)
 		// - @Policy(activated=false) → Ares deactivated (no security checks)
 		// - @Policy(value="file.yaml") → custom policy from file
-		if (!(hasPolicyAnnotation && !isAresActivated)) {
+		// Skip enforcement if no @Policy is found (e.g. during constructor interception
+		// where the method-level @Policy is not yet visible).
+		if (hasPolicyAnnotation && isAresActivated) {
 			Path policyPath = policyOpt.filter(p -> !p.value().isBlank())
 					.map(JupiterSecurityExtension::testAndGetPolicyValue).orElse(null);
 			Path withinPath = policyOpt.filter(p -> !p.withinPath().isBlank())

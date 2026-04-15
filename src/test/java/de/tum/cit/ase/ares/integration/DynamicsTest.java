@@ -6,7 +6,6 @@ import org.junit.platform.testkit.engine.Events;
 import org.opentest4j.*;
 
 import de.tum.cit.ase.ares.integration.testuser.DynamicsUser;
-import de.tum.cit.ase.ares.testutilities.CustomConditions.Option;
 import de.tum.cit.ase.ares.testutilities.TestTest;
 import de.tum.cit.ase.ares.testutilities.UserBased;
 import de.tum.cit.ase.ares.testutilities.UserTestResults;

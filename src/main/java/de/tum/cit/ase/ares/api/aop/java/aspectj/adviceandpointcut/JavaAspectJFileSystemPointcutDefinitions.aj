@@ -1,6 +1,6 @@
 package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
 
-public aspect JavaAspectJFileSystemPointcutDefinitions {
+@SuppressWarnings("AopLanguageInspection") public aspect JavaAspectJFileSystemPointcutDefinitions {
 
     pointcut fileReadMethods():
             (call(* java.io.File+.normalizedList(..)) ||

@@ -83,7 +83,6 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 	 * @param <T>  the type of elements in the list.
 	 * @return a supplier that returns the provided list.
 	 */
-	@SuppressWarnings("unchecked")
 	private static <T> Supplier<List<?>> supplier(List<T> list) {
 		return () -> (List<?>) list;
 	}

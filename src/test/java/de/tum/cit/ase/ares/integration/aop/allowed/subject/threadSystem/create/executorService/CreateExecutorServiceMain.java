@@ -21,7 +21,6 @@ public class CreateExecutorServiceMain {
 	public static void executeRunnable() {
 		try {
 			ExecutorService executorService = Executors.newSingleThreadExecutor();
-			;
 			executorService.execute(new LegalThread());
 		} catch (Exception e) {
 			throw new RuntimeException(e);

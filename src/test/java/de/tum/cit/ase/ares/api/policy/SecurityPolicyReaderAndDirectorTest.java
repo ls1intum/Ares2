@@ -1,7 +1,6 @@
 package de.tum.cit.ase.ares.api.policy;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import java.nio.file.Files;

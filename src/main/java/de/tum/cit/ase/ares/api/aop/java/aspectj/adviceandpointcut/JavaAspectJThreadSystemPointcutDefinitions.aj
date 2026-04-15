@@ -1,6 +1,6 @@
 package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
 
-public aspect JavaAspectJThreadSystemPointcutDefinitions {
+@SuppressWarnings("AopLanguageInspection") public aspect JavaAspectJThreadSystemPointcutDefinitions {
 
     pointcut threadCreateMethodsWithParameters(): (
             call(* java.lang.ThreadGroup+.newThread(..)) ||
