@@ -1,21 +1,21 @@
 regardingTheSupervisedCode:
-  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_WALA_AND_ASPECTJ
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
   theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
   theMainClassInsideThisPackageIs: "Main"
   theFollowingClassesAreTestClasses:
-    - "de.tum.cit.ase.ares.integration.aop.allowed.SystemAccessTest"
-    - "de.tum.cit.ase.ares.integration.aop.forbidden.SystemAccessTest"
-    - "de.tum.cit.ase.ares.integration.architecture.forbidden.SystemAccessTest"
+    - "de.tum.cit.ase.ares.integration.FileSystemAccessTest"
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions:
-      - readAllFiles: true
+      - readAllFiles: false
         overwriteAllFiles: false
         createAllFiles: false
-        executeAllFiles: false
+        executeAllFiles: true
         deleteAllFiles: false
         onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"
     regardingNetworkConnections: [ ]
-    regardingCommandExecutions: [ ]
+    regardingCommandExecutions:
+      - executeTheCommand: "src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"
+        withTheseArguments: []
     regardingThreadCreations: [ ]
     regardingPackageImports: [ ]
     regardingTimeouts:

@@ -97,24 +97,25 @@ public class SecurityPolicyReaderAndDirector {
 	 */
 	public SecurityPolicyReaderAndDirector createTestCases() {
 		@Nullable
-		SecurityPolicy securityPolicy = Optional.fromNullable(securityPolicyFilePath)
-				.transform(securityPolicyFilePath -> {
-					securityPolicyReader = SecurityPolicyReader.selectSecurityPolicyReader(this.securityPolicyFilePath);
-					if (securityPolicyReader != null) {
-						return securityPolicyReader.readSecurityPolicyFrom(securityPolicyFilePath);
-					} else {
-						throw new IllegalArgumentException(
-								Messages.localized("policy.reader.no.suitable.reader", securityPolicyFilePath));
-					}
-				}).orNull();
-		this.securityTestCaseFactoryAndBuilder = Optional.fromNullable(securityPolicy)
-				.transform(securityPolicyExisting -> {
-					securityPolicyDirector = SecurityPolicyDirector
-							.selectSecurityPolicyDirector(securityPolicyExisting);
-					return securityPolicyDirector.createTestCases(securityPolicyExisting, projectFolderPath);
-				})
-				.or(SecurityPolicyDirector.selectSecurityPolicyDirector(null).createTestCases(null,
-						projectFolderPath));
+		SecurityPolicy securityPolicy = null;
+		if (securityPolicyFilePath != null) {
+			@Nonnull Path nonNullPolicyPath = securityPolicyFilePath;
+			securityPolicyReader = SecurityPolicyReader.selectSecurityPolicyReader(nonNullPolicyPath);
+			if (securityPolicyReader != null) {
+				securityPolicy = securityPolicyReader.readSecurityPolicyFrom(nonNullPolicyPath);
+			} else {
+				throw new IllegalArgumentException(
+						Messages.localized("policy.reader.no.suitable.reader", nonNullPolicyPath)); //$NON-NLS-1$
+			}
+		}
+		if (securityPolicy != null) {
+			securityPolicyDirector = SecurityPolicyDirector.selectSecurityPolicyDirector(securityPolicy);
+			this.securityTestCaseFactoryAndBuilder = securityPolicyDirector.createTestCases(securityPolicy,
+					projectFolderPath);
+		} else {
+			securityPolicyDirector = SecurityPolicyDirector.selectSecurityPolicyDirector(null);
+			this.securityTestCaseFactoryAndBuilder = securityPolicyDirector.createTestCases(null, projectFolderPath);
+		}
 		return this;
 	}
 	// </editor-fold>

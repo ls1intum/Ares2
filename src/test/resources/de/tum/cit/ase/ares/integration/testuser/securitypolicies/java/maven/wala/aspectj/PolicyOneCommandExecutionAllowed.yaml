@@ -16,3 +16,5 @@ regardingTheSupervisedCode:
       - createTheFollowingNumberOfThreads: 100
         ofThisClass: "java.lang.ProcessHandleImpl$1"
     regardingPackageImports: [ ]
+    regardingTimeouts:
+      - timeout: 3000

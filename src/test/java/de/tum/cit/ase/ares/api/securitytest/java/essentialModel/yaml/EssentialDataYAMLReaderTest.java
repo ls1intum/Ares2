@@ -215,9 +215,9 @@ public class EssentialDataYAMLReaderTest {
 		void shouldReadAndProcessBothPackagesAndClassesSuccessfully() {
 			// Arrange
 			Path packagesPath = Paths
-					.get("de/tum/cit/ase/ares/api/configuration/essentialFiles/java/EssentialPackages.yaml");
+					.get("src/main/resources/de/tum/cit/ase/ares/api/configuration/essentialFiles/java/EssentialPackages.yaml");
 			Path classesPath = Paths
-					.get("de/tum/cit/ase/ares/api/configuration/essentialFiles/java/EssentialClasses.yaml");
+					.get("src/main/resources/de/tum/cit/ase/ares/api/configuration/essentialFiles/java/EssentialClasses.yaml");
 
 			// Act
 			EssentialPackages packages = reader.readEssentialPackagesFrom(packagesPath);

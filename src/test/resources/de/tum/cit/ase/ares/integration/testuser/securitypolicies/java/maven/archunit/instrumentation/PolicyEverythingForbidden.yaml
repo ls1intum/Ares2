@@ -12,3 +12,5 @@ regardingTheSupervisedCode:
     regardingCommandExecutions: [ ]
     regardingThreadCreations: [ ]
     regardingPackageImports: [ ]
+    regardingTimeouts:
+      - timeout: 3000
