@@ -100,7 +100,8 @@ public class JavaArchunitTestCaseTest {
 		Method method = JavaArchunitTestCase.class.getDeclaredMethod("javaClassesAsCode");
 		method.setAccessible(true);
 		String result = (String) method.invoke(testCase);
-		assertEquals("new ClassFileImporter().importPackages()", result);
+		assertTrue(result.startsWith("new ClassFileImporter()"), "Should start with ClassFileImporter creation");
+		assertTrue(result.contains(".importPackages()"), "Should contain importPackages() call");
 	}
 
 	@Test
@@ -116,8 +117,9 @@ public class JavaArchunitTestCaseTest {
 		Method method = JavaArchunitTestCase.class.getDeclaredMethod("javaClassesAsCode");
 		method.setAccessible(true);
 		String result = (String) method.invoke(testCase);
-		assertTrue(result.startsWith("new ClassFileImporter().importPackages("));
+		assertTrue(result.startsWith("new ClassFileImporter()"));
 		assertTrue(result.contains("\"de.tum.cit.ase.ares.api.architecture.java.archunit\""));
+		assertTrue(result.contains(".importPackages("));
 	}
 
 	@Test

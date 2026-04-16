@@ -106,8 +106,8 @@ public class JavaCreatorTest {
 			Supplier<String> mockSupplier = mock(Supplier.class);
 			when(mockSupplier.get()).thenReturn(null);
 
-			// Act
-			Supplier<String> cachedSupplier = JavaCreator.cacheResult("cached_value", mockSupplier);
+			// Act - use a unique key to avoid interference with other tests using the static cache
+			Supplier<String> cachedSupplier = JavaCreator.cacheResult("null_test_unique_key_abc123", mockSupplier);
 			String result = cachedSupplier.get();
 
 			// Assert
@@ -230,10 +230,10 @@ public class JavaCreatorTest {
 					testClasses, packageName, mainClassName, new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
 					resourceAccesses, tempDir);
 
-			// Assert - Each method should be called twice due to new cache instances
-			verify(buildMode, times(2)).getClasspath(tempDir, packageName);
-			verify(architectureMode, times(2)).getJavaClasses(classpath);
-			verify(architectureMode, times(2)).getCallGraph(classpath);
+			// Assert - Each method should only be called once due to static cache reuse
+			verify(buildMode, times(1)).getClasspath(tempDir, packageName);
+			verify(architectureMode, times(1)).getJavaClasses(classpath);
+			verify(architectureMode, times(1)).getCallGraph(classpath);
 		}
 
 		@Test

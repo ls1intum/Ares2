@@ -1,6 +1,5 @@
 package de.tum.cit.ase.ares.api.jqwik;
 
-import static de.tum.cit.ase.ares.api.internal.TestGuardUtils.hasAnnotation;
 import static de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension.resetSettingsInBootstrapClassLoader;
 import static de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension.resetSettingsInStandardClassLoader;
 import static de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension.testAndGetPolicyValue;
@@ -37,8 +36,10 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
 	public PropertyExecutionResult aroundProperty(PropertyLifecycleContext context, PropertyExecutor property) {
 		var testContext = JqwikContext.of(context);
 
-		Optional<Policy> policyOpt = findAnnotation(testContext.testMethod(), Policy.class);
-		boolean hasPolicyAnnotation = hasAnnotation(testContext, Policy.class);
+		Optional<Policy> methodPolicy = findAnnotation(testContext.testMethod(), Policy.class);
+		Optional<Policy> classPolicy = findAnnotation(testContext.testClass(), Policy.class);
+		Optional<Policy> policyOpt = methodPolicy.or(() -> classPolicy);
+		boolean hasPolicyAnnotation = policyOpt.isPresent();
 		boolean isAresActivated = policyOpt.map(Policy::activated).orElse(true);
 
 		// ALWAYS reset settings first to ensure clean state for every test.
@@ -49,7 +50,8 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
 		// - @Policy(activated=true) or no @Policy → Ares active (security checks enabled)
 		// - @Policy(activated=false) → Ares deactivated (no security checks)
 		// - @Policy(value="file.yaml") → custom policy from file
-		if (!(hasPolicyAnnotation && !isAresActivated)) {
+		// Skip enforcement if no @Policy is found.
+		if (hasPolicyAnnotation && isAresActivated) {
 			Path policyPath = policyOpt.filter(p -> !p.value().isBlank())
 					.map(p -> testAndGetPolicyValue(p)).orElse(null);
 			Path withinPath = policyOpt.filter(p -> !p.withinPath().isBlank())

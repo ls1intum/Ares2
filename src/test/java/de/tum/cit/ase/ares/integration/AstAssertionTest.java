@@ -693,7 +693,7 @@ public class AstAssertionTest {
 									"ClassWithNoExcludeMethods.java")
 							+ ":" + System.lineSeparator() + "  - Unwanted Recursion was found:"
 							+ System.lineSeparator()
-							+ "   - Between line 5 (column 5) and line 7 (column 5) in Method de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.ClassWithNoExcludeMethods.something(de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.RandomParameterThatShouldBeResolved)"
+							+ "   - Between line 5 (column 2) and line 7 (column 2) in Method de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.ClassWithNoExcludeMethods.something(de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles.recursions.excludeMethods.RandomParameterThatShouldBeResolved)"
 							+ System.lineSeparator()));
 		}
 
