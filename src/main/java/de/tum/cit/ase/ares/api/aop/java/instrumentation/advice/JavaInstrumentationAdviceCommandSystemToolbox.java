@@ -51,7 +51,7 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
 				return i;
 			}
 		}
-		return 0;
+		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.field.not.found", fieldName, clazz.getName()));
 	}
 
 	/**
