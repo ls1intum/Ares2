@@ -101,22 +101,18 @@ public class JavaCreator implements Creator {
 				resourceAccesses.regardingPackageImports().stream(),
 				/*
 				 * The package of the restricted student code is allowed (else the student would
-				 * not be able to use his/her own code)
-				 * Also allow all subpackages of the supervised package's root, so the student
-				 * can import sibling packages (e.g. anonymous.toolclasses from anonymous.agentsystem.attach)
+				 * not be able to use his/her own code).
+				 * SECURITY: Do not derive top-level roots (e.g., com/org/de), as that
+				 * unintentionally allows unrelated package namespaces.
 				 */
 				(packageName != null && !packageName.isBlank())
-						? Stream.of(
-								new PackagePermission(packageName),
-								new PackagePermission(packageName.contains(".")
-										? packageName.substring(0, packageName.indexOf('.'))
-										: packageName))
+						? Stream.of(new PackagePermission(packageName))
 						: Stream.<PackagePermission>empty(),
 				/*
 				 * The packages of the test classes are allowed (test infrastructure classes
 				 * like ProtectedResourceAccess need to be accessible from the supervised code)
 				 */
-				testClasses.stream().map(className -> {
+				testClasses.stream().filter(java.util.Objects::nonNull).map(className -> {
 					int lastDot = className.lastIndexOf('.');
 					return lastDot > 0 ? className.substring(0, lastDot) : className;
 				}).filter(p -> !p.isBlank()).distinct().map(PackagePermission::new)
