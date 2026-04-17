@@ -369,6 +369,7 @@ public class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("newDirectoryStream")),
 			// java.lang
 			Map.entry("java.lang.ClassLoader", List.of("getResourceAsStream")),
+			Map.entry("java.net.URL", List.of("openStream")),
 			// java.awt
 			Map.entry("java.awt.Toolkit", List.of("createImage", "getImage")),
 			Map.entry("java.awt.Font", List.of("createFont", "createFonts")),
@@ -490,7 +491,9 @@ public class JavaInstrumentationPointcutDefinitions {
 			// java.io
 			Map.entry("java.io.File", List.of("delete", "deleteOnExit")),
 			// java.nio
-			Map.entry("java.nio.file.Files", List.of("delete", "deleteIfExists", "move", "copy")));
+			Map.entry("java.nio.file.Files", List.of("delete", "deleteIfExists", "move")),
+			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("delete")),
+			Map.entry("org.apache.commons.io.FileUtils", List.of("forceDelete")));
 	// </editor-fold>
 
 	// <editor-fold desc="Create Path">
@@ -503,8 +506,6 @@ public class JavaInstrumentationPointcutDefinitions {
 	 */
 	public static final Map<String, List<String>> methodsWhichCanCreateFiles = Map.ofEntries(
 			Map.entry("java.io.File", List.of("createNewFile", "createTempFile", "mkdir", "mkdirs")),
-			Map.entry("java.io.BufferedOutputStream", List.of("<init>")),
-			Map.entry("java.io.BufferedWriter", List.of("<init>")),
 			Map.entry("java.io.FileOutputStream", List.of("<init>")),
 			Map.entry("java.io.FileWriter", List.of("<init>")), Map.entry("java.io.PrintWriter", List.of("<init>")),
 			Map.entry("java.io.RandomAccessFile", List.of("<init>")),

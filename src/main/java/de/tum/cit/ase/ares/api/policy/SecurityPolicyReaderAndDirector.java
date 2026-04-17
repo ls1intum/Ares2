@@ -98,7 +98,7 @@ public class SecurityPolicyReaderAndDirector {
 	public SecurityPolicyReaderAndDirector createTestCases() {
 		@Nullable
 		SecurityPolicy securityPolicy = null;
-		if (securityPolicyFilePath != null) {
+		if (securityPolicyFilePath != null && !securityPolicyFilePath.toString().isEmpty()) {
 			@Nonnull Path nonNullPolicyPath = securityPolicyFilePath;
 			securityPolicyReader = SecurityPolicyReader.selectSecurityPolicyReader(nonNullPolicyPath);
 			if (securityPolicyReader != null) {
@@ -112,10 +112,9 @@ public class SecurityPolicyReaderAndDirector {
 			securityPolicyDirector = SecurityPolicyDirector.selectSecurityPolicyDirector(securityPolicy);
 			this.securityTestCaseFactoryAndBuilder = securityPolicyDirector.createTestCases(securityPolicy,
 					projectFolderPath);
-		} else {
-			securityPolicyDirector = SecurityPolicyDirector.selectSecurityPolicyDirector(null);
-			this.securityTestCaseFactoryAndBuilder = securityPolicyDirector.createTestCases(null, projectFolderPath);
 		}
+		// If securityPolicy is null (no policy file path given), no test cases
+		// are created and securityTestCaseFactoryAndBuilder remains null.
 		return this;
 	}
 	// </editor-fold>
@@ -131,8 +130,10 @@ public class SecurityPolicyReaderAndDirector {
 	 */
 	@Nonnull
 	public List<Path> writeTestCases(Path testFolderPath) {
-		return Preconditions.checkNotNull(this.securityTestCaseFactoryAndBuilder,
-				"securityTestCaseFactoryAndBuilder must not be null").writeTestCases(testFolderPath);
+		if (this.securityTestCaseFactoryAndBuilder == null) {
+			return List.of();
+		}
+		return this.securityTestCaseFactoryAndBuilder.writeTestCases(testFolderPath);
 	}
 
 	/**

@@ -2,6 +2,8 @@ package de.tum.cit.ase.ares.api.architecture.java;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -163,5 +165,35 @@ public class FileHandlerConstantsTest {
 				"false-positives", "false-positives-file.txt");
 		assertTrue(FileHandlerConstants.FALSE_POSITIVES_FILE_SYSTEM_INTERACTIONS.endsWith(expected),
 				"FALSE_POSITIVES_FILE_SYSTEM_INTERACTIONS constant should point to the correct relative path");
+	}
+
+	@Test
+	void testArchunitFilesystemMethodsContainDeleteCoverage() throws IOException {
+		String content = Files.readString(FileHandlerConstants.ARCHUNIT_FILESYSTEM_METHODS);
+		assertTrue(content.contains("org.apache.commons.io.FileUtils.forceDelete(java.io.File)"));
+		assertTrue(content.contains("java.nio.file.spi.FileSystemProvider.delete(java.nio.file.Path)"));
+	}
+
+	@Test
+	void testWalaFilesystemMethodsContainDeleteCoverage() throws IOException {
+		String content = Files.readString(FileHandlerConstants.WALA_FILESYSTEM_METHODS);
+		assertTrue(content.contains("org.apache.commons.io.FileUtils.forceDelete(Ljava/io/File;)"));
+		assertTrue(content.contains("java.nio.file.spi.FileSystemProvider.delete(Ljava/nio/file/Path;)"));
+	}
+
+	@Test
+	void testArchunitThreadMethodsContainExecutorsFactories() throws IOException {
+		String content = Files.readString(FileHandlerConstants.ARCHUNIT_THREAD_MANIPULATION_METHODS);
+		assertTrue(content.contains("java.util.concurrent.Executors.newSingleThreadExecutor()"));
+		assertTrue(content.contains("java.util.concurrent.Executors.newFixedThreadPool(int)"));
+		assertTrue(content.contains("java.util.concurrent.Executors.newCachedThreadPool()"));
+	}
+
+	@Test
+	void testWalaThreadMethodsContainExecutorsFactories() throws IOException {
+		String content = Files.readString(FileHandlerConstants.WALA_THREAD_MANIPULATION_METHODS);
+		assertTrue(content.contains("java.util.concurrent.Executors.newSingleThreadExecutor()"));
+		assertTrue(content.contains("java.util.concurrent.Executors.newFixedThreadPool(I)"));
+		assertTrue(content.contains("java.util.concurrent.Executors.newCachedThreadPool()"));
 	}
 }

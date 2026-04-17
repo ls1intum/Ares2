@@ -213,27 +213,10 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
     protected static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses,
             String declaringTypeName, String methodName) {
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-        // Find the intercepted method and check if its direct caller is in IGNORE_CALLSTACK
-        for (int i = 0; i < stackTrace.length; i++) {
-            StackTraceElement element = stackTrace[i];
-            // Handle constructor names: "<init>" in bytecode vs constructor name in stack trace
-            String stackMethodName = element.getMethodName();
-            boolean methodMatches = stackMethodName.equals(methodName) 
-                    || (methodName.equals("<init>") && stackMethodName.equals("<init>"));
-            if (element.getClassName().equals(declaringTypeName) && methodMatches) {
-                // Found the intercepted method, check caller at [i+1]
-                if (i + 1 < stackTrace.length) {
-                    String callerClass = stackTrace[i + 1].getClassName();
-                    for (@Nonnull String ignore : IGNORE_CALLSTACK) {
-                        if (callerClass.startsWith(ignore)) {
-                            return null; // Direct caller is trusted (e.g., ClassLoader) -> allow
-                        }
-                    }
-                }
-                break;
-            }
-        }
-        // Continue with existing logic: search for student code in the stack
+        // Skip ignorable frames (Ares internals, class loading, reflection trampolines)
+        // and keep scanning until we either find restricted student code or exhaust the
+        // stack. This prevents reflective dispatch from bypassing the check simply
+        // because jdk.internal.reflect.* appears as an intermediate caller.
         for (@Nonnull StackTraceElement element : stackTrace) {
             String className = element.getClassName();
             boolean ignoreFound = false;

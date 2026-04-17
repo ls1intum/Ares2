@@ -125,6 +125,7 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 			case ENVIRONMENT_ACCESS -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_ACCESS_ENVIRONMENT
 					.check(javaClasses);
 			case MODULE_SYSTEM -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_ACCESS_MODULE_SYSTEM.check(javaClasses);
+			case JNDI_INJECTION -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_PERFORM_JNDI_LOOKUPS.check(javaClasses);
 			default -> throw new SecurityException(
 					Messages.localized("security.common.unsupported.operation", this.architectureTestCaseSupported));
 			}

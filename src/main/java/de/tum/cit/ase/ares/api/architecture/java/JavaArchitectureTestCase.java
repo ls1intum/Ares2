@@ -247,6 +247,7 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		case "attaches agents" -> "attach an agent";
 		case "accesses environment" -> "access the environment";
 		case "accesses module system" -> "access the module system";
+		case "performs jndi lookups" -> "perform a JNDI lookup";
 		default -> ruleName;
 		};
 	}

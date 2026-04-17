@@ -279,7 +279,7 @@ abstract class SystemAccessTest {
 		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable,
 				ERROR_MESSAGE);
 		Path expectedPath = Paths.get("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration", "aop",
-				"forbidden", "subject", "nottrusted.txt");
+				"forbidden", "subject", "fileSystem", "overwrite", "nottrusteddir");
 		assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally overwrite",
 				"illegal overwrite", clazz);
 	}

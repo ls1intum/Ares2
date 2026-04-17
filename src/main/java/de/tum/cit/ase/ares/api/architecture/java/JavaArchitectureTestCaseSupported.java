@@ -86,7 +86,12 @@ public enum JavaArchitectureTestCaseSupported implements ArchitectureTestCaseSup
 	 * Test case for module system manipulation (Module.addExports/addOpens,
 	 * privateLookupIn).
 	 */
-	MODULE_SYSTEM;
+	MODULE_SYSTEM,
+
+	/**
+	 * Test case for JNDI injection (InitialContext, LDAP/RMI/DNS lookups).
+	 */
+	JNDI_INJECTION;
 
 	/**
 	 * Retrieves the static architecture test cases.
@@ -105,7 +110,8 @@ public enum JavaArchitectureTestCaseSupported implements ArchitectureTestCaseSup
 	public List<ArchitectureTestCaseSupported> getStatic() {
 		return List.of(JavaArchitectureTestCaseSupported.PACKAGE_IMPORT,
 				JavaArchitectureTestCaseSupported.TERMINATE_JVM, JavaArchitectureTestCaseSupported.REFLECTION,
-				JavaArchitectureTestCaseSupported.SERIALIZATION, JavaArchitectureTestCaseSupported.CLASS_LOADING);
+				JavaArchitectureTestCaseSupported.SERIALIZATION, JavaArchitectureTestCaseSupported.CLASS_LOADING,
+				JavaArchitectureTestCaseSupported.JNDI_INJECTION);
 	}
 
 	/**

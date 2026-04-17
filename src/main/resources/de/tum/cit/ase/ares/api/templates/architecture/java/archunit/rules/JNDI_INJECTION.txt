@@ -1,0 +1,5 @@
+@Test
+public void jndiLookupsShouldNotBePerformed() {
+    javaClasses = ${javaClasses};
+    JavaArchunitTestCaseCollection.NO_CLASS_MUST_PERFORM_JNDI_LOOKUPS.check(javaClasses);
+}

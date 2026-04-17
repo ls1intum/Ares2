@@ -57,9 +57,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
 	void test_fileDelete_archunit_aspectj() {
-		// This method of deleting files requires a read before, hence we test for read
-		// related errors.
-		assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaFileDelete, FileDeleteMain.class,
+		assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaFileDelete, FileDeleteMain.class,
 				NOT_TRUSTED_FILE_PATH);
 	}
 
@@ -72,9 +70,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
 	void test_fileDelete_wala_aspectj() {
-		// This method of deleting files requires a read before, hence we test for read
-		// related errors.
-		assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaFileDelete, FileDeleteMain.class,
+		assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaFileDelete, FileDeleteMain.class,
 				NOT_TRUSTED_FILE_PATH);
 	}
 
@@ -91,9 +87,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
 	void test_fileDeleteOnExit_archunit_aspectj() {
-		// This method of deleting files requires a read before, hence we test for read
-		// violation.
-		assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaFileDeleteOnExit, FileDeleteMain.class,
+		assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaFileDeleteOnExit, FileDeleteMain.class,
 				NOT_TRUSTED_FILE_PATH);
 	}
 
@@ -106,9 +100,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
 	void test_fileDeleteOnExit_wala_aspectj() {
-		// This method of deleting files requires a read before, hence we test for read
-		// violation.
-		assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaFileDeleteOnExit, FileDeleteMain.class,
+		assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaFileDeleteOnExit, FileDeleteMain.class,
 				NOT_TRUSTED_FILE_PATH);
 	}
 
