@@ -147,15 +147,23 @@ public class SecurityPolicyReaderAndDirectorTest {
 		@Test
 		@DisplayName("Should handle null security policy file path")
 		void shouldHandleNullSecurityPolicyFilePath() {
-			// Arrange
-			SecurityPolicyReaderAndDirector instance = new SecurityPolicyReaderAndDirector(null, projectFolderPath);
+			try (MockedStatic<SecurityPolicyDirector> directorMock = mockStatic(SecurityPolicyDirector.class)) {
+				// Arrange
+				directorMock.when(() -> SecurityPolicyDirector.selectSecurityPolicyDirector(null))
+						.thenReturn(mockSecurityPolicyDirector);
+				when(mockSecurityPolicyDirector.createTestCases(null, projectFolderPath))
+						.thenReturn(mockFactoryAndBuilder);
 
-			// Act
-			SecurityPolicyReaderAndDirector result = instance.createTestCases();
+				SecurityPolicyReaderAndDirector instance = new SecurityPolicyReaderAndDirector(null, projectFolderPath);
 
-			// Assert
-			assertNotNull(result);
-			assertSame(instance, result);
+				// Act
+				SecurityPolicyReaderAndDirector result = instance.createTestCases();
+
+				// Assert
+				assertNotNull(result);
+				assertSame(instance, result);
+				verify(mockSecurityPolicyDirector).createTestCases(null, projectFolderPath);
+			}
 		}
 
 		@Test
@@ -226,7 +234,7 @@ public class SecurityPolicyReaderAndDirectorTest {
 		}
 
 		@Test
-		@DisplayName("Should throw exception when factory not initialized")
+		@DisplayName("Should return empty list when factory not initialized")
 		void shouldThrowExceptionWhenFactoryNotInitialized() {
 			// Arrange
 			SecurityPolicyReaderAndDirector instance = new SecurityPolicyReaderAndDirector(securityPolicyFilePath,
@@ -234,7 +242,9 @@ public class SecurityPolicyReaderAndDirectorTest {
 			Path testFolderPath = tempDir.resolve("test");
 
 			// Act & Assert
-			assertThrows(NullPointerException.class, () -> instance.writeTestCases(testFolderPath));
+			List<Path> result = instance.writeTestCases(testFolderPath);
+			assertNotNull(result);
+			assertTrue(result.isEmpty());
 		}
 	}
 

@@ -39,7 +39,6 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
 		Optional<Policy> methodPolicy = findAnnotation(testContext.testMethod(), Policy.class);
 		Optional<Policy> classPolicy = findAnnotation(testContext.testClass(), Policy.class);
 		Optional<Policy> policyOpt = methodPolicy.or(() -> classPolicy);
-		boolean hasPolicyAnnotation = policyOpt.isPresent();
 		boolean isAresActivated = policyOpt.map(Policy::activated).orElse(true);
 
 		// ALWAYS reset settings first to ensure clean state for every test.
@@ -47,11 +46,10 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
 		resetSettingsInBootstrapClassLoader();
 
 		// Determine security enforcement:
-		// - @Policy(activated=true) or no @Policy → Ares active (security checks enabled)
+		// - @Policy(activated=true) → enforce with custom policy from file
+		// - no @Policy on property → enforce with default policy (null path)
 		// - @Policy(activated=false) → Ares deactivated (no security checks)
-		// - @Policy(value="file.yaml") → custom policy from file
-		// Skip enforcement if no @Policy is found.
-		if (hasPolicyAnnotation && isAresActivated) {
+		if (isAresActivated) {
 			Path policyPath = policyOpt.filter(p -> !p.value().isBlank())
 					.map(p -> testAndGetPolicyValue(p)).orElse(null);
 			Path withinPath = policyOpt.filter(p -> !p.withinPath().isBlank())

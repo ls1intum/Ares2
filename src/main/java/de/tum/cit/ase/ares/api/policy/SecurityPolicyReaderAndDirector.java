@@ -108,13 +108,9 @@ public class SecurityPolicyReaderAndDirector {
 						Messages.localized("policy.reader.no.suitable.reader", nonNullPolicyPath)); //$NON-NLS-1$
 			}
 		}
-		if (securityPolicy != null) {
-			securityPolicyDirector = SecurityPolicyDirector.selectSecurityPolicyDirector(securityPolicy);
-			this.securityTestCaseFactoryAndBuilder = securityPolicyDirector.createTestCases(securityPolicy,
-					projectFolderPath);
-		}
-		// If securityPolicy is null (no policy file path given), no test cases
-		// are created and securityTestCaseFactoryAndBuilder remains null.
+		securityPolicyDirector = SecurityPolicyDirector.selectSecurityPolicyDirector(securityPolicy);
+		this.securityTestCaseFactoryAndBuilder = securityPolicyDirector.createTestCases(securityPolicy,
+				projectFolderPath);
 		return this;
 	}
 	// </editor-fold>

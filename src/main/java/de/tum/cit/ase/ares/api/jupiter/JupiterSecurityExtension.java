@@ -40,12 +40,12 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
 		resetSettingsInBootstrapClassLoader();
 
 		// Determine security enforcement:
-		// - @Policy(activated=true) or no @Policy → Ares active (security checks enabled)
+		// - @Policy(activated=true) → enforce with custom policy from file
+		// - no @Policy on @Test method → enforce with default policy (null path)
 		// - @Policy(activated=false) → Ares deactivated (no security checks)
-		// - @Policy(value="file.yaml") → custom policy from file
-		// Skip enforcement if no @Policy is found (e.g. during constructor interception
-		// where the method-level @Policy is not yet visible).
-		if (hasPolicyAnnotation && isAresActivated) {
+		// Skip enforcement during constructor interception (no test method present yet).
+		boolean isTestMethodPresent = testContext.testMethod().isPresent();
+		if (isAresActivated && (hasPolicyAnnotation || isTestMethodPresent)) {
 			Path policyPath = policyOpt.filter(p -> !p.value().isBlank())
 					.map(JupiterSecurityExtension::testAndGetPolicyValue).orElse(null);
 			Path withinPath = policyOpt.filter(p -> !p.withinPath().isBlank())
