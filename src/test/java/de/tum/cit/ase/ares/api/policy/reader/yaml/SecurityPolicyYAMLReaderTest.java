@@ -119,7 +119,7 @@ public class SecurityPolicyYAMLReaderTest {
 			Path nonExistentPath = Paths.get("non/existent/policy.yaml");
 
 			// Act & Assert
-			assertThrows(IllegalArgumentException.class, () -> reader.readSecurityPolicyFrom(nonExistentPath));
+			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(nonExistentPath));
 		}
 
 		@Test
@@ -139,6 +139,7 @@ public class SecurityPolicyYAMLReaderTest {
 					    regardingCommandExecutions: []
 					    regardingThreadCreations: []
 					    regardingPackageImports: []
+					    regardingTimeouts: []
 					""";
 			Files.writeString(policyFile, yamlContent);
 
@@ -171,6 +172,7 @@ public class SecurityPolicyYAMLReaderTest {
 					    regardingCommandExecutions: []
 					    regardingThreadCreations: []
 					    regardingPackageImports: []
+					    regardingTimeouts: []
 					""";
 			Files.writeString(policyFile, yamlContent);
 
@@ -226,7 +228,7 @@ public class SecurityPolicyYAMLReaderTest {
 			unreadableFile.toFile().setReadable(false);
 
 			// Act & Assert
-			assertThrows(IllegalArgumentException.class, () -> reader.readSecurityPolicyFrom(unreadableFile));
+			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(unreadableFile));
 
 			// Clean up
 			unreadableFile.toFile().setReadable(true);
@@ -248,6 +250,7 @@ public class SecurityPolicyYAMLReaderTest {
 						    regardingCommandExecutions: []
 						    regardingThreadCreations: []
 						    regardingPackageImports: []
+						    regardingTimeouts: []
 						""", config.name());
 				Files.writeString(policyFile, yamlContent);
 
@@ -281,6 +284,7 @@ public class SecurityPolicyYAMLReaderTest {
 					    regardingCommandExecutions: []
 					    regardingThreadCreations: []
 					    regardingPackageImports: []
+					    regardingTimeouts: []
 					""";
 			Files.writeString(policyFile, yamlContent);
 

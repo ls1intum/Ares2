@@ -34,3 +34,5 @@ regardingTheSupervisedCode:
       - createTheFollowingNumberOfThreads: 100
         ofThisClass: "java.util.concurrent.ExecutorCompletionService$QueueingFuture"
     regardingPackageImports: []
+    regardingTimeouts:
+      - timeout: 3000

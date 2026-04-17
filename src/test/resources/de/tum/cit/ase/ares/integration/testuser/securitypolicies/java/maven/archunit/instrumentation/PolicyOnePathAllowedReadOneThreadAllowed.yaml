@@ -20,3 +20,5 @@ regardingTheSupervisedCode:
       - createTheFollowingNumberOfThreads: 1
         ofThisClass: "*"
     regardingPackageImports: [ ]
+    regardingTimeouts:
+      - timeout: 3000

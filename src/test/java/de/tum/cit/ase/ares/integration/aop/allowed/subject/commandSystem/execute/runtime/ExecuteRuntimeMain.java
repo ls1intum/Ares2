@@ -12,7 +12,6 @@ public class ExecuteRuntimeMain {
 	/**
 	 * Execute a command using the {@link Runtime} class.
 	 */
-	@SuppressWarnings("deprecation")
 	public static Process executeCommandViaRuntime(String command) throws IOException {
 		Runtime runtime = Runtime.getRuntime();
 		return runtime.exec(command);
@@ -21,7 +20,6 @@ public class ExecuteRuntimeMain {
 	/**
 	 * Execute a command using the {@link Runtime} class without parameters.
 	 */
-	@SuppressWarnings("deprecation")
 	public static Process executeCommandViaRuntime() throws IOException {
 		Runtime runtime = Runtime.getRuntime();
 		return runtime.exec("echo hello");
@@ -30,7 +28,6 @@ public class ExecuteRuntimeMain {
 	/**
 	 * Execute a command using the {@link Runtime} class with arguments.
 	 */
-	@SuppressWarnings("deprecation")
 	public static Process executeCommandViaRuntimeWithArgs() throws IOException {
 		Runtime runtime = Runtime.getRuntime();
 		return runtime.exec("echo hello", new String[] { "world" });

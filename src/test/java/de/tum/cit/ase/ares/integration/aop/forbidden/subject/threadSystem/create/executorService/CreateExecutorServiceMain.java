@@ -100,9 +100,7 @@ public class CreateExecutorServiceMain {
 			ExecutorService executorService = Executors.newSingleThreadExecutor();
 			Collection<Callable<String>> tasks = Arrays.asList(() -> "task1", () -> "task2");
 			executorService.invokeAny(tasks);
-		} catch (InterruptedException e) {
-			throw new RuntimeException(e);
-		} catch (ExecutionException e) {
+		} catch (InterruptedException | ExecutionException e) {
 			throw new RuntimeException(e);
 		}
 	}
@@ -115,11 +113,7 @@ public class CreateExecutorServiceMain {
 			ExecutorService executorService = Executors.newSingleThreadExecutor();
 			Collection<Callable<String>> tasks = Arrays.asList(() -> "task1", () -> "task2");
 			executorService.invokeAny(tasks, 1000, java.util.concurrent.TimeUnit.MILLISECONDS);
-		} catch (InterruptedException e) {
-			throw new RuntimeException(e);
-		} catch (ExecutionException e) {
-			throw new RuntimeException(e);
-		} catch (TimeoutException e) {
+		} catch (InterruptedException | ExecutionException | TimeoutException e) {
 			throw new RuntimeException(e);
 		}
 	}

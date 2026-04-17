@@ -25,16 +25,16 @@ class JavaInstrumentationExecutePathMethodAdviceTest {
 			// Arrange
 			mockedToolbox
 					.when(() -> JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction(OPERATION,
-							CLASS_NAME, METHOD_NAME, METHOD_SIGNATURE, ATTRIBUTES, PARAMETERS, null))
+							CLASS_NAME, METHOD_NAME, METHOD_SIGNATURE, ATTRIBUTES, PARAMETERS, INSTANCE))
 					.thenAnswer(invocation -> null);
 
 			// Act
 			JavaInstrumentationExecutePathMethodAdvice.onEnter(CLASS_NAME, METHOD_NAME, METHOD_SIGNATURE, INSTANCE,
-					PARAMETERS, null);
+					PARAMETERS);
 
 			// Assert
 			mockedToolbox.verify(() -> JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction(OPERATION,
-					CLASS_NAME, METHOD_NAME, METHOD_SIGNATURE, ATTRIBUTES, PARAMETERS, null));
+					CLASS_NAME, METHOD_NAME, METHOD_SIGNATURE, ATTRIBUTES, PARAMETERS, INSTANCE));
 		}
 	}
 }

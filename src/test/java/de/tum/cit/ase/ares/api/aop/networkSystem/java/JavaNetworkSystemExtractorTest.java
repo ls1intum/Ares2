@@ -120,6 +120,6 @@ public class JavaNetworkSystemExtractorTest {
 		Assertions.assertEquals(expectedReceivePorts, actualReceivePorts);
 
 		// invalid
-		Assertions.assertThrows(IllegalArgumentException.class, () -> extractor.getPermittedNetworkHosts("kill"));
+		Assertions.assertThrows(SecurityException.class, () -> extractor.getPermittedNetworkHosts("kill"));
 	}
 }

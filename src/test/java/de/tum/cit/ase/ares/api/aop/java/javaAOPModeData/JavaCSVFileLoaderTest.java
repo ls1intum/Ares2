@@ -75,7 +75,7 @@ public class JavaCSVFileLoaderTest {
 			}
 		};
 
-		Assertions.assertThrows(CsvException.class, () -> loader.loadCopyData(ArchitectureMode.WALA, false),
+		Assertions.assertThrows(com.opencsv.exceptions.CsvMalformedLineException.class, () -> loader.loadCopyData(ArchitectureMode.WALA, false),
 				"Expected CsvException for malformed content");
 	}
 
@@ -133,7 +133,7 @@ public class JavaCSVFileLoaderTest {
 			}
 		};
 
-		Assertions.assertThrows(CsvException.class, () -> loader.loadEditData(AOPMode.ASPECTJ),
+		Assertions.assertThrows(com.opencsv.exceptions.CsvMalformedLineException.class, () -> loader.loadEditData(AOPMode.ASPECTJ),
 				"Expected CsvException for malformed content");
 	}
 }

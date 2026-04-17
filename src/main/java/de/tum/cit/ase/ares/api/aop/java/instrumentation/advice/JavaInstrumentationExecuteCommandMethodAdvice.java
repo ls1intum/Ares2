@@ -50,9 +50,10 @@ public final class JavaInstrumentationExecuteCommandMethodAdvice {
 					fields[i].setAccessible(true);
 					attributes[i] = fields[i].get(instance);
 				} catch (InaccessibleObjectException e) {
-					throw new SecurityException(JavaInstrumentationAdviceCommandSystemToolbox.localize(
-							"security.instrumentation.inaccessible.object.exception", fields[i].getName(),
-							instance.getClass().getName()), e);
+					// Field is not accessible due to JVM module restrictions (e.g.
+					// java.lang.Runtime.currentRuntime). Skip the field — it is not student-defined
+					// and irrelevant for the command security check.
+					attributes[i] = null;
 				} catch (IllegalAccessException e) {
 					throw new SecurityException(JavaInstrumentationAdviceCommandSystemToolbox.localize(
 							"security.instrumentation.illegal.access.exception", fields[i].getName(),

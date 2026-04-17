@@ -60,8 +60,7 @@ public class UnwantedNodesAssert extends AbstractAssert<UnwantedNodesAssert, Pat
 	 * @return An unwanted node assertion object (for chaining)
 	 */
 	public static UnwantedNodesAssert assertThatProjectSources() {
-		Path path = ProjectSourcesFinder.findProjectSourcesPath().orElseThrow(() -> new AssertionError("" //$NON-NLS-1$
-				+ "Could not find project sources folder." //$NON-NLS-1$
+		Path path = ProjectSourcesFinder.findProjectSourcesPath().orElseThrow(() -> new AssertionError("Could not find project sources folder." //$NON-NLS-1$
 				+ " Make sure the build file is configured correctly." //$NON-NLS-1$
 				+ " If it is not located in the execution folder directly," //$NON-NLS-1$
 				+ " set the location using AresConfiguration methods.")); //$NON-NLS-1$

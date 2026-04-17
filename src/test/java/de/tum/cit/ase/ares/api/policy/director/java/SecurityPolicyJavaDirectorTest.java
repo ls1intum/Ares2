@@ -2,8 +2,6 @@ package de.tum.cit.ase.ares.api.policy.director.java;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
 
 import java.nio.file.Files;
 import java.nio.file.Path;

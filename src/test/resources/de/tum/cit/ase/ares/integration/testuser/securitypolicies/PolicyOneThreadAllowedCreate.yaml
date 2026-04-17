@@ -1,0 +1,16 @@
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.cit.ase.ares.integration.ThreadTest"
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions: []
+    regardingNetworkConnections: []
+    regardingCommandExecutions: []
+    regardingThreadCreations:
+      - createTheFollowingNumberOfThreads: 1
+        ofThisClass: "de.tum.cit.ase.ares.integration.aop.allowed.subject.LegalThread"
+    regardingPackageImports: []
+    regardingTimeouts:
+      - timeout: 3000

@@ -119,6 +119,6 @@ public class JavaFileSystemExtractorTest {
 		Assertions.assertEquals(deletePathsExpected, deletePathsActual);
 
 		// invalid
-		Assertions.assertThrows(IllegalArgumentException.class, () -> extractor.getPermittedFilePaths("kill"));
+		Assertions.assertThrows(SecurityException.class, () -> extractor.getPermittedFilePaths("kill"));
 	}
 }

@@ -137,7 +137,8 @@ public class SecurityPolicyJavaDirector extends SecurityPolicyDirector {
 	public TestCaseAbstractFactoryAndBuilder createTestCases(@Nullable SecurityPolicy securityPolicy,
 			@Nullable Path projectFolderPath) {
 		if (securityPolicy == null) {
-			return generateFactoryAndBuilder(null, null, null, null, null);
+			return generateFactoryAndBuilder(BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, null,
+					projectFolderPath);
 		}
 		@Nonnull
 		ProgrammingLanguageConfiguration config = Preconditions.checkNotNull(

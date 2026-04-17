@@ -37,6 +37,24 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
 	// <editor-fold desc="Constants">
 
 	/**
+	 * Resolve the index of a named field within the given class.
+	 * <p>
+	 * Description: Returns the positional index of the first field whose name
+	 * matches {@code fieldName}. Used to avoid hard-coding field indices that
+	 * can shift across JDK versions (e.g. JDK 21 added a LOGGER field to
+	 * {@link ProcessBuilder}).
+	 */
+	private static int findFieldIndex(Class<?> clazz, String fieldName) {
+		java.lang.reflect.Field[] fields = clazz.getDeclaredFields();
+		for (int i = 0; i < fields.length; i++) {
+			if (fieldName.equals(fields[i].getName())) {
+				return i;
+			}
+		}
+		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.field.not.found", fieldName, clazz.getName()));
+	}
+
+	/**
 	 * Map of methods with attribute index exceptions for command system ignore
 	 * logic.
 	 * <p>
@@ -45,7 +63,7 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
 	 */
 	@Nonnull
 	private static final Map<String, IgnoreValues> COMMAND_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT = Map
-			.ofEntries(Map.entry("java.lang.ProcessBuilder.start", IgnoreValues.allExcept(1)));
+			.ofEntries(Map.entry("java.lang.ProcessBuilder.start", IgnoreValues.allExcept(findFieldIndex(ProcessBuilder.class, "command"))));
 
 	/**
 	 * Map of methods with parameter index exceptions for command system ignore
@@ -128,10 +146,11 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
 	 * Checks if actual arguments match allowed arguments with flexible path
 	 * matching.
 	 * <p>
-	 * Description: Compares argument arrays with support for suffix matching. When
-	 * an actual argument ends with an allowed argument (path suffix), it's
-	 * considered a match. This allows relative paths in policies to match absolute
-	 * paths at runtime.
+	 * Description: Compares argument arrays with support for suffix matching and
+	 * contains matching. When an actual argument ends with an allowed argument
+	 * (path suffix) or contains it as a substring, it's considered a match. This
+	 * allows relative paths in policies to match absolute paths at runtime and
+	 * shell expressions containing the allowed path to match.
 	 *
 	 * @param allowedArguments the allowed arguments from policy
 	 * @param actualArguments  the actual arguments from the command
@@ -161,6 +180,12 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
 			// Suffix match for paths: actual "/Users/.../src/main/file.sh" matches allowed
 			// "src/main/file.sh"
 			if (actual.endsWith("/" + allowed) || actual.endsWith("\\" + allowed)) {
+				continue;
+			}
+			// Contains match for shell expressions: actual
+			// "'/Users/.../file.sh' > '/tmp/out' ; cat '/tmp/out'" matches allowed
+			// "file.sh" when the actual argument contains the allowed value as a substring
+			if (actual.contains(allowed)) {
 				continue;
 			}
 			// No match
@@ -253,7 +278,7 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
 
 			if (c == ' ' && !inSingleQuote && !inDoubleQuote) {
 				// Space outside quotes - argument boundary
-				if (current.length() > 0) {
+				if (!current.isEmpty()) {
 					args.add(current.toString());
 					current = new StringBuilder();
 				}
@@ -265,7 +290,7 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
 		}
 
 		// Add final argument if present
-		if (current.length() > 0) {
+		if (!current.isEmpty()) {
 			args.add(current.toString());
 		}
 
@@ -412,11 +437,14 @@ public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumen
 		// <editor-fold desc="Get information from settings">
 		@Nullable
 		final String aopMode = getValueFromSettings("aopMode");
-		if (aopMode == null || !aopMode.equals("INSTRUMENTATION")) {
+		if (aopMode == null || aopMode.isEmpty() || !aopMode.equals("INSTRUMENTATION")) {
 			return;
 		}
 		@Nullable
 		final String restrictedPackage = getValueFromSettings("restrictedPackage");
+		if (restrictedPackage == null || restrictedPackage.isEmpty()) {
+			return;
+		}
 		@Nullable
 		final String[] allowedClasses = getValueFromSettings("allowedListedClasses");
 

@@ -1365,8 +1365,8 @@ should, of course, be before the release of the exercise on Artemis.
 You can use `@ExtendedDeadline` together with a duration like `1d` or
 `2d 12h 30m` to extend the deadline by the given amount.
 `@ExtendedDeadline("1d")`, for example, extends the deadline by one day.
-If you use the annotation on different levels (e.g. class and method)
-without stating a new deadline (e.g. deadline only on class level), the
+If you use the annotation on different levels (e.g. class and method)
+without stating a new deadline (e.g. deadline only on class level), the
 extensions will be added together.
 
 ==== Threads and Concurrency

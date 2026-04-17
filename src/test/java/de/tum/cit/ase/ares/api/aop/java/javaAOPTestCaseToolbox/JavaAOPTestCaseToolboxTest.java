@@ -67,7 +67,7 @@ public class JavaAOPTestCaseToolboxTest {
 		List<List<String>> values = Arrays.asList(Arrays.asList("a", "b"), Arrays.asList("c", "d"));
 		String result = JavaAOPTestCaseToolbox.getStringTwoDArrayAssignment("twoDArray", values);
 		Assertions.assertEquals(
-				"private static String[][] twoDArray = new String[][] {new String[]{\"a\", \"b\"}, new String[]{\"c\", \"d\"}};\n",
+				"private static String[][] twoDArray = new String[][] {new String[] {\"a\", \"b\"}, new String[] {\"c\", \"d\"}};\n",
 				result);
 	}
 

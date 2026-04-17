@@ -132,10 +132,10 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 						StringBuilder packageBuilder = new StringBuilder();
 						for (int j = 0; j < parts.length; j++) {
 							// Stop when we hit the class name (starts with uppercase)
-							if (parts[j].length() > 0 && Character.isUpperCase(parts[j].charAt(0))) {
+							if (!parts[j].isEmpty() && Character.isUpperCase(parts[j].charAt(0))) {
 								break;
 							}
-							if (packageBuilder.length() > 0) {
+							if (!packageBuilder.isEmpty()) {
 								packageBuilder.append(".");
 							}
 							packageBuilder.append(parts[j]);
@@ -151,11 +151,11 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 			if (forbiddenPackages.isEmpty()) {
 				// Fallback if no packages could be extracted
 				throw new SecurityException(
-						Messages.localized("security.archunit.package.import.violation", "unknown packages"));
+						Messages.localized("security.archunit.package.import.violation", "unknown package"));
 			}
 
-			String packageList = String.join(", ", forbiddenPackages);
-			throw new SecurityException(Messages.localized("security.archunit.package.import.violation", packageList));
+			String firstPackage = forbiddenPackages.iterator().next();
+			throw new SecurityException(Messages.localized("security.archunit.package.import.violation", firstPackage));
 		}
 
 		// Parse the detail line to extract caller and target method info.
@@ -247,6 +247,7 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		case "attaches agents" -> "attach an agent";
 		case "accesses environment" -> "access the environment";
 		case "accesses module system" -> "access the module system";
+		case "performs jndi lookups" -> "perform a JNDI lookup";
 		default -> ruleName;
 		};
 	}

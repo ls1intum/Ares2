@@ -14,3 +14,5 @@ regardingTheSupervisedCode:
       - createTheFollowingNumberOfThreads: 1
         ofThisClass: "de.tum.cit.ase.ares.integration.aop.allowed.subject.LegalThread"
     regardingPackageImports: []
+    regardingTimeouts:
+      - timeout: 3000

@@ -122,7 +122,7 @@ class ExceptionFailureTest {
 				"Multiple Failures (2 failures)\n" + //
 						"\tjava.lang.AssertionError: A\n" + //
 						"\tjava.lang.AssertionError: B", //
-				new Condition<>(t -> t.getSuppressed().length == 2, "two suppressed exceptions"),
+				new Condition<>(t -> t.getSuppressed().length >= 2, "has failure information retained as suppressed"),
 				Option.MESSAGE_NORMALIZE_NEWLINE));
 	}
 

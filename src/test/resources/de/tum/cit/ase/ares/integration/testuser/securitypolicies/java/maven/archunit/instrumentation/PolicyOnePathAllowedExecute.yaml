@@ -34,3 +34,5 @@ regardingTheSupervisedCode:
         withTheseArguments: [ ]
     regardingThreadCreations: [ ]
     regardingPackageImports: [ ]
+    regardingTimeouts:
+      - timeout: 3000

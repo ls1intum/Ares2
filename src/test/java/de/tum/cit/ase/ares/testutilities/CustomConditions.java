@@ -59,7 +59,7 @@ public final class CustomConditions {
 
 		conditions.add(instanceOf(errorType));
 		conditions.add(messageLocalized());
-		if (message != NO_MSG) {
+		if (!NO_MSG.equals(message)) {
 			conditions.add(createMessageCondition(message, optionSet));
 		}
 		if (customCondition != null) {
