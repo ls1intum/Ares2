@@ -56,8 +56,11 @@ public class JavaAOPTestCaseSettingsTest {
 		InvocationTargetException thrown = Assertions.assertThrows(InvocationTargetException.class,
 				constructor::newInstance, "Invoking private constructor must throw SecurityException");
 		constructor.setAccessible(false);
-		Assertions.assertTrue(thrown.getTargetException().getMessage().contains("Ares Security Error"),
-				"Exception message must indicate security error");
+        String msg = thrown.getTargetException().getMessage();
+        Assertions.assertNotNull(msg, "Exception message should not be null");
+        Assertions.assertTrue(
+                msg.contains("Ares Security Error") || msg.contains("Ares Sicherheitsfehler")
+        );
 	}
 
 	/**

@@ -1,2 +1,11 @@
-java.lang.Runtime.exec
-java.lang.ProcessBuilder.start
+java.lang.Runtime.exec(java.lang.String)
+java.lang.Runtime.exec(java.lang.String[])
+java.lang.Runtime.exec(java.lang.String, java.lang.String[])
+java.lang.Runtime.exec(java.lang.String[], java.lang.String[])
+java.lang.Runtime.exec(java.lang.String, java.lang.String[], java.io.File)
+java.lang.Runtime.exec(java.lang.String[], java.lang.String[], java.io.File)
+java.lang.Runtime.load(java.lang.String)
+java.lang.Runtime.loadLibrary(java.lang.String)
+java.lang.ProcessBuilder.start()
+java.lang.ProcessBuilder.<init>(java.util.List)
+java.lang.ProcessBuilder.<init>(java.lang.String[])

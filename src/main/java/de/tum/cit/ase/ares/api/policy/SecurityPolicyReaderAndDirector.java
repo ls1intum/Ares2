@@ -97,24 +97,20 @@ public class SecurityPolicyReaderAndDirector {
 	 */
 	public SecurityPolicyReaderAndDirector createTestCases() {
 		@Nullable
-		SecurityPolicy securityPolicy = Optional.fromNullable(securityPolicyFilePath)
-				.transform(securityPolicyFilePath -> {
-					securityPolicyReader = SecurityPolicyReader.selectSecurityPolicyReader(this.securityPolicyFilePath);
-					if (securityPolicyReader != null) {
-						return securityPolicyReader.readSecurityPolicyFrom(securityPolicyFilePath);
-					} else {
-						throw new IllegalArgumentException(
-								Messages.localized("policy.reader.no.suitable.reader", securityPolicyFilePath));
-					}
-				}).orNull();
-		this.securityTestCaseFactoryAndBuilder = Optional.fromNullable(securityPolicy)
-				.transform(securityPolicyExisting -> {
-					securityPolicyDirector = SecurityPolicyDirector
-							.selectSecurityPolicyDirector(securityPolicyExisting);
-					return securityPolicyDirector.createTestCases(securityPolicyExisting, projectFolderPath);
-				}).orNull();
-		// .or(SecurityPolicyDirector.selectSecurityPolicyDirector(null).createTestCases(null,
-		// projectFolderPath));
+		SecurityPolicy securityPolicy = null;
+		if (securityPolicyFilePath != null && !securityPolicyFilePath.toString().isEmpty()) {
+			@Nonnull Path nonNullPolicyPath = securityPolicyFilePath;
+			securityPolicyReader = SecurityPolicyReader.selectSecurityPolicyReader(nonNullPolicyPath);
+			if (securityPolicyReader != null) {
+				securityPolicy = securityPolicyReader.readSecurityPolicyFrom(nonNullPolicyPath);
+			} else {
+				throw new IllegalArgumentException(
+						Messages.localized("policy.reader.no.suitable.reader", nonNullPolicyPath)); //$NON-NLS-1$
+			}
+		}
+		securityPolicyDirector = SecurityPolicyDirector.selectSecurityPolicyDirector(securityPolicy);
+		this.securityTestCaseFactoryAndBuilder = securityPolicyDirector.createTestCases(securityPolicy,
+				projectFolderPath);
 		return this;
 	}
 	// </editor-fold>
@@ -130,8 +126,10 @@ public class SecurityPolicyReaderAndDirector {
 	 */
 	@Nonnull
 	public List<Path> writeTestCases(Path testFolderPath) {
-		return Preconditions.checkNotNull(this.securityTestCaseFactoryAndBuilder,
-				"securityTestCaseFactoryAndBuilder must not be null").writeTestCases(testFolderPath);
+		if (this.securityTestCaseFactoryAndBuilder == null) {
+			return List.of();
+		}
+		return this.securityTestCaseFactoryAndBuilder.writeTestCases(testFolderPath);
 	}
 
 	/**

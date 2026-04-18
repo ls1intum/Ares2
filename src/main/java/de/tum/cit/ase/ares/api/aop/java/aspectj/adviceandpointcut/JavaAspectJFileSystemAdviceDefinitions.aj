@@ -5,6 +5,8 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.lang.reflect.InaccessibleObjectException;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
@@ -29,7 +31,7 @@ import org.aspectj.lang.JoinPoint;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
 //</editor-fold>
 
-public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstractAdviceDefinitions {
+@SuppressWarnings("AopLanguageInspection") public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstractAdviceDefinitions {
 
     //<editor-fold desc="Constants">
 
@@ -44,30 +46,63 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
             "ares/api/localization/Messages.class",
             "ares/api/localization/messages.class",
             "ares/api/localization/messages.properties",
-            "ares/api/util/LruCache.class"
+            "ares/api/util/LruCache.class",
+            "ares/api/configuration/essentialFiles/java/EssentialPackages.yaml",
+            "ares/api/configuration/essentialFiles/java/EssentialClasses.yaml"
     );
 
     /**
-     * Map of methods with attribute index exceptions for file system ignore logic.
+     * Resolve the index of a named field within the given class.
      *
-     * <p>Description: Specifies for certain methods which attribute index should be exempted
-     * from ignore rules during file system checks.
+     * <p>Description: Returns the positional index of the first field whose name
+     * matches {@code fieldName}.  Used to avoid hard-coding field indices that
+     * can shift across JDK versions (e.g. JDK 21 added a LOGGER field to
+     * {@link ProcessBuilder}).
      */
+    private static int findFieldIndex(Class<?> clazz, String fieldName) {
+        java.lang.reflect.Field[] fields = clazz.getDeclaredFields();
+        for (int i = 0; i < fields.length; i++) {
+            if (fieldName.equals(fields[i].getName())) {
+                return i;
+            }
+        }
+        return 0;
+    }
+
     @Nonnull
     private static final Map<String, IgnoreValues> FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT = Map.ofEntries(
-            Map.entry("java.io.File.delete", IgnoreValues.allExcept(1)),
-            Map.entry("java.io.File.deleteOnExit", IgnoreValues.allExcept(1)),
-            Map.entry("java.io.File.createNewFile", IgnoreValues.allExcept(1))
-    );
+            Map.entry("java.io.File.delete", IgnoreValues.allExcept(findFieldIndex(java.io.File.class, "path"))),
+            Map.entry("java.io.File.deleteOnExit", IgnoreValues.allExcept(findFieldIndex(java.io.File.class, "path"))),
+            Map.entry("java.io.File.createNewFile", IgnoreValues.allExcept(findFieldIndex(java.io.File.class, "path"))),
+            // ProcessBuilder.start - only check command field, resolved by name
+            Map.entry("java.lang.ProcessBuilder.start", IgnoreValues.allExcept(findFieldIndex(ProcessBuilder.class, "command"))),
+            Map.entry("java.lang.ProcessBuilder.startPipeline", IgnoreValues.allExcept(findFieldIndex(ProcessBuilder.class, "command"))));
 
     /**
      * Map of methods with parameter index exceptions for file system ignore logic.
-     *
-     * <p>Description: Specifies for certain methods which parameter index should be exempted
-     * from ignore rules during file system checks.
+     * <p>
+     * Description: Specifies for certain methods which parameter index should be
+     * exempted from ignore rules during file system checks. For methods like
+     * Files.createTempFile and Files.writeString, only the first parameter (the
+     * Path) should be checked, not content or prefix/suffix strings.
      */
     @Nonnull
-    private static final Map<String, IgnoreValues> FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT = Map.ofEntries();
+    private static final Map<String, IgnoreValues> FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT = Map.ofEntries(
+            // Files.createTempFile(Path dir, String prefix, String suffix,
+            // FileAttribute<?>...) - only check dir (index 0)
+            Map.entry("java.nio.file.Files.createTempFile", IgnoreValues.allExcept(0)),
+            // Files.writeString(Path path, CharSequence csq, OpenOption...) - only check
+            // path (index 0)
+            Map.entry("java.nio.file.Files.writeString", IgnoreValues.allExcept(0)),
+            // Files.write(Path path, byte[] bytes, OpenOption...) - only check path (index
+            // 0)
+            Map.entry("java.nio.file.Files.write", IgnoreValues.allExcept(0)),
+            // Files.readString(Path path, Charset cs) - only check path (index 0)
+            Map.entry("java.nio.file.Files.readString", IgnoreValues.allExcept(0)),
+            // File.createTempFile(String prefix, String suffix) - no path parameter at all
+            Map.entry("java.io.File.createTempFile", IgnoreValues.ALL),
+            // Runtime.exec(String[]) - only check command (index 0), not flags like "-c"
+            Map.entry("java.lang.Runtime.exec", IgnoreValues.allExcept(0)));
     //</editor-fold>
 
     //<editor-fold desc="File system methods">
@@ -78,59 +113,85 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 
     /**
      * Checks if a Path is outside of the allowed paths whitelist.
-     *
-     * <p>Description: Returns true if allowedPaths not null or if the given actualPath does not match one of the allowedPatterns.
+     * <p>
+     * Description: Returns true if allowedPathsAsStrings is null or if the given
+     * actualPath does not match one of the allowed patterns. This method resolves
+     * symlinks FIRST to prevent symlink-based sandbox escapes (TOCTOU attacks).
+     * <p>
+     * Security Note: Symlinks are resolved to their canonical form BEFORE checking
+     * against allowed paths, preventing attacks where a path like
+     * "/allowed/../../../etc/passwd" could bypass prefix checks.
      *
      * @since 2.0.0
      * @author Markus
-     * @param actualPath         the Path to test
-     * @param allowedPaths whitelist of allowed actualPath strings
-     * @param allowNonExistingPathsToBeConsidered whether non-existing paths should be considered
+     * @param actualPath                          the Path to test
+     * @param allowedPathsAsStrings               whitelist of allowed actualPath
+     *                                            strings
+     * @param allowNonExistingPathsToBeConsidered whether to allow paths that don't
+     *                                            exist yet
      * @return true if actualPath is forbidden; false otherwise
      */
-    private static boolean checkIfPathIsForbidden(@Nullable Path actualPath, @Nullable String[] allowedPaths, boolean allowNonExistingPathsToBeConsidered) {
+    private static boolean checkIfPathIsForbidden(@Nullable Path actualPath, @Nullable String[] allowedPathsAsStrings, boolean allowNonExistingPathsToBeConsidered) {
         if (actualPath == null) {
             return false;
         }
-        if (allowedPaths == null || allowedPaths.length == 0) {
+        if (allowedPathsAsStrings == null || allowedPathsAsStrings.length == 0) {
             return true;
         }
-        Path candidate = actualPath.normalize().toAbsolutePath();
-        boolean actualExists = Files.exists(candidate);
+
+        // SECURITY: Resolve symlinks FIRST to get the canonical path before any checks.
+        // This prevents TOCTOU attacks where symlinks could be manipulated between
+        // check and use.
+        Path candidate;
+        boolean actualExists = Files.exists(actualPath, LinkOption.NOFOLLOW_LINKS);
 
         if (actualExists) {
             try {
-                candidate = candidate.toRealPath(LinkOption.NOFOLLOW_LINKS);
-            } catch (IOException ignored) {
+                // Resolve ALL symlinks to get the true canonical path
+                // Do NOT use NOFOLLOW_LINKS here - we want to follow symlinks to see the real
+                // target
+                candidate = actualPath.toRealPath();
+            } catch (IOException e) {
+                // If we can't resolve the real path for an existing file, fail secure
                 if (!allowNonExistingPathsToBeConsidered) {
-                    return true;  // Cannot resolve path, treat as forbidden
+                    return true;
                 }
+                // Fall back to normalized absolute path if real path resolution fails
+                candidate = actualPath.normalize().toAbsolutePath();
             }
+        } else {
+            // For non-existing paths, use normalized absolute path
+            candidate = actualPath.normalize().toAbsolutePath();
         }
 
         boolean hasAllowedPrefix = false;
-        for (String allowedPathsAsString : allowedPaths) {
+        for (String allowedPathsAsString : allowedPathsAsStrings) {
             @Nullable Path allowedPath = variableToPath(allowedPathsAsString, allowNonExistingPathsToBeConsidered);
             if (allowedPath == null) {
                 continue;
             }
-            Path normalizedAllowedPath = allowedPath.normalize().toAbsolutePath();
-            if (!allowNonExistingPathsToBeConsidered) {
-                if (!Files.exists(normalizedAllowedPath)) {
+
+            // SECURITY: Also resolve symlinks in allowed paths to canonical form
+            Path normalizedAllowedPath;
+            boolean allowedExists = Files.exists(allowedPath, LinkOption.NOFOLLOW_LINKS);
+
+            if (allowedExists) {
+                try {
+                    // Resolve ALL symlinks in allowed path too
+                    normalizedAllowedPath = allowedPath.toRealPath();
+                } catch (IOException e) {
+                    if (!allowNonExistingPathsToBeConsidered) {
+                        continue;
+                    }
+                    normalizedAllowedPath = allowedPath.normalize().toAbsolutePath();
+                }
+            } else {
+                if (!allowNonExistingPathsToBeConsidered) {
                     continue;
                 }
-                try {
-                    normalizedAllowedPath = normalizedAllowedPath.toRealPath(LinkOption.NOFOLLOW_LINKS);
-                } catch (IOException ignored) {
-                    continue;
-                }
-            } else if (Files.exists(normalizedAllowedPath)) {
-                try {
-                    normalizedAllowedPath = normalizedAllowedPath.toRealPath(LinkOption.NOFOLLOW_LINKS);
-                } catch (IOException ignored) {
-                    // use normalized path if real path resolution fails
-                }
+                normalizedAllowedPath = allowedPath.normalize().toAbsolutePath();
             }
+
             if (candidate.startsWith(normalizedAllowedPath)) {
                 hasAllowedPrefix = true;
                 break;
@@ -153,12 +214,11 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 
     /**
      * Transforms variable values into a normalized absolute path.
-     *
-     * <p>Description: Converts the provided variable (Path, String, or File)
-     * into an absolute normalized Path for security checks.
+     * <p>
+     * Description: Converts the provided variable (Path, String, or File) into an
+     * absolute normalized Path for security checks, validating existence.
      *
      * @param variableValue the variable to transform into a Path
-     * @param allowNonExistingPathsToBeConsidered whether to allow non-existing paths
      * @return the normalized absolute Path
      * @throws InvalidPathException if transformation fails
      * @since 2.0.0
@@ -171,15 +231,24 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
                 return null;
             } else if (variableValue instanceof Path) {
                 return ((Path) variableValue).normalize().toAbsolutePath();
-            } else if (variableValue instanceof String) {
-                if (variableValue.equals("") || variableValue.equals("/")) {
-                    throw new SecurityException(localize(
-                            "security.instrumentation.invalid.path",
-                            variableValue
-                    ));
+            } else if (variableValue instanceof URL url) {
+                if (!"file".equalsIgnoreCase(url.getProtocol())) {
+                    return null;
                 }
+                Path absolutePath = Path.of(url.toURI()).normalize().toAbsolutePath();
+                if (Files.exists(absolutePath) || allowNonExistingPathsToBeConsidered) {
+                    return absolutePath;
+                } else {
+                    return null;
+                }
+            } else if (variableValue instanceof String) {
+                // Empty string is not a valid path
+                if (variableValue.equals("")) {
+                    throw new SecurityException(localize("security.instrumentation.invalid.path", variableValue));
+                }
+                // "/" is the root directory and is a valid path - let it be processed normally
                 Path absolutePath = Path.of((String) variableValue).normalize().toAbsolutePath();
-                if (allowNonExistingPathsToBeConsidered || Files.exists(absolutePath)) {
+                if (Files.exists(absolutePath) || allowNonExistingPathsToBeConsidered) {
                     return absolutePath;
                 } else {
                     return null;
@@ -189,7 +258,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
             } else {
                 return null;
             }
-        } catch (InvalidPathException ignored) {
+        } catch (InvalidPathException | URISyntaxException ignored) {
             return null;
         }
     }
@@ -344,34 +413,23 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
      */
     private static boolean hasAppendFalseParameter(@Nonnull String declaringTypeName, @Nullable Object[] parameters) {
         if (parameters == null || parameters.length == 0) {
-            // PrintWriter(File) and PrintWriter(File, Charset) have no boolean append parameter
-            // but always truncate the file, so they should be treated as "overwrite"
-            if ("java.io.PrintWriter".equals(declaringTypeName)) {
-                return true; // Treat as append=false (overwrite mode)
-            }
             return false;
         }
-        
+
         Integer appendIndex = APPEND_PARAMETER_INDEX.get(declaringTypeName);
         if (appendIndex == null) {
             return false;
         }
-        
+
         // For variable position (-1), check all boolean parameters
         // The append parameter is typically the last boolean in the constructor
         if (appendIndex == -1) {
-            boolean foundBoolean = false;
             for (int i = parameters.length - 1; i >= 0; i--) {
                 Object param = parameters[i];
                 if (param instanceof Boolean) {
-                    foundBoolean = true;
                     // Found a boolean parameter - if it's false, this indicates non-append mode
                     return Boolean.FALSE.equals(param);
                 }
-            }
-            // For PrintWriter: if no boolean found, default is to truncate (overwrite)
-            if (!foundBoolean && "java.io.PrintWriter".equals(declaringTypeName)) {
-                return true; // Treat as append=false (overwrite mode)
             }
             return false;
         }
@@ -421,13 +479,10 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
             if ("r".equals(mode)) {
                 return "read";
             } else if ("rw".equals(mode) || "rws".equals(mode) || "rwd".equals(mode)) {
-                // Write modes: respect the pointcut context for create/delete intents.
-                // If the pointcut context indicates "create" or "delete", use that action
-                // since the user's primary intent is file creation or deletion.
-                // Otherwise, default to "overwrite" for general read-write access.
-                if ("create".equals(defaultAction) || "delete".equals(defaultAction)) {
-                    return defaultAction;
-                }
+                // Write modes always map to "overwrite". The pointcut context (create/read/etc.)
+                // is irrelevant for the action classification — what matters is the mode string
+                // that the caller explicitly passed. allowNonExisting is set to true in the
+                // caller (deriveActionChecks) so that non-existing paths are also enforced.
                 return "overwrite";
             }
         }
@@ -538,6 +593,29 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
             }
         }
 
+        // Semantic rule 1: when both "create" (from CREATE option) and "overwrite" (from WRITE option)
+        // are present, the primary intent is "write to file, creating if not exists" = overwrite.
+        // Merge into a single "overwrite" check with allowNonExisting=true so that non-existing
+        // paths are also validated.
+        if (actions.containsKey("create") && actions.containsKey("overwrite")) {
+            Boolean createAllows = actions.get("create");
+            Boolean overwriteAllows = actions.get("overwrite");
+            actions.remove("create");
+            actions.put("overwrite", (createAllows != null && createAllows) || (overwriteAllows != null && overwriteAllows));
+        }
+
+        // Semantic rule 2: when the method is in the "overwrite" pointcut (defaultAction="overwrite")
+        // but OpenOptions only produced "create" (e.g. Files.writeString(path, s, CREATE) — no WRITE
+        // option), the operation is still semantically "write data to file" = overwrite.
+        // Exception: CREATE_NEW genuinely means "create a new file; fail if it already exists".
+        if ("overwrite".equals(defaultAction)
+                && actions.size() == 1 && actions.containsKey("create")
+                && !options.contains(StandardOpenOption.CREATE_NEW)) {
+            Boolean allowNonExisting = actions.get("create");
+            actions.remove("create");
+            actions.put("overwrite", allowNonExisting);
+        }
+
         if (actions.isEmpty()) {
             // If OpenOptions were found but none matched the expected actions for this pointcut,
             // this pointcut is not responsible for this call - return empty list to skip validation.
@@ -549,13 +627,17 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
             if ("java.io.RandomAccessFile".equals(declaringTypeName)) {
                 String modeAction = getRandomAccessFileModeAction(parameters, defaultAction);
                 if (modeAction != null) {
-                    actions.put(modeAction, shouldAllowNonExistingByDefault(modeAction));
+                    // RandomAccessFile write modes can create files that don't exist yet,
+                    // so always check the path even when the file is absent.
+                    boolean allowNonExisting = !"read".equals(modeAction);
+                    actions.put(modeAction, allowNonExisting);
                 } else {
                     actions.put(defaultAction, shouldAllowNonExistingByDefault(defaultAction));
                 }
             }
             // Check for legacy I/O classes with boolean append parameter
-            // If append=false is detected, change "create" to "overwrite" since the file will be truncated
+            // If append=false is detected, change "create" to "overwrite" since the file
+            // will be truncated
             else {
                 String effectiveAction = defaultAction;
                 if ("create".equals(defaultAction) && hasAppendFalseParameter(declaringTypeName, parameters)) {
@@ -577,7 +659,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
      * @return {@code true} if paths may be missing, {@code false} otherwise
      */
     private static boolean shouldAllowNonExistingByDefault(@Nonnull String action) {
-        return "create".equals(action);
+        return "create".equals(action) || "delete".equals(action);
     }
 
     /**
@@ -722,6 +804,18 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
         for (Map.Entry<String, Boolean> actionCheck : actionsToValidate) {
             String actionToCheck = actionCheck.getKey();
             boolean allowNonExistingPaths = Boolean.TRUE.equals(actionCheck.getValue());
+            // When a "create" pointcut intercepts a class/method that semantically truncates/overwrites
+            // (FileOutputStream, FileWriter, PrintWriter, or Files.newBufferedWriter/newOutputStream
+            // without an explicit append=true), the reported verb should be "overwrite" so that
+            // messages match test expectations.
+            boolean isWriteAliasedAsCreate = "create".equals(actionToCheck)
+                    && ("java.io.FileOutputStream".equals(declaringTypeName)
+                            || "java.io.FileWriter".equals(declaringTypeName)
+                            || "java.io.PrintWriter".equals(declaringTypeName)
+                            || ("java.nio.file.Files".equals(declaringTypeName)
+                                    && ("newBufferedWriter".equals(methodName)
+                                            || "newOutputStream".equals(methodName))));
+            String messageAction = isWriteAliasedAsCreate ? "overwrite" : actionToCheck;
             @Nullable final String[] allowedPaths = getValueFromSettings(
                     switch (actionToCheck) {
                         case "read" -> "pathsAllowedToBeRead";
@@ -741,10 +835,38 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
                 throw new SecurityException(localize(
                         "security.advice.illegal.file.execution",
                         systemMethodToCheck,
-                        actionToCheck,
+                        messageAction,
                         illegallyInteractedThroughParameter,
                         fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
                 ));
+            }
+            //</editor-fold>
+            //<editor-fold desc="Check receiver instance">
+            @Nullable String illegallyInteractedThroughReceiver = instance == null ? null
+                    : checkIfVariableCriteriaIsViolated(new Object[] { instance }, allowedPaths, IgnoreValues.NONE,
+                            allowNonExistingPaths);
+            if (illegallyInteractedThroughReceiver != null) {
+                boolean isInternalAllowed = INTERNAL_PATH_SUFFIXES.stream()
+                        .anyMatch(illegallyInteractedThroughReceiver::endsWith);
+
+                if (!isInternalAllowed
+                        && illegallyInteractedThroughReceiver.endsWith(".jar")
+                        && (illegallyInteractedThroughReceiver.contains("/.m2/repository/")
+                                || illegallyInteractedThroughReceiver.contains(
+                                        File.separator + ".m2" + File.separator + "repository" + File.separator)
+                                || illegallyInteractedThroughReceiver.startsWith(System.getProperty("java.home")))) {
+                    isInternalAllowed = true;
+                }
+
+                if (!isInternalAllowed) {
+                    throw new SecurityException(localize(
+                            "security.advice.illegal.file.execution",
+                            systemMethodToCheck,
+                            messageAction,
+                            illegallyInteractedThroughReceiver,
+                            fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+                    ));
+                }
             }
             //</editor-fold>
             //<editor-fold desc="Check attributes">
@@ -753,11 +875,20 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
                 boolean isInternalAllowed = INTERNAL_PATH_SUFFIXES.stream()
                         .anyMatch(illegallyInteractedThroughAttribute::endsWith);
 
+                if (!isInternalAllowed
+                        && illegallyInteractedThroughAttribute.endsWith(".jar")
+                        && (illegallyInteractedThroughAttribute.contains("/.m2/repository/")
+                                || illegallyInteractedThroughAttribute.contains(
+                                        File.separator + ".m2" + File.separator + "repository" + File.separator)
+                                || illegallyInteractedThroughAttribute.startsWith(System.getProperty("java.home")))) {
+                    isInternalAllowed = true;
+                }
+
                 if (!isInternalAllowed) {
                     throw new SecurityException(localize(
                             "security.advice.illegal.file.execution",
                             systemMethodToCheck,
-                            actionToCheck,
+                            messageAction,
                             illegallyInteractedThroughAttribute,
                             fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
                     ));

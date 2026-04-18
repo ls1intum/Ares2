@@ -12,7 +12,6 @@ public class RuntimeExecuteMain {
 	/**
 	 * Execute a forbidden command using the {@link Runtime} class.
 	 */
-	@SuppressWarnings("deprecation")
 	public static Process executeCommandViaRuntime() throws IOException {
 		Runtime runtime = Runtime.getRuntime();
 		return runtime.exec("forbidden-command");

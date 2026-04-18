@@ -37,6 +37,8 @@ public class FileHandlerConstants {
 			"architecture", "java", "archunit", "methods", "environment-access-methods.txt");
 	public static final Path ARCHUNIT_MODULE_SYSTEM_METHODS = FileTools.resolveFileOnSourceDirectory("templates",
 			"architecture", "java", "archunit", "methods", "module-system-access-methods.txt");
+	public static final Path ARCHUNIT_JNDI_INJECTION_METHODS = FileTools.resolveFileOnSourceDirectory("templates",
+			"architecture", "java", "archunit", "methods", "jndi-injection-methods.txt");
 	// </editor-fold>
 
 	// <editor-fold desc="WALA Methods">

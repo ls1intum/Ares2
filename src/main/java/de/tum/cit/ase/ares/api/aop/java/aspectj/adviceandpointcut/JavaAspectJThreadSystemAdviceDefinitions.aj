@@ -24,9 +24,11 @@ import javax.annotation.Nonnull;
 import org.aspectj.lang.JoinPoint;
 
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
+
+import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox.checkAndDecrementSettingsArrayValue;
 //</editor-fold>
 
-public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstractAdviceDefinitions {
+@SuppressWarnings("AopLanguageInspection") public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstractAdviceDefinitions {
 
     //<editor-fold desc="Constants">
 
@@ -90,26 +92,32 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
     //<editor-fold desc="Forbidden handling">
 
     /**
-     * Checks whether the thread limit for the class at the specified index is still available.
-     * If the count at that index is greater than zero, this method decrements it and returns
-     * <code>false</code> (indicating it was allowed). If the count is zero or below, it returns
-     * <code>true</code> (indicating the class is disallowed because the quota is exhausted).
+     * Checks whether the thread limit for the class at the specified index is still
+     * available. If the count at that index is greater than zero, this method
+     * atomically decrements it and returns <code>false</code> (indicating it was
+     * allowed). If the count is zero or below, it returns <code>true</code>
+     * (indicating the class is disallowed because the quota is exhausted).
+     * <p>
+     * This method uses atomic check-and-decrement to prevent race conditions where
+     * multiple threads could pass the check simultaneously and exceed the
+     * configured thread limit.
      *
-     * @param allowedThreadNumbers An array of permissible thread counts, parallel to
-     *                                       the class array that determines which classes can create threads.
-     * @param index                          The index corresponding to the class being checked.
+     * @param allowedThreadNumbers An array of permissible thread counts, parallel
+     *                             to the class array that determines which classes
+     *                             can create threads.
+     * @param index                The index corresponding to the class being
+     *                             checked.
      * @return <code>true</code> if no more threads can be created (disallowed), or
-     *         <code>false</code> if the class is allowed to create another thread and the count was decremented.
+     *         <code>false</code> if the class is allowed to create another thread
+     *         and the count was decremented.
      */
     private static boolean handleFoundClassIsForbidden(@Nullable int[] allowedThreadNumbers, int index) {
         if (allowedThreadNumbers == null) {
             return true;
         }
-        boolean threadDisallowed = allowedThreadNumbers[index] <= 0;
-        if (!threadDisallowed) {
-            decrementSettingsArrayValue("threadNumberAllowedToBeCreated", index);
-        }
-        return threadDisallowed;
+        // Use atomic check-and-decrement to prevent race conditions
+        boolean successfullyDecremented = checkAndDecrementSettingsArrayValue("threadNumberAllowedToBeCreated", index);
+        return !successfullyDecremented;
     }
 
     /**

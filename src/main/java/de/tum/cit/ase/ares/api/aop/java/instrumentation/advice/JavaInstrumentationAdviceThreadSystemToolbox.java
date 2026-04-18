@@ -203,8 +203,11 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 					return handleFoundClassIsForbidden(allowedThreadNumbers, i);
 				}
 			} catch (ClassNotFoundException e) {
-				// Class not found - continue checking other allowed classes
-				// This is expected when the class is not on the classpath
+				// Class not found via system classloader (e.g. JDK internal classes like
+				// sun.nio.ch.AsynchronousChannelGroupImpl$1) - fall back to string comparison
+				if (allowedClassName.equals(actualClassname)) {
+					return handleFoundClassIsForbidden(allowedThreadNumbers, i);
+				}
 			} catch (IllegalStateException | NullPointerException e) {
 				// Unexpected error during class loading - log and continue
 				// Fail secure: if we can't verify the class, continue to next check
@@ -540,11 +543,14 @@ public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrument
 		// <editor-fold desc="Get information from settings">
 		@Nullable
 		final String aopMode = getValueFromSettings("aopMode");
-		if (aopMode == null || !aopMode.equals("INSTRUMENTATION")) {
+		if (aopMode == null || aopMode.isEmpty() || !aopMode.equals("INSTRUMENTATION")) {
 			return;
 		}
 		@Nullable
 		final String restrictedPackage = getValueFromSettings("restrictedPackage");
+		if (restrictedPackage == null || restrictedPackage.isEmpty()) {
+			return;
+		}
 		@Nullable
 		final String[] allowedClasses = getValueFromSettings("allowedListedClasses");
 

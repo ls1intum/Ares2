@@ -26,3 +26,5 @@ regardingTheSupervisedCode:
       - createTheFollowingNumberOfThreads: 100
         ofThisClass: "Lambda-Expression"
     regardingPackageImports: []
+    regardingTimeouts:
+      - timeout: 3000

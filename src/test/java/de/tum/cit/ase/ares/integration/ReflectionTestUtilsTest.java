@@ -66,7 +66,7 @@ class ReflectionTestUtilsTest {
 	void test_testGetConstructor_noSuchMethod() {
 		tests.assertThatEvents().haveExactly(1, testFailedWith(testGetConstructor_noSuchMethod,
 				AssertionFailedError.class,
-				"Could not find the constructor with the parameters: [ String, Boolean ] in the class SomeClass because the constructor does not exist. Make sure to implement this constructor properly."));
+				"Could not find the constructor with the parameters: [ String, Boolean ]in the class SomeClass because the constructor does not exist. Make sure to implement this constructor properly."));
 	}
 
 	@TestTest
@@ -91,7 +91,7 @@ class ReflectionTestUtilsTest {
 	void test_testGetMethod_noSuchMethod_withParameters() {
 		tests.assertThatEvents().haveExactly(1, testFailedWith(testGetMethod_noSuchMethod_withParameters,
 				AssertionFailedError.class,
-				"Could not find the method 'someMethod' with the parameters: [ String ] in the class SomeClass because the method does not exist. Make sure to implement this method properly."));
+				"Could not find the method 'someMethod' with the parameters: [ String ]in the class SomeClass because the method does not exist. Make sure to implement this method properly."));
 	}
 
 	@TestTest
@@ -282,6 +282,6 @@ class ReflectionTestUtilsTest {
 	void test_testGetNonPublicConstructor_noSuchMethod() {
 		tests.assertThatEvents().haveExactly(1, testFailedWith(testGetNonPublicConstructor_noSuchMethod,
 				AssertionFailedError.class,
-				"Could not find the constructor with the parameters: [ String, Boolean ] in the class SomeClass because the constructor does not exist. Make sure to implement this constructor properly."));
+				"Could not find the constructor with the parameters: [ String, Boolean ]in the class SomeClass because the constructor does not exist. Make sure to implement this constructor properly."));
 	}
 }

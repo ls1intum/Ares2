@@ -1,5 +1,12 @@
 package de.tum.cit.ase.ares.integration.aop.forbidden;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import org.junit.jupiter.api.BeforeEach;
+
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwrite.fileChannel.FileChannelWriteMain;
@@ -30,6 +37,8 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 	private static final String FILES_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/files";
 	private static final String BUFFERED_WRITER_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/writer/bufferedWriter";
 	private static final String THIRD_PARTY_PACKAGE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/thirdPartyPackage";
+	private static final Path THIRD_PARTY_NOT_TRUSTED_PATH = Paths.get("src", "test", "java", "de", "tum", "cit",
+			"ase", "ares", "integration", "aop", "forbidden", "subject", "nottrusted.txt");
 	private static final String PRINT_WRITER_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/printWriter";
 	private static final String RANDOM_ACCESS_FILE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/randomAccessFile";
 	private static final String PRINT_STREAM_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/outputStream/printStream";
@@ -48,6 +57,22 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 	private static final String OUTPUT_STREAM_WRITER_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/writer/outputStreamWriter";
 	private static final String FILE_WRITER_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/writer/fileWriter";
 	private static final String BASE_WRITER_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/writer/baseWriter";
+
+	private static final Path NOT_TRUSTED_DIR = Paths.get(
+			"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/nottrusteddir");
+
+	@BeforeEach
+	void ensureNotTrustedFilesExist() throws IOException {
+		Files.createDirectories(NOT_TRUSTED_DIR);
+		Path notTrustedFile = NOT_TRUSTED_DIR.resolve("nottrusted.txt");
+		if (Files.notExists(notTrustedFile)) {
+			Files.createFile(notTrustedFile);
+		}
+		Path notTrustedGz = NOT_TRUSTED_DIR.resolve("nottrusted.txt.gz");
+		if (Files.notExists(notTrustedGz)) {
+			Files.createFile(notTrustedGz);
+		}
+	}
 
 	// <editor-fold desc="accessFileSystemViaFilesWrite">
 	@PublicTest
@@ -114,28 +139,28 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = THIRD_PARTY_PACKAGE_WITHIN_PATH)
 	void test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ() {
 		assertAresSecurityExceptionOverwrite(WriteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
-				ThirdPartyPackagePenguin.class);
+				ThirdPartyPackagePenguin.class, THIRD_PARTY_NOT_TRUSTED_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = THIRD_PARTY_PACKAGE_WITHIN_PATH)
 	void test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation() {
 		assertAresSecurityExceptionOverwrite(WriteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
-				ThirdPartyPackagePenguin.class);
+				ThirdPartyPackagePenguin.class, THIRD_PARTY_NOT_TRUSTED_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = THIRD_PARTY_PACKAGE_WITHIN_PATH)
 	void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ() {
 		assertAresSecurityExceptionOverwrite(WriteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
-				ThirdPartyPackagePenguin.class);
+				ThirdPartyPackagePenguin.class, THIRD_PARTY_NOT_TRUSTED_PATH);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = THIRD_PARTY_PACKAGE_WITHIN_PATH)
 	void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation() {
 		assertAresSecurityExceptionOverwrite(WriteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
-				ThirdPartyPackagePenguin.class);
+				ThirdPartyPackagePenguin.class, THIRD_PARTY_NOT_TRUSTED_PATH);
 	}
 	// </editor-fold>
 

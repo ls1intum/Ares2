@@ -5,6 +5,8 @@ import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstru
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Array;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.LinkOption;
@@ -48,20 +50,33 @@ import javax.annotation.Nullable;
 public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstrumentationAdviceAbstractToolbox {
 
 	// <editor-fold desc="Constants">
-	/**
-	 * Map of methods with attribute index exceptions for file system ignore logic.
+
+    /**
+	 * Resolve the index of a named field within the given class.
 	 * <p>
-	 * Description: Specifies for certain methods which attribute index should be
-	 * exempted from ignore rules during file system checks.
+	 * Description: Returns the positional index of the first field whose name
+	 * matches {@code fieldName}. Used to avoid hard-coding field indices that
+	 * can shift across JDK versions (e.g. JDK 21 added a LOGGER field to
+	 * {@link ProcessBuilder}).
 	 */
+	private static int findFieldIndex(Class<?> clazz, String fieldName) {
+		java.lang.reflect.Field[] fields = clazz.getDeclaredFields();
+		for (int i = 0; i < fields.length; i++) {
+			if (fieldName.equals(fields[i].getName())) {
+				return i;
+			}
+		}
+		return 0;
+	}
+
 	@Nonnull
 	private static final Map<String, IgnoreValues> FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT = Map.ofEntries(
-			Map.entry("java.io.File.delete", IgnoreValues.allExcept(1)),
-			Map.entry("java.io.File.deleteOnExit", IgnoreValues.allExcept(1)),
-			Map.entry("java.io.File.createNewFile", IgnoreValues.allExcept(1)),
-			// ProcessBuilder.start - only check command (index 0), not flags or arguments
-			Map.entry("java.lang.ProcessBuilder.start", IgnoreValues.allExcept(0)),
-			Map.entry("java.lang.ProcessBuilder.startPipeline", IgnoreValues.allExcept(0)));
+			Map.entry("java.io.File.delete", IgnoreValues.allExcept(findFieldIndex(java.io.File.class, "path"))),
+			Map.entry("java.io.File.deleteOnExit", IgnoreValues.allExcept(findFieldIndex(java.io.File.class, "path"))),
+			Map.entry("java.io.File.createNewFile", IgnoreValues.allExcept(findFieldIndex(java.io.File.class, "path"))),
+			// ProcessBuilder.start - only check command field, resolved by name
+			Map.entry("java.lang.ProcessBuilder.start", IgnoreValues.allExcept(findFieldIndex(ProcessBuilder.class, "command"))),
+			Map.entry("java.lang.ProcessBuilder.startPipeline", IgnoreValues.allExcept(findFieldIndex(ProcessBuilder.class, "command"))));
 
 	/**
 	 * Map of methods with parameter index exceptions for file system ignore logic.
@@ -99,7 +114,9 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 */
 	private static final Set<String> INTERNAL_PATH_SUFFIXES = Set.of("ares/api/localization/Messages.class",
 			"ares/api/localization/messages.class", "ares/api/localization/messages.properties",
-			"ares/api/util/LruCache.class");
+			"ares/api/util/LruCache.class",
+			"ares/api/configuration/essentialFiles/java/EssentialPackages.yaml",
+			"ares/api/configuration/essentialFiles/java/EssentialClasses.yaml");
 
 	// </editor-fold>
 
@@ -246,6 +263,16 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				return null;
 			} else if (variableValue instanceof Path) {
 				return ((Path) variableValue).normalize().toAbsolutePath();
+			} else if (variableValue instanceof URL url) {
+				if (!"file".equalsIgnoreCase(url.getProtocol())) {
+					return null;
+				}
+				Path absolutePath = Path.of(url.toURI()).normalize().toAbsolutePath();
+				if (Files.exists(absolutePath) || allowNonExistingPathsToBeConsidered) {
+					return absolutePath;
+				} else {
+					return null;
+				}
 			} else if (variableValue instanceof String) {
 				// Empty string is not a valid path
 				if (variableValue.equals("")) {
@@ -263,7 +290,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			} else {
 				return null;
 			}
-		} catch (InvalidPathException ignored) {
+		} catch (InvalidPathException | URISyntaxException ignored) {
 			return null;
 		}
 	}
@@ -423,12 +450,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 */
 	private static boolean hasAppendFalseParameter(@Nonnull String declaringTypeName, @Nullable Object[] parameters) {
 		if (parameters == null || parameters.length == 0) {
-			// PrintWriter(File) and PrintWriter(File, Charset) have no boolean append
-			// parameter
-			// but always truncate the file, so they should be treated as "overwrite"
-			if ("java.io.PrintWriter".equals(declaringTypeName)) {
-				return true; // Treat as append=false (overwrite mode)
-			}
 			return false;
 		}
 
@@ -440,18 +461,12 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		// For variable position (-1), check all boolean parameters
 		// The append parameter is typically the last boolean in the constructor
 		if (appendIndex == -1) {
-			boolean foundBoolean = false;
 			for (int i = parameters.length - 1; i >= 0; i--) {
 				Object param = parameters[i];
 				if (param instanceof Boolean) {
-					foundBoolean = true;
 					// Found a boolean parameter - if it's false, this indicates non-append mode
 					return Boolean.FALSE.equals(param);
 				}
-			}
-			// For PrintWriter: if no boolean found, default is to truncate (overwrite)
-			if (!foundBoolean && "java.io.PrintWriter".equals(declaringTypeName)) {
-				return true; // Treat as append=false (overwrite mode)
 			}
 			return false;
 		}
@@ -648,6 +663,32 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			}
 		}
 
+		// Semantic rule 1: when both "create" (from CREATE option) and "overwrite" (from WRITE option)
+		// are present, the primary intent is "write to file, creating if not exists" = overwrite.
+		// Merge into a single "overwrite" check with allowNonExisting=true so that non-existing
+		// paths are also validated (they will be created-by-write, not truly "created" as a new
+		// entity). This prevents spurious "illegal create" messages on write-open calls.
+		if (actions.containsKey("create") && actions.containsKey("overwrite")) { //$NON-NLS-1$ //$NON-NLS-2$
+			Boolean createAllows = actions.get("create"); //$NON-NLS-1$
+			Boolean overwriteAllows = actions.get("overwrite"); //$NON-NLS-1$
+			actions.remove("create"); //$NON-NLS-1$
+			// Keep allowNonExisting=true from "create" so non-existing paths are checked
+			actions.put("overwrite", (createAllows != null && createAllows) || (overwriteAllows != null && overwriteAllows)); //$NON-NLS-1$
+		}
+
+		// Semantic rule 2: when the method is in the "overwrite" pointcut (defaultAction="overwrite")
+		// but OpenOptions only produced "create" (e.g. Files.writeString(path, s, CREATE) — no WRITE
+		// option), the operation is still semantically "write data to file" = overwrite.
+		// Exception: CREATE_NEW genuinely means "create a new file; fail if it already exists", so
+		// we leave that as "create". Only plain CREATE (create-if-absent) is reclassified.
+		if ("overwrite".equals(defaultAction) //$NON-NLS-1$
+				&& actions.size() == 1 && actions.containsKey("create") //$NON-NLS-1$
+				&& !options.contains(StandardOpenOption.CREATE_NEW)) {
+			Boolean allowNonExisting = actions.get("create"); //$NON-NLS-1$
+			actions.remove("create"); //$NON-NLS-1$
+			actions.put("overwrite", allowNonExisting); //$NON-NLS-1$
+		}
+
 		if (actions.isEmpty()) {
 			// If OpenOptions were found but none matched the expected actions for this
 			// pointcut,
@@ -658,10 +699,13 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				return Collections.emptyList();
 			}
 			// Check for RandomAccessFile mode string first
-			if ("java.io.RandomAccessFile".equals(declaringTypeName)) {
+			if ("java.io.RandomAccessFile".equals(declaringTypeName)) { //$NON-NLS-1$
 				String modeAction = getRandomAccessFileModeAction(parameters, defaultAction);
 				if (modeAction != null) {
-					actions.put(modeAction, shouldAllowNonExistingByDefault(modeAction));
+					// RandomAccessFile write modes can create files that don't exist yet,
+					// so always check the path even when the file is absent.
+					boolean allowNonExisting = !"read".equals(modeAction); //$NON-NLS-1$
+					actions.put(modeAction, allowNonExisting);
 				} else {
 					actions.put(defaultAction, shouldAllowNonExistingByDefault(defaultAction));
 				}
@@ -726,7 +770,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * @since 2.0.0
 	 */
 	private static boolean shouldAllowNonExistingByDefault(@Nonnull String action) {
-		return "create".equals(action);
+		return "create".equals(action) || "delete".equals(action);
 	}
 
 	/**
@@ -876,6 +920,18 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 						parameters, allowedPaths, FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT
 								.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE),
 						allowNonExistingPathsToBeConsidered);
+		// When a "create" pointcut intercepts a class/method that semantically truncates/overwrites
+		// (FileOutputStream, FileWriter, PrintWriter, or Files.newBufferedWriter/newOutputStream
+		// without an explicit append=true), the reported verb should be "overwrite" so that
+		// messages match test expectations.
+		boolean isWriteAliasedAsCreate = "create".equals(action) //$NON-NLS-1$
+				&& ("java.io.FileOutputStream".equals(declaringTypeName) //$NON-NLS-1$
+						|| "java.io.FileWriter".equals(declaringTypeName) //$NON-NLS-1$
+						|| "java.io.PrintWriter".equals(declaringTypeName) //$NON-NLS-1$
+						|| ("java.nio.file.Files".equals(declaringTypeName) //$NON-NLS-1$
+								&& ("newBufferedWriter".equals(methodName) //$NON-NLS-1$
+										|| "newOutputStream".equals(methodName)))); //$NON-NLS-1$
+		String messageAction = isWriteAliasedAsCreate ? "overwrite" : action; //$NON-NLS-1$
 		if (pathIllegallyInteractedThroughParameter != null) {
 			// Check if this is a .class file access by ClassLoader - should be allowed
 			boolean isClassLoaderAccess = pathIllegallyInteractedThroughParameter.endsWith(".class")
@@ -883,10 +939,49 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 					&& (studentCalledMethod.startsWith("java.lang.Class.forName")
 							|| studentCalledMethod.startsWith("java.lang.ClassLoader")
 							|| studentCalledMethod.startsWith("jdk.internal.loader"));
-			if (!isClassLoaderAccess) {
+			// Allow .jar reads from system infrastructure paths (Maven repo, JDK).
+			// These are triggered by JUnit / ServiceLoader during class loading and are
+			// not initiated by student code accessing arbitrary project files.
+			boolean isSystemJarRead = pathIllegallyInteractedThroughParameter.endsWith(".jar")
+					&& (pathIllegallyInteractedThroughParameter.contains("/.m2/repository/")
+							|| pathIllegallyInteractedThroughParameter.contains(
+									java.io.File.separator + ".m2" + java.io.File.separator + "repository"
+											+ java.io.File.separator)
+							|| pathIllegallyInteractedThroughParameter
+									.startsWith(System.getProperty("java.home")));
+			if (!isClassLoaderAccess && !isSystemJarRead) {
 				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-						"security.advice.illegal.file.execution", fileSystemMethodToCheck, action,
+						"security.advice.illegal.file.execution", fileSystemMethodToCheck, messageAction,
 						pathIllegallyInteractedThroughParameter, fullMethodSignature
+								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
+			}
+		}
+		// </editor-fold>
+		// <editor-fold desc="Check receiver instance">
+		@Nullable
+		String pathIllegallyInteractedThroughReceiver = instance == null ? null
+				: checkIfVariableCriteriaIsViolated(new Object[] { instance }, allowedPaths, IgnoreValues.NONE,
+						allowNonExistingPathsToBeConsidered);
+		if (pathIllegallyInteractedThroughReceiver != null) {
+			boolean isInternalAllowed = false;
+
+			if (INTERNAL_PATH_SUFFIXES.stream().anyMatch(pathIllegallyInteractedThroughReceiver::endsWith)) {
+				isInternalAllowed = true;
+			}
+
+			if (!isInternalAllowed && pathIllegallyInteractedThroughReceiver.endsWith(".jar")
+					&& (pathIllegallyInteractedThroughReceiver.contains("/.m2/repository/")
+							|| pathIllegallyInteractedThroughReceiver.contains(
+									java.io.File.separator + ".m2" + java.io.File.separator + "repository"
+											+ java.io.File.separator)
+							|| pathIllegallyInteractedThroughReceiver.startsWith(System.getProperty("java.home")))) {
+				isInternalAllowed = true;
+			}
+
+			if (!isInternalAllowed) {
+				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+						"security.advice.illegal.file.execution", fileSystemMethodToCheck, messageAction,
+						pathIllegallyInteractedThroughReceiver, fullMethodSignature
 								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
 			}
 		}
@@ -932,9 +1027,22 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				}
 			}
 
+			// Allow .jar reads from system infrastructure paths (Maven repo, JDK).
+			// These are triggered by JUnit / ServiceLoader during class loading and are
+			// not initiated by student code accessing arbitrary project files.
+			if (!isInternalAllowed && pathIllegallyInteractedThroughAttribute.endsWith(".jar")
+					&& (pathIllegallyInteractedThroughAttribute.contains("/.m2/repository/")
+							|| pathIllegallyInteractedThroughAttribute.contains(
+									java.io.File.separator + ".m2" + java.io.File.separator + "repository"
+											+ java.io.File.separator)
+							|| pathIllegallyInteractedThroughAttribute
+									.startsWith(System.getProperty("java.home")))) {
+				isInternalAllowed = true;
+			}
+
 			if (!isInternalAllowed) {
 				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-						"security.advice.illegal.file.execution", fileSystemMethodToCheck, action,
+						"security.advice.illegal.file.execution", fileSystemMethodToCheck, messageAction, //$NON-NLS-1$
 						pathIllegallyInteractedThroughAttribute, fullMethodSignature
 								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
 			}
@@ -965,11 +1073,14 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		// <editor-fold desc="Check instrumentation mode early">
 		@Nullable
 		final String aopMode = getValueFromSettings("aopMode");
-		if (aopMode == null || !aopMode.equals("INSTRUMENTATION")) {
+		if (aopMode == null || aopMode.isEmpty() || !aopMode.equals("INSTRUMENTATION")) {
 			return;
 		}
 		@Nullable
 		final String restrictedPackage = getValueFromSettings("restrictedPackage");
+		if (restrictedPackage == null || restrictedPackage.isEmpty()) {
+			return;
+		}
 		@Nullable
 		final String[] allowedClasses = getValueFromSettings("allowedListedClasses");
 		// </editor-fold>

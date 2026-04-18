@@ -1,0 +1,19 @@
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_WALA_AND_ASPECTJ
+  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.cit.ase.ares.integration.testuser.HelloWorldUser"
+    - "de.tum.cit.ase.ares.integration.HelloWorldTest"
+    - "de.tum.cit.ase.ares.testutilities."
+    - "de.tum.cit.ase.ares.integration.aop.allowed.SystemAccessTest"
+    - "de.tum.cit.ase.ares.integration.aop.forbidden.SystemAccessTest"
+    - "de.tum.cit.ase.ares.integration.architecture.forbidden.SystemAccessTest"
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions: []
+    regardingNetworkConnections: []
+    regardingCommandExecutions: []
+    regardingThreadCreations: []
+    regardingPackageImports: []
+    regardingTimeouts:
+      - timeout: 3000

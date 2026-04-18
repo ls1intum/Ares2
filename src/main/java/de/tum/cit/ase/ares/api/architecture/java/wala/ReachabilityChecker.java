@@ -44,13 +44,13 @@ public class ReachabilityChecker {
 	public static List<CGNode> findReachableMethods(CallGraph callGraph, Iterator<CGNode> startNodes,
 			Predicate<CGNode> targetNodeFilter) {
 		if (callGraph == null) {
-			throw new SecurityException(Messages.localized("security.common.not.null", "CallGraph"));
+			throw new SecurityException(Messages.localized("security.common.not.null", "CallGraph", "findReachableMethods"));
 		}
 		if (startNodes == null) {
-			throw new SecurityException(Messages.localized("security.common.not.null", "startNodes"));
+			throw new SecurityException(Messages.localized("security.common.not.null", "startNodes", "findReachableMethods"));
 		}
 		if (targetNodeFilter == null) {
-			throw new SecurityException(Messages.localized("security.common.not.null", "targetNodeFilter"));
+			throw new SecurityException(Messages.localized("security.common.not.null", "targetNodeFilter", "findReachableMethods"));
 		}
 		return new CustomDFSPathFinder(callGraph, startNodes, targetNodeFilter).find();
 	}
@@ -69,17 +69,17 @@ public class ReachabilityChecker {
 	public static List<DefaultEntrypoint> getEntryPointsFromStudentSubmission(String classPath,
 			ClassHierarchy applicationClassHierarchy) {
 		if (classPath == null || classPath.trim().isEmpty()) {
-			throw new SecurityException(Messages.localized("security.common.not.null", "classPath"));
+			throw new SecurityException(Messages.localized("security.common.not.null", "classPath", "getEntryPointsFromStudentSubmission"));
 		}
 		if (applicationClassHierarchy == null) {
-			throw new SecurityException(Messages.localized("security.common.not.null", "ClassHierarchy"));
+			throw new SecurityException(Messages.localized("security.common.not.null", "ClassHierarchy", "getEntryPointsFromStudentSubmission"));
 		}
 		try {
 			return new ArrayList<>(io.vavr.collection.Stream.ofAll(createClassHierarchy(classPath)).toJavaStream()
 					.filter(iClass -> iClass.getClassLoader().getReference().equals(ClassLoaderReference.Application))
 					.map(IClass::getDeclaredMethods).map(io.vavr.collection.Stream::ofAll)
 					.flatMap(io.vavr.collection.Stream::toJavaStream)
-					.filter(iMethod -> !iMethod.getName().toString().equals("main")).map(IMethod::getReference)
+					.map(IMethod::getReference)
 					.map(methodReference -> new DefaultEntrypoint(methodReference, applicationClassHierarchy))
 					.toList());
 		} catch (ClassHierarchyException | IOException | UnimplementedError e) {

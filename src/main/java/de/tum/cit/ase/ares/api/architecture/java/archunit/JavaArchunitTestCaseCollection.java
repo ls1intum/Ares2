@@ -3,6 +3,7 @@ package de.tum.cit.ase.ares.api.architecture.java.archunit;
 //<editor-fold desc="Imports">
 import java.nio.file.Path;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaAccess;
@@ -33,6 +34,32 @@ public class JavaArchunitTestCaseCollection {
 
 	// <editor-fold desc="Tool methods">
 
+	/**
+	 * Converts Java-style array notation in method signatures to the JNI-style
+	 * format that ArchUnit uses in {@code JavaAccess.getTarget().getFullName()}.
+	 * <p>
+	 * For example: {@code "java.lang.String[]"} becomes {@code "[Ljava.lang.String;"}
+	 * and {@code "byte[]"} becomes {@code "[B"}.
+	 *
+	 * @param signature the method signature with Java-style array notation
+	 * @return the signature with JNI-style array notation
+	 */
+	private static String convertArrayNotation(String signature) {
+		// Handle primitive arrays first (before the general object array regex)
+		String result = signature;
+		result = result.replace("byte[]", "[B");
+		result = result.replace("short[]", "[S");
+		result = result.replace("int[]", "[I");
+		result = result.replace("long[]", "[J");
+		result = result.replace("float[]", "[F");
+		result = result.replace("double[]", "[D");
+		result = result.replace("boolean[]", "[Z");
+		result = result.replace("char[]", "[C");
+		// Handle object arrays: qualified.Type[] -> [Lqualified.Type;
+		result = result.replaceAll("([a-zA-Z_$][a-zA-Z0-9_.$]*)\\[\\]", "[L$1;");
+		return result;
+	}
+
 	private static ArchRule createNoClassShouldHaveMethodRule(String ruleName, Path methodsFilePath) {
 		return ArchRuleDefinition.noClasses()
 				.should(new TransitivelyAccessesMethodsCondition(new DescribedPredicate<>(ruleName) {
@@ -41,7 +68,10 @@ public class JavaArchunitTestCaseCollection {
 					@Override
 					public boolean test(JavaAccess<?> javaAccess) {
 						if (forbiddenMethods == null) {
-							forbiddenMethods = FileTools.readMethodsFile(FileTools.readFile(methodsFilePath));
+							forbiddenMethods = FileTools.readMethodsFile(FileTools.readFile(methodsFilePath))
+									.stream()
+									.map(JavaArchunitTestCaseCollection::convertArrayNotation)
+									.collect(Collectors.toSet());
 						}
 						return forbiddenMethods.stream().filter(method -> !method.isEmpty())
 								.anyMatch(method -> javaAccess.getTarget().getFullName().startsWith(method));
@@ -179,6 +209,15 @@ public class JavaArchunitTestCaseCollection {
 	public static final ArchRule NO_CLASS_MUST_ACCESS_MODULE_SYSTEM = createNoClassShouldHaveMethodRule(
 			Messages.localized("security.architecture.module.system.access"),
 			FileHandlerConstants.ARCHUNIT_MODULE_SYSTEM_METHODS);
+	// </editor-fold>
+
+	// <editor-fold desc="JNDI injection related rule">
+	/**
+	 * This method checks if any class in the given package performs JNDI lookups.
+	 */
+	public static final ArchRule NO_CLASS_MUST_PERFORM_JNDI_LOOKUPS = createNoClassShouldHaveMethodRule(
+			Messages.localized("security.architecture.jndi.injection"),
+			FileHandlerConstants.ARCHUNIT_JNDI_INJECTION_METHODS);
 	// </editor-fold>
 	// </editor-fold>
 }

@@ -1,6 +1,6 @@
 package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
 
-public aspect JavaAspectJFileSystemPointcutDefinitions {
+@SuppressWarnings("AopLanguageInspection") public aspect JavaAspectJFileSystemPointcutDefinitions {
 
     pointcut fileReadMethods():
             (call(* java.io.File+.normalizedList(..)) ||
@@ -46,6 +46,7 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* javax.print.DocPrintJob+.print(..)) ||
                     call(* javax.sound.sampled.AudioSystem+.write(..)) ||
                     call(* javax.xml.transform.Transformer+.transform(..)) ||
+                    call(* javax.xml.bind.Marshaller+.marshal(..)) ||
                     call(* java.util.zip.ZipOutputStream+.putNextEntry(..)) ||
                     call(* java.util.zip.ZipOutputStream+.closeEntry(..)) ||
                     call(* java.util.jar.JarOutputStream+.putNextEntry(..)) ||
@@ -87,7 +88,8 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
     pointcut fileDeleteMethods():
             (call(* java.awt.Desktop+.moveToTrash(..)) ||
                     call(* java.io.File+.delete(..)) ||
-                    call(* java.io.File+.deleteOnExit(..)));
+                    call(* java.io.File+.deleteOnExit(..)) ||
+                    call(* org.apache.commons.io.FileUtils+.forceDelete(..)));
 
     pointcut fileInputStreamInitMethods(): call(java.io.FileInputStream+.new(..));
 
@@ -128,6 +130,7 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(java.io.Reader+.new(..)) ||
                     call(* java.io.Reader+.read(..)) ||
                     call(* java.lang.ClassLoader+.getResourceAsStream(..)) ||
+                    call(* java.net.URL+.openStream(..)) ||
                     call(* java.nio.file.Files+.find(..)) ||
                     call(* java.nio.file.Files+.list(..)) ||
                     call(* java.nio.file.Files+.walk(..)) ||
@@ -150,6 +153,7 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
                     call(* javax.sound.sampled.AudioSystem+.getAudioInputStream(..)) ||
                     call(* javax.xml.parsers.DocumentBuilder+.parse(..)) ||
                     call(* javax.xml.parsers.SAXParser+.parse(..)) ||
+                    call(* javax.xml.bind.Unmarshaller+.unmarshal(..)) ||
                     call(java.util.zip.ZipFile+.new(..)) ||
                     call(* java.util.zip.ZipFile+.entries(..)) ||
                     call(* java.util.zip.ZipFile+.getInputStream(..)) ||
@@ -169,8 +173,9 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
     // is determined by the OpenOptions passed to it. The deriveActionChecks() method handles
     // the semantic classification based on the options. Methods like Files.readString() and
     // Files.readAllLines() internally call newByteChannel() with default READ-only options.
-    // Note: Files.copy and Files.move are included here AND in filesDeleteMethods,
-    // matching Byte Buddy which monitors them for both WRITE and DELETE operations.
+    // Note: Files.move is included here AND in filesDeleteMethods because it both
+    // writes to the destination and deletes the source. Files.copy is only in
+    // filesWriteMethods because it does not delete the source.
     pointcut filesWriteMethods():
             (call(* java.nio.file.Files+.write(..)) ||
                     call(* java.nio.file.Files+.writeString(..)) ||
@@ -207,7 +212,6 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
     pointcut filesDeleteMethods():
             (call(* java.nio.file.Files+.delete(..)) ||
                     call(* java.nio.file.Files+.deleteIfExists(..)) ||
-                    call(* java.nio.file.Files+.copy(..)) ||
                     call(* java.nio.file.Files+.move(..)));
 
     pointcut fileSystemReadMethods(): if(false);
@@ -273,7 +277,8 @@ public aspect JavaAspectJFileSystemPointcutDefinitions {
 
     pointcut fileSystemProviderExecuteMethods(): if(false);
 
-    pointcut fileSystemProviderDeleteMethods(): if(false);
+    pointcut fileSystemProviderDeleteMethods():
+            call(* java.nio.file.spi.FileSystemProvider+.delete(..));
 
     pointcut scannerInitMethods(): call(java.util.Scanner+.new(..));
 

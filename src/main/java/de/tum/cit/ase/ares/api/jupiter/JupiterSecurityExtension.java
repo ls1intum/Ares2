@@ -1,7 +1,6 @@
 package de.tum.cit.ase.ares.api.jupiter;
 
 import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
-import static de.tum.cit.ase.ares.api.internal.TestGuardUtils.hasAnnotation;
 import static org.junit.platform.commons.support.AnnotationSupport.findAnnotation;
 
 import java.lang.reflect.InvocationTargetException;
@@ -27,33 +26,32 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
 			Optional<ReflectiveInvocationContext<?>> invocationContext) throws Throwable {
 		JupiterContext testContext = JupiterContext.of(extensionContext);
 
-		Optional<Policy> policyOpt = findAnnotation(testContext.testMethod(), Policy.class);
-		boolean hasPolicyAnnotation = hasAnnotation(testContext, Policy.class);
-		boolean isPolicyActivated = policyOpt.map(Policy::activated).orElse(false);
+		Optional<Policy> methodPolicy = findAnnotation(testContext.testMethod(), Policy.class);
+		Optional<Policy> classPolicy = findAnnotation(testContext.testClass(), Policy.class);
+		Optional<Policy> policyOpt = methodPolicy.or(() -> classPolicy);
+		boolean hasPolicyAnnotation = policyOpt.isPresent();
+		boolean isAresActivated = policyOpt.map(Policy::activated).orElse(true);
 
 		// ALWAYS reset settings first to ensure clean state for every test.
-		// This prevents settings from a previous @Policy test from affecting the
-		// current test.
+		// This prevents settings from a previous test from affecting the current test.
 		// We have to reset both the settings classes in the runtime and the bootstrap
 		// class loader to be able to run multiple tests in the same JVM instance.
-		// Use 'false' for initialization to match how the instrumentation advice loads
-		// the class.
-		String className = "de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings";
-		Try.call(() -> Class.forName(className, true, Thread.currentThread().getContextClassLoader()))
-				.ifSuccess(JupiterSecurityExtension::resetSettings);
-		// Reset Bootstrap ClassLoader settings (may silently fail if class not yet
-		// loaded there)
+		resetSettingsInStandardClassLoader();
 		resetSettingsInBootstrapClassLoader();
 
-		// THEN activate policy if annotation is present and activated
-		if (hasPolicyAnnotation && isPolicyActivated) {
-			policyOpt.ifPresent(policy -> SecurityPolicyReaderAndDirector.builder()
-					.securityPolicyFilePath(
-							!policy.value().isBlank() ? JupiterSecurityExtension.testAndGetPolicyValue(policy) : null)
-					.projectFolderPath(
-							!policy.withinPath().isBlank() ? JupiterSecurityExtension.testAndGetPolicyWithinPath(policy)
-									: Path.of(""))
-					.build().createTestCases().executeTestCases());
+		// Determine security enforcement:
+		// - @Policy(activated=true) → enforce with custom policy from file
+		// - no @Policy on @Test method → enforce with default policy (null path)
+		// - @Policy(activated=false) → Ares deactivated (no security checks)
+		// Skip enforcement during constructor interception (no test method present yet).
+		boolean isTestMethodPresent = testContext.testMethod().isPresent();
+		if (isAresActivated && (hasPolicyAnnotation || isTestMethodPresent)) {
+			Path policyPath = policyOpt.filter(p -> !p.value().isBlank())
+					.map(JupiterSecurityExtension::testAndGetPolicyValue).orElse(null);
+			Path withinPath = policyOpt.filter(p -> !p.withinPath().isBlank())
+					.map(JupiterSecurityExtension::testAndGetPolicyWithinPath).orElse(Path.of(""));
+			SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policyPath)
+					.projectFolderPath(withinPath).build().createTestCases().executeTestCases();
 		}
 		// REMOVED: Installing of ArtemisSecurityManager
 		Throwable failure = null;
@@ -65,15 +63,9 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
 			try {
 				// REMOVED: Uninstallation of ArtemisSecurityManager
 				// ALWAYS reset settings AFTER the test to ensure clean state for subsequent
-				// tests.
-				// This is critical because tests without @Policy annotation do not trigger this
-				// extension,
-				// so settings must be cleared after @Policy tests to prevent leakage.
-				if (hasPolicyAnnotation && isPolicyActivated) {
-					Try.call(() -> Class.forName(className, true, Thread.currentThread().getContextClassLoader()))
-							.ifSuccess(JupiterSecurityExtension::resetSettings);
-					resetSettingsInBootstrapClassLoader();
-				}
+				// tests, since security is now enforced by default.
+				resetSettingsInStandardClassLoader();
+				resetSettingsInBootstrapClassLoader();
 			} catch (Exception e) {
 				if (failure == null)
 					failure = e;
@@ -97,6 +89,15 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
 		} catch (InvocationTargetException e) {
 			throw new SecurityException(localize("security.settings.error.within.method"), e);
 		}
+	}
+
+	/**
+	 * Resets the settings in the standard (context) ClassLoader.
+	 */
+	public static void resetSettingsInStandardClassLoader() {
+		String className = "de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings";
+		Try.call(() -> Class.forName(className, true, Thread.currentThread().getContextClassLoader()))
+				.ifSuccess(JupiterSecurityExtension::resetSettings);
 	}
 
 	/**

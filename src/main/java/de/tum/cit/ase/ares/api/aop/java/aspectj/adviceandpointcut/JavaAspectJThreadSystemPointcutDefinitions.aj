@@ -1,6 +1,6 @@
 package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
 
-public aspect JavaAspectJThreadSystemPointcutDefinitions {
+@SuppressWarnings("AopLanguageInspection") public aspect JavaAspectJThreadSystemPointcutDefinitions {
 
     pointcut threadCreateMethodsWithParameters(): (
             call(* java.lang.ThreadGroup+.newThread(..)) ||
@@ -45,7 +45,10 @@ public aspect JavaAspectJThreadSystemPointcutDefinitions {
             call(* java.util.concurrent.Executors$DelegatedExecutorService+.invokeAll(..)) ||
             call(* java.util.concurrent.Executors$DelegatedExecutorService+.invokeAny(..)) ||
             call(* java.util.concurrent.Executors$DefaultThreadFactory+.newThread(..)) ||
-            call(* java.util.concurrent.ExecutorCompletionService+.submit(..))
+            call(* java.util.concurrent.ExecutorCompletionService+.submit(..)) ||
+            call(* java.lang.Thread+.startVirtualThread(..)) ||
+            call(* java.lang.Thread$Builder+.start(..)) ||
+            call(* java.lang.Thread$Builder$OfPlatform+.start(..))
             );
 
     pointcut threadCreateMethodsWithoutParameters(): (
