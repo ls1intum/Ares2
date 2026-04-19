@@ -17,6 +17,8 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Locale;
 
+import java.util.Map;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -47,6 +49,69 @@ import javax.annotation.Nullable;
 public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaInstrumentationAdviceAbstractToolbox {
 
 	// <editor-fold desc="Constants">
+
+	/**
+	 * Resolve the index of a named field within the given class.
+	 * <p>
+	 * Description: Returns the positional index of the first field whose name
+	 * matches {@code fieldName}. Used to avoid hard-coding field indices that
+	 * can shift across JDK versions.
+	 *
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 */
+	private static int findFieldIndex(Class<?> clazz, String fieldName) {
+		java.lang.reflect.Field[] fields = clazz.getDeclaredFields();
+		for (int i = 0; i < fields.length; i++) {
+			if (fieldName.equals(fields[i].getName())) {
+				return i;
+			}
+		}
+		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.field.not.found", fieldName, clazz.getName())); //$NON-NLS-1$
+	}
+
+	/**
+	 * Map of methods with attribute index exceptions for network system ignore logic.
+	 * <p>
+	 * Description: Specifies for certain methods which attribute index should be
+	 * exempted from ignore rules during network system checks. For example, when
+	 * checking a {@link java.net.Socket} instance, only the remote address fields
+	 * are relevant for policy enforcement.
+	 *
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 */
+	@Nonnull
+	@SuppressWarnings("null")
+	private static final Map<String, IgnoreValues> NETWORK_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT = Map.ofEntries(
+			Map.entry("java.net.Socket.connect", IgnoreValues.allExcept(findFieldIndex(java.net.Socket.class, "impl"))), //$NON-NLS-1$ //$NON-NLS-2$
+			Map.entry("java.net.Socket.getInputStream", IgnoreValues.allExcept(findFieldIndex(java.net.Socket.class, "impl")))); //$NON-NLS-1$ //$NON-NLS-2$
+
+	/**
+	 * Map of methods with parameter index exceptions for network system ignore logic.
+	 * <p>
+	 * Description: Specifies for certain methods which parameter index should be
+	 * exempted from ignore rules during network system checks. For methods like
+	 * {@code Socket.connect(SocketAddress, int)}, only the first parameter (the
+	 * remote address) should be checked, not the timeout. For HTTP client methods,
+	 * only the {@link java.net.http.HttpRequest} parameter is relevant.
+	 *
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 */
+	@Nonnull
+	@SuppressWarnings("null")
+	private static final Map<String, IgnoreValues> NETWORK_SYSTEM_IGNORE_PARAMETERS_EXCEPT = Map.ofEntries(
+			// Socket.connect(SocketAddress endpoint, int timeout) - only check endpoint (index 0)
+			Map.entry("java.net.Socket.connect", IgnoreValues.allExcept(0)), //$NON-NLS-1$
+			// DatagramSocket.send(DatagramPacket p) - only check the packet (index 0)
+			Map.entry("java.net.DatagramSocket.send", IgnoreValues.allExcept(0)), //$NON-NLS-1$
+			// DatagramChannel.send(ByteBuffer, SocketAddress) - only check address (index 1)
+			Map.entry("java.nio.channels.DatagramChannel.send", IgnoreValues.allExcept(1)), //$NON-NLS-1$
+			// HttpClient.send(HttpRequest, BodyHandler) - only check the request (index 0)
+			Map.entry("java.net.http.HttpClient.send", IgnoreValues.allExcept(0)), //$NON-NLS-1$
+			// HttpClient.sendAsync(HttpRequest, BodyHandler) - only check the request (index 0)
+			Map.entry("java.net.http.HttpClient.sendAsync", IgnoreValues.allExcept(0))); //$NON-NLS-1$
 
 	/**
 	 * Internal value type representing a resolved network target.
