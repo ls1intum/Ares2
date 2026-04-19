@@ -51,7 +51,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 
 	// <editor-fold desc="Constants">
 
-    /**
+	/**
 	 * Resolve the index of a named field within the given class.
 	 * <p>
 	 * Description: Returns the positional index of the first field whose name
@@ -66,9 +66,19 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				return i;
 			}
 		}
-		return 0;
+		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.field.not.found", fieldName, clazz.getName()));
 	}
 
+	/**
+	 * Map of methods with attribute index exceptions for file system ignore logic.
+	 * <p>
+	 * Description: Specifies for certain methods which attribute index should be
+	 * exempted from ignore rules during file system checks. Entries cover
+	 * {@link java.io.File} mutating methods (delete, deleteOnExit, createNewFile)
+	 * where only the {@code path} field is relevant, and
+	 * {@link ProcessBuilder#start()} / {@link ProcessBuilder#startPipeline()} where
+	 * only the {@code command} field carries the executable path.
+	 */
 	@Nonnull
 	private static final Map<String, IgnoreValues> FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT = Map.ofEntries(
 			Map.entry("java.io.File.delete", IgnoreValues.allExcept(findFieldIndex(java.io.File.class, "path"))),

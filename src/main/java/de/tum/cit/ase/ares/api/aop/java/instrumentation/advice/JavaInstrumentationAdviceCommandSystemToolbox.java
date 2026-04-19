@@ -8,7 +8,6 @@ import java.util.Map;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-//</editor-fold>
 
 /**
  * Utility class for Java instrumentation command system security advice.
@@ -32,7 +31,7 @@ import javax.annotation.Nullable;
  * @author Markus Paulsen
  * @version 2.0.0
  */
-public class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumentationAdviceAbstractToolbox {
+public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaInstrumentationAdviceAbstractToolbox {
 
 	// <editor-fold desc="Constants">
 

@@ -21,7 +21,6 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-//</editor-fold>
 
 /**
  * Utility class for Java instrumentation thread system security advice.
@@ -45,7 +44,7 @@ import javax.annotation.Nullable;
  * @author Markus Paulsen
  * @version 2.0.0
  */
-public class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrumentationAdviceAbstractToolbox {
+public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInstrumentationAdviceAbstractToolbox {
 
 	// <editor-fold desc="Constants">
 
