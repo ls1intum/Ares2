@@ -43,8 +43,7 @@
 		<json-version>20250517</json-version>
 		<!-- 5. Formats: 5.2 YAML and XML-->
 		<yaml-version>2.18.2</yaml-version>
-		<!-- 6. Large Tooling Libraries -->
-		<guava-version>33.5.0-jre</guava-version>
+		<!-- 6. Large Toolin2.21.2</guava-version>
 		<commons-io-version>2.20.0</commons-io-version>
 		<vavr-version>0.10.7</vavr-version>
 		<!-- 7. Small Tooling Libraries -->
