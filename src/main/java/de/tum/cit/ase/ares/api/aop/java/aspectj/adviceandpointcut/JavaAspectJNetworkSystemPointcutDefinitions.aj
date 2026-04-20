@@ -20,6 +20,7 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
             );
 
     pointcut networkSendMethods(): (
+            call(* java.net.Socket+.getOutputStream(..)) ||
             call(* java.net.DatagramSocket+.send(..)) ||
             call(* java.nio.channels.DatagramChannel+.send(..)) ||
             call(* java.net.http.HttpClient+.send(..)) ||

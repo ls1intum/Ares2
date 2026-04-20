@@ -589,6 +589,7 @@ public class JavaInstrumentationPointcutDefinitions {
 	 * This map contains the methods which can send data over the network.
 	 */
 	public static final Map<String, List<String>> methodsWhichCanSendToNetwork = Map.ofEntries(
+			Map.entry("java.net.Socket", List.of("getOutputStream")),
 			Map.entry("java.net.DatagramSocket", List.of("send")),
 			Map.entry("java.nio.channels.DatagramChannel", List.of("send")),
 			Map.entry("java.net.http.HttpClient", List.of("send", "sendAsync")),

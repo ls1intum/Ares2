@@ -269,14 +269,10 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 			return null;
 		}
 		if (value instanceof Socket socket) {
-			InetAddress inetAddress = socket.getInetAddress();
-			String host = inetAddress == null ? null : inetAddress.getHostAddress();
-			return new NetworkTarget(host, socket.getPort());
+			return extractSocketTarget(socket);
 		}
 		if (value instanceof DatagramSocket datagramSocket) {
-			InetAddress inetAddress = datagramSocket.getInetAddress();
-			String host = inetAddress == null ? null : inetAddress.getHostAddress();
-			return new NetworkTarget(host, datagramSocket.getPort());
+			return extractDatagramSocketTarget(datagramSocket);
 		}
 		if (value instanceof SocketChannel socketChannel) {
 			try {
@@ -316,6 +312,138 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Backwards-compatible alias retained for existing reflective tests.
+	 *
+	 * @param value the object to convert
+	 * @return the resolved network target, or {@code null}
+	 */
+	@Nullable
+	private static NetworkTarget toTarget(@Nullable Object value) {
+		return variableToTarget(value);
+	}
+
+	/**
+	 * Resolves a network target from a full intercepted parameter list.
+	 * <p>
+	 * Description: Supports APIs that split host and port across separate
+	 * arguments, such as {@code new Socket(String, int)} and
+	 * {@code new Socket(InetAddress, int)}. The first directly resolvable target
+	 * wins.
+	 *
+	 * @param parameters the intercepted argument array
+	 * @return the resolved target, or {@code null} if no target can be derived
+	 */
+	@Nullable
+	private static NetworkTarget parametersToTarget(@Nonnull Object[] parameters) {
+		for (int i = 0; i < parameters.length; i++) {
+			NetworkTarget directTarget = variableToTarget(parameters[i]);
+			if (directTarget != null) {
+				return directTarget;
+			}
+			if (i + 1 < parameters.length) {
+				NetworkTarget pairTarget = hostAndPortToTarget(parameters[i], parameters[i + 1]);
+				if (pairTarget != null) {
+					return pairTarget;
+				}
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Resolves a host-and-port argument pair to a network target.
+	 *
+	 * @param hostCandidate candidate host argument
+	 * @param portCandidate candidate port argument
+	 * @return the resolved target, or {@code null} if the pair is unsupported
+	 */
+	@Nullable
+	private static NetworkTarget hostAndPortToTarget(@Nullable Object hostCandidate,
+			@Nullable Object portCandidate) {
+		Integer port = extractPort(portCandidate);
+		if (port == null) {
+			return null;
+		}
+		if (hostCandidate instanceof String host && !host.isBlank()) {
+			return new NetworkTarget(host, port);
+		}
+		if (hostCandidate instanceof InetAddress inetAddress) {
+			return new NetworkTarget(inetAddress.getHostAddress(), port);
+		}
+		return null;
+	}
+
+	/**
+	 * Extracts a valid TCP/UDP port from an intercepted argument.
+	 *
+	 * @param value the candidate port value
+	 * @return the port number, or {@code null} if the value is not a valid port
+	 */
+	@Nullable
+	private static Integer extractPort(@Nullable Object value) {
+		if (!(value instanceof Number number)) {
+			return null;
+		}
+		int port = number.intValue();
+		if (port < 0 || port > 65_535) {
+			return null;
+		}
+		return port;
+	}
+
+	/**
+	 * Resolves a connected socket to a network target.
+	 * <p>
+	 * Description: Prefers the remote socket address because it preserves the
+	 * target that is about to be contacted. Returns {@code null} for unresolved
+	 * sockets so that constructor-time receiver objects do not become
+	 * {@code <unknown>:0} false positives.
+	 *
+	 * @param socket the socket to inspect
+	 * @return the resolved target, or {@code null} if the socket is not yet bound
+	 *         to a remote endpoint
+	 */
+	@Nullable
+	private static NetworkTarget extractSocketTarget(@Nonnull Socket socket) {
+		SocketAddress remoteSocketAddress = socket.getRemoteSocketAddress();
+		if (remoteSocketAddress != null) {
+			NetworkTarget remoteTarget = variableToTarget(remoteSocketAddress);
+			if (remoteTarget != null) {
+				return remoteTarget;
+			}
+		}
+		InetAddress inetAddress = socket.getInetAddress();
+		int port = socket.getPort();
+		if (inetAddress == null || port <= 0) {
+			return null;
+		}
+		return new NetworkTarget(inetAddress.getHostAddress(), port);
+	}
+
+	/**
+	 * Resolves a connected datagram socket to a network target.
+	 *
+	 * @param datagramSocket the datagram socket to inspect
+	 * @return the resolved target, or {@code null} if the socket is not connected
+	 */
+	@Nullable
+	private static NetworkTarget extractDatagramSocketTarget(@Nonnull DatagramSocket datagramSocket) {
+		SocketAddress remoteSocketAddress = datagramSocket.getRemoteSocketAddress();
+		if (remoteSocketAddress != null) {
+			NetworkTarget remoteTarget = variableToTarget(remoteSocketAddress);
+			if (remoteTarget != null) {
+				return remoteTarget;
+			}
+		}
+		InetAddress inetAddress = datagramSocket.getInetAddress();
+		int port = datagramSocket.getPort();
+		if (inetAddress == null || port <= 0) {
+			return null;
+		}
+		return new NetworkTarget(inetAddress.getHostAddress(), port);
 	}
 
 	/**
@@ -527,6 +655,15 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		}
 		// </editor-fold>
 		// <editor-fold desc="Check parameters">
+		@Nullable
+		NetworkTarget targetFromParameters = (parameters == null || parameters.length == 0) ? null
+				: parametersToTarget(parameters);
+		if (targetFromParameters != null && checkIfNetworkIsForbidden(targetFromParameters, allowedHosts, allowedPorts)) {
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+					"security.advice.illegal.network.execution", networkSystemMethodToCheck, action,
+					targetFromParameters.toDisplayString(), fullMethodSignature
+							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
+		}
 		@Nullable
 		String networkIllegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null
 				: checkIfVariableCriteriaIsViolated(parameters, allowedHosts, allowedPorts,
