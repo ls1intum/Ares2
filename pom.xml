@@ -53,7 +53,7 @@
 		<!-- 8. Logging  -->
 		<logback-version>1.5.18</logback-version>
 		<!-- 8. API  -->
-		<apiguardian-api-version>1.1.2</apiguardian-api-version>
+		<apigua1.5.32</apiguardian-api-version>
 		<!-- Others -->
 		<spotless.version>3.0.0</spotless.version>
 		<!-- if JaCoCo is not executed -->
