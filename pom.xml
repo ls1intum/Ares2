@@ -34,8 +34,7 @@
 		</aspectj-path>
 		<!-- 3. AOP: 3.2 Byte Buddy -->
 		<byte-buddy-version>1.17.7</byte-buddy-version>
-		<byte-buddy-path>
-			${project.build.directory}${file.separator}${project.artifactId}-${project.version}-agent.jar
+		<byte1.18.8-jdk5
 		</byte-buddy-path>
 		<!-- 4. AST: 4.1 JavaParser -->
 		<java-parser-version>3.27.0</java-parser-version>
