@@ -19,7 +19,57 @@ import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 //REMOVED: Import of ArtemisSecurityManager
 
 @API(status = Status.INTERNAL)
-public final class JupiterSecurityExtension implements UnifiedInvocationInterceptor {
+public final class JupiterSecurityExtension implements UnifiedInvocationInterceptor, BeforeTestExecutionCallback, AfterTestExecutionCallback {
+
+	// <editor-fold desc="Lifecycle Callbacks">
+
+	/**
+	 * Sets up the security policy before each test method execution.
+	 * <p>
+	 * This callback is used as a reliable alternative to
+	 * {@link InvocationInterceptor#interceptTestTemplateMethod} and
+	 * {@link InvocationInterceptor#interceptTestMethod}, which are not invoked
+	 * when tests are executed via {@code EngineTestKit} (e.g., in meta-tests).
+	 * Lifecycle callbacks like {@link BeforeTestExecutionCallback} are reliably
+	 * called in all execution contexts.
+	 */
+	@Override
+	public void beforeTestExecution(ExtensionContext extensionContext) throws Exception {
+		System.err.println("[ARES-LIFECYCLE] beforeTestExecution called");
+		resetSettingsInStandardClassLoader();
+		resetSettingsInBootstrapClassLoader();
+
+		JupiterContext testContext = JupiterContext.of(extensionContext);
+		Optional<Policy> methodPolicy = findAnnotation(testContext.testMethod(), Policy.class);
+		Optional<Policy> classPolicy = findAnnotation(testContext.testClass(), Policy.class);
+		Optional<Policy> policyOpt = methodPolicy.or(() -> classPolicy);
+		boolean hasPolicyAnnotation = policyOpt.isPresent();
+		boolean isAresActivated = policyOpt.map(Policy::activated).orElse(true);
+		boolean isTestMethodPresent = testContext.testMethod().isPresent();
+		System.err.println("[ARES-LIFECYCLE] hasPolicyAnnotation=" + hasPolicyAnnotation + " isAresActivated=" + isAresActivated + " isTestMethodPresent=" + isTestMethodPresent);
+
+		if (isAresActivated && (hasPolicyAnnotation || isTestMethodPresent)) {
+			Path policyPath = policyOpt.filter(p -> !p.value().isBlank())
+					.map(JupiterSecurityExtension::testAndGetPolicyValue).orElse(null);
+			Path withinPath = policyOpt.filter(p -> !p.withinPath().isBlank())
+					.map(JupiterSecurityExtension::testAndGetPolicyWithinPath).orElse(Path.of(""));
+			System.err.println("[ARES-LIFECYCLE] executing with policyPath=" + policyPath + " withinPath=" + withinPath);
+			SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policyPath)
+					.projectFolderPath(withinPath).build().createTestCases().executeTestCases();
+			System.err.println("[ARES-LIFECYCLE] executeTestCases completed");
+		}
+	}
+
+	/**
+	 * Resets the security settings after each test method execution.
+	 */
+	@Override
+	public void afterTestExecution(ExtensionContext extensionContext) throws Exception {
+		resetSettingsInStandardClassLoader();
+		resetSettingsInBootstrapClassLoader();
+	}
+
+	// </editor-fold>
 
 	@Override
 	public <T> T interceptGenericInvocation(Invocation<T> invocation, ExtensionContext extensionContext,

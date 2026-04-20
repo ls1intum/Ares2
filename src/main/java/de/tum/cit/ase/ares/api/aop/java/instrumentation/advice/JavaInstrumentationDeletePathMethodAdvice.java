@@ -16,11 +16,11 @@ import net.bytebuddy.asm.Advice;
  */
 public final class JavaInstrumentationDeletePathMethodAdvice {
 	/**
-	 * This method is called when a method annotated with the deleting files is
-	 * entered. It performs security checks to determine whether the method
-	 * execution is allowed according to file system security policies. If the
-	 * method execution is not permitted, a SecurityException is thrown, blocking
-	 * the execution.
+	 * This method is called when a method deleting files is entered. It
+	 * performs security checks to determine whether the method execution is
+	 * allowed according to file system security policies. If the method
+	 * execution is not permitted, a SecurityException is thrown, blocking the
+	 * execution.
 	 * <p>
 	 * The checkFileSystemInteraction method from
 	 * JavaInstrumentationAdviceFileSystemToolbox is called to perform these checks,

@@ -11,12 +11,16 @@ import net.bytebuddy.dynamic.loading.ClassInjector.UsingUnsafe.Factory;
 import net.bytebuddy.matcher.ElementMatchers;
 
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.CommandTarget;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.FileTarget;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceCommandSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceNetworkSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceThreadSystemToolbox;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.NetworkTarget;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.ThreadTarget;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationBindingDefinitions;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationPointcutDefinitions;
 
@@ -125,7 +129,19 @@ public class JavaInstrumentationAgent {
 						Map.ofEntries(Map.entry(JavaInstrumentationAdviceAbstractToolbox.class.getName(),
 								ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceAbstractToolbox.class))));
 
-				// Step 3: Load concrete toolbox implementations (depend on abstract toolbox)
+				// Step 3: Load target value types (used by concrete toolboxes)
+				injectClassesSafely(classInjector,
+						Map.ofEntries(
+								Map.entry(FileTarget.class.getName(),
+										ClassFileLocator.ForClassLoader.read(FileTarget.class)),
+								Map.entry(NetworkTarget.class.getName(),
+										ClassFileLocator.ForClassLoader.read(NetworkTarget.class)),
+								Map.entry(ThreadTarget.class.getName(),
+										ClassFileLocator.ForClassLoader.read(ThreadTarget.class)),
+								Map.entry(CommandTarget.class.getName(),
+										ClassFileLocator.ForClassLoader.read(CommandTarget.class))));
+
+				// Step 4: Load concrete toolbox implementations (depend on abstract toolbox and targets)
 				injectClassesSafely(classInjector,
 						Map.ofEntries(
 								Map.entry(JavaInstrumentationAdviceFileSystemToolbox.class.getName(),

@@ -5,6 +5,7 @@ import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstru
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Array;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
@@ -50,24 +51,6 @@ import javax.annotation.Nullable;
 public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstrumentationAdviceAbstractToolbox {
 
 	// <editor-fold desc="Constants">
-
-	/**
-	 * Resolve the index of a named field within the given class.
-	 * <p>
-	 * Description: Returns the positional index of the first field whose name
-	 * matches {@code fieldName}. Used to avoid hard-coding field indices that
-	 * can shift across JDK versions (e.g. JDK 21 added a LOGGER field to
-	 * {@link ProcessBuilder}).
-	 */
-	private static int findFieldIndex(Class<?> clazz, String fieldName) {
-		java.lang.reflect.Field[] fields = clazz.getDeclaredFields();
-		for (int i = 0; i < fields.length; i++) {
-			if (fieldName.equals(fields[i].getName())) {
-				return i;
-			}
-		}
-		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.field.not.found", fieldName, clazz.getName()));
-	}
 
 	/**
 	 * Map of methods with attribute index exceptions for file system ignore logic.
@@ -164,7 +147,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * "/allowed/../../../etc/passwd" could bypass prefix checks.
 	 *
 	 * @since 2.0.0
-	 * @author Markus
+	 * @author Markus Paulsen
 	 * @param actualPath                          the Path to test
 	 * @param allowedPathsAsStrings               whitelist of allowed actualPath
 	 *                                            strings
@@ -172,11 +155,12 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 *                                            exist yet
 	 * @return true if actualPath is forbidden; false otherwise
 	 */
-	private static boolean checkIfPathIsForbidden(@Nullable Path actualPath, @Nullable String[] allowedPathsAsStrings,
+	private static boolean checkIfPathIsForbidden(@Nullable FileTarget target, @Nullable String[] allowedPathsAsStrings,
 			boolean allowNonExistingPathsToBeConsidered) {
-		if (actualPath == null) {
+		if (target == null || target.path() == null) {
 			return false;
 		}
+		Path actualPath = target.path();
 		if (allowedPathsAsStrings == null || allowedPathsAsStrings.length == 0) {
 			return true;
 		}
@@ -214,28 +198,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				continue;
 			}
 
-			// SECURITY: Also resolve symlinks in allowed paths to canonical form
-			Path normalizedAllowedPath;
-			boolean allowedExists = Files.exists(allowedPath, LinkOption.NOFOLLOW_LINKS);
-
-			if (allowedExists) {
-				try {
-					// Resolve ALL symlinks in allowed path too
-					normalizedAllowedPath = allowedPath.toRealPath();
-				} catch (IOException e) {
-					if (!allowNonExistingPathsToBeConsidered) {
-						continue;
-					}
-					normalizedAllowedPath = allowedPath.normalize().toAbsolutePath();
-				}
-			} else {
-				if (!allowNonExistingPathsToBeConsidered) {
-					continue;
-				}
-				normalizedAllowedPath = allowedPath.normalize().toAbsolutePath();
-			}
-
-			if (candidate.startsWith(normalizedAllowedPath)) {
+			if (pathMatches(candidate, allowedPath, allowNonExistingPathsToBeConsidered)) {
 				hasAllowedPrefix = true;
 				break;
 			}
@@ -251,14 +214,56 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 
 		return !hasAllowedPrefix;
 	}
+
+	/**
+	 * Checks whether an actual (already resolved) path matches an allowed path.
+	 * <p>
+	 * Description: Resolves symlinks in the allowed path to its canonical form,
+	 * then checks whether the candidate path starts with the resolved allowed
+	 * path. Returns {@code false} if the allowed path does not exist and
+	 * non-existing paths are not permitted.
+	 *
+	 * @param candidate                           the resolved candidate path
+	 * @param allowedPath                         the allowed path to compare against
+	 * @param allowNonExistingPathsToBeConsidered whether non-existing paths are
+	 *                                            permitted
+	 * @return {@code true} if the candidate path is covered by the allowed path
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 */
+	private static boolean pathMatches(@Nonnull Path candidate, @Nonnull Path allowedPath,
+			boolean allowNonExistingPathsToBeConsidered) {
+		// SECURITY: Also resolve symlinks in allowed paths to canonical form
+		Path normalizedAllowedPath;
+		boolean allowedExists = Files.exists(allowedPath, LinkOption.NOFOLLOW_LINKS);
+
+		if (allowedExists) {
+			try {
+				// Resolve ALL symlinks in allowed path too
+				normalizedAllowedPath = allowedPath.toRealPath();
+			} catch (IOException e) {
+				if (!allowNonExistingPathsToBeConsidered) {
+					return false;
+				}
+				normalizedAllowedPath = allowedPath.normalize().toAbsolutePath();
+			}
+		} else {
+			if (!allowNonExistingPathsToBeConsidered) {
+				return false;
+			}
+			normalizedAllowedPath = allowedPath.normalize().toAbsolutePath();
+		}
+
+		return candidate.startsWith(normalizedAllowedPath);
+	}
 	// </editor-fold>
 
 	// <editor-fold desc="Conversion handling">
 	/**
 	 * Transforms variable values into a normalized absolute path.
 	 * <p>
-	 * Description: Converts the provided variable (Path, String, or File) into an
-	 * absolute normalized Path for security checks, validating existence.
+	 * Description: Converts the provided variable (Path, URI, URL, String, or File)
+	 * into an absolute normalized Path for security checks, validating existence.
 	 *
 	 * @param variableValue the variable to transform into a Path
 	 * @return the normalized absolute Path
@@ -273,6 +278,16 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				return null;
 			} else if (variableValue instanceof Path) {
 				return ((Path) variableValue).normalize().toAbsolutePath();
+			} else if (variableValue instanceof URI uri) {
+				if (!"file".equalsIgnoreCase(uri.getScheme())) {
+					return null;
+				}
+				Path absolutePath = Path.of(uri).normalize().toAbsolutePath();
+				if (Files.exists(absolutePath) || allowNonExistingPathsToBeConsidered) {
+					return absolutePath;
+				} else {
+					return null;
+				}
 			} else if (variableValue instanceof URL url) {
 				if (!"file".equalsIgnoreCase(url.getProtocol())) {
 					return null;
@@ -304,6 +319,24 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			return null;
 		}
 	}
+
+	/**
+	 * Converts a variable value to a {@link FileTarget} if possible.
+	 * <p>
+	 * Description: Delegates to {@link #variableToPath} and wraps the result.
+	 *
+	 * @param variableValue                       the variable to convert
+	 * @param allowNonExistingPathsToBeConsidered whether to allow non-existing paths
+	 * @return a {@link FileTarget}, or {@code null} if conversion fails
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 */
+	@Nullable
+	private static FileTarget variableToTarget(@Nullable Object variableValue,
+			boolean allowNonExistingPathsToBeConsidered) {
+		Path path = variableToPath(variableValue, allowNonExistingPathsToBeConsidered);
+		return path == null ? null : new FileTarget(path);
+	}
 	// </editor-fold>
 
 	// <editor-fold desc="Violation analysis">
@@ -315,7 +348,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * is forbidden.
 	 *
 	 * @since 2.0.0
-	 * @author Markus
+	 * @author Markus Paulsen
 	 * @param observedVariable the variable to analyze
 	 * @param allowedPaths     whitelist of allowed path strings; if null, all paths
 	 *                         are considered allowed
@@ -343,8 +376,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			}
 			return false;
 		} else {
-			Path observedPath = variableToPath(observedVariable, allowNonExistingPathsToBeConsidered);
-			return checkIfPathIsForbidden(observedPath, allowedPaths, allowNonExistingPathsToBeConsidered);
+			FileTarget target = variableToTarget(observedVariable, allowNonExistingPathsToBeConsidered);
+			return checkIfPathIsForbidden(target, allowedPaths, allowNonExistingPathsToBeConsidered);
 		}
 	}
 
@@ -357,7 +390,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * that does not satisfy the allowedPaths whitelist.
 	 *
 	 * @since 2.0.0
-	 * @author Markus
+	 * @author Markus Paulsen
 	 * @param observedVariable the array or List to inspect
 	 * @param allowedPaths     whitelist of allowed path strings
 	 * @return the first violating path as a String, or null if none found
@@ -385,10 +418,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			}
 			return null;
 		} else {
-			Path observedPath = variableToPath(observedVariable, allowNonExistingPathsToBeConsidered);
-			if (observedPath != null
-					&& checkIfPathIsForbidden(observedPath, allowedPaths, allowNonExistingPathsToBeConsidered)) {
-				return observedPath.toString();
+			FileTarget target = variableToTarget(observedVariable, allowNonExistingPathsToBeConsidered);
+			if (target != null
+					&& checkIfPathIsForbidden(target, allowedPaths, allowNonExistingPathsToBeConsidered)) {
+				return target.toDisplayString();
 			}
 		}
 		return null;
@@ -404,7 +437,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * Path and tested. The first violating path found is returned.
 	 *
 	 * @since 2.0.0
-	 * @author Markus
+	 * @author Markus Paulsen
 	 * @param observedVariables array of values to validate
 	 * @param allowedPaths      whitelist of allowed path strings; if null, all
 	 *                          paths are considered allowed
@@ -678,12 +711,12 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		// Merge into a single "overwrite" check with allowNonExisting=true so that non-existing
 		// paths are also validated (they will be created-by-write, not truly "created" as a new
 		// entity). This prevents spurious "illegal create" messages on write-open calls.
-		if (actions.containsKey("create") && actions.containsKey("overwrite")) { //$NON-NLS-1$ //$NON-NLS-2$
-			Boolean createAllows = actions.get("create"); //$NON-NLS-1$
-			Boolean overwriteAllows = actions.get("overwrite"); //$NON-NLS-1$
-			actions.remove("create"); //$NON-NLS-1$
+		if (actions.containsKey("create") && actions.containsKey("overwrite")) {
+			Boolean createAllows = actions.get("create");
+			Boolean overwriteAllows = actions.get("overwrite");
+			actions.remove("create");
 			// Keep allowNonExisting=true from "create" so non-existing paths are checked
-			actions.put("overwrite", (createAllows != null && createAllows) || (overwriteAllows != null && overwriteAllows)); //$NON-NLS-1$
+			actions.put("overwrite", (createAllows != null && createAllows) || (overwriteAllows != null && overwriteAllows));
 		}
 
 		// Semantic rule 2: when the method is in the "overwrite" pointcut (defaultAction="overwrite")
@@ -691,12 +724,12 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		// option), the operation is still semantically "write data to file" = overwrite.
 		// Exception: CREATE_NEW genuinely means "create a new file; fail if it already exists", so
 		// we leave that as "create". Only plain CREATE (create-if-absent) is reclassified.
-		if ("overwrite".equals(defaultAction) //$NON-NLS-1$
-				&& actions.size() == 1 && actions.containsKey("create") //$NON-NLS-1$
+		if ("overwrite".equals(defaultAction)
+				&& actions.size() == 1 && actions.containsKey("create")
 				&& !options.contains(StandardOpenOption.CREATE_NEW)) {
-			Boolean allowNonExisting = actions.get("create"); //$NON-NLS-1$
-			actions.remove("create"); //$NON-NLS-1$
-			actions.put("overwrite", allowNonExisting); //$NON-NLS-1$
+			Boolean allowNonExisting = actions.get("create");
+			actions.remove("create");
+			actions.put("overwrite", allowNonExisting);
 		}
 
 		if (actions.isEmpty()) {
@@ -709,12 +742,12 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				return Collections.emptyList();
 			}
 			// Check for RandomAccessFile mode string first
-			if ("java.io.RandomAccessFile".equals(declaringTypeName)) { //$NON-NLS-1$
+			if ("java.io.RandomAccessFile".equals(declaringTypeName)) {
 				String modeAction = getRandomAccessFileModeAction(parameters, defaultAction);
 				if (modeAction != null) {
 					// RandomAccessFile write modes can create files that don't exist yet,
 					// so always check the path even when the file is absent.
-					boolean allowNonExisting = !"read".equals(modeAction); //$NON-NLS-1$
+					boolean allowNonExisting = !"read".equals(modeAction);
 					actions.put(modeAction, allowNonExisting);
 				} else {
 					actions.put(defaultAction, shouldAllowNonExistingByDefault(defaultAction));
@@ -934,14 +967,14 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		// (FileOutputStream, FileWriter, PrintWriter, or Files.newBufferedWriter/newOutputStream
 		// without an explicit append=true), the reported verb should be "overwrite" so that
 		// messages match test expectations.
-		boolean isWriteAliasedAsCreate = "create".equals(action) //$NON-NLS-1$
-				&& ("java.io.FileOutputStream".equals(declaringTypeName) //$NON-NLS-1$
-						|| "java.io.FileWriter".equals(declaringTypeName) //$NON-NLS-1$
-						|| "java.io.PrintWriter".equals(declaringTypeName) //$NON-NLS-1$
-						|| ("java.nio.file.Files".equals(declaringTypeName) //$NON-NLS-1$
-								&& ("newBufferedWriter".equals(methodName) //$NON-NLS-1$
-										|| "newOutputStream".equals(methodName)))); //$NON-NLS-1$
-		String messageAction = isWriteAliasedAsCreate ? "overwrite" : action; //$NON-NLS-1$
+		boolean isWriteAliasedAsCreate = "create".equals(action)
+				&& ("java.io.FileOutputStream".equals(declaringTypeName)
+						|| "java.io.FileWriter".equals(declaringTypeName)
+						|| "java.io.PrintWriter".equals(declaringTypeName)
+						|| ("java.nio.file.Files".equals(declaringTypeName)
+								&& ("newBufferedWriter".equals(methodName)
+										|| "newOutputStream".equals(methodName))));
+		String messageAction = isWriteAliasedAsCreate ? "overwrite" : action;
 		if (pathIllegallyInteractedThroughParameter != null) {
 			// Check if this is a .class file access by ClassLoader - should be allowed
 			boolean isClassLoaderAccess = pathIllegallyInteractedThroughParameter.endsWith(".class")
@@ -1052,7 +1085,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 
 			if (!isInternalAllowed) {
 				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-						"security.advice.illegal.file.execution", fileSystemMethodToCheck, messageAction, //$NON-NLS-1$
+						"security.advice.illegal.file.execution", fileSystemMethodToCheck, messageAction,
 						pathIllegallyInteractedThroughAttribute, fullMethodSignature
 								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
 			}

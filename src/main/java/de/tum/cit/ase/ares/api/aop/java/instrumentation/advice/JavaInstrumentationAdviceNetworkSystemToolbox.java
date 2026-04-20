@@ -12,11 +12,11 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.net.http.HttpRequest;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SocketChannel;
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
-
 import java.util.Map;
 
 import javax.annotation.Nonnull;
@@ -51,97 +51,24 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	// <editor-fold desc="Constants">
 
 	/**
-	 * Resolve the index of a named field within the given class.
-	 * <p>
-	 * Description: Returns the positional index of the first field whose name
-	 * matches {@code fieldName}. Used to avoid hard-coding field indices that
-	 * can shift across JDK versions.
-	 *
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 */
-	private static int findFieldIndex(Class<?> clazz, String fieldName) {
-		java.lang.reflect.Field[] fields = clazz.getDeclaredFields();
-		for (int i = 0; i < fields.length; i++) {
-			if (fieldName.equals(fields[i].getName())) {
-				return i;
-			}
-		}
-		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.field.not.found", fieldName, clazz.getName())); //$NON-NLS-1$
-	}
-
-	/**
-	 * Map of methods with attribute index exceptions for network system ignore logic.
+	 * Map of methods with attribute index exceptions for network system ignore
+	 * logic.
 	 * <p>
 	 * Description: Specifies for certain methods which attribute index should be
-	 * exempted from ignore rules during network system checks. For example, when
-	 * checking a {@link java.net.Socket} instance, only the remote address fields
-	 * are relevant for policy enforcement.
-	 *
-	 * @since 2.0.0
-	 * @author Markus Paulsen
+	 * exempted from ignore rules during network system checks.
 	 */
 	@Nonnull
-	@SuppressWarnings("null")
-	private static final Map<String, IgnoreValues> NETWORK_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT = Map.ofEntries(
-			Map.entry("java.net.Socket.connect", IgnoreValues.allExcept(findFieldIndex(java.net.Socket.class, "impl"))), //$NON-NLS-1$ //$NON-NLS-2$
-			Map.entry("java.net.Socket.getInputStream", IgnoreValues.allExcept(findFieldIndex(java.net.Socket.class, "impl")))); //$NON-NLS-1$ //$NON-NLS-2$
+	private static final Map<String, IgnoreValues> NETWORK_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT = Map.ofEntries();
 
 	/**
-	 * Map of methods with parameter index exceptions for network system ignore logic.
+	 * Map of methods with parameter index exceptions for network system ignore
+	 * logic.
 	 * <p>
 	 * Description: Specifies for certain methods which parameter index should be
-	 * exempted from ignore rules during network system checks. For methods like
-	 * {@code Socket.connect(SocketAddress, int)}, only the first parameter (the
-	 * remote address) should be checked, not the timeout. For HTTP client methods,
-	 * only the {@link java.net.http.HttpRequest} parameter is relevant.
-	 *
-	 * @since 2.0.0
-	 * @author Markus Paulsen
+	 * exempted from ignore rules during network system checks.
 	 */
 	@Nonnull
-	@SuppressWarnings("null")
-	private static final Map<String, IgnoreValues> NETWORK_SYSTEM_IGNORE_PARAMETERS_EXCEPT = Map.ofEntries(
-			// Socket.connect(SocketAddress endpoint, int timeout) - only check endpoint (index 0)
-			Map.entry("java.net.Socket.connect", IgnoreValues.allExcept(0)), //$NON-NLS-1$
-			// DatagramSocket.send(DatagramPacket p) - only check the packet (index 0)
-			Map.entry("java.net.DatagramSocket.send", IgnoreValues.allExcept(0)), //$NON-NLS-1$
-			// DatagramChannel.send(ByteBuffer, SocketAddress) - only check address (index 1)
-			Map.entry("java.nio.channels.DatagramChannel.send", IgnoreValues.allExcept(1)), //$NON-NLS-1$
-			// HttpClient.send(HttpRequest, BodyHandler) - only check the request (index 0)
-			Map.entry("java.net.http.HttpClient.send", IgnoreValues.allExcept(0)), //$NON-NLS-1$
-			// HttpClient.sendAsync(HttpRequest, BodyHandler) - only check the request (index 0)
-			Map.entry("java.net.http.HttpClient.sendAsync", IgnoreValues.allExcept(0))); //$NON-NLS-1$
-
-	/**
-	 * Internal value type representing a resolved network target.
-	 * <p>
-	 * Description: Pairs a nullable hostname string with an integer port number.
-	 * Used throughout the toolbox as the canonical representation of a network
-	 * endpoint, regardless of whether it originated from a {@link Socket}, a
-	 * {@link URI}, a {@link HttpRequest}, or another network-capable object.
-	 *
-	 * @since 2.0.0
-	 * @author Kevin Fischer
-	 */
-	private record NetworkTarget(@Nullable String host, int port) {
-
-		/**
-		 * Returns a human-readable string representation of this network target.
-		 * <p>
-		 * Description: Formats the host and port as {@code host:port}. If the host
-		 * is {@code null} or blank, substitutes the placeholder {@code <unknown>}.
-		 *
-		 * @return non-null display string in the form {@code host:port}
-		 * @since 2.0.0
-		 * @author Kevin Fischer
-		 */
-		@Nonnull
-		String toDisplayString() {
-			String normalizedHost = host == null || host.isBlank() ? "<unknown>" : host;
-			return normalizedHost + ":" + port;
-		}
-	}
+	private static final Map<String, IgnoreValues> NETWORK_SYSTEM_IGNORE_PARAMETERS_EXCEPT = Map.ofEntries();
 
 	// </editor-fold>
 
@@ -179,7 +106,7 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	 * matching is delegated to {@link #hostMatches} and port matching to
 	 * {@link #portMatches}.
 	 *
-	 * @param target       the resolved network target to evaluate; must not be null
+	 * @param target       the resolved network target to evaluate; may be null
 	 * @param allowedHosts parallel array of allowed hostname patterns; the wildcard
 	 *                     {@code "*"} matches any host
 	 * @param allowedPorts parallel array of allowed port numbers; {@code -1}
@@ -189,15 +116,18 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	 * @since 2.0.0
 	 * @author Kevin Fischer
 	 */
-	private static boolean checkIfNetworkIsForbidden(@Nonnull NetworkTarget target, @Nullable String[] allowedHosts,
+	private static boolean checkIfNetworkIsForbidden(@Nullable NetworkTarget target, @Nullable String[] allowedHosts,
 			@Nullable int[] allowedPorts) {
+		if (target == null) {
+			return false;
+		}
 		if (allowedHosts == null || allowedHosts.length == 0 || allowedPorts == null || allowedPorts.length == 0) {
 			return true;
 		}
 		for (int i = 0; i < allowedHosts.length; i++) {
 			String allowedHost = allowedHosts[i];
 			int allowedPort = allowedPorts[i];
-			if (hostMatches(target.host, allowedHost) && portMatches(target.port, allowedPort)) {
+			if (hostMatches(target.host(), allowedHost) && portMatches(target.port(), allowedPort)) {
 				return false;
 			}
 		}
@@ -265,7 +195,7 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	 * <p>
 	 * Description: Inspects the runtime type of {@code value} and delegates to the
 	 * appropriate extraction logic. Handles {@link InetSocketAddress},
-	 * {@link SocketAddress}, {@link HttpRequest}, {@link URI}, {@link URL},
+	 * {@link SocketAddress}, {@code java.net.http.HttpRequest}, {@link URI}, {@link URL},
 	 * {@link URLConnection}, {@link Socket}, {@link DatagramSocket},
 	 * {@link SocketChannel}, {@link DatagramChannel}, and {@link String} values.
 	 * Returns {@code null} when the value is {@code null} or of an unrecognised
@@ -307,8 +237,18 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 			}
 			return null;
 		}
-		if (value instanceof HttpRequest httpRequest) {
-			return variableToTarget(httpRequest.uri());
+		// HttpRequest is in the java.net.http module which may not be visible from
+		// the bootstrap class-loader. Use reflection to avoid a hard dependency.
+		try {
+			Class<?> httpRequestClass = Class.forName("java.net.http.HttpRequest", false, null);
+			if (httpRequestClass.isInstance(value)) {
+				Object uri = httpRequestClass.getMethod("uri").invoke(value);
+				return variableToTarget(uri);
+			}
+		} catch (ClassNotFoundException ignored) {
+			// java.net.http module not available — skip
+		} catch (Exception ignored) {
+			// reflection failure — skip
 		}
 		if (value instanceof URI uri) {
 			return new NetworkTarget(uri.getHost(), effectivePort(uri.getPort(), uri.getScheme()));
@@ -320,6 +260,13 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		}
 		if (value instanceof URLConnection urlConnection) {
 			return variableToTarget(urlConnection.getURL());
+		}
+		if (value instanceof DatagramPacket datagramPacket) {
+			InetAddress address = datagramPacket.getAddress();
+			if (address != null && datagramPacket.getPort() > 0) {
+				return new NetworkTarget(address.getHostAddress(), datagramPacket.getPort());
+			}
+			return null;
 		}
 		if (value instanceof Socket socket) {
 			InetAddress inetAddress = socket.getInetAddress();
@@ -344,6 +291,9 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 			} catch (Exception ignored) {
 				return null;
 			}
+		}
+		if (value instanceof InetAddress inetAddress) {
+			return new NetworkTarget(inetAddress.getHostAddress(), -1);
 		}
 		if (value instanceof String str) {
 			try {
@@ -397,353 +347,87 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		};
 	}
 
+	// </editor-fold>
+
+	// </editor-fold>
+
+	// <editor-fold desc="Violation analysis">
+
 	/**
-	 * Dispatches to the most appropriate target extractor for the given method.
+	 * Analyzes a variable to determine if it violates allowed network targets.
 	 * <p>
-	 * Description: Uses the fully qualified method name as a key to select the
-	 * specialised extraction helper that best understands the semantics of each
-	 * intercepted API. Falls back to {@link #firstResolvable} for methods that do
-	 * not require dedicated handling.
+	 * Description: Attempts to resolve the variable to a {@link NetworkTarget}
+	 * via {@link #variableToTarget}. Returns {@code true} if the resolved target
+	 * is forbidden according to the allowed hosts and ports whitelist.
 	 *
-	 * @param declaringTypeName the fully qualified class name of the intercepted
-	 *                          method
-	 * @param methodName        the name of the intercepted method
-	 * @param parameters        the intercepted method arguments; may be null
-	 * @param attributes        the instance fields captured by the advice; may be
-	 *                          null
-	 * @param instance          the receiver object of the intercepted call; may be
-	 *                          null
-	 * @return a resolved {@link NetworkTarget}, or {@code null} if extraction
-	 *         failed
+	 * @param observedVariable the variable to analyze
+	 * @param allowedHosts     whitelist of allowed hosts
+	 * @param allowedPorts     whitelist of allowed ports
+	 * @return true if a violation is found, false otherwise
 	 * @since 2.0.0
 	 * @author Kevin Fischer
 	 */
-	@Nullable
-	private static NetworkTarget extractTarget(@Nonnull String declaringTypeName, @Nonnull String methodName,
-			@Nullable Object[] parameters, @Nullable Object[] attributes, @Nullable Object instance) {
-		String key = declaringTypeName + "." + methodName;
-		return switch (key) {
-		case "java.net.Socket.connect", "java.nio.channels.SocketChannel.connect",
-				"java.nio.channels.AsynchronousSocketChannel.connect", "java.nio.channels.DatagramChannel.connect" ->
-				fromFirstParameter(parameters, instance, attributes);
-		case "java.net.DatagramSocket.connect" -> fromDatagramSocketConnect(parameters, instance, attributes);
-		case "java.net.DatagramSocket.send", "java.nio.channels.DatagramChannel.send" ->
-				fromDatagramSend(parameters, instance, attributes);
-		case "java.net.DatagramSocket.receive", "java.nio.channels.DatagramChannel.receive" ->
-				fromReceiveSide(instance, parameters, attributes);
-		case "java.net.http.HttpClient.send", "java.net.http.HttpClient.sendAsync" ->
-				fromHttpRequest(parameters, instance, attributes);
-		case "java.net.URL.openConnection", "java.net.URLConnection.connect", "java.net.URLConnection.getInputStream",
-				"java.net.URLConnection.getOutputStream", "java.net.HttpURLConnection.connect",
-				"java.net.HttpURLConnection.getInputStream", "java.net.HttpURLConnection.getOutputStream" ->
-				fromUrlOrConnection(instance, parameters, attributes);
-		case "java.net.Socket.getInputStream" -> fromSocketInstance(instance, parameters, attributes);
-		case "java.net.Socket.<init>", "java.net.DatagramSocket.<init>" -> fromConstructorParameters(parameters);
-		default -> firstResolvable(parameters, instance, attributes);
-		};
+	private static boolean analyseViolation(@Nullable Object observedVariable, @Nullable String[] allowedHosts,
+			@Nullable int[] allowedPorts) {
+		if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
+			return false;
+		}
+		NetworkTarget target = variableToTarget(observedVariable);
+		return target != null && checkIfNetworkIsForbidden(target, allowedHosts, allowedPorts);
 	}
 
 	/**
-	 * Extracts a network target from socket or datagram-socket constructor
-	 * parameters.
+	 * Extracts the display string of the first violating network target from a
+	 * variable.
 	 * <p>
-	 * Description: Tries to read a host/port pair directly from the first two
-	 * parameters (e.g. {@code Socket(String host, int port)}). Falls back to
-	 * {@link #fromFirstParameter} when that attempt yields no result.
+	 * Description: Resolves the variable to a {@link NetworkTarget} and returns
+	 * its display string if the target is forbidden. Returns {@code null} if no
+	 * violation is found.
 	 *
-	 * @param parameters the constructor arguments; may be null
-	 * @return a resolved {@link NetworkTarget}, or {@code null}
+	 * @param observedVariable the variable to inspect
+	 * @param allowedHosts     the hosts that are allowed
+	 * @param allowedPorts     the ports that are allowed
+	 * @return the violating target as a display string, or null if none found
 	 * @since 2.0.0
 	 * @author Kevin Fischer
 	 */
 	@Nullable
-	private static NetworkTarget fromConstructorParameters(@Nullable Object[] parameters) {
-		if (parameters == null || parameters.length == 0) {
+	private static String extractViolationPath(@Nullable Object observedVariable, @Nullable String[] allowedHosts,
+			@Nullable int[] allowedPorts) {
+		if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
 			return null;
 		}
-		if (parameters.length >= 2) {
-			NetworkTarget fromHostPort = fromHostAndPort(parameters[0], parameters[1]);
-			if (fromHostPort != null) {
-				return fromHostPort;
-			}
+		NetworkTarget target = variableToTarget(observedVariable);
+		if (target != null && checkIfNetworkIsForbidden(target, allowedHosts, allowedPorts)) {
+			return target.toDisplayString();
 		}
-		return fromFirstParameter(parameters, null, null);
+		return null;
 	}
 
 	/**
-	 * Builds a {@link NetworkTarget} from an explicit host and port value pair.
+	 * Checks an array of observedVariables against the allowed network targets
+	 * whitelist.
 	 * <p>
-	 * Description: Accepts {@link String} or {@link InetAddress} as the host
-	 * candidate and {@link Integer} as the port candidate. Returns {@code null}
-	 * when either value cannot be resolved.
+	 * Description: Iterates through the filtered observedVariables (excluding those
+	 * matching ignoreVariables). For each non-null variable, attempts to resolve it
+	 * to a {@link NetworkTarget} and checks whether it is forbidden. The first
+	 * violating target found is returned.
 	 *
-	 * @param hostCandidate the value that should represent the hostname; may be null
-	 * @param portCandidate the value that should represent the port; may be null
-	 * @return a {@link NetworkTarget}, or {@code null} if the inputs cannot be
-	 *         resolved
+	 * @param observedVariables array of values to validate
+	 * @param allowedHosts      whitelist of allowed hosts
+	 * @param allowedPorts      whitelist of allowed ports
+	 * @param ignoreVariables   criteria determining which observedVariables to skip
+	 * @return the first violating target (as display string) or null if none violate
 	 * @since 2.0.0
 	 * @author Kevin Fischer
 	 */
-	@Nullable
-	private static NetworkTarget fromHostAndPort(@Nullable Object hostCandidate, @Nullable Object portCandidate) {
-		String host = null;
-		if (hostCandidate instanceof String str) {
-			host = str;
-		} else if (hostCandidate instanceof InetAddress inetAddress) {
-			host = inetAddress.getHostAddress();
-		}
-		if (host == null || !(portCandidate instanceof Integer port)) {
-			return null;
-		}
-		return new NetworkTarget(host, port);
-	}
-
-	/**
-	 * Extracts a network target from the first resolvable parameter.
-	 * <p>
-	 * Description: Attempts {@link #variableToTarget} on {@code parameters[0]}; if
-	 * that fails or no parameters exist, delegates to {@link #firstResolvable}.
-	 *
-	 * @param parameters the intercepted method arguments; may be null
-	 * @param instance   the receiver object; may be null
-	 * @param attributes the captured instance fields; may be null
-	 * @return a resolved {@link NetworkTarget}, or {@code null}
-	 * @since 2.0.0
-	 * @author Kevin Fischer
-	 */
-	@Nullable
-	private static NetworkTarget fromFirstParameter(@Nullable Object[] parameters, @Nullable Object instance,
-			@Nullable Object[] attributes) {
-		if (parameters != null && parameters.length > 0) {
-			NetworkTarget target = variableToTarget(parameters[0]);
-			if (target != null) {
-				return target;
-			}
-		}
-		return firstResolvable(parameters, instance, attributes);
-	}
-
-	/**
-	 * Extracts a network target for {@code DatagramSocket.connect} invocations.
-	 * <p>
-	 * Description: First attempts to build a target from two explicit parameters
-	 * (host, port). Falls back to {@link #fromFirstParameter} when that fails.
-	 *
-	 * @param parameters the intercepted method arguments; may be null
-	 * @param instance   the receiver object; may be null
-	 * @param attributes the captured instance fields; may be null
-	 * @return a resolved {@link NetworkTarget}, or {@code null}
-	 * @since 2.0.0
-	 * @author Kevin Fischer
-	 */
-	@Nullable
-	private static NetworkTarget fromDatagramSocketConnect(@Nullable Object[] parameters, @Nullable Object instance,
-			@Nullable Object[] attributes) {
-		if (parameters != null && parameters.length >= 2) {
-			NetworkTarget explicit = fromHostAndPort(parameters[0], parameters[1]);
-			if (explicit != null) {
-				return explicit;
-			}
-		}
-		return fromFirstParameter(parameters, instance, attributes);
-	}
-
-	/**
-	 * Extracts a network target from a datagram send operation.
-	 * <p>
-	 * Description: Searches {@code parameters} for a {@link DatagramPacket} whose
-	 * destination address and port are set, and converts that to a
-	 * {@link NetworkTarget}. Falls back to {@link #firstResolvable} when no usable
-	 * packet is found (e.g. the packet has no destination, in which case the
-	 * connected socket or channel determines the target).
-	 *
-	 * @param parameters the intercepted method arguments; may be null
-	 * @param instance   the sender socket or channel instance; may be null
-	 * @param attributes the captured instance fields; may be null
-	 * @return a resolved {@link NetworkTarget}, or {@code null}
-	 * @since 2.0.0
-	 * @author Kevin Fischer
-	 */
-	@Nullable
-	private static NetworkTarget fromDatagramSend(@Nullable Object[] parameters, @Nullable Object instance,
-			@Nullable Object[] attributes) {
-		if (parameters != null) {
-			for (Object parameter : parameters) {
-				if (parameter instanceof DatagramPacket datagramPacket) {
-					InetAddress address = datagramPacket.getAddress();
-					int port = datagramPacket.getPort();
-					if (address != null && port > 0) {
-						String host = address.getHostAddress();
-						return new NetworkTarget(host, port);
-					}
-					// If the packet does not specify a usable destination, fall through
-					// and let firstResolvable resolve the target from the connected socket/channel.
-				}
-			}
-		}
-		return firstResolvable(parameters, instance, attributes);
-	}
-
-	/**
-	 * Extracts a network target from an {@link HttpRequest} in the parameters.
-	 * <p>
-	 * Description: Searches {@code parameters} for an {@link HttpRequest} instance
-	 * and extracts its URI via {@link #variableToTarget}. Falls back to
-	 * {@link #firstResolvable} when none is found.
-	 *
-	 * @param parameters the intercepted method arguments; may be null
-	 * @param instance   the HttpClient instance; may be null
-	 * @param attributes the captured instance fields; may be null
-	 * @return a resolved {@link NetworkTarget}, or {@code null}
-	 * @since 2.0.0
-	 * @author Kevin Fischer
-	 */
-	@Nullable
-	private static NetworkTarget fromHttpRequest(@Nullable Object[] parameters, @Nullable Object instance,
-			@Nullable Object[] attributes) {
-		if (parameters != null) {
-			for (Object parameter : parameters) {
-				if (parameter instanceof HttpRequest httpRequest) {
-					return variableToTarget(httpRequest.uri());
-				}
-			}
-		}
-		return firstResolvable(parameters, instance, attributes);
-	}
-
-	/**
-	 * Extracts a network target from a {@link URL} or {@link URLConnection}
-	 * instance.
-	 * <p>
-	 * Description: Checks whether {@code instance} is a {@link URL} or a
-	 * {@link URLConnection} and converts it via {@link #variableToTarget}. Falls
-	 * back to {@link #firstResolvable} if neither type matches.
-	 *
-	 * @param instance   the receiver object; may be null
-	 * @param parameters the intercepted method arguments; may be null
-	 * @param attributes the captured instance fields; may be null
-	 * @return a resolved {@link NetworkTarget}, or {@code null}
-	 * @since 2.0.0
-	 * @author Kevin Fischer
-	 */
-	@Nullable
-	private static NetworkTarget fromUrlOrConnection(@Nullable Object instance, @Nullable Object[] parameters,
-			@Nullable Object[] attributes) {
-		if (instance instanceof URL url) {
-			return variableToTarget(url);
-		}
-		if (instance instanceof URLConnection urlConnection) {
-			return variableToTarget(urlConnection.getURL());
-		}
-		return firstResolvable(parameters, instance, attributes);
-	}
-
-	/**
-	 * Extracts a network target from a {@link Socket} instance.
-	 * <p>
-	 * Description: Reads the remote {@link InetAddress} and port directly from the
-	 * socket. Falls back to {@link #firstResolvable} when {@code instance} is not a
-	 * {@link Socket}.
-	 *
-	 * @param instance   the receiver object; may be null
-	 * @param parameters the intercepted method arguments; may be null
-	 * @param attributes the captured instance fields; may be null
-	 * @return a resolved {@link NetworkTarget}, or {@code null}
-	 * @since 2.0.0
-	 * @author Kevin Fischer
-	 */
-	@Nullable
-	private static NetworkTarget fromSocketInstance(@Nullable Object instance, @Nullable Object[] parameters,
-			@Nullable Object[] attributes) {
-		if (instance instanceof Socket socket) {
-			InetAddress remote = socket.getInetAddress();
-			String host = remote == null ? null : remote.getHostAddress();
-			return new NetworkTarget(host, socket.getPort());
-		}
-		return firstResolvable(parameters, instance, attributes);
-	}
-
-	/**
-	 * Extracts a network target from the receive side of a datagram socket or
-	 * channel.
-	 * <p>
-	 * Description: For a connected {@link DatagramSocket}, reads the remote address
-	 * directly. For a {@link DatagramChannel}, attempts to read the remote address
-	 * via its API. Falls back to {@link #firstResolvable} when neither source
-	 * yields a usable target. Unconnected datagram sockets are intentionally
-	 * skipped because their {@code getInetAddress()} returns {@code null} and their
-	 * port refers to the local endpoint, not the remote sender.
-	 *
-	 * @param instance   the receiver socket or channel; may be null
-	 * @param parameters the intercepted method arguments; may be null
-	 * @param attributes the captured instance fields; may be null
-	 * @return a resolved {@link NetworkTarget}, or {@code null}
-	 * @since 2.0.0
-	 * @author Kevin Fischer
-	 */
-	@Nullable
-	private static NetworkTarget fromReceiveSide(@Nullable Object instance, @Nullable Object[] parameters,
-			@Nullable Object[] attributes) {
-		if (instance instanceof DatagramSocket datagramSocket) {
-			// Only derive a remote target for connected DatagramSockets; for unconnected sockets
-			// getInetAddress() is null and getPort() is the local port, not the remote sender.
-			if (datagramSocket.isConnected()) {
-				InetAddress remote = datagramSocket.getInetAddress();
-				if (remote != null) {
-					return new NetworkTarget(remote.getHostAddress(), datagramSocket.getPort());
-				}
-			}
-		}
-		if (instance instanceof DatagramChannel datagramChannel) {
-			try {
-				SocketAddress remoteAddress = datagramChannel.getRemoteAddress();
-				NetworkTarget target = variableToTarget(remoteAddress);
-				if (target != null) {
-					return target;
-				}
-			} catch (Exception ignored) {
-				// Best-effort extraction only.
-			}
-		}
-		return firstResolvable(parameters, instance, attributes);
-	}
-
-	/**
-	 * Attempts to resolve a {@link NetworkTarget} from parameters, then from the
-	 * instance, then from attributes.
-	 * <p>
-	 * Description: Iterates each source in priority order, calling
-	 * {@link #variableToTarget} on every element. Returns the first non-null result
-	 * found; returns {@code null} if no element can be converted.
-	 *
-	 * @param parameters the intercepted method arguments; may be null
-	 * @param instance   the receiver object; may be null
-	 * @param attributes the captured instance fields; may be null
-	 * @return the first resolved {@link NetworkTarget}, or {@code null}
-	 * @since 2.0.0
-	 * @author Kevin Fischer
-	 */
-	@Nullable
-	private static NetworkTarget firstResolvable(@Nullable Object[] parameters, @Nullable Object instance,
-			@Nullable Object[] attributes) {
-		if (parameters != null) {
-			for (Object parameter : parameters) {
-				NetworkTarget target = variableToTarget(parameter);
-				if (target != null) {
-					return target;
-				}
-			}
-		}
-		NetworkTarget instanceTarget = variableToTarget(instance);
-		if (instanceTarget != null) {
-			return instanceTarget;
-		}
-		if (attributes != null) {
-			for (Object attribute : attributes) {
-				NetworkTarget target = variableToTarget(attribute);
-				if (target != null) {
-					return target;
-				}
+	private static String checkIfVariableCriteriaIsViolated(@Nonnull Object[] observedVariables,
+			@Nullable String[] allowedHosts, @Nullable int[] allowedPorts,
+			@Nonnull IgnoreValues ignoreVariables) {
+		for (@Nullable
+		Object observedVariable : filterVariables(observedVariables, ignoreVariables)) {
+			if (analyseViolation(observedVariable, allowedHosts, allowedPorts)) {
+				return extractViolationPath(observedVariable, allowedHosts, allowedPorts);
 			}
 		}
 		return null;
@@ -753,7 +437,134 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 
 	// </editor-fold>
 
+	// <editor-fold desc="Action derivation">
+
+	/**
+	 * Derives the list of network actions that need to be validated for a given
+	 * invocation.
+	 * <p>
+	 * Description: Currently returns a singleton list containing the original
+	 * action because network operations (connect, send, receive) do not
+	 * decompose into sub-actions the way file-system operations can. The method
+	 * exists to maintain structural symmetry with the file-system toolbox and to
+	 * provide a natural extension point should future network actions require
+	 * derivation.
+	 *
+	 * @param defaultAction the network action associated with the pointcut
+	 *                      configuration (e.g., {@code connect})
+	 * @return ordered list of action/allow-non-existing pairs to validate
+	 * @since 2.0.0
+	 * @author Kevin Fischer
+	 */
+	private static List<Map.Entry<String, Boolean>> deriveActionChecks(@Nonnull String defaultAction) {
+		return Collections.singletonList(Map.entry(defaultAction, false));
+	}
+
+	// </editor-fold>
+
 	// <editor-fold desc="Check methods">
+
+	/**
+	 * Performs the security validation for a single network action.
+	 * <p>
+	 * Description: Resolves the allowed hosts and ports for the given action,
+	 * then evaluates method parameters, the receiver instance, and instance
+	 * attributes against the whitelist. Throws {@link SecurityException} if a
+	 * policy violation is detected.
+	 *
+	 * @param action                              the concrete network action under
+	 *                                            inspection
+	 * @param declaringTypeName                   fully qualified declaring type name
+	 * @param methodName                          method being intercepted
+	 * @param methodSignature                     JVM method signature
+	 * @param attributes                          instance attributes (if any)
+	 * @param parameters                          intercepted method arguments
+	 * @param instance                            instance on which the method is
+	 *                                            invoked
+	 * @param restrictedPackage                   package prefix under security
+	 *                                            scrutiny; reserved for structural
+	 *                                            symmetry with the file-system
+	 *                                            toolbox; currently unused
+	 * @param allowedClasses                      classes allowed within the
+	 *                                            restricted package; reserved for
+	 *                                            structural symmetry with the
+	 *                                            file-system toolbox; currently
+	 *                                            unused
+	 * @param networkSystemMethodToCheck          offending method discovered in the
+	 *                                   restricted call stack
+	 * @param studentCalledMethod     external method initiating the restricted
+	 *                                call (may be null)
+	 * @param fullMethodSignature     human-readable method signature for diagnostics
+	 * @throws SecurityException if the interaction violates configured policies
+	 * @since 2.0.0
+	 * @author Kevin Fischer
+	 */
+	private static void checkNetworkSystemInteractionForAction(@Nonnull String action,
+			@Nonnull String declaringTypeName,
+			@Nonnull String methodName, @Nonnull String methodSignature, @Nullable Object[] attributes,
+			@Nullable Object[] parameters, @Nullable Object instance, @Nullable String restrictedPackage,
+			@Nullable String[] allowedClasses, @Nonnull String networkSystemMethodToCheck,
+			@Nullable String studentCalledMethod, @Nonnull String fullMethodSignature) {
+		// <editor-fold desc="Resolve allowed hosts and ports">
+		@Nullable
+		final String[] allowedHosts = switch (action) {
+		case "connect" -> getValueFromSettings("hostsAllowedToBeConnectedTo");
+		case "send" -> getValueFromSettings("hostsAllowedToBeSentTo");
+		case "receive" -> getValueFromSettings("hostsAllowedToBeReceivedFrom");
+		default -> throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.settings.invalid.network.permission", action));
+		};
+		@Nullable
+		final int[] allowedPorts = switch (action) {
+		case "connect" -> getValueFromSettings("portsAllowedToBeConnectedTo");
+		case "send" -> getValueFromSettings("portsAllowedToBeSentTo");
+		case "receive" -> getValueFromSettings("portsAllowedToBeReceivedFrom");
+		default -> throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.settings.invalid.network.permission", action));
+		};
+
+		if ((allowedHosts == null ? 0 : allowedHosts.length) != (allowedPorts == null ? 0 : allowedPorts.length)) {
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.network.allowed.size", action,
+					allowedHosts == null ? 0 : allowedHosts.length, allowedPorts == null ? 0 : allowedPorts.length));
+		}
+		// </editor-fold>
+		// <editor-fold desc="Check parameters">
+		@Nullable
+		String networkIllegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null
+				: checkIfVariableCriteriaIsViolated(parameters, allowedHosts, allowedPorts,
+						NETWORK_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
+								IgnoreValues.NONE));
+		if (networkIllegallyInteractedThroughParameter != null) {
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+					"security.advice.illegal.network.execution", networkSystemMethodToCheck, action,
+					networkIllegallyInteractedThroughParameter, fullMethodSignature
+							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
+		}
+		// </editor-fold>
+		// <editor-fold desc="Check receiver instance">
+		@Nullable
+		String networkIllegallyInteractedThroughReceiver = instance == null ? null
+				: checkIfVariableCriteriaIsViolated(new Object[] { instance }, allowedHosts, allowedPorts,
+						IgnoreValues.NONE);
+		if (networkIllegallyInteractedThroughReceiver != null) {
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+					"security.advice.illegal.network.execution", networkSystemMethodToCheck, action,
+					networkIllegallyInteractedThroughReceiver, fullMethodSignature
+							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
+		}
+		// </editor-fold>
+		// <editor-fold desc="Check attributes">
+		@Nullable
+		String networkIllegallyInteractedThroughAttribute = (attributes == null || attributes.length == 0) ? null
+				: checkIfVariableCriteriaIsViolated(attributes, allowedHosts, allowedPorts,
+						NETWORK_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
+								IgnoreValues.NONE));
+		if (networkIllegallyInteractedThroughAttribute != null) {
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+					"security.advice.illegal.network.execution", networkSystemMethodToCheck, action,
+					networkIllegallyInteractedThroughAttribute, fullMethodSignature
+							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
+		}
+		// </editor-fold>
+	}
 
 	/**
 	 * Validates a network system interaction against security policies.
@@ -794,26 +605,6 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		}
 		@Nullable
 		final String[] allowedClasses = getValueFromSettings("allowedListedClasses");
-
-		@Nullable
-		final String[] allowedHosts = switch (action) {
-		case "connect" -> getValueFromSettings("hostsAllowedToBeConnectedTo");
-		case "send" -> getValueFromSettings("hostsAllowedToBeSentTo");
-		case "receive" -> getValueFromSettings("hostsAllowedToBeReceivedFrom");
-		default -> throw new SecurityException(localize("security.advice.settings.invalid.network.permission", action));
-		};
-		@Nullable
-		final int[] allowedPorts = switch (action) {
-		case "connect" -> getValueFromSettings("portsAllowedToBeConnectedTo");
-		case "send" -> getValueFromSettings("portsAllowedToBeSentTo");
-		case "receive" -> getValueFromSettings("portsAllowedToBeReceivedFrom");
-		default -> throw new SecurityException(localize("security.advice.settings.invalid.network.permission", action));
-		};
-
-		if ((allowedHosts == null ? 0 : allowedHosts.length) != (allowedPorts == null ? 0 : allowedPorts.length)) {
-			throw new SecurityException(localize("security.advice.network.allowed.size", action,
-					allowedHosts == null ? 0 : allowedHosts.length, allowedPorts == null ? 0 : allowedPorts.length));
-		}
 		// </editor-fold>
 		// <editor-fold desc="Get information from attributes">
 		@Nonnull
@@ -821,29 +612,22 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		// </editor-fold>
 		// <editor-fold desc="Check callstack">
 		@Nullable
-		String networkSystemMethodToCheck = checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses,
-				declaringTypeName, methodName);
+		String networkSystemMethodToCheck = (restrictedPackage == null) ? null
+				: checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses, declaringTypeName, methodName);
 		if (networkSystemMethodToCheck == null) {
 			return;
 		}
 		@Nullable
 		String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
 		// </editor-fold>
-		// <editor-fold desc="Check target">
-		@Nullable
-		NetworkTarget target = extractTarget(declaringTypeName, methodName, parameters, attributes, instance);
 
-		if (target == null) {
-			throw new SecurityException(localize("security.advice.illegal.network.execution", networkSystemMethodToCheck,
-					action, "<unresolved>",
-					fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
+		List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action);
+		for (Map.Entry<String, Boolean> actionCheck : actionsToValidate) {
+			checkNetworkSystemInteractionForAction(actionCheck.getKey(),
+					declaringTypeName, methodName, methodSignature, attributes, parameters, instance,
+					restrictedPackage, allowedClasses, networkSystemMethodToCheck, studentCalledMethod,
+					fullMethodSignature);
 		}
-		if (checkIfNetworkIsForbidden(target, allowedHosts, allowedPorts)) {
-			throw new SecurityException(localize("security.advice.illegal.network.execution", networkSystemMethodToCheck,
-					action, target.toDisplayString(),
-					fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
-		}
-		// </editor-fold>
 	}
 
 	// </editor-fold>

@@ -165,57 +165,79 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	 * not match one of the allowedPatterns.
 	 *
 	 * @since 2.0.0
-	 * @author Markus
+	 * @author Markus Paulsen
 	 * @param actualClassname      the class name of the thread being requested
 	 * @param allowedThreadClasses the thread classes that are allowed to be created
 	 * @param allowedThreadNumbers the number of threads allowed to be created
 	 * @return true if path is forbidden; false otherwise
 	 */
-	private static boolean checkIfThreadIsForbidden(@Nullable String actualClassname,
+	private static boolean checkIfThreadIsForbidden(@Nullable ThreadTarget target,
 			@Nullable String[] allowedThreadClasses, @Nullable int[] allowedThreadNumbers) {
-		if (actualClassname == null) {
+		if (target == null || target.className() == null) {
 			return false;
 		}
+		String actualClassname = target.className();
 		if (allowedThreadClasses == null || allowedThreadClasses.length == 0 || allowedThreadNumbers == null
 				|| allowedThreadNumbers.length == 0) {
 			return true;
 		}
-		boolean actualIsLambda = "Lambda-Expression".equals(actualClassname);
 		int starIndex = -1;
 		for (int i = 0; i < allowedThreadClasses.length; i++) {
 			@Nonnull
 			String allowedClassName = allowedThreadClasses[i];
-			boolean allowedIsLambda = "Lambda-Expression".equals(allowedClassName);
 			if ("*".equals(allowedClassName)) {
 				starIndex = i;
-			}
-			if (allowedIsLambda && actualIsLambda) {
-				return handleFoundClassIsForbidden(allowedThreadNumbers, i);
-			}
-			if (allowedIsLambda || actualIsLambda) {
 				continue;
 			}
-			try {
-				Class<?> allowedClass = Class.forName(allowedClassName, true, ClassLoader.getSystemClassLoader());
-				Class<?> actualClass = Class.forName(actualClassname, true, ClassLoader.getSystemClassLoader());
-				if (allowedClass.isAssignableFrom(actualClass)) {
-					return handleFoundClassIsForbidden(allowedThreadNumbers, i);
-				}
-			} catch (ClassNotFoundException e) {
-				// Class not found via system classloader (e.g. JDK internal classes like
-				// sun.nio.ch.AsynchronousChannelGroupImpl$1) - fall back to string comparison
-				if (allowedClassName.equals(actualClassname)) {
-					return handleFoundClassIsForbidden(allowedThreadNumbers, i);
-				}
-			} catch (IllegalStateException | NullPointerException e) {
-				// Unexpected error during class loading - log and continue
-				// Fail secure: if we can't verify the class, continue to next check
+			if (threadClassMatches(actualClassname, allowedClassName)) {
+				return handleFoundClassIsForbidden(allowedThreadNumbers, i);
 			}
 		}
 		if (starIndex != -1) {
 			return handleFoundClassIsForbidden(allowedThreadNumbers, starIndex);
 		}
 		return true;
+	}
+
+	/**
+	 * Checks whether an actual thread class name matches an allowed class name.
+	 * <p>
+	 * Description: Handles lambda expressions as a special case (both must be
+	 * lambdas to match). For regular classes, uses {@code Class.forName} and
+	 * {@code isAssignableFrom} to support class hierarchy matching. Falls back
+	 * to exact string comparison when classes cannot be loaded (e.g. JDK internal
+	 * classes).
+	 *
+	 * @param actualClassname  the class name from the intercepted call
+	 * @param allowedClassName the class name from the security policy
+	 * @return {@code true} if the actual class is covered by the allowed class
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 */
+	private static boolean threadClassMatches(@Nonnull String actualClassname, @Nonnull String allowedClassName) {
+		boolean actualIsLambda = "Lambda-Expression".equals(actualClassname);
+		boolean allowedIsLambda = "Lambda-Expression".equals(allowedClassName);
+
+		if (allowedIsLambda && actualIsLambda) {
+			return true;
+		}
+		if (allowedIsLambda || actualIsLambda) {
+			return false;
+		}
+
+		try {
+			Class<?> allowedClass = Class.forName(allowedClassName, true, ClassLoader.getSystemClassLoader());
+			Class<?> actualClass = Class.forName(actualClassname, true, ClassLoader.getSystemClassLoader());
+			return allowedClass.isAssignableFrom(actualClass);
+		} catch (ClassNotFoundException e) {
+			// Class not found via system classloader (e.g. JDK internal classes like
+			// sun.nio.ch.AsynchronousChannelGroupImpl$1) - fall back to string comparison
+			return allowedClassName.equals(actualClassname);
+		} catch (IllegalStateException | NullPointerException e) {
+			// Unexpected error during class loading - log and continue
+			// Fail secure: if we can't verify the class, continue to next check
+			return false;
+		}
 	}
 	// </editor-fold>
 
@@ -377,6 +399,22 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 			return null;
 		}
 	}
+
+	/**
+	 * Converts a variable value to a {@link ThreadTarget} if possible.
+	 * <p>
+	 * Description: Delegates to {@link #variableToClassname} and wraps the result.
+	 *
+	 * @param variableValue the variable to convert
+	 * @return a {@link ThreadTarget}, or {@code null} if conversion fails
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 */
+	@Nullable
+	private static ThreadTarget variableToTarget(@Nullable Object variableValue) {
+		String className = variableToClassname(variableValue);
+		return className == null ? null : new ThreadTarget(className);
+	}
 	// </editor-fold>
 
 	// <editor-fold desc="Violation analysis">
@@ -389,7 +427,7 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	 * is forbidden.
 	 *
 	 * @since 2.0.0
-	 * @author Markus
+	 * @author Markus Paulsen
 	 * @param observedVariable               the variable to analyze
 	 * @param threadClassAllowedToBeCreated  whitelist of allowed thread classes
 	 * @param threadNumberAllowedToBeCreated the number of threads allowed to be
@@ -420,28 +458,32 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 			}
 			return false;
 		} else {
-			String observedClassname = variableToClassname(observedVariable);
-			return checkIfThreadIsForbidden(observedClassname, threadClassAllowedToBeCreated,
-					threadNumberAllowedToBeCreated);
+			try {
+				ThreadTarget target = variableToTarget(observedVariable);
+				return checkIfThreadIsForbidden(target, threadClassAllowedToBeCreated,
+						threadNumberAllowedToBeCreated);
+			} catch (SecurityException ignored) {
+				return false;
+			}
 		}
 	}
 
 	/**
-	 * Extracts and returns the first violating path string from an array or list
+	 * Extracts and returns the first violating class name from an array or list
 	 * variable.
 	 * <p>
 	 * Description: Iterates through the variable’s elements (array or List),
-	 * converts each to a Path if possible, and returns the string of the first path
-	 * that does not satisfy the allowedPaths whitelist.
+	 * converts each to a class name if possible, and returns the name of the first
+	 * class that does not satisfy the allowed thread classes whitelist.
 	 *
 	 * @since 2.0.0
-	 * @author Markus
+	 * @author Markus Paulsen
 	 * @param observedVariable               the array or List to inspect
 	 * @param threadClassAllowedToBeCreated  the thread classes that are allowed to
 	 *                                       be created
 	 * @param threadNumberAllowedToBeCreated the number of threads allowed to be
 	 *                                       created
-	 * @return the first violating path as a String, or null if none found
+	 * @return the first violating class name as a String, or null if none found
 	 */
 	@Nullable
 	private static String extractViolationPath(@Nullable Object observedVariable,
@@ -469,10 +511,10 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 			return null;
 		} else {
 			try {
-				String observedClassname = variableToClassname(observedVariable);
-				if (checkIfThreadIsForbidden(observedClassname, threadClassAllowedToBeCreated,
+				ThreadTarget target = variableToTarget(observedVariable);
+				if (checkIfThreadIsForbidden(target, threadClassAllowedToBeCreated,
 						threadNumberAllowedToBeCreated)) {
-					return observedClassname;
+					return target != null ? target.toDisplayString() : null;
 				}
 			} catch (SecurityException ignored) {
 				return null;
@@ -482,24 +524,24 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	}
 
 	/**
-	 * Checks an array of observedVariables against allowed file system paths.
+	 * Checks an array of observedVariables against the allowed thread classes
+	 * whitelist.
 	 * <p>
 	 * Description: Iterates through the filtered observedVariables (excluding those
 	 * matching ignoreVariables). For each non-null variable, if it is an array or a
-	 * List (excluding byte[]/Byte[]), each element is converted to a Path and
-	 * tested against allowedPaths. Otherwise, the variable itself is converted to a
-	 * Path and tested. The first violating path found is returned.
+	 * List (excluding byte[]/Byte[]), each element is converted to a class name and
+	 * tested against the allowed thread classes. Otherwise, the variable itself is
+	 * converted and tested. The first violating class name found is returned.
 	 *
 	 * @since 2.0.0
-	 * @author Markus
+	 * @author Markus Paulsen
 	 * @param observedVariables              array of values to validate
 	 * @param threadClassAllowedToBeCreated  whitelist of allowed thread classes
 	 * @param threadNumberAllowedToBeCreated the number of threads allowed to be
 	 *                                       created
 	 * @param ignoreVariables                criteria determining which
 	 *                                       observedVariables to skip
-	 * @return the first path (as String) that is not allowed, or null if none
-	 *         violate
+	 * @return the first violating class name (as String) or null if none violate
 	 */
 	private static String checkIfVariableCriteriaIsViolated(@Nonnull Object[] observedVariables,
 			@Nullable String[] threadClassAllowedToBeCreated, @Nullable int[] threadNumberAllowedToBeCreated,
@@ -532,13 +574,15 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	 * @param methodSignature   the method signature descriptor
 	 * @param attributes        optional method attributes
 	 * @param parameters        optional method parameters
+	 * @param instance          the receiver object of the intercepted call; may be
+	 *                          null
 	 * @throws SecurityException if unauthorized access is detected
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */
 	public static void checkThreadSystemInteraction(@Nonnull String action, @Nonnull String declaringTypeName,
 			@Nonnull String methodName, @Nonnull String methodSignature, @Nullable Object[] attributes,
-			@Nullable Object[] parameters) {
+			@Nullable Object[] parameters, @Nullable Object instance) {
 		// <editor-fold desc="Get information from settings">
 		@Nullable
 		final String aopMode = getValueFromSettings("aopMode");
@@ -554,11 +598,11 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		final String[] allowedClasses = getValueFromSettings("allowedListedClasses");
 
 		@Nullable
-		String[] threadClassAllowedToBeCreated = getValueFromSettings("threadClassAllowedToBeCreated");
+		final String[] threadClassAllowedToBeCreated = getValueFromSettings("threadClassAllowedToBeCreated");
 		int threadClassAllowedToBeCreatedSize = threadClassAllowedToBeCreated == null ? 0
 				: threadClassAllowedToBeCreated.length;
 		@Nullable
-		int[] threadNumberAllowedToBeCreated = getValueFromSettings("threadNumberAllowedToBeCreated");
+		final int[] threadNumberAllowedToBeCreated = getValueFromSettings("threadNumberAllowedToBeCreated");
 		int threadNumberAllowedToBeCreatedSize = threadNumberAllowedToBeCreated == null ? 0
 				: threadNumberAllowedToBeCreated.length;
 
