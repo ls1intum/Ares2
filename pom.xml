@@ -27,8 +27,7 @@
 		<archunit-version>1.4.1</archunit-version>
 		<!-- 2. Architecture: 2.2 Wala -->
 		<wala-version>1.6.12</wala-version>
-		<!-- 3. AOP: 3.1 AspectJ -->
-		<aspectj-version>1.9.24</aspectj-version>
+		<!-- 1.7.1</aspectj-version>
 		<aspectj-path>
 			${user.home}${file.separator}.m2${file.separator}repository${file.separator}org${file.separator}aspectj${file.separator}aspectjrt${file.separator}${aspectj-version}${file.separator}aspectjrt-${aspectj-version}.jar
 		</aspectj-path>
