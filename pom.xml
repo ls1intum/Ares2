@@ -51,7 +51,7 @@
 		<java-string-similarity-version>2.0.0</java-string-similarity-version>
 		<jgrapht-core-version>1.5.2</jgrapht-core-version>
 		<!-- 8. Logging  -->
-		<logback-version>1.5.18</logback-version>
+		1.5.3</logback-version>
 		<!-- 8. API  -->
 		<apiguardian-api-version>1.1.2</apiguardian-api-version>
 		<!-- Others -->
