@@ -3,22 +3,30 @@ package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 import net.bytebuddy.asm.Advice;
 
 /**
- * Advice that guards constructors capable of creating files or directories.
+ * This class provides advice for the execution of constructors creating files.
+ * It is responsible for verifying whether the constructor execution is allowed
+ * based on the file system security policies defined within the application.
  * <p>
- * The advice forwards constructor arguments to
- * {@link JavaInstrumentationAdviceFileSystemToolbox#checkFileSystemInteraction(String, String, String, String, Object[], Object[], Object)}
- * using the {@code create} action so the toolbox can enforce the creation
- * policies.
- * </p>
+ * If an execution attempt violates these policies, a SecurityException is
+ * thrown, preventing unauthorized file creations. The class interacts with the
+ * JavaInstrumentationAdviceFileSystemToolbox to perform these security checks.
  */
 public final class JavaInstrumentationCreatePathConstructorAdvice {
-
 	/**
-	 * Intercepts the constructor execution before any bytecode of the constructor
-	 * runs.
+	 * This method is called when a constructor creating files is entered. It
+	 * performs security checks to determine whether the constructor execution is
+	 * allowed according to file system security policies. If the constructor
+	 * execution is not permitted, a SecurityException is thrown, blocking the
+	 * execution.
+	 * <p>
+	 * The checkFileSystemInteraction method from
+	 * JavaInstrumentationAdviceFileSystemToolbox is called to perform these
+	 * checks, ensuring that the constructor's parameters adhere to the security
+	 * restrictions.
 	 *
-	 * @param declaringTypeName the fully qualified name of the declaring type
-	 * @param parameters        the original constructor arguments
+	 * @param declaringTypeName The name of the class that declares the constructor.
+	 * @param parameters        The parameters passed to the constructor being
+	 *                          executed.
 	 */
 	@Advice.OnMethodEnter
 	public static void onEnter(@Advice.Origin("#t") String declaringTypeName,

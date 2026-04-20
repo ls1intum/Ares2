@@ -22,6 +22,38 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
     //<editor-fold desc="Constants">
 
     /**
+     * Internal value type representing a resolved command target.
+     * <p>
+     * Description: Pairs a nullable command name with an argument array.
+     * Used throughout the toolbox as the canonical representation of a command
+     * invocation, regardless of whether it originated from a {@code String},
+     * a {@code String[]}, or a {@code List<String>}.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     */
+    private record CommandTarget(@Nullable String command, @Nonnull String[] arguments) {
+
+        /**
+         * Returns a human-readable string representation of this command target.
+         *
+         * @return non-null display string of the command invocation
+         * @since 2.0.0
+         * @author Markus Paulsen
+         */
+        @Nonnull
+        String toDisplayString() {
+            if (command == null) {
+                return "<unknown>";
+            }
+            if (arguments.length == 0) {
+                return command;
+            }
+            return command + " " + String.join(" ", arguments);
+        }
+    }
+
+    /**
      * Resolve the index of a named field within the given class.
      *
      * <p>Description: Returns the positional index of the first field whose name
@@ -69,36 +101,56 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
     //<editor-fold desc="Forbidden handling">
 
     /**
-     * Checks if a class name is outside of the allowed paths whitelist.
-     *
-     * <p>Description: Returns true if allowedPaths not null or if the given path does not match one of the allowedPatterns.
+     * Checks if a command target is outside of the allowed commands whitelist.
+     * <p>
+     * Description: Returns {@code true} if the allowed lists are null/empty, or
+     * if no entry in the parallel allowlists matches both the command name and
+     * the arguments of the target. Command matching is delegated to
+     * {@link #commandMatches} and argument matching to {@link #argumentsMatch}.
      *
      * @since 2.0.0
-     * @author Markus
-     * @param actualFullCommand the class name of the command being requested
-     * @param allowedCommands the command classes that are allowed to be created
-     * @param allowedArguments the number of commands allowed to be created
-     * @return true if path is forbidden; false otherwise
+     * @author Markus Paulsen
+     * @param actual           the resolved command target to evaluate
+     * @param allowedCommands  parallel array of allowed command names
+     * @param allowedArguments parallel array of allowed argument patterns
+     * @return {@code true} if the command is forbidden; {@code false} if it is
+     *         explicitly allowed
      */
-    private static boolean checkIfCommandIsForbidden(@Nullable String[] actualFullCommand, @Nullable String[] allowedCommands, @Nullable String[][] allowedArguments) {
-        if (actualFullCommand == null) {
+    private static boolean checkIfCommandIsForbidden(@Nullable CommandTarget actual, @Nullable String[] allowedCommands, @Nullable String[][] allowedArguments) {
+        if (actual == null) {
             return false;
         }
         if (allowedCommands == null || allowedCommands.length == 0 || allowedArguments == null || allowedArguments.length == 0) {
             return true;
         }
-        @Nullable String actualCommand = actualFullCommand[0];
-        @Nullable String[] actualArgument = actualFullCommand.length > 1 ? Arrays.copyOfRange(actualFullCommand, 1, actualFullCommand.length) : new String[0];
-
         for (int i = 0; i < allowedCommands.length; i++) {
-            @Nonnull String allowedCommand = allowedCommands[i];
-            @Nullable String[] allowedArgument = allowedArguments[i];
-            if (allowedCommand.equals(actualCommand)) {
-                // Use flexible argument matching that supports suffix matching for paths
-                return !argumentsMatch(allowedArgument, actualArgument) || actualArgument.length == 0;
+            String allowedCommand = allowedCommands[i];
+            String[] allowedArgument = allowedArguments[i];
+            if (commandMatches(actual.command, allowedCommand)
+                    && argumentsMatch(allowedArgument, actual.arguments)) {
+                return false;
             }
         }
         return true;
+    }
+
+    /**
+     * Checks whether an actual command name matches an allowed command name.
+     * <p>
+     * Description: Returns {@code false} if either value is null. Otherwise
+     * performs an exact string equality check.
+     *
+     * @param actualCommand  the command name from the intercepted call; may be null
+     * @param allowedCommand the command name from the security policy; may be null
+     * @return {@code true} if the actual command matches the allowed command
+     * @since 2.0.0
+     * @author Markus Paulsen
+     */
+    private static boolean commandMatches(@Nullable String actualCommand, @Nullable String allowedCommand) {
+        if (actualCommand == null || allowedCommand == null) {
+            return false;
+        }
+        return allowedCommand.equals(actualCommand);
     }
 
     /**
@@ -167,20 +219,25 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
      * @author Markus Paulsen
      */
     @Nullable
-    private static String[] variableToCommand(@Nullable Object variableValue) {
+    private static CommandTarget variableToCommand(@Nullable Object variableValue) {
+        String[] parts = null;
         if (variableValue == null) {
             return null;
         } else if (variableValue instanceof String[] && ((String[]) variableValue).length != 0) {
-            return (String[]) variableValue;
+            parts = (String[]) variableValue;
         } else if (variableValue instanceof List<?> && ((List<?>) variableValue).stream().allMatch(o -> o instanceof String)) {
             @SuppressWarnings("unchecked")
             List<String> stringList = (List<String>) variableValue;
-            return stringList.toArray(new String[0]);
+            parts = stringList.toArray(new String[0]);
         } else if (variableValue instanceof String) {
-            return parseCommandString((String) variableValue);
-        } else {
+            parts = parseCommandString((String) variableValue);
+        }
+        if (parts == null || parts.length == 0) {
             return null;
         }
+        String command = parts[0];
+        String[] arguments = parts.length > 1 ? Arrays.copyOfRange(parts, 1, parts.length) : new String[0];
+        return new CommandTarget(command, arguments);
     }
 
     /**
@@ -287,7 +344,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
             }
         }
         if (observedVariable.getClass().isArray() || observedVariable instanceof String || observedVariable instanceof List<?>) {
-            String[] command = variableToCommand(observedVariable);
+            CommandTarget command = variableToCommand(observedVariable);
             return checkIfCommandIsForbidden(command, allowedCommands, allowedArguments);
         }
         return false;
@@ -322,9 +379,9 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
             }
         }
         if (observedVariable.getClass().isArray() || observedVariable instanceof String || observedVariable instanceof List<?>) {
-            String[] observedVariableAsCommand = variableToCommand(observedVariable);
-            if (checkIfCommandIsForbidden(observedVariableAsCommand, allowedCommands, allowedArguments)) {
-                return String.join(" ", observedVariableAsCommand);
+            CommandTarget observedCommand = variableToCommand(observedVariable);
+            if (checkIfCommandIsForbidden(observedCommand, allowedCommands, allowedArguments)) {
+                return observedCommand != null ? observedCommand.toDisplayString() : null;
             }
         }
         return null;

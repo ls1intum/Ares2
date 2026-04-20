@@ -49,25 +49,18 @@ public final class JavaInstrumentationExecuteCommandMethodAdvice {
 				try {
 					fields[i].setAccessible(true);
 					attributes[i] = fields[i].get(instance);
-				} catch (InaccessibleObjectException e) {
-					// Field is not accessible due to JVM module restrictions (e.g.
-					// java.lang.Runtime.currentRuntime). Skip the field — it is not student-defined
-					// and irrelevant for the command security check.
-					attributes[i] = null;
-				} catch (IllegalAccessException e) {
-					throw new SecurityException(JavaInstrumentationAdviceCommandSystemToolbox.localize(
-							"security.instrumentation.illegal.access.exception", fields[i].getName(),
-							instance.getClass().getName()), e);
+				} catch (InaccessibleObjectException | IllegalAccessException | SecurityException e) {
+					continue;
 				} catch (IllegalArgumentException e) {
-					throw new SecurityException(JavaInstrumentationAdviceCommandSystemToolbox.localize(
+					throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
 							"security.instrumentation.illegal.argument.exception", fields[i].getName(),
 							fields[i].getDeclaringClass().getName(), instance.getClass().getName()), e);
 				} catch (NullPointerException e) {
-					throw new SecurityException(JavaInstrumentationAdviceCommandSystemToolbox.localize(
+					throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
 							"security.instrumentation.null.pointer.exception", fields[i].getName(),
 							instance.getClass().getName()), e);
 				} catch (ExceptionInInitializerError e) {
-					throw new SecurityException(JavaInstrumentationAdviceCommandSystemToolbox.localize(
+					throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
 							"security.instrumentation.exception.in-initializer.error", fields[i].getName(),
 							instance.getClass().getName()), e);
 				}
@@ -77,7 +70,7 @@ public final class JavaInstrumentationExecuteCommandMethodAdvice {
 
 		// <editor-fold desc="Check">
 		JavaInstrumentationAdviceCommandSystemToolbox.checkCommandSystemInteraction("execute", declaringTypeName,
-				methodName, methodSignature, attributes, parameters);
+				methodName, methodSignature, attributes, parameters, instance);
 		// </editor-fold>
 	}
 }

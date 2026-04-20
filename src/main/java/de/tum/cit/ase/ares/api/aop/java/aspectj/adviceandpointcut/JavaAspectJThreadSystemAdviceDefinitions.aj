@@ -33,6 +33,36 @@ import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstru
     //<editor-fold desc="Constants">
 
     /**
+     * Internal value type representing a resolved thread target.
+     * <p>
+     * Description: Wraps a nullable class name string. Used throughout the
+     * toolbox as the canonical representation of a thread endpoint,
+     * regardless of whether it originated from a {@link Runnable}, a
+     * {@link java.util.concurrent.Callable}, a lambda expression, or another
+     * thread-capable object.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     */
+    private record ThreadTarget(@Nullable String className) {
+
+        /**
+         * Returns a human-readable string representation of this thread target.
+         * <p>
+         * Description: Returns the class name, or {@code <unknown>}
+         * if the class name is {@code null}.
+         *
+         * @return non-null display string
+         * @since 2.0.0
+         * @author Markus Paulsen
+         */
+        @Nonnull
+        String toDisplayString() {
+            return className == null ? "<unknown>" : className;
+        }
+    }
+
+    /**
      * Map of methods with attribute index exceptions for thread system ignore logic.
      *
      * <p>Description: Specifies for certain methods which attribute index should be exempted
@@ -132,40 +162,65 @@ import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstru
      * @param allowedThreadNumbers the number of threads allowed to be created
      * @return true if path is forbidden; false otherwise
      */
-    private static boolean checkIfThreadIsForbidden(@Nullable String actualClassname, @Nullable String[] allowedThreadClasses, @Nullable int[] allowedThreadNumbers) {
-        if (actualClassname == null) {
+    private static boolean checkIfThreadIsForbidden(@Nullable ThreadTarget target, @Nullable String[] allowedThreadClasses, @Nullable int[] allowedThreadNumbers) {
+        if (target == null || target.className() == null) {
             return false;
         }
+        String actualClassname = target.className();
         if (allowedThreadClasses == null || allowedThreadClasses.length == 0 || allowedThreadNumbers == null || allowedThreadNumbers.length == 0) {
             return true;
         }
-        boolean actualIsLambda = "Lambda-Expression".equals(actualClassname);
         int starIndex = -1;
         for (int i = 0; i < allowedThreadClasses.length; i++) {
             @Nonnull String allowedClassName = allowedThreadClasses[i];
-            boolean allowedIsLambda = "Lambda-Expression".equals(allowedClassName);
             if ("*".equals(allowedClassName)) {
                 starIndex = i;
-            }
-            if (allowedIsLambda && actualIsLambda) {
-                return handleFoundClassIsForbidden(allowedThreadNumbers, i);
-            }
-            if (allowedIsLambda || actualIsLambda) {
                 continue;
             }
-            try {
-                Class<?> allowedClass = Class.forName(allowedClassName, true, ClassLoader.getSystemClassLoader());
-                Class<?> actualClass = Class.forName(actualClassname, true, ClassLoader.getSystemClassLoader());
-                if (allowedClass.isAssignableFrom(actualClass)) {
-                    return handleFoundClassIsForbidden(allowedThreadNumbers, i);
-                }
-            } catch (ClassNotFoundException | IllegalStateException | NullPointerException ignored) {
+            if (threadClassMatches(actualClassname, allowedClassName)) {
+                return handleFoundClassIsForbidden(allowedThreadNumbers, i);
             }
         }
         if (starIndex != -1) {
             return handleFoundClassIsForbidden(allowedThreadNumbers, starIndex);
         }
         return true;
+    }
+
+    /**
+     * Checks whether an actual thread class name matches an allowed class name.
+     * <p>
+     * Description: Handles lambda expressions as a special case (both must be
+     * lambdas to match). For regular classes, uses {@code Class.forName} and
+     * {@code isAssignableFrom} to support class hierarchy matching. Falls back
+     * to exact string comparison when classes cannot be loaded.
+     *
+     * @param actualClassname  the class name from the intercepted call
+     * @param allowedClassName the class name from the security policy
+     * @return {@code true} if the actual class is covered by the allowed class
+     * @since 2.0.0
+     * @author Markus Paulsen
+     */
+    private static boolean threadClassMatches(@Nonnull String actualClassname, @Nonnull String allowedClassName) {
+        boolean actualIsLambda = "Lambda-Expression".equals(actualClassname);
+        boolean allowedIsLambda = "Lambda-Expression".equals(allowedClassName);
+
+        if (allowedIsLambda && actualIsLambda) {
+            return true;
+        }
+        if (allowedIsLambda || actualIsLambda) {
+            return false;
+        }
+
+        try {
+            Class<?> allowedClass = Class.forName(allowedClassName, true, ClassLoader.getSystemClassLoader());
+            Class<?> actualClass = Class.forName(actualClassname, true, ClassLoader.getSystemClassLoader());
+            return allowedClass.isAssignableFrom(actualClass);
+        } catch (ClassNotFoundException e) {
+            return allowedClassName.equals(actualClassname);
+        } catch (IllegalStateException | NullPointerException e) {
+            return false;
+        }
     }
     //</editor-fold>
 
@@ -287,6 +342,22 @@ import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstru
         }
 
     }
+
+    /**
+     * Converts a variable value to a {@link ThreadTarget} if possible.
+     * <p>
+     * Description: Delegates to {@link #variableToClassname} and wraps the result.
+     *
+     * @param variableValue the variable to convert
+     * @return a {@link ThreadTarget}, or {@code null} if conversion fails
+     * @since 2.0.0
+     * @author Markus Paulsen
+     */
+    @Nullable
+    private static ThreadTarget variableToTarget(@Nullable Object variableValue) {
+        String className = variableToClassname(variableValue);
+        return className == null ? null : new ThreadTarget(className);
+    }
     //</editor-fold>
 
     //<editor-fold desc="Violation analysis">
@@ -325,8 +396,8 @@ import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstru
             }
             return false;
         } else {
-            String observedClassname = variableToClassname(observedVariable);
-            return checkIfThreadIsForbidden(observedClassname, allowedThreadClasses, allowedThreadNumbers);
+            ThreadTarget target = variableToTarget(observedVariable);
+            return checkIfThreadIsForbidden(target, allowedThreadClasses, allowedThreadNumbers);
         }
     }
 
@@ -366,9 +437,9 @@ import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstru
             return null;
         } else {
             try {
-                String observedClassname = variableToClassname(observedVariable);
-                if (checkIfThreadIsForbidden(observedClassname, allowedThreadClasses, allowedThreadNumbers)) {
-                    return observedClassname;
+                ThreadTarget target = variableToTarget(observedVariable);
+                if (checkIfThreadIsForbidden(target, allowedThreadClasses, allowedThreadNumbers)) {
+                    return target != null ? target.toDisplayString() : null;
                 }
             } catch (InvalidPathException ignored) {
                 return null;

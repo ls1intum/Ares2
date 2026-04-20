@@ -1,0 +1,5 @@
+@Test
+public void terminateJVMShouldNotBeAccessed() {
+    javaClasses = ${javaClasses};
+    JavaArchunitTestCaseCollection.NO_CLASS_MUST_TERMINATE_JVM.check(javaClasses);
+}

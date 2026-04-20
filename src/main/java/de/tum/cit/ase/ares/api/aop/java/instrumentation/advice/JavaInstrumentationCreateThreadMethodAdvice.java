@@ -17,11 +17,11 @@ import net.bytebuddy.asm.Advice;
  */
 public final class JavaInstrumentationCreateThreadMethodAdvice {
 	/**
-	 * This method is called when a method annotated with the creating threads is
-	 * entered. It performs security checks to determine whether the method
-	 * execution is allowed according to thread system security policies. If the
-	 * method execution is not permitted, a SecurityException is thrown, blocking
-	 * the execution.
+	 * This method is called when a method creating threads is entered. It
+	 * performs security checks to determine whether the method execution is
+	 * allowed according to thread system security policies. If the method
+	 * execution is not permitted, a SecurityException is thrown, blocking the
+	 * execution.
 	 * <p>
 	 * The checkThreadSystemInteraction method from
 	 * JavaInstrumentationAdviceThreadSystemToolbox is called to perform these
@@ -49,14 +49,8 @@ public final class JavaInstrumentationCreateThreadMethodAdvice {
 				try {
 					fields[i].setAccessible(true);
 					attributes[i] = fields[i].get(instance);
-				} catch (InaccessibleObjectException e) {
-					throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-							"security.instrumentation.inaccessible.object.exception", fields[i].getName(),
-							instance.getClass().getName()), e);
-				} catch (IllegalAccessException e) {
-					throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-							"security.instrumentation.illegal.access.exception", fields[i].getName(),
-							instance.getClass().getName()), e);
+				} catch (InaccessibleObjectException | IllegalAccessException | SecurityException e) {
+					continue;
 				} catch (IllegalArgumentException e) {
 					throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
 							"security.instrumentation.illegal.argument.exception", fields[i].getName(),
@@ -76,7 +70,7 @@ public final class JavaInstrumentationCreateThreadMethodAdvice {
 
 		// <editor-fold desc="Check">
 		JavaInstrumentationAdviceThreadSystemToolbox.checkThreadSystemInteraction("create", declaringTypeName,
-				methodName, methodSignature, attributes, parameters);
+				methodName, methodSignature, attributes, parameters, instance);
 		// </editor-fold>
 	}
 }

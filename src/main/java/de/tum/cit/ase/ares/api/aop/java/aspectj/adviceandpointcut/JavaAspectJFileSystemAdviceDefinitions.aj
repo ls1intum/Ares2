@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.lang.reflect.InaccessibleObjectException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.channels.FileChannel;
@@ -34,6 +35,35 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
 @SuppressWarnings("AopLanguageInspection") public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstractAdviceDefinitions {
 
     //<editor-fold desc="Constants">
+
+    /**
+     * Internal value type representing a resolved file system target.
+     * <p>
+     * Description: Wraps a nullable {@link Path} instance. Used throughout the
+     * toolbox as the canonical representation of a file system endpoint,
+     * regardless of whether it originated from a {@link Path}, a {@link java.io.File},
+     * a {@link URI}, a {@link URL}, or a {@link String}.
+     *
+     * @since 2.0.0
+     * @author Markus Paulsen
+     */
+    private record FileTarget(@Nullable Path path) {
+
+        /**
+         * Returns a human-readable string representation of this file target.
+         * <p>
+         * Description: Returns the string form of the path, or {@code <unknown>}
+         * if the path is {@code null}.
+         *
+         * @return non-null display string
+         * @since 2.0.0
+         * @author Markus Paulsen
+         */
+        @Nonnull
+        String toDisplayString() {
+            return path == null ? "<unknown>" : path.toString();
+        }
+    }
 
     /**
      * List of Ares internal file path suffixes that should always be allowed.
@@ -131,10 +161,11 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
      *                                            exist yet
      * @return true if actualPath is forbidden; false otherwise
      */
-    private static boolean checkIfPathIsForbidden(@Nullable Path actualPath, @Nullable String[] allowedPathsAsStrings, boolean allowNonExistingPathsToBeConsidered) {
-        if (actualPath == null) {
+    private static boolean checkIfPathIsForbidden(@Nullable FileTarget target, @Nullable String[] allowedPathsAsStrings, boolean allowNonExistingPathsToBeConsidered) {
+        if (target == null || target.path() == null) {
             return false;
         }
+        Path actualPath = target.path();
         if (allowedPathsAsStrings == null || allowedPathsAsStrings.length == 0) {
             return true;
         }
@@ -171,28 +202,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
                 continue;
             }
 
-            // SECURITY: Also resolve symlinks in allowed paths to canonical form
-            Path normalizedAllowedPath;
-            boolean allowedExists = Files.exists(allowedPath, LinkOption.NOFOLLOW_LINKS);
-
-            if (allowedExists) {
-                try {
-                    // Resolve ALL symlinks in allowed path too
-                    normalizedAllowedPath = allowedPath.toRealPath();
-                } catch (IOException e) {
-                    if (!allowNonExistingPathsToBeConsidered) {
-                        continue;
-                    }
-                    normalizedAllowedPath = allowedPath.normalize().toAbsolutePath();
-                }
-            } else {
-                if (!allowNonExistingPathsToBeConsidered) {
-                    continue;
-                }
-                normalizedAllowedPath = allowedPath.normalize().toAbsolutePath();
-            }
-
-            if (candidate.startsWith(normalizedAllowedPath)) {
+            if (pathMatches(candidate, allowedPath, allowNonExistingPathsToBeConsidered)) {
                 hasAllowedPrefix = true;
                 break;
             }
@@ -208,6 +218,48 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
 
         return !hasAllowedPrefix;
     }
+
+    /**
+     * Checks whether an actual (already resolved) path matches an allowed path.
+     * <p>
+     * Description: Resolves symlinks in the allowed path to its canonical form,
+     * then checks whether the candidate path starts with the resolved allowed
+     * path. Returns {@code false} if the allowed path does not exist and
+     * non-existing paths are not permitted.
+     *
+     * @param candidate                           the resolved candidate path
+     * @param allowedPath                         the allowed path to compare against
+     * @param allowNonExistingPathsToBeConsidered whether non-existing paths are
+     *                                            permitted
+     * @return {@code true} if the candidate path is covered by the allowed path
+     * @since 2.0.0
+     * @author Markus Paulsen
+     */
+    private static boolean pathMatches(@Nonnull Path candidate, @Nonnull Path allowedPath,
+            boolean allowNonExistingPathsToBeConsidered) {
+        // SECURITY: Also resolve symlinks in allowed paths to canonical form
+        Path normalizedAllowedPath;
+        boolean allowedExists = Files.exists(allowedPath, LinkOption.NOFOLLOW_LINKS);
+
+        if (allowedExists) {
+            try {
+                // Resolve ALL symlinks in allowed path too
+                normalizedAllowedPath = allowedPath.toRealPath();
+            } catch (IOException e) {
+                if (!allowNonExistingPathsToBeConsidered) {
+                    return false;
+                }
+                normalizedAllowedPath = allowedPath.normalize().toAbsolutePath();
+            }
+        } else {
+            if (!allowNonExistingPathsToBeConsidered) {
+                return false;
+            }
+            normalizedAllowedPath = allowedPath.normalize().toAbsolutePath();
+        }
+
+        return candidate.startsWith(normalizedAllowedPath);
+    }
     //</editor-fold>
 
     //<editor-fold desc="Conversion handling">
@@ -215,8 +267,8 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
     /**
      * Transforms variable values into a normalized absolute path.
      * <p>
-     * Description: Converts the provided variable (Path, String, or File) into an
-     * absolute normalized Path for security checks, validating existence.
+     * Description: Converts the provided variable (Path, URI, URL, String, or File)
+     * into an absolute normalized Path for security checks, validating existence.
      *
      * @param variableValue the variable to transform into a Path
      * @return the normalized absolute Path
@@ -231,6 +283,16 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
                 return null;
             } else if (variableValue instanceof Path) {
                 return ((Path) variableValue).normalize().toAbsolutePath();
+            } else if (variableValue instanceof URI uri) {
+                if (!"file".equalsIgnoreCase(uri.getScheme())) {
+                    return null;
+                }
+                Path absolutePath = Path.of(uri).normalize().toAbsolutePath();
+                if (Files.exists(absolutePath) || allowNonExistingPathsToBeConsidered) {
+                    return absolutePath;
+                } else {
+                    return null;
+                }
             } else if (variableValue instanceof URL url) {
                 if (!"file".equalsIgnoreCase(url.getProtocol())) {
                     return null;
@@ -261,6 +323,23 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
         } catch (InvalidPathException | URISyntaxException ignored) {
             return null;
         }
+    }
+
+    /**
+     * Converts a variable value to a {@link FileTarget} if possible.
+     * <p>
+     * Description: Delegates to {@link #variableToPath} and wraps the result.
+     *
+     * @param variableValue                       the variable to convert
+     * @param allowNonExistingPathsToBeConsidered whether to allow non-existing paths
+     * @return a {@link FileTarget}, or {@code null} if conversion fails
+     * @since 2.0.0
+     * @author Markus Paulsen
+     */
+    @Nullable
+    private static FileTarget variableToTarget(@Nullable Object variableValue, boolean allowNonExistingPathsToBeConsidered) {
+        Path path = variableToPath(variableValue, allowNonExistingPathsToBeConsidered);
+        return path == null ? null : new FileTarget(path);
     }
     //</editor-fold>
 
@@ -300,8 +379,8 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
             }
             return false;
         } else {
-            Path observedPath = variableToPath(observedVariable, allowNonExistingPathsToBeConsidered);
-            return checkIfPathIsForbidden(observedPath, allowedPaths, allowNonExistingPathsToBeConsidered);
+            FileTarget target = variableToTarget(observedVariable, allowNonExistingPathsToBeConsidered);
+            return checkIfPathIsForbidden(target, allowedPaths, allowNonExistingPathsToBeConsidered);
         }
     }
 
@@ -340,9 +419,9 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
             }
             return null;
         } else {
-            Path observedPath = variableToPath(observedVariable, allowNonExistingPathsToBeConsidered);
-            if (checkIfPathIsForbidden(observedPath, allowedPaths, allowNonExistingPathsToBeConsidered)) {
-                return observedPath.toString();
+            FileTarget target = variableToTarget(observedVariable, allowNonExistingPathsToBeConsidered);
+            if (checkIfPathIsForbidden(target, allowedPaths, allowNonExistingPathsToBeConsidered)) {
+                return target.toDisplayString();
             }
         }
         return null;

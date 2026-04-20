@@ -1,0 +1,5 @@
+@Test
+public void filesystemsShouldNotBeAccessed() {
+    javaClasses = ${javaClasses};
+    JavaArchunitTestCaseCollection.NO_CLASS_MUST_ACCESS_FILE_SYSTEM.check(javaClasses);
+}

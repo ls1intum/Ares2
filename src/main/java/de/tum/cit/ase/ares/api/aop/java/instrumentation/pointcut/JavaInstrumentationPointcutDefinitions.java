@@ -569,4 +569,42 @@ public class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.lang.Runtime", List.of("exec")),
 			Map.entry("java.lang.ProcessBuilder", List.of("start", "<init>")));
 	// </editor-fold>
+
+	// <editor-fold desc="Network connect">
+	/**
+	 * This map contains the methods which can connect to network targets.
+	 */
+	public static final Map<String, List<String>> methodsWhichCanConnectToNetwork = Map.ofEntries(
+			Map.entry("java.net.Socket", List.of("connect", "<init>")),
+			Map.entry("java.net.DatagramSocket", List.of("connect", "<init>")),
+			Map.entry("java.nio.channels.DatagramChannel", List.of("connect", "<init>")),
+			Map.entry("java.nio.channels.SocketChannel", List.of("connect", "<init>")),
+			Map.entry("java.nio.channels.AsynchronousSocketChannel", List.of("connect", "<init>")),
+			Map.entry("java.net.HttpURLConnection", List.of("connect", "<init>")),
+			Map.entry("javax.net.ssl.HttpsURLConnection", List.of("connect", "<init>")));
+	// </editor-fold>
+
+	// <editor-fold desc="Network send">
+	/**
+	 * This map contains the methods which can send data over the network.
+	 */
+	public static final Map<String, List<String>> methodsWhichCanSendToNetwork = Map.ofEntries(
+			Map.entry("java.net.DatagramSocket", List.of("send")),
+			Map.entry("java.nio.channels.DatagramChannel", List.of("send")),
+			Map.entry("java.net.http.HttpClient", List.of("send", "sendAsync")),
+			Map.entry("java.net.URLConnection", List.of("getOutputStream")),
+			Map.entry("java.net.HttpURLConnection", List.of("getOutputStream")));
+	// </editor-fold>
+
+	// <editor-fold desc="Network receive">
+	/**
+	 * This map contains the methods which can receive data from the network.
+	 */
+	public static final Map<String, List<String>> methodsWhichCanReceiveFromNetwork = Map.ofEntries(
+			Map.entry("java.net.DatagramSocket", List.of("receive")),
+			Map.entry("java.nio.channels.DatagramChannel", List.of("receive")),
+			Map.entry("java.net.Socket", List.of("getInputStream")),
+			Map.entry("java.net.URLConnection", List.of("getInputStream")),
+			Map.entry("java.net.HttpURLConnection", List.of("getInputStream")));
+	// </editor-fold>
 }

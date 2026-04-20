@@ -1,0 +1,5 @@
+@Test
+public void serialisationNotBeAccessed() {
+    javaClasses = ${javaClasses};
+    JavaArchunitTestCaseCollection.NO_CLASS_MUST_SERIALIZE.check(javaClasses);
+}

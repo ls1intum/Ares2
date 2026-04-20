@@ -403,6 +403,35 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	}
 	// </editor-fold>
 
+	// <editor-fold desc="Field index lookup">
+
+	/**
+	 * Resolves the index of a named field within the given class.
+	 * <p>
+	 * Description: Returns the positional index of the first field whose name
+	 * matches {@code fieldName}. Used to avoid hard-coding field indices that can
+	 * shift across JDK versions (e.g. JDK 21 added a LOGGER field to
+	 * {@link ProcessBuilder}).
+	 *
+	 * @param clazz     the class whose declared fields are inspected
+	 * @param fieldName the name of the field to locate
+	 * @return the zero-based index of the matching field
+	 * @throws SecurityException if no field with that name exists
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 */
+	public static int findFieldIndex(@Nonnull Class<?> clazz, @Nonnull String fieldName) {
+		java.lang.reflect.Field[] fields = clazz.getDeclaredFields();
+		for (int i = 0; i < fields.length; i++) {
+			if (fieldName.equals(fields[i].getName())) {
+				return i;
+			}
+		}
+		throw new SecurityException(
+				JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.field.not.found", fieldName, clazz.getName()));
+	}
+	// </editor-fold>
+
 	// <editor-fold desc="Filter variables">
 
 	/**
