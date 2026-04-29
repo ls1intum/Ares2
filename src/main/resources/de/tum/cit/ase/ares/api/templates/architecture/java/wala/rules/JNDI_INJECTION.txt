@@ -1,0 +1,5 @@
+@Test
+public void jndiLookupsShouldNotBePerformed() {
+    callGraph = ${callGraph};
+    JavaWalaTestCaseCollection.NO_CLASS_MUST_PERFORM_JNDI_LOOKUPS.check(callGraph);
+}

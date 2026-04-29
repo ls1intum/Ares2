@@ -517,7 +517,7 @@ import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstru
         //<editor-fold desc="Get information from join point">
         @Nonnull Object[] parameters = thisJoinPoint.getArgs();
         @Nullable Object instance = thisJoinPoint.getTarget();
-        @Nonnull final String fullMethodSignature = thisJoinPoint.getSignature().toLongString();
+        @Nonnull final String fullMethodSignature = formatSignature(thisJoinPoint.getSignature());
         @Nonnull final String declaringTypeName = thisJoinPoint.getSignature().getDeclaringTypeName();
         @Nonnull final String methodName = thisJoinPoint.getSignature().getName();
         //</editor-fold>

@@ -264,6 +264,17 @@ public enum ArchitectureMode {
 	}
 
 	private static JavaWalaTestCase convertToJavaWalaTestCases(JavaArchitectureTestCase testCase) {
+		// Prefer the lazy supplier path when available so the WALA outcome cache can
+		// short-circuit rule checks without ever building the call graph in JVM
+		// forks whose results are entirely served from disk.
+		java.util.function.Supplier<com.ibm.wala.ipa.callgraph.CallGraph> supplier = testCase.getCallGraphSupplier();
+		if (supplier != null) {
+			return new JavaWalaTestCase(
+					(JavaArchitectureTestCaseSupported) testCase.getArchitectureTestCaseSupported(),
+					testCase.getAllowedPackages(),
+					testCase.getJavaClasses(),
+					supplier);
+		}
 		return JavaWalaTestCase.walaBuilder()
 				.javaArchitectureTestCaseSupported(
 						(JavaArchitectureTestCaseSupported) testCase.getArchitectureTestCaseSupported())

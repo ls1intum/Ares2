@@ -162,8 +162,26 @@ public class CustomDFSPathFinder {
 		if (roots.hasNext()) { // check if roots available
 			CGNode n = roots.next(); // get first root
 			stack.push(n); // add root to path stack
-			pendingChildren.put(n, G.getSuccNodes(n)); // put its children in pending
+			pendingChildren.put(n, sortedSuccessors(n)); // put its children in pending
 		}
+	}
+
+	/**
+	 * Returns a successor iterator whose order is stable across JVM invocations.
+	 * <p>
+	 * WALA stores successor sets in HashSet-backed collections; their iteration
+	 * order depends on each {@code CGNode}'s identity hashcode, which is seeded
+	 * once per JVM and therefore differs between runs. Sorting by method
+	 * signature gives DFS the same traversal order every time.
+	 *
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 */
+	private Iterator<? extends CGNode> sortedSuccessors(CGNode node) {
+		java.util.List<CGNode> list = new ArrayList<>();
+		G.getSuccNodes(node).forEachRemaining(list::add);
+		list.sort(java.util.Comparator.comparing(n -> n.getMethod().getSignature()));
+		return list.iterator();
 	}
 
 	/**
@@ -212,7 +230,7 @@ public class CustomDFSPathFinder {
 						continue;
 					}
 					stack.push(child); // descend into this child
-					pendingChildren.put(child, G.getSuccNodes(child));
+					pendingChildren.put(child, sortedSuccessors(child));
 					return; // move down one level
 				}
 			}
@@ -223,7 +241,7 @@ public class CustomDFSPathFinder {
 			CGNode nextRoot = roots.next();
 			if (pendingChildren.get(nextRoot) == null) {
 				stack.push(nextRoot); // new branch
-				pendingChildren.put(nextRoot, G.getSuccNodes(nextRoot));
+				pendingChildren.put(nextRoot, sortedSuccessors(nextRoot));
 				return;
 			}
 		}

@@ -843,7 +843,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
         //<editor-fold desc="Get information from join point">
         @Nonnull Object[] parameters = thisJoinPoint.getArgs();
         @Nullable Object instance = thisJoinPoint.getTarget();
-        @Nonnull final String fullMethodSignature = thisJoinPoint.getSignature().toLongString();
+        @Nonnull final String fullMethodSignature = formatSignature(thisJoinPoint.getSignature());
         @Nonnull String declaringTypeName = thisJoinPoint.getSignature().getDeclaringTypeName();
         @Nonnull String methodName = thisJoinPoint.getSignature().getName();
         //</editor-fold>

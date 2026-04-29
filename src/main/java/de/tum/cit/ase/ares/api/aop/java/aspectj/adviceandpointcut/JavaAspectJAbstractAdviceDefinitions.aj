@@ -132,6 +132,38 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
     }
 
     /**
+     * Formats a join-point signature in the same shape produced by the Byte Buddy /
+     * Instrumentation advice: {@code <declaringType>.<methodName>(<paramType1>,<paramType2>,...)}.
+     *
+     * <p>AspectJ's {@link org.aspectj.lang.Signature#toLongString()} prepends Java modifiers
+     * (e.g. {@code "public transient "}) and, for constructors, omits {@code .<init>}
+     * altogether ({@code "java.lang.ProcessBuilder(java.lang.String[])"}). The
+     * Instrumentation side and the JSON expectation files use {@code <init>}-style
+     * signatures, so this helper converts AspectJ's join-point shape to that form.
+     *
+     * @param sig the AspectJ {@link org.aspectj.lang.Signature} from the join point
+     * @return normalized signature string with no leading modifiers and an explicit
+     *         {@code <init>} marker for constructors
+     */
+    @Nonnull
+    protected static String formatSignature(@Nonnull org.aspectj.lang.Signature sig) {
+        @Nonnull String declaring = sig.getDeclaringTypeName();
+        @Nonnull String name = sig.getName();
+        @Nonnull StringBuilder params = new StringBuilder("(");
+        if (sig instanceof org.aspectj.lang.reflect.CodeSignature codeSig) {
+            @Nullable Class<?>[] parameterTypes = codeSig.getParameterTypes();
+            if (parameterTypes != null) {
+                for (int i = 0; i < parameterTypes.length; i++) {
+                    if (i > 0) params.append(",");
+                    params.append(parameterTypes[i].getName());
+                }
+            }
+        }
+        params.append(")");
+        return declaring + "." + name + params;
+    }
+
+    /**
      * Retrieves a localized message based on a key and optional arguments.
      *
      * <p>Description: Attempts to fetch a localized string from the Messages class using reflection.

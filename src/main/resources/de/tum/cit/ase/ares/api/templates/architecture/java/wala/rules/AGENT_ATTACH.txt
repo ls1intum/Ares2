@@ -1,0 +1,5 @@
+@Test
+public void agentsShouldNotBeAttached() {
+    callGraph = ${callGraph};
+    JavaWalaTestCaseCollection.NO_CLASS_MUST_ATTACH_AGENTS.check(callGraph);
+}

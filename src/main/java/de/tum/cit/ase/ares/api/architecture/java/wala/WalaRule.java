@@ -1,9 +1,10 @@
 package de.tum.cit.ase.ares.api.architecture.java.wala;
 
 import java.util.List;
+import java.util.OptionalInt;
 import java.util.Set;
+import java.util.function.Predicate;
 
-import com.google.common.collect.Iterables;
 import com.ibm.wala.classLoader.IMethod;
 import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
@@ -12,6 +13,7 @@ import com.ibm.wala.shrike.shrikeCT.InvalidClassFileException;
 import de.tum.cit.ase.ares.api.localization.Messages;
 
 public class WalaRule {
+
 	final String ruleName;
 	final Set<String> forbiddenMethods;
 
@@ -21,26 +23,53 @@ public class WalaRule {
 	}
 
 	public void check(CallGraph cg) {
-		List<CGNode> reachableNodes = ReachabilityChecker.findReachableMethods(cg, cg.getEntrypointNodes().iterator(),
-				cgNode -> forbiddenMethods.stream()
-						.anyMatch(method -> cgNode.getMethod().getSignature().startsWith(method)));
+		Predicate<CGNode> isForbidden = n -> forbiddenMethods.stream()
+				.anyMatch(m -> n.getMethod().getSignature().startsWith(m));
 
-		if (reachableNodes == null || Iterables.isEmpty(reachableNodes)) {
-			return;
-		}
-		try {
-			IMethod.SourcePosition sourcePosition = reachableNodes.get(reachableNodes.size() - 1).getMethod()
-					.getSourcePosition(0);
-			int lineNumber = sourcePosition != null ? sourcePosition.getFirstLine() : -1;
-			throw new AssertionError(
-					Messages.localized("security.architecture.method.call.message", ruleName,
-							reachableNodes.get(reachableNodes.size() - 1).getMethod().getSignature(),
-							reachableNodes.get(reachableNodes.size() - 2).getMethod().getSignature(),
-							reachableNodes.get(reachableNodes.size() - 1).getMethod().getDeclaringClass().getName()
-									.getClassName().toString(),
-							lineNumber, reachableNodes.get(0).getMethod().getSignature()));
-		} catch (InvalidClassFileException e) {
-			throw new SecurityException(Messages.localized("security.architecture.invalid.class.file"));
+		// Use the DFS finder in a loop: skip paths that are all-infra or transitive-JDK
+		// false positives and keep searching until a genuine student violation is found.
+		// This prevents a long JDK-internal path (found first by alphabetical DFS) from
+		// masking the shorter, direct forbidden-method call in student code.
+		CustomDFSPathFinder finder = new CustomDFSPathFinder(cg, cg.getEntrypointNodes().iterator(), isForbidden);
+		List<CGNode> path;
+		while ((path = finder.find()) != null) {
+			if (path.isEmpty()) {
+				continue;
+			}
+
+			OptionalInt studentIdx = WalaPathClassification.nearestStudentFrame(path);
+			if (studentIdx.isEmpty()) {
+				continue;
+			}
+
+			int callerIdx = studentIdx.getAsInt();
+			if (WalaPathClassification.isFalsePositiveTransitivePath(path, callerIdx)) {
+				continue;
+			}
+
+			int size = path.size();
+			CGNode forbiddenNode = path.get(size - 1);
+
+			// In production the forbidden node is always a JDK method (Primordial-loaded),
+			// so isInfraFrame classifies it as infra and nearestStudentFrame never returns
+			// size-1. This branch is defensive against misconfiguration only.
+			String callerSignature = (callerIdx == size - 1)
+					? path.get(0).getMethod().getSignature()
+					: path.get(callerIdx).getMethod().getSignature();
+
+			String forbiddenSignature = forbiddenNode.getMethod().getSignature();
+			String declaringClass = forbiddenNode.getMethod().getDeclaringClass().getName().getClassName().toString();
+			String entrySignature = path.get(0).getMethod().getSignature();
+
+			try {
+				IMethod.SourcePosition sp = forbiddenNode.getMethod().getSourcePosition(0);
+				int lineNumber = sp != null ? sp.getFirstLine() : -1;
+				throw new AssertionError(
+						Messages.localized("security.architecture.method.call.message", ruleName,
+								callerSignature, forbiddenSignature, declaringClass, lineNumber, entrySignature));
+			} catch (InvalidClassFileException e) {
+				throw new SecurityException(Messages.localized("security.architecture.invalid.class.file"));
+			}
 		}
 	}
 }

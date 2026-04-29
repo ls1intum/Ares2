@@ -58,6 +58,16 @@ public class FileHandlerConstants {
 			"architecture", "java", "wala", "methods", "serializable-methods.txt");
 	public static final Path WALA_THREAD_MANIPULATION_METHODS = FileTools.resolveFileOnSourceDirectory("templates",
 			"architecture", "java", "wala", "methods", "thread-manipulation-methods.txt");
+	public static final Path WALA_NATIVE_CODE_METHODS = FileTools.resolveFileOnSourceDirectory("templates",
+			"architecture", "java", "wala", "methods", "native-code-access-methods.txt");
+	public static final Path WALA_AGENT_ATTACH_METHODS = FileTools.resolveFileOnSourceDirectory("templates",
+			"architecture", "java", "wala", "methods", "agent-attach-methods.txt");
+	public static final Path WALA_ENVIRONMENT_ACCESS_METHODS = FileTools.resolveFileOnSourceDirectory("templates",
+			"architecture", "java", "wala", "methods", "environment-access-methods.txt");
+	public static final Path WALA_MODULE_SYSTEM_METHODS = FileTools.resolveFileOnSourceDirectory("templates",
+			"architecture", "java", "wala", "methods", "module-system-access-methods.txt");
+	public static final Path WALA_JNDI_INJECTION_METHODS = FileTools.resolveFileOnSourceDirectory("templates",
+			"architecture", "java", "wala", "methods", "jndi-injection-methods.txt");
 	// </editor-fold>
 
 	// <editor-fold desc="Utility Methods">

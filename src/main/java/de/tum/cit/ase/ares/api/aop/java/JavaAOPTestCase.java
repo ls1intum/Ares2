@@ -166,19 +166,19 @@ public class JavaAOPTestCase extends AOPTestCase {
 	public static void setJavaAdviceSettingValue(@Nonnull String adviceSetting, @Nullable Object value,
 			@Nonnull String architectureMode, @Nonnull String aopMode) {
 		try {
-			@Nullable
-			ClassLoader customClassLoader = Thread.currentThread().getContextClassLoader();
-			boolean useBootstrap = aopMode.equals("INSTRUMENTATION");
-			// Use the current context class loader during tests to ensure the class can be
-			// found
-			@Nonnull
-			Class<?> adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings",
-					true, useBootstrap ? null : customClassLoader);
-			@Nonnull
-			Field field = adviceSettingsClass.getDeclaredField(adviceSetting);
-			field.setAccessible(true);
-			field.set(null, value);
-			field.setAccessible(false);
+			// JavaAOPTestCaseSettings exists as TWO separate classes at runtime:
+			//   - one loaded by the BOOTSTRAP classloader (read by Byte Buddy / Instrumentation
+			//     advice, since JDK-rewritten classes can only see bootstrap-loaded classes)
+			//   - one loaded by the APPLICATION classloader (read by AspectJ aspects, which
+			//     resolve their own classes through the same loader that loaded the aspect)
+			// Each AOP mode reads its own copy. To keep both modes coherent, the central writer
+			// updates BOTH copies for every configuration change. Resolution order is bootstrap
+			// first, then application; either may be absent in a given mode (e.g. application
+			// loader has no JavaAOPTestCaseSettings if Byte Buddy didn't inject the class), and
+			// missing copies are silently skipped.
+			setSettingFieldOnLoader(adviceSetting, value, null);
+			setSettingFieldOnLoader(adviceSetting, value, Thread.currentThread().getContextClassLoader());
+			return;
 		} catch (LinkageError e) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
 					.localize("security.creation.advice.linkage.exception", adviceSetting), e);
@@ -201,6 +201,38 @@ public class JavaAOPTestCase extends AOPTestCase {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
 					.localize("security.creation.advice.inaccessible.object.exception", adviceSetting), e);
 		}
+	}
+
+	/**
+	 * Sets a single static field of JavaAOPTestCaseSettings as resolved by the given classloader.
+	 *
+	 * <p>Updates exactly the copy of JavaAOPTestCaseSettings reachable from {@code loader}. When
+	 * {@code loader} is {@code null}, the bootstrap classloader's copy is targeted (read by
+	 * Byte Buddy / Instrumentation advice). When {@code loader} is the application classloader,
+	 * the AspectJ-visible copy is targeted. If the requested copy does not exist in this loader
+	 * (e.g. AspectJ-only run with no Byte Buddy injection, or vice versa) the call silently
+	 * returns rather than failing.
+	 *
+	 * @param adviceSetting field name to update
+	 * @param value         new value (may be null)
+	 * @param loader        the classloader that should resolve JavaAOPTestCaseSettings; null = bootstrap
+	 */
+	private static void setSettingFieldOnLoader(@Nonnull String adviceSetting, @Nullable Object value,
+			@Nullable ClassLoader loader)
+			throws ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
+		Class<?> adviceSettingsClass;
+		try {
+			adviceSettingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true,
+					loader);
+		} catch (ClassNotFoundException missing) {
+			// This loader does not see JavaAOPTestCaseSettings — that AOP mode is inactive in
+			// the current run, so there is nothing to update. Bail out silently.
+			return;
+		}
+		Field field = adviceSettingsClass.getDeclaredField(adviceSetting);
+		field.setAccessible(true);
+		field.set(null, value);
+		field.setAccessible(false);
 	}
 	// </editor-fold>
 

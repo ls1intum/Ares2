@@ -1,0 +1,5 @@
+com.sun.tools.attach
+java.lang.instrument
+sun.instrument
+java.lang.management.ManagementFactory.getClassLoadingMXBean
+java.lang.management.ClassLoadingMXBean

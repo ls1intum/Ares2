@@ -1,0 +1,7 @@
+java.lang.System.getenv
+java.lang.System.getProperty
+java.lang.System.getProperties
+java.lang.System.setProperty
+java.lang.System.setProperties
+java.lang.System.clearProperty
+java.lang.ProcessHandle

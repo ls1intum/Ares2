@@ -105,10 +105,59 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 	/**
 	 * Executes the architecture test case.
 	 */
+	/**
+	 * Cache of per-({@link JavaArchitectureTestCaseSupported}, {@code JavaClasses})
+	 * outcomes. Each entry is either {@code Optional.empty()} for a clean rule or
+	 * {@code Optional.of(AssertionError)} captured from the first evaluation.
+	 * Subsequent invocations replay the cached outcome instead of re-scanning.
+	 * Keyed on category name plus {@code System.identityHashCode} of the
+	 * {@code JavaClasses}; {@code JavaClasses} is rebuilt at most once per JVM
+	 * fork by {@code ArchitectureMode.getJavaClasses(classPath)}, so the identity
+	 * is stable for the fork's lifetime.
+	 */
+	/**
+	 * Cache of per-({@link JavaArchitectureTestCaseSupported}, {@code JavaClasses})
+	 * outcomes. Each entry is either {@code Optional.empty()} (no violation) or
+	 * {@code Optional.of(SecurityException)} pre-parsed from the first evaluation.
+	 * Storing the already-parsed exception lets cached re-throws skip
+	 * {@link JavaArchitectureTestCase#parseErrorMessage(AssertionError)} entirely.
+	 * Keyed on category name plus {@code System.identityHashCode} of the
+	 * {@code JavaClasses}; that instance is rebuilt at most once per JVM fork.
+	 */
+	private static final java.util.concurrent.ConcurrentHashMap<String, java.util.Optional<SecurityException>> RULE_OUTCOME_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+	private static final java.util.concurrent.ConcurrentHashMap<String, java.util.Optional<SecurityException>> PACKAGE_OUTCOME_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+
 	@Override
 	public void executeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
+		JavaArchitectureTestCaseSupported supported = (JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported;
+		java.util.Optional<SecurityException> cached;
+		if (supported == JavaArchitectureTestCaseSupported.PACKAGE_IMPORT) {
+			String allowedSignature = allowedPackages.stream()
+					.map(p -> p.importTheFollowingPackage())
+					.sorted()
+					.collect(java.util.stream.Collectors.joining(","));
+			String pkgKey = allowedSignature + "@" + System.identityHashCode(javaClasses);
+			cached = PACKAGE_OUTCOME_CACHE.get(pkgKey);
+			if (cached == null) {
+				cached = runRuleAndCapture(supported);
+				PACKAGE_OUTCOME_CACHE.put(pkgKey, cached);
+			}
+		} else {
+			String key = supported.name() + "@" + System.identityHashCode(javaClasses);
+			cached = RULE_OUTCOME_CACHE.get(key);
+			if (cached == null) {
+				cached = runRuleAndCapture(supported);
+				RULE_OUTCOME_CACHE.put(key, cached);
+			}
+		}
+		if (cached.isPresent()) {
+			throw cached.get();
+		}
+	}
+
+	private java.util.Optional<SecurityException> runRuleAndCapture(JavaArchitectureTestCaseSupported supported) {
 		try {
-			switch ((JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported) {
+			switch (supported) {
 			case FILESYSTEM_INTERACTION -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_ACCESS_FILE_SYSTEM
 					.check(javaClasses);
 			case NETWORK_CONNECTION -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_ACCESS_NETWORK.check(javaClasses);
@@ -127,10 +176,16 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 			case MODULE_SYSTEM -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_ACCESS_MODULE_SYSTEM.check(javaClasses);
 			case JNDI_INJECTION -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_PERFORM_JNDI_LOOKUPS.check(javaClasses);
 			default -> throw new SecurityException(
-					Messages.localized("security.common.unsupported.operation", this.architectureTestCaseSupported));
+					Messages.localized("security.common.unsupported.operation", supported));
 			}
-		} catch (AssertionError e) {
-			JavaArchitectureTestCase.parseErrorMessage(e);
+			return java.util.Optional.empty();
+		} catch (AssertionError ae) {
+			try {
+				JavaArchitectureTestCase.parseErrorMessage(ae);
+				return java.util.Optional.empty();
+			} catch (SecurityException parsed) {
+				return java.util.Optional.of(parsed);
+			}
 		}
 	}
 	// </editor-fold>

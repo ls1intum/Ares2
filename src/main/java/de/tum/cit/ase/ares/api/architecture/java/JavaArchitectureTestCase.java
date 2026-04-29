@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.architecture.java;
 
 import java.util.Set;
+import java.util.function.Supplier;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -38,6 +39,25 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
  */
 public class JavaArchitectureTestCase extends ArchitectureTestCase {
 
+	// <editor-fold desc="Attributes">
+
+	/**
+	 * Optional lazy supplier of the call graph. When non-null, the WALA
+	 * conversion uses this supplier (deferred construction) instead of the
+	 * eagerly resolved {@link #callGraph} inherited from the parent class. This
+	 * lets the WALA outcome cache short-circuit rule checks before the
+	 * (expensive) call-graph construction ever runs.
+	 */
+	@Nullable
+	private final Supplier<CallGraph> callGraphSupplier;
+
+	/** Returns the lazy call-graph supplier set on this test case, if any. */
+	@Nullable
+	public Supplier<CallGraph> getCallGraphSupplier() {
+		return callGraphSupplier;
+	}
+	// </editor-fold>
+
 	// <editor-fold desc="Constructor">
 
 	/**
@@ -60,7 +80,34 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	public JavaArchitectureTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
 			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
 			@Nullable CallGraph callGraph) {
+		this(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, callGraph, null);
+	}
+
+	/**
+	 * Constructs a new Java architecture test case that defers call-graph
+	 * construction. Used by WALA mode so that disk-cached rule outcomes can
+	 * short-circuit before the call graph is built.
+	 *
+	 * @param javaArchitectureTestCaseSupported The type of architecture test case
+	 *                                          supported, determining which rules
+	 *                                          to apply
+	 * @param allowedPackages                   Set of package permissions that are
+	 *                                          allowed in the analysed code
+	 * @param javaClasses                       Collection of Java classes to be
+	 *                                          analysed by the test case
+	 * @param callGraph                         Eagerly resolved call graph, or
+	 *                                          {@code null} when only the lazy
+	 *                                          supplier is provided
+	 * @param callGraphSupplier                 Lazy supplier of the call graph,
+	 *                                          or {@code null} when an eager
+	 *                                          {@code callGraph} is provided
+	 * @since 2.0.0
+	 */
+	public JavaArchitectureTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
+			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
+			@Nullable CallGraph callGraph, @Nullable Supplier<CallGraph> callGraphSupplier) {
 		super(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, callGraph);
+		this.callGraphSupplier = callGraphSupplier;
 	}
 	// </editor-fold>
 
@@ -159,16 +206,10 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		}
 
 		// Parse the detail line to extract caller and target method info.
-		// Typical formats:
-		// - "Method <caller> calls method <target> in (File.java:line)"
-		// - "Method <caller> calls constructor <target> in (File.java:line)"
-		// - "Constructor <caller> calls constructor <target> in (File.java:line)"
-		// - "Method <caller> accesses <target> by [chain]"
 		@Nonnull
 		String detailLine = messageParts[1].trim();
 
-		// Extract the caller (Method/Constructor) and target (accesses/calls) with
-		// fallbacks.
+		// Extract the caller (Method/Constructor) and target (accesses/calls) with fallbacks.
 		String caller = null;
 		String target = null;
 
@@ -317,10 +358,22 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 				.javaArchitectureTestCaseSupported(protectedJavaArchitectureTestCaseSupported)
 				.allowedPackages(protectedAllowedPackages).javaClasses(protectedJavaClasses).build()
 				.executeArchitectureTestCase(architectureMode, aopMode);
-		case "WALA" -> JavaWalaTestCase.walaBuilder()
-				.javaArchitectureTestCaseSupported(protectedJavaArchitectureTestCaseSupported)
-				.allowedPackages(protectedAllowedPackages).javaClasses(protectedJavaClasses).callGraph(callGraph)
-				.build().executeArchitectureTestCase(architectureMode, aopMode);
+		case "WALA" -> {
+			// Use the lazy supplier path when present so the WALA outcome cache can
+			// short-circuit before any call-graph construction. The eager path remains
+			// for callers that already resolved the call graph (legacy code).
+			JavaWalaTestCase tc;
+			if (callGraphSupplier != null) {
+				tc = new JavaWalaTestCase(protectedJavaArchitectureTestCaseSupported,
+						protectedAllowedPackages, protectedJavaClasses, callGraphSupplier);
+			} else {
+				tc = JavaWalaTestCase.walaBuilder()
+						.javaArchitectureTestCaseSupported(protectedJavaArchitectureTestCaseSupported)
+						.allowedPackages(protectedAllowedPackages).javaClasses(protectedJavaClasses).callGraph(callGraph)
+						.build();
+			}
+			tc.executeArchitectureTestCase(architectureMode, aopMode);
+		}
 		default -> throw new SecurityException(
 				Messages.localized("security.architecture.testcase.mode.not.supported", architectureMode));
 		}
@@ -352,6 +405,15 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		private JavaClasses javaClasses;
 		@Nullable
 		private CallGraph callGraph;
+		/**
+		 * Optional lazy supplier for the call graph. When set, the conversion to a
+		 * {@link de.tum.cit.ase.ares.api.architecture.java.wala.JavaWalaTestCase}
+		 * propagates this supplier instead of resolving the call graph eagerly. This
+		 * lets the WALA outcome cache short-circuit rule checks before the
+		 * (expensive) call-graph construction ever runs.
+		 */
+		@Nullable
+		private Supplier<CallGraph> callGraphSupplier;
 		@Nullable
 		private Set<PackagePermission> allowedPackages;
 
@@ -403,6 +465,17 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		}
 
 		/**
+		 * Sets a lazy supplier for the call graph. Required only for WALA mode and
+		 * only when callers want construction deferred until the rule actually needs
+		 * the graph (e.g. cache miss). For ARCHUNIT mode this is irrelevant.
+		 */
+		@Nonnull
+		public Builder callGraphSupplier(@Nullable Supplier<CallGraph> callGraphSupplier) {
+			this.callGraphSupplier = callGraphSupplier;
+			return this;
+		}
+
+		/**
 		 * Sets the allowed package permissions.
 		 *
 		 * @since 2.0.0
@@ -431,7 +504,8 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 					Preconditions.checkNotNull(javaArchitectureTestCaseSupported,
 							"javaArchitecturalTestCaseSupported must not be null"),
 					Preconditions.checkNotNull(allowedPackages, "allowedPackages must not be null"),
-					Preconditions.checkNotNull(javaClasses, "javaClasses must not be null"), callGraph);
+					Preconditions.checkNotNull(javaClasses, "javaClasses must not be null"),
+					callGraph, callGraphSupplier);
 		}
 	}
 	// </editor-fold>

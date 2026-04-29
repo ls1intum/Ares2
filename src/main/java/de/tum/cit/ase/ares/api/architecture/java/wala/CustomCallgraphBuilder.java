@@ -2,10 +2,14 @@ package de.tum.cit.ase.ares.api.architecture.java.wala;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import com.ibm.wala.classLoader.IClass;
@@ -32,13 +36,9 @@ import de.tum.cit.ase.ares.api.util.FileTools;
 /**
  * Utility to build a call graph for Java binaries using WALA framework.
  * <p>
- * Description: This class reads .class files from a specified classpath builds
- * an analysis scope constructs a class hierarchy and generates a call graph
- * representing method call relationships.
- * <p>
- * Design Rationale: To provide a reusable component for architecture tests that
- * require static analysis of Java bytecode call relationships enabling
- * detection of forbidden method usage.
+ * Caches the analysis scope, class hierarchy, and the call graph itself per
+ * JVM, keyed by the classpath strings, so that subsequent tests in the same
+ * Gradle task reuse a single graph instead of rebuilding it for every test.
  *
  * @since 2.0.0
  * @author Sarp Sahinalp
@@ -46,200 +46,266 @@ import de.tum.cit.ase.ares.api.util.FileTools;
  */
 public class CustomCallgraphBuilder {
 
-	/**
-	 * Importer for reading .class files from URLs into Archunit domain model.
-	 * <p>
-	 * Description: Used to import individual class files skipping Java runtime
-	 * modules.
-	 */
-	private final ClassFileImporter classFileImporter; // loads class files into importer
+	/** Substrings that disqualify a classpath entry from the analysis scope. */
+	private static final List<String> CLASSPATH_EXCLUDE_SUBSTRINGS = List.of(
+			// Test build outputs (compiled test sources and resources, across JVM languages)
+			"/build/classes/java/test/", "/build/resources/test/",
+			"/build/classes/groovy/test/", "/build/classes/kotlin/test/",
+			// JUnit and supporting test-platform libraries
+			"/junit-", "/junit5-", "/junit-jupiter", "/junit-platform", "/junit-vintage",
+			"/opentest4j", "/apiguardian-api", "/junit-pioneer",
+			// Mocking and test-double libraries
+			"/mockito-", "/byte-buddy-agent", "/objenesis",
+			// Assertion and property-based testing libraries
+			"/assertj-", "/hamcrest", "/jqwik-",
+			// Code coverage instrumentation
+			"/jacoco", "/org.jacoco",
+			// Gradle test-runner infrastructure
+			"/gradle-worker", "/gradle-test-kit", "/test-kit",
+			// Static analysis, linting and bug-finding tools
+			"/spotbugs", "/spotbugsAnnotations",
+			"/checkstyle", "/pmd-", "/spoon-",
+			// Auxiliary parsing and graph libraries pulled in by analysis tooling
+			"/javaparser-", "/jgrapht-", "/info.debatty",
+			// Ares itself must never appear in its own analysis scope
+			"/ares-", "/ares.jar",
+			// WALA runtime, used to perform the analysis, must not be analysed
+			"/com.ibm.wala", "/wala-",
+			// AspectJ runtime and tooling, used by Ares' AOP layer
+			"/aspectjweaver", "/aspectjrt", "/aspectjtools");
 
-	/**
-	 * Analysis scope containing application classes and required dependencies.
-	 * <p>
-	 * Description: Defines which classes are included in the static analysis
-	 * context.
-	 */
-	private final AnalysisScope scope; // controls included/excluded code
+	private static final ConcurrentHashMap<String, CachedAnalysis> ANALYSIS_CACHE = new ConcurrentHashMap<>();
+	private static final ConcurrentHashMap<String, CallGraph> CALL_GRAPH_CACHE = new ConcurrentHashMap<>();
 
-	/**
-	 * Class hierarchy derived from analysis scope to resolve types.
-	 * <p>
-	 * Description: Used to look up classes and their relationships based on loaded
-	 * dependencies.
-	 */
-	private final ClassHierarchy classHierarchy; // holds information on class inheritance
+	private final ClassFileImporter classFileImporter;
+	private final AnalysisScope scope;
+	private final ClassHierarchy classHierarchy;
+	private final String constructionClassPath;
 
-	/**
-	 * Temporary storage for generated call graph once built.
-	 * <p>
-	 * Description: Caches the result of buildCallGraph to avoid rebuilding multiple
-	 * times.
-	 */
-	private CallGraph callGraph = null; // cached call graph instance
-
-	/**
-	 * Initializes importer, analysis scope, and class hierarchy for building call
-	 * graphs.
-	 * <p>
-	 * Description: Sets up WALA analysis by reading classpath, loading exclusions,
-	 * and constructing hierarchy.
-	 *
-	 * @since 2.0.0
-	 * @author Sarp Sahinalp
-	 */
 	public CustomCallgraphBuilder(String classPath) {
-		// Prepare importer for class file URLs
-		classFileImporter = new ClassFileImporter();
-		try {
-			// Build analysis scope from current classpath and exclusion list
-			scope = Java9AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(
-					classPath + File.pathSeparator + System.getProperty("java.class.path"), FileTools.readFile(FileTools
-							.resolveFileOnSourceDirectory("templates", "architecture", "java", "exclusions.txt")));
-			// Construct class hierarchy from scope
-			classHierarchy = ClassHierarchyFactory.make(scope);
-		} catch (ClassHierarchyException | IOException e) {
-			// Fail fast if hierarchy cannot be built
-			throw new SecurityException(Messages.localized("security.architecture.class.hierarchy.error"));
-		}
+		this.classFileImporter = new ClassFileImporter();
+		this.constructionClassPath = classPath;
+		CachedAnalysis cached = ANALYSIS_CACHE.computeIfAbsent(filterClassPath(classPath), CachedAnalysis::build);
+		this.scope = cached.scope;
+		this.classHierarchy = cached.classHierarchy;
 	}
 
 	/**
-	 * Converts a Java type name to a resource path for its .class file.
-	 * <p>
-	 * Description: Transforms "com.example.MyClass" into
-	 * "/com/example/MyClass.class".
-	 *
-	 * @since 2.0.0
-	 * @author Sarp Sahinalp
-	 * @param typeName binary name of the class
-	 * @return resource path string
+	 * Drops classpath entries that belong to the test framework, JaCoCo, the Ares
+	 * agent, and the WALA/AspectJ runtime. Student code and any non-test library
+	 * dependencies remain in the scope. Library code is reachable on demand via
+	 * the analysis: only entries actually referenced from student-code entry
+	 * points end up in the call graph.
 	 */
+	private static String filterClassPath(String classPath) {
+		String[] entries = classPath.split(File.pathSeparator);
+		LinkedHashSet<String> kept = Arrays.stream(entries)
+				.filter(entry -> !entry.isBlank())
+				.filter(entry -> {
+					String normalized = entry.replace(File.separatorChar, '/');
+					return CLASSPATH_EXCLUDE_SUBSTRINGS.stream().noneMatch(normalized::contains);
+				})
+				.collect(Collectors.toCollection(LinkedHashSet::new));
+
+		// Ares' BuildMode.getClasspath narrows the analysis classpath to a single
+		// package subdirectory (e.g. build/classes/java/main/anonymous/foo/bar) so
+		// WALA's analysis stays tractable. The cost of that narrowing is severe:
+		// any student class whose superclass, helper class or returned-collection
+		// type lives outside that package directory (e.g. extending a base class in
+		// anonymous.toolclasses) cannot be resolved by the WALA class hierarchy and
+		// gets silently dropped, leaving its methods out of the entry-point set and
+		// hiding every forbidden API call inside them. Widen the scope back to the
+		// containing build root (and its test counterpart, where helper classes
+		// live) so the hierarchy resolves student types end-to-end.
+		LinkedHashSet<String> widened = new LinkedHashSet<>(kept);
+		for (String entry : kept) {
+			String normalized = entry.replace(File.separatorChar, '/');
+			String mainMarker = "build/classes/java/main";
+			int idx = normalized.indexOf(mainMarker);
+			if (idx >= 0) {
+				String mainRoot = entry.substring(0, idx + mainMarker.length());
+				if (new java.io.File(mainRoot).isDirectory()) {
+					widened.add(mainRoot);
+				}
+				continue;
+			}
+			String mavenMarker = "target/classes";
+			idx = normalized.indexOf(mavenMarker);
+			if (idx >= 0) {
+				String mavenMain = entry.substring(0, idx + mavenMarker.length());
+				if (new java.io.File(mavenMain).isDirectory()) {
+					widened.add(mavenMain);
+				}
+			}
+		}
+		String result = String.join(File.pathSeparator, widened);
+		try {
+			java.nio.file.Files.writeString(java.nio.file.Paths.get("/tmp/wala-filter-trace.txt"),
+					"input=" + classPath + "\nwidened=" + result + "\ncwd=" + System.getProperty("user.dir") + "\n",
+					java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+		} catch (Exception ignored) {}
+		return result;
+	}
+
 	private static String convertTypeNameToClassName(String typeName) {
 		if (typeName == null || typeName.isEmpty()) {
-			// Prevent invalid names
 			throw new SecurityException(Messages.localized("security.architecture.class.type.resolution.error"));
 		}
-		// Replace dots with slashes and add .class suffix
 		return "/" + typeName.replace(".", "/") + ".class";
 	}
 
-	/**
-	 * Converts a Java type name to WALA's internal format.
-	 * <p>
-	 * Description: Transforms "com.example.MyClass" into "Lcom/example/MyClass" for
-	 * WALA lookups.
-	 *
-	 * @since 2.0.0
-	 * @author Sarp Sahinalp
-	 * @param typeName binary name of the class
-	 * @return WALA type reference string
-	 */
 	private static String convertTypeNameToWalaName(String typeName) {
 		if (typeName == null || typeName.isEmpty()) {
-			// Prevent invalid names
 			throw new SecurityException(Messages.localized("security.architecture.class.type.resolution.error"));
 		}
-		// Prefix with L and replace dots with slashes
 		return "L" + typeName.replace('.', '/');
 	}
 
-	/**
-	 * Attempts to resolve a class by its name, ignoring certain known types.
-	 * <p>
-	 * Description: Skips excluded advice classes, locates the .class resource,
-	 * imports it, and returns the JavaClass.
-	 *
-	 * @since 2.0.0
-	 * @author Sarp Sahinalp
-	 * @param typeName binary name of the target class
-	 * @return Optional containing the resolved JavaClass or empty
-	 */
 	private Optional<JavaClass> tryResolve(String typeName) {
-		// Define classes to ignore to avoid infinite loops
 		List<String> ignoredTypeNames = List.of(
 				"de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemAdviceDefinitions");
 		if (ignoredTypeNames.contains(typeName)) {
-			return Optional.empty(); // skip forbidden names
+			return Optional.empty();
 		}
-		// Locate resource URL for .class file
 		return Optional.ofNullable(CustomCallgraphBuilder.class.getResource(convertTypeNameToClassName(typeName)))
-				// Import using Archunit, excluding jrt modules
 				.map(location -> classFileImporter.withImportOption(loc -> !loc.contains("jrt")).importUrl(location))
-				// Extract JavaClass by name, handle missing
 				.map(imported -> {
 					try {
-						return imported.get(typeName); // get class by name
+						return imported.get(typeName);
 					} catch (IllegalArgumentException e) {
-						return null; // not found
+						return null;
 					}
 				});
 	}
 
-	/**
-	 * Finds immediate subclasses of a given class name.
-	 * <p>
-	 * Description: Uses WALA ClassHierarchy to retrieve direct descendants of the
-	 * specified type.
-	 *
-	 * @since 2.0.0
-	 * @author Sarp Sahinalp
-	 * @param typeName binary name of the superclass
-	 * @return set of JavaClass representing subclasses
-	 */
 	@SuppressWarnings("unused")
 	public Set<JavaClass> getImmediateSubclasses(String typeName) {
-		// Create WALA type reference for application loader
 		TypeReference reference = TypeReference.find(ClassLoaderReference.Application,
 				convertTypeNameToWalaName(typeName));
 		if (reference == null) {
-			return Collections.emptySet(); // no reference
+			return Collections.emptySet();
 		}
-		// Find IClass in hierarchy, return empty if absent
 		IClass clazz = classHierarchy.lookupClass(reference);
 		if (clazz == null) {
 			return Collections.emptySet();
 		}
-		// Map subclasses to Archunit JavaClass instances
-		return classHierarchy.getImmediateSubclasses(clazz).stream().map(IClass::getName) // get name object
-				.map(Object::toString) // convert to string
-				.map(this::tryResolve) // attempt resolution
-				.filter(Optional::isPresent) // only those found
-				.map(Optional::get) // unwrap
-				.collect(Collectors.toSet()); // gather
+		return classHierarchy.getImmediateSubclasses(clazz).stream().map(IClass::getName)
+				.map(Object::toString)
+				.map(this::tryResolve)
+				.filter(Optional::isPresent)
+				.map(Optional::get)
+				.collect(Collectors.toSet());
 	}
 
 	/**
-	 * Builds and caches a call graph for analysis.
-	 * <p>
-	 * Description: Computes method call relationships for all non-main methods in
-	 * the provided class path using a 0-1-CFA builder.
-	 *
-	 * @since 2.0.0
-	 * @author Sarp Sahinalp
-	 * @param classPathToAnalyze the path or JAR to analyze
-	 * @return generated CallGraph instance
+	 * Builds the call graph for the given classpath, or returns a previously
+	 * built graph cached on the JVM. The cache lives for the lifetime of the
+	 * test JVM: the next Gradle run rebuilds it.
 	 */
 	public CallGraph buildCallGraph(String classPathToAnalyze) {
+		String cacheKey = filterClassPath(constructionClassPath) + "::" + filterClassPath(classPathToAnalyze);
+		CallGraph cached = CALL_GRAPH_CACHE.get(cacheKey);
+		if (cached != null) {
+			return cached;
+		}
 		try {
-			// Return existing graph if already built
-			if (callGraph != null) {
-				return callGraph;
-			}
-			// Determine entry points: all methods except main in student code
+			// Build entry points from the WIDENED classpath so getEntryPointsFromStudentSubmission's
+			// internal hierarchy can fully resolve student class supertypes
+			// (anonymous.toolclasses.ProtectedResourceAccess, …); without that step,
+			// the outer student classes are silently dropped and only standalone
+			// helpers (inner enums) become entry points. After collection, restrict
+			// the entry points to the test's own package directory so each
+			// architecture rule only flags violations in the class under test rather
+			// than spilling into unrelated category classes that share the wider scope.
+			String narrowPackagePrefix = derivePackagePrefix(classPathToAnalyze);
 			List<DefaultEntrypoint> customEntryPoints = ReachabilityChecker
-					.getEntryPointsFromStudentSubmission(classPathToAnalyze, classHierarchy);
-			// Configure analysis options with scope and entry points
+					.getEntryPointsFromStudentSubmission(filterClassPath(classPathToAnalyze), classHierarchy)
+					.stream()
+					.filter(ep -> narrowPackagePrefix == null
+							|| ep.getMethod().getDeclaringClass().getName().toString()
+									.startsWith(narrowPackagePrefix))
+					.collect(Collectors.toCollection(ArrayList::new));
 			AnalysisOptions options = new AnalysisOptions(scope, customEntryPoints);
-			// Create context-sensitive call graph builder
 			CallGraphBuilder<?> builder = Util.makeZeroOneCFABuilder(Language.JAVA, options, new AnalysisCacheImpl(),
 					classHierarchy);
-			// Generate call graph
-			callGraph = builder.makeCallGraph(options, null);
-			return callGraph;
+			CallGraph callGraph = builder.makeCallGraph(options, null);
+			CallGraph existing = CALL_GRAPH_CACHE.putIfAbsent(cacheKey, callGraph);
+			if (existing == null) {
+				try {
+					java.util.Set<String> anonClasses = new java.util.TreeSet<>();
+					int totalCgNodes = 0;
+					for (com.ibm.wala.ipa.callgraph.CGNode n : (Iterable<com.ibm.wala.ipa.callgraph.CGNode>) () -> callGraph.iterator()) {
+						totalCgNodes++;
+						String dn = n.getMethod().getDeclaringClass().getName().toString();
+						if (dn.startsWith("Lanonymous/")) anonClasses.add(dn);
+					}
+					int chCount = 0;
+					java.util.Set<String> chAnon = new java.util.TreeSet<>();
+					for (com.ibm.wala.classLoader.IClass c : (Iterable<com.ibm.wala.classLoader.IClass>) () -> classHierarchy.iterator()) {
+						chCount++;
+						String n = c.getName().toString();
+						if (n.startsWith("Lanonymous/")) chAnon.add(n);
+					}
+					StringBuilder sb = new StringBuilder();
+					sb.append("CG totalNodes=").append(totalCgNodes).append("\n");
+					sb.append("CG anon student classes (").append(anonClasses.size()).append("):\n");
+					for (String c : anonClasses) sb.append("  ").append(c).append("\n");
+					sb.append("Hierarchy total=").append(chCount).append(" anon=").append(chAnon.size()).append("\n");
+					for (String c : chAnon) sb.append("  ").append(c).append("\n");
+					java.nio.file.Files.writeString(java.nio.file.Paths.get("/tmp/wala-cg-stats.txt"), sb.toString());
+				} catch (Exception ignored) {}
+			}
+			return existing != null ? existing : callGraph;
 		} catch (Exception e) {
-			// Wrap builder failures as security exceptions
 			throw new SecurityException(Messages.localized("security.architecture.build.call.graph.error"));
+		}
+	}
+
+
+	/**
+	 * Convert a classpath entry like {@code build/classes/java/main/anonymous/foo/bar}
+	 * into the WALA TypeName prefix {@code Lanonymous/foo/bar/} so we can keep
+	 * entry points limited to the test's package without re-deriving it from the
+	 * policy. Returns {@code null} if the path doesn't look like a build-output
+	 * package directory (in which case no narrowing is applied).
+	 */
+	private static String derivePackagePrefix(String classPath) {
+		if (classPath == null) return null;
+		String first = classPath.split(File.pathSeparator)[0].replace(File.separatorChar, '/');
+		String[] markers = {"/build/classes/java/main/", "build/classes/java/main/",
+				"/target/classes/", "target/classes/"};
+		for (String marker : markers) {
+			int idx = first.indexOf(marker);
+			if (idx >= 0) {
+				String pkg = first.substring(idx + marker.length());
+				if (pkg.isBlank()) return null;
+				if (!pkg.endsWith("/")) pkg = pkg + "/";
+				return "L" + pkg;
+			}
+		}
+		return null;
+	}
+
+	/** Cached scope and hierarchy keyed by filtered classpath. */
+	private static final class CachedAnalysis {
+		final AnalysisScope scope;
+		final ClassHierarchy classHierarchy;
+
+		private CachedAnalysis(AnalysisScope scope, ClassHierarchy classHierarchy) {
+			this.scope = scope;
+			this.classHierarchy = classHierarchy;
+		}
+
+		static CachedAnalysis build(String filteredClassPath) {
+			try {
+				AnalysisScope scope = Java9AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(
+						filteredClassPath, FileTools.readFile(FileTools
+								.resolveFileOnSourceDirectory("templates", "architecture", "java", "exclusions.txt")));
+				ClassHierarchy hierarchy = ClassHierarchyFactory.make(scope);
+				return new CachedAnalysis(scope, hierarchy);
+			} catch (ClassHierarchyException | IOException e) {
+				throw new SecurityException(Messages.localized("security.architecture.class.hierarchy.error"));
+			}
 		}
 	}
 }

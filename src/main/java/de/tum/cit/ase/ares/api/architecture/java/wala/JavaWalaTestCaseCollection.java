@@ -3,12 +3,8 @@ package de.tum.cit.ase.ares.api.architecture.java.wala;
 //<editor-fold desc="Imports">
 
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Set;
 
-import com.google.common.collect.Iterables;
-import com.ibm.wala.ipa.callgraph.CGNode;
-import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.lang.ArchRule;
 
 import de.tum.cit.ase.ares.api.architecture.java.FileHandlerConstants;
@@ -40,70 +36,7 @@ public class JavaWalaTestCaseCollection {
 	 * Creates a rule that checks if a class has a forbidden method.
 	 */
 	private static WalaRule createNoClassShouldHaveMethodRule(String ruleName, Path methodsFilePath) {
-		return wrapIgnoringJdkHelpers(
-				new WalaRule(ruleName, FileTools.readMethodsFile(FileTools.readFile(methodsFilePath))));
-	}
-
-	// TODO: these values should be imported through CSV parser
-	/**
-	 * Ignore helper classes from the JDK that are known to create threads. (e.g.
-	 * move from
-	 */
-	private static final List<String> JDK_THREAD_HELPERS = List.of(
-			/* descriptor & binary forms */
-			"Lsun/nio/fs/", "sun/nio/fs/", "Lsun/nio/ch/", "sun/nio/ch/", "Ljava/nio/file/Files", "java/nio/file/Files",
-			"Ljava/lang/ClassLoader", "java/lang/ClassLoader", "Ljava/lang/Class", "java/lang/Class",
-			"Ljdk/internal/loader/NativeLibraries", "jdk/internal/loader/NativeLibraries", "Ljava/net/InetAddress",
-			"java/net/InetAddress", "Ljava/lang/Thread", "java/lang/Thread", "Ljava/lang/reflect/Method",
-			"java/lang/reflect/Method");
-
-	private static final List<String> ALLOWED_HELPER_APIS = List.of("java.lang.Thread.<init>",
-			"java.lang.Thread.interrupt", "java.lang.ClassLoader.getSystemClassLoader",
-			"java.lang.ClassLoader.loadLibrary", "java.lang.Runtime.load", "java.lang.Runtime.loadLibrary",
-			"java.io.File.getName", "java.lang.Class.forName", "java.net.InetAddress.getAllByName",
-			"java.lang.Thread.contextClassLoader", "java.lang.Class.getDeclaredField",
-			"java.lang.reflect.Method.invoke", "java.lang.Class.checkMemberAccess",
-			"java.lang.Thread.getContextClassLoader", "java.lang.Thread.getStackTrace", "java.io.File.<init>",
-			"java.lang.Class.getClassLoader");
-
-	/*
-	 * ----------------------------------------------------------- Small reusable
-	 * decorator that ignores WALA-paths consisting solely of JDK housekeeping
-	 * helpers. ---------------------------------------------------------
-	 */
-	private static WalaRule wrapIgnoringJdkHelpers(WalaRule base) {
-		return new WalaRule(base.ruleName, base.forbiddenMethods) {
-
-			@Override
-			public void check(CallGraph cg) {
-				List<CGNode> path = ReachabilityChecker.findReachableMethods(cg, cg.getEntrypointNodes().iterator(),
-						n -> base.forbiddenMethods.stream()
-								.anyMatch(sig -> n.getMethod().getSignature().startsWith(sig)));
-
-				if (path == null || Iterables.isEmpty(path)) {
-					return; // nothing forbidden reached
-				}
-
-				CGNode forbidden = path.get(path.size() - 1);
-
-				/* Is the API one helpers legitimately call? */
-				boolean helperApi = ALLOWED_HELPER_APIS.stream()
-						.anyMatch(sig -> forbidden.getMethod().getSignature().startsWith(sig));
-
-				/* Does the call chain contain at least one helper frame? */
-				boolean helperSeen = path.stream().anyMatch(n -> {
-					String cls = n.getMethod().getDeclaringClass().getName().toString();
-					return JDK_THREAD_HELPERS.stream().anyMatch(cls::startsWith);
-				});
-
-				if (helperApi && helperSeen) {
-					return; // housekeeping path – ignore
-				}
-
-				/* Otherwise: genuine violation. */
-				base.check(cg);
-			}
-		};
+		return new WalaRule(ruleName, FileTools.readMethodsFile(FileTools.readFile(methodsFilePath)));
 	}
 
 	// </editor-fold>

@@ -157,7 +157,7 @@ public class JavaCreator implements Creator {
 	 */
 	@Nonnull
 	private JavaArchitectureTestCase createArchitectureTestCase(@Nonnull JavaArchitectureTestCaseSupported supported,
-			@Nonnull JavaClasses classes, @Nonnull CallGraph callGraph, @Nonnull Set<PackagePermission> allowedPackages,
+			@Nonnull JavaClasses classes, @Nonnull Supplier<CallGraph> callGraphSupplier, @Nonnull Set<PackagePermission> allowedPackages,
 			@Nonnull Set<ClassPermission> allowedClasses) {
 		return JavaArchitectureTestCase.builder()
 				// The architecture test case checks for the following aspect
@@ -165,7 +165,7 @@ public class JavaCreator implements Creator {
 				// The architecture test cases are built over the following classes
 				.javaClasses(classes)
 				// The architecture test cases are built over the following call graph
-				.callGraph(callGraph)
+				.callGraphSupplier(callGraphSupplier)
 				// The following packages are allowed
 				.allowedPackages(allowedPackages)
 				// Build the architecture test case
@@ -195,7 +195,7 @@ public class JavaCreator implements Creator {
 	@Nonnull
 	private JavaAOPTestCase createAOPTestCase(@Nonnull ResourceAccesses resourceAccesses,
 			@Nonnull List<ArchitectureTestCase> javaArchitectureTestCases, @Nonnull JavaAOPTestCaseSupported supported,
-			@Nonnull JavaClasses classes, @Nonnull CallGraph callGraph, @Nonnull Set<PackagePermission> allowedPackages,
+			@Nonnull JavaClasses classes, @Nonnull Supplier<CallGraph> callGraphSupplier, @Nonnull Set<PackagePermission> allowedPackages,
 			@Nonnull Set<ClassPermission> allowedClasses) {
 		@Nonnull
 		Supplier<List<?>> resourceAccessSupplier = List
@@ -210,7 +210,7 @@ public class JavaCreator implements Creator {
 					// The architecture test cases are built over the following classes
 					.javaClasses(classes)
 					// The architecture test cases are built over the following call graph
-					.callGraph(callGraph)
+					.callGraphSupplier(callGraphSupplier)
 					// The following packages are allowed
 					.allowedPackages(allowedPackages)
 					// Build the architecture test case
@@ -258,11 +258,11 @@ public class JavaCreator implements Creator {
 	 *                                  null
 	 */
 	private void addPriorityTestCases(@Nonnull List<ArchitectureTestCase> javaArchitectureTestCases,
-			@Nonnull JavaClasses classes, @Nonnull CallGraph callGraph, @Nonnull Set<PackagePermission> allowedPackages,
+			@Nonnull JavaClasses classes, @Nonnull Supplier<CallGraph> callGraphSupplier, @Nonnull Set<PackagePermission> allowedPackages,
 			@Nonnull Set<ClassPermission> allowedClasses) {
 		javaArchitectureTestCases.addAll(JavaArchitectureTestCaseSupported.NATIVE_CODE.getPriority().stream()
 				.map(priorityCase -> createArchitectureTestCase((JavaArchitectureTestCaseSupported) priorityCase,
-						classes, callGraph, allowedPackages, allowedClasses))
+						classes, callGraphSupplier, allowedPackages, allowedClasses))
 				.toList());
 	}
 
@@ -282,7 +282,7 @@ public class JavaCreator implements Creator {
 	 *                                  null
 	 */
 	private void addFixedTestCases(@Nonnull List<ArchitectureTestCase> javaArchitectureTestCases,
-			@Nonnull JavaClasses classes, @Nonnull CallGraph callGraph, @Nonnull Set<PackagePermission> allowedPackages,
+			@Nonnull JavaClasses classes, @Nonnull Supplier<CallGraph> callGraphSupplier, @Nonnull Set<PackagePermission> allowedPackages,
 			@Nonnull Set<ClassPermission> allowedClasses) {
 		javaArchitectureTestCases.addAll(JavaArchitectureTestCaseSupported
 				// The choice of using TERMINATE_JVM was taken randomly for getting an instance
@@ -290,7 +290,7 @@ public class JavaCreator implements Creator {
 				// interface)
 				.TERMINATE_JVM.getStatic().stream()
 						.map(fixedCase -> createArchitectureTestCase((JavaArchitectureTestCaseSupported) fixedCase,
-								classes, callGraph, allowedPackages, allowedClasses))
+								classes, callGraphSupplier, allowedPackages, allowedClasses))
 						.toList());
 	}
 
@@ -316,7 +316,7 @@ public class JavaCreator implements Creator {
 	 */
 	private void addVariableTestCases(@Nonnull List<ArchitectureTestCase> javaArchitectureTestCases,
 			@Nonnull List<AOPTestCase> javaAOPTestCases, @Nonnull List<PhobosTestCase> javaPhobosTestCases,
-			@Nonnull JavaClasses classes, @Nonnull CallGraph callGraph, @Nonnull Set<PackagePermission> allowedPackages,
+			@Nonnull JavaClasses classes, @Nonnull Supplier<CallGraph> callGraphSupplier, @Nonnull Set<PackagePermission> allowedPackages,
 			@Nonnull Set<ClassPermission> allowedClasses, @Nonnull ResourceAccesses resourceAccesses) {
 		javaAOPTestCases.addAll(JavaAOPTestCaseSupported
 				// The choice of using FILESYSTEM_INTERACTION was taken randomly for getting an
@@ -325,7 +325,7 @@ public class JavaCreator implements Creator {
 				.FILESYSTEM_INTERACTION
 						.getDynamic().stream()
 						.map(variableCase -> createAOPTestCase(resourceAccesses, javaArchitectureTestCases,
-								(JavaAOPTestCaseSupported) variableCase, classes, callGraph, allowedPackages,
+								(JavaAOPTestCaseSupported) variableCase, classes, callGraphSupplier, allowedPackages,
 								allowedClasses))
 						.toList());
 
@@ -380,9 +380,14 @@ public class JavaCreator implements Creator {
 		@Nonnull
 		JavaClasses javaClasses = cacheResult(projectPath + "_" + packageName + "_javaClasses",
 				() -> architectureMode.getJavaClasses(classPath)).get();
+		// Keep the call graph as a Supplier (no eager .get()) so downstream test cases
+		// can defer construction. The disk-backed WALA outcome cache in JavaWalaTestCase
+		// short-circuits rule checks before this supplier is ever invoked when the same
+		// (classpath, rule, per-package fingerprint) was already evaluated by an earlier
+		// JVM fork.
 		@Nonnull
-		CallGraph callGraph = cacheResult(projectPath + "_" + packageName + "_callGraph",
-				() -> architectureMode.getCallGraph(classPath)).get();
+		Supplier<CallGraph> callGraphSupplier = cacheResult(projectPath + "_" + packageName + "_callGraph",
+				() -> architectureMode.getCallGraph(classPath));
 		// </editor-fold>
 
 		// <editor-fold desc="Preparation">
@@ -395,16 +400,16 @@ public class JavaCreator implements Creator {
 
 		// <editor-fold desc="Create priority rules code (checked before variable
 		// domains)">
-		addPriorityTestCases(architectureTestCases, javaClasses, callGraph, allowedPackages, allowedClasses);
+		addPriorityTestCases(architectureTestCases, javaClasses, callGraphSupplier, allowedPackages, allowedClasses);
 		// </editor-fold>
 
 		// <editor-fold desc="Create variable rules code">
-		addVariableTestCases(architectureTestCases, aopTestCases, phobosTestCases, javaClasses, callGraph,
+		addVariableTestCases(architectureTestCases, aopTestCases, phobosTestCases, javaClasses, callGraphSupplier,
 				allowedPackages, allowedClasses, resourceAccesses);
 		// </editor-fold>
 
 		// <editor-fold desc="Create fixed rules code">
-		addFixedTestCases(architectureTestCases, javaClasses, callGraph, allowedPackages, allowedClasses);
+		addFixedTestCases(architectureTestCases, javaClasses, callGraphSupplier, allowedPackages, allowedClasses);
 		// </editor-fold>
 	}
 	// </editor-fold>

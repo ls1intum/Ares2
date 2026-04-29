@@ -1,0 +1,5 @@
+@Test
+public void environmentShouldNotBeAccessed() {
+    callGraph = ${callGraph};
+    JavaWalaTestCaseCollection.NO_CLASS_MUST_ACCESS_ENVIRONMENT.check(callGraph);
+}

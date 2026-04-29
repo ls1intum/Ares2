@@ -335,12 +335,18 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
             return false;
         } else if (observedVariable instanceof List<?>) {
             List<?> list = (List<?>) observedVariable;
-            if (!list.stream().allMatch(o -> o instanceof String && !((String) o).contains(" "))) {
+            // Recurse only when elements are themselves nested Lists/arrays (i.e. multiple
+            // commands). A flat List<String> is a single (command, arg, arg, ...) sequence
+            // and must be handed to variableToCommand whole; otherwise individual args that
+            // happen to contain spaces (e.g. "echo $PATH") would be re-checked as standalone
+            // commands and never match any allow-list entry.
+            if (list.stream().anyMatch(o -> o instanceof List<?> || (o != null && o.getClass().isArray()))) {
                 for (Object element : list) {
                     if (analyseViolation(element, allowedCommands, allowedArguments)) {
                         return true;
                     }
                 }
+                return false;
             }
         }
         if (observedVariable.getClass().isArray() || observedVariable instanceof String || observedVariable instanceof List<?>) {
@@ -369,13 +375,16 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
             return null;
         } else if (observedVariable instanceof List<?>) {
             List<?> list = (List<?>) observedVariable;
-            if (!list.stream().allMatch(o -> o instanceof String && !((String) o).contains(" "))) {
-                for (Object element : (List<?>) observedVariable) {
+            // Mirror the recursion guard from analyseViolation: only descend into nested
+            // Lists/arrays so flat List<String> command sequences are matched as a whole.
+            if (list.stream().anyMatch(o -> o instanceof List<?> || (o != null && o.getClass().isArray()))) {
+                for (Object element : list) {
                     String violationPath = extractViolationPath(element, allowedCommands, allowedArguments);
                     if (violationPath != null) {
                         return violationPath;
                     }
                 }
+                return null;
             }
         }
         if (observedVariable.getClass().isArray() || observedVariable instanceof String || observedVariable instanceof List<?>) {
@@ -458,7 +467,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
         //<editor-fold desc="Get information from join point">
         @Nonnull Object[] parameters = thisJoinPoint.getArgs();
         @Nullable Object instance = thisJoinPoint.getTarget();
-        @Nonnull final String fullMethodSignature = thisJoinPoint.getSignature().toLongString();
+        @Nonnull final String fullMethodSignature = formatSignature(thisJoinPoint.getSignature());
         @Nonnull final String declaringTypeName = thisJoinPoint.getSignature().getDeclaringTypeName();
         @Nonnull final String methodName = thisJoinPoint.getSignature().getName();
         //</editor-fold>
