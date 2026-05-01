@@ -107,21 +107,19 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	 * @author Markus Paulsen
 	 */
 	private static boolean isThreadCreationFromCommandExecution() {
-		StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-		for (StackTraceElement element : stackTrace) {
-			String className = element.getClassName();
-			String methodName = element.getMethodName();
-			// Check for ProcessBuilder.start() and ProcessBuilder.startPipeline()
+		// Use StackWalker for the fast lazy path; the helper short-circuits as soon as
+		// a ProcessBuilder.start/startPipeline or Runtime.exec frame is observed and
+		// avoids materializing the entire StackTraceElement[] array per intercepted
+		// thread creation.
+		return java.lang.StackWalker.getInstance().walk(frames -> frames.anyMatch(frame -> {
+			String className = frame.getClassName();
+			String methodName = frame.getMethodName();
 			if ("java.lang.ProcessBuilder".equals(className)
 					&& ("start".equals(methodName) || "startPipeline".equals(methodName))) {
 				return true;
 			}
-			// Check for Runtime.exec()
-			if ("java.lang.Runtime".equals(className) && "exec".equals(methodName)) {
-				return true;
-			}
-		}
-		return false;
+			return "java.lang.Runtime".equals(className) && "exec".equals(methodName);
+		}));
 	}
 	// </editor-fold>
 

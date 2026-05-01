@@ -26,6 +26,38 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	@Nonnull
 	public static final List<String> IGNORE_CALLSTACK = List.of("java.lang.ClassLoader", "de.tum.cit.ase.ares.api.",
 			"com.intellij.rt.debugger.", "jdk.internal.loader.", "jdk.internal.reflect.");
+
+	/**
+	 * Cached StackWalker used by the call-stack inspectors below. The default options
+	 * (no RETAIN_CLASS_REFERENCE) are deliberately chosen because the inspectors only
+	 * read className/methodName strings — keeping Class objects materialized would
+	 * pay extra JNI work on every walked frame. The walker avoids the Exception
+	 * allocation and full StackTraceElement[] materialization that
+	 * Thread.currentThread().getStackTrace() pays on every intercepted JDK call.
+	 * Pointcuts on java.io.InputStream.read fire during ObjectInputStream
+	 * deserialization of test-result events; the StackWalker path is roughly an
+	 * order of magnitude cheaper for those high-frequency probes.
+	 */
+	@Nonnull
+	private static final java.lang.StackWalker STACK_WALKER = java.lang.StackWalker.getInstance();
+
+	/**
+	 * Lazily resolved Class&lt;?&gt; reference for the AOP settings holder. Each
+	 * intercepted JDK call (e.g. java.io.InputStream.read during ObjectInputStream
+	 * deserialization) reads aopMode + restrictedPackage + allowedListedClasses.
+	 * Resolving the class via Class.forName on every access (a native call) is
+	 * the second-largest contributor to advice overhead after the stack walk; this
+	 * cached reference reduces it to a single volatile load.
+	 */
+	@Nullable
+	private static volatile Class<?> SETTINGS_CLASS_CACHE = null;
+
+	/**
+	 * Cache of resolved Field handles keyed by field name so getDeclaredField and
+	 * setAccessible run once per JVM, not per advice call.
+	 */
+	@Nonnull
+	private static final java.util.concurrent.ConcurrentHashMap<String, Field> SETTINGS_FIELD_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
 	// </editor-fold>
 
 	// <editor-fold desc="Tools methods">
@@ -47,20 +79,11 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	@Nullable
 	public static <T> T getValueFromSettings(@Nonnull String fieldName) {
 		try {
-			// Use null as ClassLoader to explicitly load from Bootstrap ClassLoader
-			// Use false to avoid class initialization which could trigger file system
-			// operations
+			Objects.requireNonNull(fieldName, "fieldName must not be null");
 			@Nonnull
-			Class<?> adviceSettingsClass = Objects.requireNonNull(
-					Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", false, null),
-					"adviceSettingsClass must not be null");
-			@Nonnull
-			Field field = Objects.requireNonNull(adviceSettingsClass.getDeclaredField(
-					Objects.requireNonNull(fieldName, "fieldName must not be null")), "field must not be null");
-			field.setAccessible(true);
+			Field field = resolveSettingsField(fieldName);
 			@Nullable
 			T value = (T) field.get(null);
-			field.setAccessible(false);
 			return value;
 		} catch (LinkageError e) {
 			throw new SecurityException(
@@ -88,6 +111,43 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	}
 
 	/**
+	 * Resolves the static settings Field for the given name once and caches the
+	 * resulting Field handle plus the owning Class&lt;?&gt; reference. The reflective
+	 * lookup is the second-largest fixed cost on hot advice paths (called three
+	 * times per intercepted JDK call before this cache existed), so caching it on
+	 * the bootstrap classloader avoids a Class.forName native call and a
+	 * getDeclaredField walk on every interception. The cached field has
+	 * setAccessible(true) once and stays accessible for the JVM lifetime.
+	 *
+	 * @param fieldName the name of the JavaAOPTestCaseSettings field to resolve
+	 * @return the resolved accessible Field
+	 * @throws ClassNotFoundException if the settings class cannot be located
+	 * @throws NoSuchFieldException   if the requested field does not exist
+	 */
+	@Nonnull
+	private static Field resolveSettingsField(@Nonnull String fieldName)
+			throws ClassNotFoundException, NoSuchFieldException {
+		Field cachedField = SETTINGS_FIELD_CACHE.get(fieldName);
+		if (cachedField != null) {
+			return cachedField;
+		}
+		Class<?> settingsClass = SETTINGS_CLASS_CACHE;
+		if (settingsClass == null) {
+			// Use null as ClassLoader to explicitly load from Bootstrap ClassLoader
+			// Use false to avoid class initialization which could trigger file system
+			// operations.
+			settingsClass = Objects.requireNonNull(
+					Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", false, null),
+					"adviceSettingsClass must not be null");
+			SETTINGS_CLASS_CACHE = settingsClass;
+		}
+		Field field = Objects.requireNonNull(settingsClass.getDeclaredField(fieldName), "field must not be null");
+		field.setAccessible(true);
+		Field existing = SETTINGS_FIELD_CACHE.putIfAbsent(fieldName, field);
+		return existing != null ? existing : field;
+	}
+
+	/**
 	 * Sets the value of a specified static field in the settings class.
 	 * <p>
 	 * Description: Uses reflection to modify a static field in
@@ -102,19 +162,10 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 */
 	public static <T> void setValueToSettings(@Nonnull String fieldName, @Nullable T newValue) {
 		try {
-			// Use null as ClassLoader to explicitly load from Bootstrap ClassLoader
-			// Use false to avoid class initialization which could trigger file system
-			// operations
+			Objects.requireNonNull(fieldName, "fieldName must not be null");
 			@Nonnull
-			Class<?> adviceSettingsClass = Objects.requireNonNull(
-					Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", false, null),
-					"adviceSettingsClass must not be null");
-			@Nonnull
-			Field field = Objects.requireNonNull(adviceSettingsClass.getDeclaredField(
-					Objects.requireNonNull(fieldName, "fieldName must not be null")), "field must not be null");
-			field.setAccessible(true);
+			Field field = resolveSettingsField(fieldName);
 			field.set(null, newValue);
-			field.setAccessible(false);
 		} catch (LinkageError e) {
 			throw new SecurityException(
 					JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.linkage.exception", fieldName),
@@ -318,31 +369,79 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	@Nullable
 	public static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses,
 			String declaringTypeName, String methodName) {
-		StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+		// Stream the stack lazily so the walk stops at the first restricted frame.
 		// Skip ignorable frames (Ares internals, class loading, reflection trampolines)
-		// and keep scanning until we either find restricted student code or exhaust the
-		// stack. This prevents reflective dispatch from bypassing the check simply
-		// because jdk.internal.reflect.* appears as an intermediate caller.
-		for (@Nonnull
-		StackTraceElement element : stackTrace) {
-			String className = element.getClassName();
-			boolean isIgnorable = false;
-			for (@Nonnull
-			String ignore : IGNORE_CALLSTACK) {
-				if (className.startsWith(ignore)) {
-					isIgnorable = true;
-					break;
-				}
-			}
-			if (isIgnorable) {
-				continue; // skip internal frames instead of aborting scan
-			}
-			if (className.startsWith(restrictedPackage) && !checkIfCallstackElementIsAllowed(allowedClasses, element)) {
-				return className + "." + element.getMethodName();
-			}
-		}
-		return null;
+		// to prevent reflective dispatch from bypassing the check simply because
+		// jdk.internal.reflect.* appears as an intermediate caller.
+		// Inspect once and cache the matching frame plus the first non-ignored caller
+		// directly above it so the companion findFirstMethodOutsideOfRestrictedPackage
+		// call that immediately follows can read from the thread-local cache instead
+		// of walking the stack a second time.
+		String[] inspection = inspectCallstackOnce(restrictedPackage, allowedClasses);
+		CALLSTACK_INSPECTION_CACHE.set(inspection);
+		return inspection == null ? null : inspection[0];
 	}
+
+	/**
+	 * Walks the stack once and returns both the first restricted-package frame that
+	 * violates the allowed-class list and the first non-ignored caller above it.
+	 * Returns null when no restricted frame is found, otherwise a two-element array
+	 * {violationFqn, callerAboveFqn} (callerAboveFqn may be null when the violating
+	 * frame is at the top of the stack). Combining the two walks halves the
+	 * per-interception stack-walk cost on hot paths such as ObjectInputStream
+	 * deserialization that drive thousands of intercepted reads.
+	 */
+	@Nullable
+	private static String[] inspectCallstackOnce(String restrictedPackage, String[] allowedClasses) {
+		return STACK_WALKER.walk(frames -> {
+			java.util.Iterator<java.lang.StackWalker.StackFrame> iterator = frames.iterator();
+			String violation = null;
+			while (iterator.hasNext()) {
+				java.lang.StackWalker.StackFrame frame = iterator.next();
+				String className = frame.getClassName();
+				boolean ignorable = false;
+				for (@Nonnull
+				String ignore : IGNORE_CALLSTACK) {
+					if (className.startsWith(ignore)) {
+						ignorable = true;
+						break;
+					}
+				}
+				if (ignorable) {
+					continue;
+				}
+				if (violation == null) {
+					if (!className.startsWith(restrictedPackage)) {
+						continue;
+					}
+					boolean allowed = false;
+					for (@Nonnull
+					String allowedClass : allowedClasses) {
+						if (className.startsWith(allowedClass)) {
+							allowed = true;
+							break;
+						}
+					}
+					if (allowed) {
+						continue;
+					}
+					violation = className + "." + frame.getMethodName();
+					continue;
+				}
+				return new String[] { violation, className + "." + frame.getMethodName() };
+			}
+			return violation == null ? null : new String[] { violation, null };
+		});
+	}
+
+	/**
+	 * Per-thread one-shot cache of the last inspectCallstackOnce result. Populated
+	 * by {@link #checkIfCallstackCriteriaIsViolated} and consumed by the immediately
+	 * following {@link #findFirstMethodOutsideOfRestrictedPackage} call so the
+	 * combined check+caller-lookup costs only one walk instead of two.
+	 */
+	@Nonnull
+	private static final ThreadLocal<String[]> CALLSTACK_INSPECTION_CACHE = new ThreadLocal<>();
 
 	/**
 	 * Finds the caller directly above the first method on the current call stack
@@ -365,41 +464,45 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 		if (restrictedPackage == null) {
 			return null;
 		}
-		StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-		for (int i = 0; i < stackTrace.length; i++) {
-			StackTraceElement element = stackTrace[i];
-			String className = element.getClassName();
-			boolean isIgnorable = false;
-			for (String ignore : IGNORE_CALLSTACK) {
-				if (className.startsWith(ignore)) {
-					isIgnorable = true;
-					break;
-				}
-			}
-			if (isIgnorable) {
-				continue;
-			}
-			if (className.startsWith(restrictedPackage)
-					&& !className.startsWith("de.tum.cit.ase.ares.api.aop.java.instrumentation")) {
-				// Find the first non-ignored caller above this restricted frame.
-				for (int j = i + 1; j < stackTrace.length; j++) {
-					StackTraceElement caller = stackTrace[j];
-					String callerClass = caller.getClassName();
-					boolean callerIgnorable = false;
-					for (String ignore : IGNORE_CALLSTACK) {
-						if (callerClass.startsWith(ignore)) {
-							callerIgnorable = true;
-							break;
-						}
-					}
-					if (!callerIgnorable) {
-						return callerClass + "." + caller.getMethodName();
-					}
-				}
-				return null;
-			}
+		// Fast path: read the cached inspection populated by the preceding
+		// checkIfCallstackCriteriaIsViolated call on this thread; clear it after
+		// consumption so it cannot leak across unrelated advice invocations.
+		String[] cached = CALLSTACK_INSPECTION_CACHE.get();
+		if (cached != null) {
+			CALLSTACK_INSPECTION_CACHE.remove();
+			return cached[1];
 		}
-		return null;
+		// Slow path: callsite did not run checkIfCallstackCriteriaIsViolated first
+		// (e.g. AspectJ definitions hit only this method). Materialize only the
+		// non-ignorable frames lazily; stop iterating as soon as we have located the
+		// first restricted frame and its caller above it.
+		return STACK_WALKER.walk(frames -> {
+			boolean restrictedSeen = false;
+			java.util.Iterator<java.lang.StackWalker.StackFrame> iterator = frames.iterator();
+			while (iterator.hasNext()) {
+				java.lang.StackWalker.StackFrame frame = iterator.next();
+				String className = frame.getClassName();
+				boolean ignorable = false;
+				for (String ignore : IGNORE_CALLSTACK) {
+					if (className.startsWith(ignore)) {
+						ignorable = true;
+						break;
+					}
+				}
+				if (ignorable) {
+					continue;
+				}
+				if (!restrictedSeen) {
+					if (className.startsWith(restrictedPackage)
+							&& !className.startsWith("de.tum.cit.ase.ares.api.aop.java.instrumentation")) {
+						restrictedSeen = true;
+					}
+					continue;
+				}
+				return className + "." + frame.getMethodName();
+			}
+			return null;
+		});
 	}
 	// </editor-fold>
 

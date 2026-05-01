@@ -47,6 +47,15 @@ public class JavaInstrumentationAgent {
 
 		putToolboxOnBootClassLoader(unsafeFactory);
 
+		// Pre-warm the StackWalker infrastructure on the bootstrap class loader before
+		// any pointcut goes live. The toolbox advice paths use StackWalker for the fast
+		// caller-package check; without this warm-up the first invocation from a
+		// pointcut would lazily load StackStreamFactory + StackFrameInfo while the
+		// advice is already on the stack, which manifests as a ClassCircularityError
+		// the moment the JDK retransforms java.io.* during agent install.
+		java.lang.StackWalker walker = java.lang.StackWalker.getInstance();
+		walker.walk(stream -> stream.limit(1L).count());
+
 		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanReadFiles,
 				JavaInstrumentationBindingDefinitions::createReadPathMethodBinding);
 		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanOverwriteFiles,
@@ -220,6 +229,13 @@ public class JavaInstrumentationAgent {
 					.ignore(ElementMatchers.nameStartsWith("jdk.internal."))
 					.ignore(ElementMatchers.nameStartsWith("java.lang.invoke."))
 					.ignore(ElementMatchers.nameStartsWith("java.lang.reflect."))
+					// StackWalker plumbing must stay un-instrumented; the advice toolbox uses
+					// StackWalker on every call-stack inspection and any retransformation here
+					// trips ClassCircularityError when the first pointcut fires.
+					.ignore(ElementMatchers.nameStartsWith("java.lang.StackWalker"))
+					.ignore(ElementMatchers.nameStartsWith("java.lang.StackStreamFactory"))
+					.ignore(ElementMatchers.nameStartsWith("java.lang.StackFrameInfo"))
+					.ignore(ElementMatchers.nameStartsWith("java.lang.LiveStackFrameInfo"))
 					// Ignore Ares internal classes to avoid self-instrumentation
 					.ignore(ElementMatchers.nameStartsWith("de.tum.cit.ase.ares.api.aop.java.instrumentation."))
 					.with(AgentBuilder.TypeStrategy.Default.REBASE)

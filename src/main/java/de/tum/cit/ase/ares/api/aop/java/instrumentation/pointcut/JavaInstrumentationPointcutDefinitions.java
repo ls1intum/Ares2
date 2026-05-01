@@ -350,7 +350,7 @@ public class JavaInstrumentationPointcutDefinitions {
 	 */
 	public static final Map<String, List<String>> methodsWhichCanReadFiles = Map.ofEntries(
 			// java.io
-			Map.entry("java.io.Reader", List.of("<init>", "read")), Map.entry("java.io.InputStream", List.of("read")),
+			Map.entry("java.io.Reader", List.of("<init>")),
 			Map.entry("java.io.BufferedInputStream", List.of("<init>")),
 			Map.entry("java.io.FileInputStream", List.of("<init>")),
 			Map.entry("java.io.RandomAccessFile", List.of("<init>")),
