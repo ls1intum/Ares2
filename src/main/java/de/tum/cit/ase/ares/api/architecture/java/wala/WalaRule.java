@@ -23,6 +23,10 @@ public class WalaRule {
 	}
 
 	public void check(CallGraph cg) {
+		long _checkStart = System.nanoTime();
+		int _pathCount = 0;
+		boolean _violationFound = false;
+		try {
 		Predicate<CGNode> isForbidden = n -> forbiddenMethods.stream()
 				.anyMatch(m -> n.getMethod().getSignature().startsWith(m));
 
@@ -33,6 +37,7 @@ public class WalaRule {
 		CustomDFSPathFinder finder = new CustomDFSPathFinder(cg, cg.getEntrypointNodes().iterator(), isForbidden);
 		List<CGNode> path;
 		while ((path = finder.find()) != null) {
+			_pathCount++;
 			if (path.isEmpty()) {
 				continue;
 			}
@@ -64,12 +69,21 @@ public class WalaRule {
 			try {
 				IMethod.SourcePosition sp = forbiddenNode.getMethod().getSourcePosition(0);
 				int lineNumber = sp != null ? sp.getFirstLine() : -1;
+				_violationFound = true;
 				throw new AssertionError(
 						Messages.localized("security.architecture.method.call.message", ruleName,
 								callerSignature, forbiddenSignature, declaringClass, lineNumber, entrySignature));
 			} catch (InvalidClassFileException e) {
 				throw new SecurityException(Messages.localized("security.architecture.invalid.class.file"));
 			}
+		}
+		} finally {
+			long _ms = (System.nanoTime() - _checkStart) / 1_000_000L;
+			try {
+				java.nio.file.Files.writeString(java.nio.file.Paths.get("/tmp/wala-check-times.log"),
+						System.currentTimeMillis() + "|" + _ms + "|paths=" + _pathCount + "|violation=" + _violationFound + "|" + ruleName + "\n",
+						java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+			} catch (Exception ignored) {}
 		}
 	}
 }

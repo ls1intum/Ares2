@@ -12,16 +12,23 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import com.ibm.wala.classLoader.CallSiteReference;
 import com.ibm.wala.classLoader.IClass;
+import com.ibm.wala.classLoader.IMethod;
 import com.ibm.wala.classLoader.Language;
 import com.ibm.wala.core.java11.Java9AnalysisScopeReader;
 import com.ibm.wala.ipa.callgraph.AnalysisCacheImpl;
 import com.ibm.wala.ipa.callgraph.AnalysisOptions;
 import com.ibm.wala.ipa.callgraph.AnalysisScope;
+import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.ibm.wala.ipa.callgraph.CallGraphBuilder;
+import com.ibm.wala.ipa.callgraph.MethodTargetSelector;
 import com.ibm.wala.ipa.callgraph.impl.DefaultEntrypoint;
 import com.ibm.wala.ipa.callgraph.impl.Util;
+import com.ibm.wala.ipa.summaries.MethodSummary;
+import com.ibm.wala.ipa.summaries.SummarizedMethod;
+import com.ibm.wala.types.MethodReference;
 import com.ibm.wala.ipa.cha.ClassHierarchy;
 import com.ibm.wala.ipa.cha.ClassHierarchyException;
 import com.ibm.wala.ipa.cha.ClassHierarchyFactory;
@@ -114,9 +121,15 @@ public class CustomCallgraphBuilder {
 		// type lives outside that package directory (e.g. extending a base class in
 		// anonymous.toolclasses) cannot be resolved by the WALA class hierarchy and
 		// gets silently dropped, leaving its methods out of the entry-point set and
-		// hiding every forbidden API call inside them. Widen the scope back to the
-		// containing build root (and its test counterpart, where helper classes
-		// live) so the hierarchy resolves student types end-to-end.
+		// hiding every forbidden API call inside them.
+		//
+		// Earlier revisions widened the scope to the entire build-root (e.g.
+		// build/classes/java/main) which fixed the resolution problem but pulled in
+		// every other category's classes — Thread.start() then dispatched via CHA
+		// across all student Runnable subclasses, exploding the call graph
+		// (ThreadSystemCreate Permitted: 343 s for the first invocation, JVM crash).
+		// Add only the verified helper subdirectory (anonymous/toolclasses) instead
+		// of the whole build-root.
 		LinkedHashSet<String> widened = new LinkedHashSet<>(kept);
 		for (String entry : kept) {
 			String normalized = entry.replace(File.separatorChar, '/');
@@ -124,18 +137,14 @@ public class CustomCallgraphBuilder {
 			int idx = normalized.indexOf(mainMarker);
 			if (idx >= 0) {
 				String mainRoot = entry.substring(0, idx + mainMarker.length());
-				if (new java.io.File(mainRoot).isDirectory()) {
-					widened.add(mainRoot);
-				}
+				addHelperRoots(widened, mainRoot);
 				continue;
 			}
 			String mavenMarker = "target/classes";
 			idx = normalized.indexOf(mavenMarker);
 			if (idx >= 0) {
 				String mavenMain = entry.substring(0, idx + mavenMarker.length());
-				if (new java.io.File(mavenMain).isDirectory()) {
-					widened.add(mavenMain);
-				}
+				addHelperRoots(widened, mavenMain);
 			}
 		}
 		String result = String.join(File.pathSeparator, widened);
@@ -145,6 +154,24 @@ public class CustomCallgraphBuilder {
 					java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
 		} catch (Exception ignored) {}
 		return result;
+	}
+
+	/**
+	 * Helper subpackages that hold base classes / utilities shared across student
+	 * categories. Listed explicitly (instead of widening the whole build root) so
+	 * WALA's class hierarchy can resolve supertypes without dragging in every
+	 * other category's Runnable / Thread / Executor implementations, which would
+	 * blow up CHA-based dispatch resolution for Thread.start() and friends.
+	 */
+	private static final List<String> HELPER_SUBPACKAGES = List.of("anonymous/toolclasses");
+
+	private static void addHelperRoots(LinkedHashSet<String> target, String classRoot) {
+		for (String subPackage : HELPER_SUBPACKAGES) {
+			File helperDir = new File(classRoot, subPackage);
+			if (helperDir.isDirectory()) {
+				target.add(helperDir.getPath());
+			}
+		}
 	}
 
 	private static String convertTypeNameToClassName(String typeName) {
@@ -203,9 +230,16 @@ public class CustomCallgraphBuilder {
 	 * test JVM: the next Gradle run rebuilds it.
 	 */
 	public CallGraph buildCallGraph(String classPathToAnalyze) {
+		long _profileStart = System.nanoTime();
 		String cacheKey = filterClassPath(constructionClassPath) + "::" + filterClassPath(classPathToAnalyze);
 		CallGraph cached = CALL_GRAPH_CACHE.get(cacheKey);
 		if (cached != null) {
+			long _hitMs = (System.nanoTime() - _profileStart) / 1_000_000L;
+			try {
+				java.nio.file.Files.writeString(java.nio.file.Paths.get("/tmp/wala-build-times.log"),
+						System.currentTimeMillis() + "|HIT|" + _hitMs + "|" + cacheKey.hashCode() + "\n",
+						java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+			} catch (Exception ignored) {}
 			return cached;
 		}
 		try {
@@ -228,7 +262,24 @@ public class CustomCallgraphBuilder {
 			AnalysisOptions options = new AnalysisOptions(scope, customEntryPoints);
 			CallGraphBuilder<?> builder = Util.makeZeroOneCFABuilder(Language.JAVA, options, new AnalysisCacheImpl(),
 					classHierarchy);
+			// Util.makeZeroOneCFABuilder installs the default + bypass selectors on options. Wrap
+			// them with a primordial-blackbox selector so WALA stops descending into JDK methods:
+			// the call edge from student code to a JDK method is still recorded (so policy checks
+			// for "calls java.io.FileInputStream.<init>" continue to work), but WALA does not load
+			// or analyse the JDK method's bytecode. The class hierarchy still contains all JDK
+			// types, so Ares' lookup-based policy decisions are unaffected. SSAPropagationCallGraphBuilder
+			// reads options.getMethodTargetSelector() dynamically (see SSAPropagationCallGraphBuilder.java
+			// around line 1577 in WALA 1.6.12), so wrapping after makeZeroOneCFABuilder takes effect.
+			options.setSelector(new JdkOpaqueMethodTargetSelector(options.getMethodTargetSelector()));
+			long _mkCgStart = System.nanoTime();
 			CallGraph callGraph = builder.makeCallGraph(options, null);
+			long _mkCgMs = (System.nanoTime() - _mkCgStart) / 1_000_000L;
+			long _totalMs = (System.nanoTime() - _profileStart) / 1_000_000L;
+			try {
+				java.nio.file.Files.writeString(java.nio.file.Paths.get("/tmp/wala-build-times.log"),
+						System.currentTimeMillis() + "|MISS|" + _totalMs + "|mkcg=" + _mkCgMs + "|" + cacheKey.hashCode() + "|" + classPathToAnalyze + "\n",
+						java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+			} catch (Exception ignored) {}
 			CallGraph existing = CALL_GRAPH_CACHE.putIfAbsent(cacheKey, callGraph);
 			if (existing == null) {
 				try {
@@ -284,6 +335,58 @@ public class CustomCallgraphBuilder {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Treats every method declared in a primordial class (the JDK) as opaque: returns a
+	 * {@link SummarizedMethod} with an empty {@link MethodSummary} for primordial targets so
+	 * WALA records the call edge and creates a CGNode (preserving the JDK signature for
+	 * downstream forbidden-call predicates such as {@code WalaRule.isForbidden}), but does
+	 * not load or analyse the JDK method's bytecode. Non-primordial calls are forwarded to
+	 * the wrapped selector chain set up by {@link Util#addDefaultSelectors} and
+	 * {@link Util#addDefaultBypassLogic} (LambdaMethodTargetSelector → BypassMethodTargetSelector
+	 * → ClassHierarchyMethodTargetSelector).
+	 *
+	 * <p>An earlier revision returned {@code null} for primordial targets, which removed the
+	 * CGNode entirely. {@link de.tum.cit.ase.ares.api.architecture.java.wala.WalaRule#check}
+	 * relies on those CGNodes to recognise forbidden JDK calls, so {@code null} silently
+	 * disabled blocked-all detection. Returning a SummarizedMethod keeps the node and edge
+	 * but skips body analysis. Summaries are cached by {@link MethodReference} to avoid
+	 * per-call allocation during propagation.
+	 */
+	private static final class JdkOpaqueMethodTargetSelector implements MethodTargetSelector {
+
+		private final MethodTargetSelector delegate;
+		private final ConcurrentHashMap<MethodReference, SummarizedMethod> opaqueCache = new ConcurrentHashMap<>();
+
+		JdkOpaqueMethodTargetSelector(MethodTargetSelector delegate) {
+			this.delegate = delegate;
+		}
+
+		@Override
+		public IMethod getCalleeTarget(CGNode caller, CallSiteReference site, IClass receiver) {
+			IMethod target = delegate.getCalleeTarget(caller, site, receiver);
+			if (target == null) {
+				return null;
+			}
+			if (!target.getDeclaringClass().getClassLoader().getReference()
+					.equals(ClassLoaderReference.Primordial)) {
+				return target;
+			}
+			MethodReference ref = target.getReference();
+			SummarizedMethod cached = opaqueCache.get(ref);
+			if (cached != null) {
+				return cached;
+			}
+			IClass declaringClass = target.getDeclaringClass();
+			boolean isStatic = target.isStatic();
+			SummarizedMethod fresh = opaqueCache.computeIfAbsent(ref, r -> {
+				MethodSummary summary = new MethodSummary(r);
+				summary.setStatic(isStatic);
+				return new SummarizedMethod(r, summary, declaringClass);
+			});
+			return fresh;
+		}
 	}
 
 	/** Cached scope and hierarchy keyed by filtered classpath. */
