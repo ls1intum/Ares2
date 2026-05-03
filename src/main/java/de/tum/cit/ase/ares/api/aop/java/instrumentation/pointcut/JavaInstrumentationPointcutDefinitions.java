@@ -84,11 +84,13 @@ public class JavaInstrumentationPointcutDefinitions {
 					.or(ElementMatchers.hasSuperType(ElementMatchers.named(target)));
 		}
 
-		// Exclude internal JVM implementation classes (sun.*, jdk.internal.*)
-		// These classes have different method signatures than the public API and
-		// cannot be properly analyzed for OpenOptions or other context.
-		// The public API methods (e.g., FileChannel.open) will still be instrumented.
-		matcher = matcher.and(ElementMatchers.not(ElementMatchers.nameStartsWith("sun."))
+		// Exclude internal JVM implementation classes that have different method signatures
+		// than the public API (FileChannel.open dispatches into sun.nio.ch.FileChannelImpl.open
+		// with extra OpenOption arguments). For NIO socket / datagram / async channels the
+		// abstract method is implemented by sun.nio.ch.*ChannelImpl with the SAME signature,
+		// so those impls must remain instrumentable to catch instance-method calls.
+		matcher = matcher.and(ElementMatchers.not(ElementMatchers.nameStartsWith("sun.nio.ch.FileChannelImpl"))
+				.and(ElementMatchers.not(ElementMatchers.nameStartsWith("sun.nio.ch.AsynchronousFileChannelImpl")))
 				.and(ElementMatchers.not(ElementMatchers.nameStartsWith("jdk.internal."))));
 
 		return matcher;
@@ -577,11 +579,25 @@ public class JavaInstrumentationPointcutDefinitions {
 	public static final Map<String, List<String>> methodsWhichCanConnectToNetwork = Map.ofEntries(
 			Map.entry("java.net.Socket", List.of("connect", "<init>")),
 			Map.entry("java.net.DatagramSocket", List.of("connect", "<init>")),
-			Map.entry("java.nio.channels.DatagramChannel", List.of("connect", "<init>")),
-			Map.entry("java.nio.channels.SocketChannel", List.of("connect", "<init>")),
-			Map.entry("java.nio.channels.AsynchronousSocketChannel", List.of("connect", "<init>")),
+			Map.entry("java.net.NetMulticastSocket", List.of("connect", "connectInternal", "<init>")),
+			Map.entry("java.nio.channels.DatagramChannel", List.of("connect", "<init>", "open")),
+			Map.entry("sun.nio.ch.DatagramChannelImpl", List.of("connect", "<init>")),
+			Map.entry("java.nio.channels.SocketChannel", List.of("connect", "<init>", "open")),
+			Map.entry("sun.nio.ch.SocketChannelImpl", List.of("connect", "<init>")),
+			Map.entry("java.nio.channels.AsynchronousSocketChannel", List.of("connect", "<init>", "open")),
+			Map.entry("sun.nio.ch.UnixAsynchronousSocketChannelImpl", List.of("connect", "implConnect", "<init>")),
+			Map.entry("sun.nio.ch.WindowsAsynchronousSocketChannelImpl", List.of("connect", "implConnect", "<init>")),
+			// sun.nio.ch.Net is the shared OS-level entry point used by every NIO channel
+			// implementation (Socket, DatagramChannel, AsynchronousSocketChannel) before
+			// touching the network. Instrumenting it catches all of these even when the
+			// concrete *ChannelImpl class loads in a way our advice does not directly hook.
+			Map.entry("sun.nio.ch.Net", List.of("connect", "connect0", "connectIPv4", "connectIPv6")),
 			Map.entry("java.net.HttpURLConnection", List.of("connect", "<init>")),
-			Map.entry("javax.net.ssl.HttpsURLConnection", List.of("connect", "<init>")));
+			Map.entry("javax.net.ssl.HttpsURLConnection", List.of("connect", "<init>")),
+			Map.entry("javax.net.SocketFactory", List.of("createSocket")),
+			Map.entry("javax.net.ssl.SSLSocketFactory", List.of("createSocket")),
+			Map.entry("java.net.URL", List.of("openConnection", "openStream")),
+			Map.entry("java.net.URLConnection", List.of("connect")));
 	// </editor-fold>
 
 	// <editor-fold desc="Network send">
@@ -591,7 +607,9 @@ public class JavaInstrumentationPointcutDefinitions {
 	public static final Map<String, List<String>> methodsWhichCanSendToNetwork = Map.ofEntries(
 			Map.entry("java.net.Socket", List.of("getOutputStream")),
 			Map.entry("java.net.DatagramSocket", List.of("send")),
+			Map.entry("java.net.NetMulticastSocket", List.of("send")),
 			Map.entry("java.nio.channels.DatagramChannel", List.of("send")),
+			Map.entry("sun.nio.ch.DatagramChannelImpl", List.of("send")),
 			Map.entry("java.net.http.HttpClient", List.of("send", "sendAsync")),
 			Map.entry("java.net.URLConnection", List.of("getOutputStream")),
 			Map.entry("java.net.HttpURLConnection", List.of("getOutputStream")));
@@ -603,7 +621,9 @@ public class JavaInstrumentationPointcutDefinitions {
 	 */
 	public static final Map<String, List<String>> methodsWhichCanReceiveFromNetwork = Map.ofEntries(
 			Map.entry("java.net.DatagramSocket", List.of("receive")),
+			Map.entry("java.net.NetMulticastSocket", List.of("receive")),
 			Map.entry("java.nio.channels.DatagramChannel", List.of("receive")),
+			Map.entry("sun.nio.ch.DatagramChannelImpl", List.of("receive")),
 			Map.entry("java.net.Socket", List.of("getInputStream")),
 			Map.entry("java.net.URLConnection", List.of("getInputStream")),
 			Map.entry("java.net.HttpURLConnection", List.of("getInputStream")));

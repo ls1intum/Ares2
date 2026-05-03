@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>de.tum.cit.ase</groupId>
 	<artifactId>ares</artifactId>
-	<version>2.0.1-Beta6</version>
+	<version>2.0.1-Beta7-SNAPSHOT</version>
 	<properties>
 		<!-- 0. General Project Settings -->
 		<maven.compiler.source>17</maven.compiler.source>

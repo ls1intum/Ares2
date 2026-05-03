@@ -356,16 +356,20 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
      */
     @Nullable
     private static NetworkTarget parametersToTarget(@Nonnull Object[] parameters) {
+        // Prefer pair-extraction (host + port) over single-parameter extraction. For
+        // low-level JDK APIs like sun.nio.ch.Net.connect(FileDescriptor, InetAddress, int)
+        // the InetAddress alone yields port=-1, which would falsely flag a permitted
+        // host:port target as forbidden because port=-1 is never in the allowlist.
+        for (int i = 0; i + 1 < parameters.length; i++) {
+            NetworkTarget pairTarget = hostAndPortToTarget(parameters[i], parameters[i + 1]);
+            if (pairTarget != null) {
+                return pairTarget;
+            }
+        }
         for (int i = 0; i < parameters.length; i++) {
             NetworkTarget directTarget = variableToTarget(parameters[i]);
             if (directTarget != null) {
                 return directTarget;
-            }
-            if (i + 1 < parameters.length) {
-                NetworkTarget pairTarget = hostAndPortToTarget(parameters[i], parameters[i + 1]);
-                if (pairTarget != null) {
-                    return pairTarget;
-                }
             }
         }
         return null;
@@ -673,29 +677,26 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
         @Nonnull final String methodName = thisJoinPoint.getSignature().getName();
         //</editor-fold>
         //<editor-fold desc="Extract attributes from object instance">
+        // Skip fields that the JVM module system or runtime refuse to expose. These come
+        // from JDK-internal classes (e.g. sun.security.ssl.SSLSocketFactoryImpl.context)
+        // where students cannot hide network targets anyway, so silently skipping the
+        // field preserves the security check on parameters and accessible fields without
+        // turning JDK-side reflection limits into Ares-Code SecurityExceptions.
         @Nonnull Object[] attributes = new Object[0];
         if (instance != null) {
-            try {
-                @Nonnull Field[] fields = instance.getClass().getDeclaredFields();
-                attributes = new Object[fields.length];
-                for (int i = 0; i < fields.length; i++) {
-                    try {
-                        fields[i].setAccessible(true);
-                        attributes[i] = fields[i].get(instance);
-                    } catch (InaccessibleObjectException e) {
-                        throw new SecurityException(localize("security.instrumentation.inaccessible.object.exception", fields[i].getName(), instance.getClass().getName()), e);
-                    } catch (IllegalAccessException e) {
-                        throw new SecurityException(localize("security.instrumentation.illegal.access.exception", fields[i].getName(), instance.getClass().getName()), e);
-                    } catch (IllegalArgumentException e) {
-                        throw new SecurityException(localize("security.instrumentation.illegal.argument.exception", fields[i].getName(), fields[i].getDeclaringClass().getName(), instance.getClass().getName()), e);
-                    } catch (NullPointerException e) {
-                        throw new SecurityException(localize("security.instrumentation.null.pointer.exception", fields[i].getName(), instance.getClass().getName()), e);
-                    } catch (ExceptionInInitializerError e) {
-                        throw new SecurityException(localize("security.instrumentation.exception.in-initializer.error", fields[i].getName(), instance.getClass().getName()), e);
-                    }
+            @Nonnull Field[] fields = instance.getClass().getDeclaredFields();
+            attributes = new Object[fields.length];
+            for (int i = 0; i < fields.length; i++) {
+                try {
+                    fields[i].setAccessible(true);
+                    attributes[i] = fields[i].get(instance);
+                } catch (InaccessibleObjectException
+                        | IllegalAccessException
+                        | IllegalArgumentException
+                        | NullPointerException
+                        | ExceptionInInitializerError ignored) {
+                    attributes[i] = null;
                 }
-            } catch (SecurityException e) {
-                throw e;
             }
         }
         //</editor-fold>

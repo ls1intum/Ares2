@@ -47,6 +47,26 @@ class WalaPathClassification {
             "com.ibm.wala.", "com.tngtech.archunit.",
             "anonymous.toolclasses.", "metatest."
     );
+
+    /**
+     * Subset of {@link #INFRA_PREFIXES} that genuinely indicates a transitive
+     * false-positive path: the student called a permitted JDK or framework API
+     * and the JDK or framework internally invoked a forbidden one. Only JDK,
+     * Ares-internal, AspectJ, ByteBuddy, WALA and ArchUnit packages qualify.
+     *
+     * <p>Project-specific test helpers ({@code anonymous.toolclasses.} and
+     * {@code metatest.}) are deliberately omitted: when student code routes
+     * through such a helper into a forbidden JDK API, the helper exists for the
+     * sole purpose of exercising that API. Treating those paths as false
+     * positives silently disabled BLOCKED_ALL detection for every Network /
+     * FileSystem / Command call placed inside a project test helper.</p>
+     */
+    static final List<String> TRANSITIVE_FALSE_POSITIVE_PREFIXES = List.of(
+            "java.", "javax.", "sun.", "jdk.", "com.sun.",
+            "de.tum.cit.ase.ares.",
+            "net.bytebuddy.", "org.aspectj.",
+            "com.ibm.wala.", "com.tngtech.archunit."
+    );
     // </editor-fold>
 
     // <editor-fold desc="Public API">
@@ -102,7 +122,7 @@ class WalaPathClassification {
             return false;
         }
         for (int j = studentIdx + 1; j < sinkIdx; j++) {
-            if (!isInfraFrame(path.get(j))) {
+            if (!isTransitiveFalsePositiveFrame(path.get(j))) {
                 return false;
             }
         }
@@ -130,6 +150,31 @@ class WalaPathClassification {
             return INFRA_PREFIXES.stream().anyMatch(pkg::startsWith);
         } catch (RuntimeException | UnimplementedError ignored) {
             return true; // malformed frame treated as infrastructure
+        }
+    }
+
+    /**
+     * Returns {@code true} when the given CGNode counts as transitive infrastructure
+     * for the purpose of {@link #isFalsePositiveTransitivePath} only. Project test
+     * helpers ({@code anonymous.toolclasses.} / {@code metatest.}) explicitly do
+     * NOT count here, so a student call that routes through such a helper into a
+     * forbidden JDK API is reported as a real violation.
+     */
+    static boolean isTransitiveFalsePositiveFrame(CGNode node) {
+        try {
+            IClass cls = node.getMethod().getDeclaringClass();
+            if (cls == null) {
+                return true;
+            }
+            ClassLoaderReference loader = cls.getClassLoader().getReference();
+            if (loader.equals(ClassLoaderReference.Primordial)
+                    || loader.equals(ClassLoaderReference.Extension)) {
+                return true;
+            }
+            String pkg = packageNameOf(cls);
+            return TRANSITIVE_FALSE_POSITIVE_PREFIXES.stream().anyMatch(pkg::startsWith);
+        } catch (RuntimeException | UnimplementedError ignored) {
+            return true;
         }
     }
     // </editor-fold>

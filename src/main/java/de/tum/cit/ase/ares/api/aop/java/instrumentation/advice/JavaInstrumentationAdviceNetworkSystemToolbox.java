@@ -14,6 +14,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SocketChannel;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -338,16 +339,71 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	 */
 	@Nullable
 	private static NetworkTarget parametersToTarget(@Nonnull Object[] parameters) {
+		return parametersToTarget(parameters, new BitSet(parameters.length));
+	}
+
+	/**
+	 * Resolves a network target from a full intercepted parameter list and reports
+	 * which indices were consumed during resolution.
+	 * <p>
+	 * Description: Performs pair-extraction over <em>all</em> adjacent
+	 * {@code (host-like, int)} parameter pairs and marks every consumed index in
+	 * {@code consumedIndices}. The first valid pair is returned as the resolved
+	 * {@link NetworkTarget}; subsequent valid pairs are still marked consumed even
+	 * though they do not become the resolved target. If no pair matches, the
+	 * method falls through to the single-parameter scan and marks the index of
+	 * the first directly resolvable parameter.
+	 * <p>
+	 * Design Rationale: Tracking consumed indices lets callers exclude these
+	 * positions from the per-parameter walk performed by
+	 * {@link #checkIfVariableCriteriaIsViolated(Object[], String[], int[], IgnoreValues)}.
+	 * Without that exclusion a bare {@link InetAddress} that already participated
+	 * in a successful pair extraction would be re-resolved by
+	 * {@link #variableToTarget(Object)} as {@code (host, -1)} and falsely
+	 * reported as a violation against any allowlist whose port is not {@code -1}.
+	 * <p>
+	 * Multi-pair signatures such as
+	 * {@code Socket(String, int, InetAddress, int)} or
+	 * {@code SocketFactory.createSocket(String, int, InetAddress, int)} place the
+	 * remote endpoint first and the local-bind endpoint second.
+	 * {@link de.tum.cit.ase.ares.api.policy.policySubComponents.NetworkPermission}
+	 * models policy as a single {@code (host, port)} tuple per permission and has
+	 * no concept of local-bind enforcement, so consuming the local-bind pair
+	 * without separate policy evaluation is correct in the current model. If
+	 * local-bind enforcement is ever added, this helper must be revisited.
+	 *
+	 * @param parameters       the intercepted argument array
+	 * @param consumedIndices  out-parameter; bits are set for every parameter
+	 *                         index that participated in a successful pair or
+	 *                         single-parameter resolution
+	 * @return the resolved target, or {@code null} if no target can be derived
+	 * @since 2.0.0
+	 */
+	@Nullable
+	private static NetworkTarget parametersToTarget(@Nonnull Object[] parameters,
+			@Nonnull BitSet consumedIndices) {
+		NetworkTarget firstTarget = null;
+		for (int i = 0; i + 1 < parameters.length; i++) {
+			if (consumedIndices.get(i) || consumedIndices.get(i + 1)) {
+				continue;
+			}
+			NetworkTarget pairTarget = hostAndPortToTarget(parameters[i], parameters[i + 1]);
+			if (pairTarget != null) {
+				consumedIndices.set(i);
+				consumedIndices.set(i + 1);
+				if (firstTarget == null) {
+					firstTarget = pairTarget;
+				}
+			}
+		}
+		if (firstTarget != null) {
+			return firstTarget;
+		}
 		for (int i = 0; i < parameters.length; i++) {
 			NetworkTarget directTarget = variableToTarget(parameters[i]);
 			if (directTarget != null) {
+				consumedIndices.set(i);
 				return directTarget;
-			}
-			if (i + 1 < parameters.length) {
-				NetworkTarget pairTarget = hostAndPortToTarget(parameters[i], parameters[i + 1]);
-				if (pairTarget != null) {
-					return pairTarget;
-				}
 			}
 		}
 		return null;
@@ -655,18 +711,35 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		}
 		// </editor-fold>
 		// <editor-fold desc="Check parameters">
+		final boolean hasParameters = parameters != null && parameters.length > 0;
+		@Nonnull
+		final BitSet consumedParameterIndices = new BitSet(hasParameters ? parameters.length : 0);
 		@Nullable
-		NetworkTarget targetFromParameters = (parameters == null || parameters.length == 0) ? null
-				: parametersToTarget(parameters);
+		NetworkTarget targetFromParameters = hasParameters
+				? parametersToTarget(parameters, consumedParameterIndices)
+				: null;
 		if (targetFromParameters != null && checkIfNetworkIsForbidden(targetFromParameters, allowedHosts, allowedPorts)) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
 					"security.advice.illegal.network.execution", networkSystemMethodToCheck, action,
 					targetFromParameters.toDisplayString(), fullMethodSignature
 							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
 		}
+		// Mask out indices already consumed by parametersToTarget so the per-parameter
+		// scan does not re-resolve the same host (or local-bind host) as a port=-1
+		// target and false-positive against the allowlist.
 		@Nullable
-		String networkIllegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null
-				: checkIfVariableCriteriaIsViolated(parameters, allowedHosts, allowedPorts,
+		final Object[] residualParameters;
+		if (!hasParameters || consumedParameterIndices.isEmpty()) {
+			residualParameters = parameters;
+		} else {
+			residualParameters = new Object[parameters.length];
+			for (int i = 0; i < parameters.length; i++) {
+				residualParameters[i] = consumedParameterIndices.get(i) ? null : parameters[i];
+			}
+		}
+		@Nullable
+		String networkIllegallyInteractedThroughParameter = (residualParameters == null || residualParameters.length == 0) ? null
+				: checkIfVariableCriteriaIsViolated(residualParameters, allowedHosts, allowedPorts,
 						NETWORK_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
 								IgnoreValues.NONE));
 		if (networkIllegallyInteractedThroughParameter != null) {

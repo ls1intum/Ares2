@@ -224,8 +224,11 @@ public class JavaInstrumentationAgent {
 			new AgentBuilder.Default()
 					// Ignore ByteBuddy's own classes to avoid infinite recursion
 					.ignore(ElementMatchers.nameStartsWith("net.bytebuddy."))
-					// Ignore JDK internal classes that should not be instrumented
-					.ignore(ElementMatchers.nameStartsWith("sun."))
+					// Ignore deepest JDK internals that must never be instrumented. sun.nio.ch.*Impl
+					// classes are intentionally NOT excluded here so SocketChannelImpl,
+					// DatagramChannelImpl, AsynchronousSocketChannel impls remain instrumentable
+					// for their connect / send / receive methods which the abstract NIO base
+					// classes only declare.
 					.ignore(ElementMatchers.nameStartsWith("jdk.internal."))
 					.ignore(ElementMatchers.nameStartsWith("java.lang.invoke."))
 					.ignore(ElementMatchers.nameStartsWith("java.lang.reflect."))

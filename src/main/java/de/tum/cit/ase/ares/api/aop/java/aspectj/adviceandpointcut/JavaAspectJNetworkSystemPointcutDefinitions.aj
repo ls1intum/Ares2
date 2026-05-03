@@ -11,12 +11,18 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
             call(java.nio.channels.DatagramChannel+.new(..)) ||
             call(* java.nio.channels.SocketChannel+.connect(..)) ||
             call(java.nio.channels.SocketChannel+.new(..)) ||
+            call(* java.nio.channels.SocketChannel.open(java.net.SocketAddress)) ||
             call(* java.nio.channels.AsynchronousSocketChannel+.connect(..)) ||
             call(java.nio.channels.AsynchronousSocketChannel+.new(..)) ||
             call(* java.net.HttpURLConnection+.connect(..)) ||
             call(java.net.HttpURLConnection+.new(..)) ||
             call(* javax.net.ssl.HttpsURLConnection+.connect(..)) ||
-            call(javax.net.ssl.HttpsURLConnection+.new(..))
+            call(javax.net.ssl.HttpsURLConnection+.new(..)) ||
+            call(* javax.net.SocketFactory+.createSocket(..)) ||
+            call(* javax.net.ssl.SSLSocketFactory+.createSocket(..)) ||
+            call(* java.net.URL.openConnection(..)) ||
+            call(* java.net.URL.openStream(..)) ||
+            call(* java.net.URLConnection+.connect(..))
             );
 
     pointcut networkSendMethods(): (
