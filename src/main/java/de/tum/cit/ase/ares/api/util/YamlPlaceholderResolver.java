@@ -7,10 +7,11 @@ import javax.annotation.Nonnull;
 /**
  * Resolves a fixed set of placeholders inside YAML content before parsing.
  *
- * <p>Description: Provides string-level expansion of three well-defined placeholders
- * ({@code ${PROJECT_ROOT}}, {@code ${java.home}}, {@code ${user.home}}) so that
- * security-policy YAML files can be authored portably across local, CI, and Docker
- * environments without hard-coding user- or platform-specific paths.
+ * <p>Description: Provides string-level expansion of four well-defined placeholders
+ * ({@code ${PROJECT_ROOT}}, {@code ${java.home}}, {@code ${user.home}},
+ * {@code ${java.io.tmpdir}}) so that security-policy YAML files can be authored
+ * portably across local, CI, and Docker environments without hard-coding user-
+ * or platform-specific paths.
  *
  * <p>Design Rationale: A small fixed set of placeholders keeps the substitution surface
  * predictable and avoids accidental coupling of policy files to arbitrary system
@@ -27,7 +28,8 @@ public final class YamlPlaceholderResolver {
 	private static final Map<String, String> PLACEHOLDER_PROPERTIES = Map.of(
 			"${PROJECT_ROOT}", "user.dir",
 			"${java.home}", "java.home",
-			"${user.home}", "user.home");
+			"${user.home}", "user.home",
+			"${java.io.tmpdir}", "java.io.tmpdir");
 
 	private YamlPlaceholderResolver() {
 		throw new UnsupportedOperationException("YamlPlaceholderResolver is a utility class and cannot be instantiated");
