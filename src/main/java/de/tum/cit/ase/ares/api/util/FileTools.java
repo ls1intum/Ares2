@@ -252,7 +252,12 @@ public class FileTools {
 	public static <T> T readYamlFile(@Nonnull File sourceFile, @Nonnull Class<T> valueType) throws IOException {
 		File protectedPath = Objects.requireNonNull(sourceFile, "sourceFile must not be null");
 		Class<T> protectedValueType = Objects.requireNonNull(valueType, "valueType must not be null");
+		String rawContent;
 		try (InputStream in = createInputStream(protectedPath.toPath())) {
+			rawContent = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+		}
+		String resolvedContent = YamlPlaceholderResolver.expand(rawContent);
+		try (InputStream in = new java.io.ByteArrayInputStream(resolvedContent.getBytes(StandardCharsets.UTF_8))) {
 			T result = new ObjectMapper(new YAMLFactory()).readValue(in, protectedValueType);
 			return Objects.requireNonNull(result, () -> "YAML file " + protectedPath + " deserialized to null "
 					+ "for type " + protectedValueType.getName());
