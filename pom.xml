@@ -29,8 +29,7 @@
 		<wala-version>1.6.12</wala-version>
 		<!-- 3. AOP: 3.1 AspectJ -->
 		<aspectj-version>1.9.24</aspectj-version>
-		<aspectj-path>
-			${user.home}${file.separator}.m2${file.separator}repository${file.separator}org${file.separator}aspectj${file.separator}aspectjrt${file.separator}${aspectj-version}${file.separator}aspectjrt-${aspectj-version}.jar
+		<as1.9.25.1
 		</aspectj-path>
 		<!-- 3. AOP: 3.2 Byte Buddy -->
 		<byte-buddy-version>1.17.7</byte-buddy-version>
