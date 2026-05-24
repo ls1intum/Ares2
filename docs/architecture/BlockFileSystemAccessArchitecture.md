@@ -5,7 +5,7 @@
 ## Table of Contents
 
 1. [Ares 2 Architecture File System Access Control: High-Level Overview](#1-ares-2-architecture-file-system-access-control-high-level-overview)
-   - [1.1 How Does The UML Activity Diagram look like?](#11-how-does-the-uml-activity-diagram-look-like)
+   - [1.1 What Does the UML Activity Diagram Look Like?](#11-what-does-the-uml-activity-diagram-look-like)
    - [1.2 What Is Architecture Testing?](#12-what-is-architecture-testing)
    - [1.3 Which Architecture Modes / Implementations Are There?](#13-which-architecture-modes--implementations-are-there)
    - [1.4 What Are The Internal Configuration Settings?](#14-what-are-the-internal-configuration-settings)
@@ -82,10 +82,10 @@ This document explains how Ares 2 decides whether student code may access the fi
 
 ---
 
-<a id="11-how-does-the-uml-activity-diagram-look-like"></a>
-## 1.1 How Does The UML Activity Diagram look like?
+<a id="11-what-does-the-uml-activity-diagram-look-like"></a>
+## 1.1 What Does the UML Activity Diagram Look Like?
 
-Below is a general overview of the process for deciding whether to allow or block file access as an UML activity diagram. Throughout this document, you will find the following symbols:
+Below is a general overview of the process for deciding whether to allow or block file access as a UML activity diagram. Throughout this document, you will find the following symbols:
 - **🔴 Red** = File access blocked (security policy violation detected)
 - **🌕 Yellow** = Intermediate condition met → continue to the next verification step
 - **🟢 Green** = File access permitted (no security policy violation detected)
@@ -180,7 +180,7 @@ Instructors define architecture policies, and Ares 2 translates them into the fo
 - 🔴 AssertionError thrown → Security violation detected in code structure
 - 🟢 No violations found → Code passes architecture analysis
 
-Summarising this, Ares trusts code when: 
+In summary, Ares trusts code when: 
 - It is located outside of the `restrictedPackage`
 - It accesses classes that are in the `allowedPackages` list
 - It is listed as Ares internal code

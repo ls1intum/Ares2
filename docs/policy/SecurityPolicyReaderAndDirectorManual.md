@@ -13,16 +13,16 @@
 ## Table of Contents
 
 1. [Prerequisites](#1-prerequisites)
-2. [Purpose, What Problem Does This Solve?](#2-purpose--what-problem-does-this-solve)
+2. [Purpose — What Problem Does This Solve?](#2-purpose--what-problem-does-this-solve)
 3. [Architecture Overview](#3-architecture-overview)
 4. [The User Input, Security Policy YAML File](#4-the-user-input--security-policy-yaml-file)
-5. [Reading the Policy, The `reader` Package](#5-reading-the-policy--the-reader-package)
+5. [Reading the Policy — The `reader` Package](#5-reading-the-policy--the-reader-package)
    - [5.1. SecurityPolicyReader (Abstract Class)](#51-securitypolicyreader-abstract-class)
    - [5.2. SecurityPolicyYAMLReader (Concrete Class)](#52-securitypolicyyamlreader-concrete-class)
-6. [Directing Test-Case Creation, The `director` Package](#6-directing-test-case-creation--the-director-package)
+6. [Directing Test-Case Creation — The `director` Package](#6-directing-test-case-creation--the-director-package)
    - [6.1. SecurityPolicyDirector (Abstract Class)](#61-securitypolicydirector-abstract-class)
    - [6.2. SecurityPolicyJavaDirector (Concrete Class)](#62-securitypolicyjavadirector-concrete-class)
-7. [Orchestration, SecurityPolicyReaderAndDirector](#7-orchestration--securitypolicyreaderanddirector)
+7. [Orchestration — SecurityPolicyReaderAndDirector](#7-orchestration--securitypolicyreaderanddirector)
    - [7.1. Construction](#71-construction)
    - [7.2. Three-Step Workflow](#72-three-step-workflow)
    - [7.3. Null-Safety Strategy](#73-null-safety-strategy)
@@ -43,7 +43,7 @@
 
 ---
 
-## 2. Purpose, What Problem Does This Solve?
+## 2. Purpose — What Problem Does This Solve?
 
 When students submit programming exercises, instructors need to make sure the submitted code does **not** perform dangerous operations (e.g. deleting files, opening network connections, executing shell commands). Ares 2 automates this by:
 
@@ -112,7 +112,9 @@ The field names are deliberately chosen to read like English sentences (e.g. `re
 
 ---
 
-## 5. Reading the Policy, The `reader` Package
+## 5. Reading the Policy — The `reader` Package
+
+The **reader** is responsible for loading the YAML policy file and turning it into a `SecurityPolicy` Java object. The reader is selected at runtime based on the file extension — for `.yaml` / `.yml` files this is `SecurityPolicyYAMLReader`. If you add a new file format in the future, you only implement `readSecurityPolicyFrom` and add a new branch in the factory method.
 
 ### 5.1. `SecurityPolicyReader` (Abstract Class)
 
@@ -143,7 +145,9 @@ This design makes it trivial to add, say, a `SecurityPolicyJSONReader` in the fu
 
 ---
 
-## 6. Directing Test-Case Creation, The `director` Package
+## 6. Directing Test-Case Creation — The `director` Package
+
+The **director** receives the parsed `SecurityPolicy` and orchestrates the multi-step process of generating, writing, and executing security tests. Think of the reader as fetching the instructions and the director as carrying them out: the reader says "here is what the policy contains," and the director decides which test toolchain to build and how to configure it.
 
 ### 6.1. `SecurityPolicyDirector` (Abstract Class)
 
@@ -196,7 +200,7 @@ This design makes it trivial to add, say, a `SecurityPolicyPythonDirector` in th
 
 ---
 
-## 7. Orchestration, `SecurityPolicyReaderAndDirector`
+## 7. Orchestration — `SecurityPolicyReaderAndDirector`
 
 This is the **entry-point class** that ties together reading, directing, and test-case management. It is the main public API that instructors and automated grading systems interact with. The class implements two important roles:
 - A **Facade**, exposing a simple three-method public interface (`create`, `write`, `execute`) that hides the complexity of reader selection, policy parsing, director selection, and factory configuration.

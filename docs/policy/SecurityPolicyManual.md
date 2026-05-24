@@ -186,6 +186,8 @@ The interaction between test annotations (`@Public`, `@Hidden`, `@Test`, `@Publi
 
 When you run the tests, Ares 2 will automatically enforce the security policy. If student code tries to do something not explicitly permitted, the test fails with a clear error message.
 
+> **What's next:** The Quick Start above covers the minimum to get up and running. The sections below explain the security model in detail and describe every permission type you can configure.
+
 ---
 
 ## 6. Understanding Security Policies

@@ -71,7 +71,7 @@ Given a parsed `SecurityPolicy`, this package must:
 4. **Write** the generated test-case source files to disk.
 5. **Execute** the test cases — first the static architecture checks, then the dynamic AOP enforcement.
 
-Without this package, Ares would know *what* to enforce but could not turn that knowledge into runnable tests.
+Without this package, Ares would know *what* to enforce but could not turn that knowledge into runnable tests. The next section describes how the package is organised to fulfill this responsibility.
 
 ---
 
@@ -294,6 +294,8 @@ The first five parameters (`creator`, `writer`, `executer`, `essentialDataReader
 
 **What it does step by step:**
 
+Each invocation proceeds through two phases — extraction (reading class data from disk) and preparation (computing permissions) — before generating the final test-case objects:
+
 1. **Extraction (cached):**
    - Computes the `classPath` from the `BuildMode` (Maven: `target/classes`, Gradle: `build/classes/java/main`).
    - Imports `JavaClasses` via the `ArchitectureMode` (ArchUnit's `ClassFileImporter`).
@@ -429,6 +431,8 @@ The `FileTools.createThreePartedFormatStringFile(...)` utility handles template 
 |---|---|
 | **Implements** | `Executer` |
 | **Role** | Configures the runtime agent and then executes all generated test cases. |
+
+The execution happens in three ordered steps: agent configuration first, architecture tests second, AOP tests third.
 
 **What it does step by step:**
 

@@ -127,7 +127,7 @@ Ares automatically monitors command system operations by intercepting specific J
 - **Byte Buddy (Instrumentation Mode)**: Automatically adds security checks when Java loads classes (called bytecode manipulation).
 - **AspectJ (AspectJ Mode)**: Automatically adds security checks in a second compilation step (called weaving).
 
-Both implementations set up "checkpoints" that activate **before** the command operation actually happens, giving Ares a chance to verify whether the operation should be allowed or blocked. The validation logic is aligned, and the command pointcuts are kept in sync between AspectJ and instrumentation.
+Both implementations set up "checkpoints" that activate **before** the command operation actually happens, giving Ares a chance to verify whether the operation should be allowed or blocked. The validation logic is aligned. The command pointcuts are kept in sync between AspectJ and instrumentation.
 
 ---
 
@@ -437,7 +437,9 @@ The security validator performs a **series of checks** to decide whether the com
 
 **1. Purpose**
 
-Verify that command system security monitoring is turned on. This check ensures that Ares only performs security validations when explicitly enabled. Without this check, the security system would either always run (causing unnecessary overhead) or never run (leaving the system unprotected). The configuration-based approach allows instructors to enable or disable security monitoring as needed.
+Verify that command system security monitoring is turned on. This check ensures that Ares only performs security validations when explicitly enabled.
+
+Without this check, the security system would either always run (causing unnecessary overhead) or never run (leaving the system unprotected). The configuration-based approach allows instructors to enable or disable security monitoring as needed.
 
 **2. How it works**
 
@@ -494,7 +496,9 @@ Configuration loaded → 🌕 **Continue to 5.2.2**
 
 **1. Purpose**
 
-Walk through the call history to find if restricted student code triggered the command operation. This is like following breadcrumbs backwards to see how we got here. This is the core security check that distinguishes between legitimate framework operations and potentially malicious student code (e.g., trying to execute system commands).
+Walk through the call history to find if restricted student code triggered the command operation. This is like following breadcrumbs backwards to see how we got here.
+
+This is the core security check that distinguishes between legitimate framework operations and potentially malicious student code (e.g., trying to execute system commands).
 
 > 💡 **Analogy:** Like a detective following footprints backwards:
 > - **Crime Scene:** `Runtime.getRuntime().exec("rm -rf /")` [we are here now]
