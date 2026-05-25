@@ -46,13 +46,16 @@ public class ReachabilityChecker {
 	public static List<CGNode> findReachableMethods(CallGraph callGraph, Iterator<CGNode> startNodes,
 			Predicate<CGNode> targetNodeFilter) {
 		if (callGraph == null) {
-			throw new SecurityException(Messages.localized("security.common.not.null", "CallGraph", "findReachableMethods"));
+			throw new SecurityException(
+					Messages.localized("security.common.not.null", "CallGraph", "findReachableMethods"));
 		}
 		if (startNodes == null) {
-			throw new SecurityException(Messages.localized("security.common.not.null", "startNodes", "findReachableMethods"));
+			throw new SecurityException(
+					Messages.localized("security.common.not.null", "startNodes", "findReachableMethods"));
 		}
 		if (targetNodeFilter == null) {
-			throw new SecurityException(Messages.localized("security.common.not.null", "targetNodeFilter", "findReachableMethods"));
+			throw new SecurityException(
+					Messages.localized("security.common.not.null", "targetNodeFilter", "findReachableMethods"));
 		}
 		return new CustomDFSPathFinder(callGraph, startNodes, targetNodeFilter).find();
 	}
@@ -62,16 +65,17 @@ public class ReachabilityChecker {
 	 * identity, classPath)}. The hierarchy reference is part of the key because
 	 * {@link DefaultEntrypoint} captures it: a different application hierarchy must
 	 * not reuse another's entry points.
-	 *
-	 * <p>The intermediate {@link ClassHierarchy} created by {@link #createClassHierarchy}
-	 * is intentionally NOT cached separately. Each inner hierarchy reloads the full
-	 * JDK primordial scope, so caching ~13 hierarchies per phase exhausts the 512 MB
-	 * Gradle test-worker heap and crashes the JVM (observed empirically: testPermitted
-	 * died with "Could not complete execution for Gradle Test Executor"). Caching the
-	 * entry-point list alone is sufficient: on cache hit the inner-hierarchy build is
-	 * skipped entirely; on miss the hierarchy is built once, used to enumerate methods,
-	 * and then released for GC since {@link DefaultEntrypoint} only retains references
-	 * to {@link com.ibm.wala.types.MethodReference} and the application hierarchy.
+	 * <p>
+	 * The intermediate {@link ClassHierarchy} created by
+	 * {@link #createClassHierarchy} is intentionally NOT cached separately. Each
+	 * inner hierarchy reloads the full JDK primordial scope, so caching ~13
+	 * hierarchies per phase exhausts the 512 MB Gradle test-worker heap and crashes
+	 * the JVM (observed empirically: testPermitted died with "Could not complete
+	 * execution for Gradle Test Executor"). Caching the entry-point list alone is
+	 * sufficient: on cache hit the inner-hierarchy build is skipped entirely; on
+	 * miss the hierarchy is built once, used to enumerate methods, and then
+	 * released for GC since {@link DefaultEntrypoint} only retains references to
+	 * {@link com.ibm.wala.types.MethodReference} and the application hierarchy.
 	 */
 	private static final ConcurrentHashMap<String, List<DefaultEntrypoint>> ENTRYPOINTS_CACHE = new ConcurrentHashMap<>();
 
@@ -89,10 +93,12 @@ public class ReachabilityChecker {
 	public static List<DefaultEntrypoint> getEntryPointsFromStudentSubmission(String classPath,
 			ClassHierarchy applicationClassHierarchy) {
 		if (classPath == null || classPath.trim().isEmpty()) {
-			throw new SecurityException(Messages.localized("security.common.not.null", "classPath", "getEntryPointsFromStudentSubmission"));
+			throw new SecurityException(
+					Messages.localized("security.common.not.null", "classPath", "getEntryPointsFromStudentSubmission"));
 		}
 		if (applicationClassHierarchy == null) {
-			throw new SecurityException(Messages.localized("security.common.not.null", "ClassHierarchy", "getEntryPointsFromStudentSubmission"));
+			throw new SecurityException(Messages.localized("security.common.not.null", "ClassHierarchy",
+					"getEntryPointsFromStudentSubmission"));
 		}
 		String cacheKey = System.identityHashCode(applicationClassHierarchy) + "::" + classPath;
 		List<DefaultEntrypoint> cached = ENTRYPOINTS_CACHE.get(cacheKey);
@@ -100,11 +106,11 @@ public class ReachabilityChecker {
 			return cached;
 		}
 		try {
-			List<DefaultEntrypoint> fresh = new ArrayList<>(io.vavr.collection.Stream.ofAll(createClassHierarchy(classPath)).toJavaStream()
+			List<DefaultEntrypoint> fresh = new ArrayList<>(io.vavr.collection.Stream
+					.ofAll(createClassHierarchy(classPath)).toJavaStream()
 					.filter(iClass -> iClass.getClassLoader().getReference().equals(ClassLoaderReference.Application))
 					.map(IClass::getDeclaredMethods).map(io.vavr.collection.Stream::ofAll)
-					.flatMap(io.vavr.collection.Stream::toJavaStream)
-					.map(IMethod::getReference)
+					.flatMap(io.vavr.collection.Stream::toJavaStream).map(IMethod::getReference)
 					.map(methodReference -> new DefaultEntrypoint(methodReference, applicationClassHierarchy))
 					.toList());
 			List<DefaultEntrypoint> immutable = Collections.unmodifiableList(fresh);

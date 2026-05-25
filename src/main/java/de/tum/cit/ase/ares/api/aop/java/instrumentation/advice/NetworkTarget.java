@@ -29,8 +29,8 @@ public record NetworkTarget(@Nullable String host, int port) {
 	/**
 	 * Returns a human-readable string representation of this network target.
 	 * <p>
-	 * Description: Formats the host and port as {@code host:port}. If the host
-	 * is {@code null} or blank, substitutes the placeholder {@code <unknown>}.
+	 * Description: Formats the host and port as {@code host:port}. If the host is
+	 * {@code null} or blank, substitutes the placeholder {@code <unknown>}.
 	 *
 	 * @return non-null display string in the form {@code host:port}
 	 * @since 2.0.0

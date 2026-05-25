@@ -2,8 +2,8 @@ package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.FileDescriptor;
@@ -21,7 +21,8 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 
 	@Test
 	void toTarget_extractsHostAndPortFromInetSocketAddress() throws Exception {
-		Method toTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("toTarget", Object.class);
+		Method toTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("toTarget",
+				Object.class);
 		toTarget.setAccessible(true);
 		Object target = toTarget.invoke(null, new InetSocketAddress("example.org", 443));
 		assertNotNull(target);
@@ -33,7 +34,8 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 
 	@Test
 	void toTarget_extractsDefaultPortFromUriScheme() throws Exception {
-		Method toTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("toTarget", Object.class);
+		Method toTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("toTarget",
+				Object.class);
 		toTarget.setAccessible(true);
 		Object target = toTarget.invoke(null, URI.create("https://example.org/path"));
 		assertNotNull(target);
@@ -48,8 +50,8 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 		Method hostMatches = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("hostMatches",
 				String.class, String.class);
 		hostMatches.setAccessible(true);
-		Method portMatches = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("portMatches", int.class,
-				int.class);
+		Method portMatches = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("portMatches",
+				int.class, int.class);
 		portMatches.setAccessible(true);
 
 		boolean hostAllowed = (boolean) hostMatches.invoke(null, "api.example.org", "example.org");
@@ -61,7 +63,8 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 
 	@Test
 	void toTarget_returnsNullForUnresolvedSocketReceiver() throws Exception {
-		Method toTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("toTarget", Object.class);
+		Method toTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("toTarget",
+				Object.class);
 		toTarget.setAccessible(true);
 
 		try (Socket socket = new Socket()) {
@@ -72,7 +75,8 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 
 	@Test
 	void toTarget_extractsHostAndPortFromConnectedSocket() throws Exception {
-		Method toTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("toTarget", Object.class);
+		Method toTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("toTarget",
+				Object.class);
 		toTarget.setAccessible(true);
 
 		try (ServerSocket serverSocket = new ServerSocket(0);
@@ -89,8 +93,8 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 
 	@Test
 	void parametersToTarget_extractsHostAndPortFromSeparateArguments() throws Exception {
-		Method parametersToTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod(
-				"parametersToTarget", Object[].class);
+		Method parametersToTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class
+				.getDeclaredMethod("parametersToTarget", Object[].class);
 		parametersToTarget.setAccessible(true);
 
 		Object target = parametersToTarget.invoke(null, (Object) new Object[] { "127.0.0.1", 12345 });
@@ -103,12 +107,13 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 
 	@Test
 	void parametersToTarget_skipsLeadingNonHostPortPairsAndConsumesOnlyResolvedIndices() throws Exception {
-		Method parametersToTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod(
-				"parametersToTarget", Object[].class, BitSet.class);
+		Method parametersToTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class
+				.getDeclaredMethod("parametersToTarget", Object[].class, BitSet.class);
 		parametersToTarget.setAccessible(true);
 
 		BitSet consumed = new BitSet();
-		Object[] params = new Object[] { new FileDescriptor(), InetAddress.getByName("127.0.0.1"), Integer.valueOf(12345) };
+		Object[] params = new Object[] { new FileDescriptor(), InetAddress.getByName("127.0.0.1"),
+				Integer.valueOf(12345) };
 		Object target = parametersToTarget.invoke(null, (Object) params, consumed);
 		assertNotNull(target);
 
@@ -122,13 +127,13 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 
 	@Test
 	void parametersToTarget_consumesAllAdjacentPairsForMultiPairSignatures() throws Exception {
-		Method parametersToTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod(
-				"parametersToTarget", Object[].class, BitSet.class);
+		Method parametersToTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class
+				.getDeclaredMethod("parametersToTarget", Object[].class, BitSet.class);
 		parametersToTarget.setAccessible(true);
 
 		BitSet consumed = new BitSet();
-		Object[] params = new Object[] { "127.0.0.1", Integer.valueOf(12345),
-				InetAddress.getByName("10.0.0.1"), Integer.valueOf(0) };
+		Object[] params = new Object[] { "127.0.0.1", Integer.valueOf(12345), InetAddress.getByName("10.0.0.1"),
+				Integer.valueOf(0) };
 		Object target = parametersToTarget.invoke(null, (Object) params, consumed);
 		assertNotNull(target);
 
@@ -143,8 +148,8 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 
 	@Test
 	void parametersToTarget_bareInetAddressFallsBackToSinglePortAndConsumesIndex() throws Exception {
-		Method parametersToTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod(
-				"parametersToTarget", Object[].class, BitSet.class);
+		Method parametersToTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class
+				.getDeclaredMethod("parametersToTarget", Object[].class, BitSet.class);
 		parametersToTarget.setAccessible(true);
 
 		BitSet consumed = new BitSet();
@@ -162,8 +167,8 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 
 	@Test
 	void parametersToTarget_bareUriFallsBackToSinglePortAndConsumesIndex() throws Exception {
-		Method parametersToTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod(
-				"parametersToTarget", Object[].class, BitSet.class);
+		Method parametersToTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class
+				.getDeclaredMethod("parametersToTarget", Object[].class, BitSet.class);
 		parametersToTarget.setAccessible(true);
 
 		BitSet consumed = new BitSet();
@@ -179,8 +184,8 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 
 	@Test
 	void parametersToTarget_returnsNullForEmptyParameterArray() throws Exception {
-		Method parametersToTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod(
-				"parametersToTarget", Object[].class, BitSet.class);
+		Method parametersToTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class
+				.getDeclaredMethod("parametersToTarget", Object[].class, BitSet.class);
 		parametersToTarget.setAccessible(true);
 
 		BitSet consumed = new BitSet();
@@ -189,6 +194,3 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 		assertTrue(consumed.isEmpty());
 	}
 }
-
-
-

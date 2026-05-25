@@ -50,12 +50,12 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
 		// - no @Policy on property → enforce with default policy (null path)
 		// - @Policy(activated=false) → Ares deactivated (no security checks)
 		if (isAresActivated) {
-			Path policyPath = policyOpt.filter(p -> !p.value().isBlank())
-					.map(p -> testAndGetPolicyValue(p)).orElse(null);
-			Path withinPath = policyOpt.filter(p -> !p.withinPath().isBlank())
-					.map(p -> testAndGetPolicyWithinPath(p)).orElse(Path.of(""));
-			SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policyPath)
-					.projectFolderPath(withinPath).build().createTestCases().executeTestCases();
+			Path policyPath = policyOpt.filter(p -> !p.value().isBlank()).map(p -> testAndGetPolicyValue(p))
+					.orElse(null);
+			Path withinPath = policyOpt.filter(p -> !p.withinPath().isBlank()).map(p -> testAndGetPolicyWithinPath(p))
+					.orElse(Path.of(""));
+			SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policyPath).projectFolderPath(withinPath)
+					.build().createTestCases().executeTestCases();
 		}
 		// REMOVED: Installing of ArtemisSecurityManager
 		PropertyExecutionResult result;

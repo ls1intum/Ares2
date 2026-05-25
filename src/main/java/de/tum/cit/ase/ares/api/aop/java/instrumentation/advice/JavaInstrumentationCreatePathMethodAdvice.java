@@ -6,8 +6,8 @@ import java.lang.reflect.InaccessibleObjectException;
 import net.bytebuddy.asm.Advice;
 
 /**
- * This class provides advice for the execution of methods creating files. It
- * is responsible for verifying whether the method execution is allowed based on
+ * This class provides advice for the execution of methods creating files. It is
+ * responsible for verifying whether the method execution is allowed based on
  * the file system security policies defined within the application.
  * <p>
  * If an execution attempt violates these policies, a SecurityException is
@@ -22,9 +22,9 @@ public final class JavaInstrumentationCreatePathMethodAdvice {
 	 * permitted, a SecurityException is thrown, blocking the execution.
 	 * <p>
 	 * The checkFileSystemInteraction method from
-	 * JavaInstrumentationAdviceFileSystemToolbox is called to perform these
-	 * checks, ensuring that both the method's parameters and the instance fields
-	 * adhere to the security restrictions.
+	 * JavaInstrumentationAdviceFileSystemToolbox is called to perform these checks,
+	 * ensuring that both the method's parameters and the instance fields adhere to
+	 * the security restrictions.
 	 *
 	 * @param declaringTypeName The name of the class that declares the method.
 	 * @param methodName        The name of the method being executed.

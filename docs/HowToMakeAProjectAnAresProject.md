@@ -4,6 +4,8 @@
 > **Scope:** The `build.gradle` and `pom.xml` files.
 > **Ares Version:** 2.0.1-Beta6
 
+> **Note:** This guide is a **setup guide**. It covers adding the Ares dependency, attaching the agent, and configuring the build tool so that Ares can run. For writing security policies that control what student code can do, see the [Security Policy Manual](policy/SecurityPolicyManual.md).
+
 **Related documentation:**
 - [Security Policy Manual](policy/SecurityPolicyManual.md), which explains how to write a security policy YAML file
 - [Security Policy Reader and Director Manual](policy/SecurityPolicyReaderAndDirectorManual.md), which describes the internal processing pipeline
@@ -54,6 +56,8 @@ This manual covers the configuration steps for both Gradle and Maven.
 ---
 
 ## 3. Add Ares dependencies and agent setup
+
+Three steps are **required** regardless of build tool: (1) configure the repository so Gradle or Maven can download Ares; (2) add the Ares library as a dependency; and (3) attach the Ares agent to the test JVM. Blockquoted tips (marked `>`) throughout this section describe optional configuration that can be skipped on a first setup.
 
 ### 3.1 Gradle (recommended)
 

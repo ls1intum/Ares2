@@ -5,7 +5,7 @@
 1. [High-Level Overview](#1-high-level-overview)
    - [1.1 Architecture Analysis Approach](#11-architecture-analysis-approach)
    - [1.2 Configuration Settings](#12-configuration-settings)
-   - [1.3 Summary: When Is Thread Creation Blocked?](#13-summary-when-is-thread-creation-blocked)
+   - [1.3 Summary: When Is Thread Manipulation Blocked?](#13-summary-when-is-thread-manipulation-blocked)
    - [1.4 What Code Is Trusted vs. Restricted?](#14-what-code-is-trusted-vs-restricted)
 2. [Ares Monitors Thread Methods](#2-ares-monitors-thread-methods)
    - [2.1 THREAD SYSTEM - CREATE Operations (With Parameters)](#21-thread-system---create-operations-with-parameters)
@@ -47,7 +47,7 @@ Architecture testing validates that code follows specific structural rules by an
 **Two Analysis Frameworks:**
 
 ### **ArchUnit (Static Analysis)**
-- **Type**: Pure static analysis using Archunit framework
+- **Type**: Pure static analysis using ArchUnit framework
 - **Strength**: Fast, no call graph needed
 - **Method**: Analyzes class dependencies and method calls in compiled bytecode
 - **Use Case**: Detecting direct and transitive method access patterns to thread creation APIs
@@ -90,12 +90,12 @@ Security policies are configured through settings that instructors can adjust:
 
 ---
 
-## 1.3 Summary: When Is Thread Creation Blocked?
+## 1.3 Summary: When Is Thread Manipulation Blocked?
 
 Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 
 1. **Architecture Mode Enabled**: `architectureMode == "ARCHUNIT"` or `architectureMode == "WALA"`
-2. **Student Code Contains Thread Creation Calls**: Analysis detects method calls to thread creation APIs
+2. **Student Code Contains Thread Manipulation Calls**: Analysis detects method calls to thread manipulation APIs
 3. **Calls Are Reachable**: The forbidden methods can be reached from student code (directly or transitively)
 4. **Not in Allowed Packages**: The accessed classes are not in the `allowedPackages` list
 
@@ -103,7 +103,7 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 
 **Key Differences from AOP:**
 - 🔴 Detected at analysis time (before execution), not at runtime
-- 🔴 Blocks ALL thread creation attempts, not based on quotas or thread classes
+- 🔴 Blocks ALL thread manipulation attempts, not based on quotas or thread classes
 - 🔴 Reports potential violations, even if the code path is never executed
 - 🔴 No distinction between different thread types (all treated equally)
 
@@ -122,7 +122,7 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 
 **Restricted Code (Subject to Security Checks):**
 - All code within `restrictedPackage`
-- All classes that call thread creation methods from the forbidden lists
+- All classes that call thread manipulation methods from the forbidden lists
 
 **Security Assumptions:** 
 - Student code is compiled and available as `.class` files

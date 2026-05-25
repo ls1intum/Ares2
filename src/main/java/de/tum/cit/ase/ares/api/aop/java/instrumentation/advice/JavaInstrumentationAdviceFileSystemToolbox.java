@@ -68,8 +68,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			Map.entry("java.io.File.deleteOnExit", IgnoreValues.allExcept(findFieldIndex(java.io.File.class, "path"))),
 			Map.entry("java.io.File.createNewFile", IgnoreValues.allExcept(findFieldIndex(java.io.File.class, "path"))),
 			// ProcessBuilder.start - only check command field, resolved by name
-			Map.entry("java.lang.ProcessBuilder.start", IgnoreValues.allExcept(findFieldIndex(ProcessBuilder.class, "command"))),
-			Map.entry("java.lang.ProcessBuilder.startPipeline", IgnoreValues.allExcept(findFieldIndex(ProcessBuilder.class, "command"))));
+			Map.entry("java.lang.ProcessBuilder.start",
+					IgnoreValues.allExcept(findFieldIndex(ProcessBuilder.class, "command"))),
+			Map.entry("java.lang.ProcessBuilder.startPipeline",
+					IgnoreValues.allExcept(findFieldIndex(ProcessBuilder.class, "command"))));
 
 	/**
 	 * Map of methods with parameter index exceptions for file system ignore logic.
@@ -107,8 +109,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 */
 	private static final Set<String> INTERNAL_PATH_SUFFIXES = Set.of("ares/api/localization/Messages.class",
 			"ares/api/localization/messages.class", "ares/api/localization/messages.properties",
-			"ares/api/util/LruCache.class",
-			"ares/api/configuration/essentialFiles/java/EssentialPackages.yaml",
+			"ares/api/util/LruCache.class", "ares/api/configuration/essentialFiles/java/EssentialPackages.yaml",
 			"ares/api/configuration/essentialFiles/java/EssentialClasses.yaml");
 
 	// </editor-fold>
@@ -219,12 +220,13 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * Checks whether an actual (already resolved) path matches an allowed path.
 	 * <p>
 	 * Description: Resolves symlinks in the allowed path to its canonical form,
-	 * then checks whether the candidate path starts with the resolved allowed
-	 * path. Returns {@code false} if the allowed path does not exist and
-	 * non-existing paths are not permitted.
+	 * then checks whether the candidate path starts with the resolved allowed path.
+	 * Returns {@code false} if the allowed path does not exist and non-existing
+	 * paths are not permitted.
 	 *
 	 * @param candidate                           the resolved candidate path
-	 * @param allowedPath                         the allowed path to compare against
+	 * @param allowedPath                         the allowed path to compare
+	 *                                            against
 	 * @param allowNonExistingPathsToBeConsidered whether non-existing paths are
 	 *                                            permitted
 	 * @return {@code true} if the candidate path is covered by the allowed path
@@ -326,7 +328,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * Description: Delegates to {@link #variableToPath} and wraps the result.
 	 *
 	 * @param variableValue                       the variable to convert
-	 * @param allowNonExistingPathsToBeConsidered whether to allow non-existing paths
+	 * @param allowNonExistingPathsToBeConsidered whether to allow non-existing
+	 *                                            paths
 	 * @return a {@link FileTarget}, or {@code null} if conversion fails
 	 * @since 2.0.0
 	 * @author Markus Paulsen
@@ -419,8 +422,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			return null;
 		} else {
 			FileTarget target = variableToTarget(observedVariable, allowNonExistingPathsToBeConsidered);
-			if (target != null
-					&& checkIfPathIsForbidden(target, allowedPaths, allowNonExistingPathsToBeConsidered)) {
+			if (target != null && checkIfPathIsForbidden(target, allowedPaths, allowNonExistingPathsToBeConsidered)) {
 				return target.toDisplayString();
 			}
 		}
@@ -706,26 +708,36 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			}
 		}
 
-		// Semantic rule 1: when both "create" (from CREATE option) and "overwrite" (from WRITE option)
-		// are present, the primary intent is "write to file, creating if not exists" = overwrite.
-		// Merge into a single "overwrite" check with allowNonExisting=true so that non-existing
-		// paths are also validated (they will be created-by-write, not truly "created" as a new
-		// entity). This prevents spurious "illegal create" messages on write-open calls.
+		// Semantic rule 1: when both "create" (from CREATE option) and "overwrite"
+		// (from WRITE option)
+		// are present, the primary intent is "write to file, creating if not exists" =
+		// overwrite.
+		// Merge into a single "overwrite" check with allowNonExisting=true so that
+		// non-existing
+		// paths are also validated (they will be created-by-write, not truly "created"
+		// as a new
+		// entity). This prevents spurious "illegal create" messages on write-open
+		// calls.
 		if (actions.containsKey("create") && actions.containsKey("overwrite")) {
 			Boolean createAllows = actions.get("create");
 			Boolean overwriteAllows = actions.get("overwrite");
 			actions.remove("create");
 			// Keep allowNonExisting=true from "create" so non-existing paths are checked
-			actions.put("overwrite", (createAllows != null && createAllows) || (overwriteAllows != null && overwriteAllows));
+			actions.put("overwrite",
+					(createAllows != null && createAllows) || (overwriteAllows != null && overwriteAllows));
 		}
 
-		// Semantic rule 2: when the method is in the "overwrite" pointcut (defaultAction="overwrite")
-		// but OpenOptions only produced "create" (e.g. Files.writeString(path, s, CREATE) — no WRITE
-		// option), the operation is still semantically "write data to file" = overwrite.
-		// Exception: CREATE_NEW genuinely means "create a new file; fail if it already exists", so
-		// we leave that as "create". Only plain CREATE (create-if-absent) is reclassified.
-		if ("overwrite".equals(defaultAction)
-				&& actions.size() == 1 && actions.containsKey("create")
+		// Semantic rule 2: when the method is in the "overwrite" pointcut
+		// (defaultAction="overwrite")
+		// but OpenOptions only produced "create" (e.g. Files.writeString(path, s,
+		// CREATE) — no WRITE
+		// option), the operation is still semantically "write data to file" =
+		// overwrite.
+		// Exception: CREATE_NEW genuinely means "create a new file; fail if it already
+		// exists", so
+		// we leave that as "create". Only plain CREATE (create-if-absent) is
+		// reclassified.
+		if ("overwrite".equals(defaultAction) && actions.size() == 1 && actions.containsKey("create")
 				&& !options.contains(StandardOpenOption.CREATE_NEW)) {
 			Boolean allowNonExisting = actions.get("create");
 			actions.remove("create");
@@ -963,17 +975,19 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 						parameters, allowedPaths, FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT
 								.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE),
 						allowNonExistingPathsToBeConsidered);
-		// When a "create" pointcut intercepts a class/method that semantically truncates/overwrites
-		// (FileOutputStream, FileWriter, PrintWriter, or Files.newBufferedWriter/newOutputStream
-		// without an explicit append=true), the reported verb should be "overwrite" so that
+		// When a "create" pointcut intercepts a class/method that semantically
+		// truncates/overwrites
+		// (FileOutputStream, FileWriter, PrintWriter, or
+		// Files.newBufferedWriter/newOutputStream
+		// without an explicit append=true), the reported verb should be "overwrite" so
+		// that
 		// messages match test expectations.
 		boolean isWriteAliasedAsCreate = "create".equals(action)
 				&& ("java.io.FileOutputStream".equals(declaringTypeName)
 						|| "java.io.FileWriter".equals(declaringTypeName)
 						|| "java.io.PrintWriter".equals(declaringTypeName)
 						|| ("java.nio.file.Files".equals(declaringTypeName)
-								&& ("newBufferedWriter".equals(methodName)
-										|| "newOutputStream".equals(methodName))));
+								&& ("newBufferedWriter".equals(methodName) || "newOutputStream".equals(methodName))));
 		String messageAction = isWriteAliasedAsCreate ? "overwrite" : action;
 		if (pathIllegallyInteractedThroughParameter != null) {
 			// Check if this is a .class file access by ClassLoader - should be allowed
@@ -987,11 +1001,9 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			// not initiated by student code accessing arbitrary project files.
 			boolean isSystemJarRead = pathIllegallyInteractedThroughParameter.endsWith(".jar")
 					&& (pathIllegallyInteractedThroughParameter.contains("/.m2/repository/")
-							|| pathIllegallyInteractedThroughParameter.contains(
-									java.io.File.separator + ".m2" + java.io.File.separator + "repository"
-											+ java.io.File.separator)
-							|| pathIllegallyInteractedThroughParameter
-									.startsWith(System.getProperty("java.home")));
+							|| pathIllegallyInteractedThroughParameter.contains(java.io.File.separator + ".m2"
+									+ java.io.File.separator + "repository" + java.io.File.separator)
+							|| pathIllegallyInteractedThroughParameter.startsWith(System.getProperty("java.home")));
 			if (!isClassLoaderAccess && !isSystemJarRead) {
 				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
 						"security.advice.illegal.file.execution", fileSystemMethodToCheck, messageAction,
@@ -1014,9 +1026,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 
 			if (!isInternalAllowed && pathIllegallyInteractedThroughReceiver.endsWith(".jar")
 					&& (pathIllegallyInteractedThroughReceiver.contains("/.m2/repository/")
-							|| pathIllegallyInteractedThroughReceiver.contains(
-									java.io.File.separator + ".m2" + java.io.File.separator + "repository"
-											+ java.io.File.separator)
+							|| pathIllegallyInteractedThroughReceiver.contains(java.io.File.separator + ".m2"
+									+ java.io.File.separator + "repository" + java.io.File.separator)
 							|| pathIllegallyInteractedThroughReceiver.startsWith(System.getProperty("java.home")))) {
 				isInternalAllowed = true;
 			}
@@ -1075,11 +1086,9 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			// not initiated by student code accessing arbitrary project files.
 			if (!isInternalAllowed && pathIllegallyInteractedThroughAttribute.endsWith(".jar")
 					&& (pathIllegallyInteractedThroughAttribute.contains("/.m2/repository/")
-							|| pathIllegallyInteractedThroughAttribute.contains(
-									java.io.File.separator + ".m2" + java.io.File.separator + "repository"
-											+ java.io.File.separator)
-							|| pathIllegallyInteractedThroughAttribute
-									.startsWith(System.getProperty("java.home")))) {
+							|| pathIllegallyInteractedThroughAttribute.contains(java.io.File.separator + ".m2"
+									+ java.io.File.separator + "repository" + java.io.File.separator)
+							|| pathIllegallyInteractedThroughAttribute.startsWith(System.getProperty("java.home")))) {
 				isInternalAllowed = true;
 			}
 

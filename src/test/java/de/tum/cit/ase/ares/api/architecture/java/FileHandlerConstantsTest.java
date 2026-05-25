@@ -13,7 +13,8 @@ public class FileHandlerConstantsTest {
 
 	@Test
 	void testClassCannotBeInstantiated() throws Exception {
-		// Constructor is private and throws SecurityException; reflection wraps it in InvocationTargetException
+		// Constructor is private and throws SecurityException; reflection wraps it in
+		// InvocationTargetException
 		var ctor = FileHandlerConstants.class.getDeclaredConstructor();
 		ctor.setAccessible(true);
 		try {
@@ -22,7 +23,8 @@ public class FileHandlerConstantsTest {
 					ctor.newInstance();
 				} catch (java.lang.reflect.InvocationTargetException e) {
 					Throwable cause = e.getCause();
-					if (cause instanceof SecurityException se) throw se;
+					if (cause instanceof SecurityException se)
+						throw se;
 					throw new RuntimeException(cause);
 				}
 			});

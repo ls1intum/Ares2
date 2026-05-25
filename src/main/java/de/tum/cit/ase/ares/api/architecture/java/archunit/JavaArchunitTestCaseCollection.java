@@ -38,8 +38,8 @@ public class JavaArchunitTestCaseCollection {
 	 * Converts Java-style array notation in method signatures to the JNI-style
 	 * format that ArchUnit uses in {@code JavaAccess.getTarget().getFullName()}.
 	 * <p>
-	 * For example: {@code "java.lang.String[]"} becomes {@code "[Ljava.lang.String;"}
-	 * and {@code "byte[]"} becomes {@code "[B"}.
+	 * For example: {@code "java.lang.String[]"} becomes
+	 * {@code "[Ljava.lang.String;"} and {@code "byte[]"} becomes {@code "[B"}.
 	 *
 	 * @param signature the method signature with Java-style array notation
 	 * @return the signature with JNI-style array notation
@@ -68,8 +68,7 @@ public class JavaArchunitTestCaseCollection {
 					@Override
 					public boolean test(JavaAccess<?> javaAccess) {
 						if (forbiddenMethods == null) {
-							forbiddenMethods = FileTools.readMethodsFile(FileTools.readFile(methodsFilePath))
-									.stream()
+							forbiddenMethods = FileTools.readMethodsFile(FileTools.readFile(methodsFilePath)).stream()
 									.map(JavaArchunitTestCaseCollection::convertArrayNotation)
 									.collect(Collectors.toSet());
 						}

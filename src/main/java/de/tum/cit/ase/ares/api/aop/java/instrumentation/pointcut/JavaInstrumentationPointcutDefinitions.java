@@ -84,10 +84,14 @@ public class JavaInstrumentationPointcutDefinitions {
 					.or(ElementMatchers.hasSuperType(ElementMatchers.named(target)));
 		}
 
-		// Exclude internal JVM implementation classes that have different method signatures
-		// than the public API (FileChannel.open dispatches into sun.nio.ch.FileChannelImpl.open
-		// with extra OpenOption arguments). For NIO socket / datagram / async channels the
-		// abstract method is implemented by sun.nio.ch.*ChannelImpl with the SAME signature,
+		// Exclude internal JVM implementation classes that have different method
+		// signatures
+		// than the public API (FileChannel.open dispatches into
+		// sun.nio.ch.FileChannelImpl.open
+		// with extra OpenOption arguments). For NIO socket / datagram / async channels
+		// the
+		// abstract method is implemented by sun.nio.ch.*ChannelImpl with the SAME
+		// signature,
 		// so those impls must remain instrumentable to catch instance-method calls.
 		matcher = matcher.and(ElementMatchers.not(ElementMatchers.nameStartsWith("sun.nio.ch.FileChannelImpl"))
 				.and(ElementMatchers.not(ElementMatchers.nameStartsWith("sun.nio.ch.AsynchronousFileChannelImpl")))
@@ -352,8 +356,7 @@ public class JavaInstrumentationPointcutDefinitions {
 	 */
 	public static final Map<String, List<String>> methodsWhichCanReadFiles = Map.ofEntries(
 			// java.io
-			Map.entry("java.io.Reader", List.of("<init>")),
-			Map.entry("java.io.BufferedInputStream", List.of("<init>")),
+			Map.entry("java.io.Reader", List.of("<init>")), Map.entry("java.io.BufferedInputStream", List.of("<init>")),
 			Map.entry("java.io.FileInputStream", List.of("<init>")),
 			Map.entry("java.io.RandomAccessFile", List.of("<init>")),
 			Map.entry("java.io.DataInput",
@@ -393,9 +396,8 @@ public class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.util.zip.GZIPInputStream", List.of("<init>")),
 			Map.entry("java.util.jar.JarFile", List.of("<init>", "entries", "getInputStream")),
 			Map.entry("java.util.jar.JarInputStream", List.of("<init>", "getNextJarEntry")),
-            Map.entry("java.util.Properties", List.of("load", "loadFromXML")),
-            Map.entry("java.awt.Desktop",
-                    List.of("open", "edit", "print", "browse", "browseFileDirectory")));
+			Map.entry("java.util.Properties", List.of("load", "loadFromXML")),
+			Map.entry("java.awt.Desktop", List.of("open", "edit", "print", "browse", "browseFileDirectory")));
 	// </editor-fold>
 
 	// <editor-fold desc="Overwrite Path">
@@ -459,8 +461,7 @@ public class JavaInstrumentationPointcutDefinitions {
 			// javax.xml
 			Map.entry("javax.xml.transform.Transformer", List.of("transform")),
 			Map.entry("javax.xml.bind.Marshaller", List.of("marshal")),
-            Map.entry("java.awt.Desktop",
-                    List.of("open", "edit", "print", "browse", "browseFileDirectory")));
+			Map.entry("java.awt.Desktop", List.of("open", "edit", "print", "browse", "browseFileDirectory")));
 	// </editor-fold>
 
 	// <editor-fold desc="Execute Path">
@@ -489,7 +490,8 @@ public class JavaInstrumentationPointcutDefinitions {
 	 */
 	public static final Map<String, List<String>> methodsWhichCanDeleteFiles = Map.ofEntries(
 			// java.awt
-			Map.entry("java.awt.Desktop", List.of("moveToTrash", "open", "edit", "print", "browse", "browseFileDirectory")),
+			Map.entry("java.awt.Desktop",
+					List.of("moveToTrash", "open", "edit", "print", "browse", "browseFileDirectory")),
 			// java.io
 			Map.entry("java.io.File", List.of("delete", "deleteOnExit")),
 			// java.nio

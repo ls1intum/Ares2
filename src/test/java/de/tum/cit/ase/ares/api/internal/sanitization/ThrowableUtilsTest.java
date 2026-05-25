@@ -56,7 +56,8 @@ class ThrowableUtilsTest {
 			var preferredConstructor = findPreferredConstructor(type);
 			return !validate(type, preferredConstructor);
 		}).sorted(Comparator.comparing(Object::toString)).collect(Collectors.toList());
-		// Use string-based assertion to avoid assertj IntrospectionError when displaying failing types
+		// Use string-based assertion to avoid assertj IntrospectionError when
+		// displaying failing types
 		assertThat(duplicationFailures.stream().map(Class::getName).collect(Collectors.toList()))
 				.as("the default Throwable duplication works for all SAFE_TYPE classes that are not specially handeled")
 				.isEmpty();

@@ -202,8 +202,8 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	 * <p>
 	 * Description: Handles lambda expressions as a special case (both must be
 	 * lambdas to match). For regular classes, uses {@code Class.forName} and
-	 * {@code isAssignableFrom} to support class hierarchy matching. Falls back
-	 * to exact string comparison when classes cannot be loaded (e.g. JDK internal
+	 * {@code isAssignableFrom} to support class hierarchy matching. Falls back to
+	 * exact string comparison when classes cannot be loaded (e.g. JDK internal
 	 * classes).
 	 *
 	 * @param actualClassname  the class name from the intercepted call
@@ -458,8 +458,7 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		} else {
 			try {
 				ThreadTarget target = variableToTarget(observedVariable);
-				return checkIfThreadIsForbidden(target, threadClassAllowedToBeCreated,
-						threadNumberAllowedToBeCreated);
+				return checkIfThreadIsForbidden(target, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated);
 			} catch (SecurityException ignored) {
 				return false;
 			}
@@ -510,8 +509,7 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		} else {
 			try {
 				ThreadTarget target = variableToTarget(observedVariable);
-				if (checkIfThreadIsForbidden(target, threadClassAllowedToBeCreated,
-						threadNumberAllowedToBeCreated)) {
+				if (checkIfThreadIsForbidden(target, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated)) {
 					return target != null ? target.toDisplayString() : null;
 				}
 			} catch (SecurityException ignored) {

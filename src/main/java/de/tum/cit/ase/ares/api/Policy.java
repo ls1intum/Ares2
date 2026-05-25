@@ -61,8 +61,8 @@ public @interface Policy {
 	 * security restrictions (UNPROTECTED mode).
 	 * </p>
 	 *
-	 * @return {@code true} to keep security checks active (default),
-	 *         {@code false} to deactivate Ares security checks.
+	 * @return {@code true} to keep security checks active (default), {@code false}
+	 *         to deactivate Ares security checks.
 	 */
 	boolean activated() default true;
 }

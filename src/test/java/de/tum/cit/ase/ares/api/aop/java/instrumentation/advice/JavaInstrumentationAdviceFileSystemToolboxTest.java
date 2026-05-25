@@ -15,6 +15,7 @@ import org.mockito.MockedStatic;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationPointcutDefinitions;
+
 import example.student.InstrumentationSecurityProbe;
 
 class JavaInstrumentationAdviceFileSystemToolboxTest {
@@ -27,17 +28,16 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 
 	private static void configureInstrumentationMode() {
 		JavaAOPTestCase.setJavaAdviceSettingValue("aopMode", "INSTRUMENTATION", "ARCH", "INSTRUMENTATION");
-		JavaAOPTestCase.setJavaAdviceSettingValue("restrictedPackage", "example.student", "ARCH",
-				"INSTRUMENTATION");
-		JavaAOPTestCase.setJavaAdviceSettingValue("allowedListedClasses", new String[0], "ARCH",
-				"INSTRUMENTATION");
+		JavaAOPTestCase.setJavaAdviceSettingValue("restrictedPackage", "example.student", "ARCH", "INSTRUMENTATION");
+		JavaAOPTestCase.setJavaAdviceSettingValue("allowedListedClasses", new String[0], "ARCH", "INSTRUMENTATION");
 	}
 
 	@Test
 	void testCheckFileSystemInteraction_AllowedInteraction() {
 		try (MockedStatic<JavaInstrumentationAdviceFileSystemToolbox> mockedToolbox = mockStatic(
 				JavaInstrumentationAdviceFileSystemToolbox.class)) {
-			// When the class is mocked statically, checkFileSystemInteraction is intercepted
+			// When the class is mocked statically, checkFileSystemInteraction is
+			// intercepted
 			// and returns null by default — just verify no exception is thrown
 			assertDoesNotThrow(() -> JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("read",
 					"de.tum.cit.ase.safe.FileReader", "readFile", "(Ljava/lang/String;)V", null,
@@ -50,10 +50,8 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 		try {
 			resetSettings();
 			JavaAOPTestCase.setJavaAdviceSettingValue("aopMode", "INSTRUMENTATION", "ARCH", "INSTRUMENTATION");
-			JavaAOPTestCase.setJavaAdviceSettingValue("restrictedPackage", "de.tum.cit.ase", "ARCH",
-					"INSTRUMENTATION");
-			JavaAOPTestCase.setJavaAdviceSettingValue("allowedListedClasses", new String[0], "ARCH",
-					"INSTRUMENTATION");
+			JavaAOPTestCase.setJavaAdviceSettingValue("restrictedPackage", "de.tum.cit.ase", "ARCH", "INSTRUMENTATION");
+			JavaAOPTestCase.setJavaAdviceSettingValue("allowedListedClasses", new String[0], "ARCH", "INSTRUMENTATION");
 			String allowedPath = tempDir.toString();
 			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeOverwritten", new String[] { allowedPath },
 					"ARCH", "INSTRUMENTATION");
@@ -113,8 +111,8 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 			configureInstrumentationMode();
 			Path allowedDir = Files.createDirectory(tempDir.resolve("allowed"));
 			Path forbiddenPath = tempDir.resolve("missing.txt");
-			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeDeleted",
-					new String[] { allowedDir.toString() }, "ARCH", "INSTRUMENTATION");
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeDeleted", new String[] { allowedDir.toString() },
+					"ARCH", "INSTRUMENTATION");
 
 			SecurityException exception = assertThrows(SecurityException.class,
 					() -> InstrumentationSecurityProbe.checkDeleteIfExists(forbiddenPath));

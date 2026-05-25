@@ -20,11 +20,11 @@
 3. [Ares 2 AOP File System Access Control: Student Code Triggers the Access Control Check](#3-ares-2-aop-file-system-access-control-student-code-triggers-the-access-control-check)
 4. [Ares 2 AOP File System Access Control: Collected Information About the File Access](#4-ares-2-aop-file-system-access-control-collected-information-about-the-file-access)
    - [4.1 What Is The Signature Of The Monitored File System Method?](#41-what-is-the-signature-of-the-monitored-file-system-method)
-   - [4.2 What Are The Attribuet Values Of The Object Of The Monitored File System Method?](#42-what-are-the-attribuet-values-of-the-object-of-the-monitored-file-system-method)
+   - [4.2 What Are The Attribute Values Of The Object Of The Monitored File System Method?](#42-what-are-the-attribute-values-of-the-object-of-the-monitored-file-system-method)
    - [4.3 What Are The Parameter Values Of The Monitored File System Method?](#43-what-are-the-parameter-values-of-the-monitored-file-system-method)
    - [4.4 Which Information Is Passed To The Respective Security Validator?](#44-which-information-is-passed-to-the-respective-security-validator)
 5. [Ares 2 AOP File System Access Control: Blocking Or Allowing The File Access](#5-ares-2-aop-file-system-access-control-blocking-or-allowing-the-file-access)
-   - [5.1 Check 1: Is A Respective AOP Mode Enabled Or Is AOP Fully Disabeled?](#51-check-1-is-a-respective-aop-mode-enabled-or-is-aop-fully-disabeled)
+   - [5.1 Check 1: Is A Respective AOP Mode Enabled Or Is AOP Fully Disabled?](#51-check-1-is-a-respective-aop-mode-enabled-or-is-aop-fully-disabled)
    - [5.2 Check 2: Is the Caller Of The Monitored File System Method The Monitored Student Code?](#52-check-2-is-the-caller-of-the-monitored-file-system-method-the-monitored-student-code)
      - [5.2.1 Load Configuration](#521-load-configuration)
      - [5.2.2 Analyze the Call Chain](#522-analyze-the-call-chain)
@@ -75,7 +75,7 @@ This document explains how Ares 2 decides whether student code may access the fi
 1. Student calls `Files.readString("/etc/passwd")`
 2. Ares intercepts the call (AOP) and checks:
    - Does this come from student code? ✓ Yes
-   - Is `/etc/passwd` in the allowed list? ✗ No
+   - Is `/etc/passwd` in the allowlist? ✗ No
 3. Ares blocks and throws a meaningful exception
 
 ---
@@ -99,7 +99,7 @@ This document explains how Ares 2 decides whether student code may access the fi
 <a id="11-how-does-the-uml-activity-diagram-look-like"></a>
 ## 1.1 How Does The UML Activity Diagram look like?
 
-Below is a general overview of the process for deciding whether to allow or block file access as an UML activity diagram. Throughout this document, you will find the following symbols:
+Below is a general overview of the process for deciding whether to allow or block file access as a UML activity diagram. Throughout this document, you will find the following symbols:
 - **🔴 Red** = File access blocked (security policy violation detected)
 - **🌕 Yellow** = Intermediate condition met → continue to the next verification step
 - **🟢 Green** = File access permitted (no security policy violation detected)
@@ -177,7 +177,7 @@ Plain-language summary: if student code triggers a monitored file method and the
 
 **Access is ALLOWED 🟢 if ANY of the aforementioned conditions do not apply**
 
-Summarising this, Ares trusts code when: 
+In summary, Ares trusts code when: 
 - It is located outside of the `restrictedPackage`
 - It is located inside of the `restrictedPackage`, but its classes are listed in `allowedListedClasses` within the student package
 - It is listed as Ares internal code
@@ -690,8 +690,8 @@ public void checkFileSystemInteraction(
 
 ---
 
-<a id="42-what-are-the-attribuet-values-of-the-object-of-the-monitored-file-system-method"></a>
-## 4.2 What Are The Attribuet Values Of The Object Of The Monitored File System Method?
+<a id="42-what-are-the-attribute-values-of-the-object-of-the-monitored-file-system-method"></a>
+## 4.2 What Are The Attribute Values Of The Object Of The Monitored File System Method?
 
 **1. What Information Do We Collect:**
 
@@ -881,8 +881,8 @@ The security validator performs a **series of checks** to decide whether the fil
 
 ---
 
-<a id="51-check-1-is-a-respective-aop-mode-enabled-or-is-aop-fully-disabeled"></a>
-## 5.1 Check 1: Is A Respective AOP Mode Enabled Or Is AOP Fully Disabeled?
+<a id="51-check-1-is-a-respective-aop-mode-enabled-or-is-aop-fully-disabled"></a>
+## 5.1 Check 1: Is A Respective AOP Mode Enabled Or Is AOP Fully Disabled?
 
 **1. Purpose**
 

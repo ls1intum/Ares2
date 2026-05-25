@@ -106,7 +106,8 @@ public class JavaCreatorTest {
 			Supplier<String> mockSupplier = mock(Supplier.class);
 			when(mockSupplier.get()).thenReturn(null);
 
-			// Act - use a unique key to avoid interference with other tests using the static cache
+			// Act - use a unique key to avoid interference with other tests using the
+			// static cache
 			Supplier<String> cachedSupplier = JavaCreator.cacheResult("null_test_unique_key_abc123", mockSupplier);
 			String result = cachedSupplier.get();
 

@@ -28,13 +28,13 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 			"com.intellij.rt.debugger.", "jdk.internal.loader.", "jdk.internal.reflect.");
 
 	/**
-	 * Cached StackWalker used by the call-stack inspectors below. The default options
-	 * (no RETAIN_CLASS_REFERENCE) are deliberately chosen because the inspectors only
-	 * read className/methodName strings — keeping Class objects materialized would
-	 * pay extra JNI work on every walked frame. The walker avoids the Exception
-	 * allocation and full StackTraceElement[] materialization that
-	 * Thread.currentThread().getStackTrace() pays on every intercepted JDK call.
-	 * Pointcuts on java.io.InputStream.read fire during ObjectInputStream
+	 * Cached StackWalker used by the call-stack inspectors below. The default
+	 * options (no RETAIN_CLASS_REFERENCE) are deliberately chosen because the
+	 * inspectors only read className/methodName strings — keeping Class objects
+	 * materialized would pay extra JNI work on every walked frame. The walker
+	 * avoids the Exception allocation and full StackTraceElement[] materialization
+	 * that Thread.currentThread().getStackTrace() pays on every intercepted JDK
+	 * call. Pointcuts on java.io.InputStream.read fire during ObjectInputStream
 	 * deserialization of test-result events; the StackWalker path is roughly an
 	 * order of magnitude cheaper for those high-frequency probes.
 	 */
@@ -45,8 +45,8 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 * Lazily resolved Class&lt;?&gt; reference for the AOP settings holder. Each
 	 * intercepted JDK call (e.g. java.io.InputStream.read during ObjectInputStream
 	 * deserialization) reads aopMode + restrictedPackage + allowedListedClasses.
-	 * Resolving the class via Class.forName on every access (a native call) is
-	 * the second-largest contributor to advice overhead after the stack walk; this
+	 * Resolving the class via Class.forName on every access (a native call) is the
+	 * second-largest contributor to advice overhead after the stack walk; this
 	 * cached reference reduces it to a single volatile load.
 	 */
 	@Nullable
@@ -112,11 +112,11 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 
 	/**
 	 * Resolves the static settings Field for the given name once and caches the
-	 * resulting Field handle plus the owning Class&lt;?&gt; reference. The reflective
-	 * lookup is the second-largest fixed cost on hot advice paths (called three
-	 * times per intercepted JDK call before this cache existed), so caching it on
-	 * the bootstrap classloader avoids a Class.forName native call and a
-	 * getDeclaredField walk on every interception. The cached field has
+	 * resulting Field handle plus the owning Class&lt;?&gt; reference. The
+	 * reflective lookup is the second-largest fixed cost on hot advice paths
+	 * (called three times per intercepted JDK call before this cache existed), so
+	 * caching it on the bootstrap classloader avoids a Class.forName native call
+	 * and a getDeclaredField walk on every interception. The cached field has
 	 * setAccessible(true) once and stays accessible for the JVM lifetime.
 	 *
 	 * @param fieldName the name of the JavaAOPTestCaseSettings field to resolve
@@ -436,9 +436,9 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 
 	/**
 	 * Per-thread one-shot cache of the last inspectCallstackOnce result. Populated
-	 * by {@link #checkIfCallstackCriteriaIsViolated} and consumed by the immediately
-	 * following {@link #findFirstMethodOutsideOfRestrictedPackage} call so the
-	 * combined check+caller-lookup costs only one walk instead of two.
+	 * by {@link #checkIfCallstackCriteriaIsViolated} and consumed by the
+	 * immediately following {@link #findFirstMethodOutsideOfRestrictedPackage} call
+	 * so the combined check+caller-lookup costs only one walk instead of two.
 	 */
 	@Nonnull
 	private static final ThreadLocal<String[]> CALLSTACK_INSPECTION_CACHE = new ThreadLocal<>();
@@ -530,8 +530,8 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 				return i;
 			}
 		}
-		throw new SecurityException(
-				JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.field.not.found", fieldName, clazz.getName()));
+		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+				.localize("security.instrumentation.field.not.found", fieldName, clazz.getName()));
 	}
 	// </editor-fold>
 

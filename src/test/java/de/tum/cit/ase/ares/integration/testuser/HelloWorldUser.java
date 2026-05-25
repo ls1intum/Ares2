@@ -13,11 +13,11 @@ import de.tum.cit.ase.ares.api.jupiter.Public;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
 
 /**
- * Hello-World-style user test class that verifies @Policy behaviour.
- * Covers AspectJ modes (ArchUnit and WALA) and deactivated policy.
- * Instrumentation modes are intentionally excluded: when run via @UserBased,
- * the Java agent is not available in the nested test JVM, causing
- * JavaAOPTestCaseSettings to be unloadable from the bootstrap class loader.
+ * Hello-World-style user test class that verifies @Policy behaviour. Covers
+ * AspectJ modes (ArchUnit and WALA) and deactivated policy. Instrumentation
+ * modes are intentionally excluded: when run via @UserBased, the Java agent is
+ * not available in the nested test JVM, causing JavaAOPTestCaseSettings to be
+ * unloadable from the bootstrap class loader.
  */
 @Public
 @UseLocale("en")
@@ -31,10 +31,7 @@ public class HelloWorldUser {
 	// -----------------------------------------------------------------------
 
 	@Test
-	@Policy(
-		value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyHelloWorld.yaml",
-		withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld"
-	)
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyHelloWorld.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
 	void helloWorld_mavenArchunitAspectJ() {
 		assertEquals("Hello, World!", "Hello, World!");
 	}
@@ -44,10 +41,7 @@ public class HelloWorldUser {
 	// -----------------------------------------------------------------------
 
 	@Test
-	@Policy(
-		value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyHelloWorld.yaml",
-		withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld"
-	)
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyHelloWorld.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
 	void helloWorld_mavenWalaAspectJ() {
 		assertEquals("Hello, World!", "Hello, World!");
 	}

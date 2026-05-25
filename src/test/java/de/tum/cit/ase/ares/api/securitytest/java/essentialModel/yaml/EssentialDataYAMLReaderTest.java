@@ -214,10 +214,10 @@ public class EssentialDataYAMLReaderTest {
 		@DisplayName("Should read and process both packages and classes successfully")
 		void shouldReadAndProcessBothPackagesAndClassesSuccessfully() {
 			// Arrange
-			Path packagesPath = Paths
-					.get("src/main/resources/de/tum/cit/ase/ares/api/configuration/essentialFiles/java/EssentialPackages.yaml");
-			Path classesPath = Paths
-					.get("src/main/resources/de/tum/cit/ase/ares/api/configuration/essentialFiles/java/EssentialClasses.yaml");
+			Path packagesPath = Paths.get(
+					"src/main/resources/de/tum/cit/ase/ares/api/configuration/essentialFiles/java/EssentialPackages.yaml");
+			Path classesPath = Paths.get(
+					"src/main/resources/de/tum/cit/ase/ares/api/configuration/essentialFiles/java/EssentialClasses.yaml");
 
 			// Act
 			EssentialPackages packages = reader.readEssentialPackagesFrom(packagesPath);

@@ -6,9 +6,9 @@ import java.lang.reflect.InaccessibleObjectException;
 import net.bytebuddy.asm.Advice;
 
 /**
- * This class provides advice for the execution of methods sending network
- * data. It is responsible for verifying whether the method execution is allowed
- * based on the network system security policies defined within the application.
+ * This class provides advice for the execution of methods sending network data.
+ * It is responsible for verifying whether the method execution is allowed based
+ * on the network system security policies defined within the application.
  * <p>
  * If an execution attempt violates these policies, a SecurityException is
  * thrown, preventing unauthorized network send operations. The class interacts
@@ -18,10 +18,9 @@ import net.bytebuddy.asm.Advice;
 public final class JavaInstrumentationSendNetworkMethodAdvice {
 	/**
 	 * This method is called when a method sending network data is entered. It
-	 * performs security checks to determine whether the method execution is
-	 * allowed according to network system security policies. If the method
-	 * execution is not permitted, a SecurityException is thrown, blocking the
-	 * execution.
+	 * performs security checks to determine whether the method execution is allowed
+	 * according to network system security policies. If the method execution is not
+	 * permitted, a SecurityException is thrown, blocking the execution.
 	 * <p>
 	 * The checkNetworkSystemInteraction method from
 	 * JavaInstrumentationAdviceNetworkSystemToolbox is called to perform these
@@ -74,4 +73,3 @@ public final class JavaInstrumentationSendNetworkMethodAdvice {
 		// </editor-fold>
 	}
 }
-

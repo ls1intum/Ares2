@@ -26,8 +26,7 @@ public class ReachabilityCheckerTest {
 		Predicate<com.ibm.wala.ipa.callgraph.CGNode> dummyFilter = node -> true;
 		SecurityException ex = assertThrows(SecurityException.class,
 				() -> ReachabilityChecker.findReachableMethods(null, dummyNodes, dummyFilter));
-		assertTrue(ex.getMessage().contains("CallGraph"),
-				"Expected message to mention CallGraph");
+		assertTrue(ex.getMessage().contains("CallGraph"), "Expected message to mention CallGraph");
 	}
 
 	/**
@@ -39,8 +38,7 @@ public class ReachabilityCheckerTest {
 		Predicate<com.ibm.wala.ipa.callgraph.CGNode> dummyFilter = node -> true;
 		SecurityException ex = assertThrows(SecurityException.class,
 				() -> ReachabilityChecker.findReachableMethods(dummyGraph, null, dummyFilter));
-		assertTrue(ex.getMessage().contains("startNodes"),
-				"Expected message to mention startNodes");
+		assertTrue(ex.getMessage().contains("startNodes"), "Expected message to mention startNodes");
 	}
 
 	/**
@@ -52,8 +50,7 @@ public class ReachabilityCheckerTest {
 		Iterator<com.ibm.wala.ipa.callgraph.CGNode> dummyNodes = Collections.emptyIterator();
 		SecurityException ex = assertThrows(SecurityException.class,
 				() -> ReachabilityChecker.findReachableMethods(dummyGraph, dummyNodes, null));
-		assertTrue(ex.getMessage().contains("targetNodeFilter"),
-				"Expected message to mention targetNodeFilter");
+		assertTrue(ex.getMessage().contains("targetNodeFilter"), "Expected message to mention targetNodeFilter");
 	}
 
 	/**
@@ -64,8 +61,7 @@ public class ReachabilityCheckerTest {
 		ClassHierarchy dummyHierarchy = mock(ClassHierarchy.class);
 		SecurityException ex = assertThrows(SecurityException.class,
 				() -> ReachabilityChecker.getEntryPointsFromStudentSubmission("   ", dummyHierarchy));
-		assertTrue(ex.getMessage().contains("classPath"),
-				"Expected message to mention classPath");
+		assertTrue(ex.getMessage().contains("classPath"), "Expected message to mention classPath");
 	}
 
 	/**
@@ -75,7 +71,6 @@ public class ReachabilityCheckerTest {
 	void getEntryPointsFromStudentSubmission_NullHierarchy_ThrowsSecurityException() {
 		SecurityException ex = assertThrows(SecurityException.class,
 				() -> ReachabilityChecker.getEntryPointsFromStudentSubmission("some/path", null));
-		assertTrue(ex.getMessage().contains("ClassHierarchy"),
-				"Expected message to mention ClassHierarchy");
+		assertTrue(ex.getMessage().contains("ClassHierarchy"), "Expected message to mention ClassHierarchy");
 	}
 }

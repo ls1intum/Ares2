@@ -171,8 +171,8 @@ public class CustomDFSPathFinder {
 	 * <p>
 	 * WALA stores successor sets in HashSet-backed collections; their iteration
 	 * order depends on each {@code CGNode}'s identity hashcode, which is seeded
-	 * once per JVM and therefore differs between runs. Sorting by method
-	 * signature gives DFS the same traversal order every time.
+	 * once per JVM and therefore differs between runs. Sorting by method signature
+	 * gives DFS the same traversal order every time.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen

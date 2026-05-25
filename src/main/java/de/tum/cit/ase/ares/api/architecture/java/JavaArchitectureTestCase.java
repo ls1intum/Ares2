@@ -42,11 +42,11 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	// <editor-fold desc="Attributes">
 
 	/**
-	 * Optional lazy supplier of the call graph. When non-null, the WALA
-	 * conversion uses this supplier (deferred construction) instead of the
-	 * eagerly resolved {@link #callGraph} inherited from the parent class. This
-	 * lets the WALA outcome cache short-circuit rule checks before the
-	 * (expensive) call-graph construction ever runs.
+	 * Optional lazy supplier of the call graph. When non-null, the WALA conversion
+	 * uses this supplier (deferred construction) instead of the eagerly resolved
+	 * {@link #callGraph} inherited from the parent class. This lets the WALA
+	 * outcome cache short-circuit rule checks before the (expensive) call-graph
+	 * construction ever runs.
 	 */
 	@Nullable
 	private final Supplier<CallGraph> callGraphSupplier;
@@ -98,8 +98,8 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	 * @param callGraph                         Eagerly resolved call graph, or
 	 *                                          {@code null} when only the lazy
 	 *                                          supplier is provided
-	 * @param callGraphSupplier                 Lazy supplier of the call graph,
-	 *                                          or {@code null} when an eager
+	 * @param callGraphSupplier                 Lazy supplier of the call graph, or
+	 *                                          {@code null} when an eager
 	 *                                          {@code callGraph} is provided
 	 * @since 2.0.0
 	 */
@@ -209,7 +209,8 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		@Nonnull
 		String detailLine = messageParts[1].trim();
 
-		// Extract the caller (Method/Constructor) and target (accesses/calls) with fallbacks.
+		// Extract the caller (Method/Constructor) and target (accesses/calls) with
+		// fallbacks.
 		String caller = null;
 		String target = null;
 
@@ -364,13 +365,13 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 			// for callers that already resolved the call graph (legacy code).
 			JavaWalaTestCase tc;
 			if (callGraphSupplier != null) {
-				tc = new JavaWalaTestCase(protectedJavaArchitectureTestCaseSupported,
-						protectedAllowedPackages, protectedJavaClasses, callGraphSupplier);
+				tc = new JavaWalaTestCase(protectedJavaArchitectureTestCaseSupported, protectedAllowedPackages,
+						protectedJavaClasses, callGraphSupplier);
 			} else {
 				tc = JavaWalaTestCase.walaBuilder()
 						.javaArchitectureTestCaseSupported(protectedJavaArchitectureTestCaseSupported)
-						.allowedPackages(protectedAllowedPackages).javaClasses(protectedJavaClasses).callGraph(callGraph)
-						.build();
+						.allowedPackages(protectedAllowedPackages).javaClasses(protectedJavaClasses)
+						.callGraph(callGraph).build();
 			}
 			tc.executeArchitectureTestCase(architectureMode, aopMode);
 		}
@@ -409,8 +410,8 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		 * Optional lazy supplier for the call graph. When set, the conversion to a
 		 * {@link de.tum.cit.ase.ares.api.architecture.java.wala.JavaWalaTestCase}
 		 * propagates this supplier instead of resolving the call graph eagerly. This
-		 * lets the WALA outcome cache short-circuit rule checks before the
-		 * (expensive) call-graph construction ever runs.
+		 * lets the WALA outcome cache short-circuit rule checks before the (expensive)
+		 * call-graph construction ever runs.
 		 */
 		@Nullable
 		private Supplier<CallGraph> callGraphSupplier;
@@ -465,9 +466,9 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		}
 
 		/**
-		 * Sets a lazy supplier for the call graph. Required only for WALA mode and
-		 * only when callers want construction deferred until the rule actually needs
-		 * the graph (e.g. cache miss). For ARCHUNIT mode this is irrelevant.
+		 * Sets a lazy supplier for the call graph. Required only for WALA mode and only
+		 * when callers want construction deferred until the rule actually needs the
+		 * graph (e.g. cache miss). For ARCHUNIT mode this is irrelevant.
 		 */
 		@Nonnull
 		public Builder callGraphSupplier(@Nullable Supplier<CallGraph> callGraphSupplier) {
@@ -504,8 +505,8 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 					Preconditions.checkNotNull(javaArchitectureTestCaseSupported,
 							"javaArchitecturalTestCaseSupported must not be null"),
 					Preconditions.checkNotNull(allowedPackages, "allowedPackages must not be null"),
-					Preconditions.checkNotNull(javaClasses, "javaClasses must not be null"),
-					callGraph, callGraphSupplier);
+					Preconditions.checkNotNull(javaClasses, "javaClasses must not be null"), callGraph,
+					callGraphSupplier);
 		}
 	}
 	// </editor-fold>

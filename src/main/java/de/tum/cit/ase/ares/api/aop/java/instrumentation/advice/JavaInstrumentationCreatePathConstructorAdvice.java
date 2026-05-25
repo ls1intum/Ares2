@@ -20,8 +20,8 @@ public final class JavaInstrumentationCreatePathConstructorAdvice {
 	 * execution.
 	 * <p>
 	 * The checkFileSystemInteraction method from
-	 * JavaInstrumentationAdviceFileSystemToolbox is called to perform these
-	 * checks, ensuring that the constructor's parameters adhere to the security
+	 * JavaInstrumentationAdviceFileSystemToolbox is called to perform these checks,
+	 * ensuring that the constructor's parameters adhere to the security
 	 * restrictions.
 	 *
 	 * @param declaringTypeName The name of the class that declares the constructor.

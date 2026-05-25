@@ -6,7 +6,6 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 
 import de.tum.cit.ase.ares.api.localization.Messages;
@@ -99,7 +98,8 @@ public class SecurityPolicyReaderAndDirector {
 		@Nullable
 		SecurityPolicy securityPolicy = null;
 		if (securityPolicyFilePath != null && !securityPolicyFilePath.toString().isEmpty()) {
-			@Nonnull Path nonNullPolicyPath = securityPolicyFilePath;
+			@Nonnull
+			Path nonNullPolicyPath = securityPolicyFilePath;
 			securityPolicyReader = SecurityPolicyReader.selectSecurityPolicyReader(nonNullPolicyPath);
 			if (securityPolicyReader != null) {
 				securityPolicy = securityPolicyReader.readSecurityPolicyFrom(nonNullPolicyPath);

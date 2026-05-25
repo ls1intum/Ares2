@@ -17,12 +17,12 @@ import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceThreadSystemToolbox;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationConnectNetworkConstructorAdvice;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationConnectNetworkMethodAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationCreatePathConstructorAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationCreatePathMethodAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationCreateThreadConstructorAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationCreateThreadMethodAdvice;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationConnectNetworkConstructorAdvice;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationConnectNetworkMethodAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathConstructorAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathMethodAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationExecuteCommandConstructorAdvice;
@@ -31,10 +31,10 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentati
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathMethodAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathConstructorAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathMethodAdvice;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReceiveNetworkConstructorAdvice;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReceiveNetworkMethodAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathConstructorAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathMethodAdvice;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReceiveNetworkConstructorAdvice;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReceiveNetworkMethodAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationSendNetworkConstructorAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationSendNetworkMethodAdvice;
 

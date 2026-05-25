@@ -72,7 +72,7 @@ public class JavaWriterTest {
 		@DisplayName("Should write test cases and return file paths")
 		void shouldWriteTestCasesAndReturnFilePaths() {
 			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
-				 MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
+					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
 				// Arrange
 				// Mock ArchitectureMode
 				when(architectureMode.fsFilesToCopy()).thenReturn(List.of());
@@ -120,9 +120,11 @@ public class JavaWriterTest {
 				// Mock Phobos
 				mockedPhobos.when(() -> Phobos.filesToCopy()).thenReturn(List.of());
 				mockedPhobos.when(() -> Phobos.targetsToCopyTo(any())).thenReturn(List.of());
-				mockedPhobos.when(() -> Phobos.threePartedFileHeader()).thenReturn(tempDir.resolve("phobos-header.java"));
+				mockedPhobos.when(() -> Phobos.threePartedFileHeader())
+						.thenReturn(tempDir.resolve("phobos-header.java"));
 				mockedPhobos.when(() -> Phobos.threePartedFileBody(any())).thenReturn("phobos-body");
-				mockedPhobos.when(() -> Phobos.threePartedFileFooter()).thenReturn(tempDir.resolve("phobos-footer.java"));
+				mockedPhobos.when(() -> Phobos.threePartedFileFooter())
+						.thenReturn(tempDir.resolve("phobos-footer.java"));
 				mockedPhobos.when(() -> Phobos.targetToCopyTo(any())).thenReturn(tempDir.resolve("phobos-target.java"));
 				mockedPhobos.when(() -> Phobos.fileValue(any())).thenReturn(new String[] { "value" });
 
@@ -170,7 +172,7 @@ public class JavaWriterTest {
 		@DisplayName("Should handle empty lists")
 		void shouldHandleEmptyLists() {
 			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
-				 MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
+					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
 				// Arrange
 				List<String> emptyPackages = List.of();
 				List<String> emptyClasses = List.of();
@@ -220,9 +222,11 @@ public class JavaWriterTest {
 				// Mock Phobos
 				mockedPhobos.when(() -> Phobos.filesToCopy()).thenReturn(List.of());
 				mockedPhobos.when(() -> Phobos.targetsToCopyTo(any())).thenReturn(List.of());
-				mockedPhobos.when(() -> Phobos.threePartedFileHeader()).thenReturn(tempDir.resolve("phobos-header.java"));
+				mockedPhobos.when(() -> Phobos.threePartedFileHeader())
+						.thenReturn(tempDir.resolve("phobos-header.java"));
 				mockedPhobos.when(() -> Phobos.threePartedFileBody(any())).thenReturn("phobos-body");
-				mockedPhobos.when(() -> Phobos.threePartedFileFooter()).thenReturn(tempDir.resolve("phobos-footer.java"));
+				mockedPhobos.when(() -> Phobos.threePartedFileFooter())
+						.thenReturn(tempDir.resolve("phobos-footer.java"));
 				mockedPhobos.when(() -> Phobos.targetToCopyTo(any())).thenReturn(tempDir.resolve("phobos-target.java"));
 				mockedPhobos.when(() -> Phobos.fileValue(any())).thenReturn(new String[] { "value" });
 
@@ -243,7 +247,7 @@ public class JavaWriterTest {
 		@DisplayName("Should merge essential classes and test classes correctly")
 		void shouldMergeEssentialClassesAndTestClassesCorrectly() {
 			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
-				 MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
+					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
 				// Arrange
 				when(architectureMode.fsFilesToCopy()).thenReturn(List.of());
 				when(architectureMode.nonFSFilesToCopy()).thenReturn(List.of());
@@ -287,9 +291,11 @@ public class JavaWriterTest {
 				// Mock Phobos
 				mockedPhobos.when(() -> Phobos.filesToCopy()).thenReturn(List.of());
 				mockedPhobos.when(() -> Phobos.targetsToCopyTo(any())).thenReturn(List.of());
-				mockedPhobos.when(() -> Phobos.threePartedFileHeader()).thenReturn(tempDir.resolve("phobos-header.java"));
+				mockedPhobos.when(() -> Phobos.threePartedFileHeader())
+						.thenReturn(tempDir.resolve("phobos-header.java"));
 				mockedPhobos.when(() -> Phobos.threePartedFileBody(any())).thenReturn("phobos-body");
-				mockedPhobos.when(() -> Phobos.threePartedFileFooter()).thenReturn(tempDir.resolve("phobos-footer.java"));
+				mockedPhobos.when(() -> Phobos.threePartedFileFooter())
+						.thenReturn(tempDir.resolve("phobos-footer.java"));
 				mockedPhobos.when(() -> Phobos.targetToCopyTo(any())).thenReturn(tempDir.resolve("phobos-target.java"));
 				mockedPhobos.when(() -> Phobos.fileValue(any())).thenReturn(new String[] { "value" });
 
@@ -311,7 +317,7 @@ public class JavaWriterTest {
 		@DisplayName("Should handle different build modes")
 		void shouldHandleDifferentBuildModes() {
 			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
-				 MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
+					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
 				// Arrange
 				when(architectureMode.fsFilesToCopy()).thenReturn(List.of());
 				when(architectureMode.nonFSFilesToCopy()).thenReturn(List.of());
@@ -355,9 +361,11 @@ public class JavaWriterTest {
 				// Mock Phobos
 				mockedPhobos.when(() -> Phobos.filesToCopy()).thenReturn(List.of());
 				mockedPhobos.when(() -> Phobos.targetsToCopyTo(any())).thenReturn(List.of());
-				mockedPhobos.when(() -> Phobos.threePartedFileHeader()).thenReturn(tempDir.resolve("phobos-header.java"));
+				mockedPhobos.when(() -> Phobos.threePartedFileHeader())
+						.thenReturn(tempDir.resolve("phobos-header.java"));
 				mockedPhobos.when(() -> Phobos.threePartedFileBody(any())).thenReturn("phobos-body");
-				mockedPhobos.when(() -> Phobos.threePartedFileFooter()).thenReturn(tempDir.resolve("phobos-footer.java"));
+				mockedPhobos.when(() -> Phobos.threePartedFileFooter())
+						.thenReturn(tempDir.resolve("phobos-footer.java"));
 				mockedPhobos.when(() -> Phobos.targetToCopyTo(any())).thenReturn(tempDir.resolve("phobos-target.java"));
 				mockedPhobos.when(() -> Phobos.fileValue(any())).thenReturn(new String[] { "value" });
 

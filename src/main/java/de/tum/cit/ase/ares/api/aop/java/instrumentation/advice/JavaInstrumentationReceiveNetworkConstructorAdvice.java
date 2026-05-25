@@ -15,11 +15,11 @@ import net.bytebuddy.asm.Advice;
  */
 public final class JavaInstrumentationReceiveNetworkConstructorAdvice {
 	/**
-	 * This method is called when a constructor receiving network data is
-	 * entered. It performs security checks to determine whether the constructor
-	 * execution is allowed according to network system security policies. If the
-	 * constructor execution is not permitted, a SecurityException is thrown,
-	 * blocking the execution.
+	 * This method is called when a constructor receiving network data is entered.
+	 * It performs security checks to determine whether the constructor execution is
+	 * allowed according to network system security policies. If the constructor
+	 * execution is not permitted, a SecurityException is thrown, blocking the
+	 * execution.
 	 * <p>
 	 * The checkNetworkSystemInteraction method from
 	 * JavaInstrumentationAdviceNetworkSystemToolbox is called to perform these
@@ -37,4 +37,3 @@ public final class JavaInstrumentationReceiveNetworkConstructorAdvice {
 				"<init>", "", new Object[0], parameters, null);
 	}
 }
-
