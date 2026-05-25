@@ -15,7 +15,7 @@
 1. [Prerequisites](#1-prerequisites)
 2. [Purpose — What Problem Does This Solve?](#2-purpose--what-problem-does-this-solve)
 3. [Architecture Overview](#3-architecture-overview)
-4. [The User Input, Security Policy YAML File](#4-the-user-input--security-policy-yaml-file)
+4. [The User Input, Security Policy YAML File](`#4-the-user-input-security-policy-yaml-file`)
 5. [Reading the Policy — The `reader` Package](#5-reading-the-policy--the-reader-package)
    - [5.1. SecurityPolicyReader (Abstract Class)](#51-securitypolicyreader-abstract-class)
    - [5.2. SecurityPolicyYAMLReader (Concrete Class)](#52-securitypolicyyamlreader-concrete-class)
