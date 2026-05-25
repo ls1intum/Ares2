@@ -28,80 +28,84 @@ public class WalaRule {
 		int _pathCount = 0;
 		boolean _violationFound = false;
 		try {
-		Predicate<CGNode> isForbidden = n -> forbiddenMethods.stream()
-				.anyMatch(m -> n.getMethod().getSignature().startsWith(m));
+			Predicate<CGNode> isForbidden = n -> forbiddenMethods.stream()
+					.anyMatch(m -> n.getMethod().getSignature().startsWith(m));
 
-		// Use the DFS finder in a loop: skip paths that are all-infra or transitive-JDK
-		// false positives and keep searching until a genuine student violation is found.
-		// This prevents a long JDK-internal path (found first by alphabetical DFS) from
-		// masking the shorter, direct forbidden-method call in student code.
-		CustomDFSPathFinder finder = new CustomDFSPathFinder(cg, cg.getEntrypointNodes().iterator(), isForbidden);
-		List<CGNode> path;
-		while ((path = finder.find()) != null) {
-			_pathCount++;
-			if (path.isEmpty()) {
-				continue;
+			// Use the DFS finder in a loop: skip paths that are all-infra or transitive-JDK
+			// false positives and keep searching until a genuine student violation is
+			// found.
+			// This prevents a long JDK-internal path (found first by alphabetical DFS) from
+			// masking the shorter, direct forbidden-method call in student code.
+			CustomDFSPathFinder finder = new CustomDFSPathFinder(cg, cg.getEntrypointNodes().iterator(), isForbidden);
+			List<CGNode> path;
+			while ((path = finder.find()) != null) {
+				_pathCount++;
+				if (path.isEmpty()) {
+					continue;
+				}
+
+				OptionalInt studentIdx = WalaPathClassification.nearestStudentFrame(path);
+				if (studentIdx.isEmpty()) {
+					continue;
+				}
+
+				int callerIdx = studentIdx.getAsInt();
+				if (WalaPathClassification.isFalsePositiveTransitivePath(path, callerIdx)) {
+					continue;
+				}
+
+				int size = path.size();
+				CGNode forbiddenNode = path.get(size - 1);
+
+				// In production the forbidden node is always a JDK method (Primordial-loaded),
+				// so isInfraFrame classifies it as infra and nearestStudentFrame never returns
+				// size-1. This branch is defensive against misconfiguration only.
+				// Convert WALA's JVM-descriptor signatures to source-form so the resulting
+				// SecurityException matches the format ArchUnit produces (java.lang.String
+				// instead of Ljava/lang/String;, no return-type suffix). This keeps
+				// expected-exception fixtures consistent across both architecture backends.
+				String callerSignature = formatJvmSignature(
+						(callerIdx == size - 1) ? path.get(0).getMethod().getSignature()
+								: path.get(callerIdx).getMethod().getSignature());
+
+				String forbiddenSignature = formatJvmSignature(forbiddenNode.getMethod().getSignature());
+				String declaringClass = forbiddenNode.getMethod().getDeclaringClass().getName().getClassName()
+						.toString();
+				String entrySignature = formatJvmSignature(path.get(0).getMethod().getSignature());
+
+				try {
+					IMethod.SourcePosition sp = forbiddenNode.getMethod().getSourcePosition(0);
+					int lineNumber = sp != null ? sp.getFirstLine() : -1;
+					_violationFound = true;
+					throw new AssertionError(Messages.localized("security.architecture.method.call.message", ruleName,
+							callerSignature, forbiddenSignature, declaringClass, lineNumber, entrySignature));
+				} catch (InvalidClassFileException e) {
+					throw new SecurityException(Messages.localized("security.architecture.invalid.class.file"));
+				}
 			}
-
-			OptionalInt studentIdx = WalaPathClassification.nearestStudentFrame(path);
-			if (studentIdx.isEmpty()) {
-				continue;
-			}
-
-			int callerIdx = studentIdx.getAsInt();
-			if (WalaPathClassification.isFalsePositiveTransitivePath(path, callerIdx)) {
-				continue;
-			}
-
-			int size = path.size();
-			CGNode forbiddenNode = path.get(size - 1);
-
-			// In production the forbidden node is always a JDK method (Primordial-loaded),
-			// so isInfraFrame classifies it as infra and nearestStudentFrame never returns
-			// size-1. This branch is defensive against misconfiguration only.
-			// Convert WALA's JVM-descriptor signatures to source-form so the resulting
-			// SecurityException matches the format ArchUnit produces (java.lang.String
-			// instead of Ljava/lang/String;, no return-type suffix). This keeps
-			// expected-exception fixtures consistent across both architecture backends.
-			String callerSignature = formatJvmSignature((callerIdx == size - 1)
-					? path.get(0).getMethod().getSignature()
-					: path.get(callerIdx).getMethod().getSignature());
-
-			String forbiddenSignature = formatJvmSignature(forbiddenNode.getMethod().getSignature());
-			String declaringClass = forbiddenNode.getMethod().getDeclaringClass().getName().getClassName().toString();
-			String entrySignature = formatJvmSignature(path.get(0).getMethod().getSignature());
-
-			try {
-				IMethod.SourcePosition sp = forbiddenNode.getMethod().getSourcePosition(0);
-				int lineNumber = sp != null ? sp.getFirstLine() : -1;
-				_violationFound = true;
-				throw new AssertionError(
-						Messages.localized("security.architecture.method.call.message", ruleName,
-								callerSignature, forbiddenSignature, declaringClass, lineNumber, entrySignature));
-			} catch (InvalidClassFileException e) {
-				throw new SecurityException(Messages.localized("security.architecture.invalid.class.file"));
-			}
-		}
 		} finally {
 			long _ms = (System.nanoTime() - _checkStart) / 1_000_000L;
 			try {
 				java.nio.file.Files.writeString(java.nio.file.Paths.get("/tmp/wala-check-times.log"),
-						System.currentTimeMillis() + "|" + _ms + "|paths=" + _pathCount + "|violation=" + _violationFound + "|" + ruleName + "\n",
+						System.currentTimeMillis() + "|" + _ms + "|paths=" + _pathCount + "|violation="
+								+ _violationFound + "|" + ruleName + "\n",
 						java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-			} catch (Exception ignored) {}
+			} catch (Exception ignored) {
+			}
 		}
 	}
 
 	/**
 	 * Convert a WALA {@link IMethod#getSignature()} string from JVM-descriptor form
 	 * to the source-code form that ArchUnit produces.
-	 *
-	 * <p>WALA's signature looks like
-	 * {@code package.Class.method(Lpackage/Param;[I)Lreturn/Type;}. ArchUnit reports
-	 * {@code package.Class.method(package.Param, int[])}. The return-type suffix is
-	 * dropped to match ArchUnit's omission. Constructor names {@code <init>} stay as is.
-	 *
-	 * <p>Returns the original string unchanged when no parenthesised descriptor is
+	 * <p>
+	 * WALA's signature looks like
+	 * {@code package.Class.method(Lpackage/Param;[I)Lreturn/Type;}. ArchUnit
+	 * reports {@code package.Class.method(package.Param, int[])}. The return-type
+	 * suffix is dropped to match ArchUnit's omission. Constructor names
+	 * {@code <init>} stay as is.
+	 * <p>
+	 * Returns the original string unchanged when no parenthesised descriptor is
 	 * found, so callers can pass any signature without first checking the format.
 	 */
 	static String formatJvmSignature(String walaSignature) {
@@ -132,16 +136,17 @@ public class WalaRule {
 
 	/**
 	 * Parse a JVM parameter-descriptor sequence into a list of source-form types.
-	 *
-	 * <p>Examples:
+	 * <p>
+	 * Examples:
 	 * <ul>
-	 *   <li>{@code "Ljava/lang/String;Ljava/io/File;"} → {@code [java.lang.String, java.io.File]}</li>
-	 *   <li>{@code "[I"} → {@code [int[]]}</li>
-	 *   <li>{@code "[[Ljava/lang/String;"} → {@code [java.lang.String[][]]}</li>
+	 * <li>{@code "Ljava/lang/String;Ljava/io/File;"} →
+	 * {@code [java.lang.String, java.io.File]}</li>
+	 * <li>{@code "[I"} → {@code [int[]]}</li>
+	 * <li>{@code "[[Ljava/lang/String;"} → {@code [java.lang.String[][]]}</li>
 	 * </ul>
-	 *
-	 * <p>Malformed descriptors stop the parse early; whatever has been parsed so
-	 * far is returned to keep the surrounding error message useful.
+	 * <p>
+	 * Malformed descriptors stop the parse early; whatever has been parsed so far
+	 * is returned to keep the surrounding error message useful.
 	 */
 	private static List<String> parseParamDescriptors(String descriptor) {
 		List<String> params = new ArrayList<>();
@@ -179,23 +184,23 @@ public class WalaRule {
 
 	/**
 	 * Map a single primitive JVM-descriptor character to its source-form Java name.
-	 *
-	 * <p>{@code V} (void) is included for completeness, even though it never appears
+	 * <p>
+	 * {@code V} (void) is included for completeness, even though it never appears
 	 * inside a parameter list. Unknown characters are echoed back so future JVM
 	 * spec extensions do not silently corrupt the message.
 	 */
 	private static String primitiveDescriptorToName(char descriptorChar) {
 		return switch (descriptorChar) {
-			case 'B' -> "byte";
-			case 'C' -> "char";
-			case 'D' -> "double";
-			case 'F' -> "float";
-			case 'I' -> "int";
-			case 'J' -> "long";
-			case 'S' -> "short";
-			case 'Z' -> "boolean";
-			case 'V' -> "void";
-			default -> String.valueOf(descriptorChar);
+		case 'B' -> "byte";
+		case 'C' -> "char";
+		case 'D' -> "double";
+		case 'F' -> "float";
+		case 'I' -> "int";
+		case 'J' -> "long";
+		case 'S' -> "short";
+		case 'Z' -> "boolean";
+		case 'V' -> "void";
+		default -> String.valueOf(descriptorChar);
 		};
 	}
 }

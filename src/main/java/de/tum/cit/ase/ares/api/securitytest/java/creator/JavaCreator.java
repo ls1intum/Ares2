@@ -94,19 +94,16 @@ public class JavaCreator implements Creator {
 			@Nonnull List<String> testClasses) {
 		return Stream.of(
 				// Essential packages are allowed to do anything
-				essentialPackages.stream()
-						.filter(p -> p != null && !p.isBlank())
-						.map(PackagePermission::new),
+				essentialPackages.stream().filter(p -> p != null && !p.isBlank()).map(PackagePermission::new),
 				// The permitted packages are allowed
 				resourceAccesses.regardingPackageImports().stream(),
 				/*
 				 * The package of the restricted student code is allowed (else the student would
-				 * not be able to use his/her own code).
-				 * SECURITY: Do not derive top-level roots (e.g., com/org/de), as that
-				 * unintentionally allows unrelated package namespaces.
+				 * not be able to use his/her own code). SECURITY: Do not derive top-level roots
+				 * (e.g., com/org/de), as that unintentionally allows unrelated package
+				 * namespaces.
 				 */
-				(packageName != null && !packageName.isBlank())
-						? Stream.of(new PackagePermission(packageName))
+				(packageName != null && !packageName.isBlank()) ? Stream.of(new PackagePermission(packageName))
 						: Stream.<PackagePermission>empty(),
 				/*
 				 * The packages of the test classes are allowed (test infrastructure classes
@@ -157,8 +154,8 @@ public class JavaCreator implements Creator {
 	 */
 	@Nonnull
 	private JavaArchitectureTestCase createArchitectureTestCase(@Nonnull JavaArchitectureTestCaseSupported supported,
-			@Nonnull JavaClasses classes, @Nonnull Supplier<CallGraph> callGraphSupplier, @Nonnull Set<PackagePermission> allowedPackages,
-			@Nonnull Set<ClassPermission> allowedClasses) {
+			@Nonnull JavaClasses classes, @Nonnull Supplier<CallGraph> callGraphSupplier,
+			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull Set<ClassPermission> allowedClasses) {
 		return JavaArchitectureTestCase.builder()
 				// The architecture test case checks for the following aspect
 				.javaArchitectureTestCaseSupported(supported)
@@ -195,8 +192,8 @@ public class JavaCreator implements Creator {
 	@Nonnull
 	private JavaAOPTestCase createAOPTestCase(@Nonnull ResourceAccesses resourceAccesses,
 			@Nonnull List<ArchitectureTestCase> javaArchitectureTestCases, @Nonnull JavaAOPTestCaseSupported supported,
-			@Nonnull JavaClasses classes, @Nonnull Supplier<CallGraph> callGraphSupplier, @Nonnull Set<PackagePermission> allowedPackages,
-			@Nonnull Set<ClassPermission> allowedClasses) {
+			@Nonnull JavaClasses classes, @Nonnull Supplier<CallGraph> callGraphSupplier,
+			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull Set<ClassPermission> allowedClasses) {
 		@Nonnull
 		Supplier<List<?>> resourceAccessSupplier = List
 				.of((Supplier<List<?>>) resourceAccesses::regardingFileSystemInteractions,
@@ -258,8 +255,8 @@ public class JavaCreator implements Creator {
 	 *                                  null
 	 */
 	private void addPriorityTestCases(@Nonnull List<ArchitectureTestCase> javaArchitectureTestCases,
-			@Nonnull JavaClasses classes, @Nonnull Supplier<CallGraph> callGraphSupplier, @Nonnull Set<PackagePermission> allowedPackages,
-			@Nonnull Set<ClassPermission> allowedClasses) {
+			@Nonnull JavaClasses classes, @Nonnull Supplier<CallGraph> callGraphSupplier,
+			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull Set<ClassPermission> allowedClasses) {
 		javaArchitectureTestCases.addAll(JavaArchitectureTestCaseSupported.NATIVE_CODE.getPriority().stream()
 				.map(priorityCase -> createArchitectureTestCase((JavaArchitectureTestCaseSupported) priorityCase,
 						classes, callGraphSupplier, allowedPackages, allowedClasses))
@@ -282,8 +279,8 @@ public class JavaCreator implements Creator {
 	 *                                  null
 	 */
 	private void addFixedTestCases(@Nonnull List<ArchitectureTestCase> javaArchitectureTestCases,
-			@Nonnull JavaClasses classes, @Nonnull Supplier<CallGraph> callGraphSupplier, @Nonnull Set<PackagePermission> allowedPackages,
-			@Nonnull Set<ClassPermission> allowedClasses) {
+			@Nonnull JavaClasses classes, @Nonnull Supplier<CallGraph> callGraphSupplier,
+			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull Set<ClassPermission> allowedClasses) {
 		javaArchitectureTestCases.addAll(JavaArchitectureTestCaseSupported
 				// The choice of using TERMINATE_JVM was taken randomly for getting an instance
 				// of JavaArchitectureTestCaseSupported (otherwise we cannot operate over an
@@ -316,8 +313,9 @@ public class JavaCreator implements Creator {
 	 */
 	private void addVariableTestCases(@Nonnull List<ArchitectureTestCase> javaArchitectureTestCases,
 			@Nonnull List<AOPTestCase> javaAOPTestCases, @Nonnull List<PhobosTestCase> javaPhobosTestCases,
-			@Nonnull JavaClasses classes, @Nonnull Supplier<CallGraph> callGraphSupplier, @Nonnull Set<PackagePermission> allowedPackages,
-			@Nonnull Set<ClassPermission> allowedClasses, @Nonnull ResourceAccesses resourceAccesses) {
+			@Nonnull JavaClasses classes, @Nonnull Supplier<CallGraph> callGraphSupplier,
+			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull Set<ClassPermission> allowedClasses,
+			@Nonnull ResourceAccesses resourceAccesses) {
 		javaAOPTestCases.addAll(JavaAOPTestCaseSupported
 				// The choice of using FILESYSTEM_INTERACTION was taken randomly for getting an
 				// instance of JavaAOPTestCaseSupported (otherwise we cannot operate over an
@@ -381,9 +379,11 @@ public class JavaCreator implements Creator {
 		JavaClasses javaClasses = cacheResult(projectPath + "_" + packageName + "_javaClasses",
 				() -> architectureMode.getJavaClasses(classPath)).get();
 		// Keep the call graph as a Supplier (no eager .get()) so downstream test cases
-		// can defer construction. The disk-backed WALA outcome cache in JavaWalaTestCase
+		// can defer construction. The disk-backed WALA outcome cache in
+		// JavaWalaTestCase
 		// short-circuits rule checks before this supplier is ever invoked when the same
-		// (classpath, rule, per-package fingerprint) was already evaluated by an earlier
+		// (classpath, rule, per-package fingerprint) was already evaluated by an
+		// earlier
 		// JVM fork.
 		@Nonnull
 		Supplier<CallGraph> callGraphSupplier = cacheResult(projectPath + "_" + packageName + "_callGraph",

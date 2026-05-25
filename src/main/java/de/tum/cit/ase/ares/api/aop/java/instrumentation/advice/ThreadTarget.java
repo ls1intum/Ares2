@@ -6,9 +6,9 @@ import javax.annotation.Nullable;
 /**
  * Internal value type representing a resolved thread target.
  * <p>
- * Description: Wraps a nullable class name string. Used throughout the
- * toolbox as the canonical representation of a thread endpoint,
- * regardless of whether it originated from a {@link Runnable}, a
+ * Description: Wraps a nullable class name string. Used throughout the toolbox
+ * as the canonical representation of a thread endpoint, regardless of whether
+ * it originated from a {@link Runnable}, a
  * {@link java.util.concurrent.Callable}, a lambda expression, or another
  * thread-capable object.
  * <p>
@@ -29,8 +29,8 @@ public record ThreadTarget(@Nullable String className) {
 	/**
 	 * Returns a human-readable string representation of this thread target.
 	 * <p>
-	 * Description: Returns the class name, or {@code <unknown>}
-	 * if the class name is {@code null}.
+	 * Description: Returns the class name, or {@code <unknown>} if the class name
+	 * is {@code null}.
 	 *
 	 * @return non-null display string
 	 * @since 2.0.0

@@ -143,8 +143,8 @@ public class JavaProjectScanner implements ProjectScanner {
 	}
 
 	/**
-	 * Finds the test source directory by inspecting the build configuration file
-	 * at the project root.
+	 * Finds the test source directory by inspecting the build configuration file at
+	 * the project root.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen

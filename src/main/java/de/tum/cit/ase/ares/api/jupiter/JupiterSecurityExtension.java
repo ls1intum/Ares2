@@ -19,7 +19,8 @@ import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 //REMOVED: Import of ArtemisSecurityManager
 
 @API(status = Status.INTERNAL)
-public final class JupiterSecurityExtension implements UnifiedInvocationInterceptor, BeforeTestExecutionCallback, AfterTestExecutionCallback {
+public final class JupiterSecurityExtension
+		implements UnifiedInvocationInterceptor, BeforeTestExecutionCallback, AfterTestExecutionCallback {
 
 	// <editor-fold desc="Lifecycle Callbacks">
 
@@ -28,10 +29,10 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
 	 * <p>
 	 * This callback is used as a reliable alternative to
 	 * {@link InvocationInterceptor#interceptTestTemplateMethod} and
-	 * {@link InvocationInterceptor#interceptTestMethod}, which are not invoked
-	 * when tests are executed via {@code EngineTestKit} (e.g., in meta-tests).
-	 * Lifecycle callbacks like {@link BeforeTestExecutionCallback} are reliably
-	 * called in all execution contexts.
+	 * {@link InvocationInterceptor#interceptTestMethod}, which are not invoked when
+	 * tests are executed via {@code EngineTestKit} (e.g., in meta-tests). Lifecycle
+	 * callbacks like {@link BeforeTestExecutionCallback} are reliably called in all
+	 * execution contexts.
 	 */
 	@Override
 	public void beforeTestExecution(ExtensionContext extensionContext) throws Exception {
@@ -46,16 +47,18 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
 		boolean hasPolicyAnnotation = policyOpt.isPresent();
 		boolean isAresActivated = policyOpt.map(Policy::activated).orElse(true);
 		boolean isTestMethodPresent = testContext.testMethod().isPresent();
-		System.err.println("[ARES-LIFECYCLE] hasPolicyAnnotation=" + hasPolicyAnnotation + " isAresActivated=" + isAresActivated + " isTestMethodPresent=" + isTestMethodPresent);
+		System.err.println("[ARES-LIFECYCLE] hasPolicyAnnotation=" + hasPolicyAnnotation + " isAresActivated="
+				+ isAresActivated + " isTestMethodPresent=" + isTestMethodPresent);
 
 		if (isAresActivated && (hasPolicyAnnotation || isTestMethodPresent)) {
 			Path policyPath = policyOpt.filter(p -> !p.value().isBlank())
 					.map(JupiterSecurityExtension::testAndGetPolicyValue).orElse(null);
 			Path withinPath = policyOpt.filter(p -> !p.withinPath().isBlank())
 					.map(JupiterSecurityExtension::testAndGetPolicyWithinPath).orElse(Path.of(""));
-			System.err.println("[ARES-LIFECYCLE] executing with policyPath=" + policyPath + " withinPath=" + withinPath);
-			SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policyPath)
-					.projectFolderPath(withinPath).build().createTestCases().executeTestCases();
+			System.err
+					.println("[ARES-LIFECYCLE] executing with policyPath=" + policyPath + " withinPath=" + withinPath);
+			SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policyPath).projectFolderPath(withinPath)
+					.build().createTestCases().executeTestCases();
 			System.err.println("[ARES-LIFECYCLE] executeTestCases completed");
 		}
 	}
@@ -93,15 +96,16 @@ public final class JupiterSecurityExtension implements UnifiedInvocationIntercep
 		// - @Policy(activated=true) → enforce with custom policy from file
 		// - no @Policy on @Test method → enforce with default policy (null path)
 		// - @Policy(activated=false) → Ares deactivated (no security checks)
-		// Skip enforcement during constructor interception (no test method present yet).
+		// Skip enforcement during constructor interception (no test method present
+		// yet).
 		boolean isTestMethodPresent = testContext.testMethod().isPresent();
 		if (isAresActivated && (hasPolicyAnnotation || isTestMethodPresent)) {
 			Path policyPath = policyOpt.filter(p -> !p.value().isBlank())
 					.map(JupiterSecurityExtension::testAndGetPolicyValue).orElse(null);
 			Path withinPath = policyOpt.filter(p -> !p.withinPath().isBlank())
 					.map(JupiterSecurityExtension::testAndGetPolicyWithinPath).orElse(Path.of(""));
-			SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policyPath)
-					.projectFolderPath(withinPath).build().createTestCases().executeTestCases();
+			SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policyPath).projectFolderPath(withinPath)
+					.build().createTestCases().executeTestCases();
 		}
 		// REMOVED: Installing of ArtemisSecurityManager
 		Throwable failure = null;

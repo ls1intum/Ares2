@@ -40,10 +40,9 @@ class YamlPlaceholderResolverTest {
 		String javaHome = System.getProperty("java.home");
 		String userHome = System.getProperty("user.home");
 		String tmpDir = System.getProperty("java.io.tmpdir");
-		String resolved = YamlPlaceholderResolver.expand(
-				"p: ${PROJECT_ROOT}\nj: ${java.home}\nu: ${user.home}\nt: ${java.io.tmpdir}");
-		assertThat(resolved).isEqualTo(
-				"p: " + userDir + "\nj: " + javaHome + "\nu: " + userHome + "\nt: " + tmpDir);
+		String resolved = YamlPlaceholderResolver
+				.expand("p: ${PROJECT_ROOT}\nj: ${java.home}\nu: ${user.home}\nt: ${java.io.tmpdir}");
+		assertThat(resolved).isEqualTo("p: " + userDir + "\nj: " + javaHome + "\nu: " + userHome + "\nt: " + tmpDir);
 	}
 
 	@Test

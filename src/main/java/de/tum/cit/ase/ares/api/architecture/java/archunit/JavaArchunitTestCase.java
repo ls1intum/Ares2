@@ -111,9 +111,9 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 	 * {@code Optional.of(AssertionError)} captured from the first evaluation.
 	 * Subsequent invocations replay the cached outcome instead of re-scanning.
 	 * Keyed on category name plus {@code System.identityHashCode} of the
-	 * {@code JavaClasses}; {@code JavaClasses} is rebuilt at most once per JVM
-	 * fork by {@code ArchitectureMode.getJavaClasses(classPath)}, so the identity
-	 * is stable for the fork's lifetime.
+	 * {@code JavaClasses}; {@code JavaClasses} is rebuilt at most once per JVM fork
+	 * by {@code ArchitectureMode.getJavaClasses(classPath)}, so the identity is
+	 * stable for the fork's lifetime.
 	 */
 	/**
 	 * Cache of per-({@link JavaArchitectureTestCaseSupported}, {@code JavaClasses})
@@ -132,9 +132,7 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 		JavaArchitectureTestCaseSupported supported = (JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported;
 		java.util.Optional<SecurityException> cached;
 		if (supported == JavaArchitectureTestCaseSupported.PACKAGE_IMPORT) {
-			String allowedSignature = allowedPackages.stream()
-					.map(p -> p.importTheFollowingPackage())
-					.sorted()
+			String allowedSignature = allowedPackages.stream().map(p -> p.importTheFollowingPackage()).sorted()
 					.collect(java.util.stream.Collectors.joining(","));
 			String pkgKey = allowedSignature + "@" + System.identityHashCode(javaClasses);
 			cached = PACKAGE_OUTCOME_CACHE.get(pkgKey);

@@ -269,11 +269,8 @@ public enum ArchitectureMode {
 		// forks whose results are entirely served from disk.
 		java.util.function.Supplier<com.ibm.wala.ipa.callgraph.CallGraph> supplier = testCase.getCallGraphSupplier();
 		if (supplier != null) {
-			return new JavaWalaTestCase(
-					(JavaArchitectureTestCaseSupported) testCase.getArchitectureTestCaseSupported(),
-					testCase.getAllowedPackages(),
-					testCase.getJavaClasses(),
-					supplier);
+			return new JavaWalaTestCase((JavaArchitectureTestCaseSupported) testCase.getArchitectureTestCaseSupported(),
+					testCase.getAllowedPackages(), testCase.getJavaClasses(), supplier);
 		}
 		return JavaWalaTestCase.walaBuilder()
 				.javaArchitectureTestCaseSupported(

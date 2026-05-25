@@ -18,10 +18,9 @@ import net.bytebuddy.asm.Advice;
 public final class JavaInstrumentationReceiveNetworkMethodAdvice {
 	/**
 	 * This method is called when a method receiving network data is entered. It
-	 * performs security checks to determine whether the method execution is
-	 * allowed according to network system security policies. If the method
-	 * execution is not permitted, a SecurityException is thrown, blocking the
-	 * execution.
+	 * performs security checks to determine whether the method execution is allowed
+	 * according to network system security policies. If the method execution is not
+	 * permitted, a SecurityException is thrown, blocking the execution.
 	 * <p>
 	 * The checkNetworkSystemInteraction method from
 	 * JavaInstrumentationAdviceNetworkSystemToolbox is called to perform these
@@ -74,4 +73,3 @@ public final class JavaInstrumentationReceiveNetworkMethodAdvice {
 		// </editor-fold>
 	}
 }
-

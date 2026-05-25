@@ -6,10 +6,10 @@ import javax.annotation.Nullable;
 /**
  * Internal value type representing a resolved command target.
  * <p>
- * Description: Pairs a nullable command name with an argument array.
- * Used throughout the toolbox as the canonical representation of a command
- * invocation, regardless of whether it originated from a {@code String},
- * a {@code String[]}, or a {@code List<String>}.
+ * Description: Pairs a nullable command name with an argument array. Used
+ * throughout the toolbox as the canonical representation of a command
+ * invocation, regardless of whether it originated from a {@code String}, a
+ * {@code String[]}, or a {@code List<String>}.
  * <p>
  * Design Rationale: Extracted from
  * {@link JavaInstrumentationAdviceCommandSystemToolbox} into its own top-level

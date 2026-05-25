@@ -74,7 +74,8 @@ public class JavaInstrumentationAgent {
 				JavaInstrumentationBindingDefinitions::createConnectNetworkMethodBinding);
 		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanSendToNetwork,
 				JavaInstrumentationBindingDefinitions::createSendNetworkMethodBinding);
-		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanReceiveFromNetwork,
+		installAgentBuilder(inst, unsafeFactory,
+				JavaInstrumentationPointcutDefinitions.methodsWhichCanReceiveFromNetwork,
 				JavaInstrumentationBindingDefinitions::createReceiveNetworkMethodBinding);
 
 		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanReadFiles,
@@ -95,7 +96,8 @@ public class JavaInstrumentationAgent {
 				JavaInstrumentationBindingDefinitions::createConnectNetworkConstructorBinding);
 		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanSendToNetwork,
 				JavaInstrumentationBindingDefinitions::createSendNetworkConstructorBinding);
-		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanReceiveFromNetwork,
+		installAgentBuilder(inst, unsafeFactory,
+				JavaInstrumentationPointcutDefinitions.methodsWhichCanReceiveFromNetwork,
 				JavaInstrumentationBindingDefinitions::createReceiveNetworkConstructorBinding);
 	}
 
@@ -139,18 +141,17 @@ public class JavaInstrumentationAgent {
 								ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceAbstractToolbox.class))));
 
 				// Step 3: Load target value types (used by concrete toolboxes)
-				injectClassesSafely(classInjector,
-						Map.ofEntries(
-								Map.entry(FileTarget.class.getName(),
-										ClassFileLocator.ForClassLoader.read(FileTarget.class)),
-								Map.entry(NetworkTarget.class.getName(),
-										ClassFileLocator.ForClassLoader.read(NetworkTarget.class)),
-								Map.entry(ThreadTarget.class.getName(),
-										ClassFileLocator.ForClassLoader.read(ThreadTarget.class)),
-								Map.entry(CommandTarget.class.getName(),
-										ClassFileLocator.ForClassLoader.read(CommandTarget.class))));
+				injectClassesSafely(classInjector, Map.ofEntries(
+						Map.entry(FileTarget.class.getName(), ClassFileLocator.ForClassLoader.read(FileTarget.class)),
+						Map.entry(NetworkTarget.class.getName(),
+								ClassFileLocator.ForClassLoader.read(NetworkTarget.class)),
+						Map.entry(ThreadTarget.class.getName(),
+								ClassFileLocator.ForClassLoader.read(ThreadTarget.class)),
+						Map.entry(CommandTarget.class.getName(),
+								ClassFileLocator.ForClassLoader.read(CommandTarget.class))));
 
-				// Step 4: Load concrete toolbox implementations (depend on abstract toolbox and targets)
+				// Step 4: Load concrete toolbox implementations (depend on abstract toolbox and
+				// targets)
 				injectClassesSafely(classInjector,
 						Map.ofEntries(
 								Map.entry(JavaInstrumentationAdviceFileSystemToolbox.class.getName(),
@@ -224,7 +225,8 @@ public class JavaInstrumentationAgent {
 			new AgentBuilder.Default()
 					// Ignore ByteBuddy's own classes to avoid infinite recursion
 					.ignore(ElementMatchers.nameStartsWith("net.bytebuddy."))
-					// Ignore deepest JDK internals that must never be instrumented. sun.nio.ch.*Impl
+					// Ignore deepest JDK internals that must never be instrumented.
+					// sun.nio.ch.*Impl
 					// classes are intentionally NOT excluded here so SocketChannelImpl,
 					// DatagramChannelImpl, AsynchronousSocketChannel impls remain instrumentable
 					// for their connect / send / receive methods which the abstract NIO base

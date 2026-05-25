@@ -26,13 +26,13 @@ import com.ibm.wala.ipa.callgraph.CallGraphBuilder;
 import com.ibm.wala.ipa.callgraph.MethodTargetSelector;
 import com.ibm.wala.ipa.callgraph.impl.DefaultEntrypoint;
 import com.ibm.wala.ipa.callgraph.impl.Util;
-import com.ibm.wala.ipa.summaries.MethodSummary;
-import com.ibm.wala.ipa.summaries.SummarizedMethod;
-import com.ibm.wala.types.MethodReference;
 import com.ibm.wala.ipa.cha.ClassHierarchy;
 import com.ibm.wala.ipa.cha.ClassHierarchyException;
 import com.ibm.wala.ipa.cha.ClassHierarchyFactory;
+import com.ibm.wala.ipa.summaries.MethodSummary;
+import com.ibm.wala.ipa.summaries.SummarizedMethod;
 import com.ibm.wala.types.ClassLoaderReference;
+import com.ibm.wala.types.MethodReference;
 import com.ibm.wala.types.TypeReference;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
@@ -55,12 +55,13 @@ public class CustomCallgraphBuilder {
 
 	/** Substrings that disqualify a classpath entry from the analysis scope. */
 	private static final List<String> CLASSPATH_EXCLUDE_SUBSTRINGS = List.of(
-			// Test build outputs (compiled test sources and resources, across JVM languages)
-			"/build/classes/java/test/", "/build/resources/test/",
-			"/build/classes/groovy/test/", "/build/classes/kotlin/test/",
+			// Test build outputs (compiled test sources and resources, across JVM
+			// languages)
+			"/build/classes/java/test/", "/build/resources/test/", "/build/classes/groovy/test/",
+			"/build/classes/kotlin/test/",
 			// JUnit and supporting test-platform libraries
-			"/junit-", "/junit5-", "/junit-jupiter", "/junit-platform", "/junit-vintage",
-			"/opentest4j", "/apiguardian-api", "/junit-pioneer",
+			"/junit-", "/junit5-", "/junit-jupiter", "/junit-platform", "/junit-vintage", "/opentest4j",
+			"/apiguardian-api", "/junit-pioneer",
 			// Mocking and test-double libraries
 			"/mockito-", "/byte-buddy-agent", "/objenesis",
 			// Assertion and property-based testing libraries
@@ -70,8 +71,7 @@ public class CustomCallgraphBuilder {
 			// Gradle test-runner infrastructure
 			"/gradle-worker", "/gradle-test-kit", "/test-kit",
 			// Static analysis, linting and bug-finding tools
-			"/spotbugs", "/spotbugsAnnotations",
-			"/checkstyle", "/pmd-", "/spoon-",
+			"/spotbugs", "/spotbugsAnnotations", "/checkstyle", "/pmd-", "/spoon-",
 			// Auxiliary parsing and graph libraries pulled in by analysis tooling
 			"/javaparser-", "/jgrapht-", "/info.debatty",
 			// Ares itself must never appear in its own analysis scope
@@ -100,19 +100,16 @@ public class CustomCallgraphBuilder {
 	/**
 	 * Drops classpath entries that belong to the test framework, JaCoCo, the Ares
 	 * agent, and the WALA/AspectJ runtime. Student code and any non-test library
-	 * dependencies remain in the scope. Library code is reachable on demand via
-	 * the analysis: only entries actually referenced from student-code entry
-	 * points end up in the call graph.
+	 * dependencies remain in the scope. Library code is reachable on demand via the
+	 * analysis: only entries actually referenced from student-code entry points end
+	 * up in the call graph.
 	 */
 	private static String filterClassPath(String classPath) {
 		String[] entries = classPath.split(File.pathSeparator);
-		LinkedHashSet<String> kept = Arrays.stream(entries)
-				.filter(entry -> !entry.isBlank())
-				.filter(entry -> {
-					String normalized = entry.replace(File.separatorChar, '/');
-					return CLASSPATH_EXCLUDE_SUBSTRINGS.stream().noneMatch(normalized::contains);
-				})
-				.collect(Collectors.toCollection(LinkedHashSet::new));
+		LinkedHashSet<String> kept = Arrays.stream(entries).filter(entry -> !entry.isBlank()).filter(entry -> {
+			String normalized = entry.replace(File.separatorChar, '/');
+			return CLASSPATH_EXCLUDE_SUBSTRINGS.stream().noneMatch(normalized::contains);
+		}).collect(Collectors.toCollection(LinkedHashSet::new));
 
 		// Ares' BuildMode.getClasspath narrows the analysis classpath to a single
 		// package subdirectory (e.g. build/classes/java/main/anonymous/foo/bar) so
@@ -152,16 +149,17 @@ public class CustomCallgraphBuilder {
 			java.nio.file.Files.writeString(java.nio.file.Paths.get("/tmp/wala-filter-trace.txt"),
 					"input=" + classPath + "\nwidened=" + result + "\ncwd=" + System.getProperty("user.dir") + "\n",
 					java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-		} catch (Exception ignored) {}
+		} catch (Exception ignored) {
+		}
 		return result;
 	}
 
 	/**
 	 * Helper subpackages that hold base classes / utilities shared across student
 	 * categories. Listed explicitly (instead of widening the whole build root) so
-	 * WALA's class hierarchy can resolve supertypes without dragging in every
-	 * other category's Runnable / Thread / Executor implementations, which would
-	 * blow up CHA-based dispatch resolution for Thread.start() and friends.
+	 * WALA's class hierarchy can resolve supertypes without dragging in every other
+	 * category's Runnable / Thread / Executor implementations, which would blow up
+	 * CHA-based dispatch resolution for Thread.start() and friends.
 	 */
 	private static final List<String> HELPER_SUBPACKAGES = List.of("anonymous/toolclasses");
 
@@ -216,18 +214,14 @@ public class CustomCallgraphBuilder {
 		if (clazz == null) {
 			return Collections.emptySet();
 		}
-		return classHierarchy.getImmediateSubclasses(clazz).stream().map(IClass::getName)
-				.map(Object::toString)
-				.map(this::tryResolve)
-				.filter(Optional::isPresent)
-				.map(Optional::get)
-				.collect(Collectors.toSet());
+		return classHierarchy.getImmediateSubclasses(clazz).stream().map(IClass::getName).map(Object::toString)
+				.map(this::tryResolve).filter(Optional::isPresent).map(Optional::get).collect(Collectors.toSet());
 	}
 
 	/**
-	 * Builds the call graph for the given classpath, or returns a previously
-	 * built graph cached on the JVM. The cache lives for the lifetime of the
-	 * test JVM: the next Gradle run rebuilds it.
+	 * Builds the call graph for the given classpath, or returns a previously built
+	 * graph cached on the JVM. The cache lives for the lifetime of the test JVM:
+	 * the next Gradle run rebuilds it.
 	 */
 	public CallGraph buildCallGraph(String classPathToAnalyze) {
 		long _profileStart = System.nanoTime();
@@ -239,11 +233,13 @@ public class CustomCallgraphBuilder {
 				java.nio.file.Files.writeString(java.nio.file.Paths.get("/tmp/wala-build-times.log"),
 						System.currentTimeMillis() + "|HIT|" + _hitMs + "|" + cacheKey.hashCode() + "\n",
 						java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-			} catch (Exception ignored) {}
+			} catch (Exception ignored) {
+			}
 			return cached;
 		}
 		try {
-			// Build entry points from the WIDENED classpath so getEntryPointsFromStudentSubmission's
+			// Build entry points from the WIDENED classpath so
+			// getEntryPointsFromStudentSubmission's
 			// internal hierarchy can fully resolve student class supertypes
 			// (anonymous.toolclasses.ProtectedResourceAccess, …); without that step,
 			// the outer student classes are silently dropped and only standalone
@@ -253,23 +249,29 @@ public class CustomCallgraphBuilder {
 			// than spilling into unrelated category classes that share the wider scope.
 			String narrowPackagePrefix = derivePackagePrefix(classPathToAnalyze);
 			List<DefaultEntrypoint> customEntryPoints = ReachabilityChecker
-					.getEntryPointsFromStudentSubmission(filterClassPath(classPathToAnalyze), classHierarchy)
-					.stream()
+					.getEntryPointsFromStudentSubmission(filterClassPath(classPathToAnalyze), classHierarchy).stream()
 					.filter(ep -> narrowPackagePrefix == null
-							|| ep.getMethod().getDeclaringClass().getName().toString()
-									.startsWith(narrowPackagePrefix))
+							|| ep.getMethod().getDeclaringClass().getName().toString().startsWith(narrowPackagePrefix))
 					.collect(Collectors.toCollection(ArrayList::new));
 			AnalysisOptions options = new AnalysisOptions(scope, customEntryPoints);
 			CallGraphBuilder<?> builder = Util.makeZeroOneCFABuilder(Language.JAVA, options, new AnalysisCacheImpl(),
 					classHierarchy);
-			// Util.makeZeroOneCFABuilder installs the default + bypass selectors on options. Wrap
-			// them with a primordial-blackbox selector so WALA stops descending into JDK methods:
-			// the call edge from student code to a JDK method is still recorded (so policy checks
-			// for "calls java.io.FileInputStream.<init>" continue to work), but WALA does not load
-			// or analyse the JDK method's bytecode. The class hierarchy still contains all JDK
-			// types, so Ares' lookup-based policy decisions are unaffected. SSAPropagationCallGraphBuilder
-			// reads options.getMethodTargetSelector() dynamically (see SSAPropagationCallGraphBuilder.java
-			// around line 1577 in WALA 1.6.12), so wrapping after makeZeroOneCFABuilder takes effect.
+			// Util.makeZeroOneCFABuilder installs the default + bypass selectors on
+			// options. Wrap
+			// them with a primordial-blackbox selector so WALA stops descending into JDK
+			// methods:
+			// the call edge from student code to a JDK method is still recorded (so policy
+			// checks
+			// for "calls java.io.FileInputStream.<init>" continue to work), but WALA does
+			// not load
+			// or analyse the JDK method's bytecode. The class hierarchy still contains all
+			// JDK
+			// types, so Ares' lookup-based policy decisions are unaffected.
+			// SSAPropagationCallGraphBuilder
+			// reads options.getMethodTargetSelector() dynamically (see
+			// SSAPropagationCallGraphBuilder.java
+			// around line 1577 in WALA 1.6.12), so wrapping after makeZeroOneCFABuilder
+			// takes effect.
 			options.setSelector(new JdkOpaqueMethodTargetSelector(options.getMethodTargetSelector()));
 			long _mkCgStart = System.nanoTime();
 			CallGraph callGraph = builder.makeCallGraph(options, null);
@@ -277,34 +279,43 @@ public class CustomCallgraphBuilder {
 			long _totalMs = (System.nanoTime() - _profileStart) / 1_000_000L;
 			try {
 				java.nio.file.Files.writeString(java.nio.file.Paths.get("/tmp/wala-build-times.log"),
-						System.currentTimeMillis() + "|MISS|" + _totalMs + "|mkcg=" + _mkCgMs + "|" + cacheKey.hashCode() + "|" + classPathToAnalyze + "\n",
+						System.currentTimeMillis() + "|MISS|" + _totalMs + "|mkcg=" + _mkCgMs + "|"
+								+ cacheKey.hashCode() + "|" + classPathToAnalyze + "\n",
 						java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-			} catch (Exception ignored) {}
+			} catch (Exception ignored) {
+			}
 			CallGraph existing = CALL_GRAPH_CACHE.putIfAbsent(cacheKey, callGraph);
 			if (existing == null) {
 				try {
 					java.util.Set<String> anonClasses = new java.util.TreeSet<>();
 					int totalCgNodes = 0;
-					for (com.ibm.wala.ipa.callgraph.CGNode n : (Iterable<com.ibm.wala.ipa.callgraph.CGNode>) () -> callGraph.iterator()) {
+					for (com.ibm.wala.ipa.callgraph.CGNode n : (Iterable<com.ibm.wala.ipa.callgraph.CGNode>) () -> callGraph
+							.iterator()) {
 						totalCgNodes++;
 						String dn = n.getMethod().getDeclaringClass().getName().toString();
-						if (dn.startsWith("Lanonymous/")) anonClasses.add(dn);
+						if (dn.startsWith("Lanonymous/"))
+							anonClasses.add(dn);
 					}
 					int chCount = 0;
 					java.util.Set<String> chAnon = new java.util.TreeSet<>();
-					for (com.ibm.wala.classLoader.IClass c : (Iterable<com.ibm.wala.classLoader.IClass>) () -> classHierarchy.iterator()) {
+					for (com.ibm.wala.classLoader.IClass c : (Iterable<com.ibm.wala.classLoader.IClass>) () -> classHierarchy
+							.iterator()) {
 						chCount++;
 						String n = c.getName().toString();
-						if (n.startsWith("Lanonymous/")) chAnon.add(n);
+						if (n.startsWith("Lanonymous/"))
+							chAnon.add(n);
 					}
 					StringBuilder sb = new StringBuilder();
 					sb.append("CG totalNodes=").append(totalCgNodes).append("\n");
 					sb.append("CG anon student classes (").append(anonClasses.size()).append("):\n");
-					for (String c : anonClasses) sb.append("  ").append(c).append("\n");
+					for (String c : anonClasses)
+						sb.append("  ").append(c).append("\n");
 					sb.append("Hierarchy total=").append(chCount).append(" anon=").append(chAnon.size()).append("\n");
-					for (String c : chAnon) sb.append("  ").append(c).append("\n");
+					for (String c : chAnon)
+						sb.append("  ").append(c).append("\n");
 					java.nio.file.Files.writeString(java.nio.file.Paths.get("/tmp/wala-cg-stats.txt"), sb.toString());
-				} catch (Exception ignored) {}
+				} catch (Exception ignored) {
+				}
 			}
 			return existing != null ? existing : callGraph;
 		} catch (Exception e) {
@@ -312,25 +323,28 @@ public class CustomCallgraphBuilder {
 		}
 	}
 
-
 	/**
-	 * Convert a classpath entry like {@code build/classes/java/main/anonymous/foo/bar}
-	 * into the WALA TypeName prefix {@code Lanonymous/foo/bar/} so we can keep
-	 * entry points limited to the test's package without re-deriving it from the
-	 * policy. Returns {@code null} if the path doesn't look like a build-output
-	 * package directory (in which case no narrowing is applied).
+	 * Convert a classpath entry like
+	 * {@code build/classes/java/main/anonymous/foo/bar} into the WALA TypeName
+	 * prefix {@code Lanonymous/foo/bar/} so we can keep entry points limited to the
+	 * test's package without re-deriving it from the policy. Returns {@code null}
+	 * if the path doesn't look like a build-output package directory (in which case
+	 * no narrowing is applied).
 	 */
 	private static String derivePackagePrefix(String classPath) {
-		if (classPath == null) return null;
+		if (classPath == null)
+			return null;
 		String first = classPath.split(File.pathSeparator)[0].replace(File.separatorChar, '/');
-		String[] markers = {"/build/classes/java/main/", "build/classes/java/main/",
-				"/target/classes/", "target/classes/"};
+		String[] markers = { "/build/classes/java/main/", "build/classes/java/main/", "/target/classes/",
+				"target/classes/" };
 		for (String marker : markers) {
 			int idx = first.indexOf(marker);
 			if (idx >= 0) {
 				String pkg = first.substring(idx + marker.length());
-				if (pkg.isBlank()) return null;
-				if (!pkg.endsWith("/")) pkg = pkg + "/";
+				if (pkg.isBlank())
+					return null;
+				if (!pkg.endsWith("/"))
+					pkg = pkg + "/";
 				return "L" + pkg;
 			}
 		}
@@ -338,21 +352,23 @@ public class CustomCallgraphBuilder {
 	}
 
 	/**
-	 * Treats every method declared in a primordial class (the JDK) as opaque: returns a
-	 * {@link SummarizedMethod} with an empty {@link MethodSummary} for primordial targets so
-	 * WALA records the call edge and creates a CGNode (preserving the JDK signature for
-	 * downstream forbidden-call predicates such as {@code WalaRule.isForbidden}), but does
-	 * not load or analyse the JDK method's bytecode. Non-primordial calls are forwarded to
-	 * the wrapped selector chain set up by {@link Util#addDefaultSelectors} and
-	 * {@link Util#addDefaultBypassLogic} (LambdaMethodTargetSelector → BypassMethodTargetSelector
-	 * → ClassHierarchyMethodTargetSelector).
-	 *
-	 * <p>An earlier revision returned {@code null} for primordial targets, which removed the
-	 * CGNode entirely. {@link de.tum.cit.ase.ares.api.architecture.java.wala.WalaRule#check}
-	 * relies on those CGNodes to recognise forbidden JDK calls, so {@code null} silently
-	 * disabled blocked-all detection. Returning a SummarizedMethod keeps the node and edge
-	 * but skips body analysis. Summaries are cached by {@link MethodReference} to avoid
-	 * per-call allocation during propagation.
+	 * Treats every method declared in a primordial class (the JDK) as opaque:
+	 * returns a {@link SummarizedMethod} with an empty {@link MethodSummary} for
+	 * primordial targets so WALA records the call edge and creates a CGNode
+	 * (preserving the JDK signature for downstream forbidden-call predicates such
+	 * as {@code WalaRule.isForbidden}), but does not load or analyse the JDK
+	 * method's bytecode. Non-primordial calls are forwarded to the wrapped selector
+	 * chain set up by {@link Util#addDefaultSelectors} and
+	 * {@link Util#addDefaultBypassLogic} (LambdaMethodTargetSelector →
+	 * BypassMethodTargetSelector → ClassHierarchyMethodTargetSelector).
+	 * <p>
+	 * An earlier revision returned {@code null} for primordial targets, which
+	 * removed the CGNode entirely.
+	 * {@link de.tum.cit.ase.ares.api.architecture.java.wala.WalaRule#check} relies
+	 * on those CGNodes to recognise forbidden JDK calls, so {@code null} silently
+	 * disabled blocked-all detection. Returning a SummarizedMethod keeps the node
+	 * and edge but skips body analysis. Summaries are cached by
+	 * {@link MethodReference} to avoid per-call allocation during propagation.
 	 */
 	private static final class JdkOpaqueMethodTargetSelector implements MethodTargetSelector {
 
@@ -369,8 +385,7 @@ public class CustomCallgraphBuilder {
 			if (target == null) {
 				return null;
 			}
-			if (!target.getDeclaringClass().getClassLoader().getReference()
-					.equals(ClassLoaderReference.Primordial)) {
+			if (!target.getDeclaringClass().getClassLoader().getReference().equals(ClassLoaderReference.Primordial)) {
 				return target;
 			}
 			MethodReference ref = target.getReference();
@@ -401,9 +416,9 @@ public class CustomCallgraphBuilder {
 
 		static CachedAnalysis build(String filteredClassPath) {
 			try {
-				AnalysisScope scope = Java9AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(
-						filteredClassPath, FileTools.readFile(FileTools
-								.resolveFileOnSourceDirectory("templates", "architecture", "java", "exclusions.txt")));
+				AnalysisScope scope = Java9AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(filteredClassPath,
+						FileTools.readFile(FileTools.resolveFileOnSourceDirectory("templates", "architecture", "java",
+								"exclusions.txt")));
 				ClassHierarchy hierarchy = ClassHierarchyFactory.make(scope);
 				return new CachedAnalysis(scope, hierarchy);
 			} catch (ClassHierarchyException | IOException e) {

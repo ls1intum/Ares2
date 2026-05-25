@@ -10,8 +10,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.HashSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -53,19 +53,20 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	/**
 	 * In-memory mirror of the disk cache: maps "classpath fingerprint + rule" to
 	 * the cached outcome of running that WALA rule.
-	 *
-	 * <p>WALA call-graph construction dominates the cost of {@code testAllModes}
+	 * <p>
+	 * WALA call-graph construction dominates the cost of {@code testAllModes}
 	 * (~5–7s × #packages × #JVM forks). Gradle launches a separate JVM for each
 	 * sub-task ({@code testUnprotected}, {@code testPermitted},
 	 * {@code testBlockedPartial}, {@code testBlockedAll}), so the in-memory cache
 	 * in {@code JavaCreator.cacheResult} doesn't cross fork boundaries. This
-	 * disk-backed cache survives JVM exits and lets later forks short-circuit
-	 * rule checks for which the outcome was already computed.
+	 * disk-backed cache survives JVM exits and lets later forks short-circuit rule
+	 * checks for which the outcome was already computed.
 	 */
 	/**
-	 * Serializable holder for a cached rule outcome. {@link Optional} is intentionally
-	 * not {@link Serializable} in the JDK, which caused silent persistence failure when
-	 * the map values were {@code Optional<SecurityException>}.
+	 * Serializable holder for a cached rule outcome. {@link Optional} is
+	 * intentionally not {@link Serializable} in the JDK, which caused silent
+	 * persistence failure when the map values were
+	 * {@code Optional<SecurityException>}.
 	 */
 	private static final class CachedOutcome implements Serializable {
 		private static final long serialVersionUID = 1L;
@@ -78,8 +79,7 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	}
 
 	@Nonnull
-	private static final ConcurrentHashMap<String, CachedOutcome> RULE_OUTCOME_CACHE =
-			new ConcurrentHashMap<>();
+	private static final ConcurrentHashMap<String, CachedOutcome> RULE_OUTCOME_CACHE = new ConcurrentHashMap<>();
 
 	/**
 	 * Persistent cache file location. Lives in the system temp directory so it
@@ -87,13 +87,11 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	 * Ares-jar rebuild (the jar mtime is folded into the cache key).
 	 */
 	@Nonnull
-	private static final Path CACHE_FILE = Paths.get(System.getProperty("java.io.tmpdir"),
-			"ares-wala-outcomes.bin");
+	private static final Path CACHE_FILE = Paths.get(System.getProperty("java.io.tmpdir"), "ares-wala-outcomes.bin");
 
 	static {
 		loadCacheFromDisk();
-		Runtime.getRuntime().addShutdownHook(new Thread(JavaWalaTestCase::saveCacheToDisk,
-				"ares-wala-outcomes-saver"));
+		Runtime.getRuntime().addShutdownHook(new Thread(JavaWalaTestCase::saveCacheToDisk, "ares-wala-outcomes-saver"));
 	}
 
 	private static void loadCacheFromDisk() {
@@ -135,40 +133,34 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	}
 
 	/**
-	 * Build a stable cache key combining the analysis classpath, the Ares-jar mtime,
-	 * the rule name, AND the per-package input fingerprint (sorted class names of
-	 * {@code javaClasses} plus the sorted set of {@code allowedPackages}). The
-	 * per-package fingerprint is essential: different student packages produce
-	 * different call graphs and therefore different rule outcomes for the same
-	 * rule name; without it, the first package's outcome would be served to every
-	 * other package.
+	 * Build a stable cache key combining the analysis classpath, the Ares-jar
+	 * mtime, the rule name, AND the per-package input fingerprint (sorted class
+	 * names of {@code javaClasses} plus the sorted set of {@code allowedPackages}).
+	 * The per-package fingerprint is essential: different student packages produce
+	 * different call graphs and therefore different rule outcomes for the same rule
+	 * name; without it, the first package's outcome would be served to every other
+	 * package.
 	 */
 	@Nonnull
 	private String cacheKey() {
 		long aresMtime = 0L;
 		try {
-			Path own = Paths.get(JavaWalaTestCase.class.getProtectionDomain().getCodeSource()
-					.getLocation().toURI());
+			Path own = Paths.get(JavaWalaTestCase.class.getProtectionDomain().getCodeSource().getLocation().toURI());
 			aresMtime = Files.getLastModifiedTime(own).toMillis();
 		} catch (Exception ignored) {
 			// Fall back to the version-string component below.
 		}
 		String classpath = Stream.of(System.getProperty("java.class.path", "").split(java.io.File.pathSeparator))
-				.filter(p -> p.contains("classes") || p.contains("build"))
-				.sorted()
+				.filter(p -> p.contains("classes") || p.contains("build")).sorted()
 				.collect(Collectors.joining(java.io.File.pathSeparator));
-		String classNamesFingerprint = javaClasses.stream()
-				.map(JavaClass::getFullName)
-				.sorted()
+		String classNamesFingerprint = javaClasses.stream().map(JavaClass::getFullName).sorted()
 				.collect(Collectors.joining(","));
-		String allowedPackagesFingerprint = allowedPackages.stream()
-				.map(PackagePermission::importTheFollowingPackage)
-				.sorted()
-				.collect(Collectors.joining(","));
+		String allowedPackagesFingerprint = allowedPackages.stream().map(PackagePermission::importTheFollowingPackage)
+				.sorted().collect(Collectors.joining(","));
 		return classpath + "|" + aresMtime + "|"
-				+ ((JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported).name()
-				+ "|cls=" + Integer.toHexString(classNamesFingerprint.hashCode())
-				+ "|pkg=" + Integer.toHexString(allowedPackagesFingerprint.hashCode());
+				+ ((JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported).name() + "|cls="
+				+ Integer.toHexString(classNamesFingerprint.hashCode()) + "|pkg="
+				+ Integer.toHexString(allowedPackagesFingerprint.hashCode());
 	}
 
 	// </editor-fold>
@@ -177,8 +169,8 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 
 	/**
 	 * Lazy supplier of the WALA call graph used for rule checks.
-	 *
-	 * <p>When constructed via the eager-CallGraph constructor (kept for backward
+	 * <p>
+	 * When constructed via the eager-CallGraph constructor (kept for backward
 	 * compatibility), this is a thunk over the already-resolved instance. When
 	 * constructed via the supplier-based constructor (used by {@code JavaCreator}),
 	 * the call graph is built only on the first cache miss in
@@ -275,19 +267,19 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 
 	/**
 	 * Executes the architecture test case.
-	 *
-	 * <p>Outcomes are cached on disk keyed by classpath + Ares-jar mtime + rule name, so
-	 * subsequent JVM forks (e.g. {@code testPermitted} after {@code testUnprotected})
-	 * skip the expensive call-graph traversal when the same rule was already evaluated
-	 * for the same classpath.
+	 * <p>
+	 * Outcomes are cached on disk keyed by classpath + Ares-jar mtime + rule name,
+	 * so subsequent JVM forks (e.g. {@code testPermitted} after
+	 * {@code testUnprotected}) skip the expensive call-graph traversal when the
+	 * same rule was already evaluated for the same classpath.
 	 */
 	@Override
 	public void executeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
-		JavaArchitectureTestCaseSupported supported =
-				(JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported;
+		JavaArchitectureTestCaseSupported supported = (JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported;
 		// Priority rules (NATIVE_CODE, AGENT_ATTACH, ENVIRONMENT_ACCESS, MODULE_SYSTEM,
 		// JNDI_INJECTION) always run in every test mode and delegate to ArchUnit. Their
-		// outcome depends on which resources are permitted in the current test scenario,
+		// outcome depends on which resources are permitted in the current test
+		// scenario,
 		// but the allowedPackages component of the cache key is identical between
 		// testPermitted and testBlockedAll for these rules (permitted agent/env/JNDI
 		// resources do not contribute package imports). Skipping the disk cache for
@@ -320,8 +312,8 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	}
 
 	/**
-	 * Run the WALA rule for this case and translate the AssertionError outcome
-	 * (if any) into a {@link SecurityException} so it can be cached uniformly.
+	 * Run the WALA rule for this case and translate the AssertionError outcome (if
+	 * any) into a {@link SecurityException} so it can be cached uniformly.
 	 */
 	@Nonnull
 	private Optional<SecurityException> runRuleAndCapture(@Nonnull String architectureMode, @Nonnull String aopMode) {
@@ -355,10 +347,9 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 				// javax.naming, …) live in JDK packages outside the application analysis
 				// scope. ArchUnit's class-level scan does see them — delegate.
 				de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchunitTestCase.archunitBuilder()
-						.javaArchitectureTestCaseSupported((JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported)
-						.javaClasses(this.javaClasses)
-						.allowedPackages(this.allowedPackages)
-						.build()
+						.javaArchitectureTestCaseSupported(
+								(JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported)
+						.javaClasses(this.javaClasses).allowedPackages(this.allowedPackages).build()
 						.executeArchitectureTestCase(architectureMode, aopMode);
 			default -> throw new SecurityException(
 					Messages.localized("security.common.unsupported.operation", this.architectureTestCaseSupported));
@@ -372,7 +363,8 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 				return Optional.of(parsed);
 			}
 		} catch (SecurityException sec) {
-			// The NATIVE_CODE/etc. branch delegates to ArchUnit which throws SecurityException
+			// The NATIVE_CODE/etc. branch delegates to ArchUnit which throws
+			// SecurityException
 			// directly. Preserve and cache.
 			return Optional.of(sec);
 		}

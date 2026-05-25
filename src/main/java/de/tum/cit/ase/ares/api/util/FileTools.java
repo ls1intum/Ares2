@@ -293,12 +293,11 @@ public class FileTools {
 		try {
 			String fileContent = Files.readString(sourceFile.toPath(), StandardCharsets.UTF_8);
 			String normalizedContent = fileContent.replace("\r\n", "\n").replace("\r", "\n");
-			// Strip Unicode whitespace, drop blank and comment lines so empty entries do not
+			// Strip Unicode whitespace, drop blank and comment lines so empty entries do
+			// not
 			// match every WALA signature via the prefix matcher.
-			List<String> methods = Arrays.stream(normalizedContent.split("\n"))
-					.map(String::strip)
-					.filter(str -> !str.isEmpty() && !str.startsWith("#"))
-					.toList();
+			List<String> methods = Arrays.stream(normalizedContent.split("\n")).map(String::strip)
+					.filter(str -> !str.isEmpty() && !str.startsWith("#")).toList();
 			return new HashSet<>(methods);
 		} catch (IOException e) {
 			throw new SecurityException(localize("security.file-tools.read.content.failure"), e);

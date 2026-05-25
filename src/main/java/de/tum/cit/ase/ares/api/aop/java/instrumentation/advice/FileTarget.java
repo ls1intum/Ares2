@@ -9,9 +9,9 @@ import javax.annotation.Nullable;
  * Internal value type representing a resolved file system target.
  * <p>
  * Description: Wraps a nullable {@link Path} instance. Used throughout the
- * toolbox as the canonical representation of a file system endpoint,
- * regardless of whether it originated from a {@link Path}, a {@link java.io.File},
- * a {@link java.net.URI}, a {@link java.net.URL}, or a {@link String}.
+ * toolbox as the canonical representation of a file system endpoint, regardless
+ * of whether it originated from a {@link Path}, a {@link java.io.File}, a
+ * {@link java.net.URI}, a {@link java.net.URL}, or a {@link String}.
  * <p>
  * Design Rationale: Extracted from
  * {@link JavaInstrumentationAdviceFileSystemToolbox} into its own top-level
@@ -30,8 +30,8 @@ public record FileTarget(@Nullable Path path) {
 	/**
 	 * Returns a human-readable string representation of this file target.
 	 * <p>
-	 * Description: Returns the string form of the path, or {@code <unknown>}
-	 * if the path is {@code null}.
+	 * Description: Returns the string form of the path, or {@code <unknown>} if the
+	 * path is {@code null}.
 	 *
 	 * @return non-null display string
 	 * @since 2.0.0

@@ -39,9 +39,9 @@ import javax.annotation.Nullable;
  * Uses static utility methods and a private constructor to prevent
  * instantiation. Reflection is used to decouple the toolbox from direct
  * dependencies on settings and localization classes, supporting flexible and
- * dynamic test setups. Network targets are resolved to a canonical host-and-port
- * pair before comparison, which avoids the multi-level traversal required for
- * file-path or thread-class checks.
+ * dynamic test setups. Network targets are resolved to a canonical
+ * host-and-port pair before comparison, which avoids the multi-level traversal
+ * required for file-path or thread-class checks.
  *
  * @since 2.0.0
  * @author Kevin Fischer
@@ -140,9 +140,9 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	 * <p>
 	 * Description: Returns {@code false} if either value is null or blank. Accepts
 	 * the wildcard {@code "*"} as an unconditional match for any host. Otherwise
-	 * performs a case-insensitive comparison after trimming, and also accepts suffix
-	 * matches of the form {@code actualHost.endsWith("." + allowedHost)} to support
-	 * subdomain policies.
+	 * performs a case-insensitive comparison after trimming, and also accepts
+	 * suffix matches of the form {@code actualHost.endsWith("." + allowedHost)} to
+	 * support subdomain policies.
 	 *
 	 * @param actualHost  the hostname resolved from the intercepted call; may be
 	 *                    null
@@ -169,9 +169,9 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	/**
 	 * Checks whether an actual port number matches an allowed port.
 	 * <p>
-	 * Description: A value of {@code -1} for {@code allowedPort} acts as a
-	 * wildcard that permits any port number. Otherwise performs an exact integer
-	 * equality check.
+	 * Description: A value of {@code -1} for {@code allowedPort} acts as a wildcard
+	 * that permits any port number. Otherwise performs an exact integer equality
+	 * check.
 	 *
 	 * @param actualPort  the port resolved from the intercepted call
 	 * @param allowedPort the port from the security policy; {@code -1} means any
@@ -196,8 +196,8 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	 * <p>
 	 * Description: Inspects the runtime type of {@code value} and delegates to the
 	 * appropriate extraction logic. Handles {@link InetSocketAddress},
-	 * {@link SocketAddress}, {@code java.net.http.HttpRequest}, {@link URI}, {@link URL},
-	 * {@link URLConnection}, {@link Socket}, {@link DatagramSocket},
+	 * {@link SocketAddress}, {@code java.net.http.HttpRequest}, {@link URI},
+	 * {@link URL}, {@link URLConnection}, {@link Socket}, {@link DatagramSocket},
 	 * {@link SocketChannel}, {@link DatagramChannel}, and {@link String} values.
 	 * Returns {@code null} when the value is {@code null} or of an unrecognised
 	 * type.
@@ -350,38 +350,36 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	 * {@code (host-like, int)} parameter pairs and marks every consumed index in
 	 * {@code consumedIndices}. The first valid pair is returned as the resolved
 	 * {@link NetworkTarget}; subsequent valid pairs are still marked consumed even
-	 * though they do not become the resolved target. If no pair matches, the
-	 * method falls through to the single-parameter scan and marks the index of
-	 * the first directly resolvable parameter.
+	 * though they do not become the resolved target. If no pair matches, the method
+	 * falls through to the single-parameter scan and marks the index of the first
+	 * directly resolvable parameter.
 	 * <p>
 	 * Design Rationale: Tracking consumed indices lets callers exclude these
 	 * positions from the per-parameter walk performed by
 	 * {@link #checkIfVariableCriteriaIsViolated(Object[], String[], int[], IgnoreValues)}.
 	 * Without that exclusion a bare {@link InetAddress} that already participated
 	 * in a successful pair extraction would be re-resolved by
-	 * {@link #variableToTarget(Object)} as {@code (host, -1)} and falsely
-	 * reported as a violation against any allowlist whose port is not {@code -1}.
+	 * {@link #variableToTarget(Object)} as {@code (host, -1)} and falsely reported
+	 * as a violation against any allowlist whose port is not {@code -1}.
 	 * <p>
-	 * Multi-pair signatures such as
-	 * {@code Socket(String, int, InetAddress, int)} or
-	 * {@code SocketFactory.createSocket(String, int, InetAddress, int)} place the
-	 * remote endpoint first and the local-bind endpoint second.
+	 * Multi-pair signatures such as {@code Socket(String, int, InetAddress, int)}
+	 * or {@code SocketFactory.createSocket(String, int, InetAddress, int)} place
+	 * the remote endpoint first and the local-bind endpoint second.
 	 * {@link de.tum.cit.ase.ares.api.policy.policySubComponents.NetworkPermission}
 	 * models policy as a single {@code (host, port)} tuple per permission and has
 	 * no concept of local-bind enforcement, so consuming the local-bind pair
 	 * without separate policy evaluation is correct in the current model. If
 	 * local-bind enforcement is ever added, this helper must be revisited.
 	 *
-	 * @param parameters       the intercepted argument array
-	 * @param consumedIndices  out-parameter; bits are set for every parameter
-	 *                         index that participated in a successful pair or
-	 *                         single-parameter resolution
+	 * @param parameters      the intercepted argument array
+	 * @param consumedIndices out-parameter; bits are set for every parameter index
+	 *                        that participated in a successful pair or
+	 *                        single-parameter resolution
 	 * @return the resolved target, or {@code null} if no target can be derived
 	 * @since 2.0.0
 	 */
 	@Nullable
-	private static NetworkTarget parametersToTarget(@Nonnull Object[] parameters,
-			@Nonnull BitSet consumedIndices) {
+	private static NetworkTarget parametersToTarget(@Nonnull Object[] parameters, @Nonnull BitSet consumedIndices) {
 		NetworkTarget firstTarget = null;
 		for (int i = 0; i + 1 < parameters.length; i++) {
 			if (consumedIndices.get(i) || consumedIndices.get(i + 1)) {
@@ -417,8 +415,7 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	 * @return the resolved target, or {@code null} if the pair is unsupported
 	 */
 	@Nullable
-	private static NetworkTarget hostAndPortToTarget(@Nullable Object hostCandidate,
-			@Nullable Object portCandidate) {
+	private static NetworkTarget hostAndPortToTarget(@Nullable Object hostCandidate, @Nullable Object portCandidate) {
 		Integer port = extractPort(portCandidate);
 		if (port == null) {
 			return null;
@@ -540,9 +537,9 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	/**
 	 * Analyzes a variable to determine if it violates allowed network targets.
 	 * <p>
-	 * Description: Attempts to resolve the variable to a {@link NetworkTarget}
-	 * via {@link #variableToTarget}. Returns {@code true} if the resolved target
-	 * is forbidden according to the allowed hosts and ports whitelist.
+	 * Description: Attempts to resolve the variable to a {@link NetworkTarget} via
+	 * {@link #variableToTarget}. Returns {@code true} if the resolved target is
+	 * forbidden according to the allowed hosts and ports whitelist.
 	 *
 	 * @param observedVariable the variable to analyze
 	 * @param allowedHosts     whitelist of allowed hosts
@@ -564,8 +561,8 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	 * Extracts the display string of the first violating network target from a
 	 * variable.
 	 * <p>
-	 * Description: Resolves the variable to a {@link NetworkTarget} and returns
-	 * its display string if the target is forbidden. Returns {@code null} if no
+	 * Description: Resolves the variable to a {@link NetworkTarget} and returns its
+	 * display string if the target is forbidden. Returns {@code null} if no
 	 * violation is found.
 	 *
 	 * @param observedVariable the variable to inspect
@@ -601,13 +598,13 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	 * @param allowedHosts      whitelist of allowed hosts
 	 * @param allowedPorts      whitelist of allowed ports
 	 * @param ignoreVariables   criteria determining which observedVariables to skip
-	 * @return the first violating target (as display string) or null if none violate
+	 * @return the first violating target (as display string) or null if none
+	 *         violate
 	 * @since 2.0.0
 	 * @author Kevin Fischer
 	 */
 	private static String checkIfVariableCriteriaIsViolated(@Nonnull Object[] observedVariables,
-			@Nullable String[] allowedHosts, @Nullable int[] allowedPorts,
-			@Nonnull IgnoreValues ignoreVariables) {
+			@Nullable String[] allowedHosts, @Nullable int[] allowedPorts, @Nonnull IgnoreValues ignoreVariables) {
 		for (@Nullable
 		Object observedVariable : filterVariables(observedVariables, ignoreVariables)) {
 			if (analyseViolation(observedVariable, allowedHosts, allowedPorts)) {
@@ -628,11 +625,10 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	 * invocation.
 	 * <p>
 	 * Description: Currently returns a singleton list containing the original
-	 * action because network operations (connect, send, receive) do not
-	 * decompose into sub-actions the way file-system operations can. The method
-	 * exists to maintain structural symmetry with the file-system toolbox and to
-	 * provide a natural extension point should future network actions require
-	 * derivation.
+	 * action because network operations (connect, send, receive) do not decompose
+	 * into sub-actions the way file-system operations can. The method exists to
+	 * maintain structural symmetry with the file-system toolbox and to provide a
+	 * natural extension point should future network actions require derivation.
 	 *
 	 * @param defaultAction the network action associated with the pointcut
 	 *                      configuration (e.g., {@code connect})
@@ -651,63 +647,64 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	/**
 	 * Performs the security validation for a single network action.
 	 * <p>
-	 * Description: Resolves the allowed hosts and ports for the given action,
-	 * then evaluates method parameters, the receiver instance, and instance
-	 * attributes against the whitelist. Throws {@link SecurityException} if a
-	 * policy violation is detected.
+	 * Description: Resolves the allowed hosts and ports for the given action, then
+	 * evaluates method parameters, the receiver instance, and instance attributes
+	 * against the whitelist. Throws {@link SecurityException} if a policy violation
+	 * is detected.
 	 *
-	 * @param action                              the concrete network action under
-	 *                                            inspection
-	 * @param declaringTypeName                   fully qualified declaring type name
-	 * @param methodName                          method being intercepted
-	 * @param methodSignature                     JVM method signature
-	 * @param attributes                          instance attributes (if any)
-	 * @param parameters                          intercepted method arguments
-	 * @param instance                            instance on which the method is
-	 *                                            invoked
-	 * @param restrictedPackage                   package prefix under security
-	 *                                            scrutiny; reserved for structural
-	 *                                            symmetry with the file-system
-	 *                                            toolbox; currently unused
-	 * @param allowedClasses                      classes allowed within the
-	 *                                            restricted package; reserved for
-	 *                                            structural symmetry with the
-	 *                                            file-system toolbox; currently
-	 *                                            unused
-	 * @param networkSystemMethodToCheck          offending method discovered in the
+	 * @param action                     the concrete network action under
+	 *                                   inspection
+	 * @param declaringTypeName          fully qualified declaring type name
+	 * @param methodName                 method being intercepted
+	 * @param methodSignature            JVM method signature
+	 * @param attributes                 instance attributes (if any)
+	 * @param parameters                 intercepted method arguments
+	 * @param instance                   instance on which the method is invoked
+	 * @param restrictedPackage          package prefix under security scrutiny;
+	 *                                   reserved for structural symmetry with the
+	 *                                   file-system toolbox; currently unused
+	 * @param allowedClasses             classes allowed within the restricted
+	 *                                   package; reserved for structural symmetry
+	 *                                   with the file-system toolbox; currently
+	 *                                   unused
+	 * @param networkSystemMethodToCheck offending method discovered in the
 	 *                                   restricted call stack
-	 * @param studentCalledMethod     external method initiating the restricted
-	 *                                call (may be null)
-	 * @param fullMethodSignature     human-readable method signature for diagnostics
+	 * @param studentCalledMethod        external method initiating the restricted
+	 *                                   call (may be null)
+	 * @param fullMethodSignature        human-readable method signature for
+	 *                                   diagnostics
 	 * @throws SecurityException if the interaction violates configured policies
 	 * @since 2.0.0
 	 * @author Kevin Fischer
 	 */
 	private static void checkNetworkSystemInteractionForAction(@Nonnull String action,
-			@Nonnull String declaringTypeName,
-			@Nonnull String methodName, @Nonnull String methodSignature, @Nullable Object[] attributes,
-			@Nullable Object[] parameters, @Nullable Object instance, @Nullable String restrictedPackage,
-			@Nullable String[] allowedClasses, @Nonnull String networkSystemMethodToCheck,
-			@Nullable String studentCalledMethod, @Nonnull String fullMethodSignature) {
+			@Nonnull String declaringTypeName, @Nonnull String methodName, @Nonnull String methodSignature,
+			@Nullable Object[] attributes, @Nullable Object[] parameters, @Nullable Object instance,
+			@Nullable String restrictedPackage, @Nullable String[] allowedClasses,
+			@Nonnull String networkSystemMethodToCheck, @Nullable String studentCalledMethod,
+			@Nonnull String fullMethodSignature) {
 		// <editor-fold desc="Resolve allowed hosts and ports">
 		@Nullable
 		final String[] allowedHosts = switch (action) {
 		case "connect" -> getValueFromSettings("hostsAllowedToBeConnectedTo");
 		case "send" -> getValueFromSettings("hostsAllowedToBeSentTo");
 		case "receive" -> getValueFromSettings("hostsAllowedToBeReceivedFrom");
-		default -> throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.settings.invalid.network.permission", action));
+		default -> throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+				.localize("security.advice.settings.invalid.network.permission", action));
 		};
 		@Nullable
 		final int[] allowedPorts = switch (action) {
 		case "connect" -> getValueFromSettings("portsAllowedToBeConnectedTo");
 		case "send" -> getValueFromSettings("portsAllowedToBeSentTo");
 		case "receive" -> getValueFromSettings("portsAllowedToBeReceivedFrom");
-		default -> throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.settings.invalid.network.permission", action));
+		default -> throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+				.localize("security.advice.settings.invalid.network.permission", action));
 		};
 
 		if ((allowedHosts == null ? 0 : allowedHosts.length) != (allowedPorts == null ? 0 : allowedPorts.length)) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.network.allowed.size", action,
-					allowedHosts == null ? 0 : allowedHosts.length, allowedPorts == null ? 0 : allowedPorts.length));
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+					"security.advice.network.allowed.size", action, allowedHosts == null ? 0 : allowedHosts.length,
+					allowedPorts == null ? 0 : allowedPorts.length));
 		}
 		// </editor-fold>
 		// <editor-fold desc="Check parameters">
@@ -715,10 +712,10 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		@Nonnull
 		final BitSet consumedParameterIndices = new BitSet(hasParameters ? parameters.length : 0);
 		@Nullable
-		NetworkTarget targetFromParameters = hasParameters
-				? parametersToTarget(parameters, consumedParameterIndices)
+		NetworkTarget targetFromParameters = hasParameters ? parametersToTarget(parameters, consumedParameterIndices)
 				: null;
-		if (targetFromParameters != null && checkIfNetworkIsForbidden(targetFromParameters, allowedHosts, allowedPorts)) {
+		if (targetFromParameters != null
+				&& checkIfNetworkIsForbidden(targetFromParameters, allowedHosts, allowedPorts)) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
 					"security.advice.illegal.network.execution", networkSystemMethodToCheck, action,
 					targetFromParameters.toDisplayString(), fullMethodSignature
@@ -738,10 +735,12 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 			}
 		}
 		@Nullable
-		String networkIllegallyInteractedThroughParameter = (residualParameters == null || residualParameters.length == 0) ? null
-				: checkIfVariableCriteriaIsViolated(residualParameters, allowedHosts, allowedPorts,
-						NETWORK_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
-								IgnoreValues.NONE));
+		String networkIllegallyInteractedThroughParameter = (residualParameters == null
+				|| residualParameters.length == 0)
+						? null
+						: checkIfVariableCriteriaIsViolated(residualParameters, allowedHosts, allowedPorts,
+								NETWORK_SYSTEM_IGNORE_PARAMETERS_EXCEPT
+										.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
 		if (networkIllegallyInteractedThroughParameter != null) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
 					"security.advice.illegal.network.execution", networkSystemMethodToCheck, action,
@@ -833,10 +832,9 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 
 		List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action);
 		for (Map.Entry<String, Boolean> actionCheck : actionsToValidate) {
-			checkNetworkSystemInteractionForAction(actionCheck.getKey(),
-					declaringTypeName, methodName, methodSignature, attributes, parameters, instance,
-					restrictedPackage, allowedClasses, networkSystemMethodToCheck, studentCalledMethod,
-					fullMethodSignature);
+			checkNetworkSystemInteractionForAction(actionCheck.getKey(), declaringTypeName, methodName, methodSignature,
+					attributes, parameters, instance, restrictedPackage, allowedClasses, networkSystemMethodToCheck,
+					studentCalledMethod, fullMethodSignature);
 		}
 	}
 

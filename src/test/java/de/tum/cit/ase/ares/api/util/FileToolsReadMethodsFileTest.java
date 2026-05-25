@@ -16,26 +16,19 @@ class FileToolsReadMethodsFileTest {
 
 	@Test
 	void stripsAndFiltersBlanksCommentsWhitespaceLines(@TempDir Path tmp) throws IOException {
-		// EM SPACE (U+2003) is Character.isWhitespace -> true -> stripped to empty -> filtered.
-		// Mixed line endings, leading/trailing whitespace, comment with leading spaces, tabs.
-		String content = String.join("\n",
-				"# pure comment",
-				"   # comment with leading spaces",
-				"",
-				"   ",
-				"\t\t",
-				" ",
-				"  java.lang.String.length()  ",
-				"java.lang.String.isEmpty()",
-				"") + "\r\n# trailing comment after CRLF\r\n";
+		// EM SPACE (U+2003) is Character.isWhitespace -> true -> stripped to empty ->
+		// filtered.
+		// Mixed line endings, leading/trailing whitespace, comment with leading spaces,
+		// tabs.
+		String content = String.join("\n", "# pure comment", "   # comment with leading spaces", "", "   ", "\t\t", " ",
+				"  java.lang.String.length()  ", "java.lang.String.isEmpty()", "")
+				+ "\r\n# trailing comment after CRLF\r\n";
 		File file = tmp.resolve("methods.txt").toFile();
 		Files.writeString(file.toPath(), content, StandardCharsets.UTF_8);
 
 		Set<String> methods = FileTools.readMethodsFile(file);
 
-		assertThat(methods).containsExactlyInAnyOrder(
-				"java.lang.String.length()",
-				"java.lang.String.isEmpty()");
+		assertThat(methods).containsExactlyInAnyOrder("java.lang.String.length()", "java.lang.String.isEmpty()");
 	}
 
 	@Test
@@ -45,8 +38,7 @@ class FileToolsReadMethodsFileTest {
 		Files.writeString(file.toPath(), content, StandardCharsets.UTF_8);
 
 		assertThat(FileTools.readMethodsFile(file)).containsExactlyInAnyOrder(
-				"java.io.FileInputStream.<init>(java.io.File)",
-				"java.lang.Class.forName(java.lang.String)");
+				"java.io.FileInputStream.<init>(java.io.File)", "java.lang.Class.forName(java.lang.String)");
 	}
 
 	@Test

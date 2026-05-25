@@ -43,8 +43,8 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 	 * exempted from ignore rules during command system checks.
 	 */
 	@Nonnull
-	private static final Map<String, IgnoreValues> COMMAND_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT = Map
-			.ofEntries(Map.entry("java.lang.ProcessBuilder.start", IgnoreValues.allExcept(findFieldIndex(ProcessBuilder.class, "command"))));
+	private static final Map<String, IgnoreValues> COMMAND_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT = Map.ofEntries(Map.entry(
+			"java.lang.ProcessBuilder.start", IgnoreValues.allExcept(findFieldIndex(ProcessBuilder.class, "command"))));
 
 	/**
 	 * Map of methods with parameter index exceptions for command system ignore
@@ -84,9 +84,9 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 	/**
 	 * Checks if a command target is outside of the allowed commands whitelist.
 	 * <p>
-	 * Description: Returns {@code true} if the allowed lists are null/empty, or
-	 * if no entry in the parallel allowlists matches both the command name and
-	 * the arguments of the target. Command matching is delegated to
+	 * Description: Returns {@code true} if the allowed lists are null/empty, or if
+	 * no entry in the parallel allowlists matches both the command name and the
+	 * arguments of the target. Command matching is delegated to
 	 * {@link #commandMatches} and argument matching to {@link #argumentsMatch}.
 	 *
 	 * @since 2.0.0
@@ -97,8 +97,8 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 	 * @return {@code true} if the command is forbidden; {@code false} if it is
 	 *         explicitly allowed
 	 */
-	private static boolean checkIfCommandIsForbidden(@Nullable CommandTarget actual,
-			@Nullable String[] allowedCommands, @Nullable String[][] allowedArguments) {
+	private static boolean checkIfCommandIsForbidden(@Nullable CommandTarget actual, @Nullable String[] allowedCommands,
+			@Nullable String[][] allowedArguments) {
 		if (actual == null) {
 			return false;
 		}
@@ -109,8 +109,8 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 		for (int i = 0; i < allowedCommands.length; i++) {
 			String allowedCommand = allowedCommands[i];
 			String[] allowedArgument = allowedArguments[i];
-if (commandMatches(actual.command(), allowedCommand)
-						&& argumentsMatch(allowedArgument, actual.arguments())) {
+			if (commandMatches(actual.command(), allowedCommand)
+					&& argumentsMatch(allowedArgument, actual.arguments())) {
 				return false;
 			}
 		}
@@ -303,8 +303,8 @@ if (commandMatches(actual.command(), allowedCommand)
 	 * Analyzes a variable to determine if it violates allowed commands.
 	 * <p>
 	 * Description: Recursively checks if the variable or its elements (if an array
-	 * or List) are in violation of the allowed commands. Returns true if any element
-	 * is forbidden.
+	 * or List) are in violation of the allowed commands. Returns true if any
+	 * element is forbidden.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
@@ -322,7 +322,8 @@ if (commandMatches(actual.command(), allowedCommand)
 			// Recurse only when elements are themselves nested Lists/arrays (i.e. multiple
 			// commands). A flat List<String> is a single (command, arg, arg, ...) sequence
 			// and must be handed to variableToCommand whole; otherwise individual args that
-			// happen to contain spaces (e.g. "echo $PATH") would be re-checked as standalone
+			// happen to contain spaces (e.g. "echo $PATH") would be re-checked as
+			// standalone
 			// commands and never match any allow-list entry.
 			if (list.stream().anyMatch(o -> o instanceof List<?> || (o != null && o.getClass().isArray()))) {
 				for (Object element : list) {
