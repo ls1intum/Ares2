@@ -54,7 +54,12 @@ public final class ReportingUtils {
 		if (!(t instanceof SecurityException))
 			return false;
 		String message = BlacklistedInvoker.invokeOrElse(t::getMessage, () -> null);
-		return message != null && message.contains("Reason: Ares-Code"); //$NON-NLS-1$
+		if (message == null)
+			return false;
+		// Only suppress genuine setup failures where the Ares settings class itself
+		// could not be found or accessed — not student-triggered Ares-Code exceptions
+		// like "Unable to make field accessible" which tests legitimately assert on.
+		return message.contains("JavaAOPTestCaseSettings"); //$NON-NLS-1$
 	}
 
 	private static Throwable processThrowableRegularly(Throwable t) {
