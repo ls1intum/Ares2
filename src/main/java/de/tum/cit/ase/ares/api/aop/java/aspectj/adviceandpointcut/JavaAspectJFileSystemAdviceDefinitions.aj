@@ -197,7 +197,10 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
 
         boolean hasAllowedPrefix = false;
         for (String allowedPathsAsString : allowedPathsAsStrings) {
-            @Nullable Path allowedPath = variableToPath(allowedPathsAsString, allowNonExistingPathsToBeConsidered);
+            // Always resolve policy-entry paths even when they do not exist yet,
+            // so that a rule such as "allow protected/file.txt" is not silently
+            // skipped just because the file has not been created yet.
+            @Nullable Path allowedPath = variableToPath(allowedPathsAsString, true);
             if (allowedPath == null) {
                 continue;
             }
@@ -252,9 +255,9 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
                 normalizedAllowedPath = allowedPath.normalize().toAbsolutePath();
             }
         } else {
-            if (!allowNonExistingPathsToBeConsidered) {
-                return false;
-            }
+            // Policy entries for non-existing paths must still be honoured: use
+            // the normalised absolute form so that candidate.startsWith() works
+            // correctly regardless of whether the allowed path exists yet.
             normalizedAllowedPath = allowedPath.normalize().toAbsolutePath();
         }
 
