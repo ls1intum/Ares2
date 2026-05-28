@@ -36,7 +36,6 @@ public final class JupiterSecurityExtension
 	 */
 	@Override
 	public void beforeTestExecution(ExtensionContext extensionContext) throws Exception {
-		System.err.println("[ARES-LIFECYCLE] beforeTestExecution called");
 		resetSettingsInStandardClassLoader();
 		resetSettingsInBootstrapClassLoader();
 
@@ -46,20 +45,14 @@ public final class JupiterSecurityExtension
 		Optional<Policy> policyOpt = methodPolicy.or(() -> classPolicy);
 		boolean hasPolicyAnnotation = policyOpt.isPresent();
 		boolean isAresActivated = policyOpt.map(Policy::activated).orElse(true);
-		boolean isTestMethodPresent = testContext.testMethod().isPresent();
-		System.err.println("[ARES-LIFECYCLE] hasPolicyAnnotation=" + hasPolicyAnnotation + " isAresActivated="
-				+ isAresActivated + " isTestMethodPresent=" + isTestMethodPresent);
 
-		if (isAresActivated && (hasPolicyAnnotation || isTestMethodPresent)) {
+		if (isAresActivated && hasPolicyAnnotation) {
 			Path policyPath = policyOpt.filter(p -> !p.value().isBlank())
 					.map(JupiterSecurityExtension::testAndGetPolicyValue).orElse(null);
 			Path withinPath = policyOpt.filter(p -> !p.withinPath().isBlank())
 					.map(JupiterSecurityExtension::testAndGetPolicyWithinPath).orElse(Path.of(""));
-			System.err
-					.println("[ARES-LIFECYCLE] executing with policyPath=" + policyPath + " withinPath=" + withinPath);
 			SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policyPath).projectFolderPath(withinPath)
 					.build().createTestCases().executeTestCases();
-			System.err.println("[ARES-LIFECYCLE] executeTestCases completed");
 		}
 	}
 
@@ -92,14 +85,11 @@ public final class JupiterSecurityExtension
 		resetSettingsInStandardClassLoader();
 		resetSettingsInBootstrapClassLoader();
 
-		// Determine security enforcement:
-		// - @Policy(activated=true) → enforce with custom policy from file
-		// - no @Policy on @Test method → enforce with default policy (null path)
-		// - @Policy(activated=false) → Ares deactivated (no security checks)
-		// Skip enforcement during constructor interception (no test method present
-		// yet).
-		boolean isTestMethodPresent = testContext.testMethod().isPresent();
-		if (isAresActivated && (hasPolicyAnnotation || isTestMethodPresent)) {
+		// Enforce security only when an explicit @Policy annotation is present.
+		// Without a @Policy the restricted-package scanner returns "" which would
+		// match every class name and block Ares/JUnit internals, causing
+		// SecurityExceptions in trivial tests that have no policy at all.
+		if (isAresActivated && hasPolicyAnnotation) {
 			Path policyPath = policyOpt.filter(p -> !p.value().isBlank())
 					.map(JupiterSecurityExtension::testAndGetPolicyValue).orElse(null);
 			Path withinPath = policyOpt.filter(p -> !p.withinPath().isBlank())
