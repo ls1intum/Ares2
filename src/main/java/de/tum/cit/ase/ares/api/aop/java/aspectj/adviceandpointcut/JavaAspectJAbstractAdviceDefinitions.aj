@@ -198,6 +198,20 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
             return key;
         }
     }
+    /**
+     * Returns a human-readable denial reason distinguishing "no allow rule
+     * configured" from "path not covered by any allow rule".
+     *
+     * @param allowedPaths the configured allowlist; null or empty means no rule exists
+     * @return a non-null reason string suitable for appending to SecurityException messages
+     */
+    @Nonnull
+    protected static String buildDenialReason(@Nullable String[] allowedPaths) {
+        if (allowedPaths == null || allowedPaths.length == 0) {
+            return localize("security.advice.denial.reason.no.allowlist");
+        }
+        return localize("security.advice.denial.reason.not.in.allowlist");
+    }
     //</editor-fold>
 
     //<editor-fold desc="Callstack criteria methods">

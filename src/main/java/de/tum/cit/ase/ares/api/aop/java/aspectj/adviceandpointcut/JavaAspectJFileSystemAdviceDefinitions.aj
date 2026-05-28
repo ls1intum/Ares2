@@ -917,6 +917,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
                         messageAction,
                         illegallyInteractedThroughParameter,
                         fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+                                + " | " + buildDenialReason(allowedPaths)
                 ));
             }
             //</editor-fold>
@@ -944,6 +945,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
                             messageAction,
                             illegallyInteractedThroughReceiver,
                             fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+                                    + " | " + buildDenialReason(allowedPaths)
                     ));
                 }
             }
@@ -970,6 +972,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
                             messageAction,
                             illegallyInteractedThroughAttribute,
                             fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+                                    + " | " + buildDenialReason(allowedPaths)
                     ));
                 }
             }

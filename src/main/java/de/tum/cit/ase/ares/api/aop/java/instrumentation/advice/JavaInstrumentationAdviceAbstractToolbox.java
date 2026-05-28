@@ -320,6 +320,24 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 			return key;
 		}
 	}
+
+	/**
+	 * Returns a human-readable denial reason that explains why a resource access
+	 * was blocked, distinguishing between "no allow rule configured at all" and
+	 * "path not covered by any configured allow rule".
+	 *
+	 * @param allowedPaths the configured allowlist for the operation; null or empty
+	 *                     means no allow rule was configured
+	 * @return a non-null reason string suitable for appending to SecurityException
+	 *         messages
+	 */
+	@Nonnull
+	public static String buildDenialReason(@Nullable String[] allowedPaths) {
+		if (allowedPaths == null || allowedPaths.length == 0) {
+			return localize("security.advice.denial.reason.no.allowlist");
+		}
+		return localize("security.advice.denial.reason.not.in.allowlist");
+	}
 	// </editor-fold>
 
 	// <editor-fold desc="Callstack criteria methods">

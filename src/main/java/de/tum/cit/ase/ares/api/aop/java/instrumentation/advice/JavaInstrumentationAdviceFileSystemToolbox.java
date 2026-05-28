@@ -1007,8 +1007,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			if (!isClassLoaderAccess && !isSystemJarRead) {
 				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
 						"security.advice.illegal.file.execution", fileSystemMethodToCheck, messageAction,
-						pathIllegallyInteractedThroughParameter, fullMethodSignature
-								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
+						pathIllegallyInteractedThroughParameter,
+						fullMethodSignature
+								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+								+ " | " + JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(allowedPaths)));
 			}
 		}
 		// </editor-fold>
@@ -1035,8 +1037,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			if (!isInternalAllowed) {
 				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
 						"security.advice.illegal.file.execution", fileSystemMethodToCheck, messageAction,
-						pathIllegallyInteractedThroughReceiver, fullMethodSignature
-								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
+						pathIllegallyInteractedThroughReceiver,
+						fullMethodSignature
+								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+								+ " | " + JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(allowedPaths)));
 			}
 		}
 		// </editor-fold>
@@ -1095,8 +1099,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			if (!isInternalAllowed) {
 				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
 						"security.advice.illegal.file.execution", fileSystemMethodToCheck, messageAction,
-						pathIllegallyInteractedThroughAttribute, fullMethodSignature
-								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
+						pathIllegallyInteractedThroughAttribute,
+						fullMethodSignature
+								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+								+ " | " + JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(allowedPaths)));
 			}
 		}
 		// </editor-fold>
