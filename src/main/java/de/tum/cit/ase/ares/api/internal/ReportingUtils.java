@@ -40,10 +40,21 @@ public final class ReportingUtils {
 	}
 
 	public static Throwable processThrowable(Throwable t, TestContext context) {
+		if (isAresInternalError(t)) {
+			LOG.error("Ares internal error during test execution", t); //$NON-NLS-1$
+			return new AssertionError(localized("reporting.ares_internal_error"));
+		}
 		Optional<String> nonprivilegedFailureMessage = ConfigurationUtils.getNonprivilegedFailureMessage(context);
 		if (nonprivilegedFailureMessage.isPresent())
 			return processThrowablePrivilegedOnly(t, nonprivilegedFailureMessage.get());
 		return processThrowableRegularly(t);
+	}
+
+	private static boolean isAresInternalError(Throwable t) {
+		if (!(t instanceof SecurityException))
+			return false;
+		String message = BlacklistedInvoker.invokeOrElse(t::getMessage, () -> null);
+		return message != null && message.contains("Reason: Ares-Code"); //$NON-NLS-1$
 	}
 
 	private static Throwable processThrowableRegularly(Throwable t) {
