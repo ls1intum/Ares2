@@ -45,7 +45,7 @@
 		<yaml-version>2.18.2</yaml-version>
 		<!-- 6. Large Tooling Libraries -->
 		<guava-version>33.5.0-jre</guava-version>
-		<commons-io-version>2.20.0</commons-io-version>
+		<commons-io-versi33.6.0-jre</commons-io-version>
 		<vavr-version>0.10.7</vavr-version>
 		<!-- 7. Small Tooling Libraries -->
 		<java-string-similarity-version>2.0.0</java-string-similarity-version>
