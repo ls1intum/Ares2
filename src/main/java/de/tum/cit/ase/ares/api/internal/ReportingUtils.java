@@ -10,6 +10,7 @@ import org.junit.jupiter.api.extension.InvocationInterceptor.Invocation;
 import org.slf4j.*;
 
 import de.tum.cit.ase.ares.api.context.TestContext;
+import de.tum.cit.ase.ares.api.context.TestType;
 import de.tum.cit.ase.ares.api.internal.sanitization.*;
 //REMOVED: Import of ArtemisSecurityManager
 
@@ -40,6 +41,9 @@ public final class ReportingUtils {
 	}
 
 	public static Throwable processThrowable(Throwable t, TestContext context) {
+		if (context.findTestType().orElse(null) == TestType.HIDDEN) {
+			return new AssertionError(localized("test_guard.hidden_test_failed"));
+		}
 		Optional<String> nonprivilegedFailureMessage = ConfigurationUtils.getNonprivilegedFailureMessage(context);
 		if (nonprivilegedFailureMessage.isPresent())
 			return processThrowablePrivilegedOnly(t, nonprivilegedFailureMessage.get());
