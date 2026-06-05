@@ -1,0 +1,16 @@
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.cit.ase.ares.integration.testuser.InternalErrorLeakageTemporaryUser"
+    - "de.tum.cit.ase.ares.integration.InternalErrorLeakageTemporaryTest"
+    - "de.tum.cit.ase.ares.testutilities."
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions: []
+    regardingNetworkConnections: []
+    regardingCommandExecutions: []
+    regardingThreadCreations: []
+    regardingPackageImports: []
+    regardingTimeouts:
+      - timeout: 3000

@@ -232,7 +232,14 @@ public enum ArchitectureMode {
 	 */
 	@Nonnull
 	public JavaClasses getJavaClasses(String classPath) {
-		return new ClassFileImporter().importPath(classPath);
+		// Exclude Ares' own framework classes from analysis: the architecture rules
+		// must only inspect the student/project code, never Ares' trusted advice (which
+		// legitimately calls e.g. System.getProperty), otherwise the rules flag the
+		// framework itself and every instrumented test fails with a self-interception.
+		return new ClassFileImporter()
+				.withImportOption(
+						location -> !location.toString().replace("\\", "/").contains("/de/tum/cit/ase/ares/api/"))
+				.importPath(classPath);
 	}
 
 	/**
