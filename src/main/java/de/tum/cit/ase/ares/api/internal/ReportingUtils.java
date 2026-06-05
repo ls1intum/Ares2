@@ -46,8 +46,10 @@ public final class ReportingUtils {
 		// even when the failure occurs inside a hidden test.
 		if (aresInternalError)
 			LOG.error("Ares internal error during test execution", t); //$NON-NLS-1$
-		// Hidden tests must never reveal why they failed, so their uniform message takes
-		// precedence over the more specific internal-error message for the student view.
+		// Hidden tests must never reveal why they failed, so their uniform message
+		// takes
+		// precedence over the more specific internal-error message for the student
+		// view.
 		if (context.findTestType().orElse(null) == TestType.HIDDEN)
 			return new AssertionError(localized("test_guard.hidden_test_failed")); //$NON-NLS-1$
 		if (aresInternalError)
