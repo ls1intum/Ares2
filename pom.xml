@@ -37,6 +37,16 @@
 		<byte-buddy-path>
 			${project.build.directory}${file.separator}${project.artifactId}-${project.version}-agent.jar
 		</byte-buddy-path>
+		<!-- 3. AOP: 3.3 JVM module access -->
+		<!-- The AspectJ aspects (and the Byte Buddy advice) reflectively read fields of
+			intercepted JDK objects (e.g. ThreadPoolExecutor.ctl, Socket.delegate,
+			Executors$AutoShutdownDelegatedExecutorService.cleanable). Under JDK 16+ strong
+			encapsulation these reads require the corresponding java.base packages to be opened.
+			This mirrors the jvmArgs the runtime Gradle build applies; without it the test JVM
+			throws InaccessibleObjectException and the security analysis cannot introspect the
+			intercepted objects. Student attacks remain blocked by Ares's AOP advice and the
+			architecture rules, which do not depend on JVM strong encapsulation. -->
+		<jvm.module.access.args>--add-exports java.base/java.lang=ALL-UNNAMED --add-exports java.base/jdk.internal.misc=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED --add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/java.nio.channels=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.util.concurrent=ALL-UNNAMED --add-opens java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED --add-opens java.base/jdk.internal.misc=ALL-UNNAMED --add-opens java.base/sun.net.www.protocol.http=ALL-UNNAMED --add-opens java.base/sun.net.www.protocol.https=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens jdk.unsupported/sun.misc=ALL-UNNAMED</jvm.module.access.args>
 		<!-- 4. AST: 4.1 JavaParser -->
 		<java-parser-version>3.27.0</java-parser-version>
 		<!-- 5. Formats: 5.1 JSON -->
@@ -447,7 +457,11 @@
 				<version>3.5.1</version>
 				<configuration>
 					<forkCount>1</forkCount>
-					<argLine>-javaagent:${byte-buddy-path} -Xbootclasspath/a:${aspectj-path}</argLine>
+					<!-- Kill (and report) a hung forked JVM rather than letting CI run until
+						the runner dies. 2400s sits above a legitimate full-suite run yet below
+						the 45-minute CI job timeout, so a real hang is caught with a report. -->
+					<forkedProcessTimeoutInSeconds>2400</forkedProcessTimeoutInSeconds>
+					<argLine>-Xmx6g -javaagent:${byte-buddy-path} -Xbootclasspath/a:${aspectj-path} ${jvm.module.access.args}</argLine>
 				</configuration>
 			</plugin>
 			<!-- 5. Package -->
@@ -885,7 +899,8 @@
 						<version>3.3.0</version>
 						<configuration>
 							<forkCount>1</forkCount>
-							<argLine>-javaagent:${byte-buddy-path} -Xbootclasspath/a:${aspectj-path}</argLine>
+							<forkedProcessTimeoutInSeconds>2400</forkedProcessTimeoutInSeconds>
+							<argLine>-Xmx6g -javaagent:${byte-buddy-path} -Xbootclasspath/a:${aspectj-path} ${jvm.module.access.args}</argLine>
 						</configuration>
 					</plugin>
 				</plugins>
