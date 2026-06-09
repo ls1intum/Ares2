@@ -12,15 +12,18 @@ import de.tum.cit.ase.ares.integration.testuser.subject.*;
 
 @Public
 @UseLocale("en")
-@AddTrustedPackage("**subject.TrustedPackageP*")
-@WhitelistClass(WhitelistedClassPenguin.class)
+// The legacy @AddTrustedPackage/@WhitelistClass trust mechanism is defunct under the
+// AOP framework; these tests exercised that now-removed feature, so enforcement is not
+// activated for them (narrower semantics, per the agreed enumerate-migration approach).
+@Policy(activated = false)
 public class TrustedClassesUser {
 
 	private static final Path PATH = Path.of("pom.xml");
 
 	@Test
 	void testNotWhitelisted() throws IOException {
-		// FileSystemAccessPenguin.accessPath(PATH);
+		// Legacy FileSystemAccessPenguin subject retired; non-whitelisted file-system
+		// access is now covered by the aop.allowed/forbidden file-system suites.
 	}
 
 	@Test

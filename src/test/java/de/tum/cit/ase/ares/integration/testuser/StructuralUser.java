@@ -23,7 +23,9 @@ import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 @Public
 @UseLocale("en")
 @StrictTimeout(10)
-@WhitelistPath("")
+// Structural tests exercise ClassNameScanner correctness, not runtime security, so
+// Ares enforcement is not activated for them (replaces the now-defunct @WhitelistPath).
+@Policy(activated = false)
 @SuppressWarnings("deprecation")
 public class StructuralUser {
 
@@ -51,6 +53,7 @@ public class StructuralUser {
 	}
 
 	@Nested
+	@Policy(activated = false)
 	class InvalidConfigurations {
 
 		private final List<Logger> loggers = List.of((Logger) LoggerFactory.getLogger(ProjectSourcesFinder.class),
