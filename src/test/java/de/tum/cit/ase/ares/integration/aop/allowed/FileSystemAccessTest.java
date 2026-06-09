@@ -13,6 +13,7 @@ import org.junit.jupiter.api.function.Executable;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
+import de.tum.cit.ase.ares.api.localization.UseLocale;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.delete.fileDelete.FileDeleteMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.delete.fileSystemProvider.DeleteFileSystemProviderMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.delete.filesDelete.FilesDeleteMain;
@@ -46,6 +47,7 @@ import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.read.third
  * Integration tests to verify that file system read access is allowed under
  * various security policies and that the file content matches expectations.
  */
+@UseLocale("en")
 class FileSystemAccessTest {
 
 	// Error messages for assertion failures

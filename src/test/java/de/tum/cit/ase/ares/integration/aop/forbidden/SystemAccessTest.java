@@ -7,11 +7,14 @@ import java.util.Arrays;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.function.Executable;
 
+import de.tum.cit.ase.ares.api.localization.UseLocale;
+
 /**
  * Abstract base class for system access tests that provides common constants
  * and helper methods for testing security exceptions in command system access,
  * file system access, and thread system access.
  */
+@UseLocale("en")
 abstract class SystemAccessTest {
 
 	// <editor-fold desc="Constants">

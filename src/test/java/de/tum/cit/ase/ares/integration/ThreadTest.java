@@ -20,10 +20,12 @@ import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.StrictTimeout;
 import de.tum.cit.ase.ares.api.TestUtils;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
+import de.tum.cit.ase.ares.api.localization.UseLocale;
 import de.tum.cit.ase.ares.integration.testuser.subject.threads.ThreadPenguin;
 import de.tum.cit.ase.ares.testutilities.*;
 
 //@UserBased(ThreadUser.class)
+@UseLocale("en")
 class ThreadTest {
 
 	@UserTestResults
@@ -69,21 +71,21 @@ class ThreadTest {
 	 *                      message.
 	 */
 	private void assertThreadErrorMessage(String actualMessage, String operationText) {
-		assertTrue(actualMessage.contains("Thread Security Error"),
-				"Exception message should contain 'Thread Security Error'" + System.lineSeparator() + actualMessage);
+		assertTrue(actualMessage.contains("Ares Security Error"),
+				"Exception message should contain 'Ares Security Error'" + System.lineSeparator() + actualMessage);
 		assertTrue(actualMessage.contains("Student-Code"),
 				"Exception message should contain 'Student-Code'" + System.lineSeparator() + actualMessage);
 		assertTrue(actualMessage.contains("Execution"),
 				"Exception message should contain 'Execution'" + System.lineSeparator() + actualMessage);
-		assertTrue(actualMessage.contains("ThreadAccessPenguin"),
-				"Exception message should contain the class name 'ThreadAccessPenguin'" + System.lineSeparator()
+		assertTrue(actualMessage.contains("ThreadPenguin"),
+				"Exception message should contain the class name 'ThreadPenguin'" + System.lineSeparator()
 						+ actualMessage);
-		assertTrue(actualMessage.contains("TODO:Forbidden-test"),
-				"Exception message should contain the forbidden thread operation: " + System.lineSeparator()
+		assertTrue(actualMessage.contains("create Thread"),
+				"Exception message should indicate an illegal thread creation" + System.lineSeparator()
 						+ actualMessage);
-		assertTrue(actualMessage.contains(operationText),
-				"Exception message should indicate the expected operation by containing '" + operationText + "'"
-						+ System.lineSeparator() + actualMessage);
+		assertTrue(actualMessage.contains("blocked by Ares"),
+				"Exception message should indicate the operation was blocked by Ares" + System.lineSeparator()
+						+ actualMessage);
 	}
 
 	/**

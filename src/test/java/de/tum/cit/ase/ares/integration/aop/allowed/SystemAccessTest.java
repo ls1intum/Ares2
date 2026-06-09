@@ -3,9 +3,12 @@ package de.tum.cit.ase.ares.integration.aop.allowed;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.function.Executable;
 
+import de.tum.cit.ase.ares.api.localization.UseLocale;
+
 /**
  * Base class for system access tests with common methods and constants.
  */
+@UseLocale("en")
 public abstract class SystemAccessTest {
 
 	// Error messages for assertion failures
