@@ -211,7 +211,9 @@ class WalaRuleTest {
 		AssertionError err = runAndExpectError(List.of(student, forbidden),
 				new WalaRule("Manipulates class loading", Set.of("java.lang.Class.forName(Ljava/lang/String;)")));
 		assertThat(err).isNotNull();
-		assertThat(err.getMessage()).contains("Method <anonymous.Student.callForbidden()V>");
+		// WalaRule renders signatures in ArchUnit source-form, dropping the JVM
+		// return-type descriptor, so the caller appears as callForbidden() not ()V.
+		assertThat(err.getMessage()).contains("Method <anonymous.Student.callForbidden()>");
 	}
 
 	// ----------------------------------------------------------------
@@ -232,20 +234,24 @@ class WalaRuleTest {
 		AssertionError err = runAndExpectError(List.of(studentOuter, studentInner, forbidden), new WalaRule(
 				"Accesses network", Set.of("sun.nio.ch.DatagramChannelImpl.connect(Ljava/net/SocketAddress;Z)")));
 		assertThat(err).isNotNull();
-		// innerCall is the nearest student frame and must appear as the Method <caller>
-		assertThat(err.getMessage()).contains("Method <anonymous.Student.innerCall()V>");
+		// innerCall is the nearest student frame and must appear as the Method
+		// <caller>,
+		// rendered in ArchUnit source-form without the JVM return-type descriptor.
+		assertThat(err.getMessage()).contains("Method <anonymous.Student.innerCall()>");
 	}
 
 	// ----------------------------------------------------------------
-	// Test 4: student → infra-classified intermediate → forbidden JDK
-	// isFalsePositiveTransitivePath suppresses this path: the toolclasses helper
-	// is in INFRA_PREFIXES, so all frames between student and sink are infra.
-	// The rule therefore does NOT fire — this is the expected false-positive
-	// suppression behaviour.
+	// Test 4: student → project-test-helper (anonymous.toolclasses.) → forbidden
+	// JDK.
+	// The toolclasses helper is in INFRA_PREFIXES (so it is not reported as the
+	// student frame) but is deliberately NOT in TRANSITIVE_FALSE_POSITIVE_PREFIXES.
+	// A student routing into a forbidden API through such a helper is therefore a
+	// REAL violation: the rule fires and attributes it to the nearest student
+	// frame.
 	// ----------------------------------------------------------------
 
 	@Test
-	void transitiveInfraPathToForbiddenIsSuppressed() {
+	void transitiveHelperPathToForbiddenFires() {
 		CGNode studentA = studentNode("anonymous.Student.runTask()V");
 		CGNode toolHelper = mock(CGNode.class);
 		IMethod toolMethod = mock(IMethod.class);
@@ -260,8 +266,10 @@ class WalaRuleTest {
 				TypeName.findOrCreate("Lanonymous/toolclasses/TaskHelper;")));
 		CGNode forbidden = jdkForbiddenNode("java.lang.Thread.<init>(Ljava/lang/Runnable;)V", "Thread");
 
-		runAndExpectNoError(List.of(studentA, toolHelper, forbidden),
+		AssertionError err = runAndExpectError(List.of(studentA, toolHelper, forbidden),
 				new WalaRule("Manipulates threads", Set.of("java.lang.Thread.<init>(Ljava/lang/Runnable;)")));
+		assertThat(err).as("path through a project test helper into a forbidden API must fire").isNotNull();
+		assertThat(err.getMessage()).contains("Method <anonymous.Student.runTask()>");
 	}
 
 	// ----------------------------------------------------------------
@@ -360,8 +368,13 @@ class WalaRuleTest {
 		AssertionError err = runAndExpectError(List.of(student, forbidden),
 				new WalaRule("Test rule", Set.of(apiPrefix)));
 		assertThat(err).as("formerly-suppressed API '%s' from student code must now fire", apiPrefix).isNotNull();
-		assertThat(err.getMessage()).contains("Method <anonymous.Student.callApi()V>")
-				.contains("calls method <" + fullSig + ">");
+		// WalaRule renders signatures in ArchUnit source-form (no JVM descriptor /
+		// return
+		// type), so assert on the descriptor-free caller and the forbidden class+method
+		// name rather than the raw WALA signature held in REALISTIC_SIGNATURES.
+		String forbiddenName = fullSig.substring(0, fullSig.indexOf('('));
+		assertThat(err.getMessage()).contains("Method <anonymous.Student.callApi()>")
+				.contains("calls method <" + forbiddenName + "(");
 	}
 
 	// ----------------------------------------------------------------

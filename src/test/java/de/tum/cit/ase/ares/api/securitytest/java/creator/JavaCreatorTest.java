@@ -149,7 +149,9 @@ public class JavaCreatorTest {
 			// Assert
 			verify(buildMode).getClasspath(tempDir, packageName);
 			verify(architectureMode).getJavaClasses(classpath);
-			verify(architectureMode).getCallGraph(classpath);
+			// The call graph is built lazily through a cached Supplier and is not resolved
+			// during createTestCases, so getCallGraph is never invoked here.
+			verify(architectureMode, never()).getCallGraph(classpath);
 			verify(resourceAccesses).regardingPackageImports();
 		}
 
@@ -234,7 +236,9 @@ public class JavaCreatorTest {
 			// Assert - Each method should only be called once due to static cache reuse
 			verify(buildMode, times(1)).getClasspath(tempDir, packageName);
 			verify(architectureMode, times(1)).getJavaClasses(classpath);
-			verify(architectureMode, times(1)).getCallGraph(classpath);
+			// The call graph is built lazily through a cached Supplier; it is not resolved
+			// during createTestCases, so getCallGraph is never invoked across both calls.
+			verify(architectureMode, never()).getCallGraph(classpath);
 		}
 
 		@Test

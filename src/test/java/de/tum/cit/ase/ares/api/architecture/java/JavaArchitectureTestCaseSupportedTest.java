@@ -15,8 +15,9 @@ public class JavaArchitectureTestCaseSupportedTest {
 		List<ArchitectureTestCaseSupported> staticCases = JavaArchitectureTestCaseSupported.PACKAGE_IMPORT.getStatic();
 		List<ArchitectureTestCaseSupported> expectedStatic = List.of(JavaArchitectureTestCaseSupported.PACKAGE_IMPORT,
 				JavaArchitectureTestCaseSupported.TERMINATE_JVM, JavaArchitectureTestCaseSupported.REFLECTION,
-				JavaArchitectureTestCaseSupported.SERIALIZATION, JavaArchitectureTestCaseSupported.CLASS_LOADING);
-		assertEquals(expectedStatic.size(), staticCases.size(), "getStatic should return five static test cases");
+				JavaArchitectureTestCaseSupported.SERIALIZATION, JavaArchitectureTestCaseSupported.CLASS_LOADING,
+				JavaArchitectureTestCaseSupported.JNDI_INJECTION);
+		assertEquals(expectedStatic.size(), staticCases.size(), "getStatic should return six static test cases");
 		assertIterableEquals(expectedStatic, staticCases, "getStatic should return the correct static test case list");
 	}
 
