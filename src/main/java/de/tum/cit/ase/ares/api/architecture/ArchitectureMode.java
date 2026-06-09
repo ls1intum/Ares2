@@ -232,7 +232,15 @@ public enum ArchitectureMode {
 	 */
 	@Nonnull
 	public JavaClasses getJavaClasses(String classPath) {
-		return new ClassFileImporter().importPath(classPath);
+		// Only analyse the student's code, never Ares's own engine. Ares's
+		// infrastructure (under de.tum.cit.ase.ares.api, i.e. paths containing
+		// "/ares/api/") legitimately uses reflection, System.getProperty, class
+		// loading and similar; without this exclusion the architecture rules flag
+		// Ares's own classes and abort otherwise legal student executions. The
+		// student attack subjects live under "/ares/integration/", so they remain
+		// in scope and continue to be detected.
+		return new ClassFileImporter().withImportOption(location -> !location.contains("/ares/api/"))
+				.importPath(classPath);
 	}
 
 	/**
