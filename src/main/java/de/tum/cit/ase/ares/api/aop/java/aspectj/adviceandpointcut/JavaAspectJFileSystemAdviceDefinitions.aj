@@ -908,6 +908,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
                         ));
                     }
             );
+            boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
             //<editor-fold desc="Check parameters">
             @Nullable String illegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, allowedPaths, FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE), allowNonExistingPaths);
             if (illegallyInteractedThroughParameter != null) {
@@ -917,7 +918,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
                         messageAction,
                         illegallyInteractedThroughParameter,
                         fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
-                                + " | " + buildDenialReason(allowedPaths)
+                                + " | " + buildDenialReason(noAllowRuleConfigured)
                 ));
             }
             //</editor-fold>
@@ -945,7 +946,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
                             messageAction,
                             illegallyInteractedThroughReceiver,
                             fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
-                                    + " | " + buildDenialReason(allowedPaths)
+                                    + " | " + buildDenialReason(noAllowRuleConfigured)
                     ));
                 }
             }
@@ -972,7 +973,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
                             messageAction,
                             illegallyInteractedThroughAttribute,
                             fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
-                                    + " | " + buildDenialReason(allowedPaths)
+                                    + " | " + buildDenialReason(noAllowRuleConfigured)
                     ));
                 }
             }

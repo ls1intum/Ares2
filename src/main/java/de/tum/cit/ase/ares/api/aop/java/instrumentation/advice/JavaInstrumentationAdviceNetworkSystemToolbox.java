@@ -706,6 +706,8 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 					"security.advice.network.allowed.size", action, allowedHosts == null ? 0 : allowedHosts.length,
 					allowedPorts == null ? 0 : allowedPorts.length));
 		}
+		boolean noAllowRuleConfigured = allowedHosts == null || allowedHosts.length == 0 || allowedPorts == null
+				|| allowedPorts.length == 0;
 		// </editor-fold>
 		// <editor-fold desc="Check parameters">
 		final boolean hasParameters = parameters != null && parameters.length > 0;
@@ -718,8 +720,10 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 				&& checkIfNetworkIsForbidden(targetFromParameters, allowedHosts, allowedPorts)) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
 					"security.advice.illegal.network.execution", networkSystemMethodToCheck, action,
-					targetFromParameters.toDisplayString(), fullMethodSignature
-							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
+					targetFromParameters.toDisplayString(),
+					fullMethodSignature
+							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
+							+ JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(noAllowRuleConfigured)));
 		}
 		// Mask out indices already consumed by parametersToTarget so the per-parameter
 		// scan does not re-resolve the same host (or local-bind host) as a port=-1
@@ -744,8 +748,10 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		if (networkIllegallyInteractedThroughParameter != null) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
 					"security.advice.illegal.network.execution", networkSystemMethodToCheck, action,
-					networkIllegallyInteractedThroughParameter, fullMethodSignature
-							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
+					networkIllegallyInteractedThroughParameter,
+					fullMethodSignature
+							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
+							+ JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(noAllowRuleConfigured)));
 		}
 		// </editor-fold>
 		// <editor-fold desc="Check receiver instance">
@@ -756,8 +762,10 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		if (networkIllegallyInteractedThroughReceiver != null) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
 					"security.advice.illegal.network.execution", networkSystemMethodToCheck, action,
-					networkIllegallyInteractedThroughReceiver, fullMethodSignature
-							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
+					networkIllegallyInteractedThroughReceiver,
+					fullMethodSignature
+							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
+							+ JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(noAllowRuleConfigured)));
 		}
 		// </editor-fold>
 		// <editor-fold desc="Check attributes">
@@ -769,8 +777,10 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		if (networkIllegallyInteractedThroughAttribute != null) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
 					"security.advice.illegal.network.execution", networkSystemMethodToCheck, action,
-					networkIllegallyInteractedThroughAttribute, fullMethodSignature
-							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
+					networkIllegallyInteractedThroughAttribute,
+					fullMethodSignature
+							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
+							+ JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(noAllowRuleConfigured)));
 		}
 		// </editor-fold>
 	}

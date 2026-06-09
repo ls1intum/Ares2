@@ -200,14 +200,16 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
     }
     /**
      * Returns a human-readable denial reason distinguishing "no allow rule
-     * configured" from "path not covered by any allow rule".
+     * configured" from "an allow rule exists but does not permit this access".
      *
-     * @param allowedPaths the configured allowlist; null or empty means no rule exists
+     * @param noAllowRuleConfigured {@code true} if no allow rule was configured for
+     *                              the resource type at all; {@code false} if a rule
+     *                              exists but does not permit this particular access
      * @return a non-null reason string suitable for appending to SecurityException messages
      */
     @Nonnull
-    protected static String buildDenialReason(@Nullable String[] allowedPaths) {
-        if (allowedPaths == null || allowedPaths.length == 0) {
+    protected static String buildDenialReason(boolean noAllowRuleConfigured) {
+        if (noAllowRuleConfigured) {
             return localize("security.advice.denial.reason.no.allowlist");
         }
         return localize("security.advice.denial.reason.not.in.allowlist");
