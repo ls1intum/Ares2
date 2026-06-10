@@ -3,7 +3,6 @@ package de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.execute.d
 import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 
 public class ExecuteDesktopMain {
 
@@ -37,8 +36,8 @@ public class ExecuteDesktopMain {
 	public static void accessFileSystemViaDesktopBrowse() throws IOException {
 		if (Desktop.isDesktopSupported()) {
 			Desktop desktop = Desktop.getDesktop();
-			URI uri = URI.create("file:///test.txt");
-			desktop.browse(uri);
+			File file = new File("test.txt");
+			desktop.browse(file.toURI());
 		}
 	}
 

@@ -112,6 +112,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			"ares/api/util/LruCache.class", "ares/api/configuration/essentialFiles/java/EssentialPackages.yaml",
 			"ares/api/configuration/essentialFiles/java/EssentialClasses.yaml");
 
+	private static final Set<String> NATIVE_LIBRARY_SUFFIXES = Set.of(".dylib", ".jnilib", ".so", ".dll");
+
 	// </editor-fold>
 
 	// <editor-fold desc="Constructor">
@@ -127,6 +129,18 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	private JavaInstrumentationAdviceFileSystemToolbox() {
 		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
 				"security.instrumentation.utility.initialization", "JavaInstrumentationAdviceFileSystemToolbox"));
+	}
+
+	private static boolean isSystemNativeLibraryLoad(@Nonnull String action, @Nonnull String path) {
+		if (!"execute".equals(action) || !path.startsWith(System.getProperty("java.home"))) {
+			return false;
+		}
+		for (String suffix : NATIVE_LIBRARY_SUFFIXES) {
+			if (path.endsWith(suffix)) {
+				return true;
+			}
+		}
+		return false;
 	}
 	// </editor-fold>
 
@@ -1030,7 +1044,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 					break;
 				}
 			}
-			if (!isClassLoaderAccess && !isSystemJarRead && !isInternalAllowed) {
+			boolean isSystemNativeLibraryLoad = isSystemNativeLibraryLoad(action, pathIllegallyInteractedThroughParameter);
+			if (!isClassLoaderAccess && !isSystemJarRead && !isInternalAllowed && !isSystemNativeLibraryLoad) {
 				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
 						"security.advice.illegal.file.execution", fileSystemMethodToCheck, messageAction,
 						pathIllegallyInteractedThroughParameter,

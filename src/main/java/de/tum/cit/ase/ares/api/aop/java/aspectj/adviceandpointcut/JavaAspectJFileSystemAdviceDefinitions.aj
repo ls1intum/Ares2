@@ -81,6 +81,13 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
             "ares/api/configuration/essentialFiles/java/EssentialClasses.yaml"
     );
 
+    private static final List<String> NATIVE_LIBRARY_SUFFIXES = List.of(
+            ".dylib",
+            ".jnilib",
+            ".so",
+            ".dll"
+    );
+
     /**
      * Resolve the index of a named field within the given class.
      *
@@ -97,6 +104,18 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
             }
         }
         return 0;
+    }
+
+    private static boolean isSystemNativeLibraryLoad(@Nonnull String action, @Nonnull String path) {
+        if (!"execute".equals(action) || !path.startsWith(System.getProperty("java.home"))) {
+            return false;
+        }
+        for (String suffix : NATIVE_LIBRARY_SUFFIXES) {
+            if (path.endsWith(suffix)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Nonnull
@@ -912,6 +931,10 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
             //<editor-fold desc="Check parameters">
             @Nullable String illegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, allowedPaths, FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE), allowNonExistingPaths);
             if (illegallyInteractedThroughParameter != null) {
+                boolean isSystemNativeLibraryLoad = isSystemNativeLibraryLoad(actionToCheck, illegallyInteractedThroughParameter);
+                if (isSystemNativeLibraryLoad) {
+                    continue;
+                }
                 throw new SecurityException(localize(
                         "security.advice.illegal.file.execution",
                         systemMethodToCheck,
