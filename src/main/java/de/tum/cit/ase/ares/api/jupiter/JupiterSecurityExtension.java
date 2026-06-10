@@ -24,6 +24,23 @@ public final class JupiterSecurityExtension
 
 	// <editor-fold desc="Lifecycle Callbacks">
 
+	@Override
+	public void interceptBeforeEachMethod(Invocation<Void> invocation,
+			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
+		invocation.proceed();
+	}
+
+	@Override
+	public void interceptAfterEachMethod(Invocation<Void> invocation, ReflectiveInvocationContext<Method> invocationContext,
+			ExtensionContext extensionContext) throws Throwable {
+		try {
+			invocation.proceed();
+		} finally {
+			resetSettingsInStandardClassLoader();
+			resetSettingsInBootstrapClassLoader();
+		}
+	}
+
 	/**
 	 * Sets up the security policy before each test method execution.
 	 * <p>
@@ -36,7 +53,6 @@ public final class JupiterSecurityExtension
 	 */
 	@Override
 	public void beforeTestExecution(ExtensionContext extensionContext) throws Exception {
-		System.err.println("[ARES-LIFECYCLE] beforeTestExecution called");
 		resetSettingsInStandardClassLoader();
 		resetSettingsInBootstrapClassLoader();
 
@@ -47,19 +63,14 @@ public final class JupiterSecurityExtension
 		boolean hasPolicyAnnotation = policyOpt.isPresent();
 		boolean isAresActivated = policyOpt.map(Policy::activated).orElse(true);
 		boolean isTestMethodPresent = testContext.testMethod().isPresent();
-		System.err.println("[ARES-LIFECYCLE] hasPolicyAnnotation=" + hasPolicyAnnotation + " isAresActivated="
-				+ isAresActivated + " isTestMethodPresent=" + isTestMethodPresent);
 
 		if (isAresActivated && (hasPolicyAnnotation || isTestMethodPresent)) {
 			Path policyPath = policyOpt.filter(p -> !p.value().isBlank())
 					.map(JupiterSecurityExtension::testAndGetPolicyValue).orElse(null);
 			Path withinPath = policyOpt.filter(p -> !p.withinPath().isBlank())
 					.map(JupiterSecurityExtension::testAndGetPolicyWithinPath).orElse(Path.of(""));
-			System.err
-					.println("[ARES-LIFECYCLE] executing with policyPath=" + policyPath + " withinPath=" + withinPath);
 			SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policyPath).projectFolderPath(withinPath)
 					.build().createTestCases().executeTestCases();
-			System.err.println("[ARES-LIFECYCLE] executeTestCases completed");
 		}
 	}
 
