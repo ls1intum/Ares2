@@ -622,11 +622,12 @@ public class FileTools {
 			String sourceFooterContent = Files.readString(FileTools.readFile(sourceFooterPath).toPath(),
 					StandardCharsets.UTF_8);
 			String fileContent = String.join("\n", List.of(sourceHeaderContent, sourceBody, sourceFooterContent));
-			Path fullTargetPath = target.getParent().resolve(target.getFileName());
+			Path targetParent = target.getParent();
+			Path fullTargetPath = (targetParent == null) ? target : targetParent.resolve(target.getFileName());
 
-			if (!Files.exists(target.getParent())) {
+			if (targetParent != null && !Files.exists(targetParent)) {
 				try {
-					Files.createDirectories(target.getParent());
+					Files.createDirectories(targetParent);
 				} catch (IOException e) {
 					throw new SecurityException(localize("security.file-tools.create.target.directory.failed"), e);
 				}

@@ -15,7 +15,6 @@ import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.localization.Localisation;
-import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.Phobos;
 import de.tum.cit.ase.ares.api.util.FileTools;
@@ -135,16 +134,17 @@ public class JavaWriter implements Writer {
 		}
 
 		int nameCount = testFolderPath.getNameCount();
-		if (nameCount < 2) {
-			throw new IllegalArgumentException(
-					Messages.localized("securitytest.unexpected.test.folder.path", testFolderPath));
+		Path resourcesFolderPath;
+		if (testFolderPath.toString().isEmpty() || nameCount < 3) {
+			// Too shallow to strip the trailing two segments (e.g. the project root in
+			// precompile mode): place the resources folder directly beneath it.
+			resourcesFolderPath = testFolderPath.resolve("resources");
+		} else {
+			Path parentPath = testFolderPath.subpath(0, nameCount - 2);
+			Path root = testFolderPath.getRoot();
+			resourcesFolderPath = (root == null) ? Paths.get(parentPath.toString(), "resources")
+					: Paths.get(root.toString(), parentPath.toString(), "resources");
 		}
-
-		Path parentPath = testFolderPath.subpath(0, nameCount - 2);
-
-		Path root = testFolderPath.getRoot();
-		Path resourcesFolderPath = (root == null) ? Paths.get(parentPath.toString(), "resources")
-				: Paths.get(root.toString(), parentPath.toString(), "resources");
 
 		return FileTools.copyFiles(Localisation.filesToCopy(), Localisation.targetsToCopyTo(resourcesFolderPath));
 	}
@@ -152,12 +152,48 @@ public class JavaWriter implements Writer {
 	@Nonnull
 	private List<Path> createPhobosFiles(@Nonnull String packageName,
 			@Nonnull List<JavaPhobosTestCase> javaPhobosTestCases, @Nullable Path testFolderPath) {
+		if (testFolderPath == null) {
+			return List.of();
+		}
+		List<Path> copyTargets = Phobos.targetsToCopyTo(testFolderPath).stream()
+				.map(JavaWriter::confineToWorkingDirectory).toList();
+		Path editTarget = confineToWorkingDirectory(Phobos.targetToCopyTo(testFolderPath));
 		return Stream
-				.concat(FileTools.copyFiles(Phobos.filesToCopy(), Phobos.targetsToCopyTo(testFolderPath)).stream(),
+				.concat(FileTools.copyFiles(Phobos.filesToCopy(), copyTargets).stream(),
 						Stream.of(FileTools.createThreePartedFormatStringFile(Phobos.threePartedFileHeader(),
 								Phobos.threePartedFileBody(javaPhobosTestCases), Phobos.threePartedFileFooter(),
-								Phobos.targetToCopyTo(testFolderPath), Phobos.fileValue(packageName))))
+								editTarget, Phobos.fileValue(packageName))))
 				.collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+	}
+
+	/**
+	 * Confines a relative target path to the working directory.
+	 * <p>
+	 * The Phobos targets climb three levels above a {@code src/test/java}-style
+	 * test folder. For shallower folders (e.g. the project root in precompile
+	 * mode) that climb would escape the project, so escaping {@code ..} segments
+	 * of relative targets are dropped after normalisation.
+	 * </p>
+	 *
+	 * @param targetPath the resolved target path; must not be null
+	 * @return the normalised target path without escaping {@code ..} segments
+	 */
+	@Nonnull
+	private static Path confineToWorkingDirectory(@Nonnull Path targetPath) {
+		Path normalised = targetPath.normalize();
+		if (normalised.isAbsolute()) {
+			return normalised;
+		}
+		int firstRealName = 0;
+		while (firstRealName < normalised.getNameCount()
+				&& normalised.getName(firstRealName).toString().equals("..")) {
+			firstRealName++;
+		}
+		if (firstRealName == 0) {
+			return normalised;
+		}
+		return firstRealName == normalised.getNameCount() ? Path.of("")
+				: normalised.subpath(firstRealName, normalised.getNameCount());
 	}
 
 	// </editor-fold>
