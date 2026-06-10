@@ -460,8 +460,7 @@ public class JavaInstrumentationPointcutDefinitions {
 			Map.entry("javax.sound.sampled.AudioSystem", List.of("write")),
 			// javax.xml
 			Map.entry("javax.xml.transform.Transformer", List.of("transform")),
-			Map.entry("javax.xml.bind.Marshaller", List.of("marshal")),
-			Map.entry("java.awt.Desktop", List.of("open", "edit", "print", "browse", "browseFileDirectory")));
+			Map.entry("javax.xml.bind.Marshaller", List.of("marshal")));
 	// </editor-fold>
 
 	// <editor-fold desc="Execute Path">
@@ -475,11 +474,11 @@ public class JavaInstrumentationPointcutDefinitions {
 	public static final Map<String, List<String>> methodsWhichCanExecuteFiles = Map.ofEntries(
 			// java.lang - only load/loadLibrary, not exec (handled by Command System)
 			Map.entry("java.lang.Runtime", List.of("load", "loadLibrary")),
-			Map.entry("java.lang.System", List.of("load", "loadLibrary")),
-			// Note: ProcessBuilder is handled entirely by Command System
-			// java.awt
-			Map.entry("java.awt.Desktop", List.of("open", "edit", "print", "browse", "browseFileDirectory", "mail",
-					"openHelpViewer", "setDefaultMenuBar", "setOpenFileHandler", "setOpenURIHandler")));
+			Map.entry("java.lang.System", List.of("load", "loadLibrary")));
+	// Note: ProcessBuilder is handled entirely by Command System
+	// Note: java.awt.Desktop is intentionally NOT included here - it is bound only
+	// to the read file-system check so a Desktop call is deterministically
+	// classified as "read".
 	// </editor-fold>
 
 	// <editor-fold desc="Delete Path">
@@ -489,9 +488,6 @@ public class JavaInstrumentationPointcutDefinitions {
 	 * be file delete operations.
 	 */
 	public static final Map<String, List<String>> methodsWhichCanDeleteFiles = Map.ofEntries(
-			// java.awt
-			Map.entry("java.awt.Desktop",
-					List.of("moveToTrash", "open", "edit", "print", "browse", "browseFileDirectory")),
 			// java.io
 			Map.entry("java.io.File", List.of("delete", "deleteOnExit")),
 			// java.nio
@@ -598,7 +594,7 @@ public class JavaInstrumentationPointcutDefinitions {
 			Map.entry("javax.net.ssl.HttpsURLConnection", List.of("connect", "<init>")),
 			Map.entry("javax.net.SocketFactory", List.of("createSocket")),
 			Map.entry("javax.net.ssl.SSLSocketFactory", List.of("createSocket")),
-			Map.entry("java.net.URL", List.of("openConnection", "openStream")),
+			Map.entry("java.net.URL", List.of("openConnection")),
 			Map.entry("java.net.URLConnection", List.of("connect")));
 	// </editor-fold>
 

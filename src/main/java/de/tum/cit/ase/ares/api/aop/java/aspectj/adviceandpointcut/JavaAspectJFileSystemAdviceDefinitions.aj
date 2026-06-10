@@ -106,8 +106,17 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
         return 0;
     }
 
-    private static boolean isSystemNativeLibraryLoad(@Nonnull String action, @Nonnull String path) {
-        if (!"execute".equals(action) || !path.startsWith(System.getProperty("java.home"))) {
+    private static boolean isExemptSystemFileAccess(@Nonnull String action, @Nonnull String path) {
+        if (path == null || !path.startsWith(System.getProperty("java.home"))) {
+            return false;
+        }
+        // JDK-internal reads under JAVA_HOME (e.g. the crypto jurisdiction-policy files in
+        // conf/security read by javax.crypto.JceSecurity's static initialiser) are JVM
+        // infrastructure, not student file access, and must not be blocked.
+        if ("read".equals(action)) {
+            return true;
+        }
+        if (!"execute".equals(action)) {
             return false;
         }
         for (String suffix : NATIVE_LIBRARY_SUFFIXES) {
@@ -931,8 +940,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
             //<editor-fold desc="Check parameters">
             @Nullable String illegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, allowedPaths, FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE), allowNonExistingPaths);
             if (illegallyInteractedThroughParameter != null) {
-                boolean isSystemNativeLibraryLoad = isSystemNativeLibraryLoad(actionToCheck, illegallyInteractedThroughParameter);
-                if (isSystemNativeLibraryLoad) {
+                if (isExemptSystemFileAccess(actionToCheck, illegallyInteractedThroughParameter)) {
                     continue;
                 }
                 throw new SecurityException(localize(
@@ -1028,8 +1036,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileChannelWriteMethods() ||
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.writerMethods() ||
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileHandlerMethods() ||
-                    de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderWriteMethods() ||
-                    de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.desktopExecuteMethods() {
+                    de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderWriteMethods() {
         checkFileSystemInteraction("overwrite", thisJoinPoint);
     }
 
@@ -1047,7 +1054,6 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemExecuteMethods() ||
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileChannelExecuteMethods() ||
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.objectStreamClassMethods() ||
-                    de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.desktopExecuteMethods() ||
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderExecuteMethods() {
         checkFileSystemInteraction("execute", thisJoinPoint);
     }
@@ -1055,7 +1061,6 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
     before():
             de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileDeleteMethods() ||
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.filesDeleteMethods() ||
-                    de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.desktopExecuteMethods() ||
                     de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderDeleteMethods() {
         checkFileSystemInteraction("delete", thisJoinPoint);
     }

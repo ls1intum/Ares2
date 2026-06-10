@@ -131,13 +131,22 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				"security.instrumentation.utility.initialization", "JavaInstrumentationAdviceFileSystemToolbox"));
 	}
 
-	private static boolean isSystemNativeLibraryLoad(@Nonnull String action, @Nonnull String path) {
-		if (!"execute".equals(action) || !path.startsWith(System.getProperty("java.home"))) {
+	private static boolean isExemptSystemFileAccess(@Nonnull String action, @Nonnull String path) {
+		String javaHome = System.getProperty("java.home");
+		if (javaHome == null || !path.startsWith(javaHome)) {
 			return false;
 		}
-		for (String suffix : NATIVE_LIBRARY_SUFFIXES) {
-			if (path.endsWith(suffix)) {
-				return true;
+		// JDK-internal reads under java.home are exempt (e.g. JceSecurity's
+		// static-initialiser read of the conf/security crypto-policy files).
+		if ("read".equals(action)) {
+			return true;
+		}
+		// Native-library loads under java.home are exempt.
+		if ("execute".equals(action)) {
+			for (String suffix : NATIVE_LIBRARY_SUFFIXES) {
+				if (path.endsWith(suffix)) {
+					return true;
+				}
 			}
 		}
 		return false;
@@ -1044,8 +1053,9 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 					break;
 				}
 			}
-			boolean isSystemNativeLibraryLoad = isSystemNativeLibraryLoad(action, pathIllegallyInteractedThroughParameter);
-			if (!isClassLoaderAccess && !isSystemJarRead && !isInternalAllowed && !isSystemNativeLibraryLoad) {
+			boolean isExemptSystemFileAccess = isExemptSystemFileAccess(action,
+					pathIllegallyInteractedThroughParameter);
+			if (!isClassLoaderAccess && !isSystemJarRead && !isInternalAllowed && !isExemptSystemFileAccess) {
 				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
 						"security.advice.illegal.file.execution", fileSystemMethodToCheck, messageAction,
 						pathIllegallyInteractedThroughParameter,
