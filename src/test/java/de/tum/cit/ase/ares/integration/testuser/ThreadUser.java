@@ -18,12 +18,9 @@ import de.tum.cit.ase.ares.api.localization.UseLocale;
 import de.tum.cit.ase.ares.integration.testuser.subject.threads.ThreadPenguin;
 
 @UseLocale("en")
-@AllowThreads(maxActiveCount = 100)
 @MirrorOutput(MirrorOutputPolicy.DISABLED)
 @StrictTimeout(value = 300, unit = TimeUnit.MILLISECONDS)
 @TestMethodOrder(MethodName.class)
-@WhitelistPath(value = "{target,build}/**", type = PathType.GLOB) // build for gradle tests
-@BlacklistPath(value = "**Test*.{java,class}", type = PathType.GLOB)
 @SuppressWarnings("static-method")
 public class ThreadUser {
 
@@ -95,7 +92,6 @@ public class ThreadUser {
 			throw failure.get();
 	}
 
-	@AllowThreads(maxActiveCount = 1)
 	@PublicTest
 	void threadLimitExceeded() throws Throwable {
 		ThreadPenguin.tryStartTwoThreads();

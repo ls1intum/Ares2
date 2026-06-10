@@ -1,0 +1,18 @@
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.cit.ase.ares.integration.testuser.DynamicsUser"
+    - "de.tum.cit.ase.ares.integration.DynamicsTest"
+    - "de.tum.cit.ase.ares.testutilities."
+  # The former @WhitelistPath("") of DynamicsUser specified an empty path and therefore granted
+  # no concrete file access; the equivalent is an active policy with no permitted resource accesses.
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions: []
+    regardingNetworkConnections: []
+    regardingCommandExecutions: []
+    regardingThreadCreations: []
+    regardingPackageImports: []
+    regardingTimeouts:
+      - timeout: 3000

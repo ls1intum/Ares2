@@ -19,12 +19,9 @@ import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.networ
 
 @Public
 @UseLocale("en")
-@AllowThreads(maxActiveCount = 100)
 @MirrorOutput(MirrorOutputPolicy.DISABLED)
 @StrictTimeout(5)
 @TestMethodOrder(MethodName.class)
-@WhitelistPath(value = "target/**", type = PathType.GLOB)
-@BlacklistPath(value = "**Test*.{java,class}", type = PathType.GLOB)
 public class NetworkUser {
 
 	// The echo server is an EXTERNAL process (see AGENTS.md): a sandboxed test JVM
@@ -59,13 +56,11 @@ public class NetworkUser {
 	}
 
 	@Test
-	@AllowLocalPort(80)
 	void connectRemoteNotAllowed() throws Exception {
 		NetworkPenguin.tryConnect("example.com", 80, null);
 	}
 
 	@Test
-	@AllowLocalPort(allowPortsAbove = AllowLocalPort.IANA_REGISTERED_LOWER_BORDER)
 	void serverAllowedAndAccept() throws Throwable {
 		var error = new AtomicReference<Throwable>();
 		var serverThread = new Thread(TestUtils.getRootThreadGroup(), () -> {
@@ -89,7 +84,6 @@ public class NetworkUser {
 	}
 
 	@Test
-	@AllowLocalPort(8083)
 	void serverAllowedAndTimeout() throws Exception {
 		NetworkPenguin.tryStartServer(8083, "none");
 	}

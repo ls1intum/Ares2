@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.MethodOrderer.MethodName;
 
-import de.tum.cit.ase.ares.api.WhitelistPath;
+import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.dynamic.*;
 import de.tum.cit.ase.ares.api.jupiter.Public;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
@@ -15,8 +15,10 @@ import de.tum.cit.ase.ares.integration.testuser.subject.structural.*;
 @Public
 @UseLocale("de")
 // @StrictTimeout(10)
-@WhitelistPath("")
 @TestMethodOrder(MethodName.class)
+// Replaces the former inert @WhitelistPath("") with the equivalent active @Policy (no concrete
+// access was granted by the empty path), scanned against the benign HelloWorld subject.
+@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyDynamicsUser.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
 public class DynamicsUser {
 
 	private static final String SUBJECT_PACKAGE = "de.tum.cit.ase.ares.integration.testuser.subject.structural";
