@@ -301,18 +301,37 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 			} catch (URISyntaxException ignored) {
 				// no-op
 			}
-			int delimiter = str.lastIndexOf(':');
-			if (delimiter > 0 && delimiter + 1 < str.length()) {
-				String host = str.substring(0, delimiter);
-				try {
-					int port = Integer.parseInt(str.substring(delimiter + 1));
-					return new NetworkTarget(host, port);
-				} catch (NumberFormatException ignored) {
-					return null;
-				}
-			}
+			return stringToHostPortTarget(str);
 		}
 		return null;
+	}
+
+	@Nullable
+	private static NetworkTarget stringToHostPortTarget(@Nonnull String str) {
+		String candidate = str.trim();
+		if (candidate.startsWith("[") && candidate.contains("]:")) {
+			int delimiter = candidate.lastIndexOf("]:");
+			String host = candidate.substring(1, delimiter);
+			return portSuffixToTarget(host, candidate.substring(delimiter + 2));
+		}
+		if (candidate.indexOf(':') != candidate.lastIndexOf(':')) {
+			return null;
+		}
+		int delimiter = candidate.lastIndexOf(':');
+		if (delimiter > 0 && delimiter + 1 < candidate.length()) {
+			return portSuffixToTarget(candidate.substring(0, delimiter), candidate.substring(delimiter + 1));
+		}
+		return null;
+	}
+
+	@Nullable
+	private static NetworkTarget portSuffixToTarget(@Nonnull String host, @Nonnull String portSuffix) {
+		try {
+			int port = Integer.parseInt(portSuffix);
+			return new NetworkTarget(host, port);
+		} catch (NumberFormatException ignored) {
+			return null;
+		}
 	}
 
 	/**

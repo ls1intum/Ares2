@@ -125,6 +125,31 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 	}
 
 	@Test
+	void toTarget_doesNotTreatBareIpv6LiteralAsHostPort() throws Exception {
+		Method toTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("toTarget",
+				Object.class);
+		toTarget.setAccessible(true);
+
+		Object target = toTarget.invoke(null, "::1");
+
+		assertNull(target);
+	}
+
+	@Test
+	void toTarget_extractsBracketedIpv6HostAndPort() throws Exception {
+		Method toTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("toTarget",
+				Object.class);
+		toTarget.setAccessible(true);
+
+		Object target = toTarget.invoke(null, "[::1]:25565");
+		assertNotNull(target);
+
+		Method toDisplayString = target.getClass().getDeclaredMethod("toDisplayString");
+		toDisplayString.setAccessible(true);
+		assertEquals("::1:25565", toDisplayString.invoke(target));
+	}
+
+	@Test
 	void hostAndPortMatching_acceptsSuffixHostAndWildcardPort() throws Exception {
 		Method hostMatches = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("hostMatches",
 				String.class, String.class);

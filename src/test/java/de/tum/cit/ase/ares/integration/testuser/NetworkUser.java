@@ -35,7 +35,7 @@ public class NetworkUser {
 	private static final String MESSAGE = "hello";
 
 	@ParameterizedTest
-	@AllowLocalPort(PORT)
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyLoopbackEchoConnectionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/network")
 	@ValueSource(strings = { "localhost", "127.0.0.1", "::1" })
 	void connectLocallyAllowed(String host) throws Exception {
 		try {
