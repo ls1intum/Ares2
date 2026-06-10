@@ -95,22 +95,28 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	}
 
 	private static void loadCacheFromDisk() {
-		if (!Files.isRegularFile(CACHE_FILE)) {
-			return;
-		}
-		try (ObjectInputStream in = new ObjectInputStream(Files.newInputStream(CACHE_FILE))) {
-			Object loaded = in.readObject();
-			if (loaded instanceof Map<?, ?> raw) {
-				raw.forEach((k, v) -> {
-					if (k instanceof String key && v instanceof CachedOutcome outcome) {
-						RULE_OUTCOME_CACHE.put(key, outcome);
-					}
-				});
+		try {
+			if (!Files.isRegularFile(CACHE_FILE)) {
+				return;
 			}
-		} catch (IOException | ClassNotFoundException | ClassCastException ignored) {
-			// On any deserialization failure, start with an empty in-memory cache and
-			// rebuild outcomes from scratch. The corrupt file will be overwritten on
-			// the next save.
+			try (ObjectInputStream in = new ObjectInputStream(Files.newInputStream(CACHE_FILE))) {
+				Object loaded = in.readObject();
+				if (loaded instanceof Map<?, ?> raw) {
+					raw.forEach((k, v) -> {
+						if (k instanceof String key && v instanceof CachedOutcome outcome) {
+							RULE_OUTCOME_CACHE.put(key, outcome);
+						}
+					});
+				}
+			}
+		} catch (IOException | ClassNotFoundException | ClassCastException | SecurityException ignored) {
+			// Cache loading is strictly best-effort. On ANY failure - including an Ares
+			// SecurityException raised when this read happens to run inside an active
+			// policy boundary, or the isRegularFile probe itself being intercepted -
+			// start with an empty in-memory cache and rebuild outcomes from scratch.
+			// This must never escape the static initialiser: otherwise the class would
+			// be poisoned with ExceptionInInitializerError / NoClassDefFoundError for
+			// the entire JVM, breaking every subsequent WALA test in the run.
 		}
 	}
 
@@ -127,7 +133,7 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 					StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING))) {
 				out.writeObject(new HashMap<>(RULE_OUTCOME_CACHE));
 			}
-		} catch (IOException ignored) {
+		} catch (IOException | SecurityException ignored) {
 			// Failure to persist the cache is non-fatal — the next run rebuilds.
 		}
 	}
