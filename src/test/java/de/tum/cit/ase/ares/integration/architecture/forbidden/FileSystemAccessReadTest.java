@@ -11,9 +11,9 @@ import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.old
 import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdpartypackage.ThirdPartyPackagePenguin;
 
 public class FileSystemAccessReadTest extends SystemAccessTest {
-	private static final String FILE_READER_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/reader/fileReader";
-	private static final String THIRD_PARTY_PACKAGE_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/thirdPartyPackage";
-	private static final String FILES_READ_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/filesRead";
+	private static final String FILE_READER_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/oldMethods/reader/fileReader";
+	private static final String THIRD_PARTY_PACKAGE_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/oldMethods/thirdPartyPackage";
+	private static final String FILES_READ_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/oldMethods/files";
 
 	// Additional policy constants for specific test cases
 	private static final String WALA_INSTRUMENTATION_POLICY_EVERYTHING_FORBIDDEN = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyEverythingForbidden.yaml";

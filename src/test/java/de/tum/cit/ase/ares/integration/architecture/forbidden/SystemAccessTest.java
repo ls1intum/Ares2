@@ -213,6 +213,13 @@ public abstract class SystemAccessTest {
 		assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally delete",
 				"illegal delete", clazz);
 	}
+
+	protected void assertAresSecurityExceptionDelete(Executable executable, Class<?> clazz, Path expectedPath) {
+		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable,
+				ERROR_MESSAGE);
+		assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally delete",
+				"illegal delete", clazz);
+	}
 	// </editor-fold>
 
 	// <editor-fold desc="Command System Access Tests">
