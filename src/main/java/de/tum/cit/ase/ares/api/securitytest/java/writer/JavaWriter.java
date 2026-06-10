@@ -170,9 +170,9 @@ public class JavaWriter implements Writer {
 	 * Confines a relative target path to the working directory.
 	 * <p>
 	 * The Phobos targets climb three levels above a {@code src/test/java}-style
-	 * test folder. For shallower folders (e.g. the project root in precompile
-	 * mode) that climb would escape the project, so escaping {@code ..} segments
-	 * of relative targets are dropped after normalisation.
+	 * test folder. For shallower folders (e.g. the project root in precompile mode)
+	 * that climb would escape the project, so escaping {@code ..} segments of
+	 * relative targets are dropped after normalisation.
 	 * </p>
 	 *
 	 * @param targetPath the resolved target path; must not be null
@@ -185,8 +185,7 @@ public class JavaWriter implements Writer {
 			return normalised;
 		}
 		int firstRealName = 0;
-		while (firstRealName < normalised.getNameCount()
-				&& normalised.getName(firstRealName).toString().equals("..")) {
+		while (firstRealName < normalised.getNameCount() && normalised.getName(firstRealName).toString().equals("..")) {
 			firstRealName++;
 		}
 		if (firstRealName == 0) {

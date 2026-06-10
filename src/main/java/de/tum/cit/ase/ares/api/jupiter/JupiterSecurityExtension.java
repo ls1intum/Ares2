@@ -31,8 +31,8 @@ public final class JupiterSecurityExtension
 	}
 
 	@Override
-	public void interceptAfterEachMethod(Invocation<Void> invocation, ReflectiveInvocationContext<Method> invocationContext,
-			ExtensionContext extensionContext) throws Throwable {
+	public void interceptAfterEachMethod(Invocation<Void> invocation,
+			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
 		try {
 			invocation.proceed();
 		} finally {

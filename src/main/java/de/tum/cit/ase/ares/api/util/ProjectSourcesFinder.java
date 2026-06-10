@@ -88,16 +88,16 @@ public class ProjectSourcesFinder {
 
 			NodeList buildNodes = pomXmlDocument.getElementsByTagName("build"); //$NON-NLS-1$
 			for (var i = 0; i < buildNodes.getLength(); i++) {
-					var buildNode = buildNodes.item(i);
-					if (buildNode.getNodeType() == Node.ELEMENT_NODE) {
-						var buildNodeElement = (Element) buildNode;
-						var sourceDirectoryNodes = buildNodeElement.getElementsByTagName("sourceDirectory"); //$NON-NLS-1$
-						if (sourceDirectoryNodes.getLength() > 0) {
-							var sourceDirectoryPropertyValue = sourceDirectoryNodes.item(0).getTextContent();
-							return toRelativeSourceDirectory(sourceDirectoryPropertyValue);
-						}
+				var buildNode = buildNodes.item(i);
+				if (buildNode.getNodeType() == Node.ELEMENT_NODE) {
+					var buildNodeElement = (Element) buildNode;
+					var sourceDirectoryNodes = buildNodeElement.getElementsByTagName("sourceDirectory"); //$NON-NLS-1$
+					if (sourceDirectoryNodes.getLength() > 0) {
+						var sourceDirectoryPropertyValue = sourceDirectoryNodes.item(0).getTextContent();
+						return toRelativeSourceDirectory(sourceDirectoryPropertyValue);
 					}
 				}
+			}
 			if (Files.exists(Path.of(DEFAULT_MAVEN_SOURCE_DIRECTORY))) {
 				return DEFAULT_MAVEN_SOURCE_DIRECTORY;
 			}
