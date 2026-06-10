@@ -33,3 +33,11 @@ gradle-app.setting
 /build
 /.gradle
 
+# Safety net for the generated security-test scaffold, in case it is ever written
+# into the working directory instead of a temporary folder (see PrecompileTest).
+/PhobosCopyTool.sh
+/SpecificExercise.cfg
+/ares/
+/de/
+/resources/
+
