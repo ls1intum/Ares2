@@ -472,29 +472,27 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
         @Nonnull final String methodName = thisJoinPoint.getSignature().getName();
         //</editor-fold>
         //<editor-fold desc="Extract attributes from object instance">
+        // Reading an instance's declared fields is best-effort: when the JVM refuses
+        // access to a field (e.g. a JDK-internal field reached via Ares's own timeout
+        // executor), skip that field instead of turning a JDK-side reflection limit into
+        // an Ares-Code SecurityException that would abort otherwise legal student code.
+        // The security check still runs over the parameters and the accessible fields.
+        // Mirrors the instrumentation backend and the network AspectJ advice.
         @Nonnull Object[] attributes = new Object[0];
         if (instance != null) {
-            try {
-                @Nonnull Field[] fields = instance.getClass().getDeclaredFields();
-                attributes = new Object[fields.length];
-                for (int i = 0; i < fields.length; i++) {
-                    try {
-                        fields[i].setAccessible(true);
-                        attributes[i] = fields[i].get(instance);
-                    } catch (InaccessibleObjectException e) {
-                        throw new SecurityException(localize("security.instrumentation.inaccessible.object.exception", fields[i].getName(), instance.getClass().getName()), e);
-                    } catch (IllegalAccessException e) {
-                        throw new SecurityException(localize("security.instrumentation.illegal.access.exception", fields[i].getName(), instance.getClass().getName()), e);
-                    } catch (IllegalArgumentException e) {
-                        throw new SecurityException(localize("security.instrumentation.illegal.argument.exception", fields[i].getName(), fields[i].getDeclaringClass().getName(), instance.getClass().getName()), e);
-                    } catch (NullPointerException e) {
-                        throw new SecurityException(localize("security.instrumentation.null.pointer.exception", fields[i].getName(), instance.getClass().getName()), e);
-                    } catch (ExceptionInInitializerError e) {
-                        throw new SecurityException(localize("security.instrumentation.exception.in-initializer.error", fields[i].getName(), instance.getClass().getName()), e);
-                    }
+            @Nonnull Field[] fields = instance.getClass().getDeclaredFields();
+            attributes = new Object[fields.length];
+            for (int i = 0; i < fields.length; i++) {
+                try {
+                    fields[i].setAccessible(true);
+                    attributes[i] = fields[i].get(instance);
+                } catch (InaccessibleObjectException
+                        | IllegalAccessException
+                        | IllegalArgumentException
+                        | NullPointerException
+                        | ExceptionInInitializerError ignored) {
+                    attributes[i] = null;
                 }
-            } catch (SecurityException e) {
-                throw e;
             }
         }
         //</editor-fold>
@@ -505,6 +503,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
         }
         //</editor-fold>
         @Nullable String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
+        boolean noAllowRuleConfigured = commandsAllowedToBeExecuted == null || commandsAllowedToBeExecuted.length == 0 || argumentsAllowedToBePassed == null || argumentsAllowedToBePassed.length == 0;
         //<editor-fold desc="Check parameters">
         @Nullable String commandIllegallyExecutedThroughParameter = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, commandsAllowedToBeExecuted, argumentsAllowedToBePassed, COMMAND_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE));
         if (commandIllegallyExecutedThroughParameter != null) {
@@ -514,6 +513,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
                     action,
                     commandIllegallyExecutedThroughParameter,
                     fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+                            + " | " + buildDenialReason(noAllowRuleConfigured)
             ));
         }
         //</editor-fold>
@@ -526,6 +526,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
                     action,
                     commandIllegallyExecutedThroughAttribute,
                     fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+                            + " | " + buildDenialReason(noAllowRuleConfigured)
             ));
         }
         //</editor-fold>

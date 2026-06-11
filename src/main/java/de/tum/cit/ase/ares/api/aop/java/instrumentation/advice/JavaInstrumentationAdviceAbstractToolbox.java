@@ -320,6 +320,56 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 			return key;
 		}
 	}
+
+	/**
+	 * Returns a human-readable denial reason that explains why a resource access
+	 * was blocked, distinguishing between "no allow rule configured at all" and "an
+	 * allow rule exists but does not permit this access".
+	 *
+	 * @param noAllowRuleConfigured {@code true} if no allow rule was configured for
+	 *                              the resource type at all; {@code false} if a
+	 *                              rule exists but does not permit this particular
+	 *                              access
+	 * @return a non-null reason string suitable for appending to SecurityException
+	 *         messages
+	 */
+	@Nonnull
+	public static String buildDenialReason(boolean noAllowRuleConfigured) {
+		if (noAllowRuleConfigured) {
+			return localize("security.advice.denial.reason.no.allowlist");
+		}
+		return localize("security.advice.denial.reason.not.in.allowlist");
+	}
+
+	/**
+	 * Returns {@code true} when the current call stack is inside the JVM's
+	 * class-loading machinery, i.e. a class loader is reading a {@code .class} file
+	 * to define a class. Such a read is the JVM loading bytecode in order to
+	 * execute it, not student code reading a file as data, so it must not be
+	 * treated as an illegal file-system access. The signal is precise and cannot be
+	 * spoofed: a student opening a {@code .class} file directly (e.g. via
+	 * {@code new FileInputStream("Secret.class")}) has no class-loader frame
+	 * between their own code and the read, so such an access stays blocked. An
+	 * explicit iterator is used (rather than {@code Stream.anyMatch}) to mirror the
+	 * existing call-stack inspectors and to avoid synthesising extra lambda classes
+	 * on the bootstrap class loader.
+	 *
+	 * @return {@code true} if a class-loader frame is present on the current stack
+	 */
+	public static boolean isClassLoadingInProgress() {
+		return STACK_WALKER.walk(frames -> {
+			java.util.Iterator<java.lang.StackWalker.StackFrame> iterator = frames.iterator();
+			while (iterator.hasNext()) {
+				String className = iterator.next().getClassName();
+				if (className.startsWith("jdk.internal.loader.") || className.equals("java.lang.ClassLoader")
+						|| className.equals("java.security.SecureClassLoader")
+						|| className.equals("java.net.URLClassLoader")) {
+					return Boolean.TRUE;
+				}
+			}
+			return Boolean.FALSE;
+		});
+	}
 	// </editor-fold>
 
 	// <editor-fold desc="Callstack criteria methods">

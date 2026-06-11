@@ -579,6 +579,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
             throw new SecurityException(localize("security.advice.network.allowed.size", action,
                     allowedHosts == null ? 0 : allowedHosts.length, allowedPorts == null ? 0 : allowedPorts.length));
         }
+        boolean noAllowRuleConfigured = allowedHosts == null || allowedHosts.length == 0 || allowedPorts == null || allowedPorts.length == 0;
         //</editor-fold>
         //<editor-fold desc="Check parameters">
         @Nullable
@@ -591,6 +592,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
                     action,
                     targetFromParameters.toDisplayString(),
                     fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+                            + " | " + buildDenialReason(noAllowRuleConfigured)
             ));
         }
         @Nullable
@@ -605,6 +607,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
                     action,
                     networkIllegallyInteractedThroughParameter,
                     fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+                            + " | " + buildDenialReason(noAllowRuleConfigured)
             ));
         }
         //</editor-fold>
@@ -620,6 +623,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
                     action,
                     networkIllegallyInteractedThroughReceiver,
                     fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+                            + " | " + buildDenialReason(noAllowRuleConfigured)
             ));
         }
         //</editor-fold>
@@ -636,6 +640,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
                     action,
                     networkIllegallyInteractedThroughAttribute,
                     fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+                            + " | " + buildDenialReason(noAllowRuleConfigured)
             ));
         }
         //</editor-fold>

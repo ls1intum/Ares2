@@ -121,6 +121,41 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 			return "java.lang.Runtime".equals(className) && "exec".equals(methodName);
 		}));
 	}
+
+	/**
+	 * Returns {@code true} when the intercepted thread creation is owned by Ares's
+	 * own {@code @StrictTimeout} machinery ({@code TimeoutUtils.executeWithTimeout}
+	 * submits each timed test invocation to an executor), rather than by student
+	 * code. Without this exemption every {@code @StrictTimeout} test whose policy
+	 * forbids thread creation fails, because Ares blocks its own timeout worker.
+	 * <p>
+	 * The check is precise: walking from the top of the stack, a
+	 * {@code TimeoutUtils} frame reached <em>before</em> any restricted-package
+	 * (student) frame means the timeout machinery created the thread (exempt); a
+	 * student frame seen first means the student created it (still blocked). The
+	 * student's own test body runs on a separate worker thread whose stack does not
+	 * contain {@code TimeoutUtils}, so a student thread is never exempted.
+	 *
+	 * @param restrictedPackage the configured restricted (student) package prefix
+	 * @return {@code true} if the thread creation belongs to Ares's timeout
+	 *         machinery
+	 */
+	private static boolean isThreadCreationFromAresTimeout(@Nullable String restrictedPackage) {
+		return java.lang.StackWalker.getInstance().walk(frames -> {
+			java.util.Iterator<java.lang.StackWalker.StackFrame> iterator = frames.iterator();
+			while (iterator.hasNext()) {
+				String className = iterator.next().getClassName();
+				if ("de.tum.cit.ase.ares.api.internal.TimeoutUtils".equals(className)) {
+					return Boolean.TRUE;
+				}
+				if (restrictedPackage != null && !restrictedPackage.isEmpty()
+						&& className.startsWith(restrictedPackage)) {
+					return Boolean.FALSE;
+				}
+			}
+			return Boolean.FALSE;
+		});
+	}
 	// </editor-fold>
 
 	// <editor-fold desc="Variable criteria methods">
@@ -619,7 +654,7 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		// for process I/O handling. These threads should not be blocked by the Thread
 		// subsystem
 		// because the Command/Execute subsystem will check these operations.
-		if (isThreadCreationFromCommandExecution()) {
+		if (isThreadCreationFromCommandExecution() || isThreadCreationFromAresTimeout(restrictedPackage)) {
 			return;
 		}
 		// </editor-fold>
@@ -632,6 +667,9 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		}
 		@Nullable
 		String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
+		boolean noAllowRuleConfigured = threadClassAllowedToBeCreated == null
+				|| threadClassAllowedToBeCreated.length == 0 || threadNumberAllowedToBeCreated == null
+				|| threadNumberAllowedToBeCreated.length == 0;
 		// </editor-fold>
 		// <editor-fold desc="Check parameters">
 		@Nullable
@@ -642,8 +680,10 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		if (threadIllegallyInteractedThroughParameter != null) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
 					"security.advice.illegal.thread.execution", threadSystemMethodToCheck, action,
-					threadIllegallyInteractedThroughParameter, fullMethodSignature
-							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
+					threadIllegallyInteractedThroughParameter,
+					fullMethodSignature
+							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
+							+ JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(noAllowRuleConfigured)));
 		}
 		// </editor-fold>
 		// <editor-fold desc="Check attributes">
@@ -659,8 +699,10 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		if (threadIllegallyInteractedThroughAttribute != null) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
 					"security.advice.illegal.thread.execution", threadSystemMethodToCheck, action,
-					threadIllegallyInteractedThroughAttribute, fullMethodSignature
-							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
+					threadIllegallyInteractedThroughAttribute,
+					fullMethodSignature
+							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
+							+ JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(noAllowRuleConfigured)));
 		}
 		// </editor-fold>
 	}

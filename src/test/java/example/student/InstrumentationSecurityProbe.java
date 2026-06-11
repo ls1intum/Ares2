@@ -5,7 +5,10 @@ import java.net.URL;
 import java.nio.file.Path;
 
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceCommandSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceNetworkSystemToolbox;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceThreadSystemToolbox;
 
 public final class InstrumentationSecurityProbe {
 
@@ -26,6 +29,21 @@ public final class InstrumentationSecurityProbe {
 	public static void checkDeleteIfExists(Path path) {
 		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("delete", "java.nio.file.Files",
 				"deleteIfExists", "(Ljava/nio/file/Path;)Z", null, new Object[] { path }, null);
+	}
+
+	public static void checkNetworkConnect(String host, int port) {
+		JavaInstrumentationAdviceNetworkSystemToolbox.checkNetworkSystemInteraction("connect", "java.net.Socket",
+				"connect", "(Ljava/net/SocketAddress;I)V", null, new Object[] { host, port }, null);
+	}
+
+	public static void checkCommandExecution(String command) {
+		JavaInstrumentationAdviceCommandSystemToolbox.checkCommandSystemInteraction("execute", "java.lang.Runtime",
+				"exec", "(Ljava/lang/String;)Ljava/lang/Process;", null, new Object[] { command }, null);
+	}
+
+	public static void checkThreadCreation(Runnable task) {
+		JavaInstrumentationAdviceThreadSystemToolbox.checkThreadSystemInteraction("create", "java.lang.Thread",
+				"<init>", "", new Object[0], new Object[] { task }, null);
 	}
 
 	private static String stackCheckHelper() {

@@ -21,79 +21,58 @@ public class CreateExecutorServiceMain {
 	 * Tests ExecutorService.execute(java.lang.Runnable) method
 	 */
 	public static void executeRunnable() {
-		try {
-			ExecutorService executorService = Executors.newSingleThreadExecutor();
-			executorService.execute(new IllegalThread());
-		} finally {
-		}
+		ExecutorService executorService = Executors.newSingleThreadExecutor();
+		executorService.execute(new IllegalThread());
 	}
 
 	/**
 	 * Tests ExecutorService.submit(Runnable) method
 	 */
 	public static void submitRunnable() {
-		try {
-			ExecutorService executorService = Executors.newSingleThreadExecutor();
-			executorService.submit(new IllegalThread());
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
+		ExecutorService executorService = Executors.newSingleThreadExecutor();
+		executorService.submit(new IllegalThread());
 	}
 
 	/**
 	 * Tests ExecutorService.submit(Runnable, Object) method
 	 */
 	public static void submitRunnableWithResult() {
-		try {
-			ExecutorService executorService = Executors.newSingleThreadExecutor();
-			String result = "result";
-			executorService.submit(new IllegalThread(), result);
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
+		ExecutorService executorService = Executors.newSingleThreadExecutor();
+		String result = "result";
+		executorService.submit(new IllegalThread(), result);
 	}
 
 	/**
 	 * Tests ExecutorService.submit(Callable) method
 	 */
 	public static void submitCallable() {
-		try {
-			ExecutorService executorService = Executors.newSingleThreadExecutor();
-			Callable<String> callable = () -> "result";
-			executorService.submit(callable);
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
+		ExecutorService executorService = Executors.newSingleThreadExecutor();
+		Callable<String> callable = () -> "result";
+		executorService.submit(callable);
 	}
 
 	/**
 	 * Tests ExecutorService.invokeAll(Collection) method
 	 */
 	public static void invokeAll() throws InterruptedException {
-		try {
-			ExecutorService executorService = Executors.newSingleThreadExecutor();
-			Collection<Callable<String>> tasks = Arrays.asList(() -> "task1", () -> "task2");
-			executorService.invokeAll(tasks);
-		} catch (InterruptedException e) {
-			throw new RuntimeException(e);
-		}
+		ExecutorService executorService = Executors.newSingleThreadExecutor();
+		Collection<Callable<String>> tasks = Arrays.asList(() -> "task1", () -> "task2");
+		executorService.invokeAll(tasks);
 	}
 
 	/**
 	 * Tests ExecutorService.invokeAll(Collection, long, TimeUnit) method
 	 */
 	public static void invokeAllWithTimeout() throws InterruptedException {
-		try {
-			ExecutorService executorService = Executors.newSingleThreadExecutor();
-			Collection<Callable<String>> tasks = Arrays.asList(() -> "task1", () -> "task2");
-			executorService.invokeAll(tasks, 1000, java.util.concurrent.TimeUnit.MILLISECONDS);
-		} catch (InterruptedException e) {
-			throw new RuntimeException(e);
-		}
+		ExecutorService executorService = Executors.newSingleThreadExecutor();
+		Collection<Callable<String>> tasks = Arrays.asList(() -> "task1", () -> "task2");
+		executorService.invokeAll(tasks, 1000, java.util.concurrent.TimeUnit.MILLISECONDS);
 	}
 
 	/**
-	 * Tests ExecutorService.invokeAny(Collection) method
+	 * Tests ExecutorService.invokeAny(Collection) method. invokeAny wraps a failing
+	 * task's exception in an ExecutionException, so the resulting RuntimeException
+	 * is inherent to the API rather than a gratuitous wrap.
 	 */
 	public static void invokeAny() throws Exception {
 		try {
@@ -106,7 +85,9 @@ public class CreateExecutorServiceMain {
 	}
 
 	/**
-	 * Tests ExecutorService.invokeAny(Collection, long, TimeUnit) method
+	 * Tests ExecutorService.invokeAny(Collection, long, TimeUnit) method. invokeAny
+	 * wraps a failing task's exception in an ExecutionException, so the resulting
+	 * RuntimeException is inherent to the API rather than a gratuitous wrap.
 	 */
 	public static void invokeAnyWithTimeout() throws Exception {
 		try {
