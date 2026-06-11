@@ -25,6 +25,64 @@ abstract class SystemAccessTest {
 	protected static final String TRIED_DE = "hat versucht,";
 	protected static final String BLOCKED_EN = "was blocked by Ares.";
 	protected static final String BLOCKED_DE = "wurde jedoch von Ares blockiert.";
+	protected static final String DENIAL_REASON_SUFFIX_EN = " | Reason:";
+	protected static final String DENIAL_REASON_SUFFIX_DE = " | Grund:";
+
+	/** Distinctive text of the "no allow rule configured" denial reason. */
+	protected static final String DENIAL_REASON_NO_ALLOWLIST_EN = "No allow rule configured";
+	protected static final String DENIAL_REASON_NO_ALLOWLIST_DE = "Keine Erlaubnisregel";
+
+	/**
+	 * Distinctive text of the "resource not covered by any allow rule" denial
+	 * reason.
+	 */
+	protected static final String DENIAL_REASON_NOT_IN_ALLOWLIST_EN = "No configured allow rule permits";
+	protected static final String DENIAL_REASON_NOT_IN_ALLOWLIST_DE = "Keine konfigurierte Erlaubnisregel gestattet";
+	// </editor-fold>
+
+	// <editor-fold desc="Denial Reason">
+	/**
+	 * The kind of denial reason that an Ares SecurityException message is expected
+	 * to carry as its " | Reason:" / " | Grund:" suffix.
+	 */
+	protected enum DenialReason {
+		/** No allow rule was configured for the resource type at all. */
+		NO_ALLOWLIST,
+		/** A rule is configured, but it does not cover the requested resource. */
+		NOT_PERMITTED
+	}
+
+	/**
+	 * Asserts that the given message carries the expected denial reason and not the
+	 * opposite one. Locale-tolerant (English or German bundle).
+	 *
+	 * @param actualMessage the message from the thrown exception
+	 * @param expected      the denial reason the message must carry
+	 */
+	protected void assertDenialReason(String actualMessage, DenialReason expected) {
+		String expectedEN;
+		String expectedDE;
+		String oppositeEN;
+		String oppositeDE;
+		if (expected == DenialReason.NO_ALLOWLIST) {
+			expectedEN = DENIAL_REASON_NO_ALLOWLIST_EN;
+			expectedDE = DENIAL_REASON_NO_ALLOWLIST_DE;
+			oppositeEN = DENIAL_REASON_NOT_IN_ALLOWLIST_EN;
+			oppositeDE = DENIAL_REASON_NOT_IN_ALLOWLIST_DE;
+		} else {
+			expectedEN = DENIAL_REASON_NOT_IN_ALLOWLIST_EN;
+			expectedDE = DENIAL_REASON_NOT_IN_ALLOWLIST_DE;
+			oppositeEN = DENIAL_REASON_NO_ALLOWLIST_EN;
+			oppositeDE = DENIAL_REASON_NO_ALLOWLIST_DE;
+		}
+		Assertions.assertTrue(actualMessage.contains(expectedEN) || actualMessage.contains(expectedDE),
+				() -> String.format("Exception message should carry the %s denial reason ('%s' or '%s'), but was:%n%s",
+						expected, expectedEN, expectedDE, actualMessage));
+		Assertions.assertFalse(actualMessage.contains(oppositeEN) || actualMessage.contains(oppositeDE),
+				() -> String.format(
+						"Exception message should NOT carry the opposite denial reason ('%s' or '%s'), but was:%n%s",
+						oppositeEN, oppositeDE, actualMessage));
+	}
 	// </editor-fold>
 
 	// <editor-fold desc="Archunit AspectJ Policy Files">
@@ -167,6 +225,24 @@ abstract class SystemAccessTest {
 
 	// </editor-fold>
 
+	// <editor-fold desc="Denial Reason Policy Files">
+
+	// Network connection is only intercepted by the AspectJ weaving path; the
+	// instrumentation path does not intercept java.net.Socket connections, so only
+	// the AspectJ network policies are used for end-to-end denial-reason tests.
+
+	/**
+	 * Base path for Archunit AspectJ policy - One network connection allowed
+	 */
+	protected static final String ARCHUNIT_ASPECTJ_POLICY_ONE_NETWORK_CONNECTION_ALLOWED = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOneNetworkConnectionAllowed.yaml";
+
+	/**
+	 * Base path for Wala AspectJ policy - One network connection allowed
+	 */
+	protected static final String WALA_ASPECTJ_POLICY_ONE_NETWORK_CONNECTION_ALLOWED = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOneNetworkConnectionAllowed.yaml";
+
+	// </editor-fold>
+
 	// <editor-fold desc="General Access Tests">
 	/**
 	 * Common helper that verifies the expected general parts of the error message.
@@ -204,6 +280,12 @@ abstract class SystemAccessTest {
 		Assertions.assertTrue(actualMessage.contains(BLOCKED_EN) || actualMessage.contains(BLOCKED_DE),
 				() -> String.format("Exception message should contain '%s' or '%s', but was:%n%s", BLOCKED_EN,
 						BLOCKED_DE, actualMessage));
+
+		Assertions.assertTrue(
+				actualMessage.contains(DENIAL_REASON_SUFFIX_EN) || actualMessage.contains(DENIAL_REASON_SUFFIX_DE),
+				() -> String.format(
+						"Exception message should contain a denial reason suffix '%s' or '%s', but was:%n%s",
+						DENIAL_REASON_SUFFIX_EN, DENIAL_REASON_SUFFIX_DE, actualMessage));
 	}
 	// </editor-fold>
 
@@ -244,7 +326,7 @@ abstract class SystemAccessTest {
 	 * @param executable The executable that should throw a SecurityException
 	 * @param clazz      The class that performed the read operation
 	 */
-	protected void assertAresSecurityExceptionRead(Executable executable, Class<?> clazz) {
+	protected SecurityException assertAresSecurityExceptionRead(Executable executable, Class<?> clazz) {
 		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable,
 				ERROR_MESSAGE);
 
@@ -252,6 +334,7 @@ abstract class SystemAccessTest {
 				"forbidden", "subject", "nottrusted.txt");
 		assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally read",
 				"illegal read", clazz);
+		return securityException;
 	}
 
 	/**
@@ -394,11 +477,12 @@ abstract class SystemAccessTest {
 	 * @param expectedClass The class that should be mentioned in the security
 	 *                      violation
 	 */
-	protected void assertAresSecurityExceptionCommand(Executable executable, Class<?> expectedClass) {
+	protected SecurityException assertAresSecurityExceptionCommand(Executable executable, Class<?> expectedClass) {
 		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable,
 				ERROR_MESSAGE);
 		assertGeneralErrorMessageWithCommand(securityException.getMessage(), "illegally execute", "illegal execute",
 				expectedClass);
+		return securityException;
 	}
 	// </editor-fold>
 
@@ -435,16 +519,55 @@ abstract class SystemAccessTest {
 	 * @param executable The executable that should throw a SecurityException
 	 * @param clazz      The class that performed the thread creation operation
 	 */
-	protected void assertAresSecurityExceptionThread(Executable executable, Class<?> clazz) {
+	protected SecurityException assertAresSecurityExceptionThread(Executable executable, Class<?> clazz) {
 		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable,
 				ERROR_MESSAGE);
 		assertGeneralErrorMessageWithThread(securityException.getMessage(), "illegally create", "illegal create",
 				clazz);
+		return securityException;
 	}
 
 	protected void assertAresRuntimeExceptionThread(Executable executable, Class<?> clazz) {
 		RuntimeException runtimeException = Assertions.assertThrows(RuntimeException.class, executable, ERROR_MESSAGE);
 		assertGeneralErrorMessageWithThread(runtimeException.getMessage(), "illegally create", "illegal create", clazz);
+	}
+	// </editor-fold>
+
+	// <editor-fold desc="Network System Access Tests">
+	/**
+	 * Common helper that verifies the expected general parts of the error message.
+	 * This version is used for network system access tests where the network
+	 * keyword is required.
+	 *
+	 * @param actualMessage   The message from the thrown exception.
+	 * @param operationTextEN The operation-specific substring in English.
+	 * @param operationTextDE The operation-specific substring in German.
+	 * @param clazz           The class that should be mentioned in the security
+	 *                        violation
+	 */
+	protected void assertGeneralErrorMessageWithNetwork(String actualMessage, String operationTextEN,
+			String operationTextDE, Class<?> clazz) {
+		// Validate common error message parts
+		assertGeneralErrorMessage(actualMessage, operationTextEN, operationTextDE, clazz);
+
+		// Additional network-specific validation
+		Assertions.assertTrue(actualMessage.contains("Network") || actualMessage.contains("Netzwerk"), () -> String
+				.format("Exception message should contain 'Network' or 'Netzwerk', but was:%n%s", actualMessage));
+	}
+
+	/**
+	 * Test that the given executable throws a SecurityException with the expected
+	 * message for network connection operations, and returns it.
+	 *
+	 * @param executable The executable that should throw a SecurityException
+	 * @param clazz      The class that performed the network connection operation
+	 * @return the thrown SecurityException
+	 */
+	protected SecurityException assertAresSecurityExceptionNetwork(Executable executable, Class<?> clazz) {
+		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable,
+				ERROR_MESSAGE);
+		assertGeneralErrorMessageWithNetwork(securityException.getMessage(), "illegally", "illegal", clazz);
+		return securityException;
 	}
 	// </editor-fold>
 }

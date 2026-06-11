@@ -115,6 +115,31 @@ import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstru
         }
         return false;
     }
+
+    /**
+     * Returns true when the intercepted thread creation is owned by Ares's own
+     * {@code @StrictTimeout} machinery ({@code TimeoutUtils.executeWithTimeout}
+     * submits each timed test invocation to an executor) rather than by student
+     * code. Walking from the top of the stack, a {@code TimeoutUtils} frame reached
+     * before any restricted-package (student) frame means the timeout machinery
+     * created the thread (exempt); a student frame seen first means the student
+     * created it (still blocked). The student's test body runs on a separate worker
+     * thread whose stack does not contain {@code TimeoutUtils}, so a student thread
+     * is never exempted.
+     */
+    private static boolean isThreadCreationFromAresTimeout(String restrictedPackage) {
+        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+        for (StackTraceElement element : stackTrace) {
+            String className = element.getClassName();
+            if ("de.tum.cit.ase.ares.api.internal.TimeoutUtils".equals(className)) {
+                return true;
+            }
+            if (restrictedPackage != null && !restrictedPackage.isEmpty() && className.startsWith(restrictedPackage)) {
+                return false;
+            }
+        }
+        return false;
+    }
     //</editor-fold>
 
     //<editor-fold desc="Variable criteria methods">
@@ -522,29 +547,28 @@ import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstru
         @Nonnull final String methodName = thisJoinPoint.getSignature().getName();
         //</editor-fold>
         //<editor-fold desc="Extract attributes from object instance">
+        // Reading an instance's declared fields is best-effort: when the JVM refuses
+        // access to a field (e.g. a JDK-internal field such as the Cleaner.Cleanable in
+        // Executors$AutoShutdownDelegatedExecutorService reached via Ares's own timeout
+        // executor), skip that field instead of turning a JDK-side reflection limit into
+        // an Ares-Code SecurityException that would abort otherwise legal student code.
+        // The security check still runs over the parameters and the accessible fields.
+        // Mirrors the instrumentation backend and the network AspectJ advice.
         @Nonnull Object[] attributes = new Object[0];
         if (instance != null) {
-            try {
-                @Nonnull java.lang.reflect.Field[] fields = instance.getClass().getDeclaredFields();
-                attributes = new Object[fields.length];
-                for (int i = 0; i < fields.length; i++) {
-                    try {
-                        fields[i].setAccessible(true);
-                        attributes[i] = fields[i].get(instance);
-                    } catch (InaccessibleObjectException e) {
-                        throw new SecurityException(localize("security.instrumentation.inaccessible.object.exception", fields[i].getName(), instance.getClass().getName()), e);
-                    } catch (IllegalAccessException e) {
-                        throw new SecurityException(localize("security.instrumentation.illegal.access.exception", fields[i].getName(), instance.getClass().getName()), e);
-                    } catch (IllegalArgumentException e) {
-                        throw new SecurityException(localize("security.instrumentation.illegal.argument.exception", fields[i].getName(), fields[i].getDeclaringClass().getName(), instance.getClass().getName()), e);
-                    } catch (NullPointerException e) {
-                        throw new SecurityException(localize("security.instrumentation.null.pointer.exception", fields[i].getName(), instance.getClass().getName()), e);
-                    } catch (ExceptionInInitializerError e) {
-                        throw new SecurityException(localize("security.instrumentation.exception.in-initializer.error", fields[i].getName(), instance.getClass().getName()), e);
-                    }
+            @Nonnull java.lang.reflect.Field[] fields = instance.getClass().getDeclaredFields();
+            attributes = new Object[fields.length];
+            for (int i = 0; i < fields.length; i++) {
+                try {
+                    fields[i].setAccessible(true);
+                    attributes[i] = fields[i].get(instance);
+                } catch (InaccessibleObjectException
+                        | IllegalAccessException
+                        | IllegalArgumentException
+                        | NullPointerException
+                        | ExceptionInInitializerError ignored) {
+                    attributes[i] = null;
                 }
-            } catch (SecurityException e) {
-                throw e;
             }
         }
         //</editor-fold>
@@ -552,7 +576,7 @@ import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstru
         // When ProcessBuilder.start() or Runtime.exec() is called, they internally create threads
         // for process I/O handling. These threads should not be blocked by the Thread subsystem
         // because the Command/Execute subsystem will check these operations.
-        if (isThreadCreationFromCommandExecution()) {
+        if (isThreadCreationFromCommandExecution() || isThreadCreationFromAresTimeout(restrictedPackage)) {
             return;
         }
         //</editor-fold>
@@ -563,6 +587,7 @@ import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstru
         }
         //</editor-fold>
         @Nullable String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
+        boolean noAllowRuleConfigured = allowedThreadClasses == null || allowedThreadClasses.length == 0 || allowedThreadNumbers == null || allowedThreadNumbers.length == 0;
         //<editor-fold desc="Check parameters">
         @Nullable String illegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, allowedThreadClasses, allowedThreadNumbers, THREAD_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE));
         if (illegallyInteractedThroughParameter != null) {
@@ -572,6 +597,7 @@ import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstru
                     action,
                     illegallyInteractedThroughParameter,
                     fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+                            + " | " + buildDenialReason(noAllowRuleConfigured)
             ));
         }
         //</editor-fold>
@@ -589,6 +615,7 @@ import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstru
                     action,
                     illegallyInteractedThroughAttribute,
                     fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+                            + " | " + buildDenialReason(noAllowRuleConfigured)
             ));
         }
         //</editor-fold>

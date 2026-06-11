@@ -198,6 +198,22 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
             return key;
         }
     }
+    /**
+     * Returns a human-readable denial reason distinguishing "no allow rule
+     * configured" from "an allow rule exists but does not permit this access".
+     *
+     * @param noAllowRuleConfigured {@code true} if no allow rule was configured for
+     *                              the resource type at all; {@code false} if a rule
+     *                              exists but does not permit this particular access
+     * @return a non-null reason string suitable for appending to SecurityException messages
+     */
+    @Nonnull
+    protected static String buildDenialReason(boolean noAllowRuleConfigured) {
+        if (noAllowRuleConfigured) {
+            return localize("security.advice.denial.reason.no.allowlist");
+        }
+        return localize("security.advice.denial.reason.not.in.allowlist");
+    }
     //</editor-fold>
 
     //<editor-fold desc="Callstack criteria methods">

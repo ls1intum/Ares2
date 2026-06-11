@@ -967,6 +967,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		default -> throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
 				.localize("security.advice.file.system.unknown.action", action));
 		});
+		boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
 		// </editor-fold>
 		// <editor-fold desc="Check parameters">
 		@Nullable
@@ -990,12 +991,22 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 								&& ("newBufferedWriter".equals(methodName) || "newOutputStream".equals(methodName))));
 		String messageAction = isWriteAliasedAsCreate ? "overwrite" : action;
 		if (pathIllegallyInteractedThroughParameter != null) {
-			// Check if this is a .class file access by ClassLoader - should be allowed
+			// Check if this is a .class file access by ClassLoader - should be allowed.
+			// The JVM reads a class's bytecode while defining it (e.g. when the test
+			// harness reflectively invokes a subject method, which lazily loads the
+			// subject class under an already-active policy). That read is class loading,
+			// not student code reading a file as data, so it is exempted. The
+			// studentCalledMethod prefixes cover a direct Class.forName/ClassLoader call;
+			// isClassLoadingInProgress() additionally covers loads triggered indirectly
+			// (e.g. via reflective invocation) by detecting a class-loader frame on the
+			// stack. A student opening a .class file directly has no such frame, so this
+			// stays a precise, non-bypassable exemption.
 			boolean isClassLoaderAccess = pathIllegallyInteractedThroughParameter.endsWith(".class")
-					&& studentCalledMethod != null
-					&& (studentCalledMethod.startsWith("java.lang.Class.forName")
-							|| studentCalledMethod.startsWith("java.lang.ClassLoader")
-							|| studentCalledMethod.startsWith("jdk.internal.loader"));
+					&& (JavaInstrumentationAdviceAbstractToolbox.isClassLoadingInProgress()
+							|| (studentCalledMethod != null
+									&& (studentCalledMethod.startsWith("java.lang.Class.forName")
+											|| studentCalledMethod.startsWith("java.lang.ClassLoader")
+											|| studentCalledMethod.startsWith("jdk.internal.loader"))));
 			// Allow .jar reads from system infrastructure paths (Maven repo, JDK).
 			// These are triggered by JUnit / ServiceLoader during class loading and are
 			// not initiated by student code accessing arbitrary project files.
@@ -1004,11 +1015,29 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 							|| pathIllegallyInteractedThroughParameter.contains(java.io.File.separator + ".m2"
 									+ java.io.File.separator + "repository" + java.io.File.separator)
 							|| pathIllegallyInteractedThroughParameter.startsWith(System.getProperty("java.home")));
-			if (!isClassLoaderAccess && !isSystemJarRead) {
+			// Allow reads of Ares's own internal files (e.g. the localization resources
+			// loaded while building this very message). Without this exemption, resolving
+			// the denial message reads Messages.class / messages.properties, that read is
+			// blocked here, and constructing the new message recurses until the stack
+			// overflows. The receiver and attribute sites already apply this exemption;
+			// the parameter site must do the same. An explicit loop is used instead of
+			// stream().anyMatch() to avoid synthesising lambda classes that may be absent
+			// from the agent JAR.
+			boolean isInternalAllowed = false;
+			for (String suffix : INTERNAL_PATH_SUFFIXES) {
+				if (pathIllegallyInteractedThroughParameter.endsWith(suffix)) {
+					isInternalAllowed = true;
+					break;
+				}
+			}
+			if (!isClassLoaderAccess && !isSystemJarRead && !isInternalAllowed) {
 				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
 						"security.advice.illegal.file.execution", fileSystemMethodToCheck, messageAction,
-						pathIllegallyInteractedThroughParameter, fullMethodSignature
-								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
+						pathIllegallyInteractedThroughParameter,
+						fullMethodSignature
+								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+								+ " | "
+								+ JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(noAllowRuleConfigured)));
 			}
 		}
 		// </editor-fold>
@@ -1024,6 +1053,13 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				isInternalAllowed = true;
 			}
 
+			// A .class read performed by the JVM class-loading machinery is class
+			// loading, not student file access (see isClassLoadingInProgress).
+			if (!isInternalAllowed && pathIllegallyInteractedThroughReceiver.endsWith(".class")
+					&& JavaInstrumentationAdviceAbstractToolbox.isClassLoadingInProgress()) {
+				isInternalAllowed = true;
+			}
+
 			if (!isInternalAllowed && pathIllegallyInteractedThroughReceiver.endsWith(".jar")
 					&& (pathIllegallyInteractedThroughReceiver.contains("/.m2/repository/")
 							|| pathIllegallyInteractedThroughReceiver.contains(java.io.File.separator + ".m2"
@@ -1035,8 +1071,11 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			if (!isInternalAllowed) {
 				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
 						"security.advice.illegal.file.execution", fileSystemMethodToCheck, messageAction,
-						pathIllegallyInteractedThroughReceiver, fullMethodSignature
-								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
+						pathIllegallyInteractedThroughReceiver,
+						fullMethodSignature
+								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+								+ " | "
+								+ JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(noAllowRuleConfigured)));
 			}
 		}
 		// </editor-fold>
@@ -1067,10 +1106,11 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			// file
 			// from the filesystem. This is not a security concern as it's part of normal
 			// class loading behavior, not arbitrary file access by student code.
-			if (pathIllegallyInteractedThroughAttribute.endsWith(".class") && studentCalledMethod != null
-					&& (studentCalledMethod.startsWith("java.lang.Class.forName")
+			if (pathIllegallyInteractedThroughAttribute.endsWith(".class") && (JavaInstrumentationAdviceAbstractToolbox
+					.isClassLoadingInProgress()
+					|| (studentCalledMethod != null && (studentCalledMethod.startsWith("java.lang.Class.forName")
 							|| studentCalledMethod.startsWith("java.lang.ClassLoader")
-							|| studentCalledMethod.startsWith("jdk.internal.loader"))) {
+							|| studentCalledMethod.startsWith("jdk.internal.loader"))))) {
 				isInternalAllowed = true;
 			}
 
@@ -1095,8 +1135,11 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			if (!isInternalAllowed) {
 				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
 						"security.advice.illegal.file.execution", fileSystemMethodToCheck, messageAction,
-						pathIllegallyInteractedThroughAttribute, fullMethodSignature
-								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
+						pathIllegallyInteractedThroughAttribute,
+						fullMethodSignature
+								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+								+ " | "
+								+ JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(noAllowRuleConfigured)));
 			}
 		}
 		// </editor-fold>

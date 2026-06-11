@@ -484,6 +484,8 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 		}
 		@Nullable
 		String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
+		boolean noAllowRuleConfigured = commandsAllowedToBeExecuted == null || commandsAllowedToBeExecuted.length == 0
+				|| argumentsAllowedToBePassed == null || argumentsAllowedToBePassed.length == 0;
 		// </editor-fold>
 		// <editor-fold desc="Check parameters">
 		@Nullable
@@ -494,8 +496,10 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 		if (commandIllegallyExecutedThroughParameter != null) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
 					"security.advice.illegal.command.execution", commandSystemMethodToCheck, action,
-					commandIllegallyExecutedThroughParameter, fullMethodSignature
-							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
+					commandIllegallyExecutedThroughParameter,
+					fullMethodSignature
+							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
+							+ JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(noAllowRuleConfigured)));
 		}
 		// </editor-fold>
 		// <editor-fold desc="Check attributes">
@@ -507,8 +511,10 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 		if (commandIllegallyExecutedThroughAttribute != null) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
 					"security.advice.illegal.command.execution", commandSystemMethodToCheck, action,
-					commandIllegallyExecutedThroughAttribute, fullMethodSignature
-							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")));
+					commandIllegallyExecutedThroughAttribute,
+					fullMethodSignature
+							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
+							+ JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(noAllowRuleConfigured)));
 		}
 		// </editor-fold>
 	}
