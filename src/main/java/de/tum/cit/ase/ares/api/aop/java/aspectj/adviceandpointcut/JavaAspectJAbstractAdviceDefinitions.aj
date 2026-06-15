@@ -29,6 +29,20 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
             "jdk.internal.loader.",
             "jdk.internal.reflect."
     );
+
+    /**
+     * Cached StackWalker shared by the call-stack inspectors below. The default
+     * options (no RETAIN_CLASS_REFERENCE) are deliberate: the inspectors only read
+     * className/methodName strings, so materialising Class objects would add JNI
+     * work on every walked frame. The walker also avoids the Throwable allocation
+     * and full StackTraceElement[] materialisation that
+     * Thread.currentThread().getStackTrace() pays on every intercepted call, and it
+     * stops walking as soon as a matching frame is found. This mirrors the
+     * StackWalker-based inspectors in JavaInstrumentationAdviceAbstractToolbox so
+     * both AOP back-ends inspect the call stack through the same mechanism.
+     */
+    @Nonnull
+    private static final java.lang.StackWalker STACK_WALKER = java.lang.StackWalker.getInstance();
     //</editor-fold>
 
     //<editor-fold desc="Tools methods">
@@ -260,28 +274,45 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
     @Nullable
     protected static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses,
             String declaringTypeName, String methodName) {
-        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
         // Skip ignorable frames (Ares internals, class loading, reflection trampolines)
         // and keep scanning until we either find restricted student code or exhaust the
         // stack. This prevents reflective dispatch from bypassing the check simply
-        // because jdk.internal.reflect.* appears as an intermediate caller.
-        for (@Nonnull StackTraceElement element : stackTrace) {
-            String className = element.getClassName();
-            boolean ignoreFound = false;
-            for (@Nonnull String allowedClass : IGNORE_CALLSTACK) {
-                if (className.startsWith(allowedClass)) {
-                    ignoreFound = true;
-                    break;
+        // because jdk.internal.reflect.* appears as an intermediate caller. The
+        // allowed-class check is inlined here (rather than delegating to
+        // checkIfCallstackElementIsAllowed) because the walk yields StackFrame
+        // objects rather than StackTraceElement instances.
+        return STACK_WALKER.walk(frames -> {
+            java.util.Iterator<java.lang.StackWalker.StackFrame> iterator = frames.iterator();
+            while (iterator.hasNext()) {
+                java.lang.StackWalker.StackFrame frame = iterator.next();
+                String className = frame.getClassName();
+                boolean ignoreFound = false;
+                for (@Nonnull String allowedClass : IGNORE_CALLSTACK) {
+                    if (className.startsWith(allowedClass)) {
+                        ignoreFound = true;
+                        break;
+                    }
                 }
+                if (ignoreFound) {
+                    continue;  // Skip ignored frames instead of aborting scan
+                }
+                if (!className.startsWith(restrictedPackage)) {
+                    continue;
+                }
+                boolean allowed = false;
+                for (@Nonnull String allowedClass : allowedClasses) {
+                    if (className.startsWith(allowedClass)) {
+                        allowed = true;
+                        break;
+                    }
+                }
+                if (allowed) {
+                    continue;
+                }
+                return className + "." + frame.getMethodName();
             }
-            if (ignoreFound) {
-                continue;  // Skip ignored frames instead of aborting scan
-            }
-            if (className.startsWith(restrictedPackage) && !checkIfCallstackElementIsAllowed(allowedClasses, element)) {
-                return className + "." + element.getMethodName();
-            }
-        }
-        return null;
+            return null;
+        });
     }
 
     /**
@@ -301,40 +332,36 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
         if (restrictedPackage == null) {
             return null;
         }
-        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-        for (int i = 0; i < stackTrace.length; i++) {
-            StackTraceElement element = stackTrace[i];
-            String className = element.getClassName();
-            boolean ignoreFound = false;
-            for (String ignore : IGNORE_CALLSTACK) {
-                if (className.startsWith(ignore)) {
-                    ignoreFound = true;
-                    break;
-                }
-            }
-            if (ignoreFound) {
-                continue;
-            }
-            if (className.startsWith(restrictedPackage)
-                    && !className.startsWith("de.tum.cit.ase.ares.api.aop.java.aspectj")) {
-                for (int j = i + 1; j < stackTrace.length; j++) {
-                    StackTraceElement caller = stackTrace[j];
-                    String callerClass = caller.getClassName();
-                    boolean callerIgnorable = false;
-                    for (String ignore : IGNORE_CALLSTACK) {
-                        if (callerClass.startsWith(ignore)) {
-                            callerIgnorable = true;
-                            break;
-                        }
-                    }
-                    if (!callerIgnorable) {
-                        return callerClass + "." + caller.getMethodName();
+        // Materialise only the non-ignorable frames lazily; stop iterating as soon as
+        // we have located the first restricted frame and the first non-ignored caller
+        // above it.
+        return STACK_WALKER.walk(frames -> {
+            boolean restrictedSeen = false;
+            java.util.Iterator<java.lang.StackWalker.StackFrame> iterator = frames.iterator();
+            while (iterator.hasNext()) {
+                java.lang.StackWalker.StackFrame frame = iterator.next();
+                String className = frame.getClassName();
+                boolean ignoreFound = false;
+                for (String ignore : IGNORE_CALLSTACK) {
+                    if (className.startsWith(ignore)) {
+                        ignoreFound = true;
+                        break;
                     }
                 }
-                return null;
+                if (ignoreFound) {
+                    continue;
+                }
+                if (!restrictedSeen) {
+                    if (className.startsWith(restrictedPackage)
+                            && !className.startsWith("de.tum.cit.ase.ares.api.aop.java.aspectj")) {
+                        restrictedSeen = true;
+                    }
+                    continue;
+                }
+                return className + "." + frame.getMethodName();
             }
-        }
-        return null;
+            return null;
+        });
     }
     //</editor-fold>
 
@@ -399,15 +426,18 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
      * files for structural and architecture test setup.
      */
     protected static boolean isProjectSourcesFinderInProgress() {
-        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-        for (StackTraceElement stackTraceElement : stackTrace) {
-            if ("de.tum.cit.ase.ares.api.util.ProjectSourcesFinder".equals(stackTraceElement.getClassName())
-                    || "de.tum.cit.ase.ares.api.structural.testutils.ClassNameScanner".equals(stackTraceElement.getClassName())
-                    || "de.tum.cit.ase.ares.api.util.FileTools".equals(stackTraceElement.getClassName())) {
-                return true;
+        return STACK_WALKER.walk(frames -> {
+            java.util.Iterator<java.lang.StackWalker.StackFrame> iterator = frames.iterator();
+            while (iterator.hasNext()) {
+                String className = iterator.next().getClassName();
+                if (className.equals("de.tum.cit.ase.ares.api.util.ProjectSourcesFinder")
+                        || className.equals("de.tum.cit.ase.ares.api.structural.testutils.ClassNameScanner")
+                        || className.equals("de.tum.cit.ase.ares.api.util.FileTools")) {
+                    return Boolean.TRUE;
+                }
             }
-        }
-        return false;
+            return Boolean.FALSE;
+        });
     }
 
     /**

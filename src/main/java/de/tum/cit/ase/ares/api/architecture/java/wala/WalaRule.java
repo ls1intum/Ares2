@@ -109,7 +109,8 @@ public class WalaRule {
 		}
 		String actualFormatted = formatJvmSignature(actualWithoutReturnType);
 		String forbiddenFormatted = formatJvmSignature(forbiddenWithoutReturnType);
-		return actualFormatted.equals(forbiddenFormatted) || actualFormatted.startsWith(forbiddenFormatted);
+		// startsWith already covers the exact-match case, since a string always starts with itself.
+		return actualFormatted.startsWith(forbiddenFormatted);
 	}
 
 	private static String stripReturnType(String signature) {
