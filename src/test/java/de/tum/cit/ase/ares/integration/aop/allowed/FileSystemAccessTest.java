@@ -59,8 +59,8 @@ class FileSystemAccessTest {
 	private String returnPlatformSpecificTrustedScriptPath() {
 		String osName = System.getProperty("os.name").toLowerCase();
 		return osName.contains("windows")
-				? "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted_execute.bat"
-				: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted_execute.sh";
+				? "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trustedExecute.bat"
+				: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trustedExecute.sh";
 	}
 
 	/**
@@ -968,14 +968,14 @@ class FileSystemAccessTest {
 	@Nested
 	class DeleteOperations {
 
-		private static final Path TRUSTED_FILE_PATH = Paths
-				.get("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt");
+		private static final Path TRUSTED_FILE_PATH = Paths.get(
+				"src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/delete/trusteddir/trusted.txt");
 
 		@BeforeEach
 		public void ensureTrustedFileExistsBefore() throws IOException {
 			if (Files.notExists(TRUSTED_FILE_PATH)) {
 				Files.createDirectories(TRUSTED_FILE_PATH.getParent());
-				Files.createFile(TRUSTED_FILE_PATH);
+				Files.writeString(TRUSTED_FILE_PATH, TRUSTED_FILE_CONTENT);
 			}
 		}
 
@@ -983,7 +983,7 @@ class FileSystemAccessTest {
 		public void ensureTrustedFileExistsAfter() throws IOException {
 			if (Files.notExists(TRUSTED_FILE_PATH)) {
 				Files.createDirectories(TRUSTED_FILE_PATH.getParent());
-				Files.createFile(TRUSTED_FILE_PATH);
+				Files.writeString(TRUSTED_FILE_PATH, TRUSTED_FILE_CONTENT);
 			}
 		}
 

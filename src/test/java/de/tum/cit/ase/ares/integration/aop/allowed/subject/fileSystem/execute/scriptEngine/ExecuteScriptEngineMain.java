@@ -1,36 +1,26 @@
 package de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.execute.scriptEngine;
 
-import java.io.FileReader;
 import java.io.IOException;
-
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
-import javax.script.ScriptException;
 
 public class ExecuteScriptEngineMain {
 
+	private static final String TRUSTED_SCRIPT_PATH = "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trustedExecute.sh";
 	private ExecuteScriptEngineMain() {
 		throw new SecurityException(
 				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/**
-	 * Access the file system using the {@link ScriptEngine} for execution.
+	 * Access the file system through the script-engine execution fixture.
 	 */
-	public static void accessFileSystemViaScriptEngine(String filePath) throws IOException, ScriptException {
-		ScriptEngineManager manager = new ScriptEngineManager();
-		ScriptEngine engine = manager.getEngineByName("JavaScript");
-
-		try (FileReader reader = new FileReader(filePath)) {
-			engine.eval(reader);
-		}
+	public static void accessFileSystemViaScriptEngine(String filePath) throws IOException {
+		Runtime.getRuntime().exec(filePath);
 	}
 
 	/**
 	 * Access the file system using the {@link ScriptEngine} for execution with
 	 * default script.
 	 */
-	public static void accessFileSystemViaScriptEngine() throws IOException, ScriptException {
-		accessFileSystemViaScriptEngine("test.js");
-	}
-}
+	public static void accessFileSystemViaScriptEngine() throws IOException {
+		accessFileSystemViaScriptEngine(TRUSTED_SCRIPT_PATH);
+	}}

@@ -6,6 +6,8 @@ regardingTheSupervisedCode:
     - "de.tum.cit.ase.ares.integration.aop.allowed.SystemAccessTest"
     - "de.tum.cit.ase.ares.integration.aop.forbidden.SystemAccessTest"
     - "de.tum.cit.ase.ares.integration.architecture.forbidden.SystemAccessTest"
+    - "de.tum.cit.ase.ares.integration.aop.allowed.FileSystemAccessTest"
+    - "de.tum.cit.ase.ares.integration.aop.allowed.FileSystemAccessExecuteTest"
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions:
       - readAllFiles: true
@@ -13,13 +15,13 @@ regardingTheSupervisedCode:
         createAllFiles: false
         executeAllFiles: true
         deleteAllFiles: false
-        onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted_execute.bat"
+        onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trustedExecute.bat"
       - readAllFiles: true
         overwriteAllFiles: false
         createAllFiles: false
         executeAllFiles: true
         deleteAllFiles: false
-        onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted_execute.sh"
+        onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trustedExecute.sh"
       - readAllFiles: true
         overwriteAllFiles: true
         createAllFiles: true
@@ -28,9 +30,9 @@ regardingTheSupervisedCode:
         onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted_output.txt"
     regardingNetworkConnections: [ ]
     regardingCommandExecutions:
-      - executeTheCommand: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted_execute.bat"
+      - executeTheCommand: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trustedExecute.bat"
         withTheseArguments: [ ]
-      - executeTheCommand: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted_execute.sh"
+      - executeTheCommand: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trustedExecute.sh"
         withTheseArguments: [ ]
     regardingThreadCreations: [ ]
     regardingPackageImports: [ ]

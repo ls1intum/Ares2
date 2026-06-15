@@ -48,15 +48,12 @@ public final class ThreadPenguin extends Thread {
 	}
 
 	public static void spawnEndlessThreads() {
-		try {
-			Thread.sleep(2);
-		} catch (@SuppressWarnings("unused") InterruptedException e) {
+		Thread firstThread = new Thread(() -> sleepInCurrentThread(100));
+		Thread secondThread = new Thread(() -> {
 			// nothing
-		}
-		for (int i = 0; i < 2000; i++) {
-			Thread t = new Thread(ThreadPenguin::spawnEndlessThreads);
-			t.start();
-		}
+		});
+		firstThread.start();
+		secondThread.start();
 	}
 
 	private static void verifyThreadWhitelisting(String message) throws Throwable {

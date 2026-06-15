@@ -3,10 +3,7 @@ regardingTheSupervisedCode:
   theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
   theMainClassInsideThisPackageIs: "Main"
   theFollowingClassesAreTestClasses:
-    - "de.tum.cit.ase.ares.integration.aop.allowed.SystemAccessTest"
-    - "de.tum.cit.ase.ares.integration.aop.forbidden.SystemAccessTest"
-    - "de.tum.cit.ase.ares.integration.architecture.forbidden.SystemAccessTest"
-    - "de.tum.cit.ase.ares.integration.aop.allowed.FileSystemAccessTest"
+    - "de.tum.cit.ase.ares.integration.TrustedClassesTest"
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions:
       - readAllFiles: true
@@ -14,7 +11,13 @@ regardingTheSupervisedCode:
         createAllFiles: false
         executeAllFiles: false
         deleteAllFiles: false
-        onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"
+        onThisPathAndAllPathsBelow: "pom.xml"
+      - readAllFiles: true
+        overwriteAllFiles: false
+        createAllFiles: false
+        executeAllFiles: false
+        deleteAllFiles: false
+        onThisPathAndAllPathsBelow: "target/classes/de/tum/cit/ase/ares/api/templates"
     regardingNetworkConnections: [ ]
     regardingCommandExecutions: [ ]
     regardingThreadCreations: [ ]

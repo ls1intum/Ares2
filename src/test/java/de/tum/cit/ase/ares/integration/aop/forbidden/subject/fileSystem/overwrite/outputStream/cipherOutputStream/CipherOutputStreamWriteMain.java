@@ -3,12 +3,11 @@ package de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwri
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.InvalidKeyException;
-import java.security.Key;
 import java.security.NoSuchAlgorithmException;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherOutputStream;
-import javax.crypto.KeyGenerator;
+import javax.crypto.NullCipher;
 import javax.crypto.NoSuchPaddingException;
 
 /**
@@ -60,12 +59,6 @@ public class CipherOutputStreamWriteMain {
 	/* ------------------------------------------------------------- */
 
 	private static Cipher getCipher() throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException {
-		KeyGenerator keyGen = KeyGenerator.getInstance("AES");
-		keyGen.init(128);
-		Key key = keyGen.generateKey();
-
-		Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
-		cipher.init(Cipher.ENCRYPT_MODE, key);
-		return cipher;
+		return new NullCipher();
 	}
 }

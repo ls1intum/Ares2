@@ -524,16 +524,16 @@ public class FileTools {
 
 	private static String processPlaceholdersAndFormat(String content, String[] placeholderValues,
 			String[] formatValues, Path pathForError) {
-		content = replacePlaceholdersWithFormatSpec(content, placeholderValues);
 		String[] values = (formatValues != null) ? formatValues : new String[0];
-		int valuesCount = values.length;
-		int placeholderCount = countOccurrences(content, "%s");
-		if (placeholderCount != valuesCount) {
-			throw new SecurityException("Ares Security Error (Stage: Creation): Placeholder count mismatch in "
-					+ pathForError.toAbsolutePath() + ". Expected " + valuesCount + " '%s' placeholders, but found "
-					+ placeholderCount + ".");
+		String result = content;
+		int replacements = Math.min(placeholderValues == null ? 0 : placeholderValues.length, values.length);
+		for (int i = 0; i < replacements; i++) {
+			String placeholder = placeholderValues[i];
+			if (placeholder != null && !placeholder.isEmpty()) {
+				result = result.replace(placeholder, values[i]);
+			}
 		}
-		return formatTemplate(content, values, pathForError);
+		return result;
 	}
 
 	/**

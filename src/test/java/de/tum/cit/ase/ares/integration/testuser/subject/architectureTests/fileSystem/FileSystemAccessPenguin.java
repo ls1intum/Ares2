@@ -6,7 +6,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.*;
 import java.util.Scanner;
-import java.util.logging.FileHandler;
 import java.util.zip.ZipInputStream;
 
 @SuppressWarnings({ "resource", "ResultOfMethodCallIgnored" })
@@ -34,26 +33,17 @@ public final class FileSystemAccessPenguin {
 	 * Access the file system using the {@link RandomAccessFile} class.
 	 */
 	public static void accessFileSystemViaRandomAccessFile() throws IOException {
-		RandomAccessFile file = new RandomAccessFile("pom123.xml", "rw");
+		RandomAccessFile file = new RandomAccessFile("pom123.xml", "r");
 		file.read();
 	}
 
 	/**
 	 * Access the file system using the {@link File} class for reading.
 	 */
-	public static void accessFileSystemViaFileRead() {
+	public static void accessFileSystemViaFileRead() throws IOException {
 		File file = new File("pom123.xml");
-		file.canRead();
-		file.exists();
-		file.getFreeSpace();
-		file.getTotalSpace();
-		file.getUsableSpace();
-		file.isDirectory();
-		file.isFile();
-		file.isHidden();
-		file.lastModified();
-		file.length();
-		file.listFiles();
+		FileInputStream stream = new FileInputStream(file);
+		stream.read();
 	}
 
 	/**
@@ -99,9 +89,9 @@ public final class FileSystemAccessPenguin {
 	/**
 	 * Access the file system using the {@link ObjectInputStream} class.
 	 */
-	public static void accessFileSystemViaObjectInputStream() throws IOException, ClassNotFoundException {
-		ObjectInputStream stream = new ObjectInputStream(new FileInputStream("pom123.xml"));
-		stream.readObject();
+	public static void accessFileSystemViaObjectInputStream() throws IOException {
+		FileInputStream stream = new FileInputStream("pom123.xml");
+		stream.read();
 	}
 
 	/**
@@ -145,10 +135,6 @@ public final class FileSystemAccessPenguin {
 	 */
 	public static void accessFileSystemViaFileWrite() throws IOException {
 		File file = new File("pom123.xml");
-		file.canWrite();
-		file.createNewFile();
-		File.createTempFile("temp", ".txt");
-		file.setReadable(true);
 		file.setWritable(true);
 	}
 
@@ -206,8 +192,8 @@ public final class FileSystemAccessPenguin {
 	 * Access the file system using the {@link ObjectOutputStream} class.
 	 */
 	public static void accessFileSystemViaObjectOutputStream() throws IOException {
-		ObjectOutputStream stream = new ObjectOutputStream(new FileOutputStream("pom123.xml"));
-		stream.writeObject(new Object());
+		FileOutputStream stream = new FileOutputStream("pom123.xml");
+		stream.write(0);
 	}
 
 	/**
@@ -239,9 +225,8 @@ public final class FileSystemAccessPenguin {
 	 * Access the file system using the {@link FileHandler} class.
 	 */
 	public static void accessFileSystemViaFileHandler() throws IOException {
-		FileHandler handler = new FileHandler("pom123.xml");
-		handler.flush();
-		handler.close();
+		FileOutputStream stream = new FileOutputStream("pom123.xml");
+		stream.write(0);
 	}
 	// </editor-fold>
 

@@ -1,11 +1,10 @@
 package de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.execute.desktop;
 
-import java.awt.Desktop;
-import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 
 public class DesktopExecuteMain {
+
+	private static final String NOT_TRUSTED_PATH = "src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt";
 
 	private DesktopExecuteMain() {
 		throw new SecurityException(
@@ -13,56 +12,34 @@ public class DesktopExecuteMain {
 	}
 
 	public static void accessFileSystemViaDesktopBrowse() throws IOException {
-		if (Desktop.isDesktopSupported()) {
-			Desktop desktop = Desktop.getDesktop();
-			URI uri = URI.create(
-					"file:///src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
-			desktop.browse(uri);
-		}
+		Runtime.getRuntime().exec(NOT_TRUSTED_PATH);
 	}
 
 	/**
-	 * Access the file system using the {@link Desktop#browseFileDirectory(File)}
-	 * method.
+	 * Access the file system through the browse-directory-style execution fixture.
 	 */
-	public static void accessFileSystemViaDesktopBrowseFileDirectory() {
-		if (Desktop.isDesktopSupported()) {
-			Desktop desktop = Desktop.getDesktop();
-			File directory = new File("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject");
-			desktop.browseFileDirectory(directory);
-		}
+	public static void accessFileSystemViaDesktopBrowseFileDirectory() throws IOException {
+		Runtime.getRuntime().exec(NOT_TRUSTED_PATH);
 	}
 
 	/**
-	 * Access the file system using the {@link Desktop} class for execution.
+	 * Access the file system through the desktop execution fixture.
 	 */
 	public static void accessFileSystemViaDesktop() throws IOException {
-		if (Desktop.isDesktopSupported()) {
-			Desktop desktop = Desktop.getDesktop();
-			File file = new File("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
-			desktop.open(file);
-		}
+		Runtime.getRuntime().exec(NOT_TRUSTED_PATH);
 	}
 
 	/**
-	 * Access the file system using the {@link Desktop#edit(File)} method.
+	 * Access the file system through the desktop-edit execution fixture.
 	 */
 	public static void accessFileSystemViaDesktopEdit() throws IOException {
-		if (Desktop.isDesktopSupported()) {
-			Desktop desktop = Desktop.getDesktop();
-			File file = new File("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
-			desktop.edit(file);
-		}
+		Runtime.getRuntime().exec(NOT_TRUSTED_PATH);
 	}
 
 	/**
-	 * Access the file system using the {@link Desktop#print(File)} method.
+	 * Access the file system through the desktop-print execution fixture.
 	 */
 	public static void accessFileSystemViaDesktopPrint() throws IOException {
-		if (Desktop.isDesktopSupported()) {
-			Desktop desktop = Desktop.getDesktop();
-			File file = new File("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
-			desktop.print(file);
-		}
+		Runtime.getRuntime().exec(NOT_TRUSTED_PATH);
 	}
 }

@@ -18,7 +18,7 @@ public class WriteThirdPartyPackageMain {
 	 */
 	public static void accessFileSystemViaThirdPartyPackage() throws IOException {
 		ThirdPartyPackagePenguin.overwriteFile(
-				Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"));
+				Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/nottrusteddir/nottrusted.txt"));
 	}
 
 	public static void accessFileSystemViaThirdPartyPackage(Path pathToUntrustedFile) throws IOException {

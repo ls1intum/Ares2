@@ -305,8 +305,8 @@ abstract class SystemAccessTest {
 	 * @param clazz           The class that should be mentioned in the security
 	 *                        violation
 	 */
-	protected void assertGeneralErrorMessageWithPath(Path expectedPath, String actualMessage, String operationTextEN,
-			String operationTextDE, Class<?> clazz) {
+		protected void assertGeneralErrorMessageWithPath(Path expectedPath, String actualMessage, String operationTextEN,
+				String operationTextDE, Class<?> clazz) {
 		String nativePath = expectedPath.toString();
 		String unixPath = nativePath.replace(expectedPath.getFileSystem().getSeparator(), "/");
 
@@ -317,6 +317,24 @@ abstract class SystemAccessTest {
 		Assertions.assertTrue(Arrays.asList(nativePath, unixPath).stream().anyMatch(actualMessage::contains),
 				() -> String.format("Exception message should contain the path '%s' (or '%s'), but was:%n%s",
 						nativePath, unixPath, actualMessage));
+		}
+
+	protected SecurityException assertThrowsAresSecurityException(Executable executable) {
+		Throwable throwable = Assertions.assertThrows(Throwable.class, executable, ERROR_MESSAGE);
+		SecurityException securityException = findSecurityException(throwable);
+		Assertions.assertNotNull(securityException,
+				() -> String.format("Expected SecurityException in throwable chain, but was:%n%s", throwable));
+		return securityException;
+	}
+
+	private SecurityException findSecurityException(Throwable throwable) {
+		if (throwable == null) {
+			return null;
+		}
+		if (throwable instanceof SecurityException securityException) {
+			return securityException;
+		}
+		return findSecurityException(throwable.getCause());
 	}
 
 	/**
@@ -327,8 +345,7 @@ abstract class SystemAccessTest {
 	 * @param clazz      The class that performed the read operation
 	 */
 	protected SecurityException assertAresSecurityExceptionRead(Executable executable, Class<?> clazz) {
-		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable,
-				ERROR_MESSAGE);
+		SecurityException securityException = assertThrowsAresSecurityException(executable);
 
 		Path expectedPath = Paths.get("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration", "aop",
 				"forbidden", "subject", "nottrusted.txt");
@@ -345,8 +362,7 @@ abstract class SystemAccessTest {
 	 * @param clazz      The class that performed the read operation
 	 */
 	protected void assertAresSecurityExceptionRead(Executable executable, Class<?> clazz, Path expectedPath) {
-		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable,
-				ERROR_MESSAGE);
+		SecurityException securityException = assertThrowsAresSecurityException(executable);
 		assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally read",
 				"illegal read", clazz);
 	}
@@ -359,8 +375,7 @@ abstract class SystemAccessTest {
 	 * @param clazz      The class that performed the overwrite operation
 	 */
 	protected void assertAresSecurityExceptionOverwrite(Executable executable, Class<?> clazz) {
-		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable,
-				ERROR_MESSAGE);
+		SecurityException securityException = assertThrowsAresSecurityException(executable);
 		Path expectedPath = Paths.get("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration", "aop",
 				"forbidden", "subject", "fileSystem", "overwrite", "nottrusteddir");
 		assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally overwrite",
@@ -368,8 +383,7 @@ abstract class SystemAccessTest {
 	}
 
 	protected void assertAresSecurityExceptionOverwrite(Executable executable, Class<?> clazz, Path expectedPath) {
-		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable,
-				ERROR_MESSAGE);
+		SecurityException securityException = assertThrowsAresSecurityException(executable);
 		assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally overwrite",
 				"illegal overwrite", clazz);
 	}
@@ -382,8 +396,7 @@ abstract class SystemAccessTest {
 	 * @param clazz      The class that performed the execution operation
 	 */
 	protected void assertAresSecurityExceptionExecution(Executable executable, Class<?> clazz) {
-		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable,
-				ERROR_MESSAGE);
+		SecurityException securityException = assertThrowsAresSecurityException(executable);
 		Path expectedPath = Paths.get("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration", "aop",
 				"forbidden", "subject", "nottrusted.txt");
 		assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally execute",
@@ -391,8 +404,7 @@ abstract class SystemAccessTest {
 	}
 
 	protected void assertAresSecurityExceptionExecution(Executable executable, Class<?> clazz, Path expectedPath) {
-		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable,
-				ERROR_MESSAGE);
+		SecurityException securityException = assertThrowsAresSecurityException(executable);
 		assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally execute",
 				"illegal execute", clazz);
 	}
@@ -405,8 +417,7 @@ abstract class SystemAccessTest {
 	 * @param clazz      The class that performed the delete operation
 	 */
 	protected void assertAresSecurityExceptionDelete(Executable executable, Class<?> clazz) {
-		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable,
-				ERROR_MESSAGE);
+		SecurityException securityException = assertThrowsAresSecurityException(executable);
 		Path expectedPath = Paths.get("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration", "aop",
 				"forbidden", "subject", "fileSystem", "delete", "nottrusteddir", "nottrusted.txt");
 		assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally delete",
@@ -414,8 +425,7 @@ abstract class SystemAccessTest {
 	}
 
 	protected void assertAresSecurityExceptionDelete(Executable executable, Class<?> clazz, Path expectedPath) {
-		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable,
-				ERROR_MESSAGE);
+		SecurityException securityException = assertThrowsAresSecurityException(executable);
 		assertGeneralErrorMessageWithPath(expectedPath, securityException.getMessage(), "illegally delete",
 				"illegal delete", clazz);
 	}
@@ -520,8 +530,7 @@ abstract class SystemAccessTest {
 	 * @param clazz      The class that performed the thread creation operation
 	 */
 	protected SecurityException assertAresSecurityExceptionThread(Executable executable, Class<?> clazz) {
-		SecurityException securityException = Assertions.assertThrows(SecurityException.class, executable,
-				ERROR_MESSAGE);
+		SecurityException securityException = assertThrowsAresSecurityException(executable);
 		assertGeneralErrorMessageWithThread(securityException.getMessage(), "illegally create", "illegal create",
 				clazz);
 		return securityException;

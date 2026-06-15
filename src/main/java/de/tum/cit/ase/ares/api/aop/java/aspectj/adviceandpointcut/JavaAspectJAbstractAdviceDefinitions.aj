@@ -395,6 +395,22 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
     //</editor-fold>
 
     /**
+     * Returns true while Ares' internal utilities are reading framework support
+     * files for structural and architecture test setup.
+     */
+    protected static boolean isProjectSourcesFinderInProgress() {
+        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+        for (StackTraceElement stackTraceElement : stackTrace) {
+            if ("de.tum.cit.ase.ares.api.util.ProjectSourcesFinder".equals(stackTraceElement.getClassName())
+                    || "de.tum.cit.ase.ares.api.structural.testutils.ClassNameScanner".equals(stackTraceElement.getClassName())
+                    || "de.tum.cit.ase.ares.api.util.FileTools".equals(stackTraceElement.getClassName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Extracts the method name without access modifiers from a full method signature.
      *
      * <p>Description: Removes access modifiers (public, private, protected, static, final, etc.)

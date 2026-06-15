@@ -841,6 +841,9 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
             return;
         }
         @Nullable final String restrictedPackage = getValueFromSettings("restrictedPackage");
+        if (isProjectSourcesFinderInProgress()) {
+            return;
+        }
         @Nullable final String[] allowedClasses = getValueFromSettings("allowedListedClasses");
         //</editor-fold>
         //<editor-fold desc="Get information from join point">

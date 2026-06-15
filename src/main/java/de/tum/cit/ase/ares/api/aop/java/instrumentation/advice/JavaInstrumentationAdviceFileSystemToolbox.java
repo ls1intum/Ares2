@@ -1179,6 +1179,9 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		if (restrictedPackage == null || restrictedPackage.isEmpty()) {
 			return;
 		}
+		if (JavaInstrumentationAdviceAbstractToolbox.isProjectSourcesFinderInProgress()) {
+			return;
+		}
 		@Nullable
 		final String[] allowedClasses = getValueFromSettings("allowedListedClasses");
 		// </editor-fold>

@@ -14,6 +14,7 @@ import de.tum.cit.ase.ares.integration.testuser.subject.*;
 @UseLocale("en")
 @AddTrustedPackage("**subject.TrustedPackageP*")
 @WhitelistClass(WhitelistedClassPenguin.class)
+@WhitelistPath("")
 public class TrustedClassesUser {
 
 	private static final Path PATH = Path.of("pom.xml");
@@ -24,11 +25,13 @@ public class TrustedClassesUser {
 	}
 
 	@Test
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyPomAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/TrustedPackagePenguin.class")
 	void testTrustedPackage() throws IOException {
 		TrustedPackagePenguin.accessPath(PATH);
 	}
 
 	@Test
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyPomAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/WhitelistedClassPenguin.class")
 	void testWhitelistedClass() throws IOException {
 		WhitelistedClassPenguin.accessPath(PATH);
 	}

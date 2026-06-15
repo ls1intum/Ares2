@@ -370,6 +370,27 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 			return Boolean.FALSE;
 		});
 	}
+
+	/**
+	 * Returns {@code true} while Ares' internal utilities are reading framework
+	 * support files for structural and architecture test setup.
+	 *
+	 * @return {@code true} if the current stack contains an internal Ares utility
+	 */
+	public static boolean isProjectSourcesFinderInProgress() {
+		return STACK_WALKER.walk(frames -> {
+			java.util.Iterator<java.lang.StackWalker.StackFrame> iterator = frames.iterator();
+			while (iterator.hasNext()) {
+					String className = iterator.next().getClassName();
+					if (className.equals("de.tum.cit.ase.ares.api.util.ProjectSourcesFinder")
+							|| className.equals("de.tum.cit.ase.ares.api.structural.testutils.ClassNameScanner")
+							|| className.equals("de.tum.cit.ase.ares.api.util.FileTools")) {
+						return Boolean.TRUE;
+					}
+			}
+			return Boolean.FALSE;
+		});
+	}
 	// </editor-fold>
 
 	// <editor-fold desc="Callstack criteria methods">

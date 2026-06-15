@@ -4,6 +4,7 @@ import java.io.IOException;
 
 public class ExecuteNativeCommandMain {
 
+	private static final String TRUSTED_SCRIPT_PATH = "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trustedExecute.sh";
 	private ExecuteNativeCommandMain() {
 		throw new SecurityException(
 				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
@@ -20,6 +21,5 @@ public class ExecuteNativeCommandMain {
 	 * Access the file system by executing native commands with default command.
 	 */
 	public static void accessFileSystemViaNativeCommand() throws IOException {
-		accessFileSystemViaNativeCommand("echo test");
-	}
-}
+		accessFileSystemViaNativeCommand(TRUSTED_SCRIPT_PATH);
+	}}

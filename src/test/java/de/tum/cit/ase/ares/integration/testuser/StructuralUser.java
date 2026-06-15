@@ -59,14 +59,18 @@ public class StructuralUser {
 
 		@BeforeEach
 		void addLoggers() {
+			ClassNameScanner.setPomXmlPath(TESTUSER_POM_XML);
+			ClassNameScanner.setBuildGradlePath(null);
 			loggers.forEach(logger -> logger.addAppender(logs));
 			logs.start();
 		}
 
-		@AfterEach
-		void removeLoggers() {
-			loggers.forEach(logger -> logger.detachAppender(logs));
-		}
+			@AfterEach
+			void removeLoggers() {
+				loggers.forEach(logger -> logger.detachAppender(logs));
+				ClassNameScanner.setPomXmlPath("pom.xml");
+				ClassNameScanner.setBuildGradlePath("build.gradle");
+			}
 
 		@Test
 		void bothValid() {
@@ -107,6 +111,12 @@ public class StructuralUser {
 	}
 
 	class StrucuralTestSet {
+
+		@AfterEach
+		void resetBuildToolConfiguration() {
+			ClassNameScanner.setPomXmlPath("pom.xml");
+			ClassNameScanner.setBuildGradlePath("build.gradle");
+		}
 
 		@Nested
 		class AttributeTestUser extends AttributeTestProvider {

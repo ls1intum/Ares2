@@ -9,6 +9,6 @@ architecture/java/wala/CustomDFSPathFinder.java,3,ares/api/architecture/java/wal
 architecture/java/wala/ReachabilityChecker.java,2,ares/api/architecture/java/wala/ReachabilityChecker.java
 architecture/java/wala/WalaRule.java,2,ares/api/architecture/java/wala/WalaRule.java
 localization/Messages.java,3,ares/api/localization/Messages.java
-policy/policySubComponents/PackagePermission.java,1,ares/api/policy/policySubComponents/PackagePermission.java
+policy/policySubComponents/PackagePermission.java,2,ares/api/policy/policySubComponents/PackagePermission.java
 util/FileTools.java,13,ares/api/util/FileTools.java
 util/LruCache.java,1,ares/api/util/LruCache.java

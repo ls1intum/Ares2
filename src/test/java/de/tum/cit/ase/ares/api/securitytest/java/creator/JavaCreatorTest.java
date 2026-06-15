@@ -149,7 +149,7 @@ public class JavaCreatorTest {
 			// Assert
 			verify(buildMode).getClasspath(tempDir, packageName);
 			verify(architectureMode).getJavaClasses(classpath);
-			verify(architectureMode).getCallGraph(classpath);
+			verify(architectureMode, never()).getCallGraph(classpath);
 			verify(resourceAccesses).regardingPackageImports();
 		}
 
@@ -204,8 +204,8 @@ public class JavaCreatorTest {
 		}
 
 		@Test
-		@DisplayName("Should use cached results for JavaClasses and CallGraph")
-		void shouldUseCachedResultsForJavaClassesAndCallGraph() {
+		@DisplayName("Should use cached results for JavaClasses and defer CallGraph")
+		void shouldUseCachedResultsForJavaClassesAndDeferCallGraph() {
 			// Arrange
 			List<String> essentialPackages = List.of("java.lang");
 			List<String> essentialClasses = List.of("String");
@@ -231,10 +231,11 @@ public class JavaCreatorTest {
 					testClasses, packageName, mainClassName, new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
 					resourceAccesses, tempDir);
 
-			// Assert - Each method should only be called once due to static cache reuse
+			// Assert - Classpath and JavaClasses should only be called once due to static
+			// cache reuse. The CallGraph remains lazy until a WALA test case asks for it.
 			verify(buildMode, times(1)).getClasspath(tempDir, packageName);
 			verify(architectureMode, times(1)).getJavaClasses(classpath);
-			verify(architectureMode, times(1)).getCallGraph(classpath);
+			verify(architectureMode, never()).getCallGraph(classpath);
 		}
 
 		@Test

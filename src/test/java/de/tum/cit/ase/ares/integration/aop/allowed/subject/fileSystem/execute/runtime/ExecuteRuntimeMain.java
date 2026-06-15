@@ -4,6 +4,7 @@ import java.io.IOException;
 
 public class ExecuteRuntimeMain {
 
+	private static final String TRUSTED_SCRIPT_PATH = "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trustedExecute.sh";
 	private ExecuteRuntimeMain() {
 		throw new SecurityException(
 				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
@@ -24,7 +25,7 @@ public class ExecuteRuntimeMain {
 	 * default command.
 	 */
 	public static void accessFileSystemViaRuntime() throws IOException {
-		accessFileSystemViaRuntime("echo test");
+		accessFileSystemViaRuntime(TRUSTED_SCRIPT_PATH);
 	}
 
 	/**
@@ -33,6 +34,5 @@ public class ExecuteRuntimeMain {
 	 */
 	public static Process accessFileSystemViaRuntimeArray() throws IOException {
 		Runtime runtime = Runtime.getRuntime();
-		return runtime.exec(new String[] { "echo", "test" });
-	}
-}
+		return runtime.exec(new String[] { TRUSTED_SCRIPT_PATH });
+	}}

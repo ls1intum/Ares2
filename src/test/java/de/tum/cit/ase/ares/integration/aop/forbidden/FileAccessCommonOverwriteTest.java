@@ -145,9 +145,8 @@ class FileAccessCommonOverwriteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = FILE_CHANNEL_WITHIN_PATH)
 	void test_accessFileSystemViaNIOChannelMavenArchunitInstrumentation() {
-		// first file is opened so we test for read access
-		assertAresSecurityExceptionRead(FileChannelWriteMain::accessFileSystemViaNIOChannel, FileChannelWriteMain.class,
-				NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(FileChannelWriteMain::accessFileSystemViaNIOChannel,
+				FileChannelWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
@@ -160,9 +159,8 @@ class FileAccessCommonOverwriteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = FILE_CHANNEL_WITHIN_PATH)
 	void test_accessFileSystemViaNIOChannelMavenWalaInstrumentation() {
-		// first file is opened so we test for read access
-		assertAresSecurityExceptionRead(FileChannelWriteMain::accessFileSystemViaNIOChannel, FileChannelWriteMain.class,
-				NOT_TRUSTED_FILE_PATH);
+		assertAresSecurityExceptionOverwrite(FileChannelWriteMain::accessFileSystemViaNIOChannel,
+				FileChannelWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
 	@PublicTest
@@ -175,8 +173,7 @@ class FileAccessCommonOverwriteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = FILE_CHANNEL_WITHIN_PATH)
 	void test_accessFileSystemViaFileChannelWriteBuffersMavenArchunitInstrumentation() {
-		//
-		assertAresSecurityExceptionRead(FileChannelWriteMain::accessFileSystemViaFileChannelWriteBuffers,
+		assertAresSecurityExceptionOverwrite(FileChannelWriteMain::accessFileSystemViaFileChannelWriteBuffers,
 				FileChannelWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
@@ -190,8 +187,7 @@ class FileAccessCommonOverwriteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = FILE_CHANNEL_WITHIN_PATH)
 	void test_accessFileSystemViaFileChannelWriteBuffersMavenWalaInstrumentation() {
-		// first file is opened so we test for read access
-		assertAresSecurityExceptionRead(FileChannelWriteMain::accessFileSystemViaFileChannelWriteBuffers,
+		assertAresSecurityExceptionOverwrite(FileChannelWriteMain::accessFileSystemViaFileChannelWriteBuffers,
 				FileChannelWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
@@ -226,8 +222,7 @@ class FileAccessCommonOverwriteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = RANDOM_ACCESS_FILE_WITHIN_PATH)
 	void test_accessFileSystemViaRandomAccessFileWriteBooleanMavenArchunitAspectJ() {
-		// first file is opened so we test for read access
-		assertAresSecurityExceptionRead(RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteBoolean,
+		assertAresSecurityExceptionOverwrite(RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteBoolean,
 				RandomAccessFileWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
@@ -241,8 +236,7 @@ class FileAccessCommonOverwriteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = RANDOM_ACCESS_FILE_WITHIN_PATH)
 	void test_accessFileSystemViaRandomAccessFileWriteBooleanMavenWalaAspectJ() {
-		// first file is opened so we test for read access
-		assertAresSecurityExceptionRead(RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteBoolean,
+		assertAresSecurityExceptionOverwrite(RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteBoolean,
 				RandomAccessFileWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
@@ -312,8 +306,7 @@ class FileAccessCommonOverwriteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = RANDOM_ACCESS_FILE_WITHIN_PATH)
 	void test_accessFileSystemViaRandomAccessFileWriteByteArrayMavenArchunitAspectJ() {
-		// first file is opened so we test for read access
-		assertAresSecurityExceptionRead(RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteByteArray,
+		assertAresSecurityExceptionOverwrite(RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteByteArray,
 				RandomAccessFileWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
@@ -328,8 +321,7 @@ class FileAccessCommonOverwriteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = RANDOM_ACCESS_FILE_WITHIN_PATH)
 	void test_accessFileSystemViaRandomAccessFileWriteByteArrayMavenWalaAspectJ() {
-		// first file is opened so we test for read access
-		assertAresSecurityExceptionRead(RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteByteArray,
+		assertAresSecurityExceptionOverwrite(RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteByteArray,
 				RandomAccessFileWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
