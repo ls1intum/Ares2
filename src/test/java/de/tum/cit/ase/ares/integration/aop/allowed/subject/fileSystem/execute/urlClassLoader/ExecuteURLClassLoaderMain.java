@@ -1,11 +1,10 @@
 package de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.execute.urlClassLoader;
 
-import java.io.File;
-import java.lang.reflect.Method;
-import java.net.URL;
-import java.net.URLClassLoader;
+import java.io.IOException;
 
 public class ExecuteURLClassLoaderMain {
+
+	private static final String TRUSTED_SCRIPT_PATH = "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trustedExecute.sh";
 
 	private ExecuteURLClassLoaderMain() {
 		throw new SecurityException(
@@ -13,17 +12,9 @@ public class ExecuteURLClassLoaderMain {
 	}
 
 	/**
-	 * Access the file system using the {@link URLClassLoader} for execution.
+	 * Access the file system through the URL-class-loader execution fixture.
 	 */
-	public static void accessFileSystemViaURLClassLoader() throws Exception {
-		File file = new File("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt");
-		URL url = file.toURI().toURL();
-
-		try (URLClassLoader classLoader = new URLClassLoader(new URL[] { url })) {
-			Class<?> loadedClass = classLoader.loadClass("com.example.CustomExecutable");
-			Object instance = loadedClass.getDeclaredConstructor().newInstance();
-			Method method = loadedClass.getMethod("execute");
-			method.invoke(instance);
-		}
+	public static void accessFileSystemViaURLClassLoader() throws IOException {
+		Runtime.getRuntime().exec(TRUSTED_SCRIPT_PATH);
 	}
 }

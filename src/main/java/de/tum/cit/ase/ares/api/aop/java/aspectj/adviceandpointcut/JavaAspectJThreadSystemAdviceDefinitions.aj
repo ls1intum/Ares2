@@ -99,21 +99,21 @@ import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstru
      * @author Markus Paulsen
      */
     private static boolean isThreadCreationFromCommandExecution() {
-        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-        for (StackTraceElement element : stackTrace) {
-            String className = element.getClassName();
-            String methodName = element.getMethodName();
+        // Use StackWalker for the fast lazy path; the helper short-circuits as soon as
+        // a ProcessBuilder.start/startPipeline or Runtime.exec frame is observed and
+        // avoids materializing the entire StackTraceElement[] array per intercepted
+        // thread creation. Mirrors JavaInstrumentationAdviceThreadSystemToolbox.
+        return java.lang.StackWalker.getInstance().walk(frames -> frames.anyMatch(frame -> {
+            String className = frame.getClassName();
+            String methodName = frame.getMethodName();
             // Check for ProcessBuilder.start() and ProcessBuilder.startPipeline()
-            if ("java.lang.ProcessBuilder".equals(className) &&
-                    ("start".equals(methodName) || "startPipeline".equals(methodName))) {
+            if ("java.lang.ProcessBuilder".equals(className)
+                    && ("start".equals(methodName) || "startPipeline".equals(methodName))) {
                 return true;
             }
             // Check for Runtime.exec()
-            if ("java.lang.Runtime".equals(className) && "exec".equals(methodName)) {
-                return true;
-            }
-        }
-        return false;
+            return "java.lang.Runtime".equals(className) && "exec".equals(methodName);
+        }));
     }
 
     /**
@@ -128,17 +128,20 @@ import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstru
      * is never exempted.
      */
     private static boolean isThreadCreationFromAresTimeout(String restrictedPackage) {
-        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-        for (StackTraceElement element : stackTrace) {
-            String className = element.getClassName();
-            if ("de.tum.cit.ase.ares.api.internal.TimeoutUtils".equals(className)) {
-                return true;
+        return java.lang.StackWalker.getInstance().walk(frames -> {
+            java.util.Iterator<java.lang.StackWalker.StackFrame> iterator = frames.iterator();
+            while (iterator.hasNext()) {
+                String className = iterator.next().getClassName();
+                if ("de.tum.cit.ase.ares.api.internal.TimeoutUtils".equals(className)) {
+                    return Boolean.TRUE;
+                }
+                if (restrictedPackage != null && !restrictedPackage.isEmpty()
+                        && className.startsWith(restrictedPackage)) {
+                    return Boolean.FALSE;
+                }
             }
-            if (restrictedPackage != null && !restrictedPackage.isEmpty() && className.startsWith(restrictedPackage)) {
-                return false;
-            }
-        }
-        return false;
+            return Boolean.FALSE;
+        });
     }
     //</editor-fold>
 

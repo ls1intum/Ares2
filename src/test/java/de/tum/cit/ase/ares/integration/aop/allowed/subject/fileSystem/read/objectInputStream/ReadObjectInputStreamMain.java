@@ -16,27 +16,25 @@ public class ReadObjectInputStreamMain {
 
 	/**
 	 * Access the file system using {@link ObjectInputStream} for reading.
-	 * 
+	 *
 	 * @return The content of the trusted file as string
 	 */
 	public static String accessFileSystemViaObjectInputStream() throws IOException, ClassNotFoundException {
 		try (ObjectInputStream ois = new ObjectInputStream(
 				new FileInputStream("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"))) {
-			// Try to read object, even if it fails due to format issues, the file system
-			// access is tested
+			// Try to read an object; even when it fails due to format issues, the
+			// file-system access through ObjectInputStream is still exercised.
 			try {
 				Object obj = ois.readObject();
 				return obj.toString();
 			} catch (ClassNotFoundException | InvalidClassException | StreamCorruptedException
 					| OptionalDataException e) {
-				// Expected for non-object files, but file system access is still attempted
-				// For text files that aren't serialized objects, we'll read them as bytes
-				// instead
-				// Close the ObjectInputStream and open a regular FileInputStream
+				// Expected for non-serialized files: the file-system access was still
+				// attempted, which is what this scenario verifies.
 			}
 		}
 
-		// Fallback: read as regular text file if object deserialization fails
+		// Fallback: read as a regular text file if object deserialization fails.
 		try (FileInputStream fis = new FileInputStream(
 				"src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt")) {
 			byte[] data = new byte[fis.available()];

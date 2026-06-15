@@ -4,6 +4,10 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
+import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -396,6 +400,79 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
         return null;
     }
 
+    @Nullable
+    private static String extractExecutablePathViolation(@Nullable Object observedVariable, @Nullable String[] pathsAllowedToExecute) {
+        if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
+            return null;
+        } else if (observedVariable instanceof List<?>) {
+            List<?> list = (List<?>) observedVariable;
+            if (list.stream().anyMatch(o -> o instanceof List<?> || (o != null && o.getClass().isArray()))) {
+                for (Object element : list) {
+                    String violationPath = extractExecutablePathViolation(element, pathsAllowedToExecute);
+                    if (violationPath != null) {
+                        return violationPath;
+                    }
+                }
+                return null;
+            }
+        }
+        if (observedVariable.getClass().isArray() || observedVariable instanceof String || observedVariable instanceof List<?>) {
+            CommandTarget observedCommand = variableToCommand(observedVariable);
+            return extractExecutablePathViolation(observedCommand, pathsAllowedToExecute);
+        }
+        return null;
+    }
+
+    @Nullable
+    private static String extractExecutablePathViolation(@Nullable CommandTarget observedCommand, @Nullable String[] pathsAllowedToExecute) {
+        if (observedCommand == null || observedCommand.command == null) {
+            return null;
+        }
+        @Nullable Path commandPath = commandToExistingPath(observedCommand.command);
+        if (commandPath == null) {
+            return null;
+        }
+        if (pathsAllowedToExecute == null || pathsAllowedToExecute.length == 0) {
+            return commandPath.toString();
+        }
+        for (String allowedPathAsString : pathsAllowedToExecute) {
+            @Nullable Path allowedPath = commandToComparablePath(allowedPathAsString);
+            if (allowedPath != null && pathMatches(commandPath, allowedPath)) {
+                return null;
+            }
+        }
+        return commandPath.toString();
+    }
+
+    @Nullable
+    private static Path commandToExistingPath(@Nonnull String command) {
+        @Nullable Path path = commandToComparablePath(command);
+        if (path == null || !Files.exists(path, LinkOption.NOFOLLOW_LINKS)) {
+            return null;
+        }
+        return path;
+    }
+
+    @Nullable
+    private static Path commandToComparablePath(@Nullable String pathAsString) {
+        if (pathAsString == null || pathAsString.isBlank()) {
+            return null;
+        }
+        try {
+            Path path = Path.of(pathAsString).normalize().toAbsolutePath();
+            if (Files.exists(path, LinkOption.NOFOLLOW_LINKS)) {
+                return path.toRealPath();
+            }
+            return path;
+        } catch (InvalidPathException | java.io.IOException e) {
+            return null;
+        }
+    }
+
+    private static boolean pathMatches(@Nonnull Path candidate, @Nonnull Path allowedPath) {
+        return candidate.equals(allowedPath) || candidate.startsWith(allowedPath);
+    }
+
     /**
      * Checks an array of observedVariables against allowed file system paths.
      *
@@ -421,6 +498,21 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
         for (@Nullable Object observedVariable : filterVariables(observedVariables, ignoreVariables)) {
             if (analyseViolation(observedVariable, commandsAllowedToBeExecuted, argumentsAllowedToBePassed)) {
                 return extractViolationPath(observedVariable, commandsAllowedToBeExecuted, argumentsAllowedToBePassed);
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    private static String checkIfExecutablePathCriteriaIsViolated(
+            @Nonnull Object[] observedVariables,
+            @Nullable String[] pathsAllowedToExecute,
+            @Nonnull IgnoreValues ignoreVariables
+    ) {
+        for (@Nullable Object observedVariable : filterVariables(observedVariables, ignoreVariables)) {
+            @Nullable String violationPath = extractExecutablePathViolation(observedVariable, pathsAllowedToExecute);
+            if (violationPath != null) {
+                return violationPath;
             }
         }
         return null;
@@ -459,6 +551,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
         int commandsAllowedToBeExecutedSize = commandsAllowedToBeExecuted == null ? 0 : commandsAllowedToBeExecuted.length;
         @Nullable String[][] argumentsAllowedToBePassed = getValueFromSettings("argumentsAllowedToBePassed");
         int argumentsAllowedToBePassedSize = argumentsAllowedToBePassed == null ? 0 : argumentsAllowedToBePassed.length;
+        @Nullable String[] pathsAllowedToBeExecuted = getValueFromSettings("pathsAllowedToBeExecuted");
 
         if (commandsAllowedToBeExecutedSize != argumentsAllowedToBePassedSize) {
             throw new SecurityException(localize("security.advice.command.allowed.size", argumentsAllowedToBePassedSize, commandsAllowedToBeExecutedSize));
@@ -516,6 +609,18 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
                             + " | " + buildDenialReason(noAllowRuleConfigured)
             ));
         }
+        @Nullable String pathIllegallyExecutedThroughParameter = (parameters == null || parameters.length == 0) ? null : checkIfExecutablePathCriteriaIsViolated(parameters, pathsAllowedToBeExecuted, COMMAND_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE));
+        if (pathIllegallyExecutedThroughParameter != null) {
+            boolean noFileAllowRuleConfigured = pathsAllowedToBeExecuted == null || pathsAllowedToBeExecuted.length == 0;
+            throw new SecurityException(localize(
+                    "security.advice.illegal.file.execution",
+                    commandSystemMethodToCheck,
+                    action,
+                    pathIllegallyExecutedThroughParameter,
+                    fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+                            + " | " + buildDenialReason(noFileAllowRuleConfigured)
+            ));
+        }
         //</editor-fold>
         //<editor-fold desc="Check attributes">
         @Nullable String commandIllegallyExecutedThroughAttribute = (attributes == null || attributes.length == 0) ? null : checkIfVariableCriteriaIsViolated(attributes, commandsAllowedToBeExecuted, argumentsAllowedToBePassed, COMMAND_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE));
@@ -527,6 +632,18 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
                     commandIllegallyExecutedThroughAttribute,
                     fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
                             + " | " + buildDenialReason(noAllowRuleConfigured)
+            ));
+        }
+        @Nullable String pathIllegallyExecutedThroughAttribute = (attributes == null || attributes.length == 0) ? null : checkIfExecutablePathCriteriaIsViolated(attributes, pathsAllowedToBeExecuted, COMMAND_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE));
+        if (pathIllegallyExecutedThroughAttribute != null) {
+            boolean noFileAllowRuleConfigured = pathsAllowedToBeExecuted == null || pathsAllowedToBeExecuted.length == 0;
+            throw new SecurityException(localize(
+                    "security.advice.illegal.file.execution",
+                    commandSystemMethodToCheck,
+                    action,
+                    pathIllegallyExecutedThroughAttribute,
+                    fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+                            + " | " + buildDenialReason(noFileAllowRuleConfigured)
             ));
         }
         //</editor-fold>

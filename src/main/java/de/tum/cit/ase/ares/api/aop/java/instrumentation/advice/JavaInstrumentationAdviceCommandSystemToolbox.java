@@ -2,6 +2,10 @@ package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 
 import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox.*;
 
+import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -387,6 +391,120 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 	}
 
 	/**
+	 * Extracts the first command target that also represents a forbidden executable
+	 * file path.
+	 *
+	 * @param observedVariable      intercepted command variable
+	 * @param pathsAllowedToExecute executable file allow-list
+	 * @return the first forbidden executable file path, or null if none is found
+	 */
+	@Nullable
+	private static String extractExecutablePathViolation(@Nullable Object observedVariable,
+			@Nullable String[] pathsAllowedToExecute) {
+		if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
+			return null;
+		} else if (observedVariable instanceof List<?>) {
+			List<?> list = (List<?>) observedVariable;
+			if (list.stream().anyMatch(o -> o instanceof List<?> || (o != null && o.getClass().isArray()))) {
+				for (Object element : list) {
+					String violationPath = extractExecutablePathViolation(element, pathsAllowedToExecute);
+					if (violationPath != null) {
+						return violationPath;
+					}
+				}
+				return null;
+			}
+		}
+		if (observedVariable.getClass().isArray() || observedVariable instanceof String
+				|| observedVariable instanceof List<?>) {
+			CommandTarget observedCommand = variableToCommand(observedVariable);
+			return extractExecutablePathViolation(observedCommand, pathsAllowedToExecute);
+		}
+		return null;
+	}
+
+	/**
+	 * Extracts the command path if it points to a forbidden executable file.
+	 *
+	 * @param observedCommand       parsed command target
+	 * @param pathsAllowedToExecute executable file allow-list
+	 * @return the forbidden executable file path, or null if the command is not a
+	 *         file path or is allowed
+	 */
+	@Nullable
+	private static String extractExecutablePathViolation(@Nullable CommandTarget observedCommand,
+			@Nullable String[] pathsAllowedToExecute) {
+		if (observedCommand == null || observedCommand.command() == null) {
+			return null;
+		}
+		@Nullable
+		Path commandPath = commandToExistingPath(observedCommand.command());
+		if (commandPath == null) {
+			return null;
+		}
+		if (pathsAllowedToExecute == null || pathsAllowedToExecute.length == 0) {
+			return commandPath.toString();
+		}
+		for (String allowedPathAsString : pathsAllowedToExecute) {
+			@Nullable
+			Path allowedPath = commandToComparablePath(allowedPathAsString);
+			if (allowedPath != null && pathMatches(commandPath, allowedPath)) {
+				return null;
+			}
+		}
+		return commandPath.toString();
+	}
+
+	/**
+	 * Resolves a command token to a comparable existing path.
+	 *
+	 * @param command command token
+	 * @return normalised path, or null if the command is not an existing path
+	 */
+	@Nullable
+	private static Path commandToExistingPath(@Nonnull String command) {
+		@Nullable
+		Path path = commandToComparablePath(command);
+		if (path == null || !Files.exists(path, LinkOption.NOFOLLOW_LINKS)) {
+			return null;
+		}
+		return path;
+	}
+
+	/**
+	 * Resolves a path-like command or policy entry for allow-list comparison.
+	 *
+	 * @param pathAsString path string
+	 * @return comparable absolute path, or null if the value is not a valid path
+	 */
+	@Nullable
+	private static Path commandToComparablePath(@Nullable String pathAsString) {
+		if (pathAsString == null || pathAsString.isBlank()) {
+			return null;
+		}
+		try {
+			Path path = Path.of(pathAsString).normalize().toAbsolutePath();
+			if (Files.exists(path, LinkOption.NOFOLLOW_LINKS)) {
+				return path.toRealPath();
+			}
+			return path;
+		} catch (InvalidPathException | java.io.IOException e) {
+			return null;
+		}
+	}
+
+	/**
+	 * Checks whether the candidate path is covered by an allowed path.
+	 *
+	 * @param candidate   candidate path
+	 * @param allowedPath allowed path or directory
+	 * @return true if the candidate is equal to or below the allowed path
+	 */
+	private static boolean pathMatches(@Nonnull Path candidate, @Nonnull Path allowedPath) {
+		return candidate.equals(allowedPath) || candidate.startsWith(allowedPath);
+	}
+
+	/**
 	 * Checks an array of observedVariables against the allowed commands whitelist.
 	 * <p>
 	 * Description: Iterates through the filtered observedVariables (excluding those
@@ -411,6 +529,30 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 		Object observedVariable : filterVariables(observedVariables, ignoreVariables)) {
 			if (analyseViolation(observedVariable, commandsAllowedToBeExecuted, argumentsAllowedToBePassed)) {
 				return extractViolationPath(observedVariable, commandsAllowedToBeExecuted, argumentsAllowedToBePassed);
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Checks whether any observed command resolves to a forbidden executable file
+	 * path.
+	 *
+	 * @param observedVariables     intercepted command variables
+	 * @param pathsAllowedToExecute executable file allow-list
+	 * @param ignoreVariables       criteria determining which observed variables to
+	 *                              skip
+	 * @return the first forbidden executable file path, or null if none violate
+	 */
+	@Nullable
+	private static String checkIfExecutablePathCriteriaIsViolated(@Nonnull Object[] observedVariables,
+			@Nullable String[] pathsAllowedToExecute, @Nonnull IgnoreValues ignoreVariables) {
+		for (@Nullable
+		Object observedVariable : filterVariables(observedVariables, ignoreVariables)) {
+			@Nullable
+			String violationPath = extractExecutablePathViolation(observedVariable, pathsAllowedToExecute);
+			if (violationPath != null) {
+				return violationPath;
 			}
 		}
 		return null;
@@ -464,6 +606,8 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 		@Nullable
 		final String[][] argumentsAllowedToBePassed = getValueFromSettings("argumentsAllowedToBePassed");
 		int argumentsAllowedToBePassedSize = argumentsAllowedToBePassed == null ? 0 : argumentsAllowedToBePassed.length;
+		@Nullable
+		final String[] pathsAllowedToBeExecuted = getValueFromSettings("pathsAllowedToBeExecuted");
 
 		if (commandsAllowedToBeExecutedSize != argumentsAllowedToBePassedSize) {
 			throw new SecurityException(
@@ -501,6 +645,21 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
 							+ JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(noAllowRuleConfigured)));
 		}
+		@Nullable
+		String pathIllegallyExecutedThroughParameter = (parameters == null || parameters.length == 0) ? null
+				: checkIfExecutablePathCriteriaIsViolated(parameters, pathsAllowedToBeExecuted,
+						COMMAND_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
+								IgnoreValues.NONE));
+		if (pathIllegallyExecutedThroughParameter != null) {
+			boolean noFileAllowRuleConfigured = pathsAllowedToBeExecuted == null
+					|| pathsAllowedToBeExecuted.length == 0;
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+					"security.advice.illegal.file.execution", commandSystemMethodToCheck, action,
+					pathIllegallyExecutedThroughParameter,
+					fullMethodSignature
+							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
+							+ JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(noFileAllowRuleConfigured)));
+		}
 		// </editor-fold>
 		// <editor-fold desc="Check attributes">
 		@Nullable
@@ -515,6 +674,21 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 					fullMethodSignature
 							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
 							+ JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(noAllowRuleConfigured)));
+		}
+		@Nullable
+		String pathIllegallyExecutedThroughAttribute = (attributes == null || attributes.length == 0) ? null
+				: checkIfExecutablePathCriteriaIsViolated(attributes, pathsAllowedToBeExecuted,
+						COMMAND_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
+								IgnoreValues.NONE));
+		if (pathIllegallyExecutedThroughAttribute != null) {
+			boolean noFileAllowRuleConfigured = pathsAllowedToBeExecuted == null
+					|| pathsAllowedToBeExecuted.length == 0;
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+					"security.advice.illegal.file.execution", commandSystemMethodToCheck, action,
+					pathIllegallyExecutedThroughAttribute,
+					fullMethodSignature
+							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
+							+ JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(noFileAllowRuleConfigured)));
 		}
 		// </editor-fold>
 	}

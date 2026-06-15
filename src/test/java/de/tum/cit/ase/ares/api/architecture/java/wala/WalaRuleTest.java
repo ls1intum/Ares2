@@ -211,7 +211,7 @@ class WalaRuleTest {
 		AssertionError err = runAndExpectError(List.of(student, forbidden),
 				new WalaRule("Manipulates class loading", Set.of("java.lang.Class.forName(Ljava/lang/String;)")));
 		assertThat(err).isNotNull();
-		assertThat(err.getMessage()).contains("Method <anonymous.Student.callForbidden()V>");
+		assertThat(err.getMessage()).contains("Method <anonymous.Student.callForbidden()>");
 	}
 
 	// ----------------------------------------------------------------
@@ -233,19 +233,18 @@ class WalaRuleTest {
 				"Accesses network", Set.of("sun.nio.ch.DatagramChannelImpl.connect(Ljava/net/SocketAddress;Z)")));
 		assertThat(err).isNotNull();
 		// innerCall is the nearest student frame and must appear as the Method <caller>
-		assertThat(err.getMessage()).contains("Method <anonymous.Student.innerCall()V>");
+		assertThat(err.getMessage()).contains("Method <anonymous.Student.innerCall()>");
 	}
 
 	// ----------------------------------------------------------------
-	// Test 4: student → infra-classified intermediate → forbidden JDK
-	// isFalsePositiveTransitivePath suppresses this path: the toolclasses helper
-	// is in INFRA_PREFIXES, so all frames between student and sink are infra.
-	// The rule therefore does NOT fire — this is the expected false-positive
-	// suppression behaviour.
+	// Test 4: student → project helper → forbidden JDK
+	// Project helpers are not treated as transitive false positives because they
+	// are
+	// part of the exercised submission path.
 	// ----------------------------------------------------------------
 
 	@Test
-	void transitiveInfraPathToForbiddenIsSuppressed() {
+	void projectHelperPathToForbiddenThrows() {
 		CGNode studentA = studentNode("anonymous.Student.runTask()V");
 		CGNode toolHelper = mock(CGNode.class);
 		IMethod toolMethod = mock(IMethod.class);
@@ -260,8 +259,10 @@ class WalaRuleTest {
 				TypeName.findOrCreate("Lanonymous/toolclasses/TaskHelper;")));
 		CGNode forbidden = jdkForbiddenNode("java.lang.Thread.<init>(Ljava/lang/Runnable;)V", "Thread");
 
-		runAndExpectNoError(List.of(studentA, toolHelper, forbidden),
+		AssertionError err = runAndExpectError(List.of(studentA, toolHelper, forbidden),
 				new WalaRule("Manipulates threads", Set.of("java.lang.Thread.<init>(Ljava/lang/Runnable;)")));
+		assertThat(err).isNotNull();
+		assertThat(err.getMessage()).contains("Method <anonymous.Student.runTask()>");
 	}
 
 	// ----------------------------------------------------------------
@@ -360,8 +361,8 @@ class WalaRuleTest {
 		AssertionError err = runAndExpectError(List.of(student, forbidden),
 				new WalaRule("Test rule", Set.of(apiPrefix)));
 		assertThat(err).as("formerly-suppressed API '%s' from student code must now fire", apiPrefix).isNotNull();
-		assertThat(err.getMessage()).contains("Method <anonymous.Student.callApi()V>")
-				.contains("calls method <" + fullSig + ">");
+		assertThat(err.getMessage()).contains("Method <anonymous.Student.callApi()>")
+				.contains("calls method <" + WalaRule.formatJvmSignature(fullSig) + ">");
 	}
 
 	// ----------------------------------------------------------------

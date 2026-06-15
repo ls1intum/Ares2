@@ -66,6 +66,12 @@ class FileSystemAccessTest {
 	 *                        "illegally execute from").
 	 */
 	private void assertGeneralErrorMessage(String actualMessage, String operationTextEN, String operationTextDE) {
+		assertGeneralErrorMessage(actualMessage, operationTextEN, operationTextDE,
+				new File(System.getProperty("user.dir"), "pom123.xml").getAbsolutePath());
+	}
+
+	private void assertGeneralErrorMessage(String actualMessage, String operationTextEN, String operationTextDE,
+			String expectedFileLocation) {
 		assertTrue(actualMessage.contains("Ares Security Error") || actualMessage.contains("Ares Sicherheitsfehler"),
 				"Exception message should contain 'Ares Security Error'" + System.lineSeparator() + actualMessage
 						+ "or 'Ares Sicherheitsfehler'" + System.lineSeparator() + actualMessage);
@@ -73,9 +79,8 @@ class FileSystemAccessTest {
 				"Exception message should contain 'Student-Code'" + System.lineSeparator() + actualMessage);
 		assertTrue(actualMessage.contains("Execution") || actualMessage.contains("Ausf�hrung"),
 				"Exception message should contain 'Execution'" + System.lineSeparator() + actualMessage);
-		assertTrue(actualMessage.contains(new File(System.getProperty("user.dir"), "pom123.xml").getAbsolutePath()),
-				"Exception message should contain the forbidden file location: "
-						+ (new File(System.getProperty("user.dir"), "pom123.xml").getAbsolutePath())
+		assertTrue(actualMessage.contains(expectedFileLocation),
+				"Exception message should contain the forbidden file location: " + expectedFileLocation
 						+ System.lineSeparator() + actualMessage);
 		assertTrue(actualMessage.contains(operationTextEN) || actualMessage.contains(operationTextDE),
 				"Exception message should indicate the expected operation by containing '" + operationTextEN + "'"
@@ -124,6 +129,12 @@ class FileSystemAccessTest {
 	private void assertAresSecurityExceptionDelete(Executable executable) {
 		SecurityException se = assertThrows(SecurityException.class, executable, errorMessage);
 		assertGeneralErrorMessage(se.getMessage(), "illegally delete", "illegal delete");
+	}
+
+	private void assertAresSecurityExceptionDelete(Executable executable, String expectedPath) {
+		SecurityException se = assertThrows(SecurityException.class, executable, errorMessage);
+		String expectedFileLocation = new File(System.getProperty("user.dir"), expectedPath).getAbsolutePath();
+		assertGeneralErrorMessage(se.getMessage(), "illegally delete", "illegal delete", expectedFileLocation);
 	}
 	// </editor-fold>
 
@@ -369,7 +380,7 @@ class FileSystemAccessTest {
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
 		void test_accessFileSystemViaFileChannelReadAspectJ() throws IOException {
-			assertAresSecurityExceptionExecution(FileSystemAccessPenguin::accessFileSystemViaFileChannelRead);
+			assertAresSecurityExceptionRead(FileSystemAccessPenguin::accessFileSystemViaFileChannelRead);
 		}
 
 		@TestTest
@@ -411,7 +422,7 @@ class FileSystemAccessTest {
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
 		void test_accessFileSystemViaRandomAccessFileWriteAspectJ() throws IOException {
-			assertAresSecurityExceptionRead(FileSystemAccessPenguin::accessFileSystemViaRandomAccessFileWrite);
+			assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaRandomAccessFileWrite);
 		}
 
 		@TestTest
@@ -427,7 +438,7 @@ class FileSystemAccessTest {
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
 		void test_accessFileSystemViaFileWriteAspectJ() throws IOException {
-			assertAresSecurityExceptionRead(FileSystemAccessPenguin::accessFileSystemViaFileWrite);
+			assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaFileWrite);
 		}
 
 		@TestTest
@@ -571,7 +582,7 @@ class FileSystemAccessTest {
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
 		void test_accessFileSystemViaFileChannelWriteAspectJ() throws IOException {
-			assertAresSecurityExceptionExecution(FileSystemAccessPenguin::accessFileSystemViaFileChannelWrite);
+			assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaFileChannelWrite);
 		}
 
 		@TestTest
@@ -626,14 +637,14 @@ class FileSystemAccessTest {
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
 		void test_accessFileSystemViaFileExecuteAspectJ() {
-			assertAresSecurityExceptionRead(FileSystemAccessPenguin::accessFileSystemViaFileExecute);
+			assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaFileExecute);
 		}
 
 		@TestTest
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
 		void test_accessFileSystemViaFileExecuteInstrumentation() {
-			assertAresSecurityExceptionExecution(FileSystemAccessPenguin::accessFileSystemViaFileExecute);
+			assertAresSecurityExceptionWrite(FileSystemAccessPenguin::accessFileSystemViaFileExecute);
 		}
 		// </editor-fold>
 
@@ -651,7 +662,7 @@ class FileSystemAccessTest {
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOnePathAllowedExecuteOneCommandExecutionAllowed.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem")
 		void test_accessFileSystemViaDesktopInstrumentation() throws IOException {
 			Assumptions.assumeFalse(GraphicsEnvironment.isHeadless(), "Skipping test in headless environment");
-			assertAresSecurityExceptionExecution(FileSystemAccessPenguin::accessFileSystemViaDesktop);
+			assertAresSecurityExceptionRead(FileSystemAccessPenguin::accessFileSystemViaDesktop);
 		}
 		// </editor-fold>
 	}
@@ -697,8 +708,7 @@ class FileSystemAccessTest {
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/fileDelete")
 		void test_accessFileSystemViaFileDeleteMavenArchunitAspectJ() {
-			// Read, as File.new has the parameter
-			assertAresSecurityExceptionRead(DeleteFileDeleteMain::accessFileSystemViaFileDelete);
+			assertAresSecurityExceptionDelete(DeleteFileDeleteMain::accessFileSystemViaFileDelete);
 		}
 
 		@TestTest
@@ -712,8 +722,7 @@ class FileSystemAccessTest {
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/fileDelete")
 		void test_accessFileSystemViaFileDeleteMavenWalaAspectJ() {
-			// Read, as File.new has the parameter
-			assertAresSecurityExceptionRead(DeleteFileDeleteMain::accessFileSystemViaFileDelete);
+			assertAresSecurityExceptionDelete(DeleteFileDeleteMain::accessFileSystemViaFileDelete);
 		}
 
 		@TestTest
@@ -759,28 +768,32 @@ class FileSystemAccessTest {
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/thirdPartyPackage")
 		void test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ() {
-			assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage);
+			assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
+					"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/nottrusteddir/nottrusted.txt");
 		}
 
 		@TestTest
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/thirdPartyPackage")
 		void test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation() {
-			assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage);
+			assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
+					"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/nottrusteddir/nottrusted.txt");
 		}
 
 		@TestTest
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/thirdPartyPackage")
 		void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ() {
-			assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage);
+			assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
+					"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/nottrusteddir/nottrusted.txt");
 		}
 
 		@TestTest
 		@PublicTest
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/fileSystem/delete/thirdPartyPackage")
 		void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation() {
-			assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage);
+			assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
+					"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/nottrusteddir/nottrusted.txt");
 		}
 		// </editor-fold>
 	}

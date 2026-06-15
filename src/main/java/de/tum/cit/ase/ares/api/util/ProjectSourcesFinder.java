@@ -89,12 +89,17 @@ public class ProjectSourcesFinder {
 				var buildNode = buildNodes.item(i);
 				if (buildNode.getNodeType() == Node.ELEMENT_NODE) {
 					var buildNodeElement = (Element) buildNode;
-					var sourceDirectoryPropertyValue = buildNodeElement.getElementsByTagName("sourceDirectory").item(0) //$NON-NLS-1$
-							.getTextContent();
+					Node sourceDirectoryNode = buildNodeElement.getElementsByTagName("sourceDirectory").item(0); //$NON-NLS-1$
+					if (sourceDirectoryNode == null) {
+						// A <build> node without <sourceDirectory> should not abort the scan;
+						// a later <build> element may still define one.
+						continue;
+					}
+					var sourceDirectoryPropertyValue = sourceDirectoryNode.getTextContent();
 					return sourceDirectoryPropertyValue.substring(sourceDirectoryPropertyValue.indexOf("}") + 2); //$NON-NLS-1$
 				}
 			}
-		} catch (ParserConfigurationException | SAXException | IOException | NullPointerException e) {
+		} catch (ParserConfigurationException | SAXException | IOException e) {
 			LOG.error("Could not retrieve the source directory from the pom.xml file. Contact your instructor.", e); //$NON-NLS-1$
 		}
 		return null;

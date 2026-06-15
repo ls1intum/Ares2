@@ -197,7 +197,10 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
 
         boolean hasAllowedPrefix = false;
         for (String allowedPathsAsString : allowedPathsAsStrings) {
-            @Nullable Path allowedPath = variableToPath(allowedPathsAsString, allowNonExistingPathsToBeConsidered);
+            // Always resolve policy-entry paths even when they do not exist yet,
+            // so that a rule such as "allow protected/file.txt" is not silently
+            // skipped just because the file has not been created yet.
+            @Nullable Path allowedPath = variableToPath(allowedPathsAsString, true);
             if (allowedPath == null) {
                 continue;
             }
@@ -208,14 +211,10 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
             }
         }
 
-        if (allowNonExistingPathsToBeConsidered) {
-            return !hasAllowedPrefix;
-        }
-
-        if (!actualExists) {
-            return false;
-        }
-
+        // A candidate that matches no allowed prefix is a violation regardless of
+        // whether it currently exists. A non-existing wrong target must not silently
+        // bypass the allowlist: doing so would leak file existence and let a
+        // not-yet-created path slip through the rule (TOCTOU).
         return !hasAllowedPrefix;
     }
 
@@ -252,9 +251,9 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
                 normalizedAllowedPath = allowedPath.normalize().toAbsolutePath();
             }
         } else {
-            if (!allowNonExistingPathsToBeConsidered) {
-                return false;
-            }
+            // Policy entries for non-existing paths must still be honoured: use
+            // the normalised absolute form so that candidate.startsWith() works
+            // correctly regardless of whether the allowed path exists yet.
             normalizedAllowedPath = allowedPath.normalize().toAbsolutePath();
         }
 
@@ -838,6 +837,9 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
             return;
         }
         @Nullable final String restrictedPackage = getValueFromSettings("restrictedPackage");
+        if (isProjectSourcesFinderInProgress()) {
+            return;
+        }
         @Nullable final String[] allowedClasses = getValueFromSettings("allowedListedClasses");
         //</editor-fold>
         //<editor-fold desc="Get information from join point">

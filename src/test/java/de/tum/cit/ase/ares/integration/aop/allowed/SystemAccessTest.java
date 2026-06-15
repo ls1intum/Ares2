@@ -13,6 +13,7 @@ public abstract class SystemAccessTest {
 
 	// Policy paths - Maven Archunit AspectJ
 	protected static final String POLICY_MAVEN_ARCHUNIT_ASPECTJ_COMMAND = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOneCommandExecutionAllowed.yaml";
+	protected static final String POLICY_MAVEN_ARCHUNIT_ASPECTJ_EXECUTE = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedExecute.yaml";
 	protected static final String POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOneThreadAllowedCreate.yaml";
 	protected static final String ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedDelete.yaml";
 	protected static final String POLICY_MAVEN_ARCHUNIT_ASPECTJ_COMPLETABLE_FUTURE = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyCompletableFutureAllowed.yaml";
@@ -20,6 +21,7 @@ public abstract class SystemAccessTest {
 
 	// Policy paths - Maven Archunit Instrumentation
 	protected static final String POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_COMMAND = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOneCommandExecutionAllowed.yaml";
+	protected static final String POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_EXECUTE = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedExecute.yaml";
 	protected static final String POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOneThreadAllowedCreate.yaml";
 	protected static final String ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedDelete.yaml";
 	protected static final String POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_COMPLETABLE_FUTURE = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyCompletableFutureAllowed.yaml";
@@ -27,6 +29,7 @@ public abstract class SystemAccessTest {
 
 	// Policy paths - Maven Wala AspectJ
 	protected static final String POLICY_MAVEN_WALA_ASPECTJ_COMMAND = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOneCommandExecutionAllowed.yaml";
+	protected static final String POLICY_MAVEN_WALA_ASPECTJ_EXECUTE = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedExecute.yaml";
 	protected static final String POLICY_MAVEN_WALA_ASPECTJ_THREAD = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOneThreadAllowedCreate.yaml";
 	protected static final String WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedDelete.yaml";
 	protected static final String POLICY_MAVEN_WALA_ASPECTJ_COMPLETABLE_FUTURE = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyCompletableFutureAllowed.yaml";
@@ -34,6 +37,7 @@ public abstract class SystemAccessTest {
 
 	// Policy paths - Maven Wala Instrumentation
 	protected static final String POLICY_MAVEN_WALA_INSTRUMENTATION_COMMAND = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOneCommandExecutionAllowed.yaml";
+	protected static final String POLICY_MAVEN_WALA_INSTRUMENTATION_EXECUTE = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedExecute.yaml";
 	protected static final String POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOneThreadAllowedCreate.yaml";
 	protected static final String WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedDelete.yaml";
 

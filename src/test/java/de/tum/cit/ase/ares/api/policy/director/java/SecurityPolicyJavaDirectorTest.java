@@ -230,10 +230,14 @@ public class SecurityPolicyJavaDirectorTest {
 		}
 
 		@Test
-		@DisplayName("Should throw exception when creating test cases with null security policy and project path")
-		void shouldThrowExceptionWhenCreatingTestCasesWithNullSecurityPolicyAndProjectPath() {
-			// Act & Assert
-			assertThrows(NullPointerException.class, () -> director.createTestCases(null, null));
+		@DisplayName("Should create default test cases with null security policy and project path")
+		void shouldCreateDefaultTestCasesWithNullSecurityPolicyAndProjectPath() {
+			// Act
+			TestCaseAbstractFactoryAndBuilder result = director.createTestCases(null, null);
+
+			// Assert
+			assertNotNull(result);
+			assertInstanceOf(JavaTestCaseFactoryAndBuilder.class, result);
 		}
 
 		@Test

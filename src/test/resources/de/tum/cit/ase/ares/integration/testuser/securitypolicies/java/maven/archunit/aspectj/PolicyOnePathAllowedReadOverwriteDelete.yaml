@@ -6,6 +6,7 @@ regardingTheSupervisedCode:
     - "de.tum.cit.ase.ares.integration.aop.allowed.SystemAccessTest"
     - "de.tum.cit.ase.ares.integration.aop.forbidden.SystemAccessTest"
     - "de.tum.cit.ase.ares.integration.architecture.forbidden.SystemAccessTest"
+    - "de.tum.cit.ase.ares.integration.aop.allowed.FileSystemAccessTest"
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions:
       - readAllFiles: true
@@ -14,6 +15,12 @@ regardingTheSupervisedCode:
         executeAllFiles: false
         deleteAllFiles: true
         onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"
+      - readAllFiles: false
+        overwriteAllFiles: false
+        createAllFiles: false
+        executeAllFiles: false
+        deleteAllFiles: true
+        onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/delete/trusteddir/trusted.txt"
     regardingNetworkConnections: [ ]
     regardingCommandExecutions: [ ]
     regardingThreadCreations: [ ]

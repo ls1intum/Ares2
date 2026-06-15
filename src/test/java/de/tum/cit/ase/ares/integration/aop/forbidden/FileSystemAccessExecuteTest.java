@@ -75,25 +75,25 @@ class FileSystemAccessExecuteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
 	void test_accessFileSystemViaDesktopMavenArchunitAspectJ() {
-		assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktop, DesktopExecuteMain.class);
+		assertAresSecurityExceptionExecution(DesktopExecuteMain::accessFileSystemViaDesktop, DesktopExecuteMain.class);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
 	void test_accessFileSystemViaDesktopMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktop, DesktopExecuteMain.class);
+		assertAresSecurityExceptionExecution(DesktopExecuteMain::accessFileSystemViaDesktop, DesktopExecuteMain.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
 	void test_accessFileSystemViaDesktopMavenWalaAspectJ() {
-		assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktop, DesktopExecuteMain.class);
+		assertAresSecurityExceptionExecution(DesktopExecuteMain::accessFileSystemViaDesktop, DesktopExecuteMain.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
 	void test_accessFileSystemViaDesktopMavenWalaInstrumentation() {
-		assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktop, DesktopExecuteMain.class);
+		assertAresSecurityExceptionExecution(DesktopExecuteMain::accessFileSystemViaDesktop, DesktopExecuteMain.class);
 	}
 	// </editor-fold>
 
@@ -101,25 +101,29 @@ class FileSystemAccessExecuteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
 	void test_accessFileSystemViaDesktopBrowseMavenArchunitAspectJ() {
-		assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopBrowse, DesktopExecuteMain.class);
+		assertAresSecurityExceptionExecution(DesktopExecuteMain::accessFileSystemViaDesktopBrowse,
+				DesktopExecuteMain.class);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
 	void test_accessFileSystemViaDesktopBrowseMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopBrowse, DesktopExecuteMain.class);
+		assertAresSecurityExceptionExecution(DesktopExecuteMain::accessFileSystemViaDesktopBrowse,
+				DesktopExecuteMain.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
 	void test_accessFileSystemViaDesktopBrowseMavenWalaAspectJ() {
-		assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopBrowse, DesktopExecuteMain.class);
+		assertAresSecurityExceptionExecution(DesktopExecuteMain::accessFileSystemViaDesktopBrowse,
+				DesktopExecuteMain.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
 	void test_accessFileSystemViaDesktopBrowseMavenWalaInstrumentation() {
-		assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopBrowse, DesktopExecuteMain.class);
+		assertAresSecurityExceptionExecution(DesktopExecuteMain::accessFileSystemViaDesktopBrowse,
+				DesktopExecuteMain.class);
 	}
 	// </editor-fold>
 
@@ -127,28 +131,28 @@ class FileSystemAccessExecuteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
 	void test_accessFileSystemViaDesktopBrowseFileDirectoryMavenArchunitAspectJ() {
-		assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopBrowseFileDirectory,
+		assertAresSecurityExceptionExecution(DesktopExecuteMain::accessFileSystemViaDesktopBrowseFileDirectory,
 				DesktopExecuteMain.class);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
 	void test_accessFileSystemViaDesktopBrowseFileDirectoryMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopBrowseFileDirectory,
+		assertAresSecurityExceptionExecution(DesktopExecuteMain::accessFileSystemViaDesktopBrowseFileDirectory,
 				DesktopExecuteMain.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
 	void test_accessFileSystemViaDesktopBrowseFileDirectoryMavenWalaAspectJ() {
-		assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopBrowseFileDirectory,
+		assertAresSecurityExceptionExecution(DesktopExecuteMain::accessFileSystemViaDesktopBrowseFileDirectory,
 				DesktopExecuteMain.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
 	void test_accessFileSystemViaDesktopBrowseFileDirectoryMavenWalaInstrumentation() {
-		assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopBrowseFileDirectory,
+		assertAresSecurityExceptionExecution(DesktopExecuteMain::accessFileSystemViaDesktopBrowseFileDirectory,
 				DesktopExecuteMain.class);
 	}
 	// </editor-fold>
@@ -157,25 +161,29 @@ class FileSystemAccessExecuteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
 	void test_accessFileSystemViaDesktopEditMavenArchunitAspectJ() {
-		assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopEdit, DesktopExecuteMain.class);
+		assertAresSecurityExceptionExecution(DesktopExecuteMain::accessFileSystemViaDesktopEdit,
+				DesktopExecuteMain.class);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
 	void test_accessFileSystemViaDesktopEditMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopEdit, DesktopExecuteMain.class);
+		assertAresSecurityExceptionExecution(DesktopExecuteMain::accessFileSystemViaDesktopEdit,
+				DesktopExecuteMain.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
 	void test_accessFileSystemViaDesktopEditMavenWalaAspectJ() {
-		assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopEdit, DesktopExecuteMain.class);
+		assertAresSecurityExceptionExecution(DesktopExecuteMain::accessFileSystemViaDesktopEdit,
+				DesktopExecuteMain.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
 	void test_accessFileSystemViaDesktopEditMavenWalaInstrumentation() {
-		assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopEdit, DesktopExecuteMain.class);
+		assertAresSecurityExceptionExecution(DesktopExecuteMain::accessFileSystemViaDesktopEdit,
+				DesktopExecuteMain.class);
 	}
 	// </editor-fold>
 
@@ -183,25 +191,29 @@ class FileSystemAccessExecuteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
 	void test_accessFileSystemViaDesktopPrintMavenArchunitAspectJ() {
-		assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopPrint, DesktopExecuteMain.class);
+		assertAresSecurityExceptionExecution(DesktopExecuteMain::accessFileSystemViaDesktopPrint,
+				DesktopExecuteMain.class);
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
 	void test_accessFileSystemViaDesktopPrintMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopPrint, DesktopExecuteMain.class);
+		assertAresSecurityExceptionExecution(DesktopExecuteMain::accessFileSystemViaDesktopPrint,
+				DesktopExecuteMain.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
 	void test_accessFileSystemViaDesktopPrintMavenWalaAspectJ() {
-		assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopPrint, DesktopExecuteMain.class);
+		assertAresSecurityExceptionExecution(DesktopExecuteMain::accessFileSystemViaDesktopPrint,
+				DesktopExecuteMain.class);
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_EXECUTE_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = DESKTOP_WITHIN_PATH)
 	void test_accessFileSystemViaDesktopPrintMavenWalaInstrumentation() {
-		assertAresSecurityExceptionRead(DesktopExecuteMain::accessFileSystemViaDesktopPrint, DesktopExecuteMain.class);
+		assertAresSecurityExceptionExecution(DesktopExecuteMain::accessFileSystemViaDesktopPrint,
+				DesktopExecuteMain.class);
 	}
 	// </editor-fold>
 
