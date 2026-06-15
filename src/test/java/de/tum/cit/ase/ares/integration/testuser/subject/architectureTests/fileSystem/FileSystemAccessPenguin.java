@@ -33,8 +33,9 @@ public final class FileSystemAccessPenguin {
 	 * Access the file system using the {@link RandomAccessFile} class.
 	 */
 	public static void accessFileSystemViaRandomAccessFile() throws IOException {
-		RandomAccessFile file = new RandomAccessFile("pom123.xml", "r");
-		file.read();
+		try (RandomAccessFile file = new RandomAccessFile("pom123.xml", "r")) {
+			file.read();
+		}
 	}
 
 	/**
@@ -42,8 +43,9 @@ public final class FileSystemAccessPenguin {
 	 */
 	public static void accessFileSystemViaFileRead() throws IOException {
 		File file = new File("pom123.xml");
-		FileInputStream stream = new FileInputStream(file);
-		stream.read();
+		try (FileInputStream stream = new FileInputStream(file)) {
+			stream.read();
+		}
 	}
 
 	/**
@@ -90,8 +92,9 @@ public final class FileSystemAccessPenguin {
 	 * Access the file system using the {@link ObjectInputStream} class.
 	 */
 	public static void accessFileSystemViaObjectInputStream() throws IOException {
-		FileInputStream stream = new FileInputStream("pom123.xml");
-		stream.read();
+		try (FileInputStream stream = new FileInputStream("pom123.xml")) {
+			stream.read();
+		}
 	}
 
 	/**
@@ -192,8 +195,9 @@ public final class FileSystemAccessPenguin {
 	 * Access the file system using the {@link ObjectOutputStream} class.
 	 */
 	public static void accessFileSystemViaObjectOutputStream() throws IOException {
-		FileOutputStream stream = new FileOutputStream("pom123.xml");
-		stream.write(0);
+		try (FileOutputStream stream = new FileOutputStream("pom123.xml")) {
+			stream.write(0);
+		}
 	}
 
 	/**
@@ -225,8 +229,9 @@ public final class FileSystemAccessPenguin {
 	 * Access the file system using the {@link FileHandler} class.
 	 */
 	public static void accessFileSystemViaFileHandler() throws IOException {
-		FileOutputStream stream = new FileOutputStream("pom123.xml");
-		stream.write(0);
+		try (FileOutputStream stream = new FileOutputStream("pom123.xml")) {
+			stream.write(0);
+		}
 	}
 	// </editor-fold>
 

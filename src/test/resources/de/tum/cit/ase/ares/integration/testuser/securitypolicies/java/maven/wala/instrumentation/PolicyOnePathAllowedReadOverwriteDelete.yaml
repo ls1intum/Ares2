@@ -13,7 +13,7 @@ regardingTheSupervisedCode:
         overwriteAllFiles: true
         createAllFiles: true
         executeAllFiles: false
-        deleteAllFiles: true
+        deleteAllFiles: false
         onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"
       - readAllFiles: false
         overwriteAllFiles: false

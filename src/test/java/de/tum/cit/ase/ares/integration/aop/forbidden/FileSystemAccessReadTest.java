@@ -686,7 +686,7 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 	@Disabled("ClassLoader.getResourceAsStream depends on classpath resource resolution and is not a stable file-read probe")
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = FILE_INPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaClassLoaderGetResourceAsStreamMavenArchunitAspectJ() {
-		assertAresSecurityExceptionNetwork(
+		assertAresSecurityExceptionRead(
 				ClassLoaderGetResourceAsStream::accessFileSystemViaClassLoaderGetResourceAsStream,
 				ClassLoaderGetResourceAsStream.class);
 	}
@@ -704,7 +704,7 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 	@Disabled("ClassLoader.getResourceAsStream depends on classpath resource resolution and is not a stable file-read probe")
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = FILE_INPUT_STREAM_WITHIN_PATH)
 	void test_accessFileSystemViaClassLoaderGetResourceAsStreamMavenWalaAspectJ() {
-		assertAresSecurityExceptionNetwork(
+		assertAresSecurityExceptionRead(
 				ClassLoaderGetResourceAsStream::accessFileSystemViaClassLoaderGetResourceAsStream,
 				ClassLoaderGetResourceAsStream.class);
 	}

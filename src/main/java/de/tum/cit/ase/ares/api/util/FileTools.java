@@ -525,10 +525,15 @@ public class FileTools {
 	private static String processPlaceholdersAndFormat(String content, String[] placeholderValues,
 			String[] formatValues, Path pathForError) {
 		String[] values = (formatValues != null) ? formatValues : new String[0];
+		String[] placeholders = (placeholderValues != null) ? placeholderValues : new String[0];
+		// Fail fast on a count mismatch instead of silently truncating with Math.min:
+		// truncation would leave unresolved placeholders in the generated runtime file.
+		if (placeholders.length != values.length) {
+			throw new SecurityException(localized("file.tools.placeholder.count.mismatch", pathForError));
+		}
 		String result = content;
-		int replacements = Math.min(placeholderValues == null ? 0 : placeholderValues.length, values.length);
-		for (int i = 0; i < replacements; i++) {
-			String placeholder = placeholderValues[i];
+		for (int i = 0; i < placeholders.length; i++) {
+			String placeholder = placeholders[i];
 			if (placeholder != null && !placeholder.isEmpty()) {
 				result = result.replace(placeholder, values[i]);
 			}

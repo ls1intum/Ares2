@@ -91,7 +91,9 @@ public class ProjectSourcesFinder {
 					var buildNodeElement = (Element) buildNode;
 					Node sourceDirectoryNode = buildNodeElement.getElementsByTagName("sourceDirectory").item(0); //$NON-NLS-1$
 					if (sourceDirectoryNode == null) {
-						return null;
+						// A <build> node without <sourceDirectory> should not abort the scan;
+						// a later <build> element may still define one.
+						continue;
 					}
 					var sourceDirectoryPropertyValue = sourceDirectoryNode.getTextContent();
 					return sourceDirectoryPropertyValue.substring(sourceDirectoryPropertyValue.indexOf("}") + 2); //$NON-NLS-1$

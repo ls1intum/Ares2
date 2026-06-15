@@ -310,7 +310,9 @@ public abstract class SystemAccessTest {
 				.configurationParameter("junit.jupiter.conditions.deactivate", "org.junit.*DisabledCondition")
 				.selectors(selectMethod(clazz, methodName)).execute().testEvents();
 
-		testEvents.assertStatistics(stats -> stats.aborted(0));
+		testEvents.assertStatistics(stats -> stats.failed(1).aborted(0).succeeded(0));
+		testEvents.assertThatEvents().haveExactly(1,
+				event(test(methodName), finishedWithFailure(securityExceptionOrInitialiserFailure())));
 	}
 
 	private static Condition<Throwable> securityExceptionOrInitialiserFailure() {

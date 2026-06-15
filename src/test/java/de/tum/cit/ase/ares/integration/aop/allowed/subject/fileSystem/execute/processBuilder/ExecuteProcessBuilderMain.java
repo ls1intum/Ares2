@@ -5,6 +5,7 @@ import java.io.IOException;
 public class ExecuteProcessBuilderMain {
 
 	private static final String TRUSTED_SCRIPT_PATH = "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trustedExecute.sh";
+
 	private ExecuteProcessBuilderMain() {
 		throw new SecurityException(
 				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
@@ -24,4 +25,5 @@ public class ExecuteProcessBuilderMain {
 	 */
 	public static void accessFileSystemViaProcessBuilder() throws IOException {
 		accessFileSystemViaProcessBuilder(TRUSTED_SCRIPT_PATH);
-	}}
+	}
+}

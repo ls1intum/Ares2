@@ -238,7 +238,8 @@ class WalaRuleTest {
 
 	// ----------------------------------------------------------------
 	// Test 4: student → project helper → forbidden JDK
-	// Project helpers are not treated as transitive false positives because they are
+	// Project helpers are not treated as transitive false positives because they
+	// are
 	// part of the exercised submission path.
 	// ----------------------------------------------------------------
 
@@ -357,11 +358,11 @@ class WalaRuleTest {
 		CGNode student = studentNode("anonymous.Student.callApi()V");
 		CGNode forbidden = jdkForbiddenNode(fullSig, simpleClass);
 
-			AssertionError err = runAndExpectError(List.of(student, forbidden),
-					new WalaRule("Test rule", Set.of(apiPrefix)));
-			assertThat(err).as("formerly-suppressed API '%s' from student code must now fire", apiPrefix).isNotNull();
-			assertThat(err.getMessage()).contains("Method <anonymous.Student.callApi()>")
-					.contains("calls method <" + WalaRule.formatJvmSignature(fullSig) + ">");
+		AssertionError err = runAndExpectError(List.of(student, forbidden),
+				new WalaRule("Test rule", Set.of(apiPrefix)));
+		assertThat(err).as("formerly-suppressed API '%s' from student code must now fire", apiPrefix).isNotNull();
+		assertThat(err.getMessage()).contains("Method <anonymous.Student.callApi()>")
+				.contains("calls method <" + WalaRule.formatJvmSignature(fullSig) + ">");
 	}
 
 	// ----------------------------------------------------------------

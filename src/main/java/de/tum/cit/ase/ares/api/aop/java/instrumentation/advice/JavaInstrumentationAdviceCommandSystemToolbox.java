@@ -394,8 +394,8 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 	 * Extracts the first command target that also represents a forbidden executable
 	 * file path.
 	 *
-	 * @param observedVariable       intercepted command variable
-	 * @param pathsAllowedToExecute  executable file allow-list
+	 * @param observedVariable      intercepted command variable
+	 * @param pathsAllowedToExecute executable file allow-list
 	 * @return the first forbidden executable file path, or null if none is found
 	 */
 	@Nullable
@@ -426,8 +426,8 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 	/**
 	 * Extracts the command path if it points to a forbidden executable file.
 	 *
-	 * @param observedCommand        parsed command target
-	 * @param pathsAllowedToExecute  executable file allow-list
+	 * @param observedCommand       parsed command target
+	 * @param pathsAllowedToExecute executable file allow-list
 	 * @return the forbidden executable file path, or null if the command is not a
 	 *         file path or is allowed
 	 */
@@ -651,14 +651,14 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 						COMMAND_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
 								IgnoreValues.NONE));
 		if (pathIllegallyExecutedThroughParameter != null) {
-			boolean noFileAllowRuleConfigured = pathsAllowedToBeExecuted == null || pathsAllowedToBeExecuted.length == 0;
+			boolean noFileAllowRuleConfigured = pathsAllowedToBeExecuted == null
+					|| pathsAllowedToBeExecuted.length == 0;
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
 					"security.advice.illegal.file.execution", commandSystemMethodToCheck, action,
 					pathIllegallyExecutedThroughParameter,
 					fullMethodSignature
 							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
-							+ JavaInstrumentationAdviceAbstractToolbox
-									.buildDenialReason(noFileAllowRuleConfigured)));
+							+ JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(noFileAllowRuleConfigured)));
 		}
 		// </editor-fold>
 		// <editor-fold desc="Check attributes">
@@ -681,14 +681,14 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 						COMMAND_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
 								IgnoreValues.NONE));
 		if (pathIllegallyExecutedThroughAttribute != null) {
-			boolean noFileAllowRuleConfigured = pathsAllowedToBeExecuted == null || pathsAllowedToBeExecuted.length == 0;
+			boolean noFileAllowRuleConfigured = pathsAllowedToBeExecuted == null
+					|| pathsAllowedToBeExecuted.length == 0;
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
 					"security.advice.illegal.file.execution", commandSystemMethodToCheck, action,
 					pathIllegallyExecutedThroughAttribute,
 					fullMethodSignature
 							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
-							+ JavaInstrumentationAdviceAbstractToolbox
-									.buildDenialReason(noFileAllowRuleConfigured)));
+							+ JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(noFileAllowRuleConfigured)));
 		}
 		// </editor-fold>
 	}

@@ -372,24 +372,50 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	}
 
 	/**
-	 * Returns {@code true} while Ares' internal utilities are reading framework
-	 * support files for structural and architecture test setup.
+	 * Returns {@code true} only while Ares itself is reading framework support
+	 * files for structural and architecture test setup through one of its trusted
+	 * utilities ({@code ProjectSourcesFinder}, {@code ClassNameScanner},
+	 * {@code FileTools}).
+	 * <p>
+	 * The exemption is granted only when the trusted utility was invoked by Ares
+	 * internal code: walking towards the callers, all consecutive trusted-utility
+	 * frames are skipped and the first real initiator above them must be an Ares
+	 * ({@code de.tum.cit.ase.ares.api.*}) frame. Any other initiator (student code,
+	 * an external helper, or a reflection trampoline) is not exempt, which closes
+	 * the bypass where user code could route forbidden file access through e.g.
+	 * {@code FileTools.readFile(...)}, including via the utilities' own internal
+	 * call chains.
 	 *
-	 * @return {@code true} if the current stack contains an internal Ares utility
+	 * @return {@code true} if an internal Ares utility is performing the access
 	 */
 	public static boolean isProjectSourcesFinderInProgress() {
 		return STACK_WALKER.walk(frames -> {
+			boolean trustedSeen = false;
 			java.util.Iterator<java.lang.StackWalker.StackFrame> iterator = frames.iterator();
 			while (iterator.hasNext()) {
-					String className = iterator.next().getClassName();
-					if (className.equals("de.tum.cit.ase.ares.api.util.ProjectSourcesFinder")
-							|| className.equals("de.tum.cit.ase.ares.api.structural.testutils.ClassNameScanner")
-							|| className.equals("de.tum.cit.ase.ares.api.util.FileTools")) {
-						return Boolean.TRUE;
-					}
+				String className = iterator.next().getClassName();
+				if (isTrustedSetupUtility(className)) {
+					trustedSeen = true;
+					continue;
+				}
+				if (trustedSeen) {
+					// First non-utility frame above the trusted utilities is the initiator.
+					return className.startsWith("de.tum.cit.ase.ares.api.") ? Boolean.TRUE : Boolean.FALSE;
+				}
 			}
 			return Boolean.FALSE;
 		});
+	}
+
+	/**
+	 * Returns true when {@code className} is one of Ares' trusted setup utilities
+	 * that legitimately read framework support files during structural and
+	 * architecture test setup.
+	 */
+	private static boolean isTrustedSetupUtility(@Nonnull String className) {
+		return className.equals("de.tum.cit.ase.ares.api.util.ProjectSourcesFinder")
+				|| className.equals("de.tum.cit.ase.ares.api.structural.testutils.ClassNameScanner")
+				|| className.equals("de.tum.cit.ase.ares.api.util.FileTools");
 	}
 	// </editor-fold>
 

@@ -65,12 +65,12 @@ public class StructuralUser {
 			logs.start();
 		}
 
-			@AfterEach
-			void removeLoggers() {
-				loggers.forEach(logger -> logger.detachAppender(logs));
-				ClassNameScanner.setPomXmlPath("pom.xml");
-				ClassNameScanner.setBuildGradlePath("build.gradle");
-			}
+		@AfterEach
+		void removeLoggers() {
+			loggers.forEach(logger -> logger.detachAppender(logs));
+			ClassNameScanner.setPomXmlPath("pom.xml");
+			ClassNameScanner.setBuildGradlePath("build.gradle");
+		}
 
 		@Test
 		void bothValid() {

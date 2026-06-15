@@ -7,8 +7,8 @@ import java.security.NoSuchAlgorithmException;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherOutputStream;
-import javax.crypto.NullCipher;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.NullCipher;
 
 /**
  * Helper that overwrites a not‑trusted file through {@link CipherOutputStream}

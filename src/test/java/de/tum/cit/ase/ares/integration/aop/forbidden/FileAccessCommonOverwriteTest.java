@@ -306,7 +306,8 @@ class FileAccessCommonOverwriteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = RANDOM_ACCESS_FILE_WITHIN_PATH)
 	void test_accessFileSystemViaRandomAccessFileWriteByteArrayMavenArchunitAspectJ() {
-		assertAresSecurityExceptionOverwrite(RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteByteArray,
+		assertAresSecurityExceptionOverwrite(
+				RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteByteArray,
 				RandomAccessFileWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
@@ -321,7 +322,8 @@ class FileAccessCommonOverwriteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = RANDOM_ACCESS_FILE_WITHIN_PATH)
 	void test_accessFileSystemViaRandomAccessFileWriteByteArrayMavenWalaAspectJ() {
-		assertAresSecurityExceptionOverwrite(RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteByteArray,
+		assertAresSecurityExceptionOverwrite(
+				RandomAccessFileWriteMain::accessFileSystemViaRandomAccessFileWriteByteArray,
 				RandomAccessFileWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 

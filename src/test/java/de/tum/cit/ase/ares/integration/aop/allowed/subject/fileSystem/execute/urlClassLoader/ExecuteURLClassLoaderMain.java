@@ -5,6 +5,7 @@ import java.io.IOException;
 public class ExecuteURLClassLoaderMain {
 
 	private static final String TRUSTED_SCRIPT_PATH = "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trustedExecute.sh";
+
 	private ExecuteURLClassLoaderMain() {
 		throw new SecurityException(
 				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
@@ -15,4 +16,5 @@ public class ExecuteURLClassLoaderMain {
 	 */
 	public static void accessFileSystemViaURLClassLoader() throws IOException {
 		Runtime.getRuntime().exec(TRUSTED_SCRIPT_PATH);
-	}}
+	}
+}

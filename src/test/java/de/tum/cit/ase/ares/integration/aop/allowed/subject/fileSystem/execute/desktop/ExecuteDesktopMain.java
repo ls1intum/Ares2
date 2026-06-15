@@ -5,6 +5,7 @@ import java.io.IOException;
 public class ExecuteDesktopMain {
 
 	private static final String TRUSTED_SCRIPT_PATH = "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trustedExecute.sh";
+
 	private ExecuteDesktopMain() {
 		throw new SecurityException(
 				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
@@ -18,6 +19,7 @@ public class ExecuteDesktopMain {
 		try {
 			process.waitFor();
 		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
 			throw new IOException("Interrupted while executing trusted file.", e);
 		}
 	}
@@ -55,4 +57,5 @@ public class ExecuteDesktopMain {
 	 */
 	public static void accessFileSystemViaDesktopPrint() throws IOException {
 		accessFileSystemViaDesktop(TRUSTED_SCRIPT_PATH);
-	}}
+	}
+}

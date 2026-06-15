@@ -211,14 +211,10 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
             }
         }
 
-        if (allowNonExistingPathsToBeConsidered) {
-            return !hasAllowedPrefix;
-        }
-
-        if (!actualExists) {
-            return false;
-        }
-
+        // A candidate that matches no allowed prefix is a violation regardless of
+        // whether it currently exists. A non-existing wrong target must not silently
+        // bypass the allowlist: doing so would leak file existence and let a
+        // not-yet-created path slip through the rule (TOCTOU).
         return !hasAllowedPrefix;
     }
 

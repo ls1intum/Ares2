@@ -7,6 +7,7 @@ import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdp
 public class ExecuteThirdPartyPackageMain {
 
 	private static final String TRUSTED_SCRIPT_PATH = "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trustedExecute.sh";
+
 	private ExecuteThirdPartyPackageMain() {
 		throw new SecurityException(
 				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
@@ -26,4 +27,5 @@ public class ExecuteThirdPartyPackageMain {
 	 */
 	public static void accessFileSystemViaThirdPartyPackage() throws IOException {
 		accessFileSystemViaThirdPartyPackage(TRUSTED_SCRIPT_PATH);
-	}}
+	}
+}

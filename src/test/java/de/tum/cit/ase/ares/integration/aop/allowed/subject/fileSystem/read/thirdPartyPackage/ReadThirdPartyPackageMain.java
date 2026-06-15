@@ -19,7 +19,7 @@ public class ReadThirdPartyPackageMain {
 	 * @return The content of the trusted file
 	 */
 	public static String accessFileSystemViaThirdPartyPackage() throws IOException {
-		return ThirdPartyPackagePenguin.readFile(
-				Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"));
+		return ThirdPartyPackagePenguin
+				.readFile(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"));
 	}
 }
