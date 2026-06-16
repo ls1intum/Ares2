@@ -129,7 +129,7 @@ public class JavaWriter implements Writer {
 
 	@Nonnull
 	private List<Path> createLocalisationFiles(@Nonnull String packageName, @Nullable Path testFolderPath) {
-		if (testFolderPath == null) {
+		if (testFolderPath == null || testFolderPath.toString().isBlank()) {
 			return List.of();
 		}
 
@@ -152,7 +152,7 @@ public class JavaWriter implements Writer {
 	@Nonnull
 	private List<Path> createPhobosFiles(@Nonnull String packageName,
 			@Nonnull List<JavaPhobosTestCase> javaPhobosTestCases, @Nullable Path testFolderPath) {
-		if (testFolderPath == null) {
+		if (testFolderPath == null || testFolderPath.toString().isBlank()) {
 			return List.of();
 		}
 		List<Path> copyTargets = Phobos.targetsToCopyTo(testFolderPath).stream()

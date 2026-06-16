@@ -37,8 +37,6 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 	private static final String FILES_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/files";
 	private static final String BUFFERED_WRITER_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/writer/bufferedWriter";
 	private static final String THIRD_PARTY_PACKAGE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/thirdPartyPackage";
-	private static final Path THIRD_PARTY_NOT_TRUSTED_PATH = Paths.get("src", "test", "java", "de", "tum", "cit", "ase",
-			"ares", "integration", "aop", "forbidden", "subject", "nottrusted.txt");
 	private static final String PRINT_WRITER_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/printWriter";
 	private static final String RANDOM_ACCESS_FILE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/randomAccessFile";
 	private static final String PRINT_STREAM_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/outputStream/printStream";
@@ -60,6 +58,7 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 
 	private static final Path NOT_TRUSTED_DIR = Paths.get(
 			"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/nottrusteddir");
+	private static final Path THIRD_PARTY_NOT_TRUSTED_PATH = NOT_TRUSTED_DIR.resolve("nottrusted.txt");
 
 	@BeforeEach
 	void ensureNotTrustedFilesExist() throws IOException {

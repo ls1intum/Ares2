@@ -71,12 +71,13 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 			return "new ClassFileImporter()\n" + ".withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)\n"
 					+ ".withImportOption(location -> {\n"
 					+ "String path = location.toString().replace(\"\\\\\", \"/\");\n"
-					+ "return !path.contains(\"/ares/api/\");\n" + "})\n" + ".importPackages()";
+					+ "return !path.contains(\"/de/tum/cit/ase/ares/api/\");\n" + "})\n" + ".importPackages()";
 		}
 		String packagesAsString = packages.stream().map(p -> "\"" + p + "\"").collect(Collectors.joining(", "));
 		return "new ClassFileImporter()\n" + ".withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)\n"
 				+ ".withImportOption(location -> {\n" + "String path = location.toString().replace(\"\\\\\", \"/\");\n"
-				+ "return !path.contains(\"/ares/api/\");\n" + "})\n" + ".importPackages(" + packagesAsString + ")";
+				+ "return !path.contains(\"/de/tum/cit/ase/ares/api/\");\n" + "})\n" + ".importPackages("
+				+ packagesAsString + ")";
 	}
 
 	/**

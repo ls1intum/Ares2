@@ -29,7 +29,7 @@ public class WalaRule {
 		boolean _violationFound = false;
 		try {
 			Predicate<CGNode> isForbidden = n -> forbiddenMethods.stream()
-					.anyMatch(m -> n.getMethod().getSignature().startsWith(m));
+					.anyMatch(m -> matchesForbiddenMethod(n.getMethod().getSignature(), m));
 
 			// Use the DFS finder in a loop: skip paths that are all-infra or transitive-JDK
 			// false positives and keep searching until a genuine student violation is
@@ -93,6 +93,33 @@ public class WalaRule {
 			} catch (Exception ignored) {
 			}
 		}
+	}
+
+	private static boolean matchesForbiddenMethod(String actualSignature, String forbiddenSignature) {
+		if (actualSignature == null || forbiddenSignature == null) {
+			return false;
+		}
+		if (actualSignature.startsWith(forbiddenSignature)) {
+			return true;
+		}
+		String actualWithoutReturnType = stripReturnType(actualSignature);
+		String forbiddenWithoutReturnType = stripReturnType(forbiddenSignature);
+		if (actualWithoutReturnType.equals(forbiddenWithoutReturnType)) {
+			return true;
+		}
+		String actualFormatted = formatJvmSignature(actualWithoutReturnType);
+		String forbiddenFormatted = formatJvmSignature(forbiddenWithoutReturnType);
+		// startsWith already covers the exact-match case, since a string always starts
+		// with itself.
+		return actualFormatted.startsWith(forbiddenFormatted);
+	}
+
+	private static String stripReturnType(String signature) {
+		int closeParenIdx = signature.indexOf(')');
+		if (closeParenIdx < 0) {
+			return signature;
+		}
+		return signature.substring(0, closeParenIdx + 1);
 	}
 
 	/**

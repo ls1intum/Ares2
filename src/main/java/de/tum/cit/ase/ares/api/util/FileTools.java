@@ -524,16 +524,21 @@ public class FileTools {
 
 	private static String processPlaceholdersAndFormat(String content, String[] placeholderValues,
 			String[] formatValues, Path pathForError) {
-		content = replacePlaceholdersWithFormatSpec(content, placeholderValues);
 		String[] values = (formatValues != null) ? formatValues : new String[0];
-		int valuesCount = values.length;
-		int placeholderCount = countOccurrences(content, "%s");
-		if (placeholderCount != valuesCount) {
-			throw new SecurityException("Ares Security Error (Stage: Creation): Placeholder count mismatch in "
-					+ pathForError.toAbsolutePath() + ". Expected " + valuesCount + " '%s' placeholders, but found "
-					+ placeholderCount + ".");
+		String[] placeholders = (placeholderValues != null) ? placeholderValues : new String[0];
+		// Fail fast on a count mismatch instead of silently truncating with Math.min:
+		// truncation would leave unresolved placeholders in the generated runtime file.
+		if (placeholders.length != values.length) {
+			throw new SecurityException(localized("file.tools.placeholder.count.mismatch", pathForError));
 		}
-		return formatTemplate(content, values, pathForError);
+		String result = content;
+		for (int i = 0; i < placeholders.length; i++) {
+			String placeholder = placeholders[i];
+			if (placeholder != null && !placeholder.isEmpty()) {
+				result = result.replace(placeholder, values[i]);
+			}
+		}
+		return result;
 	}
 
 	/**

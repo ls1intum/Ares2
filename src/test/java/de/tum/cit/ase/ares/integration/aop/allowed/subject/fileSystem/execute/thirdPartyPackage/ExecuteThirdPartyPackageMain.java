@@ -6,6 +6,8 @@ import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdp
 
 public class ExecuteThirdPartyPackageMain {
 
+	private static final String TRUSTED_SCRIPT_PATH = "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trustedExecute.sh";
+
 	private ExecuteThirdPartyPackageMain() {
 		throw new SecurityException(
 				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
@@ -16,7 +18,7 @@ public class ExecuteThirdPartyPackageMain {
 	 * execution.
 	 */
 	public static void accessFileSystemViaThirdPartyPackage(String filePath) throws IOException {
-		ThirdPartyPackagePenguin.executeFile();
+		ThirdPartyPackagePenguin.executeFile(filePath);
 	}
 
 	/**
@@ -24,6 +26,6 @@ public class ExecuteThirdPartyPackageMain {
 	 * execution with default file.
 	 */
 	public static void accessFileSystemViaThirdPartyPackage() throws IOException {
-		accessFileSystemViaThirdPartyPackage("test.txt");
+		accessFileSystemViaThirdPartyPackage(TRUSTED_SCRIPT_PATH);
 	}
 }

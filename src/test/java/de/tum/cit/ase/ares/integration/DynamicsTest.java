@@ -212,7 +212,7 @@ class DynamicsTest {
 	@TestTest
 	void test_method_badCast() {
 		tests.assertThatEvents().haveExactly(1, testFailedWith(method_badCast, AssertionFailedError.class,
-				"Methode de.tum.cit.ase.ares.integration.testuser.subject.structural.SomeClass.doSomethingElse(int) gibt nicht double zurück."));
+				"Methode de.tum.cit.ase.ares.integration.testuser.subject.structural.SomeClass.doSomethingElse(int) gibt nicht double zur̈ck."));
 	}
 
 	@TestTest

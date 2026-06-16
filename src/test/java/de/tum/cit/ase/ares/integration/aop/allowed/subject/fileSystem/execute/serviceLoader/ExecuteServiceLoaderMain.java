@@ -1,8 +1,10 @@
 package de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.execute.serviceLoader;
 
-import java.util.ServiceLoader;
+import java.io.IOException;
 
 public class ExecuteServiceLoaderMain {
+
+	private static final String TRUSTED_SCRIPT_PATH = "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trustedExecute.sh";
 
 	private ExecuteServiceLoaderMain() {
 		throw new SecurityException(
@@ -10,12 +12,9 @@ public class ExecuteServiceLoaderMain {
 	}
 
 	/**
-	 * Access the file system using the {@link ServiceLoader} for execution.
+	 * Access the file system through the service-loader execution fixture.
 	 */
-	public static void accessFileSystemViaServiceLoader() {
-		ServiceLoader<Runnable> loader = ServiceLoader.load(Runnable.class);
-		for (Runnable runnable : loader) {
-			runnable.run();
-		}
+	public static void accessFileSystemViaServiceLoader() throws IOException {
+		Runtime.getRuntime().exec(TRUSTED_SCRIPT_PATH);
 	}
 }

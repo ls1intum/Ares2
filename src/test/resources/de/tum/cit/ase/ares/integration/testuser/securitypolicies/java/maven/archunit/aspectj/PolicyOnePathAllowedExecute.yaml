@@ -1,12 +1,14 @@
 
 regardingTheSupervisedCode:
-  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
   theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
   theMainClassInsideThisPackageIs: "Main"
   theFollowingClassesAreTestClasses:
     - "de.tum.cit.ase.ares.integration.aop.allowed.SystemAccessTest"
     - "de.tum.cit.ase.ares.integration.aop.forbidden.SystemAccessTest"
     - "de.tum.cit.ase.ares.integration.architecture.forbidden.SystemAccessTest"
+    - "de.tum.cit.ase.ares.integration.aop.allowed.FileSystemAccessTest"
+    - "de.tum.cit.ase.ares.integration.aop.allowed.FileSystemAccessExecuteTest"
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions:
       - readAllFiles: true

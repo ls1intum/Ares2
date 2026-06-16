@@ -10,6 +10,7 @@ import org.junit.jupiter.api.extension.InvocationInterceptor.Invocation;
 import org.slf4j.*;
 
 import de.tum.cit.ase.ares.api.context.TestContext;
+import de.tum.cit.ase.ares.api.context.TestType;
 import de.tum.cit.ase.ares.api.internal.sanitization.*;
 //REMOVED: Import of ArtemisSecurityManager
 
@@ -40,10 +41,37 @@ public final class ReportingUtils {
 	}
 
 	public static Throwable processThrowable(Throwable t, TestContext context) {
+		boolean aresInternalError = isAresInternalError(t);
+		// Always surface genuine framework faults to instructors via the server log,
+		// even when the failure occurs inside a hidden test.
+		if (aresInternalError)
+			LOG.error("Ares internal error during test execution", t); //$NON-NLS-1$
+		// Hidden tests must never reveal why they failed, so their uniform message
+		// takes
+		// precedence over the more specific internal-error message for the student
+		// view.
+		if (context.findTestType().orElse(null) == TestType.HIDDEN)
+			return new AssertionError(localized("test_guard.hidden_test_failed")); //$NON-NLS-1$
+		if (aresInternalError)
+			return new AssertionError(localized("reporting.ares_internal_error")); //$NON-NLS-1$
 		Optional<String> nonprivilegedFailureMessage = ConfigurationUtils.getNonprivilegedFailureMessage(context);
 		if (nonprivilegedFailureMessage.isPresent())
 			return processThrowablePrivilegedOnly(t, nonprivilegedFailureMessage.get());
 		return processThrowableRegularly(t);
+	}
+
+	private static boolean isAresInternalError(Throwable t) {
+		if (!(t instanceof SecurityException))
+			return false;
+		String message = BlacklistedInvoker.invokeOrElse(t::getMessage, () -> null);
+		if (message == null)
+			return false;
+		// Only suppress genuine framework setup failures: the message must carry the
+		// Ares-Code reason marker AND name the settings class. Requiring both markers
+		// avoids misclassifying a student-thrown SecurityException that merely mentions
+		// the class name (e.g. an assertion on "JavaAOPTestCaseSettings").
+		return message.contains("Reason: Ares-Code") //$NON-NLS-1$
+				&& message.contains("JavaAOPTestCaseSettings"); //$NON-NLS-1$
 	}
 
 	private static Throwable processThrowableRegularly(Throwable t) {

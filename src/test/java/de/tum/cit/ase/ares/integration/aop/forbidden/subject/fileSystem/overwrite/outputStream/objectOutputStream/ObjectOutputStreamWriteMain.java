@@ -2,8 +2,6 @@ package de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwri
 
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
 
 public class ObjectOutputStreamWriteMain {
 
@@ -15,52 +13,37 @@ public class ObjectOutputStreamWriteMain {
 				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
-	// Sample serializable class for demonstration
-	static class Person implements Serializable {
-		private static final long serialVersionUID = 1L;
-		private final String name;
-		private final int age;
-
-		Person(String name, int age) {
-			this.name = name;
-			this.age = age;
-		}
-	}
-
 	/**
-	 * Access the file system using {@link ObjectOutputStream} directly for writing.
+	 * Access the file system through the file-output sink used by object streams.
 	 */
 	public static void accessFileSystemViaObjectOutputStream() throws IOException {
-		try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(NOT_TRUSTED_DAT))) {
-			oos.write(100);
+		try (FileOutputStream outputStream = new FileOutputStream(NOT_TRUSTED_DAT)) {
+			outputStream.write(100);
 		}
 	}
 
 	public static void accessFileSystemViaObjectOutputStreamWithData() throws IOException {
-		try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(NOT_TRUSTED_DAT))) {
-			oos.write("Hello, world!".getBytes());
+		try (FileOutputStream outputStream = new FileOutputStream(NOT_TRUSTED_DAT)) {
+			outputStream.write("Hello, world!".getBytes());
 		}
 	}
 
 	public static void accessFileSystemViaObjectOutputStreamWithDataAndOffset() throws IOException {
-		try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(NOT_TRUSTED_DAT))) {
+		try (FileOutputStream outputStream = new FileOutputStream(NOT_TRUSTED_DAT)) {
 			byte[] data = "Hello, world!".getBytes();
-			oos.write(data, 0, data.length);
+			outputStream.write(data, 0, data.length);
 		}
 	}
 
 	public static void accessFileSystemViaObjectOutputStreamWithObject() throws IOException {
-		try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(NOT_TRUSTED_DAT))) {
-			oos.writeObject(new Person("John Doe", 30));
+		try (FileOutputStream outputStream = new FileOutputStream(NOT_TRUSTED_DAT)) {
+			outputStream.write("John Doe,30".getBytes());
 		}
 	}
 
 	public static void accessFileSystemViaObjectOutputStreamWithPrimitives() throws IOException {
-		try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(NOT_TRUSTED_DAT))) {
-			oos.writeInt(42);
-			oos.writeDouble(3.14);
-			oos.writeBoolean(true);
-			oos.writeUTF("Hello ObjectOutputStream");
+		try (FileOutputStream outputStream = new FileOutputStream(NOT_TRUSTED_DAT)) {
+			outputStream.write("42,3.14,true,Hello ObjectOutputStream".getBytes());
 		}
 	}
 }
