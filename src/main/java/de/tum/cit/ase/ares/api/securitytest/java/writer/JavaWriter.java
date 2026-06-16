@@ -182,17 +182,35 @@ public class JavaWriter implements Writer {
 	private static Path confineToWorkingDirectory(@Nonnull Path targetPath) {
 		Path normalised = targetPath.normalize();
 		if (normalised.isAbsolute()) {
-			return normalised;
+			Path workingDirectory = Path.of("").toAbsolutePath().normalize();
+			if (normalised.startsWith(workingDirectory)) {
+				return normalised;
+			}
+			// An absolute target that escapes the working directory is re-anchored
+			// inside it: relativise against the working directory and drop the escaping
+			// ".." segments, mirroring the relative-path handling below.
+			return stripLeadingParentSegments(workingDirectory.relativize(normalised));
 		}
+		return stripLeadingParentSegments(normalised);
+	}
+
+	/**
+	 * Drops any leading {@code ".."} segments from a relative path so it cannot
+	 * escape the working directory.
+	 *
+	 * @param path the relative path to confine; must not be null
+	 * @return the path with leading {@code ".."} segments removed
+	 */
+	@Nonnull
+	private static Path stripLeadingParentSegments(@Nonnull Path path) {
 		int firstRealName = 0;
-		while (firstRealName < normalised.getNameCount() && normalised.getName(firstRealName).toString().equals("..")) {
+		while (firstRealName < path.getNameCount() && path.getName(firstRealName).toString().equals("..")) {
 			firstRealName++;
 		}
 		if (firstRealName == 0) {
-			return normalised;
+			return path;
 		}
-		return firstRealName == normalised.getNameCount() ? Path.of("")
-				: normalised.subpath(firstRealName, normalised.getNameCount());
+		return firstRealName == path.getNameCount() ? Path.of("") : path.subpath(firstRealName, path.getNameCount());
 	}
 
 	// </editor-fold>

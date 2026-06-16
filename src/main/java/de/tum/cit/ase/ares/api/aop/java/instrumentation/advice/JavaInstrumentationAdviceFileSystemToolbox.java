@@ -114,6 +114,22 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 
 	private static final Set<String> NATIVE_LIBRARY_SUFFIXES = Set.of(".dylib", ".jnilib", ".so", ".dll");
 
+	/**
+	 * Trusted JVM home captured at class-initialisation time, before student code
+	 * runs, so a later {@code System.setProperty("java.home", ...)} cannot widen
+	 * the system-file access exemption into a fail-open read/execute bypass.
+	 */
+	@Nullable
+	private static final String TRUSTED_JAVA_HOME = System.getProperty("java.home");
+
+	/**
+	 * Trusted Maven repository root captured at class-initialisation time for the
+	 * same reason, resolved from {@code maven.repo.local} with the conventional
+	 * {@code ~/.m2/repository} fallback.
+	 */
+	@Nullable
+	private static final String TRUSTED_MAVEN_REPOSITORY = resolveTrustedMavenRepository();
+
 	// </editor-fold>
 
 	// <editor-fold desc="Constructor">
@@ -934,12 +950,51 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		if (!path.endsWith(".jar")) {
 			return false;
 		}
+		return isPathWithin(path, TRUSTED_MAVEN_REPOSITORY) || isPathWithin(path, TRUSTED_JAVA_HOME);
+	}
+
+	/**
+	 * Resolves the Maven local repository root from {@code maven.repo.local}, with
+	 * the conventional {@code ~/.m2/repository} fallback. Returns {@code null} when
+	 * neither can be determined.
+	 *
+	 * @return the Maven repository root, or {@code null}
+	 */
+	@Nullable
+	private static String resolveTrustedMavenRepository() {
 		String mavenRepository = System.getProperty("maven.repo.local");
 		if (mavenRepository == null || mavenRepository.isEmpty()) {
-			mavenRepository = System.getProperty("user.home") + java.io.File.separator + ".m2" + java.io.File.separator
-					+ "repository";
+			String userHome = System.getProperty("user.home");
+			if (userHome == null) {
+				return null;
+			}
+			mavenRepository = userHome + java.io.File.separator + ".m2" + java.io.File.separator + "repository";
 		}
-		return path.startsWith(mavenRepository) || path.startsWith(System.getProperty("java.home"));
+		return mavenRepository;
+	}
+
+	/**
+	 * Returns {@code true} when {@code path} resolves to a location at or below
+	 * {@code directory}, using path-element boundaries rather than a raw string
+	 * prefix so that a sibling such as {@code /opt/jdk-17-evil} is not treated as
+	 * being under {@code /opt/jdk-17}. Comparison is purely lexical (no filesystem
+	 * access) to avoid re-entering the interceptors.
+	 *
+	 * @param path      the already-resolved path string under inspection
+	 * @param directory the trusted directory root, or {@code null}
+	 * @return true if {@code path} is within {@code directory}
+	 */
+	private static boolean isPathWithin(@Nonnull String path, @Nullable String directory) {
+		if (directory == null || directory.isBlank()) {
+			return false;
+		}
+		try {
+			Path base = Path.of(directory).toAbsolutePath().normalize();
+			Path candidate = Path.of(path).toAbsolutePath().normalize();
+			return candidate.startsWith(base);
+		} catch (InvalidPathException ignored) {
+			return false;
+		}
 	}
 
 	/**
@@ -958,8 +1013,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * @return true if the access is exempt JVM-infrastructure access
 	 */
 	private static boolean isExemptSystemFileAccess(@Nonnull String action, @Nonnull String path) {
-		String javaHome = System.getProperty("java.home");
-		if (javaHome == null || !path.startsWith(javaHome)) {
+		if (!isPathWithin(path, TRUSTED_JAVA_HOME)) {
 			return false;
 		}
 		if ("read".equals(action)) {

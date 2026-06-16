@@ -329,6 +329,9 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 	private static NetworkTarget portSuffixToTarget(@Nonnull String host, @Nonnull String portSuffix) {
 		try {
 			int port = Integer.parseInt(portSuffix);
+			if (port < 0 || port > 65_535) {
+				return null;
+			}
 			return new NetworkTarget(host, port);
 		} catch (NumberFormatException ignored) {
 			return null;
