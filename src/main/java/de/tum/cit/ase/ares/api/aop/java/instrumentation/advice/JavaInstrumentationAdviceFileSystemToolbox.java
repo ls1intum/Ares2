@@ -130,27 +130,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
 				"security.instrumentation.utility.initialization", "JavaInstrumentationAdviceFileSystemToolbox"));
 	}
-
-	private static boolean isExemptSystemFileAccess(@Nonnull String action, @Nonnull String path) {
-		String javaHome = System.getProperty("java.home");
-		if (javaHome == null || !path.startsWith(javaHome)) {
-			return false;
-		}
-		// JDK-internal reads under java.home are exempt (e.g. JceSecurity's
-		// static-initialiser read of the conf/security crypto-policy files).
-		if ("read".equals(action)) {
-			return true;
-		}
-		// Native-library loads under java.home are exempt.
-		if ("execute".equals(action)) {
-			for (String suffix : NATIVE_LIBRARY_SUFFIXES) {
-				if (path.endsWith(suffix)) {
-					return true;
-				}
-			}
-		}
-		return false;
-	}
 	// </editor-fold>
 
 	// <editor-fold desc="File system methods">
@@ -216,8 +195,11 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 
 		boolean hasAllowedPrefix = false;
 		for (String allowedPathsAsString : allowedPathsAsStrings) {
+			// Always resolve policy-entry paths even when they do not exist yet,
+			// so that a rule such as "allow protected/file.txt" is not silently
+			// skipped just because the file has not been created yet.
 			@Nullable
-			Path allowedPath = variableToPath(allowedPathsAsString, allowNonExistingPathsToBeConsidered);
+			Path allowedPath = variableToPath(allowedPathsAsString, true);
 			if (allowedPath == null) {
 				continue;
 			}
@@ -228,14 +210,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			}
 		}
 
-		if (allowNonExistingPathsToBeConsidered) {
-			return !hasAllowedPrefix;
-		}
-
-		if (!actualExists) {
-			return false;
-		}
-
+		// A candidate that matches no allowed prefix is a violation regardless of
+		// whether it currently exists. A non-existing wrong target must not silently
+		// bypass the allowlist: doing so would leak file existence and let a
+		// not-yet-created path slip through the rule (TOCTOU).
 		return !hasAllowedPrefix;
 	}
 
@@ -273,9 +251,9 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				normalizedAllowedPath = allowedPath.normalize().toAbsolutePath();
 			}
 		} else {
-			if (!allowNonExistingPathsToBeConsidered) {
-				return false;
-			}
+			// Policy entries for non-existing paths must still be honoured: use
+			// the normalised absolute form so that candidate.startsWith() works
+			// correctly regardless of whether the allowed path exists yet.
 			normalizedAllowedPath = allowedPath.normalize().toAbsolutePath();
 		}
 
@@ -940,6 +918,64 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	}
 
 	/**
+	 * Returns {@code true} when {@code path} points at a .jar inside the system
+	 * infrastructure (the Maven local repository or the JDK installation). Such
+	 * reads are triggered by JUnit / ServiceLoader during class loading, never by
+	 * student code accessing project files, so they are exempt from the read
+	 * policy. The Maven repository is anchored to {@code maven.repo.local} (or
+	 * {@code ~/.m2/repository}) rather than matched as a loose substring, so a
+	 * student cannot bypass the read policy by reading from a self-made
+	 * ".m2/repository" directory.
+	 *
+	 * @param path the already-resolved path string under inspection
+	 * @return true if the path is a system-infrastructure .jar read
+	 */
+	private static boolean isSystemJarReadExempt(@Nonnull String path) {
+		if (!path.endsWith(".jar")) {
+			return false;
+		}
+		String mavenRepository = System.getProperty("maven.repo.local");
+		if (mavenRepository == null || mavenRepository.isEmpty()) {
+			mavenRepository = System.getProperty("user.home") + java.io.File.separator + ".m2" + java.io.File.separator
+					+ "repository";
+		}
+		return path.startsWith(mavenRepository) || path.startsWith(System.getProperty("java.home"));
+	}
+
+	/**
+	 * Determines whether a file-system access targets JVM infrastructure under
+	 * {@code java.home} that must never be treated as student file access.
+	 * <p>
+	 * Description: JDK-internal reads under {@code java.home} (e.g. the
+	 * conf/security crypto-policy files read by {@code javax.crypto.JceSecurity}'s
+	 * static initialiser) are JVM infrastructure, not student file access, and must
+	 * not be blocked. Native-library loads ({@code .dylib}/{@code .jnilib}/
+	 * {@code .so}/{@code .dll}) under {@code java.home} are exempt for the
+	 * {@code execute} action for the same reason.
+	 *
+	 * @param action the concrete file-system action under inspection
+	 * @param path   the already-resolved path string under inspection
+	 * @return true if the access is exempt JVM-infrastructure access
+	 */
+	private static boolean isExemptSystemFileAccess(@Nonnull String action, @Nonnull String path) {
+		String javaHome = System.getProperty("java.home");
+		if (javaHome == null || !path.startsWith(javaHome)) {
+			return false;
+		}
+		if ("read".equals(action)) {
+			return true;
+		}
+		if ("execute".equals(action)) {
+			for (String suffix : NATIVE_LIBRARY_SUFFIXES) {
+				if (path.endsWith(suffix)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	/**
 	 * Performs the security validation for a single derived file-system action.
 	 * <p>
 	 * Description: Reuses the previously gathered contextual information to
@@ -1033,11 +1069,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			// Allow .jar reads from system infrastructure paths (Maven repo, JDK).
 			// These are triggered by JUnit / ServiceLoader during class loading and are
 			// not initiated by student code accessing arbitrary project files.
-			boolean isSystemJarRead = pathIllegallyInteractedThroughParameter.endsWith(".jar")
-					&& (pathIllegallyInteractedThroughParameter.contains("/.m2/repository/")
-							|| pathIllegallyInteractedThroughParameter.contains(java.io.File.separator + ".m2"
-									+ java.io.File.separator + "repository" + java.io.File.separator)
-							|| pathIllegallyInteractedThroughParameter.startsWith(System.getProperty("java.home")));
+			boolean isSystemJarRead = "read".equals(action)
+					&& isSystemJarReadExempt(pathIllegallyInteractedThroughParameter);
 			// Allow reads of Ares's own internal files (e.g. the localization resources
 			// loaded while building this very message). Without this exemption, resolving
 			// the denial message reads Messages.class / messages.properties, that read is
@@ -1053,6 +1086,9 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 					break;
 				}
 			}
+			// Allow JDK-internal reads and native-library loads under java.home. These are
+			// JVM infrastructure (e.g. JceSecurity reading the crypto-policy files), not
+			// student file access, and must not be blocked.
 			boolean isExemptSystemFileAccess = isExemptSystemFileAccess(action,
 					pathIllegallyInteractedThroughParameter);
 			if (!isClassLoaderAccess && !isSystemJarRead && !isInternalAllowed && !isExemptSystemFileAccess) {
@@ -1085,11 +1121,13 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				isInternalAllowed = true;
 			}
 
-			if (!isInternalAllowed && pathIllegallyInteractedThroughReceiver.endsWith(".jar")
-					&& (pathIllegallyInteractedThroughReceiver.contains("/.m2/repository/")
-							|| pathIllegallyInteractedThroughReceiver.contains(java.io.File.separator + ".m2"
-									+ java.io.File.separator + "repository" + java.io.File.separator)
-							|| pathIllegallyInteractedThroughReceiver.startsWith(System.getProperty("java.home")))) {
+			if (!isInternalAllowed && "read".equals(action)
+					&& isSystemJarReadExempt(pathIllegallyInteractedThroughReceiver)) {
+				isInternalAllowed = true;
+			}
+
+			// JDK-internal reads and native-library loads under java.home are exempt.
+			if (!isInternalAllowed && isExemptSystemFileAccess(action, pathIllegallyInteractedThroughReceiver)) {
 				isInternalAllowed = true;
 			}
 
@@ -1149,11 +1187,13 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			// Allow .jar reads from system infrastructure paths (Maven repo, JDK).
 			// These are triggered by JUnit / ServiceLoader during class loading and are
 			// not initiated by student code accessing arbitrary project files.
-			if (!isInternalAllowed && pathIllegallyInteractedThroughAttribute.endsWith(".jar")
-					&& (pathIllegallyInteractedThroughAttribute.contains("/.m2/repository/")
-							|| pathIllegallyInteractedThroughAttribute.contains(java.io.File.separator + ".m2"
-									+ java.io.File.separator + "repository" + java.io.File.separator)
-							|| pathIllegallyInteractedThroughAttribute.startsWith(System.getProperty("java.home")))) {
+			if (!isInternalAllowed && "read".equals(action)
+					&& isSystemJarReadExempt(pathIllegallyInteractedThroughAttribute)) {
+				isInternalAllowed = true;
+			}
+
+			// JDK-internal reads and native-library loads under java.home are exempt.
+			if (!isInternalAllowed && isExemptSystemFileAccess(action, pathIllegallyInteractedThroughAttribute)) {
 				isInternalAllowed = true;
 			}
 
@@ -1199,6 +1239,9 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		@Nullable
 		final String restrictedPackage = getValueFromSettings("restrictedPackage");
 		if (restrictedPackage == null || restrictedPackage.isEmpty()) {
+			return;
+		}
+		if (JavaInstrumentationAdviceAbstractToolbox.isProjectSourcesFinderInProgress()) {
 			return;
 		}
 		@Nullable
