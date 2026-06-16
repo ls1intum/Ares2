@@ -686,12 +686,15 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 						COMMAND_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(
 								extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE));
 		if (pathIllegallyExecutedThroughParameter != null) {
-			boolean noFileAllowRuleConfigured = pathsAllowedToBeExecuted == null || pathsAllowedToBeExecuted.length == 0;
+			// Reaching this check means the command-name check on the same variables already
+			// passed, i.e. the command IS allow-listed; only its executable file path is not
+			// in the execute allow-list. Report that precisely instead of the misleading
+			// generic "no allow rule configured" reason.
 			throw new SecurityException(JavaAspectJAbstractAdviceDefinitions.localize(
 					"security.advice.illegal.file.execution", commandSystemMethodToCheck, action,
 					pathIllegallyExecutedThroughParameter,
 					fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
-							+ " | " + buildDenialReason(noFileAllowRuleConfigured)));
+							+ " | " + localize("security.advice.denial.reason.command.executable.path.not.allowed")));
 		}
 		// </editor-fold>
 		// <editor-fold desc="Check attributes">
@@ -713,12 +716,15 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 						COMMAND_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(
 								extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE));
 		if (pathIllegallyExecutedThroughAttribute != null) {
-			boolean noFileAllowRuleConfigured = pathsAllowedToBeExecuted == null || pathsAllowedToBeExecuted.length == 0;
+			// Reaching this check means the command-name check on the same attributes already
+			// passed, i.e. the command IS allow-listed; only its executable file path is not
+			// in the execute allow-list. Report that precisely instead of the misleading
+			// generic "no allow rule configured" reason.
 			throw new SecurityException(JavaAspectJAbstractAdviceDefinitions.localize(
 					"security.advice.illegal.file.execution", commandSystemMethodToCheck, action,
 					pathIllegallyExecutedThroughAttribute,
 					fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
-							+ " | " + buildDenialReason(noFileAllowRuleConfigured)));
+							+ " | " + localize("security.advice.denial.reason.command.executable.path.not.allowed")));
 		}
 		// </editor-fold>
 	}
