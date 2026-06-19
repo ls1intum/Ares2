@@ -2,7 +2,6 @@ package de.tum.cit.ase.ares.integration.aop.allowed;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
-import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.execute.desktop.ExecuteDesktopMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.execute.nativeCommand.ExecuteNativeCommandMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.execute.processBuilder.ExecuteProcessBuilderMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.execute.reflectionLoader.ExecuteReflectionLoaderMain;
@@ -15,7 +14,6 @@ import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.execute.ur
 public class FileSystemAccessExecuteTest extends SystemAccessTest {
 
 	private static final String RUNTIME_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/execute/runtime";
-	private static final String DESKTOP_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/execute/desktop";
 	private static final String PROCESS_BUILDER_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/execute/processBuilder";
 	private static final String THIRD_PARTY_PACKAGE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/execute/thirdPartyPackage";
 	private static final String NATIVE_COMMAND_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/execute/nativeCommand";
@@ -50,32 +48,6 @@ public class FileSystemAccessExecuteTest extends SystemAccessTest {
 	}
 	// </editor-fold>
 
-	// <editor-fold desc="accessFileSystemViaDesktop">
-	@PublicTest
-	@Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_EXECUTE, withinPath = DESKTOP_WITHIN_PATH)
-	void test_accessFileSystemViaDesktopMavenArchunitAspectJ() throws Exception {
-		assertNoAresSecurityException(ExecuteDesktopMain::accessFileSystemViaDesktop);
-	}
-
-	@PublicTest
-	@Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_EXECUTE, withinPath = DESKTOP_WITHIN_PATH)
-	void test_accessFileSystemViaDesktopMavenArchunitInstrumentation() throws Exception {
-		assertNoAresSecurityException(ExecuteDesktopMain::accessFileSystemViaDesktop);
-	}
-
-	@PublicTest
-	@Policy(value = POLICY_MAVEN_WALA_ASPECTJ_EXECUTE, withinPath = DESKTOP_WITHIN_PATH)
-	void test_accessFileSystemViaDesktopMavenWalaAspectJ() throws Exception {
-		assertNoAresSecurityException(ExecuteDesktopMain::accessFileSystemViaDesktop);
-	}
-
-	@PublicTest
-	@Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_EXECUTE, withinPath = DESKTOP_WITHIN_PATH)
-	void test_accessFileSystemViaDesktopMavenWalaInstrumentation() throws Exception {
-		assertNoAresSecurityException(ExecuteDesktopMain::accessFileSystemViaDesktop);
-	}
-	// </editor-fold>
-
 	// <editor-fold desc="accessFileSystemViaRuntimeArray">
 	@PublicTest
 	@Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_EXECUTE, withinPath = RUNTIME_WITHIN_PATH)
@@ -99,110 +71,6 @@ public class FileSystemAccessExecuteTest extends SystemAccessTest {
 	@Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_EXECUTE, withinPath = RUNTIME_WITHIN_PATH)
 	void test_accessFileSystemViaRuntimeArrayMavenWalaInstrumentation() throws Exception {
 		assertNoAresSecurityException(ExecuteRuntimeMain::accessFileSystemViaRuntimeArray);
-	}
-	// </editor-fold>
-
-	// <editor-fold desc="accessFileSystemViaDesktopBrowse">
-	@PublicTest
-	@Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_EXECUTE, withinPath = DESKTOP_WITHIN_PATH)
-	void test_accessFileSystemViaDesktopBrowseMavenArchunitAspectJ() throws Exception {
-		assertNoAresSecurityException(ExecuteDesktopMain::accessFileSystemViaDesktopBrowse);
-	}
-
-	@PublicTest
-	@Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_EXECUTE, withinPath = DESKTOP_WITHIN_PATH)
-	void test_accessFileSystemViaDesktopBrowseMavenArchunitInstrumentation() throws Exception {
-		assertNoAresSecurityException(ExecuteDesktopMain::accessFileSystemViaDesktopBrowse);
-	}
-
-	@PublicTest
-	@Policy(value = POLICY_MAVEN_WALA_ASPECTJ_EXECUTE, withinPath = DESKTOP_WITHIN_PATH)
-	void test_accessFileSystemViaDesktopBrowseMavenWalaAspectJ() throws Exception {
-		assertNoAresSecurityException(ExecuteDesktopMain::accessFileSystemViaDesktopBrowse);
-	}
-
-	@PublicTest
-	@Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_EXECUTE, withinPath = DESKTOP_WITHIN_PATH)
-	void test_accessFileSystemViaDesktopBrowseMavenWalaInstrumentation() throws Exception {
-		assertNoAresSecurityException(ExecuteDesktopMain::accessFileSystemViaDesktopBrowse);
-	}
-	// </editor-fold>
-
-	// <editor-fold desc="accessFileSystemViaDesktopBrowseFileDirectory">
-	@PublicTest
-	@Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_EXECUTE, withinPath = DESKTOP_WITHIN_PATH)
-	void test_accessFileSystemViaDesktopBrowseFileDirectoryMavenArchunitAspectJ() throws Exception {
-		assertNoAresSecurityException(ExecuteDesktopMain::accessFileSystemViaDesktopBrowseFileDirectory);
-	}
-
-	@PublicTest
-	@Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_EXECUTE, withinPath = DESKTOP_WITHIN_PATH)
-	void test_accessFileSystemViaDesktopBrowseFileDirectoryMavenArchunitInstrumentation() throws Exception {
-		assertNoAresSecurityException(ExecuteDesktopMain::accessFileSystemViaDesktopBrowseFileDirectory);
-	}
-
-	@PublicTest
-	@Policy(value = POLICY_MAVEN_WALA_ASPECTJ_EXECUTE, withinPath = DESKTOP_WITHIN_PATH)
-	void test_accessFileSystemViaDesktopBrowseFileDirectoryMavenWalaAspectJ() throws Exception {
-		assertNoAresSecurityException(ExecuteDesktopMain::accessFileSystemViaDesktopBrowseFileDirectory);
-	}
-
-	@PublicTest
-	@Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_EXECUTE, withinPath = DESKTOP_WITHIN_PATH)
-	void test_accessFileSystemViaDesktopBrowseFileDirectoryMavenWalaInstrumentation() throws Exception {
-		assertNoAresSecurityException(ExecuteDesktopMain::accessFileSystemViaDesktopBrowseFileDirectory);
-	}
-	// </editor-fold>
-
-	// <editor-fold desc="accessFileSystemViaDesktopEdit">
-	@PublicTest
-	@Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_EXECUTE, withinPath = DESKTOP_WITHIN_PATH)
-	void test_accessFileSystemViaDesktopEditMavenArchunitAspectJ() throws Exception {
-		assertNoAresSecurityException(ExecuteDesktopMain::accessFileSystemViaDesktopEdit);
-	}
-
-	@PublicTest
-	@Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_EXECUTE, withinPath = DESKTOP_WITHIN_PATH)
-	void test_accessFileSystemViaDesktopEditMavenArchunitInstrumentation() throws Exception {
-		assertNoAresSecurityException(ExecuteDesktopMain::accessFileSystemViaDesktopEdit);
-	}
-
-	@PublicTest
-	@Policy(value = POLICY_MAVEN_WALA_ASPECTJ_EXECUTE, withinPath = DESKTOP_WITHIN_PATH)
-	void test_accessFileSystemViaDesktopEditMavenWalaAspectJ() throws Exception {
-		assertNoAresSecurityException(ExecuteDesktopMain::accessFileSystemViaDesktopEdit);
-	}
-
-	@PublicTest
-	@Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_EXECUTE, withinPath = DESKTOP_WITHIN_PATH)
-	void test_accessFileSystemViaDesktopEditMavenWalaInstrumentation() throws Exception {
-		assertNoAresSecurityException(ExecuteDesktopMain::accessFileSystemViaDesktopEdit);
-	}
-	// </editor-fold>
-
-	// <editor-fold desc="accessFileSystemViaDesktopPrint">
-	@PublicTest
-	@Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_EXECUTE, withinPath = DESKTOP_WITHIN_PATH)
-	void test_accessFileSystemViaDesktopPrintMavenArchunitAspectJ() throws Exception {
-		assertNoAresSecurityException(ExecuteDesktopMain::accessFileSystemViaDesktopPrint);
-	}
-
-	@PublicTest
-	@Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_EXECUTE, withinPath = DESKTOP_WITHIN_PATH)
-	void test_accessFileSystemViaDesktopPrintMavenArchunitInstrumentation() throws Exception {
-		assertNoAresSecurityException(ExecuteDesktopMain::accessFileSystemViaDesktopPrint);
-	}
-
-	@PublicTest
-	@Policy(value = POLICY_MAVEN_WALA_ASPECTJ_EXECUTE, withinPath = DESKTOP_WITHIN_PATH)
-	void test_accessFileSystemViaDesktopPrintMavenWalaAspectJ() throws Exception {
-		assertNoAresSecurityException(ExecuteDesktopMain::accessFileSystemViaDesktopPrint);
-	}
-
-	@PublicTest
-	@Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_EXECUTE, withinPath = DESKTOP_WITHIN_PATH)
-	void test_accessFileSystemViaDesktopPrintMavenWalaInstrumentation() throws Exception {
-		assertNoAresSecurityException(ExecuteDesktopMain::accessFileSystemViaDesktopPrint);
 	}
 	// </editor-fold>
 

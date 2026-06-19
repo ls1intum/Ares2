@@ -175,7 +175,13 @@ class SecurityTest {
 
 	@TestTest
 	void test_useCommonPoolGood() {
-		tests.assertThatEvents().haveExactly(1, finishedSuccessfully(useCommonPoolGood));
+		// Policy decision (defence-in-depth): submitting to the common ForkJoinPool via
+		// CompletableFuture.supplyAsync is a governed thread operation and is blocked
+		// under a
+		// thread-forbidding policy, even though no new thread is created. The benign
+		// task therefore
+		// still terminates with an Ares SecurityException rather than completing.
+		tests.assertThatEvents().haveExactly(1, testFailedWith(useCommonPoolGood, SecurityException.class));
 	}
 
 	@TestTest

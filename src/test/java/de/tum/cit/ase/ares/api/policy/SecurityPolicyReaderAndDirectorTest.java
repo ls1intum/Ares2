@@ -234,17 +234,16 @@ public class SecurityPolicyReaderAndDirectorTest {
 		}
 
 		@Test
-		@DisplayName("Should return empty list when factory not initialized")
+		@DisplayName("Should throw when factory not initialized (fail closed)")
 		void shouldThrowExceptionWhenFactoryNotInitialized() {
 			// Arrange
 			SecurityPolicyReaderAndDirector instance = new SecurityPolicyReaderAndDirector(securityPolicyFilePath,
 					projectFolderPath);
 			Path testFolderPath = tempDir.resolve("test");
 
-			// Act & Assert
-			List<Path> result = instance.writeTestCases(testFolderPath);
-			assertNotNull(result);
-			assertTrue(result.isEmpty());
+			// Act & Assert: writeTestCases must fail closed when createTestCases() was not
+			// called first, rather than silently writing zero security tests.
+			assertThrows(NullPointerException.class, () -> instance.writeTestCases(testFolderPath));
 		}
 	}
 

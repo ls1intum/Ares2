@@ -6,17 +6,24 @@ import java.util.Locale;
 
 import org.junit.jupiter.api.Test;
 
+import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.Public;
 import de.tum.cit.ase.ares.api.localization.*;
 
 @Public
 @UseLocale("de")
+// Scope the default-policy analysis to a benign student-like subtree (no reserved
+// packages) instead of scanning all of Ares's own build, which the ReservedPackageGuard
+// correctly rejects. Default policy (value left blank) and runtime enforcement are
+// unchanged; only the analysed classpath is narrowed.
+@Policy(withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
 public class LocaleUser {
 
 	private static final String ACTIVE_LOCALIZATION = "active_localization";
 
 	@Public
 	@UseLocale("en")
+	@Policy(withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
 	public static class LocaleEn {
 		@Test
 		void testLocaleEn() {
@@ -27,6 +34,7 @@ public class LocaleUser {
 
 	@Public
 	@UseLocale("fr")
+	@Policy(withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
 	public static class LocaleUnsupported {
 		@Test
 		void testLocaleUnsupported() {

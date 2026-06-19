@@ -4,12 +4,9 @@ import static de.tum.cit.ase.ares.testutilities.CustomConditions.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.lang.Thread.State;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.stream.*;
 
 import org.junit.jupiter.api.Disabled;
@@ -152,27 +149,11 @@ class ThreadTest {
 	@StrictTimeout(1000000)
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
 	void test_threadAccess() {
-		try {
-			ExecutorService executor = Executors.newFixedThreadPool(2);
-			executor.submit(() -> {
-				try {
-					Thread.sleep(1000);
-				} catch (InterruptedException e) {
-					fail("Thread was interrupted");
-				}
-			});
-			executor.submit(() -> {
-				try {
-					Thread.sleep(1000);
-				} catch (InterruptedException e) {
-					fail("Thread was interrupted");
-				}
-			});
-
-			fail(errorMessage);
-		} catch (SecurityException e) {
-			// Expected exception
-		}
+		// The thread pool must be created by supervised subject code (ThreadPenguin),
+		// not inline in the
+		// test harness, so the thread creation is attributed to the student and
+		// governed by the policy.
+		assertThreadSecurityException(ThreadPenguin::threadAccess, "create Thread");
 	}
 
 	@TestTest

@@ -6,6 +6,11 @@ import de.tum.cit.ase.ares.api.localization.UseLocale;
 
 @UseLocale("en")
 @Deadline("2000-01-01 00:00")
+// Scope the default-policy analysis to a benign student-like subtree (no reserved
+// packages) instead of scanning all of Ares's own build, which the ReservedPackageGuard
+// correctly rejects. Default policy (value left blank) and runtime enforcement are
+// unchanged; only the analysed classpath is narrowed.
+@Policy(withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
 public class DeadlineAdditionsUser {
 
 	@HiddenTest

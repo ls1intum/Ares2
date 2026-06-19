@@ -88,7 +88,7 @@ public class JavaCreatorTest {
 			when(mockSupplier.get()).thenReturn("cached_value");
 
 			// Act
-			Supplier<String> cachedSupplier = JavaCreator.cacheResult("cached_value", mockSupplier);
+			Supplier<String> cachedSupplier = javaCreator.cacheResult("cached_value", mockSupplier);
 			String firstCall = cachedSupplier.get();
 			String secondCall = cachedSupplier.get();
 
@@ -106,9 +106,9 @@ public class JavaCreatorTest {
 			Supplier<String> mockSupplier = mock(Supplier.class);
 			when(mockSupplier.get()).thenReturn(null);
 
-			// Act - use a unique key to avoid interference with other tests using the
-			// static cache
-			Supplier<String> cachedSupplier = JavaCreator.cacheResult("null_test_unique_key_abc123", mockSupplier);
+			// Act - the cache is per-JavaCreator instance (fresh each @BeforeEach), so keys
+			// no longer collide across tests
+			Supplier<String> cachedSupplier = javaCreator.cacheResult("null_test_unique_key_abc123", mockSupplier);
 			String result = cachedSupplier.get();
 
 			// Assert

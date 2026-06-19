@@ -2,6 +2,7 @@ package de.tum.cit.ase.ares.api.securitytest;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -77,6 +78,17 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 		when(mockProjectScanner.scanForTestClasses()).thenReturn(new String[] { "TestClass1", "TestClass2" });
 		when(mockProjectScanner.scanForPackageName()).thenReturn("com.example");
 		when(mockProjectScanner.scanForMainClassInPackage()).thenReturn("Main");
+
+		// A present policy must now authoritatively pin the enforcement scope
+		// (fail-closed). Wire the supervised-code mock with a package so the
+		// policy-present path is exercised; the null-policy tests pass a null policy
+		// and exercise the legacy scan path instead.
+		when(mockSecurityPolicy.regardingTheSupervisedCode()).thenReturn(mockSupervisedCode);
+		when(mockSupervisedCode.theSupervisedCodeUsesTheFollowingPackage()).thenReturn("com.example");
+		when(mockSupervisedCode.theMainClassInsideThisPackageIs()).thenReturn("Main");
+		when(mockSupervisedCode.theFollowingClassesAreTestClasses())
+				.thenReturn(new String[] { "TestClass1", "TestClass2" });
+		when(mockSupervisedCode.theFollowingResourceAccessesArePermitted()).thenReturn(mockResourceAccesses);
 	}
 
 	// Concrete implementation for testing the abstract class
@@ -350,6 +362,47 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 			verify(mockCreator).createTestCases(eq(BuildMode.GRADLE), eq(ArchitectureMode.WALA), // default
 					eq(AOPMode.ASPECTJ), anyList(), anyList(), anyList(), anyString(), anyString(), anyList(),
 					anyList(), anyList(), any(ResourceAccesses.class), eq(projectPath));
+		}
+	}
+
+	@Nested
+	@DisplayName("Fail-closed scope Tests")
+	class FailClosedScopeTests {
+
+		@Test
+		@DisplayName("Refuses to run when a present policy has no supervised-code section (C1)")
+		void refusesWhenSupervisedCodeMissing() {
+			when(mockSecurityPolicy.regardingTheSupervisedCode()).thenReturn(null);
+			assertThrows(SecurityException.class,
+					() -> new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter, mockEssentialDataReader,
+							mockProjectScanner, essentialPackagesPath, essentialClassesPath, BuildMode.MAVEN,
+							ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, mockSecurityPolicy, projectPath));
+		}
+
+		@Test
+		@DisplayName("Refuses to run when a present policy omits/blanks the supervised package (C1)")
+		void refusesWhenSupervisedPackageBlank() {
+			when(mockSupervisedCode.theSupervisedCodeUsesTheFollowingPackage()).thenReturn("   ");
+			assertThrows(SecurityException.class,
+					() -> new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter, mockEssentialDataReader,
+							mockProjectScanner, essentialPackagesPath, essentialClassesPath, BuildMode.MAVEN,
+							ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, mockSecurityPolicy, projectPath));
+		}
+
+		@Test
+		@DisplayName("Exempt classes come only from the policy, never from a project scan (C2)")
+		void exemptClassesComeFromPolicyNotScan() {
+			when(mockSupervisedCode.theFollowingClassesAreTestClasses())
+					.thenReturn(new String[] { "PolicyDeclaredTest" });
+			new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter, mockEssentialDataReader,
+					mockProjectScanner, essentialPackagesPath, essentialClassesPath, BuildMode.MAVEN,
+					ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, mockSecurityPolicy, projectPath);
+			// The student-controlled project must NOT be scanned for exempt test classes
+			// when a policy is present.
+			verify(mockProjectScanner, never()).scanForTestClasses();
+			verify(mockCreator).createTestCases(any(), any(), any(), anyList(), anyList(),
+					argThat(testClasses -> testClasses.contains("PolicyDeclaredTest")), anyString(), anyString(),
+					anyList(), anyList(), anyList(), any(ResourceAccesses.class), any());
 		}
 	}
 }

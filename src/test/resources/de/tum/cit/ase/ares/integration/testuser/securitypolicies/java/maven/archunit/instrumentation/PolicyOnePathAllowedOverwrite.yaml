@@ -23,6 +23,7 @@ regardingTheSupervisedCode:
     regardingNetworkConnections: [ ]
     regardingCommandExecutions: [ ]
     regardingThreadCreations: [ ]
-    regardingPackageImports: [ ]
+    regardingPackageImports:
+      - importTheFollowingPackage: "javax.crypto"
     regardingTimeouts:
       - timeout: 3000

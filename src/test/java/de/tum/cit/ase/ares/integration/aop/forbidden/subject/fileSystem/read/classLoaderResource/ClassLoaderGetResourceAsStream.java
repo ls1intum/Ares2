@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.byteStream;
+package de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.classLoaderResource;
 
 import java.io.IOException;
 import java.io.InputStream;

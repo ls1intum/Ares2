@@ -24,7 +24,12 @@ public class PrecompileTest {
 	@Test
 	void testPrecompileJavaMavenArchunitInstrumentation(@TempDir Path tempDir) {
 		Path writeTarget = tempDir.resolve("project").resolve("src").resolve("test");
-		SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(Path.of("")).projectFolderPath(Path.of(""))
-				.build().createTestCases().writeTestCases(writeTarget);
+		// Scope the precompile scan to a benign student-like subtree. An empty
+		// projectFolderPath scans all of target/classes, which contains Ares's own
+		// reserved de.tum.cit.ase.ares.api.internal classes and trips the
+		// ReservedPackageGuard; a real submission never bundles Ares framework classes.
+		Path projectFolderPath = Path.of("test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld");
+		SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(Path.of(""))
+				.projectFolderPath(projectFolderPath).build().createTestCases().writeTestCases(writeTarget);
 	}
 }

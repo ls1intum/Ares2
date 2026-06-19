@@ -16,6 +16,11 @@ import de.tum.cit.ase.ares.integration.testuser.subject.PackageAccessPenguin;
 @StrictTimeout(value = 300, unit = TimeUnit.MILLISECONDS)
 @TestMethodOrder(MethodName.class)
 @SuppressWarnings("static-method")
+// Scope the default-policy STATIC analysis to a benign student-like subtree so the
+// ReservedPackageGuard does not (correctly) reject Ares's own build. Runtime enforcement
+// of PackageAccessPenguin is unaffected: the AOP advice classifies student code by package
+// prefix (testuser.subject.* is non-infrastructure), not by withinPath.
+@Policy(withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
 public class PackageAccessUser {
 
 	@PublicTest
