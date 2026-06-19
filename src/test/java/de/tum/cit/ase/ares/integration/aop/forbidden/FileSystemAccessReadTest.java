@@ -24,11 +24,11 @@ import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.who
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.wholeFileConvenience.FilesReadString;
 
 class FileSystemAccessReadTest extends SystemAccessTest {
-	private static final String FILE_INPUT_STREAM_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/ByteStream";
+	private static final String FILE_INPUT_STREAM_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/byteStream";
 	private static final String CLASS_LOADER_RESOURCE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/classLoaderResource";
-	private static final String CHARACTER_READER_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/CharacterReader";
-	private static final String LINE_TOKEN_READER_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/LineTokenReader";
-	private static final String WHOLE_FILE_CONVENIENCE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/WholeFileConvenience";
+	private static final String CHARACTER_READER_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/characterReader";
+	private static final String LINE_TOKEN_READER_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/lineTokenReader";
+	private static final String WHOLE_FILE_CONVENIENCE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/wholeFileConvenience";
 
 	// <editor-fold desc="FileInputStream Tests">
 

@@ -37,6 +37,7 @@ public final class ThreadPenguin extends Thread {
 				Thread.currentThread().interrupt();
 			}
 		});
+		executor.shutdown();
 	}
 
 	public static void tryStartTwoThreads() {

@@ -2,6 +2,7 @@ package de.tum.cit.ase.ares.integration;
 
 import static de.tum.cit.ase.ares.testutilities.CustomConditions.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -251,7 +252,11 @@ class ThreadTest {
 	@PublicTest
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
 	void test_sleepInCurrentThread() {
-		assertThreadSecurityException(() -> ThreadPenguin.sleepInCurrentThread(1000), "Thread.sleep");
+		// Thread.sleep only pauses the current thread; it neither creates nor starts
+		// a thread, so it is not a thread-creation operation and must be allowed even
+		// under a policy that restricts thread creation.
+		assertDoesNotThrow(() -> ThreadPenguin.sleepInCurrentThread(1000),
+				"Thread.sleep pauses the current thread and must not be blocked as a thread creation.");
 	}
 
 	@TestTest

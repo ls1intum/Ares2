@@ -12,10 +12,10 @@ import org.junit.jupiter.api.Test;
  * <p>
  * Desktop's
  * {@code open}/{@code edit}/{@code print}/{@code browse}/{@code browseFileDirectory}
- * hand a file off to an external application; Ares deliberately classifies them
- * as a single file <em>read</em> in both backends (the AspectJ pointcut
- * documents that it mirrors this instrumentation map), never as an execute, so
- * a Desktop call is governed deterministically. {@code moveToTrash} is the only
+ * launch an external application to act on the file or URI; Ares classifies them
+ * as a file <em>execute</em> (launch) in both backends (the AspectJ pointcut
+ * documents that it mirrors this instrumentation map), never as a read, so a
+ * Desktop call is governed deterministically. {@code moveToTrash} is the only
  * delete.
  * <p>
  * The corresponding end-to-end integration scenarios cannot be exercised
@@ -24,23 +24,23 @@ import org.junit.jupiter.api.Test;
  * launches an external application (a side effect unsuitable for a test suite).
  * This contract test therefore guards the classification directly and
  * deterministically, catching any accidental reclassification of Desktop to
- * execute/overwrite/create.
+ * read/overwrite/create.
  */
 class JavaInstrumentationDesktopClassificationTest {
 
 	private static final String DESKTOP = "java.awt.Desktop";
 
 	@Test
-	void desktopFileAccessMethodsAreClassifiedAsRead() {
+	void desktopFileAccessMethodsAreClassifiedAsExecute() {
 		assertEquals(List.of("open", "edit", "print", "browse", "browseFileDirectory"),
-				JavaInstrumentationPointcutDefinitions.methodsWhichCanReadFiles.get(DESKTOP),
-				"Desktop open/edit/print/browse/browseFileDirectory must be classified as a file read.");
+				JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteFiles.get(DESKTOP),
+				"Desktop open/edit/print/browse/browseFileDirectory must be classified as a file execute.");
 	}
 
 	@Test
-	void desktopIsNeverClassifiedAsExecuteOverwriteOrCreate() {
-		assertFalse(JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteFiles.containsKey(DESKTOP),
-				"Desktop must not be classified as a file execute.");
+	void desktopIsNeverClassifiedAsReadOverwriteOrCreate() {
+		assertFalse(JavaInstrumentationPointcutDefinitions.methodsWhichCanReadFiles.containsKey(DESKTOP),
+				"Desktop must not be classified as a file read.");
 		assertFalse(JavaInstrumentationPointcutDefinitions.methodsWhichCanOverwriteFiles.containsKey(DESKTOP),
 				"Desktop must not be classified as a file overwrite.");
 		assertFalse(JavaInstrumentationPointcutDefinitions.methodsWhichCanCreateFiles.containsKey(DESKTOP),
@@ -51,6 +51,6 @@ class JavaInstrumentationDesktopClassificationTest {
 	void desktopDeleteIsOnlyMoveToTrash() {
 		assertEquals(List.of("moveToTrash"),
 				JavaInstrumentationPointcutDefinitions.methodsWhichCanDeleteFiles.get(DESKTOP),
-				"Only Desktop.moveToTrash deletes a file; the other Desktop methods are reads.");
+				"Only Desktop.moveToTrash deletes a file; the other Desktop methods are executes.");
 	}
 }
