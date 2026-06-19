@@ -12,11 +12,11 @@ import org.junit.jupiter.api.Test;
  * <p>
  * Desktop's
  * {@code open}/{@code edit}/{@code print}/{@code browse}/{@code browseFileDirectory}
- * launch an external application to act on the file or URI; Ares classifies them
- * as a file <em>execute</em> (launch) in both backends (the AspectJ pointcut
- * documents that it mirrors this instrumentation map), never as a read, so a
- * Desktop call is governed deterministically. {@code moveToTrash} is the only
- * delete.
+ * launch an external application to act on the file or URI; Ares classifies
+ * them as a file <em>execute</em> (launch) in both backends (the AspectJ
+ * pointcut documents that it mirrors this instrumentation map), never as a
+ * read, so a Desktop call is governed deterministically. {@code moveToTrash} is
+ * the only delete.
  * <p>
  * The corresponding end-to-end integration scenarios cannot be exercised
  * reliably: {@code java.awt.Desktop} is a JDK class whose AOP retransformation
