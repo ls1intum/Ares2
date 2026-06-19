@@ -1,2 +1,4 @@
 java.io.ObjectOutputStream
 java.io.ObjectInputStream
+java.beans.XMLDecoder
+java.beans.XMLEncoder

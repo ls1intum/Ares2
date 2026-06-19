@@ -15,6 +15,7 @@ import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCaseSupported;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchunitTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.wala.JavaWalaTestCase;
 import de.tum.cit.ase.ares.api.localization.Messages;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 
 /**
@@ -56,6 +57,43 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	public Supplier<CallGraph> getCallGraphSupplier() {
 		return callGraphSupplier;
 	}
+
+	/**
+	 * Classes exempt from the architecture rules (the essential + test
+	 * infrastructure classes). A class on this list may use otherwise-forbidden
+	 * APIs. Never null; empty means no exemptions.
+	 */
+	@Nonnull
+	private final Set<ClassPermission> allowedClasses;
+
+	/** Returns the set of classes exempt from the architecture rules. */
+	@Nonnull
+	public Set<ClassPermission> getAllowedClasses() {
+		return allowedClasses;
+	}
+
+	/**
+	 * Returns {@code true} if {@code fullyQualifiedClassName} is exempt: it exactly
+	 * matches an allowed class, or it is a nested/anonymous class of one (matched
+	 * on the {@code '$'} boundary so {@code Outer} never matches the unrelated
+	 * {@code OuterOther}).
+	 *
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 */
+	public static boolean isAllowedClass(@Nullable String fullyQualifiedClassName,
+			@Nonnull Set<ClassPermission> allowedClasses) {
+		if (fullyQualifiedClassName == null || allowedClasses == null || allowedClasses.isEmpty()) {
+			return false;
+		}
+		for (ClassPermission allowed : allowedClasses) {
+			String name = allowed.className();
+			if (fullyQualifiedClassName.equals(name) || fullyQualifiedClassName.startsWith(name + "$")) {
+				return true;
+			}
+		}
+		return false;
+	}
 	// </editor-fold>
 
 	// <editor-fold desc="Constructor">
@@ -80,7 +118,7 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	public JavaArchitectureTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
 			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
 			@Nullable CallGraph callGraph) {
-		this(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, callGraph, null);
+		this(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, callGraph, null, java.util.Set.of());
 	}
 
 	/**
@@ -105,9 +143,11 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	 */
 	public JavaArchitectureTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
 			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
-			@Nullable CallGraph callGraph, @Nullable Supplier<CallGraph> callGraphSupplier) {
+			@Nullable CallGraph callGraph, @Nullable Supplier<CallGraph> callGraphSupplier,
+			@Nonnull Set<ClassPermission> allowedClasses) {
 		super(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, callGraph);
 		this.callGraphSupplier = callGraphSupplier;
+		this.allowedClasses = allowedClasses;
 	}
 	// </editor-fold>
 
@@ -357,8 +397,8 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		switch (architectureMode) {
 		case "ARCHUNIT" -> JavaArchunitTestCase.archunitBuilder()
 				.javaArchitectureTestCaseSupported(protectedJavaArchitectureTestCaseSupported)
-				.allowedPackages(protectedAllowedPackages).javaClasses(protectedJavaClasses).build()
-				.executeArchitectureTestCase(architectureMode, aopMode);
+				.allowedPackages(protectedAllowedPackages).allowedClasses(allowedClasses)
+				.javaClasses(protectedJavaClasses).build().executeArchitectureTestCase(architectureMode, aopMode);
 		case "WALA" -> {
 			// Use the lazy supplier path when present so the WALA outcome cache can
 			// short-circuit before any call-graph construction. The eager path remains
@@ -366,12 +406,12 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 			JavaWalaTestCase tc;
 			if (callGraphSupplier != null) {
 				tc = new JavaWalaTestCase(protectedJavaArchitectureTestCaseSupported, protectedAllowedPackages,
-						protectedJavaClasses, callGraphSupplier);
+						protectedJavaClasses, callGraphSupplier, allowedClasses);
 			} else {
 				tc = JavaWalaTestCase.walaBuilder()
 						.javaArchitectureTestCaseSupported(protectedJavaArchitectureTestCaseSupported)
-						.allowedPackages(protectedAllowedPackages).javaClasses(protectedJavaClasses)
-						.callGraph(callGraph).build();
+						.allowedPackages(protectedAllowedPackages).allowedClasses(allowedClasses)
+						.javaClasses(protectedJavaClasses).callGraph(callGraph).build();
 			}
 			tc.executeArchitectureTestCase(architectureMode, aopMode);
 		}
@@ -417,6 +457,8 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		private Supplier<CallGraph> callGraphSupplier;
 		@Nullable
 		private Set<PackagePermission> allowedPackages;
+		@Nonnull
+		private Set<ClassPermission> allowedClasses = java.util.Set.of();
 
 		/**
 		 * Sets the architecture test case type supported by this instance.
@@ -491,6 +533,21 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		}
 
 		/**
+		 * Sets the allowed (exempt) class permissions.
+		 *
+		 * @since 2.0.0
+		 * @author Markus Paulsen
+		 * @param allowedClasses Set of class permissions exempt from the architecture
+		 *                       rules
+		 * @return This builder instance for method chaining
+		 */
+		@Nonnull
+		public Builder allowedClasses(@Nonnull Set<ClassPermission> allowedClasses) {
+			this.allowedClasses = Preconditions.checkNotNull(allowedClasses, "allowedClasses must not be null");
+			return this;
+		}
+
+		/**
 		 * Builds and returns a new JavaArchitectureTestCase instance with the
 		 * configured properties.
 		 *
@@ -506,7 +563,7 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 							"javaArchitecturalTestCaseSupported must not be null"),
 					Preconditions.checkNotNull(allowedPackages, "allowedPackages must not be null"),
 					Preconditions.checkNotNull(javaClasses, "javaClasses must not be null"), callGraph,
-					callGraphSupplier);
+					callGraphSupplier, allowedClasses);
 		}
 	}
 	// </editor-fold>

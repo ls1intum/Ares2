@@ -85,8 +85,8 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	 * @author Kevin Fischer
 	 */
 	private JavaInstrumentationAdviceNetworkSystemToolbox() {
-		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-				"security.instrumentation.utility.initialization", "JavaInstrumentationAdviceNetworkSystemToolbox"));
+		throw new SecurityException(localize("security.instrumentation.utility.initialization",
+				"JavaInstrumentationAdviceNetworkSystemToolbox"));
 	}
 
 	// </editor-fold>
@@ -163,7 +163,24 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		}
 		String normalizedActual = actualHost.trim().toLowerCase(Locale.ROOT);
 		String normalizedAllowed = allowedHost.trim().toLowerCase(Locale.ROOT);
-		return normalizedActual.equals(normalizedAllowed) || normalizedActual.endsWith("." + normalizedAllowed);
+		if (normalizedActual.equals(normalizedAllowed)) {
+			return true;
+		}
+		// Subdomain suffix match (e.g. allowed "example.com" matches
+		// "api.example.com").
+		// Restricted to allowed hosts that contain a letter so a numeric IP fragment
+		// like
+		// "1.1" cannot match "10.1.1". An explicit loop avoids synthesising a lambda
+		// class
+		// that may be absent from the bootstrap-injected agent jar.
+		boolean allowedHasLetter = false;
+		for (int i = 0; i < normalizedAllowed.length(); i++) {
+			if (Character.isLetter(normalizedAllowed.charAt(i))) {
+				allowedHasLetter = true;
+				break;
+			}
+		}
+		return allowedHasLetter && normalizedActual.endsWith("." + normalizedAllowed);
 	}
 
 	/**
@@ -327,6 +344,11 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	@Nullable
 	private static NetworkTarget portSuffixToTarget(@Nonnull String host, @Nonnull String portSuffix) {
 		try {
+			// No range guard: an out-of-range port must still produce a target so the
+			// allow-list can reject it (matching the AspectJ backend). Returning null here
+			// would fail open by skipping the check entirely for that string. The any-port
+			// wildcard (-1) is only honoured on the policy/allowed side, never minted as an
+			// actual target here, so there is no wildcard collision to exploit.
 			int port = Integer.parseInt(portSuffix);
 			return new NetworkTarget(host, port);
 		} catch (NumberFormatException ignored) {
@@ -708,22 +730,19 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		case "connect" -> getValueFromSettings("hostsAllowedToBeConnectedTo");
 		case "send" -> getValueFromSettings("hostsAllowedToBeSentTo");
 		case "receive" -> getValueFromSettings("hostsAllowedToBeReceivedFrom");
-		default -> throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-				.localize("security.advice.settings.invalid.network.permission", action));
+		default -> throw new SecurityException(localize("security.advice.settings.invalid.network.permission", action));
 		};
 		@Nullable
 		final int[] allowedPorts = switch (action) {
 		case "connect" -> getValueFromSettings("portsAllowedToBeConnectedTo");
 		case "send" -> getValueFromSettings("portsAllowedToBeSentTo");
 		case "receive" -> getValueFromSettings("portsAllowedToBeReceivedFrom");
-		default -> throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-				.localize("security.advice.settings.invalid.network.permission", action));
+		default -> throw new SecurityException(localize("security.advice.settings.invalid.network.permission", action));
 		};
 
 		if ((allowedHosts == null ? 0 : allowedHosts.length) != (allowedPorts == null ? 0 : allowedPorts.length)) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-					"security.advice.network.allowed.size", action, allowedHosts == null ? 0 : allowedHosts.length,
-					allowedPorts == null ? 0 : allowedPorts.length));
+			throw new SecurityException(localize("security.advice.network.allowed.size", action,
+					allowedHosts == null ? 0 : allowedHosts.length, allowedPorts == null ? 0 : allowedPorts.length));
 		}
 		boolean noAllowRuleConfigured = allowedHosts == null || allowedHosts.length == 0 || allowedPorts == null
 				|| allowedPorts.length == 0;
@@ -737,12 +756,11 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 				: null;
 		if (targetFromParameters != null
 				&& checkIfNetworkIsForbidden(targetFromParameters, allowedHosts, allowedPorts)) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-					"security.advice.illegal.network.execution", networkSystemMethodToCheck, action,
-					targetFromParameters.toDisplayString(),
+			throw new SecurityException(localize("security.advice.illegal.network.execution",
+					networkSystemMethodToCheck, action, targetFromParameters.toDisplayString(),
 					fullMethodSignature
 							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
-							+ JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(noAllowRuleConfigured)));
+							+ buildDenialReason(noAllowRuleConfigured)));
 		}
 		// Mask out indices already consumed by parametersToTarget so the per-parameter
 		// scan does not re-resolve the same host (or local-bind host) as a port=-1
@@ -765,12 +783,11 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 								NETWORK_SYSTEM_IGNORE_PARAMETERS_EXCEPT
 										.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
 		if (networkIllegallyInteractedThroughParameter != null) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-					"security.advice.illegal.network.execution", networkSystemMethodToCheck, action,
-					networkIllegallyInteractedThroughParameter,
+			throw new SecurityException(localize("security.advice.illegal.network.execution",
+					networkSystemMethodToCheck, action, networkIllegallyInteractedThroughParameter,
 					fullMethodSignature
 							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
-							+ JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(noAllowRuleConfigured)));
+							+ buildDenialReason(noAllowRuleConfigured)));
 		}
 		// </editor-fold>
 		// <editor-fold desc="Check receiver instance">
@@ -779,12 +796,11 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 				: checkIfVariableCriteriaIsViolated(new Object[] { instance }, allowedHosts, allowedPorts,
 						IgnoreValues.NONE);
 		if (networkIllegallyInteractedThroughReceiver != null) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-					"security.advice.illegal.network.execution", networkSystemMethodToCheck, action,
-					networkIllegallyInteractedThroughReceiver,
+			throw new SecurityException(localize("security.advice.illegal.network.execution",
+					networkSystemMethodToCheck, action, networkIllegallyInteractedThroughReceiver,
 					fullMethodSignature
 							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
-							+ JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(noAllowRuleConfigured)));
+							+ buildDenialReason(noAllowRuleConfigured)));
 		}
 		// </editor-fold>
 		// <editor-fold desc="Check attributes">
@@ -794,12 +810,11 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 						NETWORK_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
 								IgnoreValues.NONE));
 		if (networkIllegallyInteractedThroughAttribute != null) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-					"security.advice.illegal.network.execution", networkSystemMethodToCheck, action,
-					networkIllegallyInteractedThroughAttribute,
+			throw new SecurityException(localize("security.advice.illegal.network.execution",
+					networkSystemMethodToCheck, action, networkIllegallyInteractedThroughAttribute,
 					fullMethodSignature
 							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
-							+ JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(noAllowRuleConfigured)));
+							+ buildDenialReason(noAllowRuleConfigured)));
 		}
 		// </editor-fold>
 	}
@@ -809,9 +824,12 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	 * <p>
 	 * Description: Verifies that the specified action (connect, send, receive)
 	 * complies with allowed hosts, allowed ports, and call stack criteria. Throws
-	 * {@link SecurityException} if a policy violation is detected or if the network
-	 * target cannot be resolved from the intercepted call's parameters and
-	 * attributes.
+	 * {@link SecurityException} when a network target is resolved from the
+	 * intercepted call and is not permitted by the policy. When no target can be
+	 * resolved from the parameters, receiver, or attributes, the call is allowed to
+	 * proceed: an unidentifiable endpoint cannot be matched against the allowlist,
+	 * and the actual connection is intercepted again at a layer where the endpoint
+	 * is known.
 	 *
 	 * @param action            the network system action being performed (connect,
 	 *                          send, receive)
@@ -822,8 +840,7 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	 * @param parameters        optional method parameters
 	 * @param instance          the receiver object of the intercepted call; may be
 	 *                          null
-	 * @throws SecurityException if unauthorized access is detected or the target
-	 *                           cannot be resolved
+	 * @throws SecurityException if a resolved network target is not permitted
 	 * @since 2.0.0
 	 * @author Kevin Fischer
 	 */

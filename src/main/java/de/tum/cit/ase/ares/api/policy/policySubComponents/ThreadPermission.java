@@ -18,7 +18,6 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  *
  * @since 2.0.0
  * @author Markus Paulsen
- * @since 2.0.0
  * @param createTheFollowingNumberOfThreads the number of threads permitted to
  *                                          be created.
  * @param ofThisClass                       the fully qualified name of the

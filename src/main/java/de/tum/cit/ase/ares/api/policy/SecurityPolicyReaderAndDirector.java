@@ -126,10 +126,15 @@ public class SecurityPolicyReaderAndDirector {
 	 */
 	@Nonnull
 	public List<Path> writeTestCases(Path testFolderPath) {
-		if (this.securityTestCaseFactoryAndBuilder == null) {
-			return List.of();
-		}
-		return this.securityTestCaseFactoryAndBuilder.writeTestCases(testFolderPath);
+		// Fail closed, symmetrically with executeTestCases and
+		// writeTestCasesAndContinue:
+		// an out-of-order call (writeTestCases before createTestCases) must NOT
+		// silently
+		// write zero security tests - in a security boundary, silent no-op generation
+		// is
+		// the dangerous direction.
+		return Preconditions.checkNotNull(this.securityTestCaseFactoryAndBuilder,
+				"createTestCases() must be called before writeTestCases()").writeTestCases(testFolderPath);
 	}
 
 	/**

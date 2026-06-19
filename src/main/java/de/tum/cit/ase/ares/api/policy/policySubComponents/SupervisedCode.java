@@ -17,7 +17,6 @@ import javax.annotation.Nullable;
  *
  * @since 2.0.0
  * @author Markus Paulsen
- * @since 2.0.0
  * @param theFollowingProgrammingLanguageConfigurationIsUsed the programming
  *                                                           language
  *                                                           configuration used
@@ -53,7 +52,36 @@ public record SupervisedCode(
 		Objects.requireNonNull(theFollowingProgrammingLanguageConfigurationIsUsed,
 				"ProgrammingLanguageConfiguration must not be null");
 		Objects.requireNonNull(theFollowingClassesAreTestClasses, "Test classes array must not be null");
+		// Validate the elements, not just the array reference: a null or blank
+		// test-class
+		// name is malformed policy input and must be rejected at the source rather than
+		// surfacing later as an opaque NPE/IllegalArgumentException during test-case
+		// creation.
+		for (String testClass : theFollowingClassesAreTestClasses) {
+			Objects.requireNonNull(testClass, "Test class entries must not be null");
+			if (testClass.isBlank()) {
+				throw new IllegalArgumentException("Test class entries must not be blank");
+			}
+		}
 		Objects.requireNonNull(theFollowingResourceAccessesArePermitted, "ResourceAccesses must not be null");
+		// Defensive copy so a caller cannot mutate the test-class array after
+		// construction (the array is security-relevant: it drives the exempt-class
+		// set).
+		theFollowingClassesAreTestClasses = theFollowingClassesAreTestClasses.clone();
+	}
+
+	/**
+	 * Returns a copy of the test-class names, so the caller cannot mutate the
+	 * record's internal array through the accessor.
+	 *
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 * @return a defensive copy of the test-class names
+	 */
+	@Nonnull
+	@Override
+	public String[] theFollowingClassesAreTestClasses() {
+		return theFollowingClassesAreTestClasses.clone();
 	}
 
 	/**
@@ -116,22 +144,25 @@ public record SupervisedCode(
 		@Nullable
 		private String theSupervisedCodeUsesTheFollowingPackage;
 
-		/*
+		/**
 		 * Constructs a new Builder instance.
+		 *
 		 * @since 2.0.0
 		 */
 		@Nullable
 		private String theMainClassInsideThisPackageIs;
 
-		/*
+		/**
 		 * Constructs a new Builder instance.
+		 *
 		 * @since 2.0.0
 		 */
 		@Nullable
 		private String[] theFollowingClassesAreTestClasses = new String[0];
 
-		/*
+		/**
 		 * Constructs a new Builder instance.
+		 *
 		 * @since 2.0.0
 		 */
 		@Nullable

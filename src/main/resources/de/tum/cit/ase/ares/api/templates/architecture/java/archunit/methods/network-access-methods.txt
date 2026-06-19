@@ -365,6 +365,16 @@ sun.nio.ch.SelectorProviderImpl.openServerSocketChannel(java.net.ProtocolFamily)
 sun.nio.ch.SelectorProviderImpl.openSocketChannel(java.net.ProtocolFamily)
 java.net.StandardProtocolFamily.values()
 java.nio.channels.SocketChannel.open(java.net.SocketAddress)
+java.nio.channels.SocketChannel.open()
+java.nio.channels.ServerSocketChannel.accept()
+java.net.URL.openConnection
+java.net.URLConnection.connect()
+java.net.HttpURLConnection.connect()
+javax.net.ssl.HttpsURLConnection.connect()
+java.net.HttpURLConnection.getInputStream()
+javax.net.ssl.HttpsURLConnection.getInputStream()
+java.net.http.HttpClient.send
+java.net.http.HttpClient.sendAsync
 java.net.SocketPermission.hashCode()
 java.net.SocketPermission.equals(java.lang.Object)
 java.net.SocketPermission.getActions()

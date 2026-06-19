@@ -20,8 +20,8 @@ import javax.annotation.Nullable;
 public abstract class JavaInstrumentationAdviceAbstractToolbox {
 
 	JavaInstrumentationAdviceAbstractToolbox() {
-		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-				"security.instrumentation.utility.initialization", "JavaInstrumentationAdviceAbstractToolbox"));
+		throw new SecurityException(localize("security.instrumentation.utility.initialization",
+				"JavaInstrumentationAdviceAbstractToolbox"));
 	}
 
 	// <editor-fold desc="Constants">
@@ -54,6 +54,13 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 */
 	@Nonnull
 	private static final ConcurrentHashMap<String, Field> SETTINGS_FIELD_CACHE = new ConcurrentHashMap<>();
+
+	/**
+	 * Single canonical settings lock, cached once so every caller synchronises on
+	 * the same monitor.
+	 */
+	@Nullable
+	private static volatile Object SETTINGS_LOCK_CACHE = null;
 	// </editor-fold>
 
 	// <editor-fold desc="Tools methods">
@@ -73,7 +80,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 */
 	@SuppressWarnings("unchecked")
 	@Nullable
-	public static <T> T getValueFromSettings(@Nonnull String fieldName) {
+	static <T> T getValueFromSettings(@Nonnull String fieldName) {
 		try {
 			Objects.requireNonNull(fieldName, "fieldName must not be null");
 			@Nonnull
@@ -82,27 +89,19 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 			T value = (T) field.get(null);
 			return value;
 		} catch (LinkageError e) {
-			throw new SecurityException(
-					JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.linkage.exception", fieldName),
-					e);
+			throw new SecurityException(localize("security.advice.linkage.exception", fieldName), e);
 		} catch (ClassNotFoundException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-					.localize("security.advice.class.not.found.exception", fieldName), e);
+			throw new SecurityException(localize("security.advice.class.not.found.exception", fieldName), e);
 		} catch (NoSuchFieldException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-					.localize("security.advice.no.such.field.exception", fieldName), e);
+			throw new SecurityException(localize("security.advice.no.such.field.exception", fieldName), e);
 		} catch (NullPointerException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-					.localize("security.advice.null.pointer.exception", fieldName), e);
+			throw new SecurityException(localize("security.advice.null.pointer.exception", fieldName), e);
 		} catch (InaccessibleObjectException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-					.localize("security.advice.inaccessible.object.exception", fieldName), e);
+			throw new SecurityException(localize("security.advice.inaccessible.object.exception", fieldName), e);
 		} catch (IllegalAccessException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-					.localize("security.advice.illegal.access.exception", fieldName), e);
+			throw new SecurityException(localize("security.advice.illegal.access.exception", fieldName), e);
 		} catch (IllegalArgumentException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-					.localize("security.advice.illegal.argument.exception", fieldName), e);
+			throw new SecurityException(localize("security.advice.illegal.argument.exception", fieldName), e);
 		}
 	}
 
@@ -154,34 +153,33 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */
-	public static <T> void setValueToSettings(@Nonnull String fieldName, @Nullable T newValue) {
+	// Private (was public): the only caller is checkAndDecrementSettingsArrayValue
+	// in
+	// this class, so the write entry point into the security settings is not
+	// reachable
+	// from any other class. (Defence in depth only; the authoritative protection
+	// against student tampering is the architecture-analysis layer, which forbids
+	// student references to these classes.)
+	private static <T> void setValueToSettings(@Nonnull String fieldName, @Nullable T newValue) {
 		try {
 			Objects.requireNonNull(fieldName, "fieldName must not be null");
 			@Nonnull
 			Field field = resolveSettingsField(fieldName);
 			field.set(null, newValue);
 		} catch (LinkageError e) {
-			throw new SecurityException(
-					JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.linkage.exception", fieldName),
-					e);
+			throw new SecurityException(localize("security.advice.linkage.exception", fieldName), e);
 		} catch (ClassNotFoundException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-					.localize("security.advice.class.not.found.exception", fieldName), e);
+			throw new SecurityException(localize("security.advice.class.not.found.exception", fieldName), e);
 		} catch (NoSuchFieldException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-					.localize("security.advice.no.such.field.exception", fieldName), e);
+			throw new SecurityException(localize("security.advice.no.such.field.exception", fieldName), e);
 		} catch (NullPointerException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-					.localize("security.advice.null.pointer.exception", fieldName), e);
+			throw new SecurityException(localize("security.advice.null.pointer.exception", fieldName), e);
 		} catch (InaccessibleObjectException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-					.localize("security.advice.inaccessible.object.exception", fieldName), e);
+			throw new SecurityException(localize("security.advice.inaccessible.object.exception", fieldName), e);
 		} catch (IllegalAccessException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-					.localize("security.advice.illegal.access.exception", fieldName), e);
+			throw new SecurityException(localize("security.advice.illegal.access.exception", fieldName), e);
 		} catch (IllegalArgumentException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-					.localize("security.advice.illegal.argument.exception", fieldName), e);
+			throw new SecurityException(localize("security.advice.illegal.argument.exception", fieldName), e);
 		}
 	}
 
@@ -197,7 +195,12 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 * @author Markus Paulsen
 	 */
 	@Nonnull
-	public static Object getSettingsLock() {
+	private static Object getSettingsLock() {
+		@Nullable
+		Object cached = SETTINGS_LOCK_CACHE;
+		if (cached != null) {
+			return cached;
+		}
 		try {
 			// Use null as ClassLoader to explicitly load from Bootstrap ClassLoader
 			// Use false to avoid class initialization which could trigger file system
@@ -210,15 +213,14 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 			Method getLockMethod = adviceSettingsClass.getDeclaredMethod("getSettingsLock");
 			@Nonnull
 			Object lock = Objects.requireNonNull(getLockMethod.invoke(null), "lock must not be null");
+			SETTINGS_LOCK_CACHE = lock;
 			return lock;
 		} catch (Exception e) {
-			// Fallback to class object if lock retrieval fails
-			try {
-				return Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", false, null);
-			} catch (ClassNotFoundException ex) {
-				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-						.localize("security.advice.class.not.found.exception", "JavaAOPTestCaseSettings"), ex);
-			}
+			// Fail closed: never fall back to a DIFFERENT monitor (e.g. the Class object).
+			// Two threads synchronising on different monitors would make the quota
+			// check-and-decrement non-atomic, so a lock-resolution failure must abort.
+			throw new SecurityException(
+					localize("security.advice.class.not.found.exception", "JavaAOPTestCaseSettings"), e);
 		}
 	}
 
@@ -237,7 +239,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */
-	public static boolean checkAndDecrementSettingsArrayValue(@Nonnull String settingsArray, int position) {
+	static boolean checkAndDecrementSettingsArrayValue(@Nonnull String settingsArray, int position) {
 		synchronized (getSettingsLock()) {
 			@Nullable
 			int[] array = getValueFromSettings(settingsArray);
@@ -280,8 +282,10 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 			if (result instanceof String str) {
 				return str;
 			} else {
-				throw new SecurityException(
-						JavaInstrumentationAdviceAbstractToolbox.localize("security.localization.method.return.type"));
+				// Do not recurse through localize() here: if the Messages method returns a
+				// non-String, a nested localize() call could hit this same branch and recurse
+				// until the stack overflows. Return the raw key instead.
+				return "security.localization.method.return.type";
 			}
 		} catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException
 				| IllegalAccessException e) {
@@ -303,11 +307,11 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 *         messages
 	 */
 	@Nonnull
-	public static String buildDenialReason(boolean noAllowRuleConfigured) {
+	static String buildDenialReason(boolean noAllowRuleConfigured) {
 		if (noAllowRuleConfigured) {
-			return JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.denial.reason.no.allowlist");
+			return localize("security.advice.denial.reason.no.allowlist");
 		}
-		return JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.denial.reason.not.in.allowlist");
+		return localize("security.advice.denial.reason.not.in.allowlist");
 	}
 
 	/**
@@ -324,7 +328,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 *
 	 * @return {@code true} if a class-loader frame is present on the current stack
 	 */
-	public static boolean isClassLoadingInProgress() {
+	static boolean isClassLoadingInProgress() {
 		return STACK_WALKER.walk(frames -> {
 			Iterator<StackWalker.StackFrame> iterator = frames.iterator();
 			while (iterator.hasNext()) {
@@ -356,7 +360,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 *
 	 * @return {@code true} if an internal Ares utility is performing the access
 	 */
-	public static boolean isProjectSourcesFinderInProgress() {
+	static boolean isProjectSourcesFinderInProgress() {
 		return STACK_WALKER.walk(frames -> {
 			boolean trustedSeen = false;
 			Iterator<StackWalker.StackFrame> iterator = frames.iterator();
@@ -390,30 +394,6 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	// <editor-fold desc="Callstack criteria methods">
 
 	/**
-	 * Determines if a call stack element is in the allow list.
-	 * <p>
-	 * Description: Checks whether the class name of the provided stack trace
-	 * element starts with any of the allowed class name prefixes.
-	 *
-	 * @param allowedClasses the array of allowed class name prefixes
-	 * @param elementToCheck the stack trace element to check
-	 * @return true if the element is allowed, false otherwise
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 */
-	public static boolean checkIfCallstackElementIsAllowed(@Nonnull String[] allowedClasses,
-			@Nonnull StackTraceElement elementToCheck) {
-		String className = elementToCheck.getClassName();
-		for (@Nonnull
-		String allowedClass : allowedClasses) {
-			if (className.startsWith(allowedClass)) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	/**
 	 * Checks the current call stack for violations of restricted packages.
 	 * <p>
 	 * Description: First checks if the direct caller of the intercepted method is
@@ -432,7 +412,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 * @author Markus Paulsen
 	 */
 	@Nullable
-	public static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses,
+	static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses,
 			String declaringTypeName, String methodName) {
 		// Stream the stack lazily so the walk stops once both the violation and the
 		// caller above the first restricted frame are known (or the stack is
@@ -546,7 +526,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 * @since 2.0.2
 	 */
 	@Nullable
-	public static String findFirstMethodOutsideOfRestrictedPackage(@Nullable String restrictedPackage) {
+	static String findFirstMethodOutsideOfRestrictedPackage(@Nullable String restrictedPackage) {
 		if (restrictedPackage == null) {
 			return null;
 		}
@@ -609,15 +589,14 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */
-	public static int findFieldIndex(@Nonnull Class<?> clazz, @Nonnull String fieldName) {
+	static int findFieldIndex(@Nonnull Class<?> clazz, @Nonnull String fieldName) {
 		Field[] fields = clazz.getDeclaredFields();
 		for (int i = 0; i < fields.length; i++) {
 			if (fieldName.equals(fields[i].getName())) {
 				return i;
 			}
 		}
-		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-				.localize("security.instrumentation.field.not.found", fieldName, clazz.getName()));
+		throw new SecurityException(localize("security.instrumentation.field.not.found", fieldName, clazz.getName()));
 	}
 	// </editor-fold>
 
@@ -637,7 +616,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 * @author Markus Paulsen
 	 */
 	@Nonnull
-	public static Object[] filterVariables(@Nonnull Object[] variables, @Nonnull IgnoreValues ignoreVariables) {
+	static Object[] filterVariables(@Nonnull Object[] variables, @Nonnull IgnoreValues ignoreVariables) {
 		@Nonnull
 		ArrayList<Object> newVariables = new ArrayList<>(Arrays.asList(variables.clone()));
 		switch (ignoreVariables.getType()) {
@@ -651,9 +630,8 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 		// All variables except the one at the given index are ignored
 		case "ALL_EXCEPT":
 			if (ignoreVariables.getIndex() < 0 || ignoreVariables.getIndex() >= newVariables.size()) {
-				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-						"security.instrumentation.ignore.values.index.invalid", ignoreVariables.getIndex(),
-						newVariables.size()));
+				throw new SecurityException(localize("security.instrumentation.ignore.values.index.invalid",
+						ignoreVariables.getIndex(), newVariables.size()));
 			}
 			@Nonnull
 			Object toKeep = newVariables.get(ignoreVariables.getIndex());
@@ -662,15 +640,13 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 			break;
 		case "NONE_EXCEPT":
 			if (ignoreVariables.getIndex() < 0 || ignoreVariables.getIndex() >= newVariables.size()) {
-				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-						"security.instrumentation.ignore.values.index.invalid", ignoreVariables.getIndex(),
-						newVariables.size()));
+				throw new SecurityException(localize("security.instrumentation.ignore.values.index.invalid",
+						ignoreVariables.getIndex(), newVariables.size()));
 			}
 			newVariables.remove(ignoreVariables.getIndex());
 			break;
 		default:
-			throw new IllegalArgumentException(JavaInstrumentationAdviceAbstractToolbox
-					.localize("aop.ignore.unknown.type", ignoreVariables.getType()));
+			throw new IllegalArgumentException(localize("aop.ignore.unknown.type", ignoreVariables.getType()));
 		}
 		return newVariables.toArray();
 	}

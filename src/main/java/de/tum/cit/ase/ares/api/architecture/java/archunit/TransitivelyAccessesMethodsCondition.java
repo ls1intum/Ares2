@@ -215,14 +215,16 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
 				return Set.of();
 			}
 
-			String nameOfRelatedClassWhichIsCalledByAccess = relatedClassWhichIsCalledByAccess.getFullName();
+			// The accesses that continue the transitive path are those whose ORIGIN is the
+			// target method itself, identified by its fully-qualified name. The previous
+			// code stripped the class prefix (yielding ".method(args)") and then compared
+			// that against the caller's fully-qualified name in
+			// getAccessesFromClassCalledBySpecificMethod, which could never match - so the
+			// traversal silently returned empty and never recursed past depth 1.
 			String nameOfRelatedMethodWhichIsCalledByAccess = relatedMethodWhichIsCalledByAccess.getFullName();
-			int lengthOfNameOfRelatedClassWhichIsCalledByAccess = nameOfRelatedClassWhichIsCalledByAccess.length();
-			// Removes the class name from the method name
-			String specificMethodName = nameOfRelatedMethodWhichIsCalledByAccess
-					.substring(lengthOfNameOfRelatedClassWhichIsCalledByAccess);
-			// Finds all method accesses from the class that owns the target method
-			return getAccessesFromClassCalledBySpecificMethod(relatedClassWhichIsCalledByAccess, specificMethodName);
+			// Finds all method accesses originating from the target method
+			return getAccessesFromClassCalledBySpecificMethod(relatedClassWhichIsCalledByAccess,
+					nameOfRelatedMethodWhichIsCalledByAccess);
 		}
 
 		/**

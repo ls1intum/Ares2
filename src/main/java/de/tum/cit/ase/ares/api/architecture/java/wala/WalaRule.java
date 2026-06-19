@@ -1,19 +1,33 @@
 package de.tum.cit.ase.ares.api.architecture.java.wala;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
-import java.util.function.Predicate;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.ibm.wala.classLoader.IMethod;
 import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.ibm.wala.shrike.shrikeCT.InvalidClassFileException;
+import com.ibm.wala.util.collections.Iterator2Iterable;
 
+import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.localization.Messages;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 
 public class WalaRule {
+
+	private static final Logger LOG = LoggerFactory.getLogger(WalaRule.class);
 
 	final String ruleName;
 	final Set<String> forbiddenMethods;
@@ -24,75 +38,383 @@ public class WalaRule {
 	}
 
 	public void check(CallGraph cg) {
-		long _checkStart = System.nanoTime();
-		int _pathCount = 0;
-		boolean _violationFound = false;
-		try {
-			Predicate<CGNode> isForbidden = n -> forbiddenMethods.stream()
-					.anyMatch(m -> matchesForbiddenMethod(n.getMethod().getSignature(), m));
+		check(cg, Set.of());
+	}
 
-			// Use the DFS finder in a loop: skip paths that are all-infra or transitive-JDK
-			// false positives and keep searching until a genuine student violation is
-			// found.
-			// This prevents a long JDK-internal path (found first by alphabetical DFS) from
-			// masking the shorter, direct forbidden-method call in student code.
-			CustomDFSPathFinder finder = new CustomDFSPathFinder(cg, cg.getEntrypointNodes().iterator(), isForbidden);
-			List<CGNode> path;
-			while ((path = finder.find()) != null) {
-				_pathCount++;
-				if (path.isEmpty()) {
-					continue;
-				}
-
-				OptionalInt studentIdx = WalaPathClassification.nearestStudentFrame(path);
-				if (studentIdx.isEmpty()) {
-					continue;
-				}
-
-				int callerIdx = studentIdx.getAsInt();
-				if (WalaPathClassification.isFalsePositiveTransitivePath(path, callerIdx)) {
-					continue;
-				}
-
-				int size = path.size();
-				CGNode forbiddenNode = path.get(size - 1);
-
-				// In production the forbidden node is always a JDK method (Primordial-loaded),
-				// so isInfraFrame classifies it as infra and nearestStudentFrame never returns
-				// size-1. This branch is defensive against misconfiguration only.
-				// Convert WALA's JVM-descriptor signatures to source-form so the resulting
-				// SecurityException matches the format ArchUnit produces (java.lang.String
-				// instead of Ljava/lang/String;, no return-type suffix). This keeps
-				// expected-exception fixtures consistent across both architecture backends.
-				String callerSignature = formatJvmSignature(
-						(callerIdx == size - 1) ? path.get(0).getMethod().getSignature()
-								: path.get(callerIdx).getMethod().getSignature());
-
-				String forbiddenSignature = formatJvmSignature(forbiddenNode.getMethod().getSignature());
-				String declaringClass = forbiddenNode.getMethod().getDeclaringClass().getName().getClassName()
-						.toString();
-				String entrySignature = formatJvmSignature(path.get(0).getMethod().getSignature());
-
-				try {
-					IMethod.SourcePosition sp = forbiddenNode.getMethod().getSourcePosition(0);
-					int lineNumber = sp != null ? sp.getFirstLine() : -1;
-					_violationFound = true;
-					throw new AssertionError(Messages.localized("security.architecture.method.call.message", ruleName,
-							callerSignature, forbiddenSignature, declaringClass, lineNumber, entrySignature));
-				} catch (InvalidClassFileException e) {
-					throw new SecurityException(Messages.localized("security.architecture.invalid.class.file"));
-				}
-			}
-		} finally {
-			long _ms = (System.nanoTime() - _checkStart) / 1_000_000L;
-			try {
-				java.nio.file.Files.writeString(java.nio.file.Paths.get("/tmp/wala-check-times.log"),
-						System.currentTimeMillis() + "|" + _ms + "|paths=" + _pathCount + "|violation="
-								+ _violationFound + "|" + ruleName + "\n",
-						java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-			} catch (Exception ignored) {
+	/**
+	 * Runs the rule, exempting the allow-listed classes: a violation is reported
+	 * ONLY when some non-allowed student frame can reach the forbidden API directly
+	 * (or through a project-helper frame that is not a transitive-JDK false
+	 * positive). If every student frame that reaches the sink is allow-listed, the
+	 * sink is exempt. An empty allow-list reproduces the original behaviour.
+	 * <p>
+	 * Implemented as reverse reachability per forbidden sink rather than a single
+	 * forward DFS. The previous {@link CustomDFSPathFinder} marked nodes globally
+	 * visited and therefore reported each sink on exactly one path, so an
+	 * allow-listed or false-positive caller discovered first could permanently mask
+	 * a genuine violation by a different caller of the same sink. By examining
+	 * every forbidden sink and every distinct nearest-student approach to it, that
+	 * masking cannot occur, while the per-path classification
+	 * ({@link WalaPathClassification}) is preserved exactly.
+	 *
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 * @param cg             the call graph to analyse, must not be null
+	 * @param allowedClasses the classes exempt from the rule, must not be null
+	 */
+	public void check(CallGraph cg, Set<ClassPermission> allowedClasses) {
+		// Collect every forbidden sink in the call graph. Sorting by signature keeps
+		// the reported violation deterministic across JVM runs (WALA's node iteration
+		// order depends on per-JVM identity hashes).
+		List<CGNode> sinks = new ArrayList<>();
+		for (CGNode node : cg) {
+			if (node != null && isForbidden(node)) {
+				sinks.add(node);
 			}
 		}
+		if (sinks.isEmpty()) {
+			return;
+		}
+		sinks.sort(Comparator.comparing(n -> n.getMethod().getSignature()));
+		Set<CGNode> entryReachable = forwardReachableFromEntrypoints(cg);
+		if (entryReachable.isEmpty()) {
+			// Fail closed: forbidden sinks are present but the call graph has no entry
+			// points, so nothing is reachable and every violation would be silently
+			// missed. An empty entry set means the analysis was mis-scoped (e.g. the
+			// entry-point package prefix did not match the analysed classes), which must
+			// be surfaced rather than passed.
+			throw new SecurityException(Messages.localized("security.architecture.wala.entrypoints.empty", ruleName));
+		}
+
+		for (CGNode sink : sinks) {
+			if (!entryReachable.contains(sink)) {
+				continue;
+			}
+			// Evaluate each distinct nearest-student approach to this sink as it is
+			// discovered and throw on the first genuine, non-exempt violation, so a real
+			// violation among the explored approaches is never masked by an exempt one.
+			evaluateSink(cg, sink, allowedClasses, entryReachable);
+		}
+	}
+
+	/** Returns {@code true} if the node's method matches a forbidden signature. */
+	private boolean isForbidden(CGNode node) {
+		String signature = node.getMethod().getSignature();
+		return forbiddenMethods.stream().anyMatch(m -> matchesForbiddenMethod(signature, m));
+	}
+
+	/**
+	 * Classifies a single reconstructed path (entry &rarr; ... &rarr; forbidden
+	 * sink) and returns the violation to raise, or empty when the path is an
+	 * all-infra path, a transitive-JDK false positive, or fully allow-listed. The
+	 * message format is identical to the previous inline reporting so both
+	 * architecture backends keep producing matching expected-exception fixtures.
+	 */
+	private Optional<AssertionError> evaluatePath(List<CGNode> path, Set<ClassPermission> allowedClasses) {
+		if (path.isEmpty()) {
+			return Optional.empty();
+		}
+		OptionalInt studentIdx = WalaPathClassification.nearestStudentFrame(path);
+		if (studentIdx.isEmpty()) {
+			return Optional.empty();
+		}
+		int callerIdx = studentIdx.getAsInt();
+		if (WalaPathClassification.isFalsePositiveTransitivePath(path, callerIdx)) {
+			return Optional.empty();
+		}
+		int size = path.size();
+		CGNode forbiddenNode = path.get(size - 1);
+		// Exempt allow-listed (essential/test) classes. A path is exempt ONLY when
+		// every
+		// student frame on it is allow-listed: if a non-allowed student frame reaches
+		// the
+		// forbidden API by routing through an allow-listed helper, the violation must
+		// still be reported (against that non-allowed frame).
+		if (!allowedClasses.isEmpty()) {
+			int nonAllowedStudentIdx = nearestNonAllowedStudentFrame(path, allowedClasses);
+			if (nonAllowedStudentIdx < 0) {
+				return Optional.empty();
+			}
+			callerIdx = nonAllowedStudentIdx;
+		}
+		CGNode callerNode = (callerIdx == size - 1) ? path.get(0) : path.get(callerIdx);
+		// Convert WALA's JVM-descriptor signatures to source-form so the resulting
+		// SecurityException matches the format ArchUnit produces.
+		String callerSignature = formatJvmSignature(callerNode.getMethod().getSignature());
+		String forbiddenSignature = formatJvmSignature(forbiddenNode.getMethod().getSignature());
+		String declaringClass = forbiddenNode.getMethod().getDeclaringClass().getName().getClassName().toString();
+		String entrySignature = formatJvmSignature(path.get(0).getMethod().getSignature());
+		try {
+			IMethod.SourcePosition sp = forbiddenNode.getMethod().getSourcePosition(0);
+			int lineNumber = sp != null ? sp.getFirstLine() : -1;
+			return Optional.of(new AssertionError(Messages.localized("security.architecture.method.call.message",
+					ruleName, callerSignature, forbiddenSignature, declaringClass, lineNumber, entrySignature)));
+		} catch (InvalidClassFileException e) {
+			throw new SecurityException(Messages.localized("security.architecture.invalid.class.file"));
+		}
+	}
+
+	/** Forward BFS over successor edges from the entry points. */
+	private static Set<CGNode> forwardReachableFromEntrypoints(CallGraph cg) {
+		Set<CGNode> visited = new HashSet<>();
+		Deque<CGNode> queue = new ArrayDeque<>();
+		for (CGNode entry : cg.getEntrypointNodes()) {
+			if (entry != null && visited.add(entry)) {
+				queue.add(entry);
+			}
+		}
+		while (!queue.isEmpty()) {
+			CGNode current = queue.poll();
+			for (CGNode successor : Iterator2Iterable.make(cg.getSuccNodes(current))) {
+				if (successor != null && visited.add(successor)) {
+					queue.add(successor);
+				}
+			}
+		}
+		return visited;
+	}
+
+	/**
+	 * Bounds the number of distinct nearest-student approaches evaluated per sink
+	 * so a pathological call graph cannot cause an unbounded reverse walk. The
+	 * bound is a backstop only: each approach is evaluated as it is discovered and
+	 * a genuine violation throws immediately, so the bound can never silently drop
+	 * a violation that lies among the explored approaches. If the bound is reached
+	 * without a violation, the truncation is logged (never a silent pass).
+	 */
+	private static final int MAX_APPROACHES_PER_SINK = 64;
+
+	/**
+	 * Reverse-walks from the sink through infrastructure frames only and evaluates
+	 * each nearest-student approach
+	 * {@code [nearestStudentFrame, ...infra..., sink]} the moment it is found,
+	 * throwing on the first genuine violation. If the sink is itself
+	 * student-authored (a theoretical edge case, since production sinks are JDK
+	 * methods) it is its own nearest student frame.
+	 */
+	private void evaluateSink(CallGraph cg, CGNode sink, Set<ClassPermission> allowedClasses,
+			Set<CGNode> entryReachable) {
+		if (!WalaPathClassification.isInfraFrame(sink)) {
+			evaluateApproach(cg, List.of(sink), allowedClasses, entryReachable);
+			return;
+		}
+		Deque<List<CGNode>> stack = new ArrayDeque<>();
+		stack.push(List.of(sink));
+		int evaluated = 0;
+		while (!stack.isEmpty()) {
+			List<CGNode> chain = stack.pop();
+			CGNode frontier = chain.get(0);
+			for (CGNode predecessor : Iterator2Iterable.make(cg.getPredNodes(frontier))) {
+				if (predecessor == null || chain.contains(predecessor)) {
+					continue;
+				}
+				List<CGNode> extended = new ArrayList<>();
+				extended.add(predecessor);
+				extended.addAll(chain);
+				if (WalaPathClassification.isInfraFrame(predecessor)) {
+					stack.push(extended);
+				} else {
+					// A nearest-student approach: evaluate it now; a real violation throws.
+					evaluateApproach(cg, extended, allowedClasses, entryReachable);
+					evaluated++;
+					if (evaluated >= MAX_APPROACHES_PER_SINK) {
+						LOG.warn(
+								"WalaRule '{}': reached the {}-approach backstop for sink {} without a violation; remaining approaches are not examined",
+								ruleName, MAX_APPROACHES_PER_SINK, sink.getMethod().getSignature());
+						return;
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * Builds the full witness path for one nearest-student approach (choosing a
+	 * prefix that routes through a non-allowed student frame when the nearest one
+	 * is allow-listed) and throws if it classifies as a genuine violation.
+	 */
+	private void evaluateApproach(CallGraph cg, List<CGNode> suffix, Set<ClassPermission> allowedClasses,
+			Set<CGNode> entryReachable) {
+		CGNode student = suffix.get(0);
+		if (!entryReachable.contains(student)) {
+			return;
+		}
+		List<CGNode> prefix = prefixToEntry(cg, student, allowedClasses);
+		if (prefix == null || prefix.isEmpty()) {
+			return;
+		}
+		List<CGNode> full = new ArrayList<>(prefix);
+		full.addAll(suffix.subList(1, suffix.size()));
+		Optional<AssertionError> violation = evaluatePath(full, allowedClasses);
+		if (violation.isPresent()) {
+			throw violation.get();
+		}
+	}
+
+	/**
+	 * Chooses an entry-to-student prefix. When the nearest student frame is itself
+	 * allow-listed, it prefers a path that routes through a non-allowed student
+	 * ancestor, so a violation hidden behind an allow-listed nearest frame is still
+	 * attributed to the real caller. Falls back to any entry path.
+	 */
+	private List<CGNode> prefixToEntry(CallGraph cg, CGNode student, Set<ClassPermission> allowedClasses) {
+		if (!allowedClasses.isEmpty() && isAllowedStudentFrame(student, allowedClasses)) {
+			List<CGNode> viaNonAllowed = prefixThroughNonAllowed(cg, student, allowedClasses);
+			if (viaNonAllowed != null) {
+				return viaNonAllowed;
+			}
+		}
+		return reversePathToEntry(cg, student);
+	}
+
+	/**
+	 * Reverse BFS from {@code target} to any entry point; returns entry &rarr;
+	 * target.
+	 */
+	private static List<CGNode> reversePathToEntry(CallGraph cg, CGNode target) {
+		Set<CGNode> entries = new HashSet<>();
+		for (CGNode entry : cg.getEntrypointNodes()) {
+			if (entry != null) {
+				entries.add(entry);
+			}
+		}
+		if (entries.contains(target)) {
+			List<CGNode> single = new ArrayList<>();
+			single.add(target);
+			return single;
+		}
+		Map<CGNode, CGNode> toward = new HashMap<>();
+		Deque<CGNode> queue = new ArrayDeque<>();
+		Set<CGNode> visited = new HashSet<>();
+		visited.add(target);
+		queue.add(target);
+		while (!queue.isEmpty()) {
+			CGNode current = queue.poll();
+			for (CGNode predecessor : Iterator2Iterable.make(cg.getPredNodes(current))) {
+				if (predecessor == null || !visited.add(predecessor)) {
+					continue;
+				}
+				toward.put(predecessor, current);
+				if (entries.contains(predecessor)) {
+					return reconstruct(predecessor, toward, target);
+				}
+				queue.add(predecessor);
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Reverse BFS from {@code student} to the nearest non-allowed student ancestor,
+	 * then prefixes that ancestor's own entry path, so the assembled path contains
+	 * a non-allowed student frame whenever one can reach {@code student}.
+	 */
+	private List<CGNode> prefixThroughNonAllowed(CallGraph cg, CGNode student, Set<ClassPermission> allowedClasses) {
+		Map<CGNode, CGNode> toward = new HashMap<>();
+		Deque<CGNode> queue = new ArrayDeque<>();
+		Set<CGNode> visited = new HashSet<>();
+		visited.add(student);
+		queue.add(student);
+		CGNode found = null;
+		while (!queue.isEmpty() && found == null) {
+			CGNode current = queue.poll();
+			for (CGNode predecessor : Iterator2Iterable.make(cg.getPredNodes(current))) {
+				if (predecessor == null || !visited.add(predecessor)) {
+					continue;
+				}
+				toward.put(predecessor, current);
+				if (!WalaPathClassification.isInfraFrame(predecessor)
+						&& !isAllowedStudentFrame(predecessor, allowedClasses)) {
+					found = predecessor;
+					break;
+				}
+				queue.add(predecessor);
+			}
+		}
+		if (found == null) {
+			return null;
+		}
+		List<CGNode> entryToFound = reversePathToEntry(cg, found);
+		if (entryToFound == null) {
+			return null;
+		}
+		List<CGNode> foundToStudent = reconstruct(found, toward, student);
+		List<CGNode> prefix = new ArrayList<>(entryToFound);
+		prefix.addAll(foundToStudent.subList(1, foundToStudent.size()));
+		return prefix;
+	}
+
+	/**
+	 * Follows {@code toward} pointers from {@code start} to {@code target},
+	 * inclusive.
+	 */
+	private static List<CGNode> reconstruct(CGNode start, Map<CGNode, CGNode> toward, CGNode target) {
+		List<CGNode> path = new ArrayList<>();
+		CGNode current = start;
+		path.add(current);
+		while (current != target) {
+			current = toward.get(current);
+			if (current == null) {
+				return path;
+			}
+			path.add(current);
+		}
+		return path;
+	}
+
+	/** Returns {@code true} when the node is a student frame on the allow-list. */
+	private static boolean isAllowedStudentFrame(CGNode node, Set<ClassPermission> allowedClasses) {
+		try {
+			com.ibm.wala.types.TypeName typeName = node.getMethod().getDeclaringClass().getName();
+			String fullyQualifiedName = typeName == null ? null : walaTypeToFullyQualifiedName(typeName.toString());
+			return JavaArchitectureTestCase.isAllowedClass(fullyQualifiedName, allowedClasses);
+		} catch (RuntimeException | com.ibm.wala.util.debug.UnimplementedError unclassifiable) {
+			return false;
+		}
+	}
+
+	/**
+	 * Returns the index of the student frame nearest the forbidden sink whose class
+	 * is NOT allow-listed, or {@code -1} when every student (non-infra) frame on
+	 * the path is allow-listed. Infrastructure frames (including malformed ones,
+	 * which {@link WalaPathClassification#isInfraFrame} already treats as infra)
+	 * are not student frames and are skipped; the local catch is a defensive
+	 * fallback that does not exempt a frame it cannot classify.
+	 */
+	private static int nearestNonAllowedStudentFrame(List<CGNode> path, Set<ClassPermission> allowedClasses) {
+		for (int i = path.size() - 1; i >= 0; i--) {
+			CGNode frame = path.get(i);
+			if (WalaPathClassification.isInfraFrame(frame)) {
+				// Not student-authored (JDK / Ares / test-helper infrastructure).
+				continue;
+			}
+			String fullyQualifiedName;
+			try {
+				com.ibm.wala.types.TypeName typeName = frame.getMethod().getDeclaringClass().getName();
+				fullyQualifiedName = typeName == null ? null : walaTypeToFullyQualifiedName(typeName.toString());
+			} catch (RuntimeException | com.ibm.wala.util.debug.UnimplementedError unclassifiable) {
+				return i; // cannot classify -> do not exempt
+			}
+			if (!JavaArchitectureTestCase.isAllowedClass(fullyQualifiedName, allowedClasses)) {
+				return i;
+			}
+		}
+		return -1;
+	}
+
+	/**
+	 * Converts a WALA {@code TypeName} string ({@code Lcom/foo/Bar} or
+	 * {@code Lcom/foo/Bar$Inner}) to a dotted fully-qualified name
+	 * ({@code com.foo.Bar} / {@code com.foo.Bar$Inner}) so it can be compared with
+	 * the policy's {@link ClassPermission} names. The {@code '$'} nested-class
+	 * separator is preserved for boundary-aware matching.
+	 */
+	private static String walaTypeToFullyQualifiedName(String walaTypeName) {
+		if (walaTypeName == null) {
+			return null;
+		}
+		String withoutPrefix = walaTypeName.startsWith("L") ? walaTypeName.substring(1) : walaTypeName;
+		return withoutPrefix.replace('/', '.');
 	}
 
 	private static boolean matchesForbiddenMethod(String actualSignature, String forbiddenSignature) {

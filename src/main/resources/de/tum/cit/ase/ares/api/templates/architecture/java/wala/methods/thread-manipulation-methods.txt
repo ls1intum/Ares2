@@ -86,3 +86,5 @@ java.util.concurrent.AbstractExecutorService.invokeAny(Ljava/util/Collection;JLj
 java.util.Collection.parallelStream()
 java.util.stream.Stream.parallel()
 java.util.stream.BaseStream.parallel()
+java.lang.Thread.start()
+java.util.Timer.<init>

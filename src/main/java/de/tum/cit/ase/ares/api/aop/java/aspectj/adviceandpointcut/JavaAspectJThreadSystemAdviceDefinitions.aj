@@ -8,7 +8,9 @@ import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -28,55 +30,15 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 
 	// <editor-fold desc="Constants">
 
-	/**
-	 * Internal value type representing a resolved thread target.
-	 * <p>
-	 * Description: Wraps a nullable class name string. Used throughout the
-	 * toolbox as the canonical representation of a thread endpoint,
-	 * regardless of whether it originated from a {@link Runnable}, a
-	 * {@link java.util.concurrent.Callable}, a lambda expression, or another
-	 * thread-capable object.
-	 *
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 */
-	private record ThreadTarget(@Nullable String className) {
 
-		/**
-		 * Returns a human-readable string representation of this thread target.
-		 * <p>
-		 * Description: Returns the class name, or {@code <unknown>}
-		 * if the class name is {@code null}.
-		 *
-		 * @return non-null display string
-		 * @since 2.0.0
-		 * @author Markus Paulsen
-		 */
-		@Nonnull
-		String toDisplayString() {
-			return className == null ? "<unknown>" : className;
-		}
-	}
 
 	/**
-	 * Map of methods with attribute index exceptions for thread system ignore
-	 * logic.
-	 * <p>
-	 * Description: Specifies for certain methods which attribute index should be
-	 * exempted from ignore rules during thread system checks.
+	 * Sentinel class name used when a thread-task carrier exists but its task class
+	 * cannot be read (reflection and Unsafe both failed). It matches no allow-list
+	 * entry, so the creation is denied (fail closed) instead of silently allowed.
 	 */
 	@Nonnull
-	private static final Map<String, IgnoreValues> THREAD_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT = Map.ofEntries();
-
-	/**
-	 * Map of methods with parameter index exceptions for thread system ignore
-	 * logic.
-	 * <p>
-	 * Description: Specifies for certain methods which parameter index should be
-	 * exempted from ignore rules during thread system checks.
-	 */
-	@Nonnull
-	private static final Map<String, IgnoreValues> THREAD_SYSTEM_IGNORE_PARAMETERS_EXCEPT = Map.ofEntries();
+	private static final String UNRESOLVED_THREAD_CLASS = "<unresolved-thread-class>";
 	// </editor-fold>
 
 	// <editor-fold desc="Thread system methods">
@@ -136,10 +98,101 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 				if ("de.tum.cit.ase.ares.api.internal.TimeoutUtils".equals(className)) {
 					return Boolean.TRUE;
 				}
+				// Ares's own infrastructure frames (this advice, internals) are never student
+				// code, even when restrictedPackage is a broad prefix that nominally covers them
+				// (e.g. the self-test fallback "de.tum.cit.ase"). Skipping them lets the walk
+				// reach the TimeoutUtils frame that legitimately owns this @StrictTimeout worker.
+				if (className.startsWith("de.tum.cit.ase.ares.api.")) {
+					continue;
+				}
 				if (restrictedPackage != null && !restrictedPackage.isEmpty()
 						&& className.startsWith(restrictedPackage)) {
 					return Boolean.FALSE;
 				}
+			}
+			return Boolean.FALSE;
+		});
+	}
+
+	/**
+	 * Prefix marking the synthetic thread-class token of an implicit thread
+	 * operation (one that performs thread-system work without passing an explicit
+	 * thread-task class). Such tokens are governed by the normal allow-list/quota
+	 * check, but are never matched by the {@code "*"} wildcard, so a broad
+	 * allow-list cannot silently permit them.
+	 */
+	private static final String IMPLICIT_THREAD_OPERATION_PREFIX = "<implicit-thread-op:";
+
+	/**
+	 * Returns the per-operation sentinel token for an implicit thread operation
+	 * intercepted with no resolvable thread-task class
+	 * ({@code Collection.parallelStream}, {@code BaseStream.parallel},
+	 * {@code Thread.sleep}, {@code SubmissionPublisher.submit/offer}), or
+	 * {@code null} if the intercepted method is not such an operation.
+	 *
+	 * @param declaringTypeName the declaring type of the intercepted method
+	 * @param methodName the intercepted method name
+	 * @return the sentinel token, or {@code null}
+	 */
+	@Nullable
+	private static String implicitThreadOperationToken(@Nullable String declaringTypeName, @Nullable String methodName) {
+		if (methodName == null) {
+			return null;
+		}
+		switch (methodName) {
+		case "parallelStream":
+		case "parallel":
+			return IMPLICIT_THREAD_OPERATION_PREFIX + methodName + ">";
+		case "sleep":
+			return "java.lang.Thread".equals(declaringTypeName)
+					? IMPLICIT_THREAD_OPERATION_PREFIX + "Thread.sleep>"
+					: null;
+		case "submit":
+		case "offer":
+			return "java.util.concurrent.SubmissionPublisher".equals(declaringTypeName)
+					? IMPLICIT_THREAD_OPERATION_PREFIX + "SubmissionPublisher." + methodName + ">"
+					: null;
+		default:
+			return null;
+		}
+	}
+
+	/**
+	 * Returns {@code true} when the first non-infrastructure frame on the current
+	 * stack is restricted-package (student) code. Used to attribute an implicit
+	 * thread operation to the student only when the student invoked it directly: a
+	 * woven harness or JDK helper that itself performs the operation while running
+	 * under student code is the immediate caller and is therefore not blamed on the
+	 * student. JDK, Ares-infrastructure and ignored frames are skipped because
+	 * student code can never declare those namespaces.
+	 *
+	 * @param restrictedPackage the configured restricted (student) package prefix
+	 * @return {@code true} if the immediate non-infrastructure caller is student code
+	 */
+	private static boolean isImmediateCallerWithinRestrictedPackage(@Nullable String restrictedPackage) {
+		if (restrictedPackage == null || restrictedPackage.isEmpty()) {
+			return false;
+		}
+		return java.lang.StackWalker.getInstance().walk(frames -> {
+			java.util.Iterator<java.lang.StackWalker.StackFrame> iterator = frames.iterator();
+			while (iterator.hasNext()) {
+				String className = iterator.next().getClassName();
+				if (className.startsWith("java.") || className.startsWith("javax.") || className.startsWith("jdk.")
+						|| className.startsWith("sun.") || className.startsWith("com.sun.")
+						|| className.startsWith("de.tum.cit.ase.ares.api.")) {
+					continue;
+				}
+				boolean ignorable = false;
+				for (String ignore : IGNORE_CALLSTACK) {
+					if (className.startsWith(ignore)) {
+						ignorable = true;
+						break;
+					}
+				}
+				if (ignorable) {
+					continue;
+				}
+				return className.startsWith(restrictedPackage);
 			}
 			return Boolean.FALSE;
 		});
@@ -200,15 +253,24 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 		if (allowedThreadClasses == null || allowedThreadClasses.length == 0 || allowedThreadNumbers == null || allowedThreadNumbers.length == 0) {
 			return true;
 		}
+		// Implicit thread operations (parallelStream/parallel/Thread.sleep/SubmissionPublisher.submit) are
+		// represented by a sentinel token. The "*" wildcard never covers them and class-hierarchy matching
+		// does not apply; only an exact sentinel entry in the allow-list permits one, so a broad "*" cannot
+		// silently allow them.
+		boolean isImplicitOperation = actualClassname.startsWith(IMPLICIT_THREAD_OPERATION_PREFIX);
 		int starIndex = -1;
 		for (int i = 0; i < allowedThreadClasses.length; i++) {
 			@Nonnull
 			String allowedClassName = allowedThreadClasses[i];
 			if ("*".equals(allowedClassName)) {
-				starIndex = i;
+				if (!isImplicitOperation) {
+					starIndex = i;
+				}
 				continue;
 			}
-			if (threadClassMatches(actualClassname, allowedClassName)) {
+			boolean matches = isImplicitOperation ? actualClassname.equals(allowedClassName)
+					: threadClassMatches(actualClassname, allowedClassName);
+			if (matches) {
 				return handleFoundClassIsForbidden(allowedThreadNumbers, i);
 			}
 		}
@@ -244,8 +306,12 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 		}
 
 		try {
-			Class<?> allowedClass = Class.forName(allowedClassName, true, ClassLoader.getSystemClassLoader());
-			Class<?> actualClass = Class.forName(actualClassname, true, ClassLoader.getSystemClassLoader());
+			// initialize=false: an assignability check does not require running the
+			// classes' static initialisers, and initialising a student-controlled class
+			// during a security decision would execute arbitrary code at an unexpected
+			// point (and risk advice re-entrancy).
+			Class<?> allowedClass = Class.forName(allowedClassName, false, ClassLoader.getSystemClassLoader());
+			Class<?> actualClass = Class.forName(actualClassname, false, ClassLoader.getSystemClassLoader());
 			return allowedClass.isAssignableFrom(actualClass);
 		} catch (ClassNotFoundException e) {
 			return allowedClassName.equals(actualClassname);
@@ -322,16 +388,42 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	 * Thread.FieldHolder instance, handling potential access restrictions.
 	 *
 	 * @param threadFieldHolder the Thread.FieldHolder instance
-	 * @return the value of the task field as a String
-	 * @throws SecurityException if extraction fails
+	 * @return the task class name, or {@code null} when the task field is genuinely
+	 *         null (a Thread subclass with an overridden {@code run()} and no
+	 *         Runnable)
+	 * @throws SecurityException if the task field exists but cannot be read
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */
-	@Nonnull
+	@Nullable
 	private static String getTaskFromThreadFieldHolder(@Nonnull Object threadFieldHolder) {
+		@Nonnull
+		Class<?> fieldHolderClass = threadFieldHolder.getClass();
+
+		// First, try standard reflection (preferred; avoids Unsafe where possible).
 		try {
+			Field taskField = fieldHolderClass.getDeclaredField("task");
+			taskField.setAccessible(true);
+			@Nullable
+			Object taskValue = taskField.get(threadFieldHolder);
+			if (taskValue == null) {
+				// Genuinely no Runnable task: not a read failure. Return null so the caller
+				// can fall back to the thread's own class instead of denying outright.
+				return null;
+			}
 			@Nonnull
-			Class<?> fieldHolderClass = threadFieldHolder.getClass();
+			Class<?> taskClass = taskValue.getClass();
+			return isReallyLambda(taskClass) ? "Lambda-Expression" : taskClass.getName();
+		} catch (NoSuchFieldException e) {
+			throw new SecurityException(localize("security.advice.transform.path.exception.detail", threadFieldHolder), e);
+		} catch (IllegalAccessException | InaccessibleObjectException | SecurityException e) {
+			// Standard reflection failed (access restriction, or SecurityException from
+			// setAccessible); try the Unsafe fallback instead of letting it escape to the
+			// sentinel path and over-block an otherwise allowed thread.
+		}
+
+		// Fallback to sun.misc.Unsafe for runtimes with strong encapsulation.
+		try {
 			Class<?> unsafeClass = Class.forName("sun.misc.Unsafe");
 			Field unsafeField = unsafeClass.getDeclaredField("theUnsafe");
 			unsafeField.setAccessible(true);
@@ -343,16 +435,103 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 			@Nullable
 			Object taskValue = getObjectMethod.invoke(unsafe, threadFieldHolder, offset);
 			if (taskValue == null) {
-				throw new SecurityException(JavaAspectJAbstractAdviceDefinitions.localize("security.advice.transform.path.exception.detail", threadFieldHolder));
+				return null;
 			}
 			@Nonnull
 			Class<?> taskClass = taskValue.getClass();
 			return isReallyLambda(taskClass) ? "Lambda-Expression" : taskClass.getName();
-		} catch (NoSuchFieldException | IllegalAccessException | NullPointerException |
-				 InaccessibleObjectException e) {
-			throw new SecurityException(JavaAspectJAbstractAdviceDefinitions.localize("security.advice.transform.path.exception.detail", threadFieldHolder), e);
+		} catch (NoSuchFieldException | IllegalAccessException | NullPointerException
+				| InaccessibleObjectException e) {
+			throw new SecurityException(localize("security.advice.transform.path.exception.detail", threadFieldHolder), e);
 		} catch (ClassNotFoundException | InvocationTargetException | NoSuchMethodException e) {
-			throw new SecurityException(JavaAspectJAbstractAdviceDefinitions.localize("security.advice.transform.path.unexpected.error"), e);
+			throw new SecurityException(localize("security.advice.transform.path.unexpected.error"), e);
+		}
+	}
+
+	/**
+	 * Returns the class name of the Runnable task carried by a {@link Thread}, or
+	 * {@code null} when the thread has no task (an overridden {@code run()}) or the
+	 * task cannot be read. Lambda tasks resolve to {@code "Lambda-Expression"}.
+	 * Reading the task directly from the receiver makes the thread check
+	 * self-sufficient, so it does not depend on the FieldHolder attribute being
+	 * separately readable (that field read may be skipped under strong
+	 * encapsulation).
+	 *
+	 * @param thread the thread receiver to inspect
+	 * @return the task class name, or {@code null} if there is no readable task
+	 */
+	@Nullable
+	private static String threadTaskClassName(@Nonnull Thread thread) {
+		Object task = readThreadTask(thread);
+		if (task == null) {
+			return null;
+		}
+		Class<?> taskClass = task.getClass();
+		return isReallyLambda(taskClass) ? "Lambda-Expression" : taskClass.getName();
+	}
+
+	/**
+	 * Reads the Runnable task object from a {@link Thread}, trying the modern
+	 * {@code holder.task} layout first and the legacy {@code target} field as a
+	 * fallback, each via reflection then Unsafe. Returns {@code null} if no task is
+	 * set or it cannot be read.
+	 *
+	 * @param thread the thread receiver to inspect
+	 * @return the task object, or {@code null}
+	 */
+	@Nullable
+	private static Object readThreadTask(@Nonnull Thread thread) {
+		// Modern layout: Thread.holder.task.
+		try {
+			Field holderField = Thread.class.getDeclaredField("holder");
+			Object holder = readField(holderField, thread);
+			if (holder != null) {
+				Field taskField = holder.getClass().getDeclaredField("task");
+				return readField(taskField, holder);
+			}
+		} catch (NoSuchFieldException ignored) {
+			// Not the modern layout; try the legacy field below.
+		}
+		// Legacy layout: Thread.target.
+		try {
+			Field targetField = Thread.class.getDeclaredField("target");
+			return readField(targetField, thread);
+		} catch (NoSuchFieldException ignored) {
+			return null;
+		}
+	}
+
+	/**
+	 * Reads an object field via standard reflection, falling back to
+	 * {@code sun.misc.Unsafe} when strong encapsulation blocks reflective access, so
+	 * the overridden-run() detection still works on a locked-down runtime. Returns
+	 * {@code null} if the value is null or cannot be read by either means.
+	 *
+	 * @param field the field to read
+	 * @param owner the instance to read it from
+	 * @return the field value, or {@code null}
+	 */
+	@Nullable
+	private static Object readField(@Nonnull Field field, @Nonnull Object owner) {
+		try {
+			field.setAccessible(true);
+			return field.get(owner);
+		} catch (IllegalAccessException | InaccessibleObjectException | SecurityException ignored) {
+			// Fall back to Unsafe below (a SecurityException from setAccessible must not
+			// escape and turn into an over-block of an otherwise allowed thread).
+		}
+		try {
+			Class<?> unsafeClass = Class.forName("sun.misc.Unsafe");
+			Field theUnsafe = unsafeClass.getDeclaredField("theUnsafe");
+			theUnsafe.setAccessible(true);
+			Object unsafe = theUnsafe.get(null);
+			Method objectFieldOffset = unsafeClass.getMethod("objectFieldOffset", Field.class);
+			long offset = (Long) objectFieldOffset.invoke(unsafe, field);
+			Method getObject = unsafeClass.getMethod("getObject", Object.class, long.class);
+			return getObject.invoke(unsafe, owner, offset);
+		} catch (ClassNotFoundException | NoSuchFieldException | NoSuchMethodException | IllegalAccessException
+				| InvocationTargetException | InaccessibleObjectException | NullPointerException ignored) {
+			return null;
 		}
 	}
 
@@ -370,6 +549,16 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 				return null;
 			} else if (isThreadFieldHolder(variableValue)) {
 				return getTaskFromThreadFieldHolder(variableValue);
+			} else if (variableValue instanceof Thread thread) {
+				// Resolve the thread's effective class from the receiver itself so the check
+				// does not depend on the FieldHolder attribute being separately readable. When
+				// the thread carries a Runnable task, that task's class identifies it;
+				// otherwise the thread's own class does (an overridden run()). The FieldHolder
+				// attribute resolves to the same task class and is de-duplicated, so the quota
+				// is consumed once. Must precede the Runnable branch because Thread implements
+				// Runnable.
+				String taskClassName = threadTaskClassName(thread);
+				return taskClassName != null ? taskClassName : thread.getClass().getName();
 			} else if (variableValue instanceof Runnable || variableValue instanceof Callable<?> || variableValue instanceof ForkJoinTask<?> || variableValue instanceof CompletableFuture<?> || variableValue instanceof Supplier<?> || variableValue instanceof Function<?, ?> || variableValue instanceof BiFunction<?, ?, ?> || variableValue instanceof CompletionStage<?>) {
 				@Nonnull
 				Class<?> variableClass = variableValue.getClass();
@@ -378,153 +567,43 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 				return null;
 			}
 		} catch (SecurityException ignored) {
-			return null;
+			// A thread-task carrier whose task class could not be read must not pass
+			// silently; return a sentinel that matches no allow-list entry so the creation
+			// is denied (fail closed).
+			return UNRESOLVED_THREAD_CLASS;
 		}
 	}
 
-	/**
-	 * Converts a variable value to a {@link ThreadTarget} if possible.
-	 * <p>
-	 * Description: Delegates to {@link #variableToClassname} and wraps the result.
-	 *
-	 * @param variableValue the variable to convert
-	 * @return a {@link ThreadTarget}, or {@code null} if conversion fails
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 */
-	@Nullable
-	private static ThreadTarget variableToTarget(@Nullable Object variableValue) {
-		String className = variableToClassname(variableValue);
-		return className == null ? null : new ThreadTarget(className);
-	}
 	// </editor-fold>
 
 	// <editor-fold desc="Violation analysis">
 
 	/**
-	 * Analyzes a variable to determine if it violates allowed paths.
-	 * <p>
-	 * Description: Recursively checks if the variable or its elements (if an array
-	 * or List) are in violation of the allowed paths. Returns true if any element
-	 * is forbidden.
+	 * Collects the resolved thread-class names from a variable, recursing into
+	 * arrays and Lists. Used to de-duplicate candidates across parameters, the
+	 * receiver, and attributes so the thread-number quota is consumed at most once
+	 * per distinct class per interception.
 	 *
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 * @param observedVariable      the variable to analyze
-	 * @param threadClassAllowedToBeCreated whitelist of allowed thread classes
-	 * @param threadNumberAllowedToBeCreated the number of threads allowed to be created
-	 * @return true if a violation is found, false otherwise
+	 * @param observedVariable the variable to resolve
+	 * @param out              the accumulator of distinct class names
 	 */
-	private static boolean analyseViolation(@Nullable Object observedVariable, @Nullable String[] threadClassAllowedToBeCreated, @Nullable int[] threadNumberAllowedToBeCreated) {
+	private static void collectThreadClassNames(@Nullable Object observedVariable, @Nonnull Set<String> out) {
 		if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
-			return false;
+			return;
 		} else if (observedVariable.getClass().isArray()) {
 			for (int i = 0; i < Array.getLength(observedVariable); i++) {
-				Object element = Array.get(observedVariable, i);
-				boolean violation = analyseViolation(element, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated);
-				if (violation) {
-					return true;
-				}
+				collectThreadClassNames(Array.get(observedVariable, i), out);
 			}
-			return false;
 		} else if (observedVariable instanceof List<?>) {
 			for (Object element : (List<?>) observedVariable) {
-				boolean violation = analyseViolation(element, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated);
-				if (violation) {
-					return true;
-				}
+				collectThreadClassNames(element, out);
 			}
-			return false;
 		} else {
-			try {
-				ThreadTarget target = variableToTarget(observedVariable);
-				return checkIfThreadIsForbidden(target, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated);
-			} catch (SecurityException ignored) {
-				return false;
+			String className = variableToClassname(observedVariable);
+			if (className != null) {
+				out.add(className);
 			}
 		}
-	}
-
-	/**
-	 * Extracts and returns the first violating class name from an array or list
-	 * variable.
-	 * <p>
-	 * Description: Iterates through the variable’s elements (array or List),
-	 * converts each to a class name if possible, and returns the name of the first
-	 * class that does not satisfy the allowed thread classes whitelist.
-	 *
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 * @param observedVariable     the array or List to inspect
-	 * @param threadClassAllowedToBeCreated the thread classes that are allowed to be created
-	 * @param threadNumberAllowedToBeCreated the number of threads allowed to be created
-	 * @return the first violating class name as a String, or null if none found
-	 */
-	@Nullable
-	private static String extractViolationPath(@Nullable Object observedVariable, @Nullable String[] threadClassAllowedToBeCreated, @Nullable int[] threadNumberAllowedToBeCreated) {
-		if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
-			return null;
-		} else if (observedVariable.getClass().isArray()) {
-			for (int i = 0; i < Array.getLength(observedVariable); i++) {
-				Object element = Array.get(observedVariable, i);
-				String violationPath = extractViolationPath(element, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated);
-				if (violationPath != null) {
-					return violationPath;
-				}
-			}
-			return null;
-		} else if (observedVariable instanceof List<?>) {
-			for (Object element : (List<?>) observedVariable) {
-				String violationPath = extractViolationPath(element, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated);
-				if (violationPath != null) {
-					return violationPath;
-				}
-			}
-			return null;
-		} else {
-			try {
-				ThreadTarget target = variableToTarget(observedVariable);
-				if (checkIfThreadIsForbidden(target, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated)) {
-					return target != null ? target.toDisplayString() : null;
-				}
-			} catch (SecurityException ignored) {
-				return null;
-			}
-		}
-		return null;
-	}
-
-	/**
-	 * Checks an array of observedVariables against the allowed thread classes
-	 * whitelist.
-	 * <p>
-	 * Description: Iterates through the filtered observedVariables (excluding those
-	 * matching ignoreVariables). For each non-null variable, if it is an array or a
-	 * List (excluding byte[]/Byte[]), each element is converted to a class name and
-	 * tested against the allowed thread classes. Otherwise, the variable itself is
-	 * converted and tested. The first violating class name found is returned.
-	 *
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 * @param observedVariables      array of values to validate
-	 * @param threadClassAllowedToBeCreated whitelist of allowed thread classes
-	 * @param threadNumberAllowedToBeCreated the number of threads allowed to be created
-	 * @param ignoreVariables criteria determining which observedVariables to skip
-	 * @return the first violating class name (as String) or null if none violate
-	 */
-	private static String checkIfVariableCriteriaIsViolated(
-			@Nonnull Object[] observedVariables,
-			@Nullable String[] threadClassAllowedToBeCreated,
-			@Nullable int[] threadNumberAllowedToBeCreated,
-			@Nonnull IgnoreValues ignoreVariables
-	) {
-		for (@Nullable
-		Object observedVariable : filterVariables(observedVariables, ignoreVariables)) {
-			if (analyseViolation(observedVariable, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated)) {
-				return extractViolationPath(observedVariable, threadClassAllowedToBeCreated, threadNumberAllowedToBeCreated);
-			}
-		}
-		return null;
 	}
 	// </editor-fold>
 
@@ -565,7 +644,7 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 		int[] allowedThreadNumbers = getValueFromSettings("threadNumberAllowedToBeCreated");
 		int allowedThreadNumbersSize = allowedThreadNumbers == null ? 0 : allowedThreadNumbers.length;
 		if (allowedThreadNumbersSize != allowedThreadClassesSize) {
-			throw new SecurityException(JavaAspectJAbstractAdviceDefinitions.localize("security.advice.thread.allowed.size", allowedThreadNumbersSize, allowedThreadClassesSize));
+			throw new SecurityException(localize("security.advice.thread.allowed.size", allowedThreadNumbersSize, allowedThreadClassesSize));
 		}
 		// </editor-fold>
 		// <editor-fold desc="Get information from join point">
@@ -600,6 +679,7 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 					attributes[i] = fields[i].get(instance);
 				} catch (InaccessibleObjectException
 						| IllegalAccessException
+						| SecurityException
 						| IllegalArgumentException
 						| NullPointerException
 						| ExceptionInInitializerError ignored) {
@@ -626,38 +706,47 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 		@Nullable
 		String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
 		boolean noAllowRuleConfigured = allowedThreadClasses == null || allowedThreadClasses.length == 0 || allowedThreadNumbers == null || allowedThreadNumbers.length == 0;
-		// <editor-fold desc="Check parameters">
-		@Nullable
-		String illegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null : checkIfVariableCriteriaIsViolated(parameters, allowedThreadClasses, allowedThreadNumbers, THREAD_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE));
-		if (illegallyInteractedThroughParameter != null) {
-			throw new SecurityException(JavaAspectJAbstractAdviceDefinitions.localize(
-					"security.advice.illegal.thread.execution",
-					systemMethodToCheck,
-					action,
-					illegallyInteractedThroughParameter,
-					fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
-							+ " | " + JavaAspectJAbstractAdviceDefinitions.buildDenialReason(noAllowRuleConfigured)
-			));
-		}
-		// </editor-fold>
-		// <editor-fold desc="Check attributes">
+		// <editor-fold desc="Check thread targets (quota counted once per distinct class)">
+		// Resolve every thread-class candidate from the parameters, the receiver, and the
+		// receiver's attributes into a single de-duplicated set, then check each distinct
+		// class exactly once. De-duplication keeps the thread-number quota correct: the
+		// previous design scanned parameters and attributes separately, so a task reached
+		// through both decremented the quota twice. A call that creates no thread resolves
+		// no class and therefore consumes nothing. Both thread ignore maps are empty, so no
+		// per-method ignore filtering applies here.
 		@Nonnull
-		Object[] attributesToCheck = new Object[attributes.length + 1];
-		attributesToCheck[0] = declaringTypeName;
-		if (attributes.length > 0) {
-			System.arraycopy(attributes, 0, attributesToCheck, 1, attributes.length);
+		Set<String> threadClassNames = new LinkedHashSet<>();
+		if (parameters != null) {
+			for (Object parameter : parameters) {
+				collectThreadClassNames(parameter, threadClassNames);
+			}
 		}
-		@Nullable
-		String illegallyInteractedThroughAttribute = (attributesToCheck.length == 0) ? null : checkIfVariableCriteriaIsViolated(attributesToCheck, allowedThreadClasses, allowedThreadNumbers, THREAD_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE));
-		if (illegallyInteractedThroughAttribute != null) {
-			throw new SecurityException(JavaAspectJAbstractAdviceDefinitions.localize(
-					"security.advice.illegal.thread.execution",
-					systemMethodToCheck,
-					action,
-					illegallyInteractedThroughAttribute,
-					fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
-							+ " | " + JavaAspectJAbstractAdviceDefinitions.buildDenialReason(noAllowRuleConfigured)
-			));
+		collectThreadClassNames(instance, threadClassNames);
+		if (attributes != null) {
+			for (Object attribute : attributes) {
+				collectThreadClassNames(attribute, threadClassNames);
+			}
+		}
+		// An implicit thread operation (parallelStream/parallel/Thread.sleep/SubmissionPublisher.submit/
+		// offer) carries no thread-task class, so the resolution above found nothing. Represent it by a
+		// per-operation sentinel so the existing allow-list/quota check governs it, but only when the
+		// student invoked it directly (the first non-infrastructure caller is restricted-package code), so
+		// a woven harness or JDK helper that performs the operation under student code is not blamed on the
+		// student.
+		if (threadClassNames.isEmpty()) {
+			@Nullable
+			String implicitOperationToken = implicitThreadOperationToken(declaringTypeName, methodName);
+			if (implicitOperationToken != null && isImmediateCallerWithinRestrictedPackage(restrictedPackage)) {
+				threadClassNames.add(implicitOperationToken);
+			}
+		}
+		for (String threadClassName : threadClassNames) {
+			if (checkIfThreadIsForbidden(new ThreadTarget(threadClassName), allowedThreadClasses, allowedThreadNumbers)) {
+				throw new SecurityException(localize(
+						"security.advice.illegal.thread.execution", systemMethodToCheck, action, threadClassName,
+						fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+								+ " | " + buildDenialReason(noAllowRuleConfigured)));
+			}
 		}
 		// </editor-fold>
 	}

@@ -13,14 +13,16 @@ import com.ibm.wala.util.debug.UnimplementedError;
 import de.tum.cit.ase.ares.api.localization.Messages;
 
 /**
- * Package-private utility for classifying WALA call-graph nodes as
- * student-authored or infrastructure (JDK / Ares / test helpers).
+ * Utility for classifying WALA call-graph nodes as student-authored or
+ * infrastructure (JDK / Ares / test helpers).
  * <p>
  * Used by {@link WalaRule} to attribute security violations to the nearest
- * student frame rather than an intermediate JDK method.
+ * student frame rather than an intermediate JDK method. Public so the
+ * reserved-package guard can share {@link #INFRA_PREFIXES} as the single source
+ * of truth for which prefixes are trusted.
  * </p>
  */
-class WalaPathClassification {
+public class WalaPathClassification {
 
 	// <editor-fold desc="Constructor">
 	private WalaPathClassification() {
@@ -36,15 +38,26 @@ class WalaPathClassification {
 	 * not be attributed as student code. Mirrors the exclusions in AspectJ's
 	 * {@code studentScope()} pointcut.
 	 * <p>
+	 * The Ares prefix is the narrow {@code de.tum.cit.ase.ares.api.}, matching the
+	 * ArchUnit importer exclusion ({@code /de/tum/cit/ase/ares/api/}) and the
+	 * runtime AOP ignored-frame prefix. The broader {@code de.tum.cit.ase.ares.}
+	 * would also classify the reproducibility test subjects (which live under
+	 * {@code de.tum.cit.ase.ares.integration.*}) as infrastructure, which would
+	 * wrongly suppress their violations; all Ares production code is under
+	 * {@code .api.}, so narrowing loses no genuine infrastructure frame.
+	 * <p>
 	 * The two reproducibility-repo helper packages ({@code anonymous.toolclasses.}
 	 * and {@code metatest.}) are included here intentionally: they are
 	 * test-framework helpers, not student-authored code under test. If a future
 	 * Ares consumer uses different helper packages, this list will need to be made
 	 * configurable.
+	 * <p>
+	 * Exposed so the reserved-package guard rejects student code declared under any
+	 * of these prefixes, keeping the guard and this classifier from drifting apart.
 	 * </p>
 	 */
-	static final List<String> INFRA_PREFIXES = List.of("java.", "javax.", "sun.", "jdk.", "com.sun.",
-			"de.tum.cit.ase.ares.", "net.bytebuddy.", "org.aspectj.", "com.ibm.wala.", "com.tngtech.archunit.",
+	public static final List<String> INFRA_PREFIXES = List.of("java.", "javax.", "sun.", "jdk.", "com.sun.",
+			"de.tum.cit.ase.ares.api.", "net.bytebuddy.", "org.aspectj.", "com.ibm.wala.", "com.tngtech.archunit.",
 			"anonymous.toolclasses.", "metatest.");
 
 	/**

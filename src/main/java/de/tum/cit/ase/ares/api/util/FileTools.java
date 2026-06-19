@@ -6,7 +6,6 @@ import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstru
 import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 
 import java.io.File;
-import java.io.FileReader;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -276,8 +275,9 @@ public class FileTools {
 	 */
 	public static List<List<String>> readCSVFile(@Nonnull File sourceFile) throws IOException, CsvException {
 		CSVParser csvParserBuilder = new CSVParserBuilder().withSeparator(',').withQuoteChar('"').build();
-		try (CSVReader csvReaderBuilder = new CSVReaderBuilder(new FileReader(sourceFile))
-				.withCSVParser(csvParserBuilder).withSkipLines(1).build()) {
+		try (CSVReader csvReaderBuilder = new CSVReaderBuilder(new java.io.InputStreamReader(
+				new java.io.FileInputStream(sourceFile), java.nio.charset.StandardCharsets.UTF_8))
+						.withCSVParser(csvParserBuilder).withSkipLines(1).build()) {
 			List<String[]> csvRowList = csvReaderBuilder.readAll();
 			return csvRowList.stream().map(Arrays::asList).toList();
 		}

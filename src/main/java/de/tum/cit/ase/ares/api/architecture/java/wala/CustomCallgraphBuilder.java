@@ -81,8 +81,24 @@ public class CustomCallgraphBuilder {
 			// AspectJ runtime and tooling, used by Ares' AOP layer
 			"/aspectjweaver", "/aspectjrt", "/aspectjtools");
 
-	private static final ConcurrentHashMap<String, CachedAnalysis> ANALYSIS_CACHE = new ConcurrentHashMap<>();
-	private static final ConcurrentHashMap<String, CallGraph> CALL_GRAPH_CACHE = new ConcurrentHashMap<>();
+	/**
+	 * Upper bound on cached call graphs / analyses. Call graphs are large, so an
+	 * unbounded cache would exhaust memory in a long-lived worker; an
+	 * access-ordered LRU keeps the hot entries while capping total retention.
+	 */
+	private static final int ANALYSIS_CACHE_MAX_ENTRIES = 32;
+	private static final java.util.Map<String, CachedAnalysis> ANALYSIS_CACHE = boundedLruMap(
+			ANALYSIS_CACHE_MAX_ENTRIES);
+	private static final java.util.Map<String, CallGraph> CALL_GRAPH_CACHE = boundedLruMap(ANALYSIS_CACHE_MAX_ENTRIES);
+
+	private static <V> java.util.Map<String, V> boundedLruMap(int maxEntries) {
+		return java.util.Collections.synchronizedMap(new java.util.LinkedHashMap<String, V>(16, 0.75f, true) {
+			@Override
+			protected boolean removeEldestEntry(java.util.Map.Entry<String, V> eldest) {
+				return size() > maxEntries;
+			}
+		});
+	}
 
 	private final ClassFileImporter classFileImporter;
 	private final AnalysisScope scope;
@@ -144,14 +160,7 @@ public class CustomCallgraphBuilder {
 				addHelperRoots(widened, mavenMain);
 			}
 		}
-		String result = String.join(File.pathSeparator, widened);
-		try {
-			java.nio.file.Files.writeString(java.nio.file.Paths.get("/tmp/wala-filter-trace.txt"),
-					"input=" + classPath + "\nwidened=" + result + "\ncwd=" + System.getProperty("user.dir") + "\n",
-					java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-		} catch (Exception ignored) {
-		}
-		return result;
+		return String.join(File.pathSeparator, widened);
 	}
 
 	/**
@@ -224,17 +233,9 @@ public class CustomCallgraphBuilder {
 	 * the next Gradle run rebuilds it.
 	 */
 	public CallGraph buildCallGraph(String classPathToAnalyze) {
-		long _profileStart = System.nanoTime();
 		String cacheKey = filterClassPath(constructionClassPath) + "::" + filterClassPath(classPathToAnalyze);
 		CallGraph cached = CALL_GRAPH_CACHE.get(cacheKey);
 		if (cached != null) {
-			long _hitMs = (System.nanoTime() - _profileStart) / 1_000_000L;
-			try {
-				java.nio.file.Files.writeString(java.nio.file.Paths.get("/tmp/wala-build-times.log"),
-						System.currentTimeMillis() + "|HIT|" + _hitMs + "|" + cacheKey.hashCode() + "\n",
-						java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-			} catch (Exception ignored) {
-			}
 			return cached;
 		}
 		try {
@@ -272,54 +273,14 @@ public class CustomCallgraphBuilder {
 			// SSAPropagationCallGraphBuilder.java
 			// around line 1577 in WALA 1.6.12), so wrapping after makeZeroOneCFABuilder
 			// takes effect.
-			options.setSelector(new JdkOpaqueMethodTargetSelector(options.getMethodTargetSelector()));
-			long _mkCgStart = System.nanoTime();
+			options.setSelector(new JdkOpaqueMethodTargetSelector(options.getMethodTargetSelector(), classHierarchy));
 			CallGraph callGraph = builder.makeCallGraph(options, null);
-			long _mkCgMs = (System.nanoTime() - _mkCgStart) / 1_000_000L;
-			long _totalMs = (System.nanoTime() - _profileStart) / 1_000_000L;
-			try {
-				java.nio.file.Files.writeString(java.nio.file.Paths.get("/tmp/wala-build-times.log"),
-						System.currentTimeMillis() + "|MISS|" + _totalMs + "|mkcg=" + _mkCgMs + "|"
-								+ cacheKey.hashCode() + "|" + classPathToAnalyze + "\n",
-						java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-			} catch (Exception ignored) {
-			}
 			CallGraph existing = CALL_GRAPH_CACHE.putIfAbsent(cacheKey, callGraph);
-			if (existing == null) {
-				try {
-					java.util.Set<String> anonClasses = new java.util.TreeSet<>();
-					int totalCgNodes = 0;
-					for (com.ibm.wala.ipa.callgraph.CGNode n : (Iterable<com.ibm.wala.ipa.callgraph.CGNode>) () -> callGraph
-							.iterator()) {
-						totalCgNodes++;
-						String dn = n.getMethod().getDeclaringClass().getName().toString();
-						if (dn.startsWith("Lanonymous/"))
-							anonClasses.add(dn);
-					}
-					int chCount = 0;
-					java.util.Set<String> chAnon = new java.util.TreeSet<>();
-					for (com.ibm.wala.classLoader.IClass c : (Iterable<com.ibm.wala.classLoader.IClass>) () -> classHierarchy
-							.iterator()) {
-						chCount++;
-						String n = c.getName().toString();
-						if (n.startsWith("Lanonymous/"))
-							chAnon.add(n);
-					}
-					StringBuilder sb = new StringBuilder();
-					sb.append("CG totalNodes=").append(totalCgNodes).append("\n");
-					sb.append("CG anon student classes (").append(anonClasses.size()).append("):\n");
-					for (String c : anonClasses)
-						sb.append("  ").append(c).append("\n");
-					sb.append("Hierarchy total=").append(chCount).append(" anon=").append(chAnon.size()).append("\n");
-					for (String c : chAnon)
-						sb.append("  ").append(c).append("\n");
-					java.nio.file.Files.writeString(java.nio.file.Paths.get("/tmp/wala-cg-stats.txt"), sb.toString());
-				} catch (Exception ignored) {
-				}
-			}
 			return existing != null ? existing : callGraph;
 		} catch (Exception e) {
-			throw new SecurityException(Messages.localized("security.architecture.build.call.graph.error"));
+			// Chain the cause so a genuine analysis failure is diagnosable and never
+			// silently mistaken for a clean result.
+			throw new SecurityException(Messages.localized("security.architecture.build.call.graph.error"), e);
 		}
 	}
 
@@ -373,17 +334,34 @@ public class CustomCallgraphBuilder {
 	private static final class JdkOpaqueMethodTargetSelector implements MethodTargetSelector {
 
 		private final MethodTargetSelector delegate;
+		private final ClassHierarchy classHierarchy;
 		private final ConcurrentHashMap<MethodReference, SummarizedMethod> opaqueCache = new ConcurrentHashMap<>();
 
-		JdkOpaqueMethodTargetSelector(MethodTargetSelector delegate) {
+		JdkOpaqueMethodTargetSelector(MethodTargetSelector delegate, ClassHierarchy classHierarchy) {
 			this.delegate = delegate;
+			this.classHierarchy = classHierarchy;
 		}
 
 		@Override
 		public IMethod getCalleeTarget(CGNode caller, CallSiteReference site, IClass receiver) {
 			IMethod target = delegate.getCalleeTarget(caller, site, receiver);
 			if (target == null) {
-				return null;
+				// The delegate could not resolve the call. This happens for interface default
+				// methods such
+				// as java.util.Collection.parallelStream() invoked on a receiver that does not
+				// override them:
+				// WALA's receiver-based resolution returns null, so no CGNode is created and
+				// WalaRule never
+				// sees the forbidden JDK sink (ArchUnit, which matches the call site, does).
+				// Fall back to the
+				// statically declared target so the JDK sink is recorded as an opaque node,
+				// matching the call
+				// site the student actually wrote. Only JDK (primordial) targets are kept
+				// opaque below.
+				target = classHierarchy.resolveMethod(site.getDeclaredTarget());
+				if (target == null) {
+					return null;
+				}
 			}
 			if (!target.getDeclaringClass().getClassLoader().getReference().equals(ClassLoaderReference.Primordial)) {
 				return target;
@@ -422,7 +400,7 @@ public class CustomCallgraphBuilder {
 				ClassHierarchy hierarchy = ClassHierarchyFactory.make(scope);
 				return new CachedAnalysis(scope, hierarchy);
 			} catch (ClassHierarchyException | IOException e) {
-				throw new SecurityException(Messages.localized("security.architecture.class.hierarchy.error"));
+				throw new SecurityException(Messages.localized("security.architecture.class.hierarchy.error"), e);
 			}
 		}
 	}

@@ -46,8 +46,6 @@ public class JavaWriter implements Writer {
 	 * @author Markus Paulsen
 	 * @param architectureMode          the Java architecture mode to use; must not
 	 *                                  be null
-	 * @param essentialPackages         the list of essential packages; must not be
-	 *                                  null
 	 * @param packageName               the name of the package containing the main
 	 *                                  class; must not be null
 	 * @param mainClassInPackageName    the name of the main class; must not be null
@@ -58,29 +56,26 @@ public class JavaWriter implements Writer {
 	 */
 	@Nonnull
 	private List<Path> createJavaArchitectureFiles(@Nonnull ArchitectureMode architectureMode,
-			@Nonnull List<String> essentialPackages, @Nonnull String packageName,
-			@Nonnull String mainClassInPackageName, @Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
-			@Nullable Path testFolderPath) {
+			@Nonnull String packageName, @Nonnull String mainClassInPackageName,
+			@Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases, @Nullable Path testFolderPath) {
 		return Stream
 				.concat(Stream.concat(
 						FileTools
 								.copyAndFormatFSFiles(architectureMode.fsFilesToCopy(),
-										architectureMode.fsTargetsToCopyTo(
-												FileTools.resolveOnPath(testFolderPath, packageName.split("\\."))),
+										confineTargets(architectureMode.fsTargetsToCopyTo(
+												FileTools.resolveOnPath(testFolderPath, packageName.split("\\.")))),
 										architectureMode.fsFormatValues(packageName, mainClassInPackageName))
 								.stream(),
-						FileTools
-								.copyAndFormatNonFSFiles(architectureMode.nonFSFilesToCopy(),
-										architectureMode.nonFSTargetsToCopyTo(
-												FileTools.resolveOnPath(testFolderPath, packageName.split("\\."))),
-										architectureMode.placeholderValues(),
-										architectureMode.nonFSFormatValues(packageName, mainClassInPackageName))
-								.stream()),
+						FileTools.copyAndFormatNonFSFiles(architectureMode.nonFSFilesToCopy(),
+								confineTargets(architectureMode.nonFSTargetsToCopyTo(
+										FileTools.resolveOnPath(testFolderPath, packageName.split("\\.")))),
+								architectureMode.placeholderValues(),
+								architectureMode.nonFSFormatValues(packageName, mainClassInPackageName)).stream()),
 						Stream.of(FileTools.createThreePartedFormatStringFile(architectureMode.threePartedFileHeader(),
 								architectureMode.threePartedFileBody(javaArchitectureTestCases),
 								architectureMode.threePartedFileFooter(),
-								architectureMode.targetToCopyTo(
-										FileTools.resolveOnPath(testFolderPath, packageName.split("\\."))),
+								confineToWorkingDirectory(architectureMode.targetToCopyTo(
+										FileTools.resolveOnPath(testFolderPath, packageName.split("\\.")))),
 								architectureMode.formatValues(packageName))))
 				.collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
 	}
@@ -109,26 +104,27 @@ public class JavaWriter implements Writer {
 				.collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
 		return Stream.concat(
 				Stream.concat(
-						FileTools.copyAndFormatFSFiles(
-								aopMode.fsFilesToCopy(),
-								aopMode.fsTargetsToCopyTo(
-										FileTools.resolveOnPath(testFolderPath, packageName.split("\\."))),
-								aopMode.fsFormatValues(packageName, mainClassInPackageName)).stream(),
+						FileTools
+								.copyAndFormatFSFiles(aopMode.fsFilesToCopy(), confineTargets(aopMode.fsTargetsToCopyTo(
+										FileTools.resolveOnPath(testFolderPath, packageName.split("\\.")))),
+										aopMode.fsFormatValues(packageName, mainClassInPackageName))
+								.stream(),
 						FileTools.copyAndFormatNonFSFiles(aopMode.nonFSFilesToCopy(),
-								aopMode.nonFSTargetsToCopyTo(
-										FileTools.resolveOnPath(testFolderPath, packageName.split("\\."))),
+								confineTargets(aopMode.nonFSTargetsToCopyTo(
+										FileTools.resolveOnPath(testFolderPath, packageName.split("\\.")))),
 								aopMode.placeholderValues(),
 								aopMode.nonFSFormatValues(packageName, mainClassInPackageName)).stream()),
 				Stream.of(FileTools.createThreePartedFormatStringFile(aopMode.threePartedFileHeader(),
 						aopMode.threePartedFileBody(aopMode.toString(), packageName, allowedClasses, javaAOPTestCases),
 						aopMode.threePartedFileFooter(),
-						aopMode.targetToCopyTo(FileTools.resolveOnPath(testFolderPath, packageName.split("\\."))),
+						confineToWorkingDirectory(aopMode
+								.targetToCopyTo(FileTools.resolveOnPath(testFolderPath, packageName.split("\\.")))),
 						aopMode.formatValues(packageName))))
 				.collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
 	}
 
 	@Nonnull
-	private List<Path> createLocalisationFiles(@Nonnull String packageName, @Nullable Path testFolderPath) {
+	private List<Path> createLocalisationFiles(@Nullable Path testFolderPath) {
 		if (testFolderPath == null || testFolderPath.toString().isBlank()) {
 			return List.of();
 		}
@@ -146,7 +142,8 @@ public class JavaWriter implements Writer {
 					: Paths.get(root.toString(), parentPath.toString(), "resources");
 		}
 
-		return FileTools.copyFiles(Localisation.filesToCopy(), Localisation.targetsToCopyTo(resourcesFolderPath));
+		return FileTools.copyFiles(Localisation.filesToCopy(),
+				confineTargets(Localisation.targetsToCopyTo(resourcesFolderPath)));
 	}
 
 	@Nonnull
@@ -178,6 +175,20 @@ public class JavaWriter implements Writer {
 	 * @param targetPath the resolved target path; must not be null
 	 * @return the normalised target path without escaping {@code ..} segments
 	 */
+	/**
+	 * Confines every target in a list to the working directory (see
+	 * {@link #confineToWorkingDirectory}), so a crafted package string containing
+	 * {@code ..} segments cannot redirect generated files outside the project. A
+	 * normal in-project target is returned unchanged.
+	 *
+	 * @param targets the resolved target paths; must not be null
+	 * @return the confined target paths
+	 */
+	@Nonnull
+	private static List<Path> confineTargets(@Nonnull List<Path> targets) {
+		return targets.stream().map(JavaWriter::confineToWorkingDirectory).toList();
+	}
+
 	@Nonnull
 	private static Path confineToWorkingDirectory(@Nonnull Path targetPath) {
 		Path normalised = targetPath.normalize();
@@ -250,11 +261,11 @@ public class JavaWriter implements Writer {
 			@Nonnull List<JavaAOPTestCase> javaAOPTestCases, @Nonnull List<JavaPhobosTestCase> javaPhobosTestCases,
 			@Nullable Path testFolderPath) {
 		return Stream
-				.of(createJavaArchitectureFiles(architectureMode, essentialPackages, packageName,
-						mainClassInPackageName, javaArchitectureTestCases, testFolderPath).stream(),
+				.of(createJavaArchitectureFiles(architectureMode, packageName, mainClassInPackageName,
+						javaArchitectureTestCases, testFolderPath).stream(),
 						createJavaAOPFiles(aopMode, essentialClasses, testClasses, packageName, mainClassInPackageName,
 								javaAOPTestCases, testFolderPath).stream(),
-						createLocalisationFiles(packageName, testFolderPath).stream(),
+						createLocalisationFiles(testFolderPath).stream(),
 						createPhobosFiles(packageName, javaPhobosTestCases, testFolderPath).stream())
 				.flatMap(s -> s).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
 	}

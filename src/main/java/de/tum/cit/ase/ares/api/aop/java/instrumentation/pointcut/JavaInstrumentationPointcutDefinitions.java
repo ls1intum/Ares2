@@ -488,6 +488,10 @@ public class JavaInstrumentationPointcutDefinitions {
 	 * be file delete operations.
 	 */
 	public static final Map<String, List<String>> methodsWhichCanDeleteFiles = Map.ofEntries(
+			// java.awt
+			// Desktop.moveToTrash deletes a file; the AspectJ backend already treats it as
+			// a delete, so the instrumentation backend must too (engine symmetry).
+			Map.entry("java.awt.Desktop", List.of("moveToTrash")),
 			// java.io
 			Map.entry("java.io.File", List.of("delete", "deleteOnExit")),
 			// java.nio
@@ -533,8 +537,14 @@ public class JavaInstrumentationPointcutDefinitions {
 	public static final Map<String, List<String>> methodsWhichCanCreateThreads = Map.ofEntries(
 			// java.lang
 			Map.entry("java.lang.Thread", List.of("start", "startVirtualThread")),
-			Map.entry("java.lang.Thread.Builder", List.of("run", "start")),
-			Map.entry("java.lang.Thread.Builder.OfPlatform", List.of("start")),
+			// Binary nested-class names ($, not .) so ByteBuddy's named(...) matcher
+			// resolves them; the dotted source names never matched
+			// TypeDescription.getName().
+			// Thread.Builder declares start(Runnable) but no run(): the former "run" entry
+			// matched no method (a phantom) and is dropped so this mirrors the AspectJ
+			// backend, which weaves only Thread$Builder+.start.
+			Map.entry("java.lang.Thread$Builder", List.of("start")),
+			Map.entry("java.lang.Thread$Builder$OfPlatform", List.of("start")),
 			Map.entry("java.lang.ThreadGroup", List.of("newThread")),
 			// java.util
 			Map.entry("java.util.Collection", List.of("parallelStream")),
@@ -594,7 +604,12 @@ public class JavaInstrumentationPointcutDefinitions {
 			Map.entry("javax.net.ssl.HttpsURLConnection", List.of("connect", "<init>")),
 			Map.entry("javax.net.SocketFactory", List.of("createSocket")),
 			Map.entry("javax.net.ssl.SSLSocketFactory", List.of("createSocket")),
-			Map.entry("java.net.URL", List.of("openConnection")),
+			// openStream is also a file-read pointcut (methodsWhichCanReadFiles); it is
+			// additionally a network connect because for a non-file URL it opens a
+			// connection. The file-read advice ignores non-file URLs and the network advice
+			// ignores file URLs, so classifying it as both gives full coverage in either
+			// engine without false positives. This matches the AspectJ pointcuts.
+			Map.entry("java.net.URL", List.of("openConnection", "openStream")),
 			Map.entry("java.net.URLConnection", List.of("connect")));
 	// </editor-fold>
 

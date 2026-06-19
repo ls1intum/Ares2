@@ -5,6 +5,7 @@ import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import %s.ares.api.policy.policySubComponents.PackagePermission;
+import %s.ares.api.architecture.java.archunit.JavaArchunitTestCaseCollection;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

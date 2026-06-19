@@ -8,7 +8,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonValue;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import de.tum.cit.ase.ares.api.localization.Messages;
 
@@ -23,7 +23,6 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  *
  * @since 2.0.0
  * @author Markus Paulsen
- * @since 2.0.0
  * @param executeTheCommand  the command that is permitted to be executed; must
  *                           not be null.
  * @param withTheseArguments the predefined arguments for the command; must not
@@ -44,6 +43,11 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
 			throw new IllegalArgumentException(Messages.localized("policy.permission.command.blank"));
 		}
 		Objects.requireNonNull(withTheseArguments, "withTheseArguments must not be null");
+		// Defensive, unmodifiable copy so the record is genuinely immutable, matching
+		// ResourceAccesses and SupervisedCode: the builder and Jackson pass a mutable
+		// list whose security-relevant argument allow-list could otherwise be mutated
+		// in place through the generated accessor.
+		withTheseArguments = List.copyOf(withTheseArguments);
 	}
 
 	/**
@@ -62,28 +66,73 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
 	}
 
 	/**
-	 * Creates a CommandPermission from a string command. This method is used by
-	 * Jackson for JSON/YAML deserialization.
+	 * Deserialises a CommandPermission from either YAML form, used by Jackson:
+	 * <ul>
+	 * <li>a bare string {@code "git"} &rarr; the command with no argument
+	 * constraint expressible today, i.e. an empty argument list (matches the
+	 * historical {@link #fromString} behaviour, NOT a widening to "any
+	 * arguments");</li>
+	 * <li>a mapping {@code {executeTheCommand: git, withTheseArguments: [status]}}
+	 * &rarr; the command with the declared arguments. This form previously threw a
+	 * {@code MismatchedInputException}, leaving the runtime argument check
+	 * unreachable from a policy file.</li>
+	 * </ul>
+	 *
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 * @param node the JSON/YAML node (a string scalar or an object)
+	 * @return a new CommandPermission instance
+	 */
+	@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+	@Nonnull
+	public static CommandPermission fromJson(@Nullable JsonNode node) {
+		if (node == null || node.isNull()) {
+			throw new IllegalArgumentException(Messages.localized("policy.permission.command.blank"));
+		}
+		if (node.isTextual()) {
+			return createRestrictive(node.asText());
+		}
+		if (node.isObject()) {
+			JsonNode commandNode = node.get("executeTheCommand");
+			if (commandNode == null || !commandNode.isTextual()) {
+				throw new IllegalArgumentException(Messages.localized("policy.permission.command.blank"));
+			}
+			List<String> arguments = new ArrayList<>();
+			JsonNode argumentsNode = node.get("withTheseArguments");
+			if (argumentsNode != null && argumentsNode.isArray()) {
+				for (JsonNode argument : argumentsNode) {
+					arguments.add(argument.asText());
+				}
+			}
+			return builder().executeTheCommand(commandNode.asText()).withTheseArguments(arguments).build();
+		}
+		throw new IllegalArgumentException(Messages.localized("policy.permission.command.blank"));
+	}
+
+	/**
+	 * Creates a CommandPermission from a string command (retained for callers and
+	 * tests that build a restrictive permission directly).
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 * @param command the command string
 	 * @return a new CommandPermission instance with empty arguments
 	 */
-	@JsonCreator
 	@Nonnull
 	public static CommandPermission fromString(String command) {
 		return createRestrictive(command);
 	}
 
 	/**
-	 * Returns the command as a string for JSON/YAML serialization.
+	 * Returns a human-readable representation. No longer annotated with
+	 * {@code @JsonValue}: serialising to only the command silently dropped the
+	 * arguments, so the record now serialises through its components.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 * @return the command string
 	 */
-	@JsonValue
+	@Override
 	@Nonnull
 	public String toString() {
 		return executeTheCommand;

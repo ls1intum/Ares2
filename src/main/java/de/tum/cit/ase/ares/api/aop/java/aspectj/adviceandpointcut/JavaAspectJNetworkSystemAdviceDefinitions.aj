@@ -33,36 +33,6 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 	// <editor-fold desc="Constants">
 
 	/**
-	 * Internal value type representing a resolved network target.
-	 * <p>
-	 * Description: Pairs a nullable hostname string with an integer port number.
-	 * Used throughout the toolbox as the canonical representation of a network
-	 * endpoint, regardless of whether it originated from a {@link Socket}, a
-	 * {@link URI}, a {@link HttpRequest}, or another network-capable object.
-	 *
-	 * @since 2.0.0
-	 * @author Kevin Fischer
-	 */
-	private record NetworkTarget(@Nullable String host, int port) {
-
-		/**
-		 * Returns a human-readable string representation of this network target.
-		 * <p>
-		 * Description: Formats the host and port as {@code host:port}. If the host
-		 * is {@code null} or blank, substitutes the placeholder {@code <unknown>}.
-		 *
-		 * @return non-null display string in the form {@code host:port}
-		 * @since 2.0.0
-		 * @author Kevin Fischer
-		 */
-		@Nonnull
-		String toDisplayString() {
-			String normalizedHost = host == null || host.isBlank() ? "<unknown>" : host;
-			return normalizedHost + ":" + port;
-		}
-	}
-
-	/**
 	 * Map of methods with attribute index exceptions for network system ignore
 	 * logic.
 	 * <p>
@@ -121,7 +91,7 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 		for (int i = 0; i < allowedHosts.length; i++) {
 			String allowedHost = allowedHosts[i];
 			int allowedPort = allowedPorts[i];
-			if (hostMatches(target.host, allowedHost) && portMatches(target.port, allowedPort)) {
+			if (hostMatches(target.host(), allowedHost) && portMatches(target.port(), allowedPort)) {
 				return false;
 			}
 		}
@@ -156,7 +126,20 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 		}
 		String normalizedActual = actualHost.trim().toLowerCase(Locale.ROOT);
 		String normalizedAllowed = allowedHost.trim().toLowerCase(Locale.ROOT);
-		return normalizedActual.equals(normalizedAllowed) || normalizedActual.endsWith("." + normalizedAllowed);
+		if (normalizedActual.equals(normalizedAllowed)) {
+			return true;
+		}
+		// Subdomain suffix match (e.g. allowed "example.com" matches "api.example.com").
+		// Restricted to allowed hosts that contain a letter so a numeric IP fragment like
+		// "1.1" cannot match "10.1.1".
+		boolean allowedHasLetter = false;
+		for (int i = 0; i < normalizedAllowed.length(); i++) {
+			if (Character.isLetter(normalizedAllowed.charAt(i))) {
+				allowedHasLetter = true;
+				break;
+			}
+		}
+		return allowedHasLetter && normalizedActual.endsWith("." + normalizedAllowed);
 	}
 
 	/**
@@ -328,10 +311,10 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 	@Nullable
 	private static NetworkTarget portSuffixToTarget(@Nonnull String host, @Nonnull String portSuffix) {
 		try {
+			// No range guard: an out-of-range port must still produce a target so the
+			// allow-list can reject it (matching the instrumentation backend). Returning
+			// null here would fail open by skipping the check entirely for that string.
 			int port = Integer.parseInt(portSuffix);
-			if (port < 0 || port > 65_535) {
-				return null;
-			}
 			return new NetworkTarget(host, port);
 		} catch (NumberFormatException ignored) {
 			return null;
@@ -353,19 +336,49 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 	 */
 	@Nullable
 	private static NetworkTarget parametersToTarget(@Nonnull Object[] parameters) {
-		// Prefer pair-extraction (host + port) over single-parameter extraction. For
-		// low-level JDK APIs like sun.nio.ch.Net.connect(FileDescriptor, InetAddress, int)
-		// the InetAddress alone yields port=-1, which would falsely flag a permitted
-		// host:port target as forbidden because port=-1 is never in the allowlist.
+		return parametersToTarget(parameters, new java.util.BitSet(parameters.length));
+	}
+
+	/**
+	 * Resolves a network target and records which parameter indices were consumed.
+	 * <p>
+	 * Description: Prefers pair-extraction (host + port) over single-parameter
+	 * extraction and marks every consumed index in {@code consumedIndices}. The
+	 * first valid pair becomes the resolved target; subsequent valid pairs are still
+	 * marked consumed. Callers exclude consumed indices from the per-parameter walk
+	 * so a bare {@link InetAddress} that already participated in a successful pair is
+	 * not re-resolved as {@code (host, -1)} and falsely reported as a violation
+	 * against any allowlist whose port is not {@code -1}. Mirrors the instrumentation
+	 * backend.
+	 *
+	 * @param parameters      the intercepted argument array
+	 * @param consumedIndices out-parameter; bits are set for every consumed index
+	 * @return the resolved target, or {@code null} if no target can be derived
+	 */
+	@Nullable
+	private static NetworkTarget parametersToTarget(@Nonnull Object[] parameters,
+			@Nonnull java.util.BitSet consumedIndices) {
+		NetworkTarget firstTarget = null;
 		for (int i = 0; i + 1 < parameters.length; i++) {
+			if (consumedIndices.get(i) || consumedIndices.get(i + 1)) {
+				continue;
+			}
 			NetworkTarget pairTarget = hostAndPortToTarget(parameters[i], parameters[i + 1]);
 			if (pairTarget != null) {
-				return pairTarget;
+				consumedIndices.set(i);
+				consumedIndices.set(i + 1);
+				if (firstTarget == null) {
+					firstTarget = pairTarget;
+				}
 			}
+		}
+		if (firstTarget != null) {
+			return firstTarget;
 		}
 		for (int i = 0; i < parameters.length; i++) {
 			NetworkTarget directTarget = variableToTarget(parameters[i]);
 			if (directTarget != null) {
+				consumedIndices.set(i);
 				return directTarget;
 			}
 		}
@@ -625,49 +638,67 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 			case "connect" -> getValueFromSettings("hostsAllowedToBeConnectedTo");
 			case "send" -> getValueFromSettings("hostsAllowedToBeSentTo");
 			case "receive" -> getValueFromSettings("hostsAllowedToBeReceivedFrom");
-			default -> throw new SecurityException(JavaAspectJAbstractAdviceDefinitions.localize("security.advice.settings.invalid.network.permission", action));
+			default -> throw new SecurityException(localize("security.advice.settings.invalid.network.permission", action));
 		};
 		@Nullable
 		final int[] allowedPorts = switch (action) {
 			case "connect" -> getValueFromSettings("portsAllowedToBeConnectedTo");
 			case "send" -> getValueFromSettings("portsAllowedToBeSentTo");
 			case "receive" -> getValueFromSettings("portsAllowedToBeReceivedFrom");
-			default -> throw new SecurityException(JavaAspectJAbstractAdviceDefinitions.localize("security.advice.settings.invalid.network.permission", action));
+			default -> throw new SecurityException(localize("security.advice.settings.invalid.network.permission", action));
 		};
 
 		if ((allowedHosts == null ? 0 : allowedHosts.length) != (allowedPorts == null ? 0 : allowedPorts.length)) {
-			throw new SecurityException(JavaAspectJAbstractAdviceDefinitions.localize("security.advice.network.allowed.size", action,
+			throw new SecurityException(localize("security.advice.network.allowed.size", action,
 					allowedHosts == null ? 0 : allowedHosts.length, allowedPorts == null ? 0 : allowedPorts.length));
 		}
 		boolean noAllowRuleConfigured = allowedHosts == null || allowedHosts.length == 0 || allowedPorts == null || allowedPorts.length == 0;
 		// </editor-fold>
 		// <editor-fold desc="Check parameters">
+		final boolean hasParameters = parameters != null && parameters.length > 0;
+		@Nonnull
+		final java.util.BitSet consumedParameterIndices = new java.util.BitSet(hasParameters ? parameters.length : 0);
 		@Nullable
-		NetworkTarget targetFromParameters = (parameters == null || parameters.length == 0) ? null
-				: parametersToTarget(parameters);
+		NetworkTarget targetFromParameters = hasParameters ? parametersToTarget(parameters, consumedParameterIndices)
+				: null;
 		if (targetFromParameters != null && checkIfNetworkIsForbidden(targetFromParameters, allowedHosts, allowedPorts)) {
-			throw new SecurityException(JavaAspectJAbstractAdviceDefinitions.localize(
+			throw new SecurityException(localize(
 					"security.advice.illegal.network.execution",
 					networkSystemMethodToCheck,
 					action,
 					targetFromParameters.toDisplayString(),
 					fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
-							+ " | " + JavaAspectJAbstractAdviceDefinitions.buildDenialReason(noAllowRuleConfigured)
+							+ " | " + buildDenialReason(noAllowRuleConfigured)
 			));
 		}
+		// Mask out indices already consumed by parametersToTarget so the per-parameter
+		// scan does not re-resolve the same host (or local-bind host) as a port=-1
+		// target and false-positive against the allowlist. Mirrors the instrumentation
+		// backend.
 		@Nullable
-		String networkIllegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null
-				: checkIfVariableCriteriaIsViolated(parameters, allowedHosts, allowedPorts,
-						NETWORK_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
-								IgnoreValues.NONE));
+		final Object[] residualParameters;
+		if (!hasParameters || consumedParameterIndices.isEmpty()) {
+			residualParameters = parameters;
+		} else {
+			residualParameters = new Object[parameters.length];
+			for (int i = 0; i < parameters.length; i++) {
+				residualParameters[i] = consumedParameterIndices.get(i) ? null : parameters[i];
+			}
+		}
+		@Nullable
+		String networkIllegallyInteractedThroughParameter = (residualParameters == null
+				|| residualParameters.length == 0) ? null
+						: checkIfVariableCriteriaIsViolated(residualParameters, allowedHosts, allowedPorts,
+								NETWORK_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
+										IgnoreValues.NONE));
 		if (networkIllegallyInteractedThroughParameter != null) {
-			throw new SecurityException(JavaAspectJAbstractAdviceDefinitions.localize(
+			throw new SecurityException(localize(
 					"security.advice.illegal.network.execution",
 					networkSystemMethodToCheck,
 					action,
 					networkIllegallyInteractedThroughParameter,
 					fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
-							+ " | " + JavaAspectJAbstractAdviceDefinitions.buildDenialReason(noAllowRuleConfigured)
+							+ " | " + buildDenialReason(noAllowRuleConfigured)
 			));
 		}
 		// </editor-fold>
@@ -677,13 +708,13 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 				: checkIfVariableCriteriaIsViolated(new Object[] { instance }, allowedHosts, allowedPorts,
 						IgnoreValues.NONE);
 		if (networkIllegallyInteractedThroughReceiver != null) {
-			throw new SecurityException(JavaAspectJAbstractAdviceDefinitions.localize(
+			throw new SecurityException(localize(
 					"security.advice.illegal.network.execution",
 					networkSystemMethodToCheck,
 					action,
 					networkIllegallyInteractedThroughReceiver,
 					fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
-							+ " | " + JavaAspectJAbstractAdviceDefinitions.buildDenialReason(noAllowRuleConfigured)
+							+ " | " + buildDenialReason(noAllowRuleConfigured)
 			));
 		}
 		// </editor-fold>
@@ -694,13 +725,13 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 						NETWORK_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
 								IgnoreValues.NONE));
 		if (networkIllegallyInteractedThroughAttribute != null) {
-			throw new SecurityException(JavaAspectJAbstractAdviceDefinitions.localize(
+			throw new SecurityException(localize(
 					"security.advice.illegal.network.execution",
 					networkSystemMethodToCheck,
 					action,
 					networkIllegallyInteractedThroughAttribute,
 					fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
-							+ " | " + JavaAspectJAbstractAdviceDefinitions.buildDenialReason(noAllowRuleConfigured)
+							+ " | " + buildDenialReason(noAllowRuleConfigured)
 			));
 		}
 		// </editor-fold>
@@ -767,6 +798,7 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 					attributes[i] = fields[i].get(instance);
 				} catch (InaccessibleObjectException
 						| IllegalAccessException
+						| SecurityException
 						| IllegalArgumentException
 						| NullPointerException
 						| ExceptionInInitializerError ignored) {

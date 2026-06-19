@@ -17,6 +17,7 @@ import com.tngtech.archunit.core.domain.JavaClasses;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
 import de.tum.cit.ase.ares.api.localization.Messages;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 import de.tum.cit.ase.ares.api.util.FileTools;
 //</editor-fold>
@@ -39,6 +40,12 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 	public JavaArchunitTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
 			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses) {
 		super(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, null);
+	}
+
+	public JavaArchunitTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
+			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
+			@Nonnull Set<ClassPermission> allowedClasses) {
+		super(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, null, null, allowedClasses);
 	}
 
 	// </editor-fold>
@@ -128,21 +135,43 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 	private static final java.util.concurrent.ConcurrentHashMap<String, java.util.Optional<SecurityException>> RULE_OUTCOME_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
 	private static final java.util.concurrent.ConcurrentHashMap<String, java.util.Optional<SecurityException>> PACKAGE_OUTCOME_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
 
+	/**
+	 * Per-instance identity tokens for the analysed {@link JavaClasses}. Replaces
+	 * {@code System.identityHashCode}, whose 32-bit value could collide between two
+	 * distinct instances within one JVM and mis-serve a cached security verdict. An
+	 * {@link java.util.IdentityHashMap} keyed on the actual instance gives a
+	 * guaranteed-unique token per distinct {@code JavaClasses}.
+	 */
+	private static final java.util.Map<JavaClasses, String> JAVA_CLASSES_TOKENS = new java.util.IdentityHashMap<>();
+	private static final java.util.concurrent.atomic.AtomicLong JAVA_CLASSES_TOKEN_SEQUENCE = new java.util.concurrent.atomic.AtomicLong();
+
+	private static String javaClassesToken(JavaClasses javaClasses) {
+		synchronized (JAVA_CLASSES_TOKENS) {
+			return JAVA_CLASSES_TOKENS.computeIfAbsent(javaClasses,
+					key -> "jc" + JAVA_CLASSES_TOKEN_SEQUENCE.incrementAndGet());
+		}
+	}
+
 	@Override
 	public void executeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
 		JavaArchitectureTestCaseSupported supported = (JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported;
+		// The allow-listed classes change which violations are exempt, so they MUST be
+		// part of the cache key; otherwise a run with exemptions could be served a
+		// no-exemption outcome (or vice versa).
+		String allowedClassesSignature = getAllowedClasses().stream().map(ClassPermission::className).sorted()
+				.collect(java.util.stream.Collectors.joining(","));
 		java.util.Optional<SecurityException> cached;
 		if (supported == JavaArchitectureTestCaseSupported.PACKAGE_IMPORT) {
 			String allowedSignature = allowedPackages.stream().map(p -> p.importTheFollowingPackage()).sorted()
 					.collect(java.util.stream.Collectors.joining(","));
-			String pkgKey = allowedSignature + "@" + System.identityHashCode(javaClasses);
+			String pkgKey = allowedSignature + "#" + allowedClassesSignature + "@" + javaClassesToken(javaClasses);
 			cached = PACKAGE_OUTCOME_CACHE.get(pkgKey);
 			if (cached == null) {
 				cached = runRuleAndCapture(supported);
 				PACKAGE_OUTCOME_CACHE.put(pkgKey, cached);
 			}
 		} else {
-			String key = supported.name() + "@" + System.identityHashCode(javaClasses);
+			String key = supported.name() + "#" + allowedClassesSignature + "@" + javaClassesToken(javaClasses);
 			cached = RULE_OUTCOME_CACHE.get(key);
 			if (cached == null) {
 				cached = runRuleAndCapture(supported);
@@ -156,27 +185,10 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 
 	private java.util.Optional<SecurityException> runRuleAndCapture(JavaArchitectureTestCaseSupported supported) {
 		try {
-			switch (supported) {
-			case FILESYSTEM_INTERACTION -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_ACCESS_FILE_SYSTEM
+			// Route through the allow-aware rule so allow-listed (essential/test) classes
+			// are exempt; an empty allow-list reproduces the original behaviour.
+			JavaArchunitTestCaseCollection.allowAwareRuleFor(supported, getAllowedClasses(), allowedPackages)
 					.check(javaClasses);
-			case NETWORK_CONNECTION -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_ACCESS_NETWORK.check(javaClasses);
-			case COMMAND_EXECUTION -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_EXECUTE_COMMANDS.check(javaClasses);
-			case THREAD_CREATION -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_CREATE_THREADS.check(javaClasses);
-			case PACKAGE_IMPORT -> JavaArchunitTestCaseCollection.noClassMustImportForbiddenPackages(allowedPackages)
-					.check(javaClasses);
-			case REFLECTION -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_USE_REFLECTION.check(javaClasses);
-			case TERMINATE_JVM -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_TERMINATE_JVM.check(javaClasses);
-			case SERIALIZATION -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_SERIALIZE.check(javaClasses);
-			case CLASS_LOADING -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_USE_CLASSLOADERS.check(javaClasses);
-			case NATIVE_CODE -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_ACCESS_NATIVE_CODE.check(javaClasses);
-			case AGENT_ATTACH -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_ATTACH_AGENTS.check(javaClasses);
-			case ENVIRONMENT_ACCESS -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_ACCESS_ENVIRONMENT
-					.check(javaClasses);
-			case MODULE_SYSTEM -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_ACCESS_MODULE_SYSTEM.check(javaClasses);
-			case JNDI_INJECTION -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_PERFORM_JNDI_LOOKUPS.check(javaClasses);
-			default -> throw new SecurityException(
-					Messages.localized("security.common.unsupported.operation", supported));
-			}
 			return java.util.Optional.empty();
 		} catch (AssertionError ae) {
 			try {
@@ -214,6 +226,8 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 		private JavaClasses javaClasses;
 		@Nullable
 		private Set<PackagePermission> allowedPackages;
+		@Nonnull
+		private Set<ClassPermission> allowedClasses = Set.of();
 
 		/**
 		 * Sets the architecture test case type supported by this instance.
@@ -262,6 +276,20 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 		}
 
 		/**
+		 * Sets the allowed (exempt) class permissions.
+		 *
+		 * @param allowedClasses Set of class permissions exempt from the rules
+		 * @return This builder instance for method chaining
+		 * @author Markus Paulsen
+		 * @since 2.0.0
+		 */
+		@Nonnull
+		public JavaArchunitTestCase.Builder allowedClasses(@Nonnull Set<ClassPermission> allowedClasses) {
+			this.allowedClasses = Preconditions.checkNotNull(allowedClasses, "allowedClasses must not be null");
+			return this;
+		}
+
+		/**
 		 * Builds and returns a new JavaArchitectureTestCase instance with the
 		 * configured properties.
 		 *
@@ -276,7 +304,7 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 					Preconditions.checkNotNull(javaArchitectureTestCaseSupported,
 							"javaArchitecturalTestCaseSupported must not be null"),
 					Preconditions.checkNotNull(allowedPackages, "allowedPackages must not be null"),
-					Preconditions.checkNotNull(javaClasses, "javaClasses must not be null"));
+					Preconditions.checkNotNull(javaClasses, "javaClasses must not be null"), allowedClasses);
 		}
 	}
 	// </editor-fold>

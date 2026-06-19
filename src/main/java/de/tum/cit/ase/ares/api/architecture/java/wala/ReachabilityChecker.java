@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 
 import com.ibm.wala.classLoader.IClass;
@@ -77,7 +76,16 @@ public class ReachabilityChecker {
 	 * released for GC since {@link DefaultEntrypoint} only retains references to
 	 * {@link com.ibm.wala.types.MethodReference} and the application hierarchy.
 	 */
-	private static final ConcurrentHashMap<String, List<DefaultEntrypoint>> ENTRYPOINTS_CACHE = new ConcurrentHashMap<>();
+	private static final int ENTRYPOINTS_CACHE_MAX_ENTRIES = 64;
+	// Size-capped LRU so a long-lived worker does not retain entry-point lists for
+	// every analysed classpath indefinitely.
+	private static final java.util.Map<String, List<DefaultEntrypoint>> ENTRYPOINTS_CACHE = java.util.Collections
+			.synchronizedMap(new java.util.LinkedHashMap<String, List<DefaultEntrypoint>>(16, 0.75f, true) {
+				@Override
+				protected boolean removeEldestEntry(java.util.Map.Entry<String, List<DefaultEntrypoint>> eldest) {
+					return size() > ENTRYPOINTS_CACHE_MAX_ENTRIES;
+				}
+			});
 
 	private static ClassHierarchy createClassHierarchy(String classPath) throws IOException, ClassHierarchyException {
 		return ClassHierarchyFactory.make(AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(classPath, null));
@@ -117,7 +125,7 @@ public class ReachabilityChecker {
 			List<DefaultEntrypoint> existing = ENTRYPOINTS_CACHE.putIfAbsent(cacheKey, immutable);
 			return existing != null ? existing : immutable;
 		} catch (ClassHierarchyException | IOException | UnimplementedError e) {
-			throw new SecurityException(Messages.localized("security.architecture.class.hierarchy.error"));
+			throw new SecurityException(Messages.localized("security.architecture.class.hierarchy.error"), e);
 		}
 	}
 }

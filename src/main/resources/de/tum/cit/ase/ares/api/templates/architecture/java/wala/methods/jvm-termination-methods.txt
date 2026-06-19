@@ -2,3 +2,4 @@ java.awt.Desktop.checkQuitPermission()
 javax.swing.JFrame.setDefaultCloseOperation(I)
 java.lang.Runtime.exit(I)
 java.lang.Runtime.halt(I)
+java.lang.System.exit

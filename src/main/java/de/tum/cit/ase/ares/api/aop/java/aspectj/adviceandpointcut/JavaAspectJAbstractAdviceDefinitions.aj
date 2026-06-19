@@ -51,6 +51,13 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 	 */
 	@Nonnull
 	private static final ConcurrentHashMap<String, Field> SETTINGS_FIELD_CACHE = new ConcurrentHashMap<>();
+
+	/**
+	 * Single canonical settings lock, cached once so every caller synchronises on
+	 * the same monitor.
+	 */
+	@Nullable
+	private static volatile Object SETTINGS_LOCK_CACHE = null;
 	// </editor-fold>
 
 	// <editor-fold desc="Tools methods">
@@ -70,7 +77,7 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 	 */
 	@SuppressWarnings("unchecked")
 	@Nullable
-	protected static <T> T getValueFromSettings(@Nonnull String fieldName) {
+	static <T> T getValueFromSettings(@Nonnull String fieldName) {
 		try {
 			Objects.requireNonNull(fieldName, "fieldName must not be null");
 			@Nonnull
@@ -80,29 +87,27 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 			return value;
 		} catch (LinkageError e) {
 			throw new SecurityException(
-					JavaAspectJAbstractAdviceDefinitions.localize("security.advice.linkage.exception", fieldName), e);
+					localize("security.advice.linkage.exception", fieldName), e);
 		} catch (ClassNotFoundException e) {
 			throw new SecurityException(
-					JavaAspectJAbstractAdviceDefinitions.localize("security.advice.class.not.found.exception", fieldName),
+					localize("security.advice.class.not.found.exception", fieldName),
 					e);
 		} catch (NoSuchFieldException e) {
 			throw new SecurityException(
-					JavaAspectJAbstractAdviceDefinitions.localize("security.advice.no.such.field.exception", fieldName),
+					localize("security.advice.no.such.field.exception", fieldName),
 					e);
 		} catch (NullPointerException e) {
 			throw new SecurityException(
-					JavaAspectJAbstractAdviceDefinitions.localize("security.advice.null.pointer.exception", fieldName),
+					localize("security.advice.null.pointer.exception", fieldName),
 					e);
 		} catch (InaccessibleObjectException e) {
-			throw new SecurityException(JavaAspectJAbstractAdviceDefinitions
-					.localize("security.advice.inaccessible.object.exception", fieldName), e);
+			throw new SecurityException(localize("security.advice.inaccessible.object.exception", fieldName), e);
 		} catch (IllegalAccessException e) {
 			throw new SecurityException(
-					JavaAspectJAbstractAdviceDefinitions.localize("security.advice.illegal.access.exception", fieldName),
+					localize("security.advice.illegal.access.exception", fieldName),
 					e);
 		} catch (IllegalArgumentException e) {
-			throw new SecurityException(JavaAspectJAbstractAdviceDefinitions
-					.localize("security.advice.illegal.argument.exception", fieldName), e);
+			throw new SecurityException(localize("security.advice.illegal.argument.exception", fieldName), e);
 		}
 	}
 
@@ -153,7 +158,11 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */
-	protected static <T> void setValueToSettings(@Nonnull String fieldName, @Nullable T newValue) {
+	// Package-private (was protected): the only caller is checkAndDecrementSettingsArrayValue
+	// in this aspect. Narrowing the visibility removes a trivially-reachable write entry
+	// point into the security settings. (Defence in depth only; the authoritative
+	// protection against student tampering is the architecture-analysis layer.)
+	private static <T> void setValueToSettings(@Nonnull String fieldName, @Nullable T newValue) {
 		try {
 			Objects.requireNonNull(fieldName, "fieldName must not be null");
 			@Nonnull
@@ -161,29 +170,27 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 			field.set(null, newValue);
 		} catch (LinkageError e) {
 			throw new SecurityException(
-					JavaAspectJAbstractAdviceDefinitions.localize("security.advice.linkage.exception", fieldName), e);
+					localize("security.advice.linkage.exception", fieldName), e);
 		} catch (ClassNotFoundException e) {
 			throw new SecurityException(
-					JavaAspectJAbstractAdviceDefinitions.localize("security.advice.class.not.found.exception", fieldName),
+					localize("security.advice.class.not.found.exception", fieldName),
 					e);
 		} catch (NoSuchFieldException e) {
 			throw new SecurityException(
-					JavaAspectJAbstractAdviceDefinitions.localize("security.advice.no.such.field.exception", fieldName),
+					localize("security.advice.no.such.field.exception", fieldName),
 					e);
 		} catch (NullPointerException e) {
 			throw new SecurityException(
-					JavaAspectJAbstractAdviceDefinitions.localize("security.advice.null.pointer.exception", fieldName),
+					localize("security.advice.null.pointer.exception", fieldName),
 					e);
 		} catch (InaccessibleObjectException e) {
-			throw new SecurityException(JavaAspectJAbstractAdviceDefinitions
-					.localize("security.advice.inaccessible.object.exception", fieldName), e);
+			throw new SecurityException(localize("security.advice.inaccessible.object.exception", fieldName), e);
 		} catch (IllegalAccessException e) {
 			throw new SecurityException(
-					JavaAspectJAbstractAdviceDefinitions.localize("security.advice.illegal.access.exception", fieldName),
+					localize("security.advice.illegal.access.exception", fieldName),
 					e);
 		} catch (IllegalArgumentException e) {
-			throw new SecurityException(JavaAspectJAbstractAdviceDefinitions
-					.localize("security.advice.illegal.argument.exception", fieldName), e);
+			throw new SecurityException(localize("security.advice.illegal.argument.exception", fieldName), e);
 		}
 	}
 
@@ -199,7 +206,12 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 	 * @author Markus Paulsen
 	 */
 	@Nonnull
-	protected static Object getSettingsLock() {
+	private static Object getSettingsLock() {
+		@Nullable
+		Object cached = SETTINGS_LOCK_CACHE;
+		if (cached != null) {
+			return cached;
+		}
 		try {
 			// Take standard class loader as class loader in order to get the
 			// JavaAOPTestCaseSettings class at compile time for aspectj
@@ -211,15 +223,13 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 			Method getLockMethod = adviceSettingsClass.getDeclaredMethod("getSettingsLock");
 			@Nonnull
 			Object lock = Objects.requireNonNull(getLockMethod.invoke(null), "lock must not be null");
+			SETTINGS_LOCK_CACHE = lock;
 			return lock;
 		} catch (Exception e) {
-			// Fallback to class object if lock retrieval fails
-			try {
-				return Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings");
-			} catch (ClassNotFoundException ex) {
-				throw new SecurityException(JavaAspectJAbstractAdviceDefinitions
-						.localize("security.advice.class.not.found.exception", "JavaAOPTestCaseSettings"), ex);
-			}
+			// Fail closed: never fall back to a DIFFERENT monitor (e.g. the Class object).
+			// Two threads synchronising on different monitors would make the quota
+			// check-and-decrement non-atomic, so a lock-resolution failure must abort.
+			throw new SecurityException(localize("security.advice.class.not.found.exception", "JavaAOPTestCaseSettings"), e);
 		}
 	}
 
@@ -238,7 +248,7 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */
-	protected static boolean checkAndDecrementSettingsArrayValue(@Nonnull String settingsArray, int position) {
+	static boolean checkAndDecrementSettingsArrayValue(@Nonnull String settingsArray, int position) {
 		synchronized (getSettingsLock()) {
 			@Nullable
 			int[] array = getValueFromSettings(settingsArray);
@@ -281,8 +291,10 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 			if (result instanceof String str) {
 				return str;
 			} else {
-				throw new SecurityException(
-						JavaAspectJAbstractAdviceDefinitions.localize("security.localization.method.return.type"));
+				// Do not recurse through localize() here: if the Messages method returns a
+				// non-String, a nested localize() call could hit this same branch and recurse
+				// until the stack overflows. Return the raw key instead.
+				return "security.localization.method.return.type";
 			}
 		} catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException
 				| IllegalAccessException e) {
@@ -304,11 +316,11 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 	 *         messages
 	 */
 	@Nonnull
-	protected static String buildDenialReason(boolean noAllowRuleConfigured) {
+	static String buildDenialReason(boolean noAllowRuleConfigured) {
 		if (noAllowRuleConfigured) {
-			return JavaAspectJAbstractAdviceDefinitions.localize("security.advice.denial.reason.no.allowlist");
+			return localize("security.advice.denial.reason.no.allowlist");
 		}
-		return JavaAspectJAbstractAdviceDefinitions.localize("security.advice.denial.reason.not.in.allowlist");
+		return localize("security.advice.denial.reason.not.in.allowlist");
 	}
 
 	/**
@@ -325,7 +337,7 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 	 *
 	 * @return {@code true} if a class-loader frame is present on the current stack
 	 */
-	protected static boolean isClassLoadingInProgress() {
+	static boolean isClassLoadingInProgress() {
 		return STACK_WALKER.walk(frames -> {
 			Iterator<StackWalker.StackFrame> iterator = frames.iterator();
 			while (iterator.hasNext()) {
@@ -357,7 +369,7 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 	 *
 	 * @return {@code true} if an internal Ares utility is performing the access
 	 */
-	protected static boolean isProjectSourcesFinderInProgress() {
+	static boolean isProjectSourcesFinderInProgress() {
 		return STACK_WALKER.walk(frames -> {
 			boolean trustedSeen = false;
 			Iterator<StackWalker.StackFrame> iterator = frames.iterator();
@@ -391,30 +403,6 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 	// <editor-fold desc="Callstack criteria methods">
 
 	/**
-	 * Determines if a call stack element is in the allow list.
-	 * <p>
-	 * Description: Checks whether the class name of the provided stack trace
-	 * element starts with any of the allowed class name prefixes.
-	 *
-	 * @param allowedClasses the array of allowed class name prefixes
-	 * @param elementToCheck the stack trace element to check
-	 * @return true if the element is allowed, false otherwise
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 */
-	protected static boolean checkIfCallstackElementIsAllowed(@Nonnull String[] allowedClasses,
-			@Nonnull StackTraceElement elementToCheck) {
-		String className = elementToCheck.getClassName();
-		for (@Nonnull
-		String allowedClass : allowedClasses) {
-			if (className.startsWith(allowedClass)) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	/**
 	 * Checks the current call stack for violations of restricted packages.
 	 * <p>
 	 * Description: First checks if the direct caller of the intercepted method is
@@ -433,7 +421,7 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 	 * @author Markus Paulsen
 	 */
 	@Nullable
-	protected static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses,
+	static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses,
 			String declaringTypeName, String methodName) {
 		// Stream the stack lazily so the walk stops once both the violation and the
 		// caller above the first restricted frame are known (or the stack is exhausted).
@@ -501,13 +489,13 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 				// First restricted, non-allowed frame is the violation.
 				if (violation == null && inRestricted) {
 					boolean allowed = false;
-					for (@Nonnull
-					String allowedClass : allowedClasses) {
-						if (className.startsWith(allowedClass)) {
-							allowed = true;
-							break;
+						for (@Nonnull
+						String allowedClass : allowedClasses) {
+							if (className.startsWith(allowedClass)) {
+								allowed = true;
+								break;
+							}
 						}
-					}
 					if (!allowed) {
 						violation = className + "." + frame.getMethodName();
 					}
@@ -546,7 +534,7 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 	 * @since 2.0.2
 	 */
 	@Nullable
-	protected static String findFirstMethodOutsideOfRestrictedPackage(@Nullable String restrictedPackage) {
+	static String findFirstMethodOutsideOfRestrictedPackage(@Nullable String restrictedPackage) {
 		if (restrictedPackage == null) {
 			return null;
 		}
@@ -681,7 +669,7 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 	 * @author Markus Paulsen
 	 */
 	@Nonnull
-	protected static Object[] filterVariables(@Nonnull Object[] variables, @Nonnull IgnoreValues ignoreVariables) {
+	static Object[] filterVariables(@Nonnull Object[] variables, @Nonnull IgnoreValues ignoreVariables) {
 		@Nonnull
 		ArrayList<Object> newVariables = new ArrayList<>(Arrays.asList(variables.clone()));
 		switch (ignoreVariables.getType()) {
@@ -695,7 +683,7 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 		// All variables except the one at the given index are ignored
 		case "ALL_EXCEPT":
 			if (ignoreVariables.getIndex() < 0 || ignoreVariables.getIndex() >= newVariables.size()) {
-				throw new SecurityException(JavaAspectJAbstractAdviceDefinitions.localize(
+				throw new SecurityException(localize(
 						"security.instrumentation.ignore.values.index.invalid", ignoreVariables.getIndex(),
 						newVariables.size()));
 			}
@@ -706,7 +694,7 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 			break;
 		case "NONE_EXCEPT":
 			if (ignoreVariables.getIndex() < 0 || ignoreVariables.getIndex() >= newVariables.size()) {
-				throw new SecurityException(JavaAspectJAbstractAdviceDefinitions.localize(
+				throw new SecurityException(localize(
 						"security.instrumentation.ignore.values.index.invalid", ignoreVariables.getIndex(),
 						newVariables.size()));
 			}
@@ -714,7 +702,7 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 			break;
 		default:
 			throw new IllegalArgumentException(
-					JavaAspectJAbstractAdviceDefinitions.localize("aop.ignore.unknown.type", ignoreVariables.getType()));
+					localize("aop.ignore.unknown.type", ignoreVariables.getType()));
 		}
 		return newVariables.toArray();
 	}

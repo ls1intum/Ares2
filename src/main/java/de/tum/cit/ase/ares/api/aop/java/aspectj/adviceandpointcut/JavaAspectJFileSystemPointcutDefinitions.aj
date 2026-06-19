@@ -63,27 +63,20 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
                     call(java.io.FileOutputStream+.new(..)) ||
                     call(java.io.BufferedOutputStream+.new(..)) ||
                     call(java.io.FileWriter+.new(..)) ||
-                    call(java.io.BufferedWriter+.new(..)) ||
                     call(java.io.PrintWriter+.new(..)) ||
                     call(java.io.RandomAccessFile+.new(..)));
 
     // Note: ProcessBuilder.start, startPipeline, and Runtime.exec are handled by the Command System
     // in Byte Buddy mode, as they execute commands rather than individual files.
+    // Desktop file-access methods (open/edit/print/browse/browseFileDirectory) are
+    // intentionally NOT execute pointcuts: they are bound to the "read" advice via
+    // desktopExecuteMethods so a Desktop call is deterministically classified as
+    // "read", matching the instrumentation backend (which maps Desktop to read only).
     pointcut fileExecuteMethods():
             (call(* java.lang.Runtime+.load(..)) ||
                     call(* java.lang.Runtime+.loadLibrary(..)) ||
                     call(* java.lang.System+.load(..)) ||
-                    call(* java.lang.System+.loadLibrary(..)) ||
-                    call(* java.awt.Desktop+.open(..)) ||
-                    call(* java.awt.Desktop+.edit(..)) ||
-                    call(* java.awt.Desktop+.print(..)) ||
-                    call(* java.awt.Desktop+.browse(..)) ||
-                    call(* java.awt.Desktop+.browseFileDirectory(..)) ||
-                    call(* java.awt.Desktop+.mail(..)) ||
-                    call(* java.awt.Desktop+.openHelpViewer(..)) ||
-                    call(* java.awt.Desktop+.setDefaultMenuBar(..)) ||
-                    call(* java.awt.Desktop+.setOpenFileHandler(..)) ||
-                    call(* java.awt.Desktop+.setOpenURIHandler(..)));
+                    call(* java.lang.System+.loadLibrary(..)));
 
     pointcut fileDeleteMethods():
             (call(* java.awt.Desktop+.moveToTrash(..)) ||

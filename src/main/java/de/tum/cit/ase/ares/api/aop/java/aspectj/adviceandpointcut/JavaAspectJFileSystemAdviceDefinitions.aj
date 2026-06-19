@@ -36,35 +36,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	// <editor-fold desc="Constants">
 
 	/**
-	 * Internal value type representing a resolved file system target.
-	 * <p>
-	 * Description: Wraps a nullable {@link Path} instance. Used throughout the
-	 * toolbox as the canonical representation of a file system endpoint, regardless
-	 * of whether it originated from a {@link Path}, a {@link java.io.File}, a
-	 * {@link URI}, a {@link URL}, or a {@link String}.
-	 *
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 */
-	private record FileTarget(@Nullable Path path) {
-
-		/**
-		 * Returns a human-readable string representation of this file target.
-		 * <p>
-		 * Description: Returns the string form of the path, or {@code <unknown>} if the
-		 * path is {@code null}.
-		 *
-		 * @return non-null display string
-		 * @since 2.0.0
-		 * @author Markus Paulsen
-		 */
-		@Nonnull
-		String toDisplayString() {
-			return path == null ? "<unknown>" : path.toString();
-		}
-	}
-
-	/**
 	 * Resolves the index of a named field within the given class.
 	 * <p>
 	 * Description: Returns the positional index of the first field whose name
@@ -79,7 +50,10 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				return i;
 			}
 		}
-		return 0;
+		// Fail closed (mirrors the instrumentation backend): a not-found field must not
+		// silently default to index 0, which would make the attribute ignore-filter keep
+		// the wrong field and skip the command/path that actually needs checking.
+		throw new SecurityException(localize("security.instrumentation.field.not.found", fieldName, clazz.getName()));
 	}
 
 	/**
@@ -127,7 +101,18 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			// File.createTempFile(String prefix, String suffix) - no path parameter at all
 			Map.entry("java.io.File.createTempFile", IgnoreValues.ALL),
 			// Runtime.exec(String[]) - only check command (index 0), not flags like "-c"
-			Map.entry("java.lang.Runtime.exec", IgnoreValues.allExcept(0)));
+			Map.entry("java.lang.Runtime.exec", IgnoreValues.allExcept(0)),
+			// RandomAccessFile(File|String file, String mode) - only check the file
+			// (index 0); the mode string ("r"/"rw"/...) is not a path.
+			Map.entry("java.io.RandomAccessFile.<init>", IgnoreValues.allExcept(0)),
+			// DataOutputStream.writeUTF/writeChars/writeBytes(String) - the argument is
+			// payload written to the wrapped stream, never a path.
+			Map.entry("java.io.DataOutputStream.writeUTF", IgnoreValues.ALL),
+			Map.entry("java.io.DataOutputStream.writeChars", IgnoreValues.ALL),
+			Map.entry("java.io.DataOutputStream.writeBytes", IgnoreValues.ALL),
+			// PrintStream(OutputStream|File|String, [boolean], [String charset]) - keep
+			// only index 0 (the sink); a charset name like "UTF-8" is not a path.
+			Map.entry("java.io.PrintStream.<init>", IgnoreValues.allExcept(0)));
 
 	/**
 	 * List of Ares internal file path suffixes that should always be allowed.
@@ -223,8 +208,10 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				candidate = actualPath.normalize().toAbsolutePath();
 			}
 		} else {
-			// For non-existing paths, use normalized absolute path
-			candidate = actualPath.normalize().toAbsolutePath();
+			// For non-existing targets, resolve symlinks in the deepest existing ancestor
+			// (usually the parent directory) and re-append the remaining segments, so a
+			// symlinked parent cannot redirect a create/overwrite outside the allow-list.
+			candidate = resolveExistingAncestorRealPath(actualPath.normalize().toAbsolutePath());
 		}
 
 		boolean hasAllowedPrefix = false;
@@ -249,6 +236,34 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		// bypass the allowlist: doing so would leak file existence and let a
 		// not-yet-created path slip through the rule (TOCTOU).
 		return !hasAllowedPrefix;
+	}
+
+	/**
+	 * Resolves symlinks in the deepest existing ancestor of a (possibly
+	 * non-existing) absolute path and re-appends the remaining segments. This
+	 * prevents a symlinked parent directory from redirecting a create/overwrite of a
+	 * not-yet-existing leaf outside the allow-list. Falls back to the input path if
+	 * no ancestor exists or the real path cannot be resolved.
+	 *
+	 * @param absolute the normalised absolute path whose leaf does not exist
+	 * @return the canonicalised path with symlinks in the existing prefix resolved
+	 */
+	@Nonnull
+	private static Path resolveExistingAncestorRealPath(@Nonnull Path absolute) {
+		Path ancestor = absolute;
+		while (ancestor != null && !Files.exists(ancestor, LinkOption.NOFOLLOW_LINKS)) {
+			ancestor = ancestor.getParent();
+		}
+		if (ancestor == null) {
+			return absolute;
+		}
+		try {
+			Path realAncestor = ancestor.toRealPath();
+			Path relative = ancestor.relativize(absolute);
+			return realAncestor.resolve(relative);
+		} catch (IOException ignored) {
+			return absolute;
+		}
 	}
 
 	/**
@@ -285,10 +300,12 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				normalizedAllowedPath = allowedPath.normalize().toAbsolutePath();
 			}
 		} else {
-			// Policy entries for non-existing paths must still be honoured: use
-			// the normalised absolute form so that candidate.startsWith() works
-			// correctly regardless of whether the allowed path exists yet.
-			normalizedAllowedPath = allowedPath.normalize().toAbsolutePath();
+			// Policy entries for non-existing paths must still be honoured. Resolve
+			// symlinks in the allowed path's deepest existing ancestor too, so it matches a
+			// candidate whose own ancestor symlinks were already resolved; otherwise a
+			// policy entry like /tmp/link/new.txt would never match the canonicalised
+			// candidate /real/dir/new.txt.
+			normalizedAllowedPath = resolveExistingAncestorRealPath(allowedPath.normalize().toAbsolutePath());
 		}
 
 		return candidate.startsWith(normalizedAllowedPath);
@@ -308,6 +325,9 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */
+	// allowNonExistingPathsToBeConsidered is retained for call-site signature symmetry
+	// with variableToTarget; existence is now decided uniformly in checkIfPathIsForbidden.
+	@SuppressWarnings("unused")
 	@Nullable
 	private static Path variableToPath(@Nullable Object variableValue, boolean allowNonExistingPathsToBeConsidered) {
 		try {
@@ -319,34 +339,23 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				if (!"file".equalsIgnoreCase(uri.getScheme())) {
 					return null;
 				}
-				Path absolutePath = Path.of(uri).normalize().toAbsolutePath();
-				if (Files.exists(absolutePath) || allowNonExistingPathsToBeConsidered) {
-					return absolutePath;
-				} else {
-					return null;
-				}
+				// Return the resolved path even when it does not exist yet: the allow-list
+				// decision (including the non-existing case) is made uniformly in
+				// checkIfPathIsForbidden. Returning null here would silently allow a
+				// non-existing (e.g. TOCTOU) target.
+				return Path.of(uri).normalize().toAbsolutePath();
 			} else if (variableValue instanceof URL url) {
 				if (!"file".equalsIgnoreCase(url.getProtocol())) {
 					return null;
 				}
-				Path absolutePath = Path.of(url.toURI()).normalize().toAbsolutePath();
-				if (Files.exists(absolutePath) || allowNonExistingPathsToBeConsidered) {
-					return absolutePath;
-				} else {
-					return null;
-				}
+				return Path.of(url.toURI()).normalize().toAbsolutePath();
 			} else if (variableValue instanceof String) {
 				// Empty string is not a valid path
 				if (variableValue.equals("")) {
 					throw new SecurityException(localize("security.instrumentation.invalid.path", variableValue));
 				}
 				// "/" is the root directory and is a valid path - let it be processed normally
-				Path absolutePath = Path.of((String) variableValue).normalize().toAbsolutePath();
-				if (Files.exists(absolutePath) || allowNonExistingPathsToBeConsidered) {
-					return absolutePath;
-				} else {
-					return null;
-				}
+				return Path.of((String) variableValue).normalize().toAbsolutePath();
 			} else if (variableValue instanceof File) {
 				return Path.of(((File) variableValue).toURI()).normalize().toAbsolutePath();
 			} else {
@@ -703,12 +712,11 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 						actions.merge("overwrite", false, Boolean::logicalOr);
 						break;
 					case READ:
-						// Only add "read" action when READ is the primary intent.
-						// When WRITE options are also present, the primary intent is modification,
-						// and READ is just needed to access existing content before overwriting.
-						if (!hasWrite) {
-							actions.merge("read", false, Boolean::logicalOr);
-						}
+						// Validate read against the read allow-list even when write options are
+						// also present: a READ+WRITE channel can read the file's contents, so a
+						// file that is overwrite-allowed but not read-allowed must not be
+						// readable through it. The "overwrite" check is added separately above.
+						actions.merge("read", false, Boolean::logicalOr);
 						break;
 					case DELETE_ON_CLOSE:
 						actions.merge("delete", false, Boolean::logicalOr);
@@ -962,6 +970,16 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	 * @return true if the access is exempt JVM-infrastructure access
 	 */
 	private static boolean isExemptSystemFileAccess(@Nonnull String action, @Nonnull String path) {
+		// System.loadLibrary(name)/Runtime.loadLibrary(name) resolve a JDK native library by name
+		// on java.library.path, but the intercepted path is the bare name resolved against the
+		// working directory (e.g. "<cwd>/awt" when java.awt.Toolkit initialises). Recognise such
+		// JDK libraries by mapping the name and checking java.home/lib, so the JVM loading its own
+		// native libraries is never mistaken for student file access. This cannot be abused:
+		// loadLibrary never searches the working directory, and System.load(path) keeps the file
+		// extension so its basename does not map to a JDK library.
+		if ("execute".equals(action) && isJdkNativeLibraryLoad(path)) {
+			return true;
+		}
 		if (!isPathWithin(path, TRUSTED_JAVA_HOME)) {
 			return false;
 		}
@@ -976,6 +994,34 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * Returns {@code true} when {@code path} is the bare-name form of a JDK native
+	 * library load (a {@code System.loadLibrary}/{@code Runtime.loadLibrary} whose
+	 * argument maps to a library present under {@code java.home/lib}). The
+	 * intercepted path is the library name resolved against the working directory,
+	 * so it is not recognised by the {@code java.home} prefix check.
+	 *
+	 * @param path the already-resolved path string under inspection
+	 * @return true if the load targets a JDK-internal native library
+	 */
+	private static boolean isJdkNativeLibraryLoad(@Nonnull String path) {
+		if (TRUSTED_JAVA_HOME == null) {
+			return false;
+		}
+		int separator = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+		String name = separator >= 0 ? path.substring(separator + 1) : path;
+		// loadLibrary names are extensionless; a dotted basename is a System.load(path) file
+		// whose mapped name would not resolve to a JDK library anyway.
+		if (name.isEmpty() || name.indexOf('.') >= 0) {
+			return false;
+		}
+		try {
+			return Files.exists(Path.of(TRUSTED_JAVA_HOME, "lib", System.mapLibraryName(name)));
+		} catch (RuntimeException exception) {
+			return false;
+		}
 	}
 
 	/**
@@ -1030,14 +1076,14 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 					try {
 						fields[i].setAccessible(true);
 						attributes[i] = fields[i].get(instance);
-					} catch (InaccessibleObjectException | IllegalAccessException | SecurityException e) {
+					} catch (InaccessibleObjectException | IllegalAccessException | SecurityException
+							| IllegalArgumentException | NullPointerException | ExceptionInInitializerError e) {
+						// Skip an unreadable field rather than aborting the whole interaction: a
+						// JDK-internal field (e.g. reached via Ares's own timeout executor) that throws
+						// on read must not turn a JDK-side reflection limit into an Ares-Code
+						// SecurityException. The check still runs over the parameters and the readable
+						// fields. Uniform across all four subsystems and both engines.
 						continue;
-					} catch (IllegalArgumentException e) {
-						throw new SecurityException(localize("security.instrumentation.illegal.argument.exception", fields[i].getName(), fields[i].getDeclaringClass().getName(), instance.getClass().getName()), e);
-					} catch (NullPointerException e) {
-						throw new SecurityException(localize("security.instrumentation.null.pointer.exception", fields[i].getName(), instance.getClass().getName()), e);
-					} catch (ExceptionInInitializerError e) {
-						throw new SecurityException(localize("security.instrumentation.exception.in-initializer.error", fields[i].getName(), instance.getClass().getName()), e);
 					}
 				}
 			} catch (SecurityException e) {
@@ -1078,8 +1124,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			case "create" -> "pathsAllowedToBeCreated";
 			case "execute" -> "pathsAllowedToBeExecuted";
 			case "delete" -> "pathsAllowedToBeDeleted";
-			default -> throw new SecurityException(JavaAspectJAbstractAdviceDefinitions
-					.localize("security.advice.file.system.unknown.action", actionToCheck));
+			default -> throw new SecurityException(localize("security.advice.file.system.unknown.action", actionToCheck));
 			});
 			boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
 			// <editor-fold desc="Check parameters">
@@ -1117,7 +1162,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				boolean isExemptSystemFileAccess = isExemptSystemFileAccess(actionToCheck,
 						illegallyInteractedThroughParameter);
 				if (!isClassLoaderAccess && !isSystemJarRead && !isInternalAllowed && !isExemptSystemFileAccess) {
-					throw new SecurityException(JavaAspectJAbstractAdviceDefinitions.localize(
+					throw new SecurityException(localize(
 							"security.advice.illegal.file.execution", systemMethodToCheck, messageAction,
 							illegallyInteractedThroughParameter,
 							fullMethodSignature
@@ -1153,7 +1198,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				}
 
 				if (!isInternalAllowed) {
-					throw new SecurityException(JavaAspectJAbstractAdviceDefinitions.localize(
+					throw new SecurityException(localize(
 							"security.advice.illegal.file.execution", systemMethodToCheck, messageAction,
 							illegallyInteractedThroughReceiver,
 							fullMethodSignature
@@ -1200,7 +1245,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				}
 
 				if (!isInternalAllowed) {
-					throw new SecurityException(JavaAspectJAbstractAdviceDefinitions.localize(
+					throw new SecurityException(localize(
 							"security.advice.illegal.file.execution", systemMethodToCheck, messageAction,
 							illegallyInteractedThroughAttribute,
 							fullMethodSignature

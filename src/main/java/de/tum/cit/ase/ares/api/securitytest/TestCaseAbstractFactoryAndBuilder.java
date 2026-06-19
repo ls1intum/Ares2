@@ -17,6 +17,7 @@ import de.tum.cit.ase.ares.api.aop.AOPTestCase;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.phobos.PhobosTestCase;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
@@ -234,17 +235,43 @@ public abstract class TestCaseAbstractFactoryAndBuilder {
 		// <editor-fold desc="Configuration">
 		final SupervisedCode supervisedCode = Optional.ofNullable(securityPolicy)
 				.map(SecurityPolicy::regardingTheSupervisedCode).orElse(null);
-		final Optional<SupervisedCode> supervisedCodeOptional = Optional.ofNullable(supervisedCode);
-		String[] testClassesArray = supervisedCodeOptional.map(SupervisedCode::theFollowingClassesAreTestClasses)
-				.orElseGet(projectScanner::scanForTestClasses);
-		this.packageName = supervisedCodeOptional.map(SupervisedCode::theSupervisedCodeUsesTheFollowingPackage)
-				.orElseGet(projectScanner::scanForPackageName);
-		this.mainClassInPackageName = supervisedCodeOptional.map(SupervisedCode::theMainClassInsideThisPackageIs)
-				.orElseGet(projectScanner::scanForMainClassInPackage);
-		this.resourceAccesses = supervisedCodeOptional.map(SupervisedCode::theFollowingResourceAccessesArePermitted)
-				.orElseGet(ResourceAccesses::createRestrictive);
-		this.testClasses = new ArrayList<>(Arrays.asList(testClassesArray));
-
+		if (securityPolicy != null) {
+			// Fail-closed (C1): a present policy must authoritatively determine the
+			// enforcement scope. A null SupervisedCode or a null/blank package would leave
+			// the runtime scope undetermined - which silently disables enforcement for the
+			// dynamic domains - so refuse to run rather than auto-detecting it.
+			if (supervisedCode == null) {
+				throw new SecurityException(Messages.localized("security.policy.supervised.code.required"));
+			}
+			String pinnedPackage = supervisedCode.theSupervisedCodeUsesTheFollowingPackage();
+			if (pinnedPackage == null || pinnedPackage.isBlank()) {
+				throw new SecurityException(Messages.localized("security.policy.supervised.package.required"));
+			}
+			this.packageName = pinnedPackage;
+			// The main class is used only for code generation, not as an enforcement
+			// boundary, so a scan fallback when the policy omits it does not weaken scope.
+			String pinnedMainClass = supervisedCode.theMainClassInsideThisPackageIs();
+			this.mainClassInPackageName = (pinnedMainClass == null || pinnedMainClass.isBlank())
+					? projectScanner.scanForMainClassInPackage()
+					: pinnedMainClass;
+			this.resourceAccesses = supervisedCode.theFollowingResourceAccessesArePermitted();
+			// Fail-closed (C2): exempt ONLY policy-declared test classes; never derive the
+			// exempt set from the student-controlled project, where a student could add an
+			// @Test class to obtain a blanket exemption from every architecture/runtime
+			// check.
+			this.testClasses = new ArrayList<>(Arrays.asList(supervisedCode.theFollowingClassesAreTestClasses()));
+		} else {
+			// Legacy no-policy path: derive scope and exemptions from the project scan.
+			this.packageName = projectScanner.scanForPackageName();
+			this.mainClassInPackageName = projectScanner.scanForMainClassInPackage();
+			this.resourceAccesses = ResourceAccesses.createRestrictive();
+			this.testClasses = new ArrayList<>(Arrays.asList(projectScanner.scanForTestClasses()));
+		}
+		// Reserved-package guard (#2): the supervised package - pinned by the policy or
+		// scanned from the project - must not fall under a trusted infrastructure
+		// prefix, or the supervised code would be trusted by name and bypass every
+		// check. Fail closed before any analysis or execution.
+		ReservedPackageGuard.validatePackage(this.packageName);
 		// </editor-fold>
 
 		// <editor-fold desc="Test Case Creation">
