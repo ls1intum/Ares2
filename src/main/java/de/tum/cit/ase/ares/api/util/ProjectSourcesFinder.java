@@ -94,7 +94,12 @@ public class ProjectSourcesFinder {
 					var sourceDirectoryNodes = buildNodeElement.getElementsByTagName("sourceDirectory"); //$NON-NLS-1$
 					if (sourceDirectoryNodes.getLength() > 0) {
 						var sourceDirectoryPropertyValue = sourceDirectoryNodes.item(0).getTextContent();
-						return toRelativeSourceDirectory(sourceDirectoryPropertyValue);
+						var relativeSourceDirectory = toRelativeSourceDirectory(sourceDirectoryPropertyValue);
+						// Only honour a present <sourceDirectory> when it actually names a
+						// directory; a present-but-blank element falls through to the default.
+						if (relativeSourceDirectory != null) {
+							return relativeSourceDirectory;
+						}
 					}
 				}
 			}
