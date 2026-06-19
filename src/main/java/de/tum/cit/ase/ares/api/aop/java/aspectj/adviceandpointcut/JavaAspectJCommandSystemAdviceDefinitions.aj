@@ -701,6 +701,11 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 		// Mirrors the instrumentation backend and the network AspectJ advice.
 		@Nonnull
 		Object[] attributes = new Object[0];
+		// The command-carrying field of ProcessBuilder.start cannot be downgraded to a
+		// silent null: if it is unreadable we cannot inspect what is executed, so we must
+		// fail closed (below) rather than let an uninspected command through.
+		String signatureWithoutModifiers = extractMethodNameWithoutModifiers(fullMethodSignature);
+		boolean criticalCommandFieldUnreadable = false;
 		if (instance != null) {
 			@Nonnull
 			Field[] fields = instance.getClass().getDeclaredFields();
@@ -712,6 +717,10 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 				} catch (InaccessibleObjectException | IllegalAccessException | SecurityException | IllegalArgumentException
 						| NullPointerException | ExceptionInInitializerError ignored) {
 					attributes[i] = null;
+					if ("java.lang.ProcessBuilder.start".equals(signatureWithoutModifiers)
+							&& "command".equals(fields[i].getName())) {
+						criticalCommandFieldUnreadable = true;
+					}
 				}
 			}
 		}
@@ -728,6 +737,14 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 		String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
 		boolean noAllowRuleConfigured = commandsAllowedToBeExecuted == null || commandsAllowedToBeExecuted.length == 0
 				|| argumentsAllowedToBePassed == null || argumentsAllowedToBePassed.length == 0;
+		// Fail closed: a ProcessBuilder.start whose command field could not be read cannot
+		// be validated against the allow-list, so it must be denied rather than allowed.
+		if (criticalCommandFieldUnreadable) {
+			throw new SecurityException(localize(
+					"security.advice.illegal.command.execution", commandSystemMethodToCheck, action, "<unknown>",
+					fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+							+ " | " + buildDenialReason(noAllowRuleConfigured)));
+		}
 		// <editor-fold desc="Check parameters">
 		@Nullable
 		String commandIllegallyExecutedThroughParameter = (parameters == null || parameters.length == 0) ? null

@@ -457,6 +457,10 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 	 */
 	@Nullable
 	private static String[] inspectCallstackOnce(String restrictedPackage, String[] allowedClasses) {
+		// Normalise a null settings-derived allow-list to empty so the per-frame
+		// allowed-class check below cannot throw an NPE before the security decision.
+		@Nonnull
+		String[] safeAllowedClasses = allowedClasses == null ? new String[0] : allowedClasses;
 		return STACK_WALKER.walk(frames -> {
 			Iterator<StackWalker.StackFrame> iterator = frames.iterator();
 			String violation = null;
@@ -490,7 +494,7 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 				if (violation == null && inRestricted) {
 					boolean allowed = false;
 						for (@Nonnull
-						String allowedClass : allowedClasses) {
+						String allowedClass : safeAllowedClasses) {
 							if (className.startsWith(allowedClass)) {
 								allowed = true;
 								break;

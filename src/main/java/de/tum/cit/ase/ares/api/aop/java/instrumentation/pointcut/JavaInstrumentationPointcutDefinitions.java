@@ -374,7 +374,8 @@ public class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("newDirectoryStream")),
 			// java.lang
 			Map.entry("java.lang.ClassLoader", List.of("getResourceAsStream")),
-			Map.entry("java.net.URL", List.of("openStream")),
+			// java.net.URL.openStream is a network fetch, not a file read; it is bound to
+			// the network connect/receive pointcuts below, not here.
 			// java.awt
 			Map.entry("java.awt.Toolkit", List.of("createImage", "getImage")),
 			Map.entry("java.awt.Font", List.of("createFont", "createFonts")),
@@ -396,8 +397,7 @@ public class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.util.zip.GZIPInputStream", List.of("<init>")),
 			Map.entry("java.util.jar.JarFile", List.of("<init>", "entries", "getInputStream")),
 			Map.entry("java.util.jar.JarInputStream", List.of("<init>", "getNextJarEntry")),
-			Map.entry("java.util.Properties", List.of("load", "loadFromXML")),
-			Map.entry("java.awt.Desktop", List.of("open", "edit", "print", "browse", "browseFileDirectory")));
+			Map.entry("java.util.Properties", List.of("load", "loadFromXML")));
 	// </editor-fold>
 
 	// <editor-fold desc="Overwrite Path">
@@ -474,11 +474,12 @@ public class JavaInstrumentationPointcutDefinitions {
 	public static final Map<String, List<String>> methodsWhichCanExecuteFiles = Map.ofEntries(
 			// java.lang - only load/loadLibrary, not exec (handled by Command System)
 			Map.entry("java.lang.Runtime", List.of("load", "loadLibrary")),
-			Map.entry("java.lang.System", List.of("load", "loadLibrary")));
+			Map.entry("java.lang.System", List.of("load", "loadLibrary")),
+			// Desktop.open/edit/print/browse/browseFileDirectory launch an external
+			// application to act on the file or URI, so they are an execute (launch)
+			// operation rather than a file read.
+			Map.entry("java.awt.Desktop", List.of("open", "edit", "print", "browse", "browseFileDirectory")));
 	// Note: ProcessBuilder is handled entirely by Command System
-	// Note: java.awt.Desktop is intentionally NOT included here - it is bound only
-	// to the read file-system check so a Desktop call is deterministically
-	// classified as "read".
 	// </editor-fold>
 
 	// <editor-fold desc="Delete Path">

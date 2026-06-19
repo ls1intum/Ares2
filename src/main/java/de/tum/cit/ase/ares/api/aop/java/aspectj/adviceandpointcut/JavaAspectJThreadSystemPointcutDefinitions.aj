@@ -49,7 +49,6 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
             call(* java.lang.Thread+.startVirtualThread(..)) ||
             call(* java.lang.Thread$Builder+.start(..)) ||
             call(* java.lang.Thread$Builder$OfPlatform+.start(..)) ||
-            call(* java.lang.Thread.sleep(..)) ||
             call(* java.util.concurrent.SubmissionPublisher+.submit(..)) ||
             call(* java.util.concurrent.SubmissionPublisher+.offer(..))
             );

@@ -143,10 +143,6 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 		case "parallelStream":
 		case "parallel":
 			return IMPLICIT_THREAD_OPERATION_PREFIX + methodName + ">";
-		case "sleep":
-			return "java.lang.Thread".equals(declaringTypeName)
-					? IMPLICIT_THREAD_OPERATION_PREFIX + "Thread.sleep>"
-					: null;
 		case "submit":
 		case "offer":
 			return "java.util.concurrent.SubmissionPublisher".equals(declaringTypeName)

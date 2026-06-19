@@ -68,15 +68,19 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
 
     // Note: ProcessBuilder.start, startPipeline, and Runtime.exec are handled by the Command System
     // in Byte Buddy mode, as they execute commands rather than individual files.
-    // Desktop file-access methods (open/edit/print/browse/browseFileDirectory) are
-    // intentionally NOT execute pointcuts: they are bound to the "read" advice via
-    // desktopExecuteMethods so a Desktop call is deterministically classified as
-    // "read", matching the instrumentation backend (which maps Desktop to read only).
+    // Desktop.open/edit/print/browse/browseFileDirectory launch an external application
+    // to act on the file or URI, so they are classified as an execute (launch) operation
+    // rather than a file read, matching the instrumentation backend.
     pointcut fileExecuteMethods():
             (call(* java.lang.Runtime+.load(..)) ||
                     call(* java.lang.Runtime+.loadLibrary(..)) ||
                     call(* java.lang.System+.load(..)) ||
-                    call(* java.lang.System+.loadLibrary(..)));
+                    call(* java.lang.System+.loadLibrary(..)) ||
+                    call(* java.awt.Desktop+.open(..)) ||
+                    call(* java.awt.Desktop+.edit(..)) ||
+                    call(* java.awt.Desktop+.print(..)) ||
+                    call(* java.awt.Desktop+.browse(..)) ||
+                    call(* java.awt.Desktop+.browseFileDirectory(..)));
 
     pointcut fileDeleteMethods():
             (call(* java.awt.Desktop+.moveToTrash(..)) ||
@@ -121,7 +125,6 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
                     call(* java.io.DataInput+.readUnsignedShort(..)) ||
                     call(java.io.Reader+.new(..)) ||
                     call(* java.lang.ClassLoader+.getResourceAsStream(..)) ||
-                    call(* java.net.URL+.openStream(..)) ||
                     call(* java.nio.file.Files+.find(..)) ||
                     call(* java.nio.file.Files+.list(..)) ||
                     call(* java.nio.file.Files+.walk(..)) ||
