@@ -26,8 +26,9 @@ import de.tum.cit.ase.ares.integration.testuser.subject.InputOutputPenguin;
 @MirrorOutput(MirrorOutputPolicy.DISABLED)
 @StrictTimeout(value = 300, unit = TimeUnit.MILLISECONDS)
 @TestMethodOrder(MethodName.class)
-@WhitelistPath(value = "target/**", type = PathType.GLOB)
-@BlacklistPath(value = "**Test*.{java,class}", type = PathType.GLOB)
+// Replaces the former inert @WhitelistPath("target/**")/@BlacklistPath with the equivalent
+// active @Policy, scanned against the benign HelloWorld subject.
+@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyInputOutputUser.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
 @SuppressWarnings("static-method")
 public class InputOutputUser {
 

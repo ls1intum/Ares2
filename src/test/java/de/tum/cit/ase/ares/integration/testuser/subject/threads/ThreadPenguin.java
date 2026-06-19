@@ -21,6 +21,25 @@ public final class ThreadPenguin extends Thread {
 		}
 	}
 
+	public static void threadAccess() {
+		ExecutorService executor = Executors.newFixedThreadPool(2);
+		executor.submit(() -> {
+			try {
+				Thread.sleep(1000);
+			} catch (@SuppressWarnings("unused") InterruptedException e) {
+				Thread.currentThread().interrupt();
+			}
+		});
+		executor.submit(() -> {
+			try {
+				Thread.sleep(1000);
+			} catch (@SuppressWarnings("unused") InterruptedException e) {
+				Thread.currentThread().interrupt();
+			}
+		});
+		executor.shutdown();
+	}
+
 	public static void tryStartTwoThreads() {
 		Thread t1 = new Thread(() -> {
 			try {
@@ -179,31 +198,19 @@ public final class ThreadPenguin extends Thread {
 	}
 
 	public static void publisherSubscriber() {
-		TemperaturePublisher publisher = new TemperaturePublisher();
-		TemperatureSubscriber subscriber = new TemperatureSubscriber();
-		publisher.subscribe(subscriber);
-	}
-
-	static class TemperaturePublisher implements Flow.Publisher<Integer> {
-		@Override
-		public void subscribe(Flow.Subscriber<? super Integer> subscriber) {
-			subscriber.onSubscribe(new Flow.Subscription() {
-				private boolean cancelled = false;
-
-				@Override
-				public void request(long n) {
-					for (int i = 0; i < n && !cancelled; i++) {
-						int temperature = (int) (Math.random() * 100);
-						subscriber.onNext(temperature);
-					}
-					subscriber.onComplete();
-				}
-
-				@Override
-				public void cancel() {
-					cancelled = true;
-				}
-			});
+		// A real reactive publisher delivers items asynchronously on the common
+		// ForkJoinPool,
+		// so submit() schedules work onto a pool thread. The previous bespoke publisher
+		// ran
+		// entirely synchronously in the calling thread and therefore performed no
+		// thread-system
+		// operation at all, making the "must be blocked" assertion unreachable.
+		try (SubmissionPublisher<Integer> publisher = new SubmissionPublisher<>()) {
+			TemperatureSubscriber subscriber = new TemperatureSubscriber();
+			publisher.subscribe(subscriber);
+			for (int i = 0; i < 10; i++) {
+				publisher.submit((int) (Math.random() * 100));
+			}
 		}
 	}
 

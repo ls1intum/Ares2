@@ -4,56 +4,38 @@ import javax.annotation.Nonnull;
 
 public class JavaProgrammingExerciseProjectScanner extends JavaProjectScanner {
 
-	// <editor-fold desc="Variable Regex Patterns (defined by project)">
+	// <editor-fold desc="TUM-specific scan defaults">
 
 	/**
-	 * Default package name used if none is found.
+	 * TUM-specific default package, used by the inherited
+	 * {@link JavaProjectScanner#scanForPackageName()} when the project itself
+	 * declares no package. Overriding the {@code protected} default (rather than
+	 * re-implementing {@code scanForPackageName}) lets the parent's polymorphic
+	 * fallback pick this up.
+	 *
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 * @return the TUM default package name
 	 */
+	@Override
 	@Nonnull
-	private String getDefaultPackage() {
+	protected String getDefaultPackage() {
 		return "de.tum.cit.ase";
 	}
 
 	/**
-	 * Default main class name used if no main class is detected.
+	 * TUM-specific default main class, used by the inherited
+	 * {@link JavaProjectScanner#scanForMainClassInPackage()} when no main class is
+	 * detected.
+	 *
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 * @return the TUM default main class name
 	 */
+	@Override
 	@Nonnull
-	private String getDefaultMainClass() {
+	protected String getDefaultMainClass() {
 		return "Main";
-	}
-	// </editor-fold>
-
-	// <editor-fold desc="Overridden methods with TUM-specific defaults">
-
-	/**
-	 * Determines the most commonly used package name in the project. Uses
-	 * TUM-specific default package if none is found.
-	 *
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 * @return the most frequent package name or TUM default if none is found
-	 */
-	@Override
-	@Nonnull
-	public String scanForPackageName() {
-		String result = super.scanForPackageName();
-		return result.isEmpty() ? getDefaultPackage() : result;
-	}
-
-	/**
-	 * Identifies the main class within the project. Uses TUM-specific default main
-	 * class if none is found.
-	 *
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 * @return the name of the class containing the main method or TUM default value
-	 *         if none is found
-	 */
-	@Override
-	@Nonnull
-	public String scanForMainClassInPackage() {
-		String result = super.scanForMainClassInPackage();
-		return "Main".equals(result) ? getDefaultMainClass() : result;
 	}
 	// </editor-fold>
 }

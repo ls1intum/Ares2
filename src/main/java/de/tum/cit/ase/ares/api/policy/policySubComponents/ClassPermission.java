@@ -17,7 +17,6 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  *
  * @since 2.0.0
  * @author Markus Paulsen
- * @since 2.0.0
  * @param className the name of the class that receives elevated privileges;
  *                  must not be null.
  */

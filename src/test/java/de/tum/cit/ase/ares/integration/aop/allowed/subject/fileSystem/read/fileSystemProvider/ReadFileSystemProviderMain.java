@@ -19,9 +19,9 @@ public class ReadFileSystemProviderMain {
 	 * @return The content of the trusted file
 	 */
 	public static String accessFileSystemViaFileSystemProvider() throws IOException {
-		Path trustedFile = Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt");
-		FileSystemProvider provider = trustedFile.getFileSystem().provider();
-		try (InputStream is = provider.newInputStream(trustedFile)) {
+		Path path = Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt");
+		FileSystemProvider provider = path.getFileSystem().provider();
+		try (InputStream is = provider.newInputStream(path)) {
 			byte[] data = is.readAllBytes();
 			return new String(data);
 		}

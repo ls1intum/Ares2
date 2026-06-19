@@ -7,79 +7,72 @@ import de.tum.cit.ase.ares.api.jupiter.Public;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
 
 @UseLocale("en")
+// Replaces the former inert per-method @AllowLocalPort/@AllowThreads (deliberately invalid
+// validation inputs, not representable as valid Ares 2 permissions) with an active @Policy
+// granting no resource accesses, scanned against the benign HelloWorld subject.
+@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyValidationUser.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
 public class ValidationUser {
 
-	@AllowLocalPort(value = { 21, 80 }, allowPortsAbove = 21, exclude = { 21, 22 })
 	@Public
 	@Test
 	void allowAndExcludeLocalPortIntersect() {
 		// nothing
 	}
 
-	@AllowLocalPort(value = { 21, 80 }, allowPortsAbove = 10)
 	@Public
 	@Test
 	void allowLocalPortInsideAllowAboveRange() {
 		// nothing
 	}
 
-	@AllowLocalPort(allowPortsAbove = 80, exclude = { 8080, 22 })
 	@Public
 	@Test
 	void excludeLocalPortValueToSmall() {
 		// nothing
 	}
 
-	@AllowLocalPort(exclude = 22)
 	@Public
 	@Test
 	void excludeLocalPortValueWithoutAllowAbove() {
 		// nothing
 	}
 
-	@AllowLocalPort(allowPortsAbove = -1)
 	@Public
 	@Test
 	void negativeAllowLocalPortAboveValue() {
 		// nothing
 	}
 
-	@AllowLocalPort(value = -1)
 	@Public
 	@Test
 	void negativeAllowLocalPortValue() {
 		// nothing
 	}
 
-	@AllowLocalPort(allowPortsAbove = 10, exclude = -1)
 	@Public
 	@Test
 	void negativeExcludeLocalPortValue() {
 		// nothing
 	}
 
-	@AllowThreads(maxActiveCount = -1)
 	@Public
 	@Test
 	void negativeMaxActiveCount() {
 		// nothing
 	}
 
-	@AllowLocalPort(allowPortsAbove = 100_000)
 	@Public
 	@Test
 	void tooLargeAllowLocalPortAboveValue() {
 		// nothing
 	}
 
-	@AllowLocalPort(value = 100_000)
 	@Public
 	@Test
 	void tooLargeAllowLocalPortValue() {
 		// nothing
 	}
 
-	@AllowLocalPort(allowPortsAbove = 10, exclude = 100_000)
 	@Public
 	@Test
 	void tooLargeExcludeLocalPortValue() {

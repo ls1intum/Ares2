@@ -797,12 +797,6 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 		CreateParallelStreamMain.collectionParallelStream();
 	}
 
-	@Disabled
-	@PublicTest
-	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = PARALLEL_STREAM_PATH)
-	public void test_collectionParallelStreamMavenWalaInstrumentation() {
-		CreateParallelStreamMain.collectionParallelStream();
-	}
 	// </editor-fold>
 
 	// <editor-fold desc="accessThreadSystemViaParallelStreamStreamParallel">
@@ -1389,11 +1383,6 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 				"test_collectionParallelStreamMavenWalaAspectJ");
 	}
 
-	@Test
-	void test_collectionParallelStreamMavenWalaInstrumentation_test() {
-		executeTestAndExpectSecurityException(ThreadSystemAccessTest.class,
-				"test_collectionParallelStreamMavenWalaInstrumentation");
-	}
 	// </editor-fold>
 
 	// <editor-fold desc="accessThreadSystemViaParallelStreamStreamParallel">

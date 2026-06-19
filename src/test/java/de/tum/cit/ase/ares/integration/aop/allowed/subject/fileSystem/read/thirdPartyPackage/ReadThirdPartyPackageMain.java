@@ -1,9 +1,6 @@
 package de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.read.thirdPartyPackage;
 
 import java.io.IOException;
-import java.nio.file.Path;
-
-import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdpartypackage.ThirdPartyPackagePenguin;
 
 public class ReadThirdPartyPackageMain {
 
@@ -19,7 +16,6 @@ public class ReadThirdPartyPackageMain {
 	 * @return The content of the trusted file
 	 */
 	public static String accessFileSystemViaThirdPartyPackage() throws IOException {
-		return ThirdPartyPackagePenguin
-				.readFile(Path.of("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"));
+		return AllowedThirdPartyPackagePenguin.readFile();
 	}
 }

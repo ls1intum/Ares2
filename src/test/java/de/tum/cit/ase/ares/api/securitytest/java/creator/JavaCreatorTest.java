@@ -88,7 +88,7 @@ public class JavaCreatorTest {
 			when(mockSupplier.get()).thenReturn("cached_value");
 
 			// Act
-			Supplier<String> cachedSupplier = JavaCreator.cacheResult("cached_value", mockSupplier);
+			Supplier<String> cachedSupplier = javaCreator.cacheResult("cached_value", mockSupplier);
 			String firstCall = cachedSupplier.get();
 			String secondCall = cachedSupplier.get();
 
@@ -106,9 +106,9 @@ public class JavaCreatorTest {
 			Supplier<String> mockSupplier = mock(Supplier.class);
 			when(mockSupplier.get()).thenReturn(null);
 
-			// Act - use a unique key to avoid interference with other tests using the
-			// static cache
-			Supplier<String> cachedSupplier = JavaCreator.cacheResult("null_test_unique_key_abc123", mockSupplier);
+			// Act - the cache is per-JavaCreator instance (fresh each @BeforeEach), so keys
+			// no longer collide across tests
+			Supplier<String> cachedSupplier = javaCreator.cacheResult("null_test_unique_key_abc123", mockSupplier);
 			String result = cachedSupplier.get();
 
 			// Assert
@@ -149,6 +149,8 @@ public class JavaCreatorTest {
 			// Assert
 			verify(buildMode).getClasspath(tempDir, packageName);
 			verify(architectureMode).getJavaClasses(classpath);
+			// The call graph is built lazily through a cached Supplier and is not resolved
+			// during createTestCases, so getCallGraph is never invoked here.
 			verify(architectureMode, never()).getCallGraph(classpath);
 			verify(resourceAccesses).regardingPackageImports();
 		}
@@ -204,8 +206,8 @@ public class JavaCreatorTest {
 		}
 
 		@Test
-		@DisplayName("Should use cached results for JavaClasses and defer CallGraph")
-		void shouldUseCachedResultsForJavaClassesAndDeferCallGraph() {
+		@DisplayName("Should use cached results for JavaClasses and CallGraph")
+		void shouldUseCachedResultsForJavaClassesAndCallGraph() {
 			// Arrange
 			List<String> essentialPackages = List.of("java.lang");
 			List<String> essentialClasses = List.of("String");
@@ -231,10 +233,11 @@ public class JavaCreatorTest {
 					testClasses, packageName, mainClassName, new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
 					resourceAccesses, tempDir);
 
-			// Assert - Classpath and JavaClasses should only be called once due to static
-			// cache reuse. The CallGraph remains lazy until a WALA test case asks for it.
+			// Assert - Each method should only be called once due to static cache reuse
 			verify(buildMode, times(1)).getClasspath(tempDir, packageName);
 			verify(architectureMode, times(1)).getJavaClasses(classpath);
+			// The call graph is built lazily through a cached Supplier; it is not resolved
+			// during createTestCases, so getCallGraph is never invoked across both calls.
 			verify(architectureMode, never()).getCallGraph(classpath);
 		}
 

@@ -1,0 +1,28 @@
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.cit.ase.ares.integration.testuser.JqwickUser"
+    - "de.tum.cit.ase.ares.integration.JqwickTest"
+    - "de.tum.cit.ase.ares.testutilities."
+  # Captures JqwickUser's former @TrustedThreads(ALL_THREADS), @WhitelistPath("target/{classes,test-classes}/de/tum**")
+  # and @WhitelistPath("**/*jdk*/**/bin/**"). The Ares 2 file model uses a path-and-below prefix rather
+  # than a glob, so the jdk-bin glob is approximated by permitting the build-output tree; the trusted-threads
+  # scope is approximated by a generous java.lang.Thread allowance.
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions:
+      - readAllFiles: true
+        overwriteAllFiles: false
+        createAllFiles: false
+        executeAllFiles: true
+        deleteAllFiles: false
+        onThisPathAndAllPathsBelow: "target"
+    regardingNetworkConnections: []
+    regardingCommandExecutions: []
+    regardingThreadCreations:
+      - createTheFollowingNumberOfThreads: 100
+        ofThisClass: "java.lang.Thread"
+    regardingPackageImports: []
+    regardingTimeouts:
+      - timeout: 3000

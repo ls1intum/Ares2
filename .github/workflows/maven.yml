@@ -14,6 +14,10 @@ jobs:
 
     runs-on: ubuntu-22.04
 
+    # Fail fast and preserve the test log instead of letting the heavy suite run
+    # until the runner loses communication (~1h). Lets us see which test hangs.
+    timeout-minutes: 45
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4

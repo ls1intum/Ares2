@@ -30,7 +30,7 @@ import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create
 class DenialReasonAccessTest extends SystemAccessTest {
 
 	// <editor-fold desc="Within Paths">
-	private static final String FILE_READ_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/ByteStream";
+	private static final String FILE_READ_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/byteStream";
 	private static final String COMMAND_RUNTIME_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/commandSystem/execute/runtime";
 	private static final String THREAD_EXECUTOR_SERVICE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/executorService";
 	private static final String NETWORK_SOCKET_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/networkSystem/connect/socket";

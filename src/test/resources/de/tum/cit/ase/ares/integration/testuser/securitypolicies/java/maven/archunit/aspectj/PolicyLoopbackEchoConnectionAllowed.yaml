@@ -1,0 +1,30 @@
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.cit.ase.ares.integration.testuser.NetworkUser"
+    - "de.tum.cit.ase.ares.testutilities.TestUserExtension"
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions: [ ]
+    regardingNetworkConnections:
+      - onTheHost: "localhost"
+        onThePort: 25565
+        openConnections: true
+        sendData: false
+        receiveData: true
+      - onTheHost: "127.0.0.1"
+        onThePort: 25565
+        openConnections: true
+        sendData: false
+        receiveData: true
+      - onTheHost: "::1"
+        onThePort: 25565
+        openConnections: true
+        sendData: false
+        receiveData: true
+    regardingCommandExecutions: [ ]
+    regardingThreadCreations: [ ]
+    regardingPackageImports: [ ]
+    regardingTimeouts:
+      - timeout: 3000

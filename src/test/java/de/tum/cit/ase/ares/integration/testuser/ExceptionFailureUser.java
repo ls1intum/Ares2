@@ -18,10 +18,11 @@ import de.tum.cit.ase.ares.api.localization.UseLocale;
 import de.tum.cit.ase.ares.integration.testuser.subject.*;
 
 @UseLocale("en")
-@AllowThreads(maxActiveCount = 100)
 @TestMethodOrder(MethodName.class)
-@WhitelistPath(value = "target/**", type = PathType.GLOB)
-@BlacklistPath(value = "**Test.{java,class}", type = PathType.GLOB)
+// Replaces the former inert @AllowThreads(100)/@WhitelistPath("target/**")/@BlacklistPath:
+// the equivalent allow rules now live in an active @Policy, scanned against the benign
+// HelloWorld subject (these tests exercise exception/failure mechanics, not governed I/O).
+@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyExceptionFailureUser.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
 @SuppressWarnings("static-method")
 public class ExceptionFailureUser {
 

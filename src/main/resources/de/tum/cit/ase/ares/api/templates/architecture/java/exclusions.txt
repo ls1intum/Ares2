@@ -135,9 +135,6 @@ java/util/Stack.*
 java/util/StringJoiner.*
 java/util/StringTokenizer.*
 java/util/TaskQueue.*
-java/util/Timer.*
-java/util/TimerTask.*
-java/util/TimerThread.*
 java/util/TimeZone.*
 java/util/TimSort.*
 java/util/TooManyListenersException.*

@@ -114,15 +114,13 @@ public class JavaInstrumentationAgent {
 
 	private static void putToolboxOnBootClassLoader(Factory unsafeFactory) {
 		try {
-			ClassInjector classInjector = null;
-
-			// Try different injection strategies
-			try {
-				classInjector = unsafeFactory.make(null, null);
-			} catch (Exception e) {
-				// Fallback to a safer injection strategy
-				classInjector = ClassInjector.UsingReflection.ofSystemClassLoader();
-			}
+			// Fail closed: the toolboxes MUST be injected into the boot class loader so
+			// they are visible to the boot-class JDK sinks they guard. The previous
+			// fallback to the system class loader left the agent half-wired (toolboxes on
+			// the system loader, sinks on the boot loader) and silently weakened the
+			// sandbox. A boot-injection failure now propagates to the outer handler, which
+			// refuses to install the agent rather than running degraded.
+			ClassInjector classInjector = unsafeFactory.make(null, null);
 
 			if (classInjector != null) {
 				// Load classes in dependency order to ensure proper initialization

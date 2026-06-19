@@ -24,6 +24,23 @@ public final class JupiterSecurityExtension
 
 	// <editor-fold desc="Lifecycle Callbacks">
 
+	@Override
+	public void interceptBeforeEachMethod(Invocation<Void> invocation,
+			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
+		invocation.proceed();
+	}
+
+	@Override
+	public void interceptAfterEachMethod(Invocation<Void> invocation,
+			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
+		try {
+			invocation.proceed();
+		} finally {
+			resetSettingsInStandardClassLoader();
+			resetSettingsInBootstrapClassLoader();
+		}
+	}
+
 	/**
 	 * Sets up the security policy before each test method execution.
 	 * <p>

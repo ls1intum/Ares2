@@ -28,6 +28,7 @@ import com.ibm.wala.types.TypeName;
 import com.ibm.wala.types.TypeReference;
 
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 
 class WalaRuleTest {
 
@@ -119,15 +120,23 @@ class WalaRuleTest {
 
 	private static CallGraph buildMockCg(List<CGNode> path) {
 		CallGraph cg = mock(CallGraph.class);
+		final List<CGNode> nodes = new java.util.ArrayList<>(path);
+		// WalaRule now iterates the call graph to find forbidden sinks and walks
+		// predecessor edges for reverse reachability, so the mock must expose both the
+		// node set and the reverse (predecessor) edges in addition to the successors.
+		when(cg.iterator()).thenAnswer(inv -> nodes.iterator());
+		when(cg.getSuccNodes(any())).thenAnswer(inv -> java.util.Collections.emptyIterator());
+		when(cg.getPredNodes(any())).thenAnswer(inv -> java.util.Collections.emptyIterator());
 		if (path.isEmpty()) {
 			when(cg.getEntrypointNodes()).thenReturn(java.util.Collections.emptyList());
 			return cg;
 		}
 		when(cg.getEntrypointNodes()).thenReturn(java.util.Collections.singletonList(path.get(0)));
-		when(cg.getSuccNodes(any())).thenAnswer(inv -> java.util.Collections.emptyIterator());
 		for (int i = 0; i < path.size() - 1; i++) {
 			final CGNode child = path.get(i + 1);
-			when(cg.getSuccNodes(path.get(i))).thenAnswer(inv -> java.util.Collections.singletonList(child).iterator());
+			final CGNode parent = path.get(i);
+			when(cg.getSuccNodes(parent)).thenAnswer(inv -> java.util.Collections.singletonList(child).iterator());
+			when(cg.getPredNodes(child)).thenAnswer(inv -> java.util.Collections.singletonList(parent).iterator());
 		}
 		return cg;
 	}
@@ -211,6 +220,8 @@ class WalaRuleTest {
 		AssertionError err = runAndExpectError(List.of(student, forbidden),
 				new WalaRule("Manipulates class loading", Set.of("java.lang.Class.forName(Ljava/lang/String;)")));
 		assertThat(err).isNotNull();
+		// WalaRule renders signatures in ArchUnit source-form, dropping the JVM
+		// return-type descriptor, so the caller appears as callForbidden() not ()V.
 		assertThat(err.getMessage()).contains("Method <anonymous.Student.callForbidden()>");
 	}
 
@@ -232,19 +243,24 @@ class WalaRuleTest {
 		AssertionError err = runAndExpectError(List.of(studentOuter, studentInner, forbidden), new WalaRule(
 				"Accesses network", Set.of("sun.nio.ch.DatagramChannelImpl.connect(Ljava/net/SocketAddress;Z)")));
 		assertThat(err).isNotNull();
-		// innerCall is the nearest student frame and must appear as the Method <caller>
+		// innerCall is the nearest student frame and must appear as the Method
+		// <caller>,
+		// rendered in ArchUnit source-form without the JVM return-type descriptor.
 		assertThat(err.getMessage()).contains("Method <anonymous.Student.innerCall()>");
 	}
 
 	// ----------------------------------------------------------------
-	// Test 4: student → project helper → forbidden JDK
-	// Project helpers are not treated as transitive false positives because they
-	// are
-	// part of the exercised submission path.
+	// Test 4: student → project-test-helper (anonymous.toolclasses.) → forbidden
+	// JDK.
+	// The toolclasses helper is in INFRA_PREFIXES (so it is not reported as the
+	// student frame) but is deliberately NOT in TRANSITIVE_FALSE_POSITIVE_PREFIXES.
+	// A student routing into a forbidden API through such a helper is therefore a
+	// REAL violation: the rule fires and attributes it to the nearest student
+	// frame.
 	// ----------------------------------------------------------------
 
 	@Test
-	void projectHelperPathToForbiddenThrows() {
+	void transitiveHelperPathToForbiddenFires() {
 		CGNode studentA = studentNode("anonymous.Student.runTask()V");
 		CGNode toolHelper = mock(CGNode.class);
 		IMethod toolMethod = mock(IMethod.class);
@@ -261,7 +277,7 @@ class WalaRuleTest {
 
 		AssertionError err = runAndExpectError(List.of(studentA, toolHelper, forbidden),
 				new WalaRule("Manipulates threads", Set.of("java.lang.Thread.<init>(Ljava/lang/Runnable;)")));
-		assertThat(err).isNotNull();
+		assertThat(err).as("path through a project test helper into a forbidden API must fire").isNotNull();
 		assertThat(err.getMessage()).contains("Method <anonymous.Student.runTask()>");
 	}
 
@@ -361,8 +377,13 @@ class WalaRuleTest {
 		AssertionError err = runAndExpectError(List.of(student, forbidden),
 				new WalaRule("Test rule", Set.of(apiPrefix)));
 		assertThat(err).as("formerly-suppressed API '%s' from student code must now fire", apiPrefix).isNotNull();
+		// WalaRule renders signatures in ArchUnit source-form (no JVM descriptor /
+		// return
+		// type), so assert on the descriptor-free caller and the forbidden class+method
+		// name rather than the raw WALA signature held in REALISTIC_SIGNATURES.
+		String forbiddenName = fullSig.substring(0, fullSig.indexOf('('));
 		assertThat(err.getMessage()).contains("Method <anonymous.Student.callApi()>")
-				.contains("calls method <" + WalaRule.formatJvmSignature(fullSig) + ">");
+				.contains("calls method <" + forbiddenName + "(");
 	}
 
 	// ----------------------------------------------------------------
@@ -403,5 +424,90 @@ class WalaRuleTest {
 				new WalaRule("Test rule", Set.of("anonymous.Student.selfForbidden")));
 		assertThat(err).isNotNull();
 		assertThat(err.getMessage()).contains("anonymous.Student.selfForbidden");
+	}
+
+	// ----------------------------------------------------------------
+	// Test 11: de-masking — two student callers of ONE forbidden sink, one
+	// allow-listed and one not. The previous global-visited DFS reported each sink
+	// on a single path, so if the allow-listed caller was discovered first the real
+	// violation by the non-allowed caller was silently masked. Reverse reachability
+	// must examine both approaches and still report the non-allowed caller.
+	// ----------------------------------------------------------------
+
+	/**
+	 * Student CGNode in an arbitrary declaring class (for distinct allow-list
+	 * identities). {@code walaType} is the WALA class TypeName form WITHOUT a
+	 * trailing {@code ';'} (e.g. {@code Lanonymous/Allowed}), matching what real
+	 * {@code IClass.getName().toString()} returns.
+	 */
+	private static CGNode studentNodeInClass(String signature, String walaType) {
+		CGNode node = mock(CGNode.class);
+		IMethod method = mock(IMethod.class);
+		IClass cls = mock(IClass.class);
+		IClassLoader loader = mock(IClassLoader.class);
+		when(node.getMethod()).thenReturn(method);
+		when(method.getSignature()).thenReturn(signature);
+		when(method.getDeclaringClass()).thenReturn(cls);
+		when(cls.getClassLoader()).thenReturn(loader);
+		when(loader.getReference()).thenReturn(ClassLoaderReference.Application);
+		when(cls.getReference()).thenReturn(
+				TypeReference.findOrCreate(ClassLoaderReference.Application, TypeName.findOrCreate(walaType)));
+		when(cls.getName()).thenReturn(TypeName.findOrCreate(walaType));
+		return node;
+	}
+
+	@Test
+	void allowListedCallerDoesNotMaskNonAllowedCallerOfSameSink() {
+		CGNode allowedCaller = studentNodeInClass("anonymous.Allowed.help()V", "Lanonymous/Allowed");
+		CGNode evilCaller = studentNodeInClass("anonymous.Evil.attack()V", "Lanonymous/Evil");
+		CGNode forbidden = jdkForbiddenNode("java.lang.Class.forName(Ljava/lang/String;)Ljava/lang/Class;", "Class");
+
+		CallGraph cg = mock(CallGraph.class);
+		List<CGNode> nodes = List.of(allowedCaller, evilCaller, forbidden);
+		when(cg.iterator()).thenAnswer(inv -> nodes.iterator());
+		when(cg.getEntrypointNodes()).thenReturn(List.of(allowedCaller, evilCaller));
+		when(cg.getSuccNodes(any())).thenAnswer(inv -> java.util.Collections.emptyIterator());
+		when(cg.getPredNodes(any())).thenAnswer(inv -> java.util.Collections.emptyIterator());
+		when(cg.getSuccNodes(allowedCaller)).thenAnswer(inv -> List.of(forbidden).iterator());
+		when(cg.getSuccNodes(evilCaller)).thenAnswer(inv -> List.of(forbidden).iterator());
+		when(cg.getPredNodes(forbidden)).thenAnswer(inv -> List.of(allowedCaller, evilCaller).iterator());
+
+		WalaRule rule = new WalaRule("Manipulates class loading",
+				Set.of("java.lang.Class.forName(Ljava/lang/String;)"));
+
+		AssertionError thrown = null;
+		try {
+			rule.check(cg, Set.of(new ClassPermission("anonymous.Allowed")));
+		} catch (AssertionError ae) {
+			thrown = ae;
+		}
+		assertThat(thrown).as("non-allowed caller of a shared sink must not be masked by an allow-listed caller")
+				.isNotNull();
+		assertThat(thrown.getMessage()).contains("Method <anonymous.Evil.attack()>");
+	}
+
+	// ----------------------------------------------------------------
+	// Entry-set fail-closed: a forbidden sink with no entry points must not pass
+	// ----------------------------------------------------------------
+
+	@Test
+	void emptyEntryPointsWithForbiddenSinkFailsClosed() {
+		CGNode sink = jdkForbiddenNode("java.io.RandomAccessFile.read([BII)I", "RandomAccessFile");
+		CallGraph cg = mock(CallGraph.class);
+		final List<CGNode> nodes = List.of(sink);
+		when(cg.iterator()).thenAnswer(inv -> nodes.iterator());
+		when(cg.getEntrypointNodes()).thenReturn(java.util.Collections.emptyList());
+		when(cg.getSuccNodes(any())).thenAnswer(inv -> java.util.Collections.emptyIterator());
+		when(cg.getPredNodes(any())).thenAnswer(inv -> java.util.Collections.emptyIterator());
+
+		WalaRule rule = new WalaRule("Accesses file system", Set.of("java.io.RandomAccessFile.read"));
+		boolean failedClosed = false;
+		try {
+			rule.check(cg);
+		} catch (SecurityException expected) {
+			failedClosed = true;
+		}
+		assertThat(failedClosed).as("a forbidden sink with no entry points must fail closed, not silently pass")
+				.isTrue();
 	}
 }

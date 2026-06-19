@@ -81,7 +81,7 @@ public class FileChannelWriteMain {
 	 */
 	public static void accessFileSystemViaFileChannelTruncate() throws IOException {
 		try (FileChannel channel = FileChannel.open(Path.of(NOT_TRUSTED_FILE), StandardOpenOption.CREATE,
-				StandardOpenOption.WRITE, StandardOpenOption.READ)) {
+				StandardOpenOption.WRITE)) {
 			// Write some content
 			channel.write(ByteBuffer.wrap("This is a longer content that will be truncated.".getBytes()));
 

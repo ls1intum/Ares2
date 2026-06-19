@@ -28,6 +28,8 @@ public class ProjectSourcesFinder {
 	private static final Pattern GRADLE_SOURCE_DIR_PATTERN = Pattern
 			.compile("def\\s+assignmentSrcDir\\s*=\\s*\"(?<dir>.+)\""); //$NON-NLS-1$
 
+	private static final String DEFAULT_MAVEN_SOURCE_DIRECTORY = "src/main/java"; //$NON-NLS-1$
+
 	private static String pomXmlPath = "pom.xml"; //$NON-NLS-1$
 	private static String buildGradlePath = "build.gradle"; //$NON-NLS-1$
 
@@ -89,20 +91,41 @@ public class ProjectSourcesFinder {
 				var buildNode = buildNodes.item(i);
 				if (buildNode.getNodeType() == Node.ELEMENT_NODE) {
 					var buildNodeElement = (Element) buildNode;
-					Node sourceDirectoryNode = buildNodeElement.getElementsByTagName("sourceDirectory").item(0); //$NON-NLS-1$
-					if (sourceDirectoryNode == null) {
-						// A <build> node without <sourceDirectory> should not abort the scan;
-						// a later <build> element may still define one.
-						continue;
+					var sourceDirectoryNodes = buildNodeElement.getElementsByTagName("sourceDirectory"); //$NON-NLS-1$
+					if (sourceDirectoryNodes.getLength() > 0) {
+						var sourceDirectoryPropertyValue = sourceDirectoryNodes.item(0).getTextContent();
+						var relativeSourceDirectory = toRelativeSourceDirectory(sourceDirectoryPropertyValue);
+						// Only honour a present <sourceDirectory> when it actually names a
+						// directory; a present-but-blank element falls through to the default.
+						if (relativeSourceDirectory != null) {
+							return relativeSourceDirectory;
+						}
 					}
-					var sourceDirectoryPropertyValue = sourceDirectoryNode.getTextContent();
-					return sourceDirectoryPropertyValue.substring(sourceDirectoryPropertyValue.indexOf("}") + 2); //$NON-NLS-1$
 				}
+			}
+			if (Files.exists(Path.of(DEFAULT_MAVEN_SOURCE_DIRECTORY))) {
+				return DEFAULT_MAVEN_SOURCE_DIRECTORY;
 			}
 		} catch (ParserConfigurationException | SAXException | IOException e) {
 			LOG.error("Could not retrieve the source directory from the pom.xml file. Contact your instructor.", e); //$NON-NLS-1$
 		}
 		return null;
+	}
+
+	private static String toRelativeSourceDirectory(String sourceDirectoryPropertyValue) {
+		if (sourceDirectoryPropertyValue == null || sourceDirectoryPropertyValue.isBlank()) {
+			return null;
+		}
+		String sourceDirectory = sourceDirectoryPropertyValue.trim();
+		String basedirPrefix = "${project.basedir}/"; //$NON-NLS-1$
+		if (sourceDirectory.startsWith(basedirPrefix)) {
+			return sourceDirectory.substring(basedirPrefix.length());
+		}
+		int propertyEnd = sourceDirectory.indexOf("}/"); //$NON-NLS-1$
+		if (propertyEnd >= 0 && propertyEnd + 2 < sourceDirectory.length()) {
+			return sourceDirectory.substring(propertyEnd + 2);
+		}
+		return sourceDirectory;
 	}
 
 	/**

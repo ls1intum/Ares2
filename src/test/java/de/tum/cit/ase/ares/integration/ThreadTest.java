@@ -2,14 +2,12 @@ package de.tum.cit.ase.ares.integration;
 
 import static de.tum.cit.ase.ares.testutilities.CustomConditions.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.lang.Thread.State;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.stream.*;
 
 import org.junit.jupiter.api.Disabled;
@@ -20,10 +18,12 @@ import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.StrictTimeout;
 import de.tum.cit.ase.ares.api.TestUtils;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
+import de.tum.cit.ase.ares.api.localization.UseLocale;
 import de.tum.cit.ase.ares.integration.testuser.subject.threads.ThreadPenguin;
 import de.tum.cit.ase.ares.testutilities.*;
 
 //@UserBased(ThreadUser.class)
+@UseLocale("en")
 class ThreadTest {
 
 	@UserTestResults
@@ -69,15 +69,21 @@ class ThreadTest {
 	 *                      message.
 	 */
 	private void assertThreadErrorMessage(String actualMessage, String operationText) {
-		assertTrue(actualMessage.contains("Ares Security Error") || actualMessage.contains("Ares Sicherheitsfehler"),
-				"Exception message should contain an Ares security error prefix" + System.lineSeparator()
-						+ actualMessage);
+		assertTrue(actualMessage.contains("Ares Security Error"),
+				"Exception message should contain 'Ares Security Error'" + System.lineSeparator() + actualMessage);
 		assertTrue(actualMessage.contains("Student-Code"),
 				"Exception message should contain 'Student-Code'" + System.lineSeparator() + actualMessage);
-		assertTrue(actualMessage.contains("Thread"),
-				"Exception message should contain 'Thread'" + System.lineSeparator() + actualMessage);
-		assertTrue(actualMessage.contains("illegal create") || actualMessage.contains("illegally create"),
-				"Exception message should indicate illegal thread creation" + System.lineSeparator() + actualMessage);
+		assertTrue(actualMessage.contains("Execution"),
+				"Exception message should contain 'Execution'" + System.lineSeparator() + actualMessage);
+		assertTrue(actualMessage.contains("ThreadPenguin"),
+				"Exception message should contain the class name 'ThreadPenguin'" + System.lineSeparator()
+						+ actualMessage);
+		assertTrue(actualMessage.contains("create Thread"),
+				"Exception message should indicate an illegal thread creation" + System.lineSeparator()
+						+ actualMessage);
+		assertTrue(actualMessage.contains("blocked by Ares"),
+				"Exception message should indicate the operation was blocked by Ares" + System.lineSeparator()
+						+ actualMessage);
 	}
 
 	/**
@@ -142,30 +148,13 @@ class ThreadTest {
 	@TestTest
 	@PublicTest
 	@StrictTimeout(1000000)
-	@Disabled("Direct Thread.start enforcement is not supported by the current AspectJ policy fixture")
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
 	void test_threadAccess() {
-		try {
-			ExecutorService executor = Executors.newFixedThreadPool(2);
-			executor.submit(() -> {
-				try {
-					Thread.sleep(1000);
-				} catch (InterruptedException e) {
-					fail("Thread was interrupted");
-				}
-			});
-			executor.submit(() -> {
-				try {
-					Thread.sleep(1000);
-				} catch (InterruptedException e) {
-					fail("Thread was interrupted");
-				}
-			});
-
-			fail(errorMessage);
-		} catch (SecurityException e) {
-			// Expected exception
-		}
+		// The thread pool must be created by supervised subject code (ThreadPenguin),
+		// not inline in the
+		// test harness, so the thread creation is attributed to the student and
+		// governed by the policy.
+		assertThreadSecurityException(ThreadPenguin::threadAccess, "create Thread");
 	}
 
 	@TestTest
@@ -226,7 +215,6 @@ class ThreadTest {
 
 	@TestTest
 	@PublicTest
-	@Disabled("Parallel stream creation is not reliably intercepted by the current AspectJ policy fixture")
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
 	void test_parallelStreams1() {
 		assertThreadSecurityException(ThreadPenguin::parallelStreams1, "Task 2 executed");
@@ -234,7 +222,6 @@ class ThreadTest {
 
 	@TestTest
 	@PublicTest
-	@Disabled("Flow publisher creation is not reliably intercepted by the current AspectJ policy fixture")
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
 	void test_publisherSubscriber() {
 		assertThreadSecurityException(ThreadPenguin::publisherSubscriber, "Task 2 executed");
@@ -242,7 +229,6 @@ class ThreadTest {
 
 	@TestTest
 	@PublicTest
-	@Disabled("Direct Thread.start enforcement is not supported by the current AspectJ policy fixture")
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
 	void test_tryStartTwoThreads() {
 		assertThreadSecurityException(ThreadPenguin::tryStartTwoThreads, "Thread started");
@@ -250,7 +236,6 @@ class ThreadTest {
 
 	@TestTest
 	@PublicTest
-	@Disabled("Direct Thread.start enforcement is not supported by the current AspectJ policy fixture")
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
 	void test_tryBreakThreadGroup() {
 		assertThreadSecurityException(ThreadPenguin::tryBreakThreadGroup, "Thread started");
@@ -258,7 +243,6 @@ class ThreadTest {
 
 	@TestTest
 	@PublicTest
-	@Disabled("Direct Thread.start enforcement is not supported by the current AspectJ policy fixture")
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
 	void test_spawnEndlessThreads() {
 		assertThreadSecurityException(ThreadPenguin::spawnEndlessThreads, "Thread started");
@@ -266,15 +250,17 @@ class ThreadTest {
 
 	@TestTest
 	@PublicTest
-	@Disabled("Sleeping in the current thread does not create a new thread")
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
 	void test_sleepInCurrentThread() {
-		assertThreadSecurityException(() -> ThreadPenguin.sleepInCurrentThread(1000), "Thread.sleep");
+		// Thread.sleep only pauses the current thread; it neither creates nor starts
+		// a thread, so it is not a thread-creation operation and must be allowed even
+		// under a policy that restricts thread creation.
+		assertDoesNotThrow(() -> ThreadPenguin.sleepInCurrentThread(1000),
+				"Thread.sleep pauses the current thread and must not be blocked as a thread creation.");
 	}
 
 	@TestTest
 	@PublicTest
-	@Disabled("Direct Thread.start enforcement is not supported by the current AspectJ policy fixture")
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
 	void test_runItself() {
 		assertThreadSecurityException(ThreadPenguin::runItself, "Thread started");

@@ -92,4 +92,18 @@ public class JavaAOPTestCaseToolboxTest {
 		Assertions.assertThrows(SecurityException.class,
 				() -> JavaAOPTestCaseToolbox.getIntegerTwoDArrayAssignment("twoIntArray", invalidValue));
 	}
+
+	@Test
+	public void testGetStringAssignmentEscapesBackslashAndQuote() {
+		// A Windows path and an embedded quote must not break out of the generated
+		// string literal.
+		String result = JavaAOPTestCaseToolbox.getStringAssignment("path", "C:\\Users\\\"x\"");
+		Assertions.assertEquals("private static String path = \"C:\\\\Users\\\\\\\"x\\\"\";\n", result);
+	}
+
+	@Test
+	public void testGetStringOneDArrayAssignmentEscapesElements() {
+		String result = JavaAOPTestCaseToolbox.getStringOneDArrayAssignment("paths", Arrays.asList("C:\\tmp", "a\"b"));
+		Assertions.assertEquals("private static String[] paths = new String[] {\"C:\\\\tmp\", \"a\\\"b\"};\n", result);
+	}
 }

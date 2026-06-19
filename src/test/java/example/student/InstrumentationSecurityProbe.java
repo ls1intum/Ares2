@@ -46,8 +46,17 @@ public final class InstrumentationSecurityProbe {
 				"<init>", "", new Object[0], new Object[] { task }, null);
 	}
 
-	private static String stackCheckHelper() {
-		return JavaInstrumentationAdviceAbstractToolbox.checkIfCallstackCriteriaIsViolated("example.student",
-				new String[0], InstrumentationSecurityProbe.class.getName(), "stackCheckHelper");
+	private static String stackCheckHelper() throws Exception {
+		// checkIfCallstackCriteriaIsViolated was hardened to package-private, so
+		// student
+		// code can no longer call it directly and must use reflection - exactly the
+		// path
+		// this probe simulates. The reflective frames are in IGNORE_CALLSTACK, so the
+		// check still attributes the violation to this student frame (no bypass).
+		Method check = JavaInstrumentationAdviceAbstractToolbox.class.getDeclaredMethod(
+				"checkIfCallstackCriteriaIsViolated", String.class, String[].class, String.class, String.class);
+		check.setAccessible(true);
+		return (String) check.invoke(null, "example.student", new String[0],
+				InstrumentationSecurityProbe.class.getName(), "stackCheckHelper");
 	}
 }

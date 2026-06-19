@@ -374,7 +374,8 @@ public class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("newDirectoryStream")),
 			// java.lang
 			Map.entry("java.lang.ClassLoader", List.of("getResourceAsStream")),
-			Map.entry("java.net.URL", List.of("openStream")),
+			// java.net.URL.openStream is a network fetch, not a file read; it is bound to
+			// the network connect/receive pointcuts below, not here.
 			// java.awt
 			Map.entry("java.awt.Toolkit", List.of("createImage", "getImage")),
 			Map.entry("java.awt.Font", List.of("createFont", "createFonts")),
@@ -396,8 +397,7 @@ public class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.util.zip.GZIPInputStream", List.of("<init>")),
 			Map.entry("java.util.jar.JarFile", List.of("<init>", "entries", "getInputStream")),
 			Map.entry("java.util.jar.JarInputStream", List.of("<init>", "getNextJarEntry")),
-			Map.entry("java.util.Properties", List.of("load", "loadFromXML")),
-			Map.entry("java.awt.Desktop", List.of("open", "edit", "print", "browse", "browseFileDirectory")));
+			Map.entry("java.util.Properties", List.of("load", "loadFromXML")));
 	// </editor-fold>
 
 	// <editor-fold desc="Overwrite Path">
@@ -460,8 +460,7 @@ public class JavaInstrumentationPointcutDefinitions {
 			Map.entry("javax.sound.sampled.AudioSystem", List.of("write")),
 			// javax.xml
 			Map.entry("javax.xml.transform.Transformer", List.of("transform")),
-			Map.entry("javax.xml.bind.Marshaller", List.of("marshal")),
-			Map.entry("java.awt.Desktop", List.of("open", "edit", "print", "browse", "browseFileDirectory")));
+			Map.entry("javax.xml.bind.Marshaller", List.of("marshal")));
 	// </editor-fold>
 
 	// <editor-fold desc="Execute Path">
@@ -476,10 +475,11 @@ public class JavaInstrumentationPointcutDefinitions {
 			// java.lang - only load/loadLibrary, not exec (handled by Command System)
 			Map.entry("java.lang.Runtime", List.of("load", "loadLibrary")),
 			Map.entry("java.lang.System", List.of("load", "loadLibrary")),
-			// Note: ProcessBuilder is handled entirely by Command System
-			// java.awt
-			Map.entry("java.awt.Desktop", List.of("open", "edit", "print", "browse", "browseFileDirectory", "mail",
-					"openHelpViewer", "setDefaultMenuBar", "setOpenFileHandler", "setOpenURIHandler")));
+			// Desktop.open/edit/print/browse/browseFileDirectory launch an external
+			// application to act on the file or URI, so they are an execute (launch)
+			// operation rather than a file read.
+			Map.entry("java.awt.Desktop", List.of("open", "edit", "print", "browse", "browseFileDirectory")));
+	// Note: ProcessBuilder is handled entirely by Command System
 	// </editor-fold>
 
 	// <editor-fold desc="Delete Path">
@@ -490,8 +490,9 @@ public class JavaInstrumentationPointcutDefinitions {
 	 */
 	public static final Map<String, List<String>> methodsWhichCanDeleteFiles = Map.ofEntries(
 			// java.awt
-			Map.entry("java.awt.Desktop",
-					List.of("moveToTrash", "open", "edit", "print", "browse", "browseFileDirectory")),
+			// Desktop.moveToTrash deletes a file; the AspectJ backend already treats it as
+			// a delete, so the instrumentation backend must too (engine symmetry).
+			Map.entry("java.awt.Desktop", List.of("moveToTrash")),
 			// java.io
 			Map.entry("java.io.File", List.of("delete", "deleteOnExit")),
 			// java.nio
@@ -537,8 +538,14 @@ public class JavaInstrumentationPointcutDefinitions {
 	public static final Map<String, List<String>> methodsWhichCanCreateThreads = Map.ofEntries(
 			// java.lang
 			Map.entry("java.lang.Thread", List.of("start", "startVirtualThread")),
-			Map.entry("java.lang.Thread.Builder", List.of("run", "start")),
-			Map.entry("java.lang.Thread.Builder.OfPlatform", List.of("start")),
+			// Binary nested-class names ($, not .) so ByteBuddy's named(...) matcher
+			// resolves them; the dotted source names never matched
+			// TypeDescription.getName().
+			// Thread.Builder declares start(Runnable) but no run(): the former "run" entry
+			// matched no method (a phantom) and is dropped so this mirrors the AspectJ
+			// backend, which weaves only Thread$Builder+.start.
+			Map.entry("java.lang.Thread$Builder", List.of("start")),
+			Map.entry("java.lang.Thread$Builder$OfPlatform", List.of("start")),
 			Map.entry("java.lang.ThreadGroup", List.of("newThread")),
 			// java.util
 			Map.entry("java.util.Collection", List.of("parallelStream")),
@@ -598,6 +605,11 @@ public class JavaInstrumentationPointcutDefinitions {
 			Map.entry("javax.net.ssl.HttpsURLConnection", List.of("connect", "<init>")),
 			Map.entry("javax.net.SocketFactory", List.of("createSocket")),
 			Map.entry("javax.net.ssl.SSLSocketFactory", List.of("createSocket")),
+			// openStream is also a file-read pointcut (methodsWhichCanReadFiles); it is
+			// additionally a network connect because for a non-file URL it opens a
+			// connection. The file-read advice ignores non-file URLs and the network advice
+			// ignores file URLs, so classifying it as both gives full coverage in either
+			// engine without false positives. This matches the AspectJ pointcuts.
 			Map.entry("java.net.URL", List.of("openConnection", "openStream")),
 			Map.entry("java.net.URLConnection", List.of("connect")));
 	// </editor-fold>

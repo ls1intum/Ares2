@@ -18,7 +18,6 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  *
  * @since 2.0.0
  * @author Markus Paulsen
- * @since 2.0.0
  * @param readAllFiles               whether reading all files is permitted.
  * @param overwriteAllFiles          whether overwriting all files is permitted.
  * @param createAllFiles             whether creating files is permitted.
@@ -155,7 +154,7 @@ public record FilePermission(@Nonnull String onThisPathAndAllPathsBelow, boolean
 		/**
 		 * Sets whether creating files is permitted.
 		 *
-		 * @since 2.0.1
+		 * @since 2.0.0
 		 * @author Markus Paulsen
 		 * @param createAllFiles whether creating is permitted.
 		 * @return the updated Builder.

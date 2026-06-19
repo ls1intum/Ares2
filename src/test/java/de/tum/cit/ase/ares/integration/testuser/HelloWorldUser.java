@@ -57,6 +57,11 @@ public class HelloWorldUser {
 	}
 
 	@Test
+	// Default policy (value left blank), but scope the analysis to a benign
+	// student-like
+	// subtree so the ReservedPackageGuard does not (correctly) reject Ares's own
+	// build.
+	@Policy(withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
 	void helloWorld_noPolicy() {
 		assertEquals("Hello, World!", "Hello, World!");
 	}

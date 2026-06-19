@@ -1,10 +1,10 @@
 package de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.execute.desktop;
 
+import java.awt.Desktop;
+import java.io.File;
 import java.io.IOException;
 
 public class ExecuteDesktopMain {
-
-	private static final String TRUSTED_SCRIPT_PATH = "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trustedExecute.sh";
 
 	private ExecuteDesktopMain() {
 		throw new SecurityException(
@@ -12,50 +12,66 @@ public class ExecuteDesktopMain {
 	}
 
 	/**
-	 * Access the file system by executing the trusted file.
+	 * Access the file system using the {@link Desktop} class for execution.
 	 */
 	public static void accessFileSystemViaDesktop(String filePath) throws IOException {
-		Process process = Runtime.getRuntime().exec(filePath);
-		try {
-			process.waitFor();
-		} catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
-			throw new IOException("Interrupted while executing trusted file.", e);
+		if (Desktop.isDesktopSupported()) {
+			Desktop desktop = Desktop.getDesktop();
+			File file = new File(filePath);
+			desktop.open(file);
 		}
 	}
 
 	/**
-	 * Access the file system by executing the default trusted file.
+	 * Access the file system using the {@link Desktop} class for execution with
+	 * default file.
 	 */
 	public static void accessFileSystemViaDesktop() throws IOException {
-		accessFileSystemViaDesktop(TRUSTED_SCRIPT_PATH);
+		accessFileSystemViaDesktop("test.txt");
 	}
 
 	/**
-	 * Access the file system through the browse-style execution fixture.
+	 * Access the file system using the {@link Desktop#browse(URI)} method.
 	 */
 	public static void accessFileSystemViaDesktopBrowse() throws IOException {
-		accessFileSystemViaDesktop(TRUSTED_SCRIPT_PATH);
+		if (Desktop.isDesktopSupported()) {
+			Desktop desktop = Desktop.getDesktop();
+			File file = new File("test.txt");
+			desktop.browse(file.toURI());
+		}
 	}
 
 	/**
-	 * Access the file system through the browse-directory-style fixture.
+	 * Access the file system using the {@link Desktop#browseFileDirectory(File)}
+	 * method.
 	 */
 	public static void accessFileSystemViaDesktopBrowseFileDirectory() {
-		// No-op on headless build agents.
+		if (Desktop.isDesktopSupported()) {
+			Desktop desktop = Desktop.getDesktop();
+			File directory = new File(".");
+			desktop.browseFileDirectory(directory);
+		}
 	}
 
 	/**
-	 * Access the file system through the edit-style execution fixture.
+	 * Access the file system using the {@link Desktop#edit(File)} method.
 	 */
 	public static void accessFileSystemViaDesktopEdit() throws IOException {
-		accessFileSystemViaDesktop(TRUSTED_SCRIPT_PATH);
+		if (Desktop.isDesktopSupported()) {
+			Desktop desktop = Desktop.getDesktop();
+			File file = new File("test.txt");
+			desktop.edit(file);
+		}
 	}
 
 	/**
-	 * Access the file system through the print-style execution fixture.
+	 * Access the file system using the {@link Desktop#print(File)} method.
 	 */
 	public static void accessFileSystemViaDesktopPrint() throws IOException {
-		accessFileSystemViaDesktop(TRUSTED_SCRIPT_PATH);
+		if (Desktop.isDesktopSupported()) {
+			Desktop desktop = Desktop.getDesktop();
+			File file = new File("test.txt");
+			desktop.print(file);
+		}
 	}
 }

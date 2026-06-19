@@ -12,7 +12,10 @@ import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition;
 
 import de.tum.cit.ase.ares.api.architecture.java.FileHandlerConstants;
+import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
+import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
 import de.tum.cit.ase.ares.api.localization.Messages;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 import de.tum.cit.ase.ares.api.util.FileTools;
 //</editor-fold>
@@ -61,7 +64,18 @@ public class JavaArchunitTestCaseCollection {
 	}
 
 	private static ArchRule createNoClassShouldHaveMethodRule(String ruleName, Path methodsFilePath) {
-		return ArchRuleDefinition.noClasses()
+		return createNoClassShouldHaveMethodRule(ruleName, methodsFilePath, Set.of());
+	}
+
+	/**
+	 * Builds a "no class should call the forbidden methods" rule, exempting the
+	 * allow-listed classes via {@code .that(...)}. With an empty allow-list the
+	 * predicate matches every class, so the rule behaves exactly as the unfiltered
+	 * variant (used by the static constants / generated-template path).
+	 */
+	private static ArchRule createNoClassShouldHaveMethodRule(String ruleName, Path methodsFilePath,
+			Set<ClassPermission> allowedClasses) {
+		return ArchRuleDefinition.noClasses().that(isNotAllowedClass(allowedClasses))
 				.should(new TransitivelyAccessesMethodsCondition(new DescribedPredicate<>(ruleName) {
 					private Set<String> forbiddenMethods;
 
@@ -76,6 +90,70 @@ public class JavaArchunitTestCaseCollection {
 								.anyMatch(method -> javaAccess.getTarget().getFullName().startsWith(method));
 					}
 				})).as(ruleName);
+	}
+
+	/**
+	 * Predicate selecting classes that are NOT on the allow-list, so a rule built
+	 * with {@code .that(...)} only applies to non-exempt classes. Boundary-aware
+	 * nested-class matching is delegated to
+	 * {@link JavaArchitectureTestCase#isAllowedClass}.
+	 */
+	private static DescribedPredicate<JavaClass> isNotAllowedClass(Set<ClassPermission> allowedClasses) {
+		return new DescribedPredicate<>("not an allow-listed class") {
+			@Override
+			public boolean test(JavaClass javaClass) {
+				return !JavaArchitectureTestCase.isAllowedClass(javaClass.getFullName(), allowedClasses);
+			}
+		};
+	}
+
+	/**
+	 * Returns the architecture rule for the given category, exempting the
+	 * allow-listed classes. Used by the runtime execution path; the static rule
+	 * constants above remain unfiltered for the generated-template path.
+	 */
+	public static ArchRule allowAwareRuleFor(JavaArchitectureTestCaseSupported supported,
+			Set<ClassPermission> allowedClasses, Set<PackagePermission> allowedPackages) {
+		return switch (supported) {
+		case FILESYSTEM_INTERACTION -> createNoClassShouldHaveMethodRule(
+				Messages.localized("security.architecture.file.system.access"),
+				FileHandlerConstants.ARCHUNIT_FILESYSTEM_METHODS, allowedClasses);
+		case NETWORK_CONNECTION -> createNoClassShouldHaveMethodRule(
+				Messages.localized("security.architecture.network.access"),
+				FileHandlerConstants.ARCHUNIT_NETWORK_METHODS, allowedClasses);
+		case THREAD_CREATION -> createNoClassShouldHaveMethodRule(
+				Messages.localized("security.architecture.manipulate.threads"),
+				FileHandlerConstants.ARCHUNIT_THREAD_MANIPULATION_METHODS, allowedClasses);
+		case COMMAND_EXECUTION -> createNoClassShouldHaveMethodRule(
+				Messages.localized("security.architecture.execute.command"),
+				FileHandlerConstants.ARCHUNIT_COMMAND_EXECUTION_METHODS, allowedClasses);
+		case PACKAGE_IMPORT -> noClassMustImportForbiddenPackages(allowedPackages, allowedClasses);
+		case REFLECTION -> createNoClassShouldHaveMethodRule(
+				Messages.localized("security.architecture.reflection.uses"),
+				FileHandlerConstants.ARCHUNIT_REFLECTION_METHODS, allowedClasses);
+		case TERMINATE_JVM -> createNoClassShouldHaveMethodRule(
+				Messages.localized("security.architecture.terminate.jvm"),
+				FileHandlerConstants.ARCHUNIT_JVM_TERMINATION_METHODS, allowedClasses);
+		case SERIALIZATION -> createNoClassShouldHaveMethodRule(Messages.localized("security.architecture.serialize"),
+				FileHandlerConstants.ARCHUNIT_SERIALIZATION_METHODS, allowedClasses);
+		case CLASS_LOADING -> createNoClassShouldHaveMethodRule(
+				Messages.localized("security.architecture.class.loading"),
+				FileHandlerConstants.ARCHUNIT_CLASSLOADER_METHODS, allowedClasses);
+		case NATIVE_CODE -> createNoClassShouldHaveMethodRule(
+				Messages.localized("security.architecture.native.code.access"),
+				FileHandlerConstants.ARCHUNIT_NATIVE_CODE_METHODS, allowedClasses);
+		case AGENT_ATTACH -> createNoClassShouldHaveMethodRule(Messages.localized("security.architecture.agent.attach"),
+				FileHandlerConstants.ARCHUNIT_AGENT_ATTACH_METHODS, allowedClasses);
+		case ENVIRONMENT_ACCESS -> createNoClassShouldHaveMethodRule(
+				Messages.localized("security.architecture.environment.access"),
+				FileHandlerConstants.ARCHUNIT_ENVIRONMENT_ACCESS_METHODS, allowedClasses);
+		case MODULE_SYSTEM -> createNoClassShouldHaveMethodRule(
+				Messages.localized("security.architecture.module.system.access"),
+				FileHandlerConstants.ARCHUNIT_MODULE_SYSTEM_METHODS, allowedClasses);
+		case JNDI_INJECTION -> createNoClassShouldHaveMethodRule(
+				Messages.localized("security.architecture.jndi.injection"),
+				FileHandlerConstants.ARCHUNIT_JNDI_INJECTION_METHODS, allowedClasses);
+		};
 	}
 	// </editor-fold>
 
@@ -124,12 +202,30 @@ public class JavaArchunitTestCaseCollection {
 	 * packages.
 	 */
 	public static ArchRule noClassMustImportForbiddenPackages(Set<PackagePermission> allowedPackages) {
-		return ArchRuleDefinition.noClasses().should()
+		return noClassMustImportForbiddenPackages(allowedPackages, Set.of());
+	}
+
+	/**
+	 * Package-import rule that also exempts the allow-listed classes (an empty
+	 * allow-list reproduces the original behaviour).
+	 */
+	public static ArchRule noClassMustImportForbiddenPackages(Set<PackagePermission> allowedPackages,
+			Set<ClassPermission> allowedClasses) {
+		return ArchRuleDefinition.noClasses().that(isNotAllowedClass(allowedClasses)).should()
 				.dependOnClassesThat(new DescribedPredicate<>("imports a forbidden package package") {
 					@Override
 					public boolean test(JavaClass javaClass) {
-						return allowedPackages.stream().noneMatch(allowedPackage -> javaClass.getPackageName()
-								.startsWith(allowedPackage.importTheFollowingPackage()));
+						String packageName = javaClass.getPackageName();
+						return allowedPackages.stream().noneMatch(allowedPackage -> {
+							String allowed = allowedPackage.importTheFollowingPackage();
+							// Trailing-dot tolerant, boundary-aware match: a bare startsWith would
+							// let allowed "com.foo" also cover the unrelated package "com.foobar".
+							String normalizedAllowed = allowed.endsWith(".")
+									? allowed.substring(0, allowed.length() - 1)
+									: allowed;
+							return packageName.equals(normalizedAllowed)
+									|| packageName.startsWith(normalizedAllowed + ".");
+						});
 					}
 				}).as(Messages.localized("security.architecture.package.import"));
 	}

@@ -375,3 +375,4 @@ java.util.Collection.parallelStream()
 java.util.stream.Stream.parallel()
 java.util.stream.BaseStream.parallel()
 java.lang.Thread.notify()
+java.util.Timer.<init>

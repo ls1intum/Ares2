@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 
+//<editor-fold desc="imports">
 import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox.*;
 
 import java.nio.file.Files;
@@ -12,6 +13,7 @@ import java.util.Map;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+//</editor-fold>
 
 /**
  * Utility class for Java instrumentation command system security advice.
@@ -74,8 +76,8 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 	 * @author Markus Paulsen
 	 */
 	private JavaInstrumentationAdviceCommandSystemToolbox() {
-		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-				"security.instrumentation.utility.initialization", "JavaInstrumentationAdviceCommandSystemToolbox"));
+		throw new SecurityException(localize("security.instrumentation.utility.initialization",
+				"JavaInstrumentationAdviceCommandSystemToolbox"));
 	}
 	// </editor-fold>
 
@@ -141,14 +143,15 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 	}
 
 	/**
-	 * Checks if actual arguments match allowed arguments with flexible path
-	 * matching.
+	 * Checks if actual arguments match allowed arguments with relative-vs-absolute
+	 * path tolerance.
 	 * <p>
-	 * Description: Compares argument arrays with support for suffix matching and
-	 * contains matching. When an actual argument ends with an allowed argument
-	 * (path suffix) or contains it as a substring, it's considered a match. This
-	 * allows relative paths in policies to match absolute paths at runtime and
-	 * shell expressions containing the allowed path to match.
+	 * Description: Each argument must match exactly, or (for a non-empty allowed
+	 * token) the actual argument must end with the allowed token on a
+	 * path-separator boundary, so a relative path in the policy matches an absolute
+	 * path at runtime. Substring ("contains") matching is intentionally NOT used:
+	 * it would let a student append arbitrary content to an allowed argument and
+	 * defeat argument pinning.
 	 *
 	 * @param allowedArguments the allowed arguments from policy
 	 * @param actualArguments  the actual arguments from the command
@@ -175,15 +178,14 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 			if (allowed.equals(actual)) {
 				continue;
 			}
-			// Suffix match for paths: actual "/Users/.../src/main/file.sh" matches allowed
-			// "src/main/file.sh"
-			if (actual.endsWith("/" + allowed) || actual.endsWith("\\" + allowed)) {
-				continue;
-			}
-			// Contains match for shell expressions: actual
-			// "'/Users/.../file.sh' > '/tmp/out' ; cat '/tmp/out'" matches allowed
-			// "file.sh" when the actual argument contains the allowed value as a substring
-			if (actual.contains(allowed)) {
+			// Relative-vs-absolute path tolerance: a relative allowed path matches an
+			// actual absolute path that ends with it on a path-separator boundary (e.g.
+			// allowed "src/main/file.sh" matches actual "/Users/.../src/main/file.sh").
+			// Guarded on a non-empty allowed token so an empty policy value cannot match an
+			// arbitrary argument. Substring ("contains") matching is deliberately NOT used:
+			// it would let a student append arbitrary content (allowed "echo hi" matching
+			// actual "echo hi; rm -rf ~"), which defeats argument pinning.
+			if (!allowed.isEmpty() && (actual.endsWith("/" + allowed) || actual.endsWith("\\" + allowed))) {
 				continue;
 			}
 			// No match
@@ -437,13 +439,22 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 		if (observedCommand == null || observedCommand.command() == null) {
 			return null;
 		}
-		@Nullable
-		Path commandPath = commandToExistingPath(observedCommand.command());
-		if (commandPath == null) {
+		if (pathsAllowedToExecute == null || pathsAllowedToExecute.length == 0) {
+			// No executable-path allow-list configured: the command-name allow-list
+			// (already
+			// checked by the caller) governs; do not additionally restrict by executable
+			// file
+			// path. This keeps pathsAllowedToBeExecuted an opt-in narrowing rather than a
+			// deny-all that would block every allow-listed command.
 			return null;
 		}
-		if (pathsAllowedToExecute == null || pathsAllowedToExecute.length == 0) {
-			return commandPath.toString();
+		@Nullable
+		Path commandPath = resolveExecutable(observedCommand.command());
+		if (commandPath == null) {
+			// An execute-path list IS configured, but the command resolves to no existing
+			// executable file (including a bare name not found on PATH), so it cannot be
+			// proven to be on the list and is denied rather than silently passed.
+			return observedCommand.command();
 		}
 		for (String allowedPathAsString : pathsAllowedToExecute) {
 			@Nullable
@@ -453,6 +464,71 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 			}
 		}
 		return commandPath.toString();
+	}
+
+	/**
+	 * Resolves a command token to an existing executable file, searching
+	 * {@code PATH} for bare command names so that the executable allow-list also
+	 * constrains commands invoked without an explicit path (e.g. {@code git}).
+	 *
+	 * @param command command token
+	 * @return the resolved existing path, or null if no executable file was found
+	 */
+	@Nullable
+	private static Path resolveExecutable(@Nonnull String command) {
+		// A token containing a path separator is used by the OS directly (absolute or
+		// relative to the working directory); resolve it literally. A bare command name
+		// is NOT resolved against the working directory by the OS - it is looked up on
+		// PATH only - so we must not treat "git" as "./git" here.
+		if (command.indexOf('/') >= 0 || command.indexOf('\\') >= 0) {
+			return commandToExistingPath(command);
+		}
+		@Nullable
+		String pathEnvironment = System.getenv("PATH");
+		if (pathEnvironment == null || pathEnvironment.isBlank()) {
+			return null;
+		}
+		for (String directory : pathEnvironment.split(java.io.File.pathSeparator)) {
+			// A blank PATH entry denotes the current working directory on POSIX.
+			String searchDirectory = directory.isBlank() ? "." : directory;
+			for (String extension : executableExtensions()) {
+				@Nullable
+				Path candidate = commandToExistingPath(searchDirectory + java.io.File.separator + command + extension);
+				// Mirror the OS PATH search: skip non-executable matches and keep looking, so
+				// an allowed-but-non-executable file cannot mask a later executable one.
+				if (candidate != null && Files.isExecutable(candidate)) {
+					return candidate;
+				}
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Returns the executable filename extensions to try when searching
+	 * {@code PATH}. On non-Windows platforms only the bare name is used; on Windows
+	 * the entries of {@code PATHEXT} are appended.
+	 *
+	 * @return the extensions to append to a bare command name (always includes "")
+	 */
+	@Nonnull
+	private static String[] executableExtensions() {
+		@Nullable
+		String osName = System.getProperty("os.name");
+		boolean isWindows = osName != null && osName.toLowerCase(java.util.Locale.ROOT).contains("win");
+		if (!isWindows) {
+			return new String[] { "" };
+		}
+		@Nullable
+		String pathExtensions = System.getenv("PATHEXT");
+		if (pathExtensions == null || pathExtensions.isBlank()) {
+			return new String[] { "", ".EXE", ".BAT", ".CMD", ".COM" };
+		}
+		String[] rawExtensions = pathExtensions.split(java.io.File.pathSeparator);
+		String[] extensionsWithBare = new String[rawExtensions.length + 1];
+		extensionsWithBare[0] = "";
+		System.arraycopy(rawExtensions, 0, extensionsWithBare, 1, rawExtensions.length);
+		return extensionsWithBare;
 	}
 
 	/**
@@ -610,9 +686,8 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 		final String[] pathsAllowedToBeExecuted = getValueFromSettings("pathsAllowedToBeExecuted");
 
 		if (commandsAllowedToBeExecutedSize != argumentsAllowedToBePassedSize) {
-			throw new SecurityException(
-					JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.command.allowed.size",
-							argumentsAllowedToBePassedSize, commandsAllowedToBeExecutedSize));
+			throw new SecurityException(localize("security.advice.command.allowed.size", argumentsAllowedToBePassedSize,
+					commandsAllowedToBeExecutedSize));
 		}
 		// </editor-fold>
 		// <editor-fold desc="Get information from attributes">
@@ -638,12 +713,11 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 						COMMAND_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
 								IgnoreValues.NONE));
 		if (commandIllegallyExecutedThroughParameter != null) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-					"security.advice.illegal.command.execution", commandSystemMethodToCheck, action,
-					commandIllegallyExecutedThroughParameter,
+			throw new SecurityException(localize("security.advice.illegal.command.execution",
+					commandSystemMethodToCheck, action, commandIllegallyExecutedThroughParameter,
 					fullMethodSignature
 							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
-							+ JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(noAllowRuleConfigured)));
+							+ buildDenialReason(noAllowRuleConfigured)));
 		}
 		@Nullable
 		String pathIllegallyExecutedThroughParameter = (parameters == null || parameters.length == 0) ? null
@@ -651,14 +725,17 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 						COMMAND_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
 								IgnoreValues.NONE));
 		if (pathIllegallyExecutedThroughParameter != null) {
-			boolean noFileAllowRuleConfigured = pathsAllowedToBeExecuted == null
-					|| pathsAllowedToBeExecuted.length == 0;
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-					"security.advice.illegal.file.execution", commandSystemMethodToCheck, action,
-					pathIllegallyExecutedThroughParameter,
+			// Reaching this check means the command-name check on the same variables
+			// already
+			// passed, i.e. the command IS allow-listed; only its executable file path is
+			// not
+			// in the execute allow-list. Report that precisely instead of the misleading
+			// generic "no allow rule configured" reason.
+			throw new SecurityException(localize("security.advice.illegal.file.execution", commandSystemMethodToCheck,
+					action, pathIllegallyExecutedThroughParameter,
 					fullMethodSignature
 							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
-							+ JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(noFileAllowRuleConfigured)));
+							+ localize("security.advice.denial.reason.command.executable.path.not.allowed")));
 		}
 		// </editor-fold>
 		// <editor-fold desc="Check attributes">
@@ -668,12 +745,11 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 						COMMAND_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
 								IgnoreValues.NONE));
 		if (commandIllegallyExecutedThroughAttribute != null) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-					"security.advice.illegal.command.execution", commandSystemMethodToCheck, action,
-					commandIllegallyExecutedThroughAttribute,
+			throw new SecurityException(localize("security.advice.illegal.command.execution",
+					commandSystemMethodToCheck, action, commandIllegallyExecutedThroughAttribute,
 					fullMethodSignature
 							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
-							+ JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(noAllowRuleConfigured)));
+							+ buildDenialReason(noAllowRuleConfigured)));
 		}
 		@Nullable
 		String pathIllegallyExecutedThroughAttribute = (attributes == null || attributes.length == 0) ? null
@@ -681,14 +757,17 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 						COMMAND_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
 								IgnoreValues.NONE));
 		if (pathIllegallyExecutedThroughAttribute != null) {
-			boolean noFileAllowRuleConfigured = pathsAllowedToBeExecuted == null
-					|| pathsAllowedToBeExecuted.length == 0;
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-					"security.advice.illegal.file.execution", commandSystemMethodToCheck, action,
-					pathIllegallyExecutedThroughAttribute,
+			// Reaching this check means the command-name check on the same attributes
+			// already
+			// passed, i.e. the command IS allow-listed; only its executable file path is
+			// not
+			// in the execute allow-list. Report that precisely instead of the misleading
+			// generic "no allow rule configured" reason.
+			throw new SecurityException(localize("security.advice.illegal.file.execution", commandSystemMethodToCheck,
+					action, pathIllegallyExecutedThroughAttribute,
 					fullMethodSignature
 							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
-							+ JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(noFileAllowRuleConfigured)));
+							+ localize("security.advice.denial.reason.command.executable.path.not.allowed")));
 		}
 		// </editor-fold>
 	}

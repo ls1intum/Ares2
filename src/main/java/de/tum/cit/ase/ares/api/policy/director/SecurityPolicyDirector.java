@@ -16,7 +16,7 @@ import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialDataRea
 import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.yaml.EssentialDataYAMLReader;
 import de.tum.cit.ase.ares.api.securitytest.java.executer.Executer;
 import de.tum.cit.ase.ares.api.securitytest.java.executer.JavaExecuter;
-import de.tum.cit.ase.ares.api.securitytest.java.projectScanner.JavaProjectScanner;
+import de.tum.cit.ase.ares.api.securitytest.java.projectScanner.JavaProgrammingExerciseProjectScanner;
 import de.tum.cit.ase.ares.api.securitytest.java.projectScanner.ProjectScanner;
 import de.tum.cit.ase.ares.api.securitytest.java.writer.JavaWriter;
 import de.tum.cit.ase.ares.api.securitytest.java.writer.Writer;
@@ -107,7 +107,7 @@ public abstract class SecurityPolicyDirector {
 	 *                              must not be null.
 	 */
 	public SecurityPolicyDirector(@Nonnull Creator creator, @Nonnull Writer writer, @Nonnull Executer executer,
-			@Nonnull EssentialDataYAMLReader essentialDataReader, @Nonnull ProjectScanner projectScanner,
+			@Nonnull EssentialDataReader essentialDataReader, @Nonnull ProjectScanner projectScanner,
 			@Nonnull Path essentialPackagesPath, @Nonnull Path essentialClassesPath) {
 		this.creator = Preconditions.checkNotNull(creator, "creator must not be null");
 		this.writer = Preconditions.checkNotNull(writer, "writer must not be null");
@@ -145,21 +145,28 @@ public abstract class SecurityPolicyDirector {
 	@Nonnull
 	public static SecurityPolicyDirector selectSecurityPolicyDirector(@Nullable SecurityPolicy securityPolicy) {
 		if (securityPolicy == null) {
-			return SecurityPolicyJavaDirector.javaBuilder().creator(new JavaCreator()).writer(new JavaWriter())
-					.executer(new JavaExecuter()).essentialDataReader(new EssentialDataYAMLReader())
-					.javaScanner(new JavaProjectScanner())
-					.essentialPackagesPath(SecurityPolicyJavaDirector.DEFAULT_ESSENTIAL_PACKAGES_PATH)
-					.essentialClassesPath(SecurityPolicyJavaDirector.DEFAULT_ESSENTIAL_CLASSES_PATH).build();
-		} else {
-			return switch (securityPolicy.regardingTheSupervisedCode()
-					.theFollowingProgrammingLanguageConfigurationIsUsed()) {
-			case JAVA_USING_GRADLE_ARCHUNIT_AND_ASPECTJ, JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION, JAVA_USING_GRADLE_WALA_AND_ASPECTJ, JAVA_USING_GRADLE_WALA_AND_INSTRUMENTATION, JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ, JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION, JAVA_USING_MAVEN_WALA_AND_ASPECTJ, JAVA_USING_MAVEN_WALA_AND_INSTRUMENTATION -> SecurityPolicyJavaDirector
-					.javaBuilder().creator(new JavaCreator()).writer(new JavaWriter()).executer(new JavaExecuter())
-					.essentialDataReader(new EssentialDataYAMLReader()).javaScanner(new JavaProjectScanner())
-					.essentialPackagesPath(SecurityPolicyJavaDirector.DEFAULT_ESSENTIAL_PACKAGES_PATH)
-					.essentialClassesPath(SecurityPolicyJavaDirector.DEFAULT_ESSENTIAL_CLASSES_PATH).build();
-			};
+			return buildJavaDirector();
 		}
+		return switch (securityPolicy.regardingTheSupervisedCode()
+				.theFollowingProgrammingLanguageConfigurationIsUsed()) {
+		case JAVA_USING_GRADLE_ARCHUNIT_AND_ASPECTJ, JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION, JAVA_USING_GRADLE_WALA_AND_ASPECTJ, JAVA_USING_GRADLE_WALA_AND_INSTRUMENTATION, JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ, JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION, JAVA_USING_MAVEN_WALA_AND_ASPECTJ, JAVA_USING_MAVEN_WALA_AND_INSTRUMENTATION -> buildJavaDirector();
+		};
+	}
+
+	/**
+	 * Builds the standard Java director. Extracted so the no-policy branch and the
+	 * per-configuration branches cannot drift apart. Uses
+	 * {@link JavaProgrammingExerciseProjectScanner} so the TUM-specific scan
+	 * defaults take effect (previously a plain {@link JavaProjectScanner} was
+	 * hard-coded, so the subclass defaults never applied).
+	 */
+	@Nonnull
+	private static SecurityPolicyDirector buildJavaDirector() {
+		return SecurityPolicyJavaDirector.javaBuilder().creator(new JavaCreator()).writer(new JavaWriter())
+				.executer(new JavaExecuter()).essentialDataReader(new EssentialDataYAMLReader())
+				.javaScanner(new JavaProgrammingExerciseProjectScanner())
+				.essentialPackagesPath(SecurityPolicyJavaDirector.DEFAULT_ESSENTIAL_PACKAGES_PATH)
+				.essentialClassesPath(SecurityPolicyJavaDirector.DEFAULT_ESSENTIAL_CLASSES_PATH).build();
 	}
 	// </editor-fold>
 }

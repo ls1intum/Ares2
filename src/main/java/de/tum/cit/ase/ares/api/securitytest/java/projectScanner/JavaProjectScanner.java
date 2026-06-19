@@ -20,6 +20,7 @@ import javax.annotation.Nullable;
 import com.google.common.base.Preconditions;
 
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
+import de.tum.cit.ase.ares.api.securitytest.ReservedPackageGuard;
 import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 
 /**
@@ -78,18 +79,22 @@ public class JavaProjectScanner implements ProjectScanner {
 	// <editor-fold desc="Variable Regex Patterns (defined by project)">
 
 	/**
-	 * Default package name used if none is found.
+	 * Default package name used if none is found. {@code protected} so subclasses
+	 * (e.g. the TUM-specific scanner) can override the default that
+	 * {@link #scanForPackageName()} falls back to.
 	 */
 	@Nonnull
-	private String getDefaultPackage() {
+	protected String getDefaultPackage() {
 		return "";
 	}
 
 	/**
-	 * Default main class name used if no main class is detected.
+	 * Default main class name used if no main class is detected. {@code protected}
+	 * so subclasses can override the default that
+	 * {@link #scanForMainClassInPackage()} falls back to.
 	 */
 	@Nonnull
-	private String getDefaultMainClass() {
+	protected String getDefaultMainClass() {
 		return "Main";
 	}
 
@@ -331,7 +336,12 @@ public class JavaProjectScanner implements ProjectScanner {
 	@Override
 	@Nonnull
 	public String scanForPackageName() {
+		// Exclude reserved infrastructure packages from the candidates so a student
+		// cannot flood the project with files in a trusted namespace to make it the
+		// derived enforcement scope. A genuinely reserved-only project still fails
+		// closed later via the ReservedPackageGuard in the factory.
 		Map<String, Long> packageCounts = scanJavaFiles(this::extractPackageName).filter(Objects::nonNull)
+				.filter(packageName -> ReservedPackageGuard.reservedPrefixOf(packageName) == null)
 				.collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
 		return packageCounts.entrySet().stream().max(Map.Entry.comparingByValue()).map(Map.Entry::getKey)
 				.orElse(getDefaultPackage());

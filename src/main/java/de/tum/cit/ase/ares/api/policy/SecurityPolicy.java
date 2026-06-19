@@ -27,7 +27,6 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.SupervisedCode;
  *
  * @since 2.0.0
  * @author Markus Paulsen
- * @since 2.0.0
  * @param regardingTheSupervisedCode the details of the supervised code; must
  *                                   not be null.
  */

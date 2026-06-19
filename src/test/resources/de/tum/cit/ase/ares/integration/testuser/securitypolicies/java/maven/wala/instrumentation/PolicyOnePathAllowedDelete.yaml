@@ -17,6 +17,12 @@ regardingTheSupervisedCode:
         createAllFiles: false
         executeAllFiles: false
         deleteAllFiles: true
+        onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"
+      - readAllFiles: false
+        overwriteAllFiles: false
+        createAllFiles: false
+        executeAllFiles: false
+        deleteAllFiles: true
         onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/delete/trusteddir/trusted.txt"
     regardingNetworkConnections: [ ]
     regardingCommandExecutions: [ ]

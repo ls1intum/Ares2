@@ -22,7 +22,34 @@ public class JavaAOPTestCaseToolbox {
 			throw new SecurityException(Messages.localized("security.advice.settings.data.type.mismatch.string",
 					value != null ? value.getClass() : null));
 		}
-		return String.format("private static String %s = \"%s\";%n", adviceSetting, value);
+		return String.format("private static String %s = \"%s\";%n", adviceSetting, escapeJavaString((String) value));
+	}
+
+	/**
+	 * Escapes a policy value so it is a safe Java string-literal body: a quote,
+	 * backslash (e.g. a Windows path {@code C:\Users}), or newline can no longer
+	 * break out of the generated literal or fail to compile.
+	 *
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 * @param raw the raw value to embed
+	 * @return the escaped literal body
+	 */
+	@Nonnull
+	private static String escapeJavaString(@Nonnull String raw) {
+		StringBuilder escaped = new StringBuilder(raw.length() + 8);
+		for (int index = 0; index < raw.length(); index++) {
+			char character = raw.charAt(index);
+			switch (character) {
+			case '\\' -> escaped.append("\\\\");
+			case '"' -> escaped.append("\\\"");
+			case '\n' -> escaped.append("\\n");
+			case '\r' -> escaped.append("\\r");
+			case '\t' -> escaped.append("\\t");
+			default -> escaped.append(character);
+			}
+		}
+		return escaped.toString();
 	}
 
 	public static String getIntegerAssignment(@Nonnull String adviceSetting, @Nullable Object value) {
@@ -40,8 +67,8 @@ public class JavaAOPTestCaseToolbox {
 			throw new SecurityException(Messages.localized("security.advice.settings.data.type.mismatch.string[]",
 					value != null ? value.getClass() : null));
 		}
-		String stringArrayValue = ((List<?>) value).stream().map(Object::toString).map(s -> String.format("\"%s\"", s))
-				.collect(Collectors.joining(", "));
+		String stringArrayValue = ((List<?>) value).stream().map(Object::toString)
+				.map(s -> "\"" + escapeJavaString(s) + "\"").collect(Collectors.joining(", "));
 		return String.format("private static String[] %s = new String[] {%s};%n", adviceSetting, stringArrayValue);
 	}
 
@@ -77,10 +104,10 @@ public class JavaAOPTestCaseToolbox {
 					return s;
 				}
 				// Treat text as single value otherwise
-				return "new String[] {\"" + s + "\"}";
+				return "new String[] {\"" + escapeJavaString(s) + "\"}";
 			} else {
 				// Treat single value as a one-element string array
-				return "new String[] {\"" + inner + "\"}";
+				return "new String[] {\"" + escapeJavaString(String.valueOf(inner)) + "\"}";
 			}
 		}).collect(Collectors.joining(", "));
 		// No trailing semicolon/newline to match expected output
@@ -91,15 +118,17 @@ public class JavaAOPTestCaseToolbox {
 	private static String formatInnerStringArray(Object inner) {
 		if (inner instanceof List<?>) {
 			String innerVals = ((List<?>) inner).stream()
-					.map(obj -> obj == null ? "null" : String.format("\"%s\"", obj)).collect(Collectors.joining(", "));
+					.map(obj -> obj == null ? "null" : "\"" + escapeJavaString(obj.toString()) + "\"")
+					.collect(Collectors.joining(", "));
 			return "new String[] {" + innerVals + "}";
 		} else if (inner instanceof String[]) {
-			String innerVals = Arrays.stream((String[]) inner).map(s -> s == null ? "null" : String.format("\"%s\"", s))
-					.collect(Collectors.joining(", "));
+			String innerVals = Arrays.stream((String[]) inner)
+					.map(s -> s == null ? "null" : "\"" + escapeJavaString(s) + "\"").collect(Collectors.joining(", "));
 			return "new String[] {" + innerVals + "}";
 		} else if (inner instanceof Object[]) {
 			String innerVals = Arrays.stream((Object[]) inner)
-					.map(obj -> obj == null ? "null" : String.format("\"%s\"", obj)).collect(Collectors.joining(", "));
+					.map(obj -> obj == null ? "null" : "\"" + escapeJavaString(obj.toString()) + "\"")
+					.collect(Collectors.joining(", "));
 			return "new String[] {" + innerVals + "}";
 		}
 		throw new SecurityException(Messages.localized("security.advice.settings.data.type.mismatch.string[][]",

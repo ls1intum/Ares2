@@ -56,7 +56,9 @@ public enum AOPMode {
 	// <editor-fold desc="Load configuration">
 	public List<List<String>> getCopyFSConfigurationEntries() {
 		try {
-			return (new JavaCSVFileLoader()).loadCopyData(this, true);
+			List<List<String>> entries = (new JavaCSVFileLoader()).loadCopyData(this, true);
+			validateConfigurationRows(entries, 3, "copy.fs", false);
+			return entries;
 		} catch (IOException | CsvException e) {
 			throw new SecurityException(localize("security.aop.mode.configuration.copy.fs.load.failure", name()), e);
 		}
@@ -64,7 +66,9 @@ public enum AOPMode {
 
 	public List<List<String>> getCopyNonFSConfigurationEntries() {
 		try {
-			return (new JavaCSVFileLoader()).loadCopyData(this, false);
+			List<List<String>> entries = (new JavaCSVFileLoader()).loadCopyData(this, false);
+			validateConfigurationRows(entries, 3, "copy.nonfs", false);
+			return entries;
 		} catch (IOException | CsvException e) {
 			throw new SecurityException(localize("security.aop.mode.configuration.copy.nonfs.load.failure", name()), e);
 		}
@@ -72,9 +76,76 @@ public enum AOPMode {
 
 	public List<List<String>> getEditConfigurationEntries() {
 		try {
-			return (new JavaCSVFileLoader()).loadEditData(this);
+			List<List<String>> entries = (new JavaCSVFileLoader()).loadEditData(this);
+			// Edit entries are also consumed positionally via .get(0) on the whole list by
+			// the single-file methods, so the list must be non-empty as well.
+			validateConfigurationRows(entries, 3, "edit", true);
+			return entries;
 		} catch (IOException | CsvException e) {
 			throw new SecurityException(localize("security.aop.mode.configuration.edit.load.failure", name()), e);
+		}
+	}
+
+	/**
+	 * Validates the shape of loaded configuration rows so a malformed or short CSV
+	 * fails with a clear, localized error instead of an opaque
+	 * {@link IndexOutOfBoundsException} or {@link NumberFormatException} deep in
+	 * the positional accessors below.
+	 *
+	 * @param entries         the loaded rows
+	 * @param minColumns      the minimum number of columns each row must have
+	 * @param context         a short label identifying the configuration kind
+	 * @param requireNonEmpty whether the list itself must contain at least one row
+	 */
+	/**
+	 * Upper bound for the copy-configuration count column (the package-depth used
+	 * by {@code generatePackageNameArray}). A value beyond this is treated as
+	 * malformed rather than allocating an absurd number of path segments.
+	 */
+	private static final int MAX_CONFIGURATION_COUNT = 100;
+
+	private void validateConfigurationRows(@Nonnull List<List<String>> entries, int minColumns, @Nonnull String context,
+			boolean requireNonEmpty) {
+		if (requireNonEmpty && entries.isEmpty()) {
+			throw new SecurityException(localize("security.aop.mode.configuration.empty", context, name()));
+		}
+		// Copy configurations ("copy.fs"/"copy.nonfs") carry a numeric count in column
+		// 1
+		// that is later Integer.parseInt-ed by placeholderValues()/fsFormatValues();
+		// edit
+		// configurations carry a path there instead, so the numeric check is copy-only.
+		boolean validateCountColumn = context.startsWith("copy");
+		for (int row = 0; row < entries.size(); row++) {
+			List<String> entry = entries.get(row);
+			if (entry == null || entry.size() < minColumns) {
+				throw new SecurityException(localize("security.aop.mode.configuration.malformed.row", context, row,
+						name(), minColumns, entry == null ? 0 : entry.size()));
+			}
+			// Reject blank required cells: a blank source/target path or count would
+			// otherwise surface much later as an opaque NumberFormatException or a write to
+			// a malformed path during test-case generation.
+			for (int column = 0; column < minColumns; column++) {
+				String cell = entry.get(column);
+				if (cell == null || cell.isBlank()) {
+					throw new SecurityException(
+							localize("security.aop.mode.configuration.blank.cell", context, row, column, name()));
+				}
+			}
+			if (validateCountColumn) {
+				String countCell = entry.get(1).trim();
+				int count;
+				try {
+					count = Integer.parseInt(countCell);
+				} catch (NumberFormatException notAnInteger) {
+					throw new SecurityException(
+							localize("security.aop.mode.configuration.invalid.count", context, row, name(), countCell),
+							notAnInteger);
+				}
+				if (count < 0 || count > MAX_CONFIGURATION_COUNT) {
+					throw new SecurityException(
+							localize("security.aop.mode.configuration.invalid.count", context, row, name(), countCell));
+				}
+			}
 		}
 	}
 	// </editor-fold>

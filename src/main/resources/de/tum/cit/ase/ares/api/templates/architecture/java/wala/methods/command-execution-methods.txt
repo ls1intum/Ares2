@@ -9,3 +9,4 @@ java.lang.Runtime.loadLibrary(Ljava/lang/String;)
 java.lang.ProcessBuilder.start()
 java.lang.ProcessBuilder.<init>(Ljava/util/List;)
 java.lang.ProcessBuilder.<init>([Ljava/lang/String;)
+java.lang.ProcessBuilder.startPipeline

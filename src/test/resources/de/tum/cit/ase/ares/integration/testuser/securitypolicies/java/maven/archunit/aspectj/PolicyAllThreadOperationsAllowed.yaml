@@ -33,6 +33,16 @@ regardingTheSupervisedCode:
         ofThisClass: "java.util.concurrent.CompletableFuture"
       - createTheFollowingNumberOfThreads: 100
         ofThisClass: "java.util.concurrent.ExecutorCompletionService$QueueingFuture"
+      - createTheFollowingNumberOfThreads: 100
+        ofThisClass: "<implicit-thread-op:parallelStream>"
+      - createTheFollowingNumberOfThreads: 100
+        ofThisClass: "<implicit-thread-op:parallel>"
+      - createTheFollowingNumberOfThreads: 100
+        ofThisClass: "<implicit-thread-op:Thread.sleep>"
+      - createTheFollowingNumberOfThreads: 100
+        ofThisClass: "<implicit-thread-op:SubmissionPublisher.submit>"
+      - createTheFollowingNumberOfThreads: 100
+        ofThisClass: "<implicit-thread-op:SubmissionPublisher.offer>"
     regardingPackageImports: []
     regardingTimeouts:
       - timeout: 3000

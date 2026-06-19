@@ -18,7 +18,6 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  *
  * @since 2.0.0
  * @author Markus Paulsen
- * @since 2.0.0
  * @param openConnections whether opening network connections is permitted.
  * @param sendData        whether sending data is permitted.
  * @param receiveData     whether receiving data is permitted.
@@ -40,7 +39,9 @@ public record NetworkPermission(@Nonnull String onTheHost, int onThePort, boolea
 		if (onTheHost.isBlank()) {
 			throw new IllegalArgumentException(Messages.localized("policy.permission.network.host.blank"));
 		}
-		if (onThePort < 0 || onThePort > 65535) {
+		// -1 is the "any port" wildcard understood by the runtime advice (portMatches);
+		// all other negative or out-of-range values are invalid.
+		if (onThePort < -1 || onThePort > 65535) {
 			throw new IllegalArgumentException(Messages.localized("policy.permission.network.port.invalid"));
 		}
 	}

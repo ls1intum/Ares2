@@ -1,5 +1,8 @@
 package de.tum.cit.ase.ares.integration.architecture.forbidden;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -15,6 +18,10 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	private static final String FILE_DELETE_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/fileDelete";
 	private static final String FILES_DELETE_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/filesDelete";
 	private static final String THIRD_PARTY_PACKAGE_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/thirdPartyPackage";
+
+	private static final Path NOT_TRUSTED_DELETE_PATH = Paths.get("src", "test", "java", "de", "tum", "cit", "ase",
+			"ares", "integration", "aop", "forbidden", "subject", "fileSystem", "delete", "nottrusteddir",
+			"nottrusted.txt");
 
 	// <editor-fold desc="accessFileSystemViaFileDelete()">
 	@Test
@@ -53,7 +60,8 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = FILE_DELETE_PATH)
 	void test_accessFileSystemViaFileDeleteMavenWalaAspectJ() {
-		assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaFileDelete, FileDeleteMain.class);
+		assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaFileDelete, FileDeleteMain.class,
+				NOT_TRUSTED_DELETE_PATH);
 	}
 
 	@Test
@@ -66,7 +74,8 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = FILE_DELETE_PATH)
 	void test_accessFileSystemViaFileDeleteMavenWalaInstrumentation() {
-		assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaFileDelete, FileDeleteMain.class);
+		assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaFileDelete, FileDeleteMain.class,
+				NOT_TRUSTED_DELETE_PATH);
 	}
 	// </editor-fold>
 
@@ -108,8 +117,8 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = FILE_DELETE_PATH)
 	void test_accessFileSystemViaFileDeleteOnExitMavenWalaAspectJ() {
-		// Read, as File.new has the parameter
-		assertAresSecurityExceptionRead(FileDeleteMain::accessFileSystemViaFileDeleteOnExit, FileDeleteMain.class);
+		assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaFileDeleteOnExit, FileDeleteMain.class,
+				NOT_TRUSTED_DELETE_PATH);
 	}
 
 	@Test
@@ -122,7 +131,8 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = FILE_DELETE_PATH)
 	void test_accessFileSystemViaFileDeleteOnExitMavenWalaInstrumentation() {
-		assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaFileDeleteOnExit, FileDeleteMain.class);
+		assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaFileDeleteOnExit, FileDeleteMain.class,
+				NOT_TRUSTED_DELETE_PATH);
 	}
 	// </editor-fold>
 
@@ -163,7 +173,8 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = FILES_DELETE_PATH)
 	void test_accessFileSystemViaFilesDeleteMavenWalaAspectJ() {
-		assertAresSecurityExceptionDelete(FilesDeleteMain::accessFileSystemViaFilesDelete, FilesDeleteMain.class);
+		assertAresSecurityExceptionDelete(FilesDeleteMain::accessFileSystemViaFilesDelete, FilesDeleteMain.class,
+				NOT_TRUSTED_DELETE_PATH);
 	}
 
 	@Test
@@ -176,7 +187,8 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = FILES_DELETE_PATH)
 	void test_accessFileSystemViaFilesDeleteMavenWalaInstrumentation() {
-		assertAresSecurityExceptionDelete(FilesDeleteMain::accessFileSystemViaFilesDelete, FilesDeleteMain.class);
+		assertAresSecurityExceptionDelete(FilesDeleteMain::accessFileSystemViaFilesDelete, FilesDeleteMain.class,
+				NOT_TRUSTED_DELETE_PATH);
 	}
 	// </editor-fold>
 
@@ -220,7 +232,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = FILES_DELETE_PATH)
 	void test_accessFileSystemViaFilesDeleteIfExistsMavenWalaAspectJ() {
 		assertAresSecurityExceptionDelete(FilesDeleteMain::accessFileSystemViaFilesDeleteIfExists,
-				FilesDeleteMain.class);
+				FilesDeleteMain.class, NOT_TRUSTED_DELETE_PATH);
 	}
 
 	@Test
@@ -234,7 +246,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = FILES_DELETE_PATH)
 	void test_accessFileSystemViaFilesDeleteIfExistsMavenWalaInstrumentation() {
 		assertAresSecurityExceptionDelete(FilesDeleteMain::accessFileSystemViaFilesDeleteIfExists,
-				FilesDeleteMain.class);
+				FilesDeleteMain.class, NOT_TRUSTED_DELETE_PATH);
 	}
 	// </editor-fold>
 
@@ -277,7 +289,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = THIRD_PARTY_PACKAGE_PATH)
 	void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ() {
 		assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
-				ThirdPartyPackagePenguin.class);
+				ThirdPartyPackagePenguin.class, NOT_TRUSTED_DELETE_PATH);
 	}
 
 	@Test
@@ -291,7 +303,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = THIRD_PARTY_PACKAGE_PATH)
 	void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation() {
 		assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
-				ThirdPartyPackagePenguin.class);
+				ThirdPartyPackagePenguin.class, NOT_TRUSTED_DELETE_PATH);
 	}
 	// </editor-fold>
 }

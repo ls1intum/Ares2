@@ -17,7 +17,6 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  *
  * @since 2.0.0
  * @author Markus Paulsen
- * @since 2.0.0
  * @param importTheFollowingPackage the package that is permitted to be
  *                                  imported; must not be null.
  */

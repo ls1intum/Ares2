@@ -16,7 +16,9 @@ import de.tum.cit.ase.ares.integration.testuser.subject.structural.subpackage.Su
 @Public
 @UseLocale("en")
 @StrictTimeout(10)
-@WhitelistPath("")
+// Replaces the former inert @WhitelistPath("") with the equivalent active @Policy (no concrete
+// access was granted by the empty path), scanned against the benign HelloWorld subject.
+@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyReflectionTestUtilsUser.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
 public class ReflectionTestUtilsUser {
 
 	private static final String SUBJECT_PACKAGE = "de.tum.cit.ase.ares.integration.testuser.subject.structural";

@@ -13,7 +13,9 @@ import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 
 import com.ibm.wala.ipa.callgraph.CallGraph;
+import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.importer.ClassFileImporter;
 
 import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.aop.AOPTestCase;
@@ -30,6 +32,7 @@ import de.tum.cit.ase.ares.api.phobos.java.JavaPhobosTestCaseSupported;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
+import de.tum.cit.ase.ares.api.securitytest.ReservedPackageGuard;
 
 /**
  * Creates security test cases for Java projects based on security policies.
@@ -50,8 +53,19 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
  */
 public class JavaCreator implements Creator {
 
-	// Cache for storing supplier results based on classPath
-	private static final Map<String, Object> cache = new ConcurrentHashMap<>();
+	// Within-run memoisation of the resolved classpath, imported JavaClasses and
+	// call
+	// graph, shared across the test cases built by a single createTestCases call.
+	// This
+	// is intentionally an INSTANCE field, not static: a JavaCreator lives for
+	// exactly
+	// one factory build, so the cache cannot leak across runs or serve one run's
+	// analysis (compiled classes / call graph) to a later run in a long-lived JVM.
+	// The
+	// only cross-process sharing that must survive forks is handled separately by
+	// the
+	// disk-backed WALA outcome cache, which is keyed by a per-package fingerprint.
+	private final Map<String, Object> cache = new ConcurrentHashMap<>();
 
 	// <editor-fold desc="Helper methods">
 
@@ -69,7 +83,7 @@ public class JavaCreator implements Creator {
 	 * @return a supplier that returns the cached result; never null
 	 */
 	@SuppressWarnings("unchecked")
-	public static <T> Supplier<T> cacheResult(@Nonnull String classPath, @Nonnull Supplier<T> supplier) {
+	public <T> Supplier<T> cacheResult(@Nonnull String classPath, @Nonnull Supplier<T> supplier) {
 		return () -> (T) cache.computeIfAbsent(classPath, k -> supplier.get());
 	}
 
@@ -132,9 +146,14 @@ public class JavaCreator implements Creator {
 			@Nonnull List<String> testClasses) {
 		return Stream.of(
 				// Essential classes are allowed to do anything
-				essentialClasses.stream().map(ClassPermission::new),
+				essentialClasses.stream(),
 				// Test classes are allowed to do anything
-				testClasses.stream().map(ClassPermission::new)).flatMap(Function.identity())
+				testClasses.stream()).flatMap(Function.identity())
+				// Filter null/blank before constructing ClassPermission: its constructor throws
+				// on null/blank, so an unfiltered bad entry (e.g. from a scanned project or a
+				// malformed policy) would otherwise abort all test-case creation. Mirrors
+				// prepareAllowedPackages.
+				.filter(java.util.Objects::nonNull).filter(className -> !className.isBlank()).map(ClassPermission::new)
 				.collect(Collectors.toSet());
 	}
 
@@ -165,6 +184,8 @@ public class JavaCreator implements Creator {
 				.callGraphSupplier(callGraphSupplier)
 				// The following packages are allowed
 				.allowedPackages(allowedPackages)
+				// The following classes are exempt (essential + test infrastructure)
+				.allowedClasses(allowedClasses)
 				// Build the architecture test case
 				.build();
 	}
@@ -189,27 +210,52 @@ public class JavaCreator implements Creator {
 	 *                                  null
 	 * @return a new JavaAOPTestCase; never null
 	 */
+	/**
+	 * Maps an AOP test-case category to its architecture counterpart with an
+	 * exhaustive switch, so a future enum divergence is caught at compile time
+	 * rather than as a runtime {@link IllegalArgumentException}.
+	 */
+	@Nonnull
+	private static JavaArchitectureTestCaseSupported architectureCounterpartOf(
+			@Nonnull JavaAOPTestCaseSupported supported) {
+		return switch (supported) {
+		case FILESYSTEM_INTERACTION -> JavaArchitectureTestCaseSupported.FILESYSTEM_INTERACTION;
+		case NETWORK_CONNECTION -> JavaArchitectureTestCaseSupported.NETWORK_CONNECTION;
+		case COMMAND_EXECUTION -> JavaArchitectureTestCaseSupported.COMMAND_EXECUTION;
+		case THREAD_CREATION -> JavaArchitectureTestCaseSupported.THREAD_CREATION;
+		};
+	}
+
 	@Nonnull
 	private JavaAOPTestCase createAOPTestCase(@Nonnull ResourceAccesses resourceAccesses,
 			@Nonnull List<ArchitectureTestCase> javaArchitectureTestCases, @Nonnull JavaAOPTestCaseSupported supported,
 			@Nonnull JavaClasses classes, @Nonnull Supplier<CallGraph> callGraphSupplier,
 			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull Set<ClassPermission> allowedClasses) {
+		// Switch on the enum constant rather than indexing by ordinal(): the latter
+		// silently pairs the wrong supplier with the aspect if the enum is ever
+		// reordered.
 		@Nonnull
-		Supplier<List<?>> resourceAccessSupplier = List
-				.of((Supplier<List<?>>) resourceAccesses::regardingFileSystemInteractions,
-						resourceAccesses::regardingNetworkConnections, resourceAccesses::regardingCommandExecutions,
-						resourceAccesses::regardingThreadCreations)
-				.get(supported.ordinal());
+		Supplier<List<?>> resourceAccessSupplier = switch (supported) {
+		case FILESYSTEM_INTERACTION -> resourceAccesses::regardingFileSystemInteractions;
+		case NETWORK_CONNECTION -> resourceAccesses::regardingNetworkConnections;
+		case COMMAND_EXECUTION -> resourceAccesses::regardingCommandExecutions;
+		case THREAD_CREATION -> resourceAccesses::regardingThreadCreations;
+		};
 		if (resourceAccessSupplier.get().isEmpty()) {
 			javaArchitectureTestCases.add(JavaArchitectureTestCase.builder()
-					// The architecture test case checks for the following aspect
-					.javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.valueOf(supported.name()))
+					// The architecture test case checks for the following aspect. Map the AOP
+					// category to its architecture counterpart with an exhaustive switch rather
+					// than valueOf(name()): a future divergence of the two enums then becomes a
+					// compile error instead of a runtime IllegalArgumentException.
+					.javaArchitectureTestCaseSupported(architectureCounterpartOf(supported))
 					// The architecture test cases are built over the following classes
 					.javaClasses(classes)
 					// The architecture test cases are built over the following call graph
 					.callGraphSupplier(callGraphSupplier)
 					// The following packages are allowed
 					.allowedPackages(allowedPackages)
+					// The following classes are exempt (essential + test infrastructure)
+					.allowedClasses(allowedClasses)
 					// Build the architecture test case
 					.build());
 		}
@@ -226,11 +272,14 @@ public class JavaCreator implements Creator {
 
 	private PhobosTestCase createPhobosTestCase(ResourceAccesses resourceAccesses,
 			JavaPhobosTestCaseSupported supported) {
+		// Switch on the enum constant rather than indexing by ordinal() so a reordering
+		// of the enum cannot silently pair the wrong supplier with the aspect.
 		@Nonnull
-		Supplier<List<?>> resourceAccessSupplier = List
-				.of((Supplier<List<?>>) resourceAccesses::regardingFileSystemInteractions,
-						resourceAccesses::regardingNetworkConnections, resourceAccesses::regardingTimeouts)
-				.get(supported.ordinal());
+		Supplier<List<?>> resourceAccessSupplier = switch (supported) {
+		case FILESYSTEM_INTERACTION -> resourceAccesses::regardingFileSystemInteractions;
+		case NETWORK_CONNECTION -> resourceAccesses::regardingNetworkConnections;
+		case TIMEOUT -> resourceAccesses::regardingTimeouts;
+		};
 
 		return JavaPhobosTestCase.builder().javaPhobosTestCaseSupported(supported)
 				.resourceAccessSupplier(resourceAccessSupplier).build();
@@ -375,6 +424,14 @@ public class JavaCreator implements Creator {
 		@Nonnull
 		String classPath = cacheResult(projectPath + "_" + packageName + "_classPath",
 				() -> buildMode.getClasspath(projectPath, packageName)).get();
+		// Reserved-package guard (#2, point iii): import the supervised classpath
+		// WITHOUT the framework exclusion that getJavaClasses applies, and reject any
+		// compiled class whose declared package is a trusted infrastructure prefix.
+		// Reading the true package from bytecode catches precompiled or generated
+		// classes that never appear in the scanned source and would otherwise be
+		// trusted by name.
+		ReservedPackageGuard.validateClassNames(
+				new ClassFileImporter().importPath(Path.of(classPath)).stream().map(JavaClass::getName).toList());
 		@Nonnull
 		JavaClasses javaClasses = cacheResult(projectPath + "_" + packageName + "_javaClasses",
 				() -> architectureMode.getJavaClasses(classPath)).get();

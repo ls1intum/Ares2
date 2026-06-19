@@ -47,15 +47,20 @@ public interface EssentialDataReader {
 	EssentialPackages readEssentialPackagesFrom(@Nonnull Path essentialPackagesPath);
 
 	/**
-	 * Throws a SecurityException with a localized error message.
+	 * Builds a localized {@link SecurityException} for a reader failure. Returns
+	 * the exception (rather than throwing it) so the caller can {@code throw} it
+	 * explicitly; that keeps the {@code @Nonnull} read methods free of an
+	 * unreachable {@code return null} that the compiler would otherwise require
+	 * after a "happens to always throw" void method.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 * @param errorMessageIdentifier the identifier for the error message
 	 * @param errorMessageParameter  a parameter to be included in the error message
 	 * @param e                      the exception that triggered the error
+	 * @return the localized SecurityException to throw
 	 */
-	default void throwReaderErrorMessage(String errorMessageIdentifier, String errorMessageParameter, Exception e) {
-		throw new SecurityException(Messages.localized(errorMessageIdentifier, errorMessageParameter), e);
+	default SecurityException readerError(String errorMessageIdentifier, String errorMessageParameter, Exception e) {
+		return new SecurityException(Messages.localized(errorMessageIdentifier, errorMessageParameter), e);
 	}
 }

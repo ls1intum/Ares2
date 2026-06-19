@@ -8,8 +8,10 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -18,8 +20,8 @@ import javax.annotation.Nullable;
 public abstract class JavaInstrumentationAdviceAbstractToolbox {
 
 	JavaInstrumentationAdviceAbstractToolbox() {
-		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-				"security.instrumentation.utility.initialization", "JavaInstrumentationAdviceAbstractToolbox"));
+		throw new SecurityException(localize("security.instrumentation.utility.initialization",
+				"JavaInstrumentationAdviceAbstractToolbox"));
 	}
 
 	// <editor-fold desc="Constants">
@@ -28,26 +30,20 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 			"com.intellij.rt.debugger.", "jdk.internal.loader.", "jdk.internal.reflect.");
 
 	/**
-	 * Cached StackWalker used by the call-stack inspectors below. The default
-	 * options (no RETAIN_CLASS_REFERENCE) are deliberately chosen because the
-	 * inspectors only read className/methodName strings — keeping Class objects
-	 * materialized would pay extra JNI work on every walked frame. The walker
-	 * avoids the Exception allocation and full StackTraceElement[] materialization
-	 * that Thread.currentThread().getStackTrace() pays on every intercepted JDK
-	 * call. Pointcuts on java.io.InputStream.read fire during ObjectInputStream
-	 * deserialization of test-result events; the StackWalker path is roughly an
-	 * order of magnitude cheaper for those high-frequency probes.
+	 * Cached StackWalker shared by the call-stack inspectors below. The default
+	 * options (no RETAIN_CLASS_REFERENCE) are deliberate: the inspectors only read
+	 * className/methodName strings, so materialising Class objects would add JNI
+	 * work on every walked frame. The walker also avoids the Throwable allocation
+	 * and full StackTraceElement[] materialisation that
+	 * Thread.currentThread().getStackTrace() pays on every intercepted call, and it
+	 * stops walking as soon as a matching frame is found.
 	 */
 	@Nonnull
-	private static final java.lang.StackWalker STACK_WALKER = java.lang.StackWalker.getInstance();
+	private static final StackWalker STACK_WALKER = StackWalker.getInstance();
 
 	/**
-	 * Lazily resolved Class&lt;?&gt; reference for the AOP settings holder. Each
-	 * intercepted JDK call (e.g. java.io.InputStream.read during ObjectInputStream
-	 * deserialization) reads aopMode + restrictedPackage + allowedListedClasses.
-	 * Resolving the class via Class.forName on every access (a native call) is the
-	 * second-largest contributor to advice overhead after the stack walk; this
-	 * cached reference reduces it to a single volatile load.
+	 * Lazily resolved Class&lt;?&gt; reference for the AOP settings holder, cached
+	 * so the reflective lookup runs once per JVM rather than on every advice call.
 	 */
 	@Nullable
 	private static volatile Class<?> SETTINGS_CLASS_CACHE = null;
@@ -57,7 +53,14 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 * setAccessible run once per JVM, not per advice call.
 	 */
 	@Nonnull
-	private static final java.util.concurrent.ConcurrentHashMap<String, Field> SETTINGS_FIELD_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+	private static final ConcurrentHashMap<String, Field> SETTINGS_FIELD_CACHE = new ConcurrentHashMap<>();
+
+	/**
+	 * Single canonical settings lock, cached once so every caller synchronises on
+	 * the same monitor.
+	 */
+	@Nullable
+	private static volatile Object SETTINGS_LOCK_CACHE = null;
 	// </editor-fold>
 
 	// <editor-fold desc="Tools methods">
@@ -77,7 +80,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 */
 	@SuppressWarnings("unchecked")
 	@Nullable
-	public static <T> T getValueFromSettings(@Nonnull String fieldName) {
+	static <T> T getValueFromSettings(@Nonnull String fieldName) {
 		try {
 			Objects.requireNonNull(fieldName, "fieldName must not be null");
 			@Nonnull
@@ -86,38 +89,28 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 			T value = (T) field.get(null);
 			return value;
 		} catch (LinkageError e) {
-			throw new SecurityException(
-					JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.linkage.exception", fieldName),
-					e);
+			throw new SecurityException(localize("security.advice.linkage.exception", fieldName), e);
 		} catch (ClassNotFoundException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-					.localize("security.advice.class.not.found.exception", fieldName), e);
+			throw new SecurityException(localize("security.advice.class.not.found.exception", fieldName), e);
 		} catch (NoSuchFieldException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-					.localize("security.advice.no.such.field.exception", fieldName), e);
+			throw new SecurityException(localize("security.advice.no.such.field.exception", fieldName), e);
 		} catch (NullPointerException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-					.localize("security.advice.null.pointer.exception", fieldName), e);
+			throw new SecurityException(localize("security.advice.null.pointer.exception", fieldName), e);
 		} catch (InaccessibleObjectException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-					.localize("security.advice.inaccessible.object.exception", fieldName), e);
+			throw new SecurityException(localize("security.advice.inaccessible.object.exception", fieldName), e);
 		} catch (IllegalAccessException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-					.localize("security.advice.illegal.access.exception", fieldName), e);
+			throw new SecurityException(localize("security.advice.illegal.access.exception", fieldName), e);
 		} catch (IllegalArgumentException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-					.localize("security.advice.illegal.argument.exception", fieldName), e);
+			throw new SecurityException(localize("security.advice.illegal.argument.exception", fieldName), e);
 		}
 	}
 
 	/**
 	 * Resolves the static settings Field for the given name once and caches the
-	 * resulting Field handle plus the owning Class&lt;?&gt; reference. The
-	 * reflective lookup is the second-largest fixed cost on hot advice paths
-	 * (called three times per intercepted JDK call before this cache existed), so
-	 * caching it on the bootstrap classloader avoids a Class.forName native call
-	 * and a getDeclaredField walk on every interception. The cached field has
-	 * setAccessible(true) once and stays accessible for the JVM lifetime.
+	 * resulting Field handle plus the owning Class&lt;?&gt; reference, so the
+	 * reflective lookup (Class.forName + getDeclaredField + setAccessible) runs
+	 * once per JVM rather than on every advice call. The cached field stays
+	 * accessible for the JVM lifetime.
 	 *
 	 * @param fieldName the name of the JavaAOPTestCaseSettings field to resolve
 	 * @return the resolved accessible Field
@@ -160,34 +153,33 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */
-	public static <T> void setValueToSettings(@Nonnull String fieldName, @Nullable T newValue) {
+	// Private (was public): the only caller is checkAndDecrementSettingsArrayValue
+	// in
+	// this class, so the write entry point into the security settings is not
+	// reachable
+	// from any other class. (Defence in depth only; the authoritative protection
+	// against student tampering is the architecture-analysis layer, which forbids
+	// student references to these classes.)
+	private static <T> void setValueToSettings(@Nonnull String fieldName, @Nullable T newValue) {
 		try {
 			Objects.requireNonNull(fieldName, "fieldName must not be null");
 			@Nonnull
 			Field field = resolveSettingsField(fieldName);
 			field.set(null, newValue);
 		} catch (LinkageError e) {
-			throw new SecurityException(
-					JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.linkage.exception", fieldName),
-					e);
+			throw new SecurityException(localize("security.advice.linkage.exception", fieldName), e);
 		} catch (ClassNotFoundException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-					.localize("security.advice.class.not.found.exception", fieldName), e);
+			throw new SecurityException(localize("security.advice.class.not.found.exception", fieldName), e);
 		} catch (NoSuchFieldException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-					.localize("security.advice.no.such.field.exception", fieldName), e);
+			throw new SecurityException(localize("security.advice.no.such.field.exception", fieldName), e);
 		} catch (NullPointerException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-					.localize("security.advice.null.pointer.exception", fieldName), e);
+			throw new SecurityException(localize("security.advice.null.pointer.exception", fieldName), e);
 		} catch (InaccessibleObjectException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-					.localize("security.advice.inaccessible.object.exception", fieldName), e);
+			throw new SecurityException(localize("security.advice.inaccessible.object.exception", fieldName), e);
 		} catch (IllegalAccessException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-					.localize("security.advice.illegal.access.exception", fieldName), e);
+			throw new SecurityException(localize("security.advice.illegal.access.exception", fieldName), e);
 		} catch (IllegalArgumentException e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-					.localize("security.advice.illegal.argument.exception", fieldName), e);
+			throw new SecurityException(localize("security.advice.illegal.argument.exception", fieldName), e);
 		}
 	}
 
@@ -203,7 +195,12 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 * @author Markus Paulsen
 	 */
 	@Nonnull
-	public static Object getSettingsLock() {
+	private static Object getSettingsLock() {
+		@Nullable
+		Object cached = SETTINGS_LOCK_CACHE;
+		if (cached != null) {
+			return cached;
+		}
 		try {
 			// Use null as ClassLoader to explicitly load from Bootstrap ClassLoader
 			// Use false to avoid class initialization which could trigger file system
@@ -213,43 +210,17 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 					Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", false, null),
 					"adviceSettingsClass must not be null");
 			@Nonnull
-			java.lang.reflect.Method getLockMethod = adviceSettingsClass.getDeclaredMethod("getSettingsLock");
+			Method getLockMethod = adviceSettingsClass.getDeclaredMethod("getSettingsLock");
 			@Nonnull
 			Object lock = Objects.requireNonNull(getLockMethod.invoke(null), "lock must not be null");
+			SETTINGS_LOCK_CACHE = lock;
 			return lock;
 		} catch (Exception e) {
-			// Fallback to class object if lock retrieval fails
-			try {
-				return Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", false, null);
-			} catch (ClassNotFoundException ex) {
-				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-						.localize("security.advice.class.not.found.exception", "JavaAOPTestCaseSettings"), ex);
-			}
-		}
-	}
-
-	/**
-	 * Decrements the value at a specified index in an integer array setting.
-	 * <p>
-	 * Description: Retrieves an integer array from settings, decrements the value
-	 * at the given position, and updates the array back to the settings class. This
-	 * operation is synchronized to prevent race conditions.
-	 *
-	 * @param settingsArray the name of the array field in settings
-	 * @param position      the index position of the value to decrement
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 */
-	public static void decrementSettingsArrayValue(@Nonnull String settingsArray, int position) {
-		synchronized (getSettingsLock()) {
-			@Nullable
-			int[] array = getValueFromSettings(settingsArray);
-			if (array != null && position >= 0 && position < array.length) {
-				@Nonnull
-				int[] clone = array.clone();
-				clone[position]--;
-				setValueToSettings(settingsArray, clone);
-			}
+			// Fail closed: never fall back to a DIFFERENT monitor (e.g. the Class object).
+			// Two threads synchronising on different monitors would make the quota
+			// check-and-decrement non-atomic, so a lock-resolution failure must abort.
+			throw new SecurityException(
+					localize("security.advice.class.not.found.exception", "JavaAOPTestCaseSettings"), e);
 		}
 	}
 
@@ -268,7 +239,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */
-	public static boolean checkAndDecrementSettingsArrayValue(@Nonnull String settingsArray, int position) {
+	static boolean checkAndDecrementSettingsArrayValue(@Nonnull String settingsArray, int position) {
 		synchronized (getSettingsLock()) {
 			@Nullable
 			int[] array = getValueFromSettings(settingsArray);
@@ -311,8 +282,10 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 			if (result instanceof String str) {
 				return str;
 			} else {
-				throw new SecurityException(
-						JavaInstrumentationAdviceAbstractToolbox.localize("security.localization.method.return.type"));
+				// Do not recurse through localize() here: if the Messages method returns a
+				// non-String, a nested localize() call could hit this same branch and recurse
+				// until the stack overflows. Return the raw key instead.
+				return "security.localization.method.return.type";
 			}
 		} catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException
 				| IllegalAccessException e) {
@@ -334,7 +307,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 *         messages
 	 */
 	@Nonnull
-	public static String buildDenialReason(boolean noAllowRuleConfigured) {
+	static String buildDenialReason(boolean noAllowRuleConfigured) {
 		if (noAllowRuleConfigured) {
 			return localize("security.advice.denial.reason.no.allowlist");
 		}
@@ -351,14 +324,13 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 * {@code new FileInputStream("Secret.class")}) has no class-loader frame
 	 * between their own code and the read, so such an access stays blocked. An
 	 * explicit iterator is used (rather than {@code Stream.anyMatch}) to mirror the
-	 * existing call-stack inspectors and to avoid synthesising extra lambda classes
-	 * on the bootstrap class loader.
+	 * existing call-stack inspectors.
 	 *
 	 * @return {@code true} if a class-loader frame is present on the current stack
 	 */
-	public static boolean isClassLoadingInProgress() {
+	static boolean isClassLoadingInProgress() {
 		return STACK_WALKER.walk(frames -> {
-			java.util.Iterator<java.lang.StackWalker.StackFrame> iterator = frames.iterator();
+			Iterator<StackWalker.StackFrame> iterator = frames.iterator();
 			while (iterator.hasNext()) {
 				String className = iterator.next().getClassName();
 				if (className.startsWith("jdk.internal.loader.") || className.equals("java.lang.ClassLoader")
@@ -388,10 +360,10 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 *
 	 * @return {@code true} if an internal Ares utility is performing the access
 	 */
-	public static boolean isProjectSourcesFinderInProgress() {
+	static boolean isProjectSourcesFinderInProgress() {
 		return STACK_WALKER.walk(frames -> {
 			boolean trustedSeen = false;
-			java.util.Iterator<java.lang.StackWalker.StackFrame> iterator = frames.iterator();
+			Iterator<StackWalker.StackFrame> iterator = frames.iterator();
 			while (iterator.hasNext()) {
 				String className = iterator.next().getClassName();
 				if (isTrustedSetupUtility(className)) {
@@ -422,30 +394,6 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	// <editor-fold desc="Callstack criteria methods">
 
 	/**
-	 * Determines if a call stack element is in the allow list.
-	 * <p>
-	 * Description: Checks whether the class name of the provided stack trace
-	 * element starts with any of the allowed class name prefixes.
-	 *
-	 * @param allowedClasses the array of allowed class name prefixes
-	 * @param elementToCheck the stack trace element to check
-	 * @return true if the element is allowed, false otherwise
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 */
-	public static boolean checkIfCallstackElementIsAllowed(@Nonnull String[] allowedClasses,
-			@Nonnull StackTraceElement elementToCheck) {
-		String className = elementToCheck.getClassName();
-		for (@Nonnull
-		String allowedClass : allowedClasses) {
-			if (className.startsWith(allowedClass)) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	/**
 	 * Checks the current call stack for violations of restricted packages.
 	 * <p>
 	 * Description: First checks if the direct caller of the intercepted method is
@@ -464,9 +412,11 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 * @author Markus Paulsen
 	 */
 	@Nullable
-	public static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses,
+	static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses,
 			String declaringTypeName, String methodName) {
-		// Stream the stack lazily so the walk stops at the first restricted frame.
+		// Stream the stack lazily so the walk stops once both the violation and the
+		// caller above the first restricted frame are known (or the stack is
+		// exhausted).
 		// Skip ignorable frames (Ares internals, class loading, reflection trampolines)
 		// to prevent reflective dispatch from bypassing the check simply because
 		// jdk.internal.reflect.* appears as an intermediate caller.
@@ -475,26 +425,37 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 		// call that immediately follows can read from the thread-local cache instead
 		// of walking the stack a second time.
 		String[] inspection = inspectCallstackOnce(restrictedPackage, allowedClasses);
-		CALLSTACK_INSPECTION_CACHE.set(inspection);
+		if (inspection != null) {
+			CALLSTACK_INSPECTION_CACHE.set(inspection);
+		} else {
+			// Avoid leaving a stale per-thread entry behind when there is no violation.
+			CALLSTACK_INSPECTION_CACHE.remove();
+		}
 		return inspection == null ? null : inspection[0];
 	}
 
 	/**
 	 * Walks the stack once and returns both the first restricted-package frame that
-	 * violates the allowed-class list and the first non-ignored caller above it.
-	 * Returns null when no restricted frame is found, otherwise a two-element array
-	 * {violationFqn, callerAboveFqn} (callerAboveFqn may be null when the violating
-	 * frame is at the top of the stack). Combining the two walks halves the
-	 * per-interception stack-walk cost on hot paths such as ObjectInputStream
-	 * deserialization that drive thousands of intercepted reads.
+	 * violates the allowed-class list (the violation) and the first non-ignored
+	 * caller directly above the first restricted-package frame (the student-called
+	 * method). The caller is computed relative to the first restricted frame,
+	 * independently of the allowed-class check, so it matches the result of
+	 * findFirstMethodOutsideOfRestrictedPackage's standalone walk even when an
+	 * allow-listed class lies inside the restricted package. Returns null when no
+	 * restricted frame is found, otherwise a two-element array {violationFqn,
+	 * callerAboveFqn} (callerAboveFqn may be null when no non-ignored caller exists
+	 * above the first restricted frame). Combining the two walks halves the
+	 * per-interception stack-walk cost on hot paths.
 	 */
 	@Nullable
 	private static String[] inspectCallstackOnce(String restrictedPackage, String[] allowedClasses) {
 		return STACK_WALKER.walk(frames -> {
-			java.util.Iterator<java.lang.StackWalker.StackFrame> iterator = frames.iterator();
+			Iterator<StackWalker.StackFrame> iterator = frames.iterator();
 			String violation = null;
+			boolean restrictedSeen = false;
+			String callerAbove = null;
 			while (iterator.hasNext()) {
-				java.lang.StackWalker.StackFrame frame = iterator.next();
+				StackWalker.StackFrame frame = iterator.next();
 				String className = frame.getClassName();
 				boolean ignorable = false;
 				for (@Nonnull
@@ -507,10 +468,18 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 				if (ignorable) {
 					continue;
 				}
-				if (violation == null) {
-					if (!className.startsWith(restrictedPackage)) {
-						continue;
-					}
+				boolean inRestricted = className.startsWith(restrictedPackage);
+				// First non-ignored frame above the first restricted frame is the
+				// student-called method; computed independently of the allowed-class
+				// check so it matches findFirstMethodOutsideOfRestrictedPackage.
+				if (restrictedSeen && callerAbove == null) {
+					callerAbove = className + "." + frame.getMethodName();
+				}
+				if (!restrictedSeen && inRestricted) {
+					restrictedSeen = true;
+				}
+				// First restricted, non-allowed frame is the violation.
+				if (violation == null && inRestricted) {
 					boolean allowed = false;
 					for (@Nonnull
 					String allowedClass : allowedClasses) {
@@ -519,15 +488,15 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 							break;
 						}
 					}
-					if (allowed) {
-						continue;
+					if (!allowed) {
+						violation = className + "." + frame.getMethodName();
 					}
-					violation = className + "." + frame.getMethodName();
-					continue;
 				}
-				return new String[] { violation, className + "." + frame.getMethodName() };
+				if (violation != null && callerAbove != null) {
+					break;
+				}
 			}
-			return violation == null ? null : new String[] { violation, null };
+			return violation == null ? null : new String[] { violation, callerAbove };
 		});
 	}
 
@@ -557,7 +526,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 * @since 2.0.2
 	 */
 	@Nullable
-	public static String findFirstMethodOutsideOfRestrictedPackage(@Nullable String restrictedPackage) {
+	static String findFirstMethodOutsideOfRestrictedPackage(@Nullable String restrictedPackage) {
 		if (restrictedPackage == null) {
 			return null;
 		}
@@ -569,15 +538,15 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 			CALLSTACK_INSPECTION_CACHE.remove();
 			return cached[1];
 		}
-		// Slow path: callsite did not run checkIfCallstackCriteriaIsViolated first
-		// (e.g. AspectJ definitions hit only this method). Materialize only the
-		// non-ignorable frames lazily; stop iterating as soon as we have located the
-		// first restricted frame and its caller above it.
+		// Slow path: callsite did not run checkIfCallstackCriteriaIsViolated first.
+		// Materialise only the non-ignorable frames lazily; stop iterating as soon as
+		// we have located the first restricted frame and the first non-ignored caller
+		// above it.
 		return STACK_WALKER.walk(frames -> {
 			boolean restrictedSeen = false;
-			java.util.Iterator<java.lang.StackWalker.StackFrame> iterator = frames.iterator();
+			Iterator<StackWalker.StackFrame> iterator = frames.iterator();
 			while (iterator.hasNext()) {
-				java.lang.StackWalker.StackFrame frame = iterator.next();
+				StackWalker.StackFrame frame = iterator.next();
 				String className = frame.getClassName();
 				boolean ignorable = false;
 				for (String ignore : IGNORE_CALLSTACK) {
@@ -603,7 +572,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	}
 	// </editor-fold>
 
-	// <editor-fold desc="Field index lookup">
+	// <editor-fold desc="Field index lookup (Instrumentation-only)">
 
 	/**
 	 * Resolves the index of a named field within the given class.
@@ -620,15 +589,14 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */
-	public static int findFieldIndex(@Nonnull Class<?> clazz, @Nonnull String fieldName) {
-		java.lang.reflect.Field[] fields = clazz.getDeclaredFields();
+	static int findFieldIndex(@Nonnull Class<?> clazz, @Nonnull String fieldName) {
+		Field[] fields = clazz.getDeclaredFields();
 		for (int i = 0; i < fields.length; i++) {
 			if (fieldName.equals(fields[i].getName())) {
 				return i;
 			}
 		}
-		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-				.localize("security.instrumentation.field.not.found", fieldName, clazz.getName()));
+		throw new SecurityException(localize("security.instrumentation.field.not.found", fieldName, clazz.getName()));
 	}
 	// </editor-fold>
 
@@ -648,7 +616,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 * @author Markus Paulsen
 	 */
 	@Nonnull
-	public static Object[] filterVariables(@Nonnull Object[] variables, @Nonnull IgnoreValues ignoreVariables) {
+	static Object[] filterVariables(@Nonnull Object[] variables, @Nonnull IgnoreValues ignoreVariables) {
 		@Nonnull
 		ArrayList<Object> newVariables = new ArrayList<>(Arrays.asList(variables.clone()));
 		switch (ignoreVariables.getType()) {
@@ -662,9 +630,8 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 		// All variables except the one at the given index are ignored
 		case "ALL_EXCEPT":
 			if (ignoreVariables.getIndex() < 0 || ignoreVariables.getIndex() >= newVariables.size()) {
-				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-						"security.instrumentation.ignore.values.index.invalid", ignoreVariables.getIndex(),
-						newVariables.size()));
+				throw new SecurityException(localize("security.instrumentation.ignore.values.index.invalid",
+						ignoreVariables.getIndex(), newVariables.size()));
 			}
 			@Nonnull
 			Object toKeep = newVariables.get(ignoreVariables.getIndex());
@@ -673,15 +640,13 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 			break;
 		case "NONE_EXCEPT":
 			if (ignoreVariables.getIndex() < 0 || ignoreVariables.getIndex() >= newVariables.size()) {
-				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-						"security.instrumentation.ignore.values.index.invalid", ignoreVariables.getIndex(),
-						newVariables.size()));
+				throw new SecurityException(localize("security.instrumentation.ignore.values.index.invalid",
+						ignoreVariables.getIndex(), newVariables.size()));
 			}
 			newVariables.remove(ignoreVariables.getIndex());
 			break;
 		default:
-			throw new IllegalArgumentException(JavaInstrumentationAdviceAbstractToolbox
-					.localize("aop.ignore.unknown.type", ignoreVariables.getType()));
+			throw new IllegalArgumentException(localize("aop.ignore.unknown.type", ignoreVariables.getType()));
 		}
 		return newVariables.toArray();
 	}

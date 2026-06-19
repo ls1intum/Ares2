@@ -47,20 +47,14 @@ public final class JavaInstrumentationCreatePathMethodAdvice {
 				try {
 					fields[i].setAccessible(true);
 					attributes[i] = fields[i].get(instance);
-				} catch (InaccessibleObjectException | IllegalAccessException | SecurityException e) {
+				} catch (InaccessibleObjectException | IllegalAccessException | SecurityException
+						| IllegalArgumentException | NullPointerException | ExceptionInInitializerError e) {
+					// Skip an unreadable field rather than aborting the whole interaction: a
+					// JDK-internal field (e.g. reached via Ares's own timeout executor) that throws
+					// on read must not turn a JDK-side reflection limit into an Ares-Code
+					// SecurityException. The check still runs over the parameters and the readable
+					// fields. Uniform across all four subsystems and both engines.
 					continue;
-				} catch (IllegalArgumentException e) {
-					throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-							"security.instrumentation.illegal.argument.exception", fields[i].getName(),
-							fields[i].getDeclaringClass().getName(), instance.getClass().getName()), e);
-				} catch (NullPointerException e) {
-					throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-							"security.instrumentation.null.pointer.exception", fields[i].getName(),
-							instance.getClass().getName()), e);
-				} catch (ExceptionInInitializerError e) {
-					throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-							"security.instrumentation.exception.in-initializer.error", fields[i].getName(),
-							instance.getClass().getName()), e);
 				}
 			}
 		}

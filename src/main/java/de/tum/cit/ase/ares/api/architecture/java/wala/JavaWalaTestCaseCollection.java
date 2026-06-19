@@ -93,6 +93,15 @@ public class JavaWalaTestCaseCollection {
 	public static ArchRule noClassMustImportForbiddenPackages(Set<PackagePermission> allowedPackages) {
 		return JavaArchunitTestCaseCollection.noClassMustImportForbiddenPackages(allowedPackages);
 	}
+
+	/**
+	 * Package-import rule that also exempts the allow-listed classes; delegates to
+	 * the ArchUnit collection (package import is class-level in both engines).
+	 */
+	public static ArchRule noClassMustImportForbiddenPackages(Set<PackagePermission> allowedPackages,
+			Set<de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission> allowedClasses) {
+		return JavaArchunitTestCaseCollection.noClassMustImportForbiddenPackages(allowedPackages, allowedClasses);
+	}
 	// </editor-fold>
 	// </editor-fold>
 

@@ -2,3 +2,15 @@ java.lang.invoke.MethodHandles.privateLookupIn(Ljava/lang/Class;Ljava/lang/invok
 java.lang.invoke.MethodHandles.reflectAs(Ljava/lang/Class;Ljava/lang/invoke/MethodHandle;)
 jdk.internal.reflect.ReflectionFactory.getReflectionFactory()
 java.lang.reflect.Method.invoke(Ljava/lang/Object;[Ljava/lang/Object;)
+java.lang.invoke.MethodHandle.invoke
+java.lang.reflect.AccessibleObject.setAccessible
+java.lang.reflect.Constructor.newInstance
+java.lang.reflect.Field.set
+java.lang.reflect.Field.get
+java.lang.Class.getDeclaredMethod
+java.lang.Class.getMethod
+java.lang.Class.getDeclaredField
+java.lang.Class.getField
+java.lang.Class.getDeclaredConstructor
+java.lang.Class.getConstructor
+java.lang.Class.newInstance

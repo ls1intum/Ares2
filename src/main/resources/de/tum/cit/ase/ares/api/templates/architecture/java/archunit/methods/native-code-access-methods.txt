@@ -5,3 +5,6 @@ java.lang.System.loadLibrary(java.lang.String)
 sun.misc.Unsafe
 jdk.internal.misc.Unsafe
 java.nio.ByteBuffer.allocateDirect
+java.lang.foreign.Linker.nativeLinker
+java.lang.foreign.Linker.downcallHandle
+java.lang.foreign.SymbolLookup.libraryLookup

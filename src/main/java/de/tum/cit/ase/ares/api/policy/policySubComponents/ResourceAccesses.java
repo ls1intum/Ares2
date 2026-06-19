@@ -18,7 +18,6 @@ import javax.annotation.Nullable;
  *
  * @since 2.0.0
  * @author Markus Paulsen
- * @since 2.0.0
  * @param regardingFileSystemInteractions permitted file system interactions;
  *                                        must not be null.
  * @param regardingNetworkConnections     permitted network connections; must
@@ -52,6 +51,15 @@ public record ResourceAccesses(@Nonnull List<FilePermission> regardingFileSystem
 		Objects.requireNonNull(regardingThreadCreations, "Thread creations list must not be null");
 		Objects.requireNonNull(regardingPackageImports, "Package imports list must not be null");
 		Objects.requireNonNull(regardingTimeouts, "Timeout list must not be null");
+		// Defensive, unmodifiable copies so the record is genuinely immutable: Jackson
+		// and the builder pass mutable lists that a caller could otherwise mutate after
+		// construction, and the generated accessors would expose the live reference.
+		regardingFileSystemInteractions = List.copyOf(regardingFileSystemInteractions);
+		regardingNetworkConnections = List.copyOf(regardingNetworkConnections);
+		regardingCommandExecutions = List.copyOf(regardingCommandExecutions);
+		regardingThreadCreations = List.copyOf(regardingThreadCreations);
+		regardingPackageImports = List.copyOf(regardingPackageImports);
+		regardingTimeouts = List.copyOf(regardingTimeouts);
 	}
 
 	/**
@@ -63,10 +71,14 @@ public record ResourceAccesses(@Nonnull List<FilePermission> regardingFileSystem
 	 */
 	@Nonnull
 	public static ResourceAccesses createRestrictive() {
+		// A restrictive policy denies every resource but must still enforce the
+		// anti-DoS execution timeout; an empty timeout list would leave the no-policy
+		// fallback with no time limit, contrary to ResourceLimitsPermission's own
+		// restrictive default.
 		return builder().regardingFileSystemInteractions(new ArrayList<>())
 				.regardingNetworkConnections(new ArrayList<>()).regardingCommandExecutions(new ArrayList<>())
 				.regardingThreadCreations(new ArrayList<>()).regardingPackageImports(new ArrayList<>())
-				.regardingTimeouts(new ArrayList<>()).build();
+				.regardingTimeouts(new ArrayList<>(List.of(ResourceLimitsPermission.createRestrictive()))).build();
 	}
 
 	/**

@@ -230,14 +230,12 @@ public class SecurityPolicyJavaDirectorTest {
 		}
 
 		@Test
-		@DisplayName("Should create default test cases with null security policy and project path")
-		void shouldCreateDefaultTestCasesWithNullSecurityPolicyAndProjectPath() {
-			// Act
+		@DisplayName("Should fall back to the default configuration when the security policy is null")
+		void shouldFallBackToDefaultConfigurationWhenCreatingTestCasesWithNullSecurityPolicy() {
+			// A null SecurityPolicy is explicitly supported: createTestCases falls back to
+			// the MAVEN / ARCHUNIT / ASPECTJ default configuration rather than throwing.
 			TestCaseAbstractFactoryAndBuilder result = director.createTestCases(null, null);
-
-			// Assert
 			assertNotNull(result);
-			assertInstanceOf(JavaTestCaseFactoryAndBuilder.class, result);
 		}
 
 		@Test

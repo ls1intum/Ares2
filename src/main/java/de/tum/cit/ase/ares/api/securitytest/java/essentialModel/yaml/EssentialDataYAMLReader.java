@@ -53,15 +53,14 @@ public class EssentialDataYAMLReader implements EssentialDataReader {
 		try {
 			return FileTools.readYamlFile(FileTools.readFile(path), yamlClass);
 		} catch (StreamReadException e) {
-			throwReaderErrorMessage("essential.classes.read.failed", path.toString(), e);
+			throw readerError("essential.classes.read.failed", path.toString(), e);
 		} catch (DatabindException e) {
-			throwReaderErrorMessage("essential.classes.data.bind.failed", path.toString(), e);
+			throw readerError("essential.classes.data.bind.failed", path.toString(), e);
 		} catch (UnsupportedOperationException e) {
-			throwReaderErrorMessage("essential.classes.unsupported.operation", path.toString(), e);
+			throw readerError("essential.classes.unsupported.operation", path.toString(), e);
 		} catch (IOException e) {
-			throwReaderErrorMessage("security.policy.io.exception", path.toString(), e);
+			throw readerError("security.policy.io.exception", path.toString(), e);
 		}
-		return null;
 	}
 
 	/**
@@ -84,14 +83,13 @@ public class EssentialDataYAMLReader implements EssentialDataReader {
 		try {
 			return FileTools.readYamlFile(FileTools.readFile(path), yamlClass);
 		} catch (StreamReadException e) {
-			throwReaderErrorMessage("essential.packages.read.failed", path.toString(), e);
+			throw readerError("essential.packages.read.failed", path.toString(), e);
 		} catch (DatabindException e) {
-			throwReaderErrorMessage("essential.packages.data.bind.failed", path.toString(), e);
+			throw readerError("essential.packages.data.bind.failed", path.toString(), e);
 		} catch (UnsupportedOperationException e) {
-			throwReaderErrorMessage("essential.packages.unsupported.operation", path.toString(), e);
+			throw readerError("essential.packages.unsupported.operation", path.toString(), e);
 		} catch (IOException e) {
-			throwReaderErrorMessage("security.policy.io.exception", path.toString(), e);
+			throw readerError("security.policy.io.exception", path.toString(), e);
 		}
-		return null;
 	}
 }

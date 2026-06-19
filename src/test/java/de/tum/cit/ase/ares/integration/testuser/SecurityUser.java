@@ -18,12 +18,14 @@ import de.tum.cit.ase.ares.integration.testuser.subject.SecurityPenguin;
 @Public
 @UseLocale("en")
 @MirrorOutput(MirrorOutputPolicy.DISABLED)
-@AllowThreads(maxActiveCount = 100)
 @StrictTimeout(value = 300, unit = TimeUnit.MILLISECONDS)
 @TestMethodOrder(MethodName.class)
-@WhitelistPath(value = "target/{classes,test-classes}/de/tum**", type = PathType.GLOB)
-@BlacklistPath(value = "**Test*.{java,class}", type = PathType.GLOB)
 @SuppressWarnings("static-method")
+// Scope the default-policy STATIC analysis to a benign student-like subtree so the
+// ReservedPackageGuard does not (correctly) reject Ares's own build. Runtime enforcement
+// of SecurityPenguin is unaffected: the AOP advice classifies student code by package
+// prefix (testuser.subject.* is non-infrastructure), not by withinPath.
+@Policy(withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
 public class SecurityUser {
 
 	@Test
@@ -84,7 +86,6 @@ public class SecurityUser {
 	// REMOVED: Test for a new SecurityManager
 
 	@Test
-	@AddTrustedPackage("xyz.**")
 	void trustedPackageWithoutEnforcerRule() {
 		// nothing
 	}

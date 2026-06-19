@@ -97,7 +97,22 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			// File.createTempFile(String prefix, String suffix) - no path parameter at all
 			Map.entry("java.io.File.createTempFile", IgnoreValues.ALL),
 			// Runtime.exec(String[]) - only check command (index 0), not flags like "-c"
-			Map.entry("java.lang.Runtime.exec", IgnoreValues.allExcept(0)));
+			Map.entry("java.lang.Runtime.exec", IgnoreValues.allExcept(0)),
+			// RandomAccessFile(File|String file, String mode) - only check the file
+			// (index 0); the mode string ("r"/"rw"/...) is not a path and must not be
+			// treated as one.
+			Map.entry("java.io.RandomAccessFile.<init>", IgnoreValues.allExcept(0)),
+			// DataOutputStream.writeUTF/writeChars/writeBytes(String) - the argument is
+			// payload written to the wrapped stream, never a path. The underlying file is
+			// validated where the FileOutputStream is opened, so ignore all arguments here.
+			Map.entry("java.io.DataOutputStream.writeUTF", IgnoreValues.ALL),
+			Map.entry("java.io.DataOutputStream.writeChars", IgnoreValues.ALL),
+			Map.entry("java.io.DataOutputStream.writeBytes", IgnoreValues.ALL),
+			// PrintStream(OutputStream|File|String, [boolean], [String charset]) - keep
+			// only index 0 (the sink); a charset name like "UTF-8" passed when wrapping a
+			// socket/stream is not a path. File/String-named PrintStreams still validate
+			// their path at index 0.
+			Map.entry("java.io.PrintStream.<init>", IgnoreValues.allExcept(0)));
 
 	private static final EnumSet<StandardOpenOption> CREATE_OPTIONS = EnumSet.of(StandardOpenOption.CREATE,
 			StandardOpenOption.CREATE_NEW);
@@ -112,6 +127,35 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			"ares/api/util/LruCache.class", "ares/api/configuration/essentialFiles/java/EssentialPackages.yaml",
 			"ares/api/configuration/essentialFiles/java/EssentialClasses.yaml");
 
+	private static final Set<String> NATIVE_LIBRARY_SUFFIXES = Set.of(".dylib", ".jnilib", ".so", ".dll");
+
+	/**
+	 * The fixed set of JCE jurisdiction crypto-policy file names, plus the exact
+	 * directory-scan glob {@code javax.crypto.JceSecurity} uses to locate them
+	 * during TLS/cryptography initialisation. Matched exactly (not by prefix) so
+	 * the crypto-policy read exemption cannot be widened by a student-chosen file
+	 * name.
+	 */
+	@Nonnull
+	private static final Set<String> CRYPTO_POLICY_NAMES = Set.of("default_US_export.policy", "default_local.policy",
+			"exempt_local.policy", "{default,exempt}_*.policy");
+
+	/**
+	 * Trusted JVM home captured at class-initialisation time, before student code
+	 * runs, so a later {@code System.setProperty("java.home", ...)} cannot widen
+	 * the system-file access exemption into a fail-open read/execute bypass.
+	 */
+	@Nullable
+	private static final String TRUSTED_JAVA_HOME = System.getProperty("java.home");
+
+	/**
+	 * Trusted Maven repository root captured at class-initialisation time for the
+	 * same reason, resolved from {@code maven.repo.local} with the conventional
+	 * {@code ~/.m2/repository} fallback.
+	 */
+	@Nullable
+	private static final String TRUSTED_MAVEN_REPOSITORY = resolveTrustedMavenRepository();
+
 	// </editor-fold>
 
 	// <editor-fold desc="Constructor">
@@ -125,8 +169,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * @author Markus Paulsen
 	 */
 	private JavaInstrumentationAdviceFileSystemToolbox() {
-		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-				"security.instrumentation.utility.initialization", "JavaInstrumentationAdviceFileSystemToolbox"));
+		throw new SecurityException(localize("security.instrumentation.utility.initialization",
+				"JavaInstrumentationAdviceFileSystemToolbox"));
 	}
 	// </editor-fold>
 
@@ -187,8 +231,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				candidate = actualPath.normalize().toAbsolutePath();
 			}
 		} else {
-			// For non-existing paths, use normalized absolute path
-			candidate = actualPath.normalize().toAbsolutePath();
+			// For non-existing targets, resolve symlinks in the deepest existing ancestor
+			// (usually the parent directory) and re-append the remaining segments, so a
+			// symlinked parent cannot redirect a create/overwrite outside the allow-list.
+			candidate = resolveExistingAncestorRealPath(actualPath.normalize().toAbsolutePath());
 		}
 
 		boolean hasAllowedPrefix = false;
@@ -213,6 +259,34 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		// bypass the allowlist: doing so would leak file existence and let a
 		// not-yet-created path slip through the rule (TOCTOU).
 		return !hasAllowedPrefix;
+	}
+
+	/**
+	 * Resolves symlinks in the deepest existing ancestor of a (possibly
+	 * non-existing) absolute path and re-appends the remaining segments. This
+	 * prevents a symlinked parent directory from redirecting a create/overwrite of
+	 * a not-yet-existing leaf outside the allow-list. Falls back to the input path
+	 * if no ancestor exists or the real path cannot be resolved.
+	 *
+	 * @param absolute the normalised absolute path whose leaf does not exist
+	 * @return the canonicalised path with symlinks in the existing prefix resolved
+	 */
+	@Nonnull
+	private static Path resolveExistingAncestorRealPath(@Nonnull Path absolute) {
+		Path ancestor = absolute;
+		while (ancestor != null && !Files.exists(ancestor, LinkOption.NOFOLLOW_LINKS)) {
+			ancestor = ancestor.getParent();
+		}
+		if (ancestor == null) {
+			return absolute;
+		}
+		try {
+			Path realAncestor = ancestor.toRealPath();
+			Path relative = ancestor.relativize(absolute);
+			return realAncestor.resolve(relative);
+		} catch (IOException ignored) {
+			return absolute;
+		}
 	}
 
 	/**
@@ -249,10 +323,12 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				normalizedAllowedPath = allowedPath.normalize().toAbsolutePath();
 			}
 		} else {
-			// Policy entries for non-existing paths must still be honoured: use
-			// the normalised absolute form so that candidate.startsWith() works
-			// correctly regardless of whether the allowed path exists yet.
-			normalizedAllowedPath = allowedPath.normalize().toAbsolutePath();
+			// Policy entries for non-existing paths must still be honoured. Resolve
+			// symlinks in the allowed path's deepest existing ancestor too, so it matches a
+			// candidate whose own ancestor symlinks were already resolved; otherwise a
+			// policy entry like /tmp/link/new.txt would never match the canonicalised
+			// candidate /real/dir/new.txt.
+			normalizedAllowedPath = resolveExistingAncestorRealPath(allowedPath.normalize().toAbsolutePath());
 		}
 
 		return candidate.startsWith(normalizedAllowedPath);
@@ -272,6 +348,11 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */
+	// allowNonExistingPathsToBeConsidered is retained for call-site signature
+	// symmetry
+	// with variableToTarget; existence is now decided uniformly in
+	// checkIfPathIsForbidden.
+	@SuppressWarnings("unused")
 	@Nullable
 	private static Path variableToPath(@Nullable Object variableValue, boolean allowNonExistingPathsToBeConsidered) {
 		try {
@@ -283,34 +364,23 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				if (!"file".equalsIgnoreCase(uri.getScheme())) {
 					return null;
 				}
-				Path absolutePath = Path.of(uri).normalize().toAbsolutePath();
-				if (Files.exists(absolutePath) || allowNonExistingPathsToBeConsidered) {
-					return absolutePath;
-				} else {
-					return null;
-				}
+				// Return the resolved path even when it does not exist yet: the allow-list
+				// decision (including the non-existing case) is made uniformly in
+				// checkIfPathIsForbidden. Returning null here would silently allow a
+				// non-existing (e.g. TOCTOU) target.
+				return Path.of(uri).normalize().toAbsolutePath();
 			} else if (variableValue instanceof URL url) {
 				if (!"file".equalsIgnoreCase(url.getProtocol())) {
 					return null;
 				}
-				Path absolutePath = Path.of(url.toURI()).normalize().toAbsolutePath();
-				if (Files.exists(absolutePath) || allowNonExistingPathsToBeConsidered) {
-					return absolutePath;
-				} else {
-					return null;
-				}
+				return Path.of(url.toURI()).normalize().toAbsolutePath();
 			} else if (variableValue instanceof String) {
 				// Empty string is not a valid path
 				if (variableValue.equals("")) {
 					throw new SecurityException(localize("security.instrumentation.invalid.path", variableValue));
 				}
 				// "/" is the root directory and is a valid path - let it be processed normally
-				Path absolutePath = Path.of((String) variableValue).normalize().toAbsolutePath();
-				if (Files.exists(absolutePath) || allowNonExistingPathsToBeConsidered) {
-					return absolutePath;
-				} else {
-					return null;
-				}
+				return Path.of((String) variableValue).normalize().toAbsolutePath();
 			} else if (variableValue instanceof File) {
 				return Path.of(((File) variableValue).toURI()).normalize().toAbsolutePath();
 			} else {
@@ -676,15 +746,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				// Note: Using if-else chain instead of switch on enum to avoid creating
 				// synthetic SwitchMap inner classes that may not be in the agent JAR
 
-				// Semantic rule: If WRITE (or related) options are present, READ is implicit
-				// and should not be validated separately. The primary intent is to
-				// write/modify,
-				// and read access is typically needed to support that (e.g., MappedByteBuffer
-				// with READ + WRITE + TRUNCATE_EXISTING). We only validate the write operation.
-				boolean hasWriteOption = options.contains(StandardOpenOption.WRITE)
-						|| options.contains(StandardOpenOption.APPEND)
-						|| options.contains(StandardOpenOption.TRUNCATE_EXISTING);
-
 				for (StandardOpenOption option : options) {
 					String optionName = option.name();
 					if ("CREATE".equals(optionName) || "CREATE_NEW".equals(optionName)) {
@@ -693,12 +754,11 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 							|| "TRUNCATE_EXISTING".equals(optionName)) {
 						mergeBoolean(actions, "overwrite", false);
 					} else if ("READ".equals(optionName)) {
-						// Only add "read" action if no write options are present
-						// When READ is combined with WRITE, the intent is to modify the file,
-						// and read access is just a supporting mechanism
-						if (!hasWriteOption) {
-							mergeBoolean(actions, "read", false);
-						}
+						// Validate read against the read allow-list even when write options are
+						// also present: a READ+WRITE channel can read the file's contents, so a
+						// file that is overwrite-allowed but not read-allowed must not be
+						// readable through it. The "overwrite" check above is added separately.
+						mergeBoolean(actions, "read", false);
 					} else if ("DELETE_ON_CLOSE".equals(optionName)) {
 						mergeBoolean(actions, "delete", false);
 					}
@@ -916,6 +976,177 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	}
 
 	/**
+	 * Returns {@code true} when {@code path} points at a .jar inside the system
+	 * infrastructure (the Maven local repository or the JDK installation). Such
+	 * reads are triggered by JUnit / ServiceLoader during class loading, never by
+	 * student code accessing project files, so they are exempt from the read
+	 * policy. The Maven repository is anchored to {@code maven.repo.local} (or
+	 * {@code ~/.m2/repository}) rather than matched as a loose substring, so a
+	 * student cannot bypass the read policy by reading from a self-made
+	 * ".m2/repository" directory.
+	 *
+	 * @param path the already-resolved path string under inspection
+	 * @return true if the path is a system-infrastructure .jar read
+	 */
+	private static boolean isSystemJarReadExempt(@Nonnull String path) {
+		if (!path.endsWith(".jar")) {
+			return false;
+		}
+		return isPathWithin(path, TRUSTED_MAVEN_REPOSITORY) || isPathWithin(path, TRUSTED_JAVA_HOME);
+	}
+
+	/**
+	 * Resolves the Maven local repository root from {@code maven.repo.local}, with
+	 * the conventional {@code ~/.m2/repository} fallback. Returns {@code null} when
+	 * neither can be determined.
+	 *
+	 * @return the Maven repository root, or {@code null}
+	 */
+	@Nullable
+	private static String resolveTrustedMavenRepository() {
+		String mavenRepository = System.getProperty("maven.repo.local");
+		if (mavenRepository == null || mavenRepository.isEmpty()) {
+			String userHome = System.getProperty("user.home");
+			if (userHome == null) {
+				return null;
+			}
+			mavenRepository = userHome + java.io.File.separator + ".m2" + java.io.File.separator + "repository";
+		}
+		return mavenRepository;
+	}
+
+	/**
+	 * Returns {@code true} when {@code path} resolves to a location at or below
+	 * {@code directory}, using path-element boundaries rather than a raw string
+	 * prefix so that a sibling such as {@code /opt/jdk-17-evil} is not treated as
+	 * being under {@code /opt/jdk-17}. Comparison is purely lexical (no filesystem
+	 * access) to avoid re-entering the interceptors.
+	 *
+	 * @param path      the already-resolved path string under inspection
+	 * @param directory the trusted directory root, or {@code null}
+	 * @return true if {@code path} is within {@code directory}
+	 */
+	private static boolean isPathWithin(@Nonnull String path, @Nullable String directory) {
+		if (directory == null || directory.isBlank()) {
+			return false;
+		}
+		try {
+			Path base = Path.of(directory).toAbsolutePath().normalize();
+			Path candidate = Path.of(path).toAbsolutePath().normalize();
+			return candidate.startsWith(base);
+		} catch (InvalidPathException ignored) {
+			return false;
+		}
+	}
+
+	/**
+	 * Determines whether a file-system access targets JVM infrastructure under
+	 * {@code java.home} that must never be treated as student file access.
+	 * <p>
+	 * Description: JDK-internal reads under {@code java.home} (e.g. the
+	 * conf/security crypto-policy files read by {@code javax.crypto.JceSecurity}'s
+	 * static initialiser) are JVM infrastructure, not student file access, and must
+	 * not be blocked. Native-library loads ({@code .dylib}/{@code .jnilib}/
+	 * {@code .so}/{@code .dll}) under {@code java.home} are exempt for the
+	 * {@code execute} action for the same reason.
+	 *
+	 * @param action the concrete file-system action under inspection
+	 * @param path   the already-resolved path string under inspection
+	 * @return true if the access is exempt JVM-infrastructure access
+	 */
+	private static boolean isExemptSystemFileAccess(@Nonnull String action, @Nonnull String path) {
+		// System.loadLibrary(name)/Runtime.loadLibrary(name) resolve a JDK native
+		// library by name
+		// on java.library.path, but the intercepted path is the bare name resolved
+		// against the
+		// working directory (e.g. "<cwd>/awt" when java.awt.Toolkit initialises).
+		// Recognise such
+		// JDK libraries by mapping the name and checking java.home/lib, so the JVM
+		// loading its own
+		// native libraries is never mistaken for student file access. This cannot be
+		// abused:
+		// loadLibrary never searches the working directory, and System.load(path) keeps
+		// the file
+		// extension so its basename does not map to a JDK library.
+		if ("execute".equals(action) && isJdkNativeLibraryLoad(path)) {
+			return true;
+		}
+		if (!isPathWithin(path, TRUSTED_JAVA_HOME)) {
+			return false;
+		}
+		if ("read".equals(action)) {
+			return true;
+		}
+		if ("execute".equals(action)) {
+			for (String suffix : NATIVE_LIBRARY_SUFFIXES) {
+				if (path.endsWith(suffix)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Returns {@code true} when {@code path} is the bare-name form of a JDK native
+	 * library load (a {@code System.loadLibrary}/{@code Runtime.loadLibrary} whose
+	 * argument maps to a library present under {@code java.home/lib}). The
+	 * intercepted path is the library name resolved against the working directory,
+	 * so it is not recognised by the {@code java.home} prefix check.
+	 *
+	 * @param path the already-resolved path string under inspection
+	 * @return true if the load targets a JDK-internal native library
+	 */
+	private static boolean isJdkNativeLibraryLoad(@Nonnull String path) {
+		if (TRUSTED_JAVA_HOME == null) {
+			return false;
+		}
+		int separator = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+		String name = separator >= 0 ? path.substring(separator + 1) : path;
+		// loadLibrary names are extensionless; a dotted basename is a System.load(path)
+		// file
+		// whose mapped name would not resolve to a JDK library anyway.
+		if (name.isEmpty() || name.indexOf('.') >= 0) {
+			return false;
+		}
+		try {
+			return Files.exists(Path.of(TRUSTED_JAVA_HOME, "lib", System.mapLibraryName(name)));
+		} catch (RuntimeException exception) {
+			return false;
+		}
+	}
+
+	/**
+	 * Returns {@code true} when {@code path} refers to a JCE jurisdiction crypto
+	 * policy file (or the directory-scan glob used to locate them). When TLS/JCE
+	 * initialises (e.g. {@code SSLContext.init},
+	 * {@code SSLContextImpl$TLSContext}), {@code javax.crypto.JceSecurity} scans
+	 * for {@code default_*.policy} and {@code exempt_*.policy} via
+	 * {@code Files.newDirectoryStream}. That read is JVM cryptography
+	 * infrastructure, not student file access; blocking it makes cryptography fail
+	 * to initialise ({@code NoClassDefFoundError} / "Can not initialize
+	 * cryptographic mechanism"). The AspectJ backend does not observe this internal
+	 * scan, so exempting it keeps the two backends consistent. The match is
+	 * restricted to the JCE policy naming scheme, which no student test file uses.
+	 *
+	 * @param path the already-resolved path string under inspection
+	 * @return true if the path is a JCE crypto policy file or scan glob
+	 */
+	private static boolean isCryptoPolicyPath(@Nullable String path) {
+		if (path == null) {
+			return false;
+		}
+		int slash = path.lastIndexOf('/');
+		String name = slash >= 0 ? path.substring(slash + 1) : path;
+		// Match only the fixed JCE jurisdiction-policy file names and the exact
+		// directory-scan glob JceSecurity uses, never an arbitrary
+		// "default_*"/"exempt_*"
+		// prefix, so a student-named file such as "default_tokens.policy" is NOT
+		// exempt.
+		return CRYPTO_POLICY_NAMES.contains(name);
+	}
+
+	/**
 	 * Performs the security validation for a single derived file-system action.
 	 * <p>
 	 * Description: Reuses the previously gathered contextual information to
@@ -963,8 +1194,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		case "create" -> "pathsAllowedToBeCreated";
 		case "execute" -> "pathsAllowedToBeExecuted";
 		case "delete" -> "pathsAllowedToBeDeleted";
-		default -> throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-				.localize("security.advice.file.system.unknown.action", action));
+		default -> throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
 		});
 		boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
 		// </editor-fold>
@@ -989,6 +1219,21 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 						|| ("java.nio.file.Files".equals(declaringTypeName)
 								&& ("newBufferedWriter".equals(methodName) || "newOutputStream".equals(methodName))));
 		String messageAction = isWriteAliasedAsCreate ? "overwrite" : action;
+		// Reads of entries from an ALREADY-OPEN JarFile/ZipFile (getInputStream,
+		// entries, getEntry, stream, ...) are JVM/library infrastructure: ServiceLoader
+		// scanning META-INF/services (e.g. JCA/TLS providers, channel providers),
+		// manifest reads, and resource loading triggered transitively (e.g. while
+		// capturing a launched process's output or initialising cryptography). The
+		// CONSTRUCTOR is deliberately NOT exempt: new JarFile(path)/new ZipFile(path)
+		// opens a file and its path must still be validated, otherwise student code
+		// could open an arbitrary archive undetected. Entry reads on an already-open
+		// archive carry no fresh path argument, so exempting them cannot mask a student
+		// data read (which uses FileInputStream/Files/Reader, never JarFile/ZipFile).
+		// This also mirrors the AspectJ backend, whose pointcuts never intercept these
+		// JarFile/ZipFile entry methods.
+		boolean isJarResourceRead = "read".equals(action) && !"<init>".equals(methodName)
+				&& ("java.util.jar.JarFile".equals(declaringTypeName)
+						|| "java.util.zip.ZipFile".equals(declaringTypeName));
 		if (pathIllegallyInteractedThroughParameter != null) {
 			// Check if this is a .class file access by ClassLoader - should be allowed.
 			// The JVM reads a class's bytecode while defining it (e.g. when the test
@@ -1001,19 +1246,15 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			// stack. A student opening a .class file directly has no such frame, so this
 			// stays a precise, non-bypassable exemption.
 			boolean isClassLoaderAccess = pathIllegallyInteractedThroughParameter.endsWith(".class")
-					&& (JavaInstrumentationAdviceAbstractToolbox.isClassLoadingInProgress()
-							|| (studentCalledMethod != null
-									&& (studentCalledMethod.startsWith("java.lang.Class.forName")
-											|| studentCalledMethod.startsWith("java.lang.ClassLoader")
-											|| studentCalledMethod.startsWith("jdk.internal.loader"))));
+					&& (isClassLoadingInProgress() || (studentCalledMethod != null
+							&& (studentCalledMethod.startsWith("java.lang.Class.forName")
+									|| studentCalledMethod.startsWith("java.lang.ClassLoader")
+									|| studentCalledMethod.startsWith("jdk.internal.loader"))));
 			// Allow .jar reads from system infrastructure paths (Maven repo, JDK).
 			// These are triggered by JUnit / ServiceLoader during class loading and are
 			// not initiated by student code accessing arbitrary project files.
-			boolean isSystemJarRead = pathIllegallyInteractedThroughParameter.endsWith(".jar")
-					&& (pathIllegallyInteractedThroughParameter.contains("/.m2/repository/")
-							|| pathIllegallyInteractedThroughParameter.contains(java.io.File.separator + ".m2"
-									+ java.io.File.separator + "repository" + java.io.File.separator)
-							|| pathIllegallyInteractedThroughParameter.startsWith(System.getProperty("java.home")));
+			boolean isSystemJarRead = "read".equals(action)
+					&& isSystemJarReadExempt(pathIllegallyInteractedThroughParameter);
 			// Allow reads of Ares's own internal files (e.g. the localization resources
 			// loaded while building this very message). Without this exemption, resolving
 			// the denial message reads Messages.class / messages.properties, that read is
@@ -1029,14 +1270,20 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 					break;
 				}
 			}
-			if (!isClassLoaderAccess && !isSystemJarRead && !isInternalAllowed) {
-				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-						"security.advice.illegal.file.execution", fileSystemMethodToCheck, messageAction,
-						pathIllegallyInteractedThroughParameter,
+			// Allow JDK-internal reads and native-library loads under java.home. These are
+			// JVM infrastructure (e.g. JceSecurity reading the crypto-policy files), not
+			// student file access, and must not be blocked.
+			boolean isExemptSystemFileAccess = isExemptSystemFileAccess(action,
+					pathIllegallyInteractedThroughParameter);
+			boolean isCryptoPolicyRead = "read".equals(action)
+					&& isCryptoPolicyPath(pathIllegallyInteractedThroughParameter);
+			if (!isClassLoaderAccess && !isSystemJarRead && !isInternalAllowed && !isExemptSystemFileAccess
+					&& !isJarResourceRead && !isCryptoPolicyRead) {
+				throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck,
+						messageAction, pathIllegallyInteractedThroughParameter,
 						fullMethodSignature
 								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
-								+ " | "
-								+ JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(noAllowRuleConfigured)));
+								+ " | " + buildDenialReason(noAllowRuleConfigured)));
 			}
 		}
 		// </editor-fold>
@@ -1055,26 +1302,39 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			// A .class read performed by the JVM class-loading machinery is class
 			// loading, not student file access (see isClassLoadingInProgress).
 			if (!isInternalAllowed && pathIllegallyInteractedThroughReceiver.endsWith(".class")
-					&& JavaInstrumentationAdviceAbstractToolbox.isClassLoadingInProgress()) {
+					&& isClassLoadingInProgress()) {
 				isInternalAllowed = true;
 			}
 
-			if (!isInternalAllowed && pathIllegallyInteractedThroughReceiver.endsWith(".jar")
-					&& (pathIllegallyInteractedThroughReceiver.contains("/.m2/repository/")
-							|| pathIllegallyInteractedThroughReceiver.contains(java.io.File.separator + ".m2"
-									+ java.io.File.separator + "repository" + java.io.File.separator)
-							|| pathIllegallyInteractedThroughReceiver.startsWith(System.getProperty("java.home")))) {
+			if (!isInternalAllowed && "read".equals(action)
+					&& isSystemJarReadExempt(pathIllegallyInteractedThroughReceiver)) {
+				isInternalAllowed = true;
+			}
+
+			// JDK-internal reads and native-library loads under java.home are exempt.
+			if (!isInternalAllowed && isExemptSystemFileAccess(action, pathIllegallyInteractedThroughReceiver)) {
+				isInternalAllowed = true;
+			}
+
+			// Reads of a JAR/ZIP entry via getInputStream are JVM/library infrastructure
+			// (see isJarResourceRead), not student file access.
+			if (!isInternalAllowed && isJarResourceRead) {
+				isInternalAllowed = true;
+			}
+
+			// JCE crypto-policy scans during TLS/cryptography initialisation are JVM
+			// infrastructure (see isCryptoPolicyPath).
+			if (!isInternalAllowed && "read".equals(action)
+					&& isCryptoPolicyPath(pathIllegallyInteractedThroughReceiver)) {
 				isInternalAllowed = true;
 			}
 
 			if (!isInternalAllowed) {
-				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-						"security.advice.illegal.file.execution", fileSystemMethodToCheck, messageAction,
-						pathIllegallyInteractedThroughReceiver,
+				throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck,
+						messageAction, pathIllegallyInteractedThroughReceiver,
 						fullMethodSignature
 								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
-								+ " | "
-								+ JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(noAllowRuleConfigured)));
+								+ " | " + buildDenialReason(noAllowRuleConfigured)));
 			}
 		}
 		// </editor-fold>
@@ -1105,8 +1365,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			// file
 			// from the filesystem. This is not a security concern as it's part of normal
 			// class loading behavior, not arbitrary file access by student code.
-			if (pathIllegallyInteractedThroughAttribute.endsWith(".class") && (JavaInstrumentationAdviceAbstractToolbox
-					.isClassLoadingInProgress()
+			if (pathIllegallyInteractedThroughAttribute.endsWith(".class") && (isClassLoadingInProgress()
 					|| (studentCalledMethod != null && (studentCalledMethod.startsWith("java.lang.Class.forName")
 							|| studentCalledMethod.startsWith("java.lang.ClassLoader")
 							|| studentCalledMethod.startsWith("jdk.internal.loader"))))) {
@@ -1123,22 +1382,35 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			// Allow .jar reads from system infrastructure paths (Maven repo, JDK).
 			// These are triggered by JUnit / ServiceLoader during class loading and are
 			// not initiated by student code accessing arbitrary project files.
-			if (!isInternalAllowed && pathIllegallyInteractedThroughAttribute.endsWith(".jar")
-					&& (pathIllegallyInteractedThroughAttribute.contains("/.m2/repository/")
-							|| pathIllegallyInteractedThroughAttribute.contains(java.io.File.separator + ".m2"
-									+ java.io.File.separator + "repository" + java.io.File.separator)
-							|| pathIllegallyInteractedThroughAttribute.startsWith(System.getProperty("java.home")))) {
+			if (!isInternalAllowed && "read".equals(action)
+					&& isSystemJarReadExempt(pathIllegallyInteractedThroughAttribute)) {
+				isInternalAllowed = true;
+			}
+
+			// JDK-internal reads and native-library loads under java.home are exempt.
+			if (!isInternalAllowed && isExemptSystemFileAccess(action, pathIllegallyInteractedThroughAttribute)) {
+				isInternalAllowed = true;
+			}
+
+			// Reads of a JAR/ZIP entry via getInputStream are JVM/library infrastructure
+			// (see isJarResourceRead), not student file access.
+			if (!isInternalAllowed && isJarResourceRead) {
+				isInternalAllowed = true;
+			}
+
+			// JCE crypto-policy scans during TLS/cryptography initialisation are JVM
+			// infrastructure (see isCryptoPolicyPath).
+			if (!isInternalAllowed && "read".equals(action)
+					&& isCryptoPolicyPath(pathIllegallyInteractedThroughAttribute)) {
 				isInternalAllowed = true;
 			}
 
 			if (!isInternalAllowed) {
-				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-						"security.advice.illegal.file.execution", fileSystemMethodToCheck, messageAction,
-						pathIllegallyInteractedThroughAttribute,
+				throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck,
+						messageAction, pathIllegallyInteractedThroughAttribute,
 						fullMethodSignature
 								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
-								+ " | "
-								+ JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(noAllowRuleConfigured)));
+								+ " | " + buildDenialReason(noAllowRuleConfigured)));
 			}
 		}
 		// </editor-fold>
@@ -1175,7 +1447,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		if (restrictedPackage == null || restrictedPackage.isEmpty()) {
 			return;
 		}
-		if (JavaInstrumentationAdviceAbstractToolbox.isProjectSourcesFinderInProgress()) {
+		if (isProjectSourcesFinderInProgress()) {
 			return;
 		}
 		@Nullable
