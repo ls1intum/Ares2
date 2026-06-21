@@ -1,8 +1,11 @@
 package de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdpartypackage;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+
+import org.apache.commons.io.FileUtils;
 
 /**
  * This class is used to emulate a third-party package that is not part of the
@@ -35,6 +38,17 @@ public class ThirdPartyPackagePenguin {
 
 	public static void deleteFile() throws IOException {
 		Files.delete(Path.of(
+				"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/nottrusteddir/nottrusted.txt"));
+	}
+
+	/**
+	 * Deletes the not-trusted file through Apache Commons IO's
+	 * {@link FileUtils#forceDelete(File)}. The actual delete happens inside the
+	 * (non-woven) commons-io library, so this exercises the dedicated
+	 * {@code FileUtils.forceDelete} interception rather than a JDK delete call.
+	 */
+	public static void deleteFileViaCommonsIo() throws IOException {
+		FileUtils.forceDelete(new File(
 				"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/delete/nottrusteddir/nottrusted.txt"));
 	}
 }

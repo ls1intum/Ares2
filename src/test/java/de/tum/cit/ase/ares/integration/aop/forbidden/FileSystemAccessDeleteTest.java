@@ -368,6 +368,38 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 				ThirdPartyPackagePenguin.class);
 	}
 
+	/* -------------------------------------------------------------------- */
+	/* org.apache.commons.io.FileUtils.forceDelete (third-party wrapper) */
+	/* -------------------------------------------------------------------- */
+
+	@PublicTest
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = THIRD_PARTY_WITHIN_PATH)
+	void test_commonsIoForceDelete_archunit_aspectj() {
+		assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaCommonsIoForceDelete,
+				ThirdPartyPackagePenguin.class);
+	}
+
+	@PublicTest
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = THIRD_PARTY_WITHIN_PATH)
+	void test_commonsIoForceDelete_archunit_instrumentation() {
+		assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaCommonsIoForceDelete,
+				ThirdPartyPackagePenguin.class);
+	}
+
+	@PublicTest
+	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = THIRD_PARTY_WITHIN_PATH)
+	void test_commonsIoForceDelete_wala_aspectj() {
+		assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaCommonsIoForceDelete,
+				ThirdPartyPackagePenguin.class);
+	}
+
+	@PublicTest
+	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = THIRD_PARTY_WITHIN_PATH)
+	void test_commonsIoForceDelete_wala_instrumentation() {
+		assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaCommonsIoForceDelete,
+				ThirdPartyPackagePenguin.class);
+	}
+
 	@Disabled("This test is disabled because testing in this manner is not possible. FileSystemProvider.installedProviders() "
 			+ "gets a violation whule trying to access java.net.URL.openConnection().")
 	@PublicTest

@@ -1,11 +1,10 @@
 package de.tum.cit.ase.ares.api.policy.director;
 
 import java.nio.file.Path;
+import java.util.Objects;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
-import com.google.common.base.Preconditions;
 
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.director.java.SecurityPolicyJavaDirector;
@@ -109,15 +108,14 @@ public abstract class SecurityPolicyDirector {
 	public SecurityPolicyDirector(@Nonnull Creator creator, @Nonnull Writer writer, @Nonnull Executer executer,
 			@Nonnull EssentialDataReader essentialDataReader, @Nonnull ProjectScanner projectScanner,
 			@Nonnull Path essentialPackagesPath, @Nonnull Path essentialClassesPath) {
-		this.creator = Preconditions.checkNotNull(creator, "creator must not be null");
-		this.writer = Preconditions.checkNotNull(writer, "writer must not be null");
-		this.executer = Preconditions.checkNotNull(executer, "executer must not be null");
-		this.essentialDataReader = Preconditions.checkNotNull(essentialDataReader,
-				"essentialDataReader must not be null");
-		this.projectScanner = Preconditions.checkNotNull(projectScanner, "javaScanner must not be null");
-		this.essentialPackagesPath = Preconditions.checkNotNull(essentialPackagesPath,
+		this.creator = Objects.requireNonNull(creator, "creator must not be null");
+		this.writer = Objects.requireNonNull(writer, "writer must not be null");
+		this.executer = Objects.requireNonNull(executer, "executer must not be null");
+		this.essentialDataReader = Objects.requireNonNull(essentialDataReader, "essentialDataReader must not be null");
+		this.projectScanner = Objects.requireNonNull(projectScanner, "javaScanner must not be null");
+		this.essentialPackagesPath = Objects.requireNonNull(essentialPackagesPath,
 				"essentialPackagesPath must not be null");
-		this.essentialClassesPath = Preconditions.checkNotNull(essentialClassesPath,
+		this.essentialClassesPath = Objects.requireNonNull(essentialClassesPath,
 				"essentialClassesPath must not be null");
 	}
 	// </editor-fold>

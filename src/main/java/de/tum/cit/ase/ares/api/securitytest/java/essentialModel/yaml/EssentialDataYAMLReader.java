@@ -2,12 +2,12 @@ package de.tum.cit.ase.ares.api.securitytest.java.essentialModel.yaml;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Objects;
 
 import javax.annotation.Nonnull;
 
 import com.fasterxml.jackson.core.exc.StreamReadException;
 import com.fasterxml.jackson.databind.DatabindException;
-import com.google.common.base.Preconditions;
 
 import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialClasses;
 import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialDataReader;
@@ -46,9 +46,9 @@ public class EssentialDataYAMLReader implements EssentialDataReader {
 	@Nonnull
 	public EssentialClasses readEssentialClassesFrom(@Nonnull Path essentialClassesPath) {
 		@Nonnull
-		Path path = Preconditions.checkNotNull(essentialClassesPath, "The essential classes path must not be null!");
+		Path path = Objects.requireNonNull(essentialClassesPath, "The essential classes path must not be null!");
 		@Nonnull
-		Class<EssentialClasses> yamlClass = Preconditions.checkNotNull(EssentialClasses.class,
+		Class<EssentialClasses> yamlClass = Objects.requireNonNull(EssentialClasses.class,
 				"The essential classes class must not be null!");
 		try {
 			return FileTools.readYamlFile(FileTools.readFile(path), yamlClass);
@@ -76,9 +76,9 @@ public class EssentialDataYAMLReader implements EssentialDataReader {
 	@Nonnull
 	public EssentialPackages readEssentialPackagesFrom(@Nonnull Path essentialPackagesPath) {
 		@Nonnull
-		Path path = Preconditions.checkNotNull(essentialPackagesPath, "The essential packages path must not be null!");
+		Path path = Objects.requireNonNull(essentialPackagesPath, "The essential packages path must not be null!");
 		@Nonnull
-		Class<EssentialPackages> yamlClass = Preconditions.checkNotNull(EssentialPackages.class,
+		Class<EssentialPackages> yamlClass = Objects.requireNonNull(EssentialPackages.class,
 				"The essential packages class must not be null!");
 		try {
 			return FileTools.readYamlFile(FileTools.readFile(path), yamlClass);

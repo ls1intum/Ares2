@@ -12,9 +12,12 @@ import java.util.stream.Collectors;
 
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
-import org.json.*;
 import org.opentest4j.AssertionFailedError;
 import org.slf4j.*;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import de.tum.cit.ase.ares.api.structural.testutils.*;
 
@@ -58,6 +61,8 @@ public abstract class StructuralTestProvider {
 
 	private static final Logger LOG = LoggerFactory.getLogger(StructuralTestProvider.class);
 
+	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
 	protected static final String JSON_PROPERTY_SUPERCLASS = "superclass"; //$NON-NLS-1$
 	protected static final String JSON_PROPERTY_INTERFACES = "interfaces"; //$NON-NLS-1$
 	protected static final String JSON_PROPERTY_ANNOTATIONS = "annotations"; //$NON-NLS-1$
@@ -78,10 +83,24 @@ public abstract class StructuralTestProvider {
 	private static final String PACKAGE_PATH_SEPARATOR = "."; //$NON-NLS-1$
 	private static final Pattern PACKAGE_NAME_IN_GENERIC_TYPE = Pattern.compile("(?:[^\\[\\]<>?,\\s.]++\\.)++"); //$NON-NLS-1$
 
-	protected static JSONArray structureOracleJSON;
+	protected static JsonNode structureOracleJSON;
 
 	protected StructuralTestProvider() {
 		// make constructor only protected
+	}
+
+	/**
+	 * Parses a JSON string into a {@link JsonNode}.
+	 *
+	 * @param json the JSON string to parse
+	 * @return the parsed JSON tree
+	 */
+	protected static JsonNode parseJsonArray(String json) {
+		try {
+			return OBJECT_MAPPER.readTree(json);
+		} catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+			throw new IllegalStateException("Failed to parse JSON", e); //$NON-NLS-1$
+		}
 	}
 
 	/**
@@ -122,8 +141,19 @@ public abstract class StructuralTestProvider {
 	 * @param jsonPropertyKey the key used in JSON
 	 * @return a JSON array of the elements (can be empty)
 	 */
-	protected static JSONArray getExpectedJsonProperty(JSONObject element, String jsonPropertyKey) {
-		return element.has(jsonPropertyKey) ? element.getJSONArray(jsonPropertyKey) : new JSONArray();
+	protected static JsonNode getExpectedJsonProperty(JsonNode element, String jsonPropertyKey) {
+		if (!element.has(jsonPropertyKey)) {
+			return JsonNodeFactory.instance.arrayNode();
+		}
+		JsonNode property = element.get(jsonPropertyKey);
+		// Fail fast on a malformed oracle (mirrors org.json#getJSONArray, which threw
+		// on
+		// a non-array) rather than silently treating a scalar as an empty array.
+		if (!property.isArray()) {
+			throw new IllegalStateException("Expected a JSON array for structure-oracle property '" + jsonPropertyKey
+					+ "' but found: " + property.getNodeType());
+		}
+		return property;
 	}
 
 	/**
@@ -134,8 +164,19 @@ public abstract class StructuralTestProvider {
 	 * @param jsonPropertyKey the key used in JSON
 	 * @return a boolean as specified in the JSON or false if not present
 	 */
-	protected static boolean getExpectedJsonBooleanProperty(JSONObject element, String jsonPropertyKey) {
-		return element.has(jsonPropertyKey) && element.getBoolean(jsonPropertyKey);
+	protected static boolean getExpectedJsonBooleanProperty(JsonNode element, String jsonPropertyKey) {
+		if (!element.has(jsonPropertyKey)) {
+			return false;
+		}
+		JsonNode property = element.get(jsonPropertyKey);
+		// Fail fast on a malformed oracle (mirrors org.json#getBoolean, which threw on
+		// a
+		// non-boolean) rather than silently coercing via asBoolean().
+		if (!property.isBoolean()) {
+			throw new IllegalStateException("Expected a JSON boolean for structure-oracle property '" + jsonPropertyKey
+					+ "' but found: " + property.getNodeType());
+		}
+		return property.booleanValue();
 	}
 
 	/**
@@ -143,10 +184,10 @@ public abstract class StructuralTestProvider {
 	 * element match the ones in the expected structural element.
 	 *
 	 * @param observedModifiers The observed modifiers as a string array.
-	 * @param expectedModifiers The expected modifiers as a JSONArray.
+	 * @param expectedModifiers The expected modifiers as a JsonNode array.
 	 * @return True if they match, false otherwise.
 	 */
-	protected static boolean checkModifiers(String[] observedModifiers, JSONArray expectedModifiers) {
+	protected static boolean checkModifiers(String[] observedModifiers, JsonNode expectedModifiers) {
 		/*
 		 * If both the observed and expected elements have no modifiers, then they
 		 * match. A note: for technical reasons, we get in case of no observed
@@ -159,8 +200,9 @@ public abstract class StructuralTestProvider {
 		 * array of the observed ones and if any forbidden modifiers were used.
 		 */
 		Set<ModifierSpecification> modifierSpecifications = new HashSet<>();
-		for (var i = 0; i < expectedModifiers.length(); i++)
-			modifierSpecifications.add(ModifierSpecification.getModifierForJsonString(expectedModifiers.getString(i)));
+		for (var i = 0; i < expectedModifiers.size(); i++)
+			modifierSpecifications
+					.add(ModifierSpecification.getModifierForJsonString(expectedModifiers.get(i).asText()));
 		Set<String> observedModifiersSet = Set.of(observedModifiers);
 		Set<String> allowedModifiers = modifierSpecifications.stream().map(ModifierSpecification::getModifier)
 				.collect(Collectors.toSet());
@@ -200,7 +242,7 @@ public abstract class StructuralTestProvider {
 		}
 	}
 
-	protected static boolean checkAnnotations(Annotation[] observedAnnotations, JSONArray expectedAnnotations) {
+	protected static boolean checkAnnotations(Annotation[] observedAnnotations, JsonNode expectedAnnotations) {
 		/*
 		 * If both the observed and expected elements have no annotations, then they
 		 * match. A note: for technical reasons, we get in case of no observed
@@ -212,15 +254,15 @@ public abstract class StructuralTestProvider {
 		 * If the number of the annotations does not match, then the annotations per se
 		 * do not match either.
 		 */
-		if (observedAnnotations.length != expectedAnnotations.length())
+		if (observedAnnotations.length != expectedAnnotations.size())
 			return false;
 		/*
 		 * Otherwise check if each expected annotation is contained in the array of the
 		 * observed ones. If at least one isn't, then the modifiers don't match.
 		 */
-		for (Object expectedAnnotation : expectedAnnotations) {
+		for (JsonNode expectedAnnotation : expectedAnnotations) {
 			var expectedAnnotationFound = false;
-			var expectedAnnotationAsString = (String) expectedAnnotation;
+			var expectedAnnotationAsString = expectedAnnotation.asText();
 			for (Annotation observedAnnotation : observedAnnotations)
 				if (checkExpectedType(observedAnnotation.annotationType(), observedAnnotation.annotationType(),
 						expectedAnnotationAsString)) {
@@ -239,10 +281,11 @@ public abstract class StructuralTestProvider {
 	 * element.
 	 *
 	 * @param observedParameters The actual parameter types as a classes array.
-	 * @param expectedParameters The expected parameter type names as a JSONArray.
+	 * @param expectedParameters The expected parameter type names as a JsonNode
+	 *                           array.
 	 * @return True if they match, false otherwise.
 	 */
-	protected static boolean checkParameters(Class<?>[] observedParameters, JSONArray expectedParameters,
+	protected static boolean checkParameters(Class<?>[] observedParameters, JsonNode expectedParameters,
 			boolean strictOrder) {
 		/*
 		 * If both the observed and expected elements have no parameters, then they
@@ -254,11 +297,11 @@ public abstract class StructuralTestProvider {
 		 * If the number of parameters do not match, then the parameters cannot match
 		 * either.
 		 */
-		if (observedParameters.length != expectedParameters.length())
+		if (observedParameters.length != expectedParameters.size())
 			return false;
-		var expectedParameterTypeNames = new String[expectedParameters.length()];
-		for (var i = 0; i < expectedParameters.length(); i++)
-			expectedParameterTypeNames[i] = expectedParameters.getString(i);
+		var expectedParameterTypeNames = new String[expectedParameters.size()];
+		for (var i = 0; i < expectedParameters.size(); i++)
+			expectedParameterTypeNames[i] = expectedParameters.get(i).asText();
 
 		var observedParameterTypeNames = new String[observedParameters.length];
 		for (var i = 0; i < observedParameters.length; i++)
@@ -289,7 +332,7 @@ public abstract class StructuralTestProvider {
 	 * @param expectedParameters the parameters to describe.
 	 * @return A localized string describing the parameters.
 	 */
-	protected static String describeParameters(JSONArray expectedParameters) {
+	protected static String describeParameters(JsonNode expectedParameters) {
 		return expectedParameters.isEmpty() ? localized("structural.common.noParams") //$NON-NLS-1$
 				: localized("structural.common.withParams", expectedParameters); //$NON-NLS-1$
 	}
@@ -351,9 +394,9 @@ public abstract class StructuralTestProvider {
 	 *
 	 * @param structureOracleFileUrl The file url of the structure oracle file,
 	 *                               which is used for the structural tests.
-	 * @return The JSONArray representation of the structure oracle.
+	 * @return The JsonNode representation of the structure oracle.
 	 */
-	protected static JSONArray retrieveStructureOracleJSON(URL structureOracleFileUrl) {
+	protected static JsonNode retrieveStructureOracleJSON(URL structureOracleFileUrl) {
 		if (structureOracleFileUrl == null)
 			return null;
 		var result = new StringBuilder();
@@ -365,7 +408,7 @@ public abstract class StructuralTestProvider {
 		} catch (IOException e) {
 			LOG.error("Could not open stream from URL: {}", structureOracleFileUrl, e); //$NON-NLS-1$
 		}
-		return new JSONArray(result.toString());
+		return parseJsonArray(result.toString());
 	}
 
 	/**
@@ -378,10 +421,10 @@ public abstract class StructuralTestProvider {
 
 		private final String expectedClassName;
 		private final String expectedPackageName;
-		private final JSONObject expectedClassJson;
+		private final JsonNode expectedClassJson;
 
 		public ExpectedClassStructure(String expectedClassName, String expectedPackageName,
-				JSONObject expectedClassJson) {
+				JsonNode expectedClassJson) {
 			this.expectedClassName = Objects.requireNonNull(expectedClassName);
 			this.expectedPackageName = Objects.requireNonNull(expectedPackageName);
 			this.expectedClassJson = Objects.requireNonNull(expectedClassJson);
@@ -395,7 +438,7 @@ public abstract class StructuralTestProvider {
 			return expectedPackageName;
 		}
 
-		public JSONObject getExpectedClassJson() {
+		public JsonNode getExpectedClassJson() {
 			return expectedClassJson;
 		}
 
@@ -410,12 +453,12 @@ public abstract class StructuralTestProvider {
 			return getExpectedClassJson().has(propertyName);
 		}
 
-		public JSONObject getPropertyAsJsonObject(String propertyName) {
-			return getExpectedClassJson().getJSONObject(propertyName);
+		public JsonNode getPropertyAsJsonObject(String propertyName) {
+			return getExpectedClassJson().get(propertyName);
 		}
 
-		public JSONArray getPropertyAsJsonArray(String propertyName) {
-			return getExpectedClassJson().getJSONArray(propertyName);
+		public JsonNode getPropertyAsJsonArray(String propertyName) {
+			return getExpectedClassJson().get(propertyName);
 		}
 	}
 

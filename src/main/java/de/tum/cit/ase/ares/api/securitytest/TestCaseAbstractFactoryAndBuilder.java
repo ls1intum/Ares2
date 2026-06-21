@@ -4,13 +4,11 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Preconditions;
 
 import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.aop.AOPTestCase;
@@ -205,30 +203,28 @@ public abstract class TestCaseAbstractFactoryAndBuilder {
 			@Nullable ArchitectureMode architectureMode, @Nullable AOPMode aopMode,
 			@Nullable SecurityPolicy securityPolicy, @Nullable Path projectPath) {
 		// <editor-fold desc="Tools">
-		this.creator = Preconditions.checkNotNull(creator);
-		this.writer = Preconditions.checkNotNull(writer);
-		this.executer = Preconditions.checkNotNull(executer);
-		this.essentialDataReader = Preconditions.checkNotNull(essentialDataReader);
-		this.projectScanner = Preconditions.checkNotNull(projectScanner);
+		this.creator = Objects.requireNonNull(creator);
+		this.writer = Objects.requireNonNull(writer);
+		this.executer = Objects.requireNonNull(executer);
+		this.essentialDataReader = Objects.requireNonNull(essentialDataReader);
+		this.projectScanner = Objects.requireNonNull(projectScanner);
 		// </editor-fold>
 
 		// <editor-fold desc="Modes and Project Paths">
-		this.buildMode = MoreObjects.firstNonNull(buildMode, projectScanner.scanForBuildMode());
-		this.architectureMode = MoreObjects.firstNonNull(architectureMode, ArchitectureMode.WALA);
-		this.aopMode = MoreObjects.firstNonNull(aopMode, AOPMode.INSTRUMENTATION);
+		this.buildMode = Objects.requireNonNullElse(buildMode, projectScanner.scanForBuildMode());
+		this.architectureMode = Objects.requireNonNullElse(architectureMode, ArchitectureMode.WALA);
+		this.aopMode = Objects.requireNonNullElse(aopMode, AOPMode.INSTRUMENTATION);
 		this.projectPath = projectPath;
 		// </editor-fold>
 
 		// <editor-fold desc="Essential Data">
-		this.essentialPackagesPath = Preconditions.checkNotNull(essentialPackagesPath,
+		this.essentialPackagesPath = Objects.requireNonNull(essentialPackagesPath,
 				"essentialPackagesPath must not be null");
-		this.essentialClassesPath = Preconditions.checkNotNull(essentialClassesPath,
+		this.essentialClassesPath = Objects.requireNonNull(essentialClassesPath,
 				"essentialClassesPath must not be null");
-		this.essentialPackages = Preconditions
-				.checkNotNull(essentialDataReader, "essentialPackagesReader must not be null")
+		this.essentialPackages = Objects.requireNonNull(essentialDataReader, "essentialPackagesReader must not be null")
 				.readEssentialPackagesFrom(this.essentialPackagesPath).getEssentialPackages();
-		this.essentialClasses = Preconditions
-				.checkNotNull(essentialDataReader, "essentialClassesReader must not be null")
+		this.essentialClasses = Objects.requireNonNull(essentialDataReader, "essentialClassesReader must not be null")
 				.readEssentialClassesFrom(this.essentialClassesPath).getEssentialClasses();
 		// </editor-fold>
 

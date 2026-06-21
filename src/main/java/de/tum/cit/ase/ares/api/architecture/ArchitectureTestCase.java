@@ -1,11 +1,11 @@
 package de.tum.cit.ase.ares.api.architecture;
 
+import java.util.Objects;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.base.Preconditions;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.core.domain.JavaClasses;
 
@@ -88,10 +88,10 @@ public abstract class ArchitectureTestCase {
 	protected ArchitectureTestCase(@Nonnull ArchitectureTestCaseSupported architectureTestCaseSupported,
 			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
 			@Nullable CallGraph callGraph) {
-		this.architectureTestCaseSupported = Preconditions.checkNotNull(architectureTestCaseSupported,
+		this.architectureTestCaseSupported = Objects.requireNonNull(architectureTestCaseSupported,
 				"architecturalTestCaseSupported must not be null");
-		this.allowedPackages = Preconditions.checkNotNull(allowedPackages, "allowedPackages must not be null");
-		this.javaClasses = Preconditions.checkNotNull(javaClasses, "javaClasses must not be null");
+		this.allowedPackages = Objects.requireNonNull(allowedPackages, "allowedPackages must not be null");
+		this.javaClasses = Objects.requireNonNull(javaClasses, "javaClasses must not be null");
 		this.callGraph = callGraph;
 	}
 	// </editor-fold>

@@ -2,11 +2,11 @@ package de.tum.cit.ase.ares.api.securitytest.java.specific;
 
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
 
-import com.google.common.base.Preconditions;
 import com.tngtech.archunit.core.importer.Location;
 import com.tngtech.archunit.junit.LocationProvider;
 
@@ -50,7 +50,7 @@ public class PathLocationProvider implements LocationProvider {
 	@Nonnull
 	public Set<Location> get(Class<?> testClass) {
 		@Nonnull
-		Class<?> protectedTestClass = Preconditions.checkNotNull(testClass, "testClass must not be null");
+		Class<?> protectedTestClass = Objects.requireNonNull(testClass, "testClass must not be null");
 		if (!protectedTestClass.isAnnotationPresent(StudentCompiledClassesPath.class)) {
 			throw new SecurityException(String.format(
 					"Ares Security Error (Reason: Ares-Code; Stage: Creation): %s can only be used on classes annotated with @%s",

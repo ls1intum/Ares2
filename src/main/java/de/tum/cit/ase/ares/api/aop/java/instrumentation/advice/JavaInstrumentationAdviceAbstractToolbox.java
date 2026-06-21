@@ -481,11 +481,20 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 				// First restricted, non-allowed frame is the violation.
 				if (violation == null && inRestricted) {
 					boolean allowed = false;
-					for (@Nonnull
-					String allowedClass : allowedClasses) {
-						if (className.startsWith(allowedClass)) {
-							allowed = true;
-							break;
+					// allowedClasses may be null when the per-test settings are only
+					// partially armed: the volatile fields in JavaAOPTestCaseSettings are
+					// written one-by-one, so a class woven on another thread can observe
+					// aopMode/restrictedPackage already set while allowedListedClasses is
+					// still null. Treat null as "nothing allow-listed" (identical to an
+					// empty array), mirroring the null-tolerant allowedPaths handling in
+					// JavaInstrumentationAdviceFileSystemToolbox#checkFileSystemInteractionForAction.
+					if (allowedClasses != null) {
+						for (@Nonnull
+						String allowedClass : allowedClasses) {
+							if (className.startsWith(allowedClass)) {
+								allowed = true;
+								break;
+							}
 						}
 					}
 					if (!allowed) {

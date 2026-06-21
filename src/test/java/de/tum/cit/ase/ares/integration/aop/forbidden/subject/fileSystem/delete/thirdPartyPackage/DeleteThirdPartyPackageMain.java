@@ -18,4 +18,12 @@ public class DeleteThirdPartyPackageMain {
 	public static void accessFileSystemViaThirdPartyPackage() throws IOException {
 		ThirdPartyPackagePenguin.deleteFile();
 	}
+
+	/**
+	 * Access the file system using the {@link ThirdPartyPackagePenguin} class for
+	 * deletion through Apache Commons IO's {@code FileUtils.forceDelete}.
+	 */
+	public static void accessFileSystemViaCommonsIoForceDelete() throws IOException {
+		ThirdPartyPackagePenguin.deleteFileViaCommonsIo();
+	}
 }

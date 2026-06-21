@@ -10,7 +10,6 @@ import javax.annotation.Nullable;
 import com.fasterxml.jackson.core.exc.StreamReadException;
 import com.fasterxml.jackson.databind.DatabindException;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
-import com.google.common.base.Preconditions;
 
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
@@ -65,9 +64,9 @@ public class SecurityPolicyYAMLReader extends SecurityPolicyReader {
 	@Nonnull
 	public SecurityPolicy readSecurityPolicyFrom(@Nonnull Path securityPolicyPath) {
 		@Nonnull
-		Path path = Preconditions.checkNotNull(securityPolicyPath, "The security policy path must not be null");
+		Path path = Objects.requireNonNull(securityPolicyPath, "The security policy path must not be null");
 		@Nonnull
-		Class<SecurityPolicy> yamlClass = Preconditions.checkNotNull(SecurityPolicy.class,
+		Class<SecurityPolicy> yamlClass = Objects.requireNonNull(SecurityPolicy.class,
 				"The security policy class must not be null.");
 		try {
 			return FileTools.readYamlFile(FileTools.readFile(path), yamlClass);

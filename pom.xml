@@ -12,28 +12,40 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<!-- 1. Testing: 1.1 JUnit -->
-		<junit-jupiter-version>6.0.0</junit-jupiter-version>
-		<junit-platform-version>6.0.0</junit-platform-version>
+		<junit-jupiter-version>6.1.0</junit-jupiter-version>
+		<junit-platform-version>6.1.0</junit-platform-version>
 		<junit-pioneer-version>2.3.0</junit-pioneer-version>
 		<!-- 1. Testing: 1.2 jqwik -->
+		<!-- Pinned to 1.9.3 (newest 1.9.x): the jqwik 1.10.x engine is not stable under
+			Ares here. Running the full suite, its lifecycle store hits a concurrent
+			modification (ArrayIndexOutOfBoundsException in StoreRepository.streamAllStores)
+			when Ares executes thread-spawning jqwik properties, failing JqwickTest
+			deterministically; 1.9.3 is green. The 1.10.x line also moved to
+			junit-platform 1.14 while this project builds on junit-platform 6.x, which
+			likely contributes. Revisit once jqwik ships a JUnit 6 compatible release. -->
 		<jqwik-version>1.9.3</jqwik-version>
 		<!-- 1. Testing: 1.3 AssertJ -->
 		<assertj-version>3.27.6</assertj-version>
 		<!-- 1. Testing: 1.4 Mockito -->
-		<mockito-version>5.2.0</mockito-version>
+		<mockito-version>5.23.0</mockito-version>
 		<!-- 1. Testing: 1.5 Hamcrest -->
 		<hamcrest-version>3.0</hamcrest-version>
 		<!-- 2. Architecture: 2.1 Archunit -->
-		<archunit-version>1.4.1</archunit-version>
+		<archunit-version>1.4.2</archunit-version>
 		<!-- 2. Architecture: 2.2 Wala -->
-		<wala-version>1.6.12</wala-version>
+		<wala-version>1.7.2</wala-version>
 		<!-- 3. AOP: 3.1 AspectJ -->
+		<!-- Pinned to 1.9.24: aspectjtools (ajc) 1.9.25 / 1.9.25.1 bundle an Eclipse JDT
+			compiler that throws an internal NullPointerException
+			("variableDeclaration is null", SourceTypeBinding.resolveTypeFor) while weaving
+			JavaInstrumentationDeletePathMethodAdviceTest. Bump again only once that ajc
+			regression is fixed upstream. -->
 		<aspectj-version>1.9.24</aspectj-version>
 		<aspectj-path>
 			${user.home}${file.separator}.m2${file.separator}repository${file.separator}org${file.separator}aspectj${file.separator}aspectjrt${file.separator}${aspectj-version}${file.separator}aspectjrt-${aspectj-version}.jar
 		</aspectj-path>
 		<!-- 3. AOP: 3.2 Byte Buddy -->
-		<byte-buddy-version>1.17.7</byte-buddy-version>
+		<byte-buddy-version>1.18.10</byte-buddy-version>
 		<byte-buddy-path>
 			${project.build.directory}${file.separator}${project.artifactId}-${project.version}-agent.jar
 		</byte-buddy-path>
@@ -48,24 +60,19 @@
 			architecture rules, which do not depend on JVM strong encapsulation. -->
 		<jvm.module.access.args>--add-exports java.base/java.lang=ALL-UNNAMED --add-exports java.base/jdk.internal.misc=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED --add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/java.nio.channels=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.util.concurrent=ALL-UNNAMED --add-opens java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED --add-opens java.base/jdk.internal.misc=ALL-UNNAMED --add-opens java.base/sun.net.www.protocol.http=ALL-UNNAMED --add-opens java.base/sun.net.www.protocol.https=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens jdk.unsupported/sun.misc=ALL-UNNAMED</jvm.module.access.args>
 		<!-- 4. AST: 4.1 JavaParser -->
-		<java-parser-version>3.27.0</java-parser-version>
-		<!-- 5. Formats: 5.1 JSON -->
-		<json-version>20250517</json-version>
-		<!-- 5. Formats: 5.2 YAML and XML-->
-		<yaml-version>2.18.2</yaml-version>
+		<java-parser-version>3.28.2</java-parser-version>
+		<!-- 5. Formats: YAML and XML (JSON handled via Jackson) -->
+		<yaml-version>2.22.0</yaml-version>
 		<!-- 6. Large Tooling Libraries -->
-		<guava-version>33.5.0-jre</guava-version>
-		<commons-io-version>2.20.0</commons-io-version>
-		<vavr-version>0.10.7</vavr-version>
+		<commons-io-version>2.22.0</commons-io-version>
 		<!-- 7. Small Tooling Libraries -->
-		<java-string-similarity-version>2.0.0</java-string-similarity-version>
-		<jgrapht-core-version>1.5.2</jgrapht-core-version>
+		<jgrapht-core-version>1.5.3</jgrapht-core-version>
 		<!-- 8. Logging  -->
-		<logback-version>1.5.18</logback-version>
+		<logback-version>1.5.34</logback-version>
 		<!-- 8. API  -->
 		<apiguardian-api-version>1.1.2</apiguardian-api-version>
 		<!-- Others -->
-		<spotless.version>3.0.0</spotless.version>
+		<spotless.version>3.7.0</spotless.version>
 		<!-- if JaCoCo is not executed -->
 		<argLine></argLine>
 		<!-- full certificate fingerprint: 23E62BB282A473EE4DDA2F8763EFD39363D21A8D -->
@@ -73,16 +80,15 @@
 	</properties>
 	<dependencyManagement>
 		<dependencies>
-			<!-- Override transitive vulnerable dependencies -->
-			<dependency>
-				<groupId>commons-beanutils</groupId>
-				<artifactId>commons-beanutils</artifactId>
-				<version>1.9.4</version>
-			</dependency>
+			<!-- Pin opencsv's transitive commons-lang3 to a current version. opencsv's
+				bean-mapping transitives (commons-beanutils, commons-text) are excluded on
+				the opencsv dependency itself since Ares only uses opencsv's raw CSV reader,
+				not its bean features. commons-lang3 cannot be excluded: opencsv's
+				CSVReader/CSVParser call it at construction time. -->
 			<dependency>
 				<groupId>org.apache.commons</groupId>
 				<artifactId>commons-lang3</artifactId>
-				<version>3.17.0</version>
+				<version>3.20.0</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
@@ -106,14 +112,18 @@
 				src/test/java/de/tum/cit/ase/ares/testutilities/UserBased.java
 			-->
 		</dependency>
-		<dependency>
-			<groupId>org.junit.vintage</groupId>
-			<artifactId>junit-vintage-engine</artifactId>
-			<version>${junit-jupiter-version}</version>
-			<!-- 2 Cases:
+		<!-- JUnit 4 API only (no vintage engine): there are no JUnit 4 tests to run, but
+			the throwable sanitization compiles against junit.framework.* and
+			org.junit.* (JUnit 4) types so it can duplicate/sanitize legacy assertion
+			errors. junit-vintage-engine was removed; this supplies just the API.
+			2 Cases:
 				src/main/java/de/tum/cit/ase/ares/api/internal/sanitization/SafeTypeThrowableSanitizer.java
 				src/main/java/de/tum/cit/ase/ares/api/internal/sanitization/ThrowableSets.java
-			-->
+		-->
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.13.2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.junit.platform</groupId>
@@ -153,9 +163,11 @@
 			<!-- Multiple Cases -->
 		</dependency>
 		<!-- 1. Testing: 1.3 Mockito -->
+		<!-- mockito-inline was discontinued after 5.2.0; its inline mock-maker is the
+			default in mockito-core since 5.x, so we depend on mockito-core directly. -->
 		<dependency>
 			<groupId>org.mockito</groupId>
-			<artifactId>mockito-inline</artifactId>
+			<artifactId>mockito-core</artifactId>
 			<version>${mockito-version}</version>
 			<!-- Multiple Cases -->
 		</dependency>
@@ -244,44 +256,40 @@
 			<version>${java-parser-version}</version>
 		</dependency>
 		-->
-		<!-- 5. Formats: 5.1 JSON -->
-		<dependency>
-			<groupId>org.json</groupId>
-			<artifactId>json</artifactId>
-			<version>${json-version}</version>
-		</dependency>
-		<!-- 5. Formats: 5.2 YAML and XML -->
+		<!-- 5. Formats: YAML, XML and JSON (all via Jackson) -->
 		<dependency>
 			<groupId>com.fasterxml.jackson.dataformat</groupId>
 			<artifactId>jackson-dataformat-yaml</artifactId>
 			<version>${yaml-version}</version>
 		</dependency>
 		<!-- 6. Large Tooling Libraries -->
-		<dependency>
-			<groupId>com.google.guava</groupId>
-			<artifactId>guava</artifactId>
-			<version>${guava-version}</version>
-		</dependency>
+		<!-- commons-io is NOT used by Ares itself; it is only a security-interception
+			target so the AspectJ pointcut and instrumentation policy can reference
+			org.apache.commons.io.FileUtils.forceDelete (a way students could delete
+			files). It is scoped 'provided' so it stays on the compile/weave/test
+			classpath (keeping that interception resolvable) without leaking into the
+			runtime/transitive footprint of Ares consumers. -->
 		<dependency>
 			<groupId>commons-io</groupId>
 			<artifactId>commons-io</artifactId>
 			<version>${commons-io-version}</version>
-		</dependency>
-		<dependency>
-			<groupId>io.vavr</groupId>
-			<artifactId>vavr</artifactId>
-			<version>${vavr-version}</version>
+			<scope>provided</scope>
 		</dependency>
 		<!-- 7. Small Tooling Libraries -->
 		<dependency>
 			<groupId>com.opencsv</groupId>
 			<artifactId>opencsv</artifactId>
-			<version>5.9</version>
-		</dependency>
-		<dependency>
-			<groupId>info.debatty</groupId>
-			<artifactId>java-string-similarity</artifactId>
-			<version>${java-string-similarity-version}</version>
+			<version>5.12.0</version>
+			<exclusions>
+				<exclusion>
+					<groupId>commons-beanutils</groupId>
+					<artifactId>commons-beanutils</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.apache.commons</groupId>
+					<artifactId>commons-text</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.jgrapht</groupId>
@@ -339,13 +347,13 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-clean-plugin</artifactId>
-				<version>3.3.2</version>
+				<version>3.5.0</version>
 			</plugin>
 			<!-- 2. Validate -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-enforcer-plugin</artifactId>
-				<version>3.4.1</version>
+				<version>3.6.3</version>
 				<executions>
 					<execution>
 						<id>enforce-versions</id>
@@ -408,12 +416,12 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.12.1</version>
+				<version>3.15.0</version>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-resources-plugin</artifactId>
-				<version>3.3.1</version>
+				<version>3.5.0</version>
 			</plugin>
 			<plugin>
 				<groupId>dev.aspectj</groupId>
@@ -422,8 +430,10 @@
 				<dependencies>
 					<dependency>
 						<groupId>org.aspectj</groupId>
+						<!-- Kept in sync with the aspectjrt runtime via the shared property;
+							see the aspectj-version note for why this is pinned to 1.9.24. -->
 						<artifactId>aspectjtools</artifactId>
-						<version>1.9.24</version>
+						<version>${aspectj-version}</version>
 					</dependency>
 				</dependencies>
 				<configuration>
@@ -454,7 +464,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
-				<version>3.5.1</version>
+				<version>3.5.6</version>
 				<configuration>
 					<forkCount>1</forkCount>
 					<!-- Kill (and report) a hung forked JVM rather than letting CI run until
@@ -468,7 +478,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
-				<version>3.3.0</version>
+				<version>3.5.0</version>
 				<executions>
 					<execution>
 						<id>default-jar</id>
@@ -510,7 +520,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>3.6.3</version>
+				<version>3.12.0</version>
 				<executions>
 					<execution>
 						<phase>package</phase>
@@ -564,7 +574,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-source-plugin</artifactId>
-				<version>3.3.0</version>
+				<version>3.4.0</version>
 				<executions>
 					<execution>
 						<phase>package</phase>
@@ -577,7 +587,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-install-plugin</artifactId>
-				<version>3.1.1</version>
+				<version>3.1.4</version>
 				<executions>
 					<execution>
 						<id>install-main-jar</id>
@@ -645,7 +655,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-shade-plugin</artifactId>
-				<version>3.3.0</version>
+				<version>3.6.2</version>
 				<executions>
 					<!-- Create agent jar before tests so surefire -javaagent path exists -->
 					<execution>
@@ -716,19 +726,19 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-site-plugin</artifactId>
-				<version>3.12.1</version>
+				<version>3.22.0</version>
 			</plugin>
 			<!-- 9. Deploy -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-deploy-plugin</artifactId>
-				<version>3.1.1</version>
+				<version>3.1.4</version>
 			</plugin>
 			<!-- Manual execution -->
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>versions-maven-plugin</artifactId>
-				<version>2.15.0</version>
+				<version>2.21.0</version>
 			</plugin>
 			<plugin>
 				<groupId>com.diffplug.spotless</groupId>
@@ -762,6 +772,39 @@
 							</file>
 						</eclipse>
 					</java>
+				</configuration>
+			</plugin>
+			<!-- Static analysis (manual execution, report-only): these are NOT bound to
+				the build lifecycle and are configured never to fail the build. Run them
+				on demand, e.g. `mvn checkstyle:check`, `mvn pmd:check`, `mvn pmd:cpd-check`
+				or `mvn spotbugs:check`; or generate reports via `mvn checkstyle:checkstyle`,
+				`mvn pmd:pmd`, `mvn spotbugs:spotbugs`. -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-checkstyle-plugin</artifactId>
+				<version>3.6.0</version>
+				<configuration>
+					<configLocation>google_checks.xml</configLocation>
+					<failOnViolation>false</failOnViolation>
+					<failsOnError>false</failsOnError>
+					<consoleOutput>true</consoleOutput>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-pmd-plugin</artifactId>
+				<version>3.28.0</version>
+				<configuration>
+					<failOnViolation>false</failOnViolation>
+					<printFailingErrors>true</printFailingErrors>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>com.github.spotbugs</groupId>
+				<artifactId>spotbugs-maven-plugin</artifactId>
+				<version>4.10.2.0</version>
+				<configuration>
+					<failOnError>false</failOnError>
 				</configuration>
 			</plugin>
 		</plugins>
@@ -853,7 +896,7 @@
 					<plugin>
 						<groupId>org.jacoco</groupId>
 						<artifactId>jacoco-maven-plugin</artifactId>
-						<version>0.8.11</version>
+						<version>0.8.15</version>
 						<executions>
 							<execution>
 								<goals>
@@ -896,7 +939,7 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-surefire-plugin</artifactId>
-						<version>3.3.0</version>
+						<version>3.5.6</version>
 						<configuration>
 							<forkCount>1</forkCount>
 							<forkedProcessTimeoutInSeconds>2400</forkedProcessTimeoutInSeconds>
@@ -915,7 +958,7 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-gpg-plugin</artifactId>
-						<version>3.2.7</version>
+						<version>3.2.8</version>
 						<executions>
 							<execution>
 								<id>sign-artifacts</id>
@@ -939,7 +982,7 @@
 					<plugin>
 						<groupId>org.sonatype.central</groupId>
 						<artifactId>central-publishing-maven-plugin</artifactId>
-						<version>0.8.0</version>
+						<version>0.11.0</version>
 						<extensions>true</extensions>
 						<configuration>
 							<publishingServerId>central</publishingServerId>

@@ -1,8 +1,8 @@
 package de.tum.cit.ase.ares.api.phobos;
 
-import javax.annotation.Nonnull;
+import java.util.Objects;
 
-import com.google.common.base.Preconditions;
+import javax.annotation.Nonnull;
 
 import de.tum.cit.ase.ares.api.aop.fileSystem.FileSystemExtractor;
 import de.tum.cit.ase.ares.api.aop.networkSystem.NetworkSystemExtractor;
@@ -46,13 +46,12 @@ public abstract class PhobosTestCase {
 			@Nonnull FileSystemExtractor fileSystemExtractor,
 			@Nonnull NetworkSystemExtractor networkConnectionExtractor,
 			@Nonnull ResourceLimitsExtractor resourceLimitsExtractor) {
-		this.phobosTestCaseSupported = Preconditions.checkNotNull(phobosTestCaseSupported,
+		this.phobosTestCaseSupported = Objects.requireNonNull(phobosTestCaseSupported,
 				"phobosTestCaseSupported must not be null");
-		this.fileSystemExtractor = Preconditions.checkNotNull(fileSystemExtractor,
-				"fileSystemExtractor must not be null");
-		this.networkConnectionExtractor = Preconditions.checkNotNull(networkConnectionExtractor,
+		this.fileSystemExtractor = Objects.requireNonNull(fileSystemExtractor, "fileSystemExtractor must not be null");
+		this.networkConnectionExtractor = Objects.requireNonNull(networkConnectionExtractor,
 				"networkConnectionExtractor must not be null");
-		this.resourceLimitsExtractor = Preconditions.checkNotNull(resourceLimitsExtractor,
+		this.resourceLimitsExtractor = Objects.requireNonNull(resourceLimitsExtractor,
 				"resourceLimitsExtractor must not be null");
 	}
 	// </editor-fold>

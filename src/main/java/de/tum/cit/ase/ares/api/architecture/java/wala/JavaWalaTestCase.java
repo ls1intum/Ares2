@@ -13,6 +13,7 @@ import java.security.MessageDigest;
 import java.util.Base64;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,7 +24,6 @@ import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.base.Preconditions;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
@@ -735,7 +735,7 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		@Nonnull
 		public JavaWalaTestCase.Builder javaArchitectureTestCaseSupported(
 				@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported) {
-			this.javaArchitectureTestCaseSupported = Preconditions.checkNotNull(javaArchitectureTestCaseSupported,
+			this.javaArchitectureTestCaseSupported = Objects.requireNonNull(javaArchitectureTestCaseSupported,
 					"javaArchitecturalTestCaseSupported must not be null");
 			return this;
 		}
@@ -750,7 +750,7 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		 */
 		@Nonnull
 		public JavaWalaTestCase.Builder javaClasses(@Nonnull JavaClasses javaClasses) {
-			this.javaClasses = Preconditions.checkNotNull(javaClasses, "javaClasses must not be null");
+			this.javaClasses = Objects.requireNonNull(javaClasses, "javaClasses must not be null");
 			return this;
 		}
 
@@ -779,7 +779,7 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		 */
 		@Nonnull
 		public JavaWalaTestCase.Builder allowedPackages(@Nonnull Set<PackagePermission> allowedPackages) {
-			this.allowedPackages = Preconditions.checkNotNull(allowedPackages, "allowedPackages must not be null");
+			this.allowedPackages = Objects.requireNonNull(allowedPackages, "allowedPackages must not be null");
 			return this;
 		}
 
@@ -793,7 +793,7 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		 */
 		@Nonnull
 		public JavaWalaTestCase.Builder allowedClasses(@Nonnull Set<ClassPermission> allowedClasses) {
-			this.allowedClasses = Preconditions.checkNotNull(allowedClasses, "allowedClasses must not be null");
+			this.allowedClasses = Objects.requireNonNull(allowedClasses, "allowedClasses must not be null");
 			return this;
 		}
 
@@ -809,11 +809,11 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		@Nonnull
 		public JavaWalaTestCase build() {
 			return new JavaWalaTestCase(
-					Preconditions.checkNotNull(javaArchitectureTestCaseSupported,
+					Objects.requireNonNull(javaArchitectureTestCaseSupported,
 							"javaArchitecturalTestCaseSupported must not be null"),
-					Preconditions.checkNotNull(allowedPackages, "allowedPackages must not be null"),
-					Preconditions.checkNotNull(javaClasses, "javaClasses must not be null"),
-					Preconditions.checkNotNull(callGraph, "callGraph must not be null"), allowedClasses);
+					Objects.requireNonNull(allowedPackages, "allowedPackages must not be null"),
+					Objects.requireNonNull(javaClasses, "javaClasses must not be null"),
+					Objects.requireNonNull(callGraph, "callGraph must not be null"), allowedClasses);
 		}
 	}
 	// </editor-fold>

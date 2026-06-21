@@ -13,8 +13,9 @@ import java.util.stream.*;
 
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
-import org.json.JSONArray;
 import org.junit.jupiter.api.*;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 /**
  * This test evaluates if the specified attributes in the structure oracle are
@@ -42,14 +43,14 @@ public abstract class AttributeTestProvider extends StructuralTestProvider {
 		if (structureOracleJSON == null)
 			throw failure(
 					"The AttributeTest test can only run if the structural oracle (test.json) is present. If you do not provide it, delete AttributeTest.java!"); //$NON-NLS-1$
-		for (var i = 0; i < structureOracleJSON.length(); i++) {
-			var expectedClassJSON = structureOracleJSON.getJSONObject(i);
+		for (var i = 0; i < structureOracleJSON.size(); i++) {
+			var expectedClassJSON = structureOracleJSON.get(i);
 			// Only test the classes that have attributes defined in the oracle.
 			if (expectedClassJSON.has(JSON_PROPERTY_CLASS) && (expectedClassJSON.has(JSON_PROPERTY_ATTRIBUTES)
 					|| expectedClassJSON.has(JSON_PROPERTY_ENUM_VALUES))) {
-				var expectedClassPropertiesJSON = expectedClassJSON.getJSONObject(JSON_PROPERTY_CLASS);
-				var expectedClassName = expectedClassPropertiesJSON.getString(JSON_PROPERTY_NAME);
-				var expectedPackageName = expectedClassPropertiesJSON.getString(JSON_PROPERTY_PACKAGE);
+				var expectedClassPropertiesJSON = expectedClassJSON.get(JSON_PROPERTY_CLASS);
+				var expectedClassName = expectedClassPropertiesJSON.get(JSON_PROPERTY_NAME).asText();
+				var expectedPackageName = expectedClassPropertiesJSON.get(JSON_PROPERTY_PACKAGE).asText();
 				var expectedClassStructure = new ExpectedClassStructure(expectedClassName, expectedPackageName,
 						expectedClassJSON);
 				tests.add(dynamicTest("testAttributes[" + expectedClassName + "]", //$NON-NLS-1$ //$NON-NLS-2$
@@ -101,11 +102,11 @@ public abstract class AttributeTestProvider extends StructuralTestProvider {
 	 *                           modifiers of each attribute.
 	 */
 	protected static void checkAttributes(String expectedClassName, Class<?> observedClass,
-			JSONArray expectedAttributes) {
-		for (var i = 0; i < expectedAttributes.length(); i++) {
-			var expectedAttribute = expectedAttributes.getJSONObject(i);
-			var expectedName = expectedAttribute.getString(JSON_PROPERTY_NAME);
-			var expectedTypeName = expectedAttribute.getString(JSON_PROPERTY_TYPE);
+			JsonNode expectedAttributes) {
+		for (var i = 0; i < expectedAttributes.size(); i++) {
+			var expectedAttribute = expectedAttributes.get(i);
+			var expectedName = expectedAttribute.get(JSON_PROPERTY_NAME).asText();
+			var expectedTypeName = expectedAttribute.get(JSON_PROPERTY_TYPE).asText();
 			var expectedModifiers = getExpectedJsonProperty(expectedAttribute, JSON_PROPERTY_MODIFIERS);
 			var expectedAnnotations = getExpectedJsonProperty(expectedAttribute, JSON_PROPERTY_ANNOTATIONS);
 
@@ -159,14 +160,14 @@ public abstract class AttributeTestProvider extends StructuralTestProvider {
 	 *                           consists of the name of each enum value.
 	 */
 	protected static void checkEnumValues(String expectedClassName, Class<?> observedClass,
-			JSONArray expectedEnumValues) {
+			JsonNode expectedEnumValues) {
 		if (!observedClass.isEnum())
 			throw localizedFailure("structural.attribute.noEnumConstants", expectedClassName); //$NON-NLS-1$
 		@SuppressWarnings("unchecked")
 		var observedEnumValues = ((Class<? extends Enum<?>>) observedClass).getEnumConstants();
 		var observedEnumNames = Stream.of(observedEnumValues).map(Enum::name).collect(Collectors.toSet());
-		var expectedEnumNames = IntStream.range(0, expectedEnumValues.length()).mapToObj(expectedEnumValues::getString)
-				.collect(Collectors.toSet());
+		var expectedEnumNames = IntStream.range(0, expectedEnumValues.size())
+				.mapToObj(i -> expectedEnumValues.get(i).asText()).collect(Collectors.toSet());
 		var missing = expectedEnumNames.stream().filter(not(observedEnumNames::contains)).findFirst();
 		missing.ifPresent(missingName -> fail(
 				localized("structural.attribute.missingEnumConstants", expectedClassName, missingName))); //$NON-NLS-1$
