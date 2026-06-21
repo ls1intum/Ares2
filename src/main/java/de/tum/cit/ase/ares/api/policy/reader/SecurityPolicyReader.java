@@ -1,13 +1,12 @@
 package de.tum.cit.ase.ares.api.policy.reader;
 
 import java.nio.file.Path;
+import java.util.Objects;
 
 import javax.annotation.Nonnull;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
-import com.google.common.base.Preconditions;
-import com.google.common.io.MoreFiles;
 
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
@@ -50,7 +49,7 @@ public abstract class SecurityPolicyReader {
 	 * @param objectMapper the non-null object mapper for reading files.
 	 */
 	public SecurityPolicyReader(@Nonnull ObjectMapper objectMapper) {
-		this.objectMapper = Preconditions.checkNotNull(objectMapper, "objectMapper must not be null");
+		this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper must not be null");
 	}
 	// </editor-fold>
 
@@ -72,12 +71,30 @@ public abstract class SecurityPolicyReader {
 
 	// <editor-fold desc="Static methods">
 	public static SecurityPolicyReader selectSecurityPolicyReader(Path securityPolicyFilePath) {
-		Preconditions.checkNotNull(securityPolicyFilePath, "securityPolicyFilePath must not be null");
-		return switch (MoreFiles.getFileExtension(securityPolicyFilePath)) {
+		Objects.requireNonNull(securityPolicyFilePath, "securityPolicyFilePath must not be null");
+		return switch (getFileExtension(securityPolicyFilePath)) {
 		case "yaml", "yml" -> SecurityPolicyYAMLReader.yamlBuilder().yamlMapper(new YAMLMapper()).build();
-		default -> throw new IllegalArgumentException(Messages.localized("policy.reader.unsupported.format",
-				MoreFiles.getFileExtension(securityPolicyFilePath)));
+		default -> throw new IllegalArgumentException(
+				Messages.localized("policy.reader.unsupported.format", getFileExtension(securityPolicyFilePath)));
 		};
+	}
+
+	/**
+	 * Returns the lowercase-free file extension (the part after the last
+	 * {@code '.'} in the file name), or the empty string if there is none. Replaces
+	 * Guava's {@code MoreFiles.getFileExtension}.
+	 *
+	 * @param path the path whose file extension is returned.
+	 * @return the file extension without the leading dot, or {@code ""}.
+	 */
+	private static String getFileExtension(Path path) {
+		Path fileName = path.getFileName();
+		if (fileName == null) {
+			return "";
+		}
+		String name = fileName.toString();
+		int lastDotIndex = name.lastIndexOf('.');
+		return (lastDotIndex == -1) ? "" : name.substring(lastDotIndex + 1);
 	}
 	// </editor-fold>
 }

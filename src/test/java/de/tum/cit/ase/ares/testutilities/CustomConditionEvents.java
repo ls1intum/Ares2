@@ -5,7 +5,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-import com.google.common.collect.ImmutableList;
 import com.tngtech.archunit.lang.ConditionEvent;
 import com.tngtech.archunit.lang.ConditionEvents;
 
@@ -35,7 +34,7 @@ public class CustomConditionEvents implements ConditionEvents {
 
 	@Override
 	public Collection<ConditionEvent> getViolating() {
-		return ImmutableList.copyOf(violations);
+		return List.copyOf(violations);
 	}
 
 	@Override

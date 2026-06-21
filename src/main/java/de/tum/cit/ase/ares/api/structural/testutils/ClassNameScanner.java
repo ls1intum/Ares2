@@ -12,10 +12,9 @@ import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 import org.slf4j.*;
 
-import info.debatty.java.stringsimilarity.*;
-
 import de.tum.cit.ase.ares.api.AresConfiguration;
 import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
+import de.tum.cit.ase.ares.api.util.StringSimilarity;
 
 /**
  * This class scans the submission project if the current expected class is
@@ -48,22 +47,6 @@ import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 public class ClassNameScanner {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ClassNameScanner.class);
-
-	/**
-	 * Jaro-Winkler string similarity for typo correction to compute the overall
-	 * similarity
-	 */
-	private static final JaroWinkler JARO_WINKLER = new JaroWinkler();
-	/**
-	 * Normalized Levenshtein as alternative to spot some typos better (e.g. in
-	 * longer strings)
-	 */
-	private static final NormalizedLevenshtein NORMALIZED_LEVENSHTEIN = new NormalizedLevenshtein();
-	/**
-	 * Damerau-Levenshtein to compute the edit distance to have an absolute value
-	 * for the amount of difference
-	 */
-	private static final Damerau DAMERAU_LEVENSHTEIN = new Damerau();
 
 	/*
 	 * The class name and package name of the expected class that is currently being
@@ -326,7 +309,7 @@ public class ClassNameScanner {
 		 * next to each other are swapped. (We only use this rule for strings with
 		 * length of at least two)
 		 */
-		double distance = DAMERAU_LEVENSHTEIN.distance(a, b);
+		double distance = StringSimilarity.damerauLevenshteinDistance(a, b);
 		if (distance <= 1.0 && Math.max(a.length(), b.length()) > 2)
 			return true;
 		/*
@@ -342,7 +325,8 @@ public class ClassNameScanner {
 		 * that share some letters. It is similar for NL-similarity (which has some
 		 * benefits for long strings).
 		 */
-		return JARO_WINKLER.similarity(a, b) > 0.9 || NORMALIZED_LEVENSHTEIN.similarity(a, b) > 0.9;
+		return StringSimilarity.jaroWinklerSimilarity(a, b) > 0.9
+				|| StringSimilarity.normalizedLevenshteinSimilarity(a, b) > 0.9;
 	}
 
 	static String describePackageNameLocalized(String packageName) {

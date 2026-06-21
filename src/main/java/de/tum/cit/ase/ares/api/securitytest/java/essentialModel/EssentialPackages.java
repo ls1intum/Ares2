@@ -2,11 +2,10 @@ package de.tum.cit.ase.ares.api.securitytest.java.essentialModel;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
-import com.google.common.collect.Streams;
 
 /**
  * Represents the essential packages required for the security test.
@@ -62,10 +61,11 @@ public record EssentialPackages(@Nonnull List<String> essentialJavaPackages,
 	 */
 	@Nonnull
 	public List<String> getEssentialPackages() {
-		return Streams.concat(essentialJavaPackages.stream(), essentialArchunitPackages.stream(),
-				essentialWalaPackages.stream(), essentialAspectJPackages.stream(),
-				essentialInstrumentationPackages.stream(), essentialAresPackages.stream(),
-				essentialJUnitPackages.stream()).toList();
+		return Stream
+				.of(essentialJavaPackages.stream(), essentialArchunitPackages.stream(), essentialWalaPackages.stream(),
+						essentialAspectJPackages.stream(), essentialInstrumentationPackages.stream(),
+						essentialAresPackages.stream(), essentialJUnitPackages.stream())
+				.flatMap(stream -> stream).toList();
 	}
 
 	/**

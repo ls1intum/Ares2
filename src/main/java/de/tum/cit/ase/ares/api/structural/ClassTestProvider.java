@@ -10,8 +10,9 @@ import java.util.*;
 
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
-import org.json.JSONObject;
 import org.junit.jupiter.api.*;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 /**
  * This test evaluates the hierarchy of the class, i.e. if the class is abstract
@@ -40,9 +41,9 @@ public abstract class ClassTestProvider extends StructuralTestProvider {
 		if (structureOracleJSON == null)
 			throw failure(
 					"The ClassTest test can only run if the structural oracle (test.json) is present. If you do not provide it, delete ClassTest.java!"); //$NON-NLS-1$
-		for (var i = 0; i < structureOracleJSON.length(); i++) {
-			var expectedClassJSON = structureOracleJSON.getJSONObject(i);
-			var expectedClassPropertiesJSON = expectedClassJSON.getJSONObject(JSON_PROPERTY_CLASS);
+		for (var i = 0; i < structureOracleJSON.size(); i++) {
+			var expectedClassJSON = structureOracleJSON.get(i);
+			var expectedClassPropertiesJSON = expectedClassJSON.get(JSON_PROPERTY_CLASS);
 			/*
 			 * Only test the classes that have additional properties (except name and
 			 * package) defined in the structure oracle.
@@ -50,8 +51,8 @@ public abstract class ClassTestProvider extends StructuralTestProvider {
 			if (expectedClassPropertiesJSON.has(JSON_PROPERTY_NAME)
 					&& expectedClassPropertiesJSON.has(JSON_PROPERTY_PACKAGE)
 					&& hasAdditionalProperties(expectedClassPropertiesJSON)) {
-				var expectedClassName = expectedClassPropertiesJSON.getString(JSON_PROPERTY_NAME);
-				var expectedPackageName = expectedClassPropertiesJSON.getString(JSON_PROPERTY_PACKAGE);
+				var expectedClassName = expectedClassPropertiesJSON.get(JSON_PROPERTY_NAME).asText();
+				var expectedPackageName = expectedClassPropertiesJSON.get(JSON_PROPERTY_PACKAGE).asText();
 				var expectedClassStructure = new ExpectedClassStructure(expectedClassName, expectedPackageName,
 						expectedClassJSON);
 				tests.add(dynamicTest("testClass[" + expectedClassName + "]", () -> testClass(expectedClassStructure))); //$NON-NLS-1$ //$NON-NLS-2$
@@ -67,8 +68,9 @@ public abstract class ClassTestProvider extends StructuralTestProvider {
 		return dynamicContainer(getClass().getName(), new URI(getClass().getName()), tests.stream());
 	}
 
-	protected static boolean hasAdditionalProperties(JSONObject jsonObject) {
-		List<String> keys = new ArrayList<>(jsonObject.keySet());
+	protected static boolean hasAdditionalProperties(JsonNode jsonObject) {
+		List<String> keys = new ArrayList<>();
+		jsonObject.fieldNames().forEachRemaining(keys::add);
 		keys.remove(JSON_PROPERTY_NAME);
 		keys.remove(JSON_PROPERTY_PACKAGE);
 		return !keys.isEmpty();
@@ -93,7 +95,7 @@ public abstract class ClassTestProvider extends StructuralTestProvider {
 	}
 
 	private static void checkBasicClassProperties(String expectedClassName, Class<?> observedClass,
-			JSONObject expectedClassPropertiesJSON) {
+			JsonNode expectedClassPropertiesJSON) {
 		if (checkBooleanOf(expectedClassPropertiesJSON, "isAbstract") //$NON-NLS-1$
 				&& !Modifier.isAbstract(observedClass.getModifiers()))
 			throw localizedFailure("structural.class.abstract", expectedClassName); //$NON-NLS-1$
@@ -111,17 +113,17 @@ public abstract class ClassTestProvider extends StructuralTestProvider {
 		}
 	}
 
-	private static boolean checkBooleanOf(JSONObject expectedClassPropertiesJSON, String booleanProperty) {
+	private static boolean checkBooleanOf(JsonNode expectedClassPropertiesJSON, String booleanProperty) {
 		return expectedClassPropertiesJSON.has(booleanProperty)
-				&& expectedClassPropertiesJSON.getBoolean(booleanProperty);
+				&& expectedClassPropertiesJSON.get(booleanProperty).asBoolean();
 	}
 
 	private static void checkSuperclass(String expectedClassName, Class<?> observedClass,
-			JSONObject expectedClassPropertiesJSON) {
+			JsonNode expectedClassPropertiesJSON) {
 		// Filter out the enums, since there is a separate test for them
 		if (expectedClassPropertiesJSON.has(JSON_PROPERTY_SUPERCLASS)
-				&& !"Enum".equals(expectedClassPropertiesJSON.getString(JSON_PROPERTY_SUPERCLASS))) { //$NON-NLS-1$
-			var expectedSuperClassName = expectedClassPropertiesJSON.getString(JSON_PROPERTY_SUPERCLASS);
+				&& !"Enum".equals(expectedClassPropertiesJSON.get(JSON_PROPERTY_SUPERCLASS).asText())) { //$NON-NLS-1$
+			var expectedSuperClassName = expectedClassPropertiesJSON.get(JSON_PROPERTY_SUPERCLASS).asText();
 			if (!checkExpectedType(observedClass.getSuperclass(), observedClass.getGenericSuperclass(),
 					expectedSuperClassName)) {
 				throw localizedFailure("structural.class.extends", expectedClassName, expectedSuperClassName); //$NON-NLS-1$
@@ -130,13 +132,13 @@ public abstract class ClassTestProvider extends StructuralTestProvider {
 	}
 
 	private static void checkInterfaces(String expectedClassName, Class<?> observedClass,
-			JSONObject expectedClassPropertiesJSON) {
+			JsonNode expectedClassPropertiesJSON) {
 		if (expectedClassPropertiesJSON.has(JSON_PROPERTY_INTERFACES)) {
-			var expectedInterfaces = expectedClassPropertiesJSON.getJSONArray(JSON_PROPERTY_INTERFACES);
+			var expectedInterfaces = expectedClassPropertiesJSON.get(JSON_PROPERTY_INTERFACES);
 			var observedInterfaces = observedClass.getInterfaces();
 			var observedGenericInterfaceTypes = observedClass.getGenericInterfaces();
-			for (var i = 0; i < expectedInterfaces.length(); i++) {
-				var expectedInterface = expectedInterfaces.getString(i);
+			for (var i = 0; i < expectedInterfaces.size(); i++) {
+				var expectedInterface = expectedInterfaces.get(i).asText();
 				var implementsInterface = false;
 				for (var j = 0; j < observedInterfaces.length; j++) {
 					var observedInterface = observedInterfaces[j];
@@ -153,9 +155,9 @@ public abstract class ClassTestProvider extends StructuralTestProvider {
 	}
 
 	private static void checkAnnotations(String expectedClassName, Class<?> observedClass,
-			JSONObject expectedClassPropertiesJSON) {
+			JsonNode expectedClassPropertiesJSON) {
 		if (expectedClassPropertiesJSON.has(JSON_PROPERTY_ANNOTATIONS)) {
-			var expectedAnnotations = expectedClassPropertiesJSON.getJSONArray(JSON_PROPERTY_ANNOTATIONS);
+			var expectedAnnotations = expectedClassPropertiesJSON.get(JSON_PROPERTY_ANNOTATIONS);
 			var observedAnnotations = observedClass.getAnnotations();
 			var annotationsAreRight = checkAnnotations(observedAnnotations, expectedAnnotations);
 			if (!annotationsAreRight)

@@ -1,8 +1,8 @@
 package de.tum.cit.ase.ares.api.aop;
 
-import javax.annotation.Nonnull;
+import java.util.Objects;
 
-import com.google.common.base.Preconditions;
+import javax.annotation.Nonnull;
 
 import de.tum.cit.ase.ares.api.aop.commandSystem.CommandSystemExtractor;
 import de.tum.cit.ase.ares.api.aop.fileSystem.FileSystemExtractor;
@@ -68,15 +68,14 @@ public abstract class AOPTestCase {
 			@Nonnull NetworkSystemExtractor networkConnectionExtractor,
 			@Nonnull CommandSystemExtractor commandExecutionExtractor,
 			@Nonnull ThreadSystemExtractor threadCreationExtractor) {
-		this.aopTestCaseSupported = Preconditions.checkNotNull(aopTestCaseSupported,
+		this.aopTestCaseSupported = Objects.requireNonNull(aopTestCaseSupported,
 				"aopTestCaseSupported must not be null");
-		this.fileSystemExtractor = Preconditions.checkNotNull(fileSystemExtractor,
-				"fileSystemExtractor must not be null");
-		this.networkConnectionExtractor = Preconditions.checkNotNull(networkConnectionExtractor,
+		this.fileSystemExtractor = Objects.requireNonNull(fileSystemExtractor, "fileSystemExtractor must not be null");
+		this.networkConnectionExtractor = Objects.requireNonNull(networkConnectionExtractor,
 				"networkConnectionExtractor must not be null");
-		this.commandExecutionExtractor = Preconditions.checkNotNull(commandExecutionExtractor,
+		this.commandExecutionExtractor = Objects.requireNonNull(commandExecutionExtractor,
 				"commandExecutionExtractor must not be null");
-		this.threadCreationExtractor = Preconditions.checkNotNull(threadCreationExtractor,
+		this.threadCreationExtractor = Objects.requireNonNull(threadCreationExtractor,
 				"threadCreationExtractor must not be null");
 	}
 	// </editor-fold>

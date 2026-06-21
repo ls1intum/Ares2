@@ -48,24 +48,19 @@
 			architecture rules, which do not depend on JVM strong encapsulation. -->
 		<jvm.module.access.args>--add-exports java.base/java.lang=ALL-UNNAMED --add-exports java.base/jdk.internal.misc=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED --add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/java.nio.channels=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.util.concurrent=ALL-UNNAMED --add-opens java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED --add-opens java.base/jdk.internal.misc=ALL-UNNAMED --add-opens java.base/sun.net.www.protocol.http=ALL-UNNAMED --add-opens java.base/sun.net.www.protocol.https=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens jdk.unsupported/sun.misc=ALL-UNNAMED</jvm.module.access.args>
 		<!-- 4. AST: 4.1 JavaParser -->
-		<java-parser-version>3.27.0</java-parser-version>
-		<!-- 5. Formats: 5.1 JSON -->
-		<json-version>20250517</json-version>
-		<!-- 5. Formats: 5.2 YAML and XML-->
-		<yaml-version>2.18.2</yaml-version>
+		<java-parser-version>3.28.2</java-parser-version>
+		<!-- 5. Formats: YAML and XML (JSON handled via Jackson) -->
+		<yaml-version>2.22.0</yaml-version>
 		<!-- 6. Large Tooling Libraries -->
-		<guava-version>33.5.0-jre</guava-version>
-		<commons-io-version>2.20.0</commons-io-version>
-		<vavr-version>0.10.7</vavr-version>
+		<commons-io-version>2.22.0</commons-io-version>
 		<!-- 7. Small Tooling Libraries -->
-		<java-string-similarity-version>2.0.0</java-string-similarity-version>
-		<jgrapht-core-version>1.5.2</jgrapht-core-version>
+		<jgrapht-core-version>1.5.3</jgrapht-core-version>
 		<!-- 8. Logging  -->
-		<logback-version>1.5.18</logback-version>
+		<logback-version>1.5.34</logback-version>
 		<!-- 8. API  -->
 		<apiguardian-api-version>1.1.2</apiguardian-api-version>
 		<!-- Others -->
-		<spotless.version>3.0.0</spotless.version>
+		<spotless.version>3.7.0</spotless.version>
 		<!-- if JaCoCo is not executed -->
 		<argLine></argLine>
 		<!-- full certificate fingerprint: 23E62BB282A473EE4DDA2F8763EFD39363D21A8D -->
@@ -73,16 +68,15 @@
 	</properties>
 	<dependencyManagement>
 		<dependencies>
-			<!-- Override transitive vulnerable dependencies -->
-			<dependency>
-				<groupId>commons-beanutils</groupId>
-				<artifactId>commons-beanutils</artifactId>
-				<version>1.9.4</version>
-			</dependency>
+			<!-- Pin opencsv's transitive commons-lang3 to a current version. opencsv's
+				bean-mapping transitives (commons-beanutils, commons-text) are excluded on
+				the opencsv dependency itself since Ares only uses opencsv's raw CSV reader,
+				not its bean features. commons-lang3 cannot be excluded: opencsv's
+				CSVReader/CSVParser call it at construction time. -->
 			<dependency>
 				<groupId>org.apache.commons</groupId>
 				<artifactId>commons-lang3</artifactId>
-				<version>3.17.0</version>
+				<version>3.20.0</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
@@ -244,44 +238,40 @@
 			<version>${java-parser-version}</version>
 		</dependency>
 		-->
-		<!-- 5. Formats: 5.1 JSON -->
-		<dependency>
-			<groupId>org.json</groupId>
-			<artifactId>json</artifactId>
-			<version>${json-version}</version>
-		</dependency>
-		<!-- 5. Formats: 5.2 YAML and XML -->
+		<!-- 5. Formats: YAML, XML and JSON (all via Jackson) -->
 		<dependency>
 			<groupId>com.fasterxml.jackson.dataformat</groupId>
 			<artifactId>jackson-dataformat-yaml</artifactId>
 			<version>${yaml-version}</version>
 		</dependency>
 		<!-- 6. Large Tooling Libraries -->
-		<dependency>
-			<groupId>com.google.guava</groupId>
-			<artifactId>guava</artifactId>
-			<version>${guava-version}</version>
-		</dependency>
+		<!-- commons-io is NOT used by Ares itself; it is only a security-interception
+			target so the AspectJ pointcut and instrumentation policy can reference
+			org.apache.commons.io.FileUtils.forceDelete (a way students could delete
+			files). It is scoped 'provided' so it stays on the compile/weave/test
+			classpath (keeping that interception resolvable) without leaking into the
+			runtime/transitive footprint of Ares consumers. -->
 		<dependency>
 			<groupId>commons-io</groupId>
 			<artifactId>commons-io</artifactId>
 			<version>${commons-io-version}</version>
-		</dependency>
-		<dependency>
-			<groupId>io.vavr</groupId>
-			<artifactId>vavr</artifactId>
-			<version>${vavr-version}</version>
+			<scope>provided</scope>
 		</dependency>
 		<!-- 7. Small Tooling Libraries -->
 		<dependency>
 			<groupId>com.opencsv</groupId>
 			<artifactId>opencsv</artifactId>
-			<version>5.9</version>
-		</dependency>
-		<dependency>
-			<groupId>info.debatty</groupId>
-			<artifactId>java-string-similarity</artifactId>
-			<version>${java-string-similarity-version}</version>
+			<version>5.12.0</version>
+			<exclusions>
+				<exclusion>
+					<groupId>commons-beanutils</groupId>
+					<artifactId>commons-beanutils</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.apache.commons</groupId>
+					<artifactId>commons-text</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.jgrapht</groupId>

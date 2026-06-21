@@ -6,8 +6,9 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
-import com.ibm.wala.classLoader.IClass;
 import com.ibm.wala.classLoader.IMethod;
 import com.ibm.wala.core.util.config.AnalysisScopeReader;
 import com.ibm.wala.ipa.callgraph.CGNode;
@@ -114,13 +115,11 @@ public class ReachabilityChecker {
 			return cached;
 		}
 		try {
-			List<DefaultEntrypoint> fresh = new ArrayList<>(io.vavr.collection.Stream
-					.ofAll(createClassHierarchy(classPath)).toJavaStream()
+			List<DefaultEntrypoint> fresh = StreamSupport.stream(createClassHierarchy(classPath).spliterator(), false)
 					.filter(iClass -> iClass.getClassLoader().getReference().equals(ClassLoaderReference.Application))
-					.map(IClass::getDeclaredMethods).map(io.vavr.collection.Stream::ofAll)
-					.flatMap(io.vavr.collection.Stream::toJavaStream).map(IMethod::getReference)
+					.flatMap(iClass -> iClass.getDeclaredMethods().stream()).map(IMethod::getReference)
 					.map(methodReference -> new DefaultEntrypoint(methodReference, applicationClassHierarchy))
-					.toList());
+					.collect(Collectors.toCollection(ArrayList::new));
 			List<DefaultEntrypoint> immutable = Collections.unmodifiableList(fresh);
 			List<DefaultEntrypoint> existing = ENTRYPOINTS_CACHE.putIfAbsent(cacheKey, immutable);
 			return existing != null ? existing : immutable;

@@ -32,7 +32,6 @@ import javax.annotation.Nonnull;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.google.common.io.Closer;
 import com.opencsv.CSVParser;
 import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReader;
@@ -160,23 +159,41 @@ public class FileTools {
 			return Files.newInputStream(path.normalize());
 		}
 		JarFile jar = new JarFile(Path.of(jarMatcher.group(1)).toFile());
-		Closer closer = Closer.create();
 		try {
-			closer.register(jar);
 			JarEntry entry = jar.getJarEntry(jarMatcher.group(2).replace('\\', '/'));
 			if (entry == null) {
 				throw new SecurityException("Jar entry not found: " + jarMatcher.group(2).replace('\\', '/') + " in "
 						+ Path.of(jarMatcher.group(1)));
 			}
-			InputStream entryStream = closer.register(jar.getInputStream(entry));
+			InputStream entryStream = jar.getInputStream(entry);
 			return new FilterInputStream(entryStream) {
 				@Override
 				public void close() throws IOException {
-					closer.close();
+					// Close the entry stream first, then the backing jar, mirroring the
+					// reverse-order close the Guava Closer previously provided. The primary
+					// (entry-stream) failure is preserved; a subsequent jar-close failure is
+					// attached as a suppressed exception rather than masking it.
+					Throwable primary = null;
+					try {
+						super.close();
+					} catch (Throwable closeFailure) {
+						primary = closeFailure;
+						throw closeFailure;
+					} finally {
+						if (primary == null) {
+							jar.close();
+						} else {
+							try {
+								jar.close();
+							} catch (Throwable jarCloseFailure) {
+								primary.addSuppressed(jarCloseFailure);
+							}
+						}
+					}
 				}
 			};
 		} catch (Exception e) {
-			closer.close();
+			jar.close();
 			throw e;
 		}
 	}

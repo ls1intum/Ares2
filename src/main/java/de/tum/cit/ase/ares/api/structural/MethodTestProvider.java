@@ -10,8 +10,9 @@ import java.util.*;
 
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
-import org.json.JSONArray;
 import org.junit.jupiter.api.*;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 /**
  * This test evaluates if the specified methods in the structure oracle are
@@ -40,13 +41,13 @@ public abstract class MethodTestProvider extends StructuralTestProvider {
 		if (structureOracleJSON == null)
 			throw failure(
 					"The MethodTest test can only run if the structural oracle (test.json) is present. If you do not provide it, delete MethodTest.java!"); //$NON-NLS-1$
-		for (var i = 0; i < structureOracleJSON.length(); i++) {
-			var expectedClassJSON = structureOracleJSON.getJSONObject(i);
+		for (var i = 0; i < structureOracleJSON.size(); i++) {
+			var expectedClassJSON = structureOracleJSON.get(i);
 			// Only test the classes that have methods defined in the structure oracle.
 			if (expectedClassJSON.has(JSON_PROPERTY_CLASS) && expectedClassJSON.has(JSON_PROPERTY_METHODS)) {
-				var expectedClassPropertiesJSON = expectedClassJSON.getJSONObject(JSON_PROPERTY_CLASS);
-				var expectedClassName = expectedClassPropertiesJSON.getString(JSON_PROPERTY_NAME);
-				var expectedPackageName = expectedClassPropertiesJSON.getString(JSON_PROPERTY_PACKAGE);
+				var expectedClassPropertiesJSON = expectedClassJSON.get(JSON_PROPERTY_CLASS);
+				var expectedClassName = expectedClassPropertiesJSON.get(JSON_PROPERTY_NAME).asText();
+				var expectedPackageName = expectedClassPropertiesJSON.get(JSON_PROPERTY_PACKAGE).asText();
 				var expectedClassStructure = new ExpectedClassStructure(expectedClassName, expectedPackageName,
 						expectedClassJSON);
 				tests.add(dynamicTest("testMethods[" + expectedClassName + "]", //$NON-NLS-1$ //$NON-NLS-2$
@@ -93,14 +94,14 @@ public abstract class MethodTestProvider extends StructuralTestProvider {
 	 *                          parameter types, return type and the visibility
 	 *                          modifiers of each method.
 	 */
-	protected static void checkMethods(String expectedClassName, Class<?> observedClass, JSONArray expectedMethods) {
-		for (var i = 0; i < expectedMethods.length(); i++) {
-			var expectedMethod = expectedMethods.getJSONObject(i);
-			var expectedName = expectedMethod.getString(JSON_PROPERTY_NAME);
+	protected static void checkMethods(String expectedClassName, Class<?> observedClass, JsonNode expectedMethods) {
+		for (var i = 0; i < expectedMethods.size(); i++) {
+			var expectedMethod = expectedMethods.get(i);
+			var expectedName = expectedMethod.get(JSON_PROPERTY_NAME).asText();
 			var expectedParameters = getExpectedJsonProperty(expectedMethod, JSON_PROPERTY_PARAMETERS);
 			var expectedModifiers = getExpectedJsonProperty(expectedMethod, JSON_PROPERTY_MODIFIERS);
 			var expectedAnnotations = getExpectedJsonProperty(expectedMethod, JSON_PROPERTY_ANNOTATIONS);
-			var expectedReturnType = expectedMethod.getString(JSON_PROPERTY_RETURN_TYPE);
+			var expectedReturnType = expectedMethod.get(JSON_PROPERTY_RETURN_TYPE).asText();
 			var strictParameterOrder = getExpectedJsonBooleanProperty(expectedMethod, JSON_PROPERTY_STRICT_ORDER);
 			var checks = new MethodChecks();
 			for (Method observedMethod : observedClass.getDeclaredMethods()) {
@@ -130,7 +131,7 @@ public abstract class MethodTestProvider extends StructuralTestProvider {
 	}
 
 	private static void checkMethodCorrectness(String expectedClassName, String expectedName,
-			JSONArray expectedParameters, MethodChecks methodChecks) {
+			JsonNode expectedParameters, MethodChecks methodChecks) {
 		String parameters = StructuralTestProvider.describeParameters(expectedParameters);
 		if (!methodChecks.name)
 			throw localizedFailure("structural.method.name", expectedName, expectedClassName, parameters); //$NON-NLS-1$

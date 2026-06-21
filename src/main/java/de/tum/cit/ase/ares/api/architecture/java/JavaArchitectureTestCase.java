@@ -1,12 +1,12 @@
 package de.tum.cit.ase.ares.api.architecture.java;
 
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.base.Preconditions;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.core.domain.JavaClasses;
 
@@ -166,13 +166,13 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	 *                           security violation
 	 */
 	public static void parseErrorMessage(@Nonnull AssertionError e) {
-		Preconditions.checkNotNull(e, "error must not be null");
+		Objects.requireNonNull(e, "error must not be null");
 		@Nullable
 		String message = e.getMessage();
-		Preconditions.checkNotNull(message, "message must not be null");
+		Objects.requireNonNull(message, "message must not be null");
 		@Nullable
 		String[] messageParts = e.getMessage().split("\n");
-		Preconditions.checkNotNull(messageParts, "messageParts must not be null");
+		Objects.requireNonNull(messageParts, "messageParts must not be null");
 		if (messageParts.length < 2) {
 			throw new SecurityException(Messages.localized("security.archunit.illegal.execution", e.getMessage()));
 		}
@@ -385,14 +385,16 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	 */
 	@Override
 	public void executeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
-		ArchitectureTestCaseSupported protectedArchitectureTestCaseSupported = Preconditions
-				.checkNotNull(architectureTestCaseSupported, "javaArchitecturalTestCaseSupported must not be null");
-		Preconditions.checkArgument(architectureTestCaseSupported instanceof JavaArchitectureTestCaseSupported,
-				"javaArchitecturalTestCaseSupported must be an instance of JavaArchitectureTestCaseSupported");
+		ArchitectureTestCaseSupported protectedArchitectureTestCaseSupported = Objects
+				.requireNonNull(architectureTestCaseSupported, "javaArchitecturalTestCaseSupported must not be null");
+		if (!(architectureTestCaseSupported instanceof JavaArchitectureTestCaseSupported)) {
+			throw new IllegalArgumentException(
+					"javaArchitecturalTestCaseSupported must be an instance of JavaArchitectureTestCaseSupported");
+		}
 		JavaArchitectureTestCaseSupported protectedJavaArchitectureTestCaseSupported = (JavaArchitectureTestCaseSupported) protectedArchitectureTestCaseSupported;
-		Set<PackagePermission> protectedAllowedPackages = Preconditions.checkNotNull(allowedPackages,
+		Set<PackagePermission> protectedAllowedPackages = Objects.requireNonNull(allowedPackages,
 				"allowedPackages must not be null");
-		JavaClasses protectedJavaClasses = Preconditions.checkNotNull(javaClasses, "javaClasses must not be null");
+		JavaClasses protectedJavaClasses = Objects.requireNonNull(javaClasses, "javaClasses must not be null");
 
 		switch (architectureMode) {
 		case "ARCHUNIT" -> JavaArchunitTestCase.archunitBuilder()
@@ -473,7 +475,7 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		@Nonnull
 		public Builder javaArchitectureTestCaseSupported(
 				@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported) {
-			this.javaArchitectureTestCaseSupported = Preconditions.checkNotNull(javaArchitectureTestCaseSupported,
+			this.javaArchitectureTestCaseSupported = Objects.requireNonNull(javaArchitectureTestCaseSupported,
 					"javaArchitecturalTestCaseSupported must not be null");
 			return this;
 		}
@@ -488,7 +490,7 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		 */
 		@Nonnull
 		public Builder javaClasses(@Nonnull JavaClasses javaClasses) {
-			this.javaClasses = Preconditions.checkNotNull(javaClasses, "javaClasses must not be null");
+			this.javaClasses = Objects.requireNonNull(javaClasses, "javaClasses must not be null");
 			return this;
 		}
 
@@ -528,7 +530,7 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		 */
 		@Nonnull
 		public Builder allowedPackages(@Nonnull Set<PackagePermission> allowedPackages) {
-			this.allowedPackages = Preconditions.checkNotNull(allowedPackages, "allowedPackages must not be null");
+			this.allowedPackages = Objects.requireNonNull(allowedPackages, "allowedPackages must not be null");
 			return this;
 		}
 
@@ -543,7 +545,7 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		 */
 		@Nonnull
 		public Builder allowedClasses(@Nonnull Set<ClassPermission> allowedClasses) {
-			this.allowedClasses = Preconditions.checkNotNull(allowedClasses, "allowedClasses must not be null");
+			this.allowedClasses = Objects.requireNonNull(allowedClasses, "allowedClasses must not be null");
 			return this;
 		}
 
@@ -559,11 +561,11 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		@Nonnull
 		public JavaArchitectureTestCase build() {
 			return new JavaArchitectureTestCase(
-					Preconditions.checkNotNull(javaArchitectureTestCaseSupported,
+					Objects.requireNonNull(javaArchitectureTestCaseSupported,
 							"javaArchitecturalTestCaseSupported must not be null"),
-					Preconditions.checkNotNull(allowedPackages, "allowedPackages must not be null"),
-					Preconditions.checkNotNull(javaClasses, "javaClasses must not be null"), callGraph,
-					callGraphSupplier, allowedClasses);
+					Objects.requireNonNull(allowedPackages, "allowedPackages must not be null"),
+					Objects.requireNonNull(javaClasses, "javaClasses must not be null"), callGraph, callGraphSupplier,
+					allowedClasses);
 		}
 	}
 	// </editor-fold>

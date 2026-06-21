@@ -6,8 +6,6 @@ import java.util.Objects;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.base.Preconditions;
-
 import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
@@ -50,14 +48,14 @@ public class SecurityPolicyJavaDirector extends SecurityPolicyDirector {
 	 * Default path to the essential packages YAML file.
 	 */
 	@Nonnull
-	public static final Path DEFAULT_ESSENTIAL_PACKAGES_PATH = Preconditions.checkNotNull(FileTools
+	public static final Path DEFAULT_ESSENTIAL_PACKAGES_PATH = Objects.requireNonNull(FileTools
 			.resolveFileOnSourceDirectory("configuration", "essentialFiles", "java", "EssentialPackages.yaml"));
 
 	/**
 	 * Default path to the essential classes YAML file.
 	 */
 	@Nonnull
-	public static final Path DEFAULT_ESSENTIAL_CLASSES_PATH = Preconditions.checkNotNull(
+	public static final Path DEFAULT_ESSENTIAL_CLASSES_PATH = Objects.requireNonNull(
 			FileTools.resolveFileOnSourceDirectory("configuration", "essentialFiles", "java", "EssentialClasses.yaml"));
 
 	// <editor-fold desc="Constructor">
@@ -141,7 +139,7 @@ public class SecurityPolicyJavaDirector extends SecurityPolicyDirector {
 					projectFolderPath);
 		}
 		@Nonnull
-		ProgrammingLanguageConfiguration config = Preconditions.checkNotNull(
+		ProgrammingLanguageConfiguration config = Objects.requireNonNull(
 				securityPolicy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed());
 		return switch (config) {
 		case JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ -> generateFactoryAndBuilder(BuildMode.MAVEN,

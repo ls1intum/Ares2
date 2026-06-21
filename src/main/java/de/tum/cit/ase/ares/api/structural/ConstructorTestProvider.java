@@ -10,8 +10,9 @@ import java.util.*;
 
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
-import org.json.JSONArray;
 import org.junit.jupiter.api.*;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 /**
  * This test evaluates if the specified constructors in the structure oracle are
@@ -39,14 +40,14 @@ public abstract class ConstructorTestProvider extends StructuralTestProvider {
 		if (structureOracleJSON == null)
 			throw failure(
 					"The ConstructorTest can only run if the structural oracle (test.json) is present. If you do not provide it, delete ConstructorTest.java!"); //$NON-NLS-1$
-		for (var i = 0; i < structureOracleJSON.length(); i++) {
-			var expectedClassJSON = structureOracleJSON.getJSONObject(i);
+		for (var i = 0; i < structureOracleJSON.size(); i++) {
+			var expectedClassJSON = structureOracleJSON.get(i);
 
 			// Only test the constructors if they are specified in the structure diff
 			if (expectedClassJSON.has(JSON_PROPERTY_CLASS) && expectedClassJSON.has(JSON_PROPERTY_CONSTRUCTORS)) {
-				var expectedClassPropertiesJSON = expectedClassJSON.getJSONObject(JSON_PROPERTY_CLASS);
-				var expectedClassName = expectedClassPropertiesJSON.getString(JSON_PROPERTY_NAME);
-				var expectedPackageName = expectedClassPropertiesJSON.getString(JSON_PROPERTY_PACKAGE);
+				var expectedClassPropertiesJSON = expectedClassJSON.get(JSON_PROPERTY_CLASS);
+				var expectedClassName = expectedClassPropertiesJSON.get(JSON_PROPERTY_NAME).asText();
+				var expectedPackageName = expectedClassPropertiesJSON.get(JSON_PROPERTY_PACKAGE).asText();
 				var expectedClassStructure = new ExpectedClassStructure(expectedClassName, expectedPackageName,
 						expectedClassJSON);
 				tests.add(dynamicTest("testConstructors[" + expectedClassName + "]", //$NON-NLS-1$ //$NON-NLS-2$
@@ -94,9 +95,9 @@ public abstract class ConstructorTestProvider extends StructuralTestProvider {
 	 *                             visibility modifiers.
 	 */
 	protected static void checkConstructors(String expectedClassName, Class<?> observedClass,
-			JSONArray expectedConstructors) {
-		for (var i = 0; i < expectedConstructors.length(); i++) {
-			var expectedConstructor = expectedConstructors.getJSONObject(i);
+			JsonNode expectedConstructors) {
+		for (var i = 0; i < expectedConstructors.size(); i++) {
+			var expectedConstructor = expectedConstructors.get(i);
 			var expectedParameters = getExpectedJsonProperty(expectedConstructor, JSON_PROPERTY_PARAMETERS);
 			var expectedModifiers = getExpectedJsonProperty(expectedConstructor, JSON_PROPERTY_MODIFIERS);
 			var expectedAnnotations = getExpectedJsonProperty(expectedConstructor, JSON_PROPERTY_ANNOTATIONS);
@@ -124,7 +125,7 @@ public abstract class ConstructorTestProvider extends StructuralTestProvider {
 		}
 	}
 
-	private static void checkConstructorCorrectness(String expectedClassName, JSONArray expectedParameters,
+	private static void checkConstructorCorrectness(String expectedClassName, JsonNode expectedParameters,
 			boolean parametersAreCorrect, boolean modifiersAreCorrect, boolean annotationsAreCorrect) {
 		String parameters = describeParameters(expectedParameters);
 		if (!parametersAreCorrect)

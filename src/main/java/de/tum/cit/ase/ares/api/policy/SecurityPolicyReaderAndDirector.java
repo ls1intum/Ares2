@@ -2,11 +2,10 @@ package de.tum.cit.ase.ares.api.policy;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
-import com.google.common.base.Preconditions;
 
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.director.SecurityPolicyDirector;
@@ -133,7 +132,7 @@ public class SecurityPolicyReaderAndDirector {
 		// write zero security tests - in a security boundary, silent no-op generation
 		// is
 		// the dangerous direction.
-		return Preconditions.checkNotNull(this.securityTestCaseFactoryAndBuilder,
+		return Objects.requireNonNull(this.securityTestCaseFactoryAndBuilder,
 				"createTestCases() must be called before writeTestCases()").writeTestCases(testFolderPath);
 	}
 
@@ -146,7 +145,7 @@ public class SecurityPolicyReaderAndDirector {
 	 */
 	@Nonnull
 	public SecurityPolicyReaderAndDirector writeTestCasesAndContinue(Path testFolderPath) {
-		Preconditions.checkNotNull(this.securityTestCaseFactoryAndBuilder,
+		Objects.requireNonNull(this.securityTestCaseFactoryAndBuilder,
 				"securityTestCaseFactoryAndBuilder must not be null").writeTestCases(testFolderPath);
 		return this;
 	}
@@ -161,7 +160,7 @@ public class SecurityPolicyReaderAndDirector {
 	 * @author Markus Paulsen
 	 */
 	public SecurityPolicyReaderAndDirector executeTestCases() {
-		Preconditions.checkNotNull(this.securityTestCaseFactoryAndBuilder,
+		Objects.requireNonNull(this.securityTestCaseFactoryAndBuilder,
 				"securityTestCaseFactoryAndBuilder must not be null").executeTestCases();
 		return this;
 	}
