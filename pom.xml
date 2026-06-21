@@ -46,8 +46,7 @@
 		</aspectj-path>
 		<!-- 3. AOP: 3.2 Byte Buddy -->
 		<byte-buddy-version>1.18.10</byte-buddy-version>
-		<byte-buddy-path>
-			${project.build.directory}${file.separator}${project.artifactId}-${project.version}-agent.jar
+		<byte-buddy-path1.18.10-jdk5
 		</byte-buddy-path>
 		<!-- 3. AOP: 3.3 JVM module access -->
 		<!-- The AspectJ aspects (and the Byte Buddy advice) reflectively read fields of
