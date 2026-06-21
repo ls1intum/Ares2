@@ -8,6 +8,7 @@ import java.util.*;
 import java.util.function.Supplier;
 
 import org.junit.experimental.theories.internal.ParameterizedAssertionError;
+import org.junit.jupiter.api.extension.ParameterResolutionException;
 import org.slf4j.*;
 
 import junit.framework.*;
@@ -42,7 +43,9 @@ enum SafeTypeThrowableSanitizer implements SpecificThrowableSanitizer {
 			entry("junit.framework.ComparisonFailure", new ThrowableCreatorWrapper(ComparisonFailureCreator::new)), //$NON-NLS-1$
 			entry("org.junit.ComparisonFailure", new ThrowableCreatorWrapper(ComparisonFailureCreator::new)), //$NON-NLS-1$
 			entry("org.junit.experimental.theories.internal.ParameterizedAssertionError", //$NON-NLS-1$
-					new ThrowableCreatorWrapper(ParameterizedAssertionErrorCreator::new)) //
+					new ThrowableCreatorWrapper(ParameterizedAssertionErrorCreator::new)), //
+			entry("org.junit.jupiter.api.extension.ParameterResolutionException", //$NON-NLS-1$
+					new ParameterResolutionExceptionCreator()) //
 	);
 
 	final Map<Class<? extends Throwable>, ThrowableCreator> cachedThrowableCreators = Collections
@@ -187,6 +190,23 @@ enum SafeTypeThrowableSanitizer implements SpecificThrowableSanitizer {
 				// ignore
 			}
 			return new ParameterizedAssertionError(targetException, methodName, params);
+		}
+	}
+
+	private static class ParameterResolutionExceptionCreator implements ThrowableCreator {
+
+		@Override
+		public Throwable create(ThrowableInfo info) {
+			var message = info.getMessage();
+			var cause = info.getCause();
+			// Since JUnit 6.1 both constructors reject a null message and the
+			// (String, Throwable) constructor additionally rejects a null cause
+			// (Preconditions.notNull). The default duplication always prefers the
+			// two-argument constructor, so a cause-less original would pass null and
+			// fail. Pick the constructor that matches the available cause instead.
+			if (cause == null)
+				return new ParameterResolutionException(message);
+			return new ParameterResolutionException(message, cause);
 		}
 	}
 }
