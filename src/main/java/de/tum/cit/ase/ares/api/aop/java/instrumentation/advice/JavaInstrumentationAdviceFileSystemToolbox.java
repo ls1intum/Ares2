@@ -359,6 +359,9 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			if (variableValue == null) {
 				return null;
 			} else if (variableValue instanceof Path) {
+				// Path is an interface; a student implementation could run code in
+				// normalize()/toAbsolutePath(). Only call into trusted JDK path impls.
+				requireTrustedRuntimeType(variableValue);
 				return ((Path) variableValue).normalize().toAbsolutePath();
 			} else if (variableValue instanceof URI uri) {
 				if (!"file".equalsIgnoreCase(uri.getScheme())) {
@@ -382,6 +385,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				// "/" is the root directory and is a valid path - let it be processed normally
 				return Path.of((String) variableValue).normalize().toAbsolutePath();
 			} else if (variableValue instanceof File) {
+				// File is not final; a student subclass could run code in toURI().
+				requireTrustedRuntimeType(variableValue);
 				return Path.of(((File) variableValue).toURI()).normalize().toAbsolutePath();
 			} else {
 				return null;
@@ -440,6 +445,9 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			}
 			return false;
 		} else if (observedVariable instanceof List<?>) {
+			// List is an interface; a student impl could run code in iterator(). Only
+			// iterate trusted JDK collections (JDK-origin classes only).
+			requireTrustedRuntimeType(observedVariable);
 			for (Object element : (List<?>) observedVariable) {
 				boolean violation = analyseViolation(element, allowedPaths, allowNonExistingPathsToBeConsidered);
 				if (violation) {
@@ -482,6 +490,9 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			}
 			return null;
 		} else if (observedVariable instanceof List<?>) {
+			// List is an interface; a student impl could run code in iterator(). Only
+			// iterate trusted JDK collections (JDK-origin classes only).
+			requireTrustedRuntimeType(observedVariable);
 			for (Object element : (List<?>) observedVariable) {
 				String violationPath = extractViolationPath(element, allowedPaths, allowNonExistingPathsToBeConsidered);
 				if (violationPath != null) {
@@ -1436,43 +1447,57 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	public static void checkFileSystemInteraction(@Nonnull String action, @Nonnull String declaringTypeName,
 			@Nonnull String methodName, @Nonnull String methodSignature, @Nullable Object[] attributes,
 			@Nullable Object[] parameters, @Nullable Object instance) {
-		// <editor-fold desc="Check instrumentation mode early">
-		@Nullable
-		final String aopMode = getValueFromSettings("aopMode");
-		if (aopMode == null || aopMode.isEmpty() || !aopMode.equals("INSTRUMENTATION")) {
+		// Re-entrancy guard: the body below performs file-system work and stack walks
+		// that can lazily load JDK classes (e.g. sun.nio.fs.UnixException). Loading
+		// those re-enters this advice on the same thread; running the full check during
+		// class definition triggers a ClassCircularityError. Skip nested invocations.
+		if (!enterAdvice()) {
 			return;
 		}
-		@Nullable
-		final String restrictedPackage = getValueFromSettings("restrictedPackage");
-		if (restrictedPackage == null || restrictedPackage.isEmpty()) {
-			return;
-		}
-		if (isProjectSourcesFinderInProgress()) {
-			return;
-		}
-		@Nullable
-		final String[] allowedClasses = getValueFromSettings("allowedListedClasses");
-		// </editor-fold>
-		// <editor-fold desc="Get information from attributes">
-		@Nonnull
-		final String fullMethodSignature = declaringTypeName + "." + methodName + methodSignature;
-		// </editor-fold>
-		// <editor-fold desc="Check callstack">
-		@Nullable
-		String fileSystemMethodToCheck = (restrictedPackage == null) ? null
-				: checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses, declaringTypeName, methodName);
-		if (fileSystemMethodToCheck == null) {
-			return;
-		}
-		@Nullable
-		String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
-		// </editor-fold>
+		try {
+			// <editor-fold desc="Check instrumentation mode early">
+			@Nullable
+			final String aopMode = getValueFromSettings("aopMode");
+			if (aopMode == null || aopMode.isEmpty() || !aopMode.equals("INSTRUMENTATION")) {
+				return;
+			}
+			@Nullable
+			final String restrictedPackage = getValueFromSettings("restrictedPackage");
+			if (restrictedPackage == null || restrictedPackage.isEmpty()) {
+				return;
+			}
+			if (isProjectSourcesFinderInProgress()) {
+				return;
+			}
+			@Nullable
+			final String[] allowedClasses = getValueFromSettings("allowedListedClasses");
+			// </editor-fold>
+			// <editor-fold desc="Get information from attributes">
+			@Nonnull
+			final String fullMethodSignature = declaringTypeName + "." + methodName + methodSignature;
+			// </editor-fold>
+			// <editor-fold desc="Check callstack">
+			@Nullable
+			String fileSystemMethodToCheck = (restrictedPackage == null) ? null
+					: checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses, declaringTypeName,
+							methodName);
+			if (fileSystemMethodToCheck == null) {
+				return;
+			}
+			@Nullable
+			String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
+			// </editor-fold>
 
-		List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action, declaringTypeName, parameters);
-		for (Map.Entry<String, Boolean> actionCheck : actionsToValidate) {
-			checkFileSystemInteractionForAction(actionCheck.getKey(), Boolean.TRUE.equals(actionCheck.getValue()),
-					declaringTypeName, methodName, methodSignature, attributes, parameters, instance, restrictedPackage,
-					allowedClasses, fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
+			List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action, declaringTypeName,
+					parameters);
+			for (Map.Entry<String, Boolean> actionCheck : actionsToValidate) {
+				checkFileSystemInteractionForAction(actionCheck.getKey(), Boolean.TRUE.equals(actionCheck.getValue()),
+						declaringTypeName, methodName, methodSignature, attributes, parameters, instance,
+						restrictedPackage, allowedClasses, fileSystemMethodToCheck, studentCalledMethod,
+						fullMethodSignature);
+			}
+		} finally {
+			exitAdvice();
 		}
 	}
 	// </editor-fold>
