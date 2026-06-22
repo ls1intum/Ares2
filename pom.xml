@@ -697,6 +697,19 @@
 									<include>de.tum.cit.ase:ares</include>
 								</includes>
 							</artifactSet>
+							<!-- Surefire loads this agent jar via -javaagent, which makes the JVM append it to
+								the system classpath next to target/classes. Both then carry logback.xml, so logback
+								reports it "occurs multiple times on the classpath". Dropping the copy from this
+								test-only agent jar removes the duplicate while leaving the package-time agent jar
+								(the distributed artifact) byte-for-byte unchanged. -->
+							<filters>
+								<filter>
+									<artifact>*:*</artifact>
+									<excludes>
+										<exclude>logback.xml</exclude>
+									</excludes>
+								</filter>
+							</filters>
 						</configuration>
 					</execution>
 					<!-- Keep existing package-time shaded agent -->
