@@ -13,10 +13,13 @@ class JavaInstrumentationExecutePathMethodAdviceTest {
 	private static final String METHOD_SIGNATURE = "methodSignature";
 	private static final Object[] ATTRIBUTES = new Object[] { "attrib1", "attrib2" };
 	private static final Object[] PARAMETERS = new Object[] { "param1", "param2" };
-	private static final Object INSTANCE = new Object() {
+
+	private static final class InstanceWithAttributes {
 		public final String attrib1 = "attrib1";
 		public final String attrib2 = "attrib2";
-	};
+	}
+
+	private static final Object INSTANCE = new InstanceWithAttributes();
 
 	@Test
 	void testOnEnter() throws IllegalAccessException {

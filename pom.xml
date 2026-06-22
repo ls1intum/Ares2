@@ -35,12 +35,13 @@
 		<!-- 2. Architecture: 2.2 Wala -->
 		<wala-version>1.7.2</wala-version>
 		<!-- 3. AOP: 3.1 AspectJ -->
-		<!-- Pinned to 1.9.24: aspectjtools (ajc) 1.9.25 / 1.9.25.1 bundle an Eclipse JDT
-			compiler that throws an internal NullPointerException
-			("variableDeclaration is null", SourceTypeBinding.resolveTypeFor) while weaving
-			JavaInstrumentationDeletePathMethodAdviceTest. Bump again only once that ajc
-			regression is fixed upstream. -->
-		<aspectj-version>1.9.24</aspectj-version>
+		<!-- aspectjtools (ajc) 1.9.25 / 1.9.25.1 bundle an Eclipse JDT compiler that throws
+			an internal NullPointerException ("variableDeclaration is null",
+			SourceTypeBinding.resolveTypeFor) when weaving an anonymous class that declares
+			fields. The four JavaInstrumentation*PathMethodAdviceTest classes were refactored
+			to use named nested classes instead of field-declaring anonymous classes, which
+			sidesteps that ajc crash, so the toolchain runs cleanly on 1.9.25.1. -->
+		<aspectj-version>1.9.25.1</aspectj-version>
 		<aspectj-path>
 			${user.home}${file.separator}.m2${file.separator}repository${file.separator}org${file.separator}aspectj${file.separator}aspectjrt${file.separator}${aspectj-version}${file.separator}aspectjrt-${aspectj-version}.jar
 		</aspectj-path>
