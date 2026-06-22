@@ -556,6 +556,8 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 				collectThreadClassNames(Array.get(observedVariable, i), out);
 			}
 		} else if (observedVariable instanceof List<?>) {
+			// List is an interface; only iterate trusted JDK lists.
+			requireTrustedRuntimeType(observedVariable);
 			for (Object element : (List<?>) observedVariable) {
 				collectThreadClassNames(element, out);
 			}
@@ -592,6 +594,24 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	 * @author Markus Paulsen
 	 */
 	public static void checkThreadSystemInteraction(@Nonnull String action, @Nonnull String declaringTypeName,
+			@Nonnull String methodName, @Nonnull String methodSignature, @Nullable Object[] attributes,
+			@Nullable Object[] parameters, @Nullable Object instance) {
+		// Re-entrancy guard: the advice body performs file work and stack walks that
+		// lazily load JDK classes; loading those re-enters the advice on the same
+		// thread, causing ClassCircularityError and unbounded recursion. Skip nested
+		// invocations (trusted Ares internals); enforce only the outermost one.
+		if (!enterAdvice()) {
+			return;
+		}
+		try {
+			checkThreadSystemInteractionImpl(action, declaringTypeName, methodName, methodSignature, attributes,
+					parameters, instance);
+		} finally {
+			exitAdvice();
+		}
+	}
+
+	private static void checkThreadSystemInteractionImpl(@Nonnull String action, @Nonnull String declaringTypeName,
 			@Nonnull String methodName, @Nonnull String methodSignature, @Nullable Object[] attributes,
 			@Nullable Object[] parameters, @Nullable Object instance) {
 		// <editor-fold desc="Get information from settings">

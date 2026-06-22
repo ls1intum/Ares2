@@ -453,7 +453,7 @@
 					</execution>
 					<execution>
 						<id>weave-main-classes</id>
-						<phase>process-classes</phase>
+						<phase>compile</phase>
 						<goals>
 							<goal>compile</goal>
 						</goals>

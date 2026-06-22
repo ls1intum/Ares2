@@ -334,6 +334,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			if (variableValue == null) {
 				return null;
 			} else if (variableValue instanceof Path) {
+				// Path is an interface; only call into trusted JDK path impls.
+				requireTrustedRuntimeType(variableValue);
 				return ((Path) variableValue).normalize().toAbsolutePath();
 			} else if (variableValue instanceof URI uri) {
 				if (!"file".equalsIgnoreCase(uri.getScheme())) {
@@ -357,6 +359,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				// "/" is the root directory and is a valid path - let it be processed normally
 				return Path.of((String) variableValue).normalize().toAbsolutePath();
 			} else if (variableValue instanceof File) {
+				// File is not final; a student subclass could run code in toURI().
+				requireTrustedRuntimeType(variableValue);
 				return Path.of(((File) variableValue).toURI()).normalize().toAbsolutePath();
 			} else {
 				return null;
@@ -1038,6 +1042,22 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	 * @author Markus Paulsen
 	 */
 	public void checkFileSystemInteraction(@Nonnull String action, @Nonnull JoinPoint thisJoinPoint) {
+		// Re-entrancy guard: under load-time weaving the advice body's own file-system
+		// and stack-walk work is itself woven and re-enters this advice on the same
+		// thread, causing unbounded recursion (and ClassCircularityError during class
+		// loading). Skip nested invocations (trusted Ares internals); enforce only the
+		// outermost one.
+		if (!enterAdvice()) {
+			return;
+		}
+		try {
+			checkFileSystemInteractionImpl(action, thisJoinPoint);
+		} finally {
+			exitAdvice();
+		}
+	}
+
+	private void checkFileSystemInteractionImpl(@Nonnull String action, @Nonnull JoinPoint thisJoinPoint) {
 		// <editor-fold desc="Get information from settings">
 		@Nullable
 		final String aopMode = getValueFromSettings("aopMode");

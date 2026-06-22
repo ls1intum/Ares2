@@ -623,6 +623,24 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 			@Nonnull String action,
 			@Nonnull JoinPoint thisJoinPoint
 	) {
+		// Re-entrancy guard: the advice body's own file-system and stack-walk work is
+		// woven and re-enters this advice on the same thread, causing unbounded
+		// recursion (and ClassCircularityError during class loading). Skip nested
+		// invocations (trusted Ares internals); enforce only the outermost one.
+		if (!enterAdvice()) {
+			return;
+		}
+		try {
+			checkThreadSystemInteractionImpl(action, thisJoinPoint);
+		} finally {
+			exitAdvice();
+		}
+	}
+
+	private void checkThreadSystemInteractionImpl(
+			@Nonnull String action,
+			@Nonnull JoinPoint thisJoinPoint
+	) {
 		// <editor-fold desc="Get information from settings">
 		@Nullable
 		final String aopMode = getValueFromSettings("aopMode");

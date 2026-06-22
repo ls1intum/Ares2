@@ -216,11 +216,14 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 			return null;
 		} else if (variableValue instanceof String[] && ((String[]) variableValue).length != 0) {
 			parts = (String[]) variableValue;
-		} else if (variableValue instanceof List<?>
-				&& ((List<?>) variableValue).stream().allMatch(o -> o instanceof String)) {
-			@SuppressWarnings("unchecked")
-			List<String> stringList = (List<String>) variableValue;
-			parts = stringList.toArray(new String[0]);
+		} else if (variableValue instanceof List<?>) {
+			// List is an interface; only call stream()/toArray() on trusted JDK lists.
+			requireTrustedRuntimeType(variableValue);
+			if (((List<?>) variableValue).stream().allMatch(o -> o instanceof String)) {
+				@SuppressWarnings("unchecked")
+				List<String> stringList = (List<String>) variableValue;
+				parts = stringList.toArray(new String[0]);
+			}
 		} else if (variableValue instanceof String) {
 			parts = parseCommandString((String) variableValue);
 		}
@@ -325,6 +328,8 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 			return false;
 		} else if (observedVariable instanceof List<?>) {
 			List<?> list = (List<?>) observedVariable;
+			// List is an interface; only call stream()/iterator() on trusted JDK lists.
+			requireTrustedRuntimeType(observedVariable);
 			// Recurse only when elements are themselves nested Lists/arrays (i.e. multiple
 			// commands). A flat List<String> is a single (command, arg, arg, ...) sequence
 			// and must be handed to variableToCommand whole; otherwise individual args that
@@ -370,6 +375,8 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 			return null;
 		} else if (observedVariable instanceof List<?>) {
 			List<?> list = (List<?>) observedVariable;
+			// List is an interface; only call stream()/iterator() on trusted JDK lists.
+			requireTrustedRuntimeType(observedVariable);
 			// Mirror the recursion guard from analyseViolation: only descend into nested
 			// Lists/arrays so flat List<String> command sequences are matched as a whole.
 			if (list.stream().anyMatch(o -> o instanceof List<?> || (o != null && o.getClass().isArray()))) {
@@ -407,6 +414,8 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 			return null;
 		} else if (observedVariable instanceof List<?>) {
 			List<?> list = (List<?>) observedVariable;
+			// List is an interface; only call stream()/iterator() on trusted JDK lists.
+			requireTrustedRuntimeType(observedVariable);
 			if (list.stream().anyMatch(o -> o instanceof List<?> || (o != null && o.getClass().isArray()))) {
 				for (Object element : list) {
 					String violationPath = extractExecutablePathViolation(element, pathsAllowedToExecute);
@@ -659,6 +668,24 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 	 * @author Markus Paulsen
 	 */
 	public static void checkCommandSystemInteraction(@Nonnull String action, @Nonnull String declaringTypeName,
+			@Nonnull String methodName, @Nonnull String methodSignature, @Nullable Object[] attributes,
+			@Nullable Object[] parameters, @Nullable Object instance) {
+		// Re-entrancy guard: the advice body performs file work and stack walks that
+		// lazily load JDK classes; loading those re-enters the advice on the same
+		// thread, causing ClassCircularityError and unbounded recursion. Skip nested
+		// invocations (trusted Ares internals); enforce only the outermost one.
+		if (!enterAdvice()) {
+			return;
+		}
+		try {
+			checkCommandSystemInteractionImpl(action, declaringTypeName, methodName, methodSignature, attributes,
+					parameters, instance);
+		} finally {
+			exitAdvice();
+		}
+	}
+
+	private static void checkCommandSystemInteractionImpl(@Nonnull String action, @Nonnull String declaringTypeName,
 			@Nonnull String methodName, @Nonnull String methodSignature, @Nullable Object[] attributes,
 			@Nullable Object[] parameters, @Nullable Object instance) {
 		// <editor-fold desc="Get information from settings">

@@ -192,6 +192,7 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 			return target;
 		}
 		if (value instanceof InetSocketAddress inetSocketAddress) {
+			requireTrustedRuntimeType(value);
 			String host = inetSocketAddress.getHostString();
 			if (host == null || host.isBlank()) {
 				InetAddress address = inetSocketAddress.getAddress();
@@ -200,6 +201,7 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 			return new NetworkTarget(host, inetSocketAddress.getPort());
 		}
 		if (value instanceof SocketAddress socketAddress) {
+			requireTrustedRuntimeType(value);
 			String socketAddressAsString = socketAddress.toString();
 			int delimiter = socketAddressAsString.lastIndexOf(':');
 			if (delimiter > 0 && delimiter + 1 < socketAddressAsString.length()) {
@@ -214,6 +216,7 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 			return null;
 		}
 		if (value instanceof HttpRequest httpRequest) {
+			requireTrustedRuntimeType(value);
 			return variableToTarget(httpRequest.uri());
 		}
 		if (value instanceof URI uri) {
@@ -225,9 +228,11 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 			return new NetworkTarget(url.getHost(), port >= 0 ? port : -1);
 		}
 		if (value instanceof URLConnection urlConnection) {
+			requireTrustedRuntimeType(value);
 			return variableToTarget(urlConnection.getURL());
 		}
 		if (value instanceof DatagramPacket datagramPacket) {
+			requireTrustedRuntimeType(value);
 			InetAddress address = datagramPacket.getAddress();
 			if (address != null && datagramPacket.getPort() > 0) {
 				return new NetworkTarget(address.getHostAddress(), datagramPacket.getPort());
@@ -235,12 +240,15 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 			return null;
 		}
 		if (value instanceof Socket socket) {
+			requireTrustedRuntimeType(value);
 			return extractSocketTarget(socket);
 		}
 		if (value instanceof DatagramSocket datagramSocket) {
+			requireTrustedRuntimeType(value);
 			return extractDatagramSocketTarget(datagramSocket);
 		}
 		if (value instanceof SocketChannel socketChannel) {
+			requireTrustedRuntimeType(value);
 			try {
 				return variableToTarget(socketChannel.getRemoteAddress());
 			} catch (Exception ignored) {
@@ -248,6 +256,7 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 			}
 		}
 		if (value instanceof DatagramChannel datagramChannel) {
+			requireTrustedRuntimeType(value);
 			try {
 				return variableToTarget(datagramChannel.getRemoteAddress());
 			} catch (Exception ignored) {
@@ -255,6 +264,7 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 			}
 		}
 		if (value instanceof InetAddress inetAddress) {
+			requireTrustedRuntimeType(value);
 			return new NetworkTarget(inetAddress.getHostAddress(), -1);
 		}
 		if (value instanceof String str) {
@@ -405,6 +415,7 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 			return new NetworkTarget(host, port);
 		}
 		if (hostCandidate instanceof InetAddress inetAddress) {
+			requireTrustedRuntimeType(hostCandidate);
 			return new NetworkTarget(inetAddress.getHostAddress(), port);
 		}
 		return null;
@@ -423,6 +434,7 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 		if (!(value instanceof Number number)) {
 			return null;
 		}
+		requireTrustedRuntimeType(value);
 		int port = number.intValue();
 		if (port < 0 || port > 65_535) {
 			return null;
@@ -751,6 +763,24 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 	 * @author Kevin Fischer
 	 */
 	public static void checkNetworkSystemInteraction(
+			@Nonnull String action,
+			@Nonnull JoinPoint thisJoinPoint
+	) {
+		// Re-entrancy guard: the advice body's own network/file and stack-walk work is
+		// woven and re-enters this advice on the same thread, causing unbounded
+		// recursion (and ClassCircularityError during class loading). Skip nested
+		// invocations (trusted Ares internals); enforce only the outermost one.
+		if (!enterAdvice()) {
+			return;
+		}
+		try {
+			checkNetworkSystemInteractionImpl(action, thisJoinPoint);
+		} finally {
+			exitAdvice();
+		}
+	}
+
+	private static void checkNetworkSystemInteractionImpl(
 			@Nonnull String action,
 			@Nonnull JoinPoint thisJoinPoint
 	) {

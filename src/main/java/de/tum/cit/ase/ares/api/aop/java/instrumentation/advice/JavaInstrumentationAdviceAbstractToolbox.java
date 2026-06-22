@@ -519,6 +519,77 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	private static final ThreadLocal<String[]> CALLSTACK_INSPECTION_CACHE = new ThreadLocal<>();
 
 	/**
+	 * Per-thread re-entrancy guard for the instrumentation advice. The advice's own
+	 * body performs file-system work (reading settings, localisation bundles,
+	 * building messages) and walks the stack, which can lazily load JDK classes
+	 * such as {@code sun.nio.fs.UnixException}. Loading those classes re-enters the
+	 * file-system advice on the same thread; without a guard that re-entry runs the
+	 * full check again while the class is still being defined, producing a
+	 * {@link ClassCircularityError}. {@link #enterAdvice()} returns {@code false}
+	 * when the advice is already executing on this thread so the nested invocation
+	 * returns immediately; the outermost invocation always clears the flag in a
+	 * {@code finally} via {@link #exitAdvice()}. Skipping nested invocations is
+	 * correct because the advice itself is trusted Ares code, not student code.
+	 */
+	@Nonnull
+	private static final ThreadLocal<Boolean> ADVICE_IN_PROGRESS = ThreadLocal.withInitial(() -> Boolean.FALSE);
+
+	/**
+	 * Marks entry into an advice body for the current thread.
+	 *
+	 * @return {@code true} if this is the outermost (non-re-entrant) invocation and
+	 *         the caller should proceed; {@code false} if the advice is already
+	 *         executing on this thread and the caller must return immediately.
+	 */
+	static boolean enterAdvice() {
+		if (Boolean.TRUE.equals(ADVICE_IN_PROGRESS.get())) {
+			return false;
+		}
+		ADVICE_IN_PROGRESS.set(Boolean.TRUE);
+		return true;
+	}
+
+	/**
+	 * Clears the per-thread advice re-entrancy flag. Must be called from a
+	 * {@code finally} block paired with a {@link #enterAdvice()} that returned
+	 * {@code true}.
+	 */
+	static void exitAdvice() {
+		ADVICE_IN_PROGRESS.set(Boolean.FALSE);
+	}
+
+	/**
+	 * Verifies that {@code value}'s EXACT runtime class is {@code trusted} before the
+	 * advice invokes any overridable method on it. {@link Object#getClass()} is
+	 * {@code final} and cannot be spoofed, so this is a reliable trust check. The
+	 * advice runs inside the re-entrancy guard ({@link #enterAdvice()}); if it invoked
+	 * an overridable method (e.g. {@code toString()}, {@code intValue()}) on an
+	 * attacker-supplied subclass, that student code would execute while the guard is
+	 * active and any forbidden operation it performs would be silently skipped. To
+	 * keep that impossible, the advice only calls methods on exact trusted JDK
+	 * classes; an untrusted subtype is treated as a violation (fail-closed) and
+	 * blocked, because Ares cannot inspect it without running untrusted code.
+	 *
+	 * @param value   the attacker-controlled argument about to be inspected
+	 * @param trusted the exact JDK class the advice is allowed to call methods on
+	 */
+	static void requireTrustedRuntimeType(@Nonnull Object value) {
+		ClassLoader loader = value.getClass().getClassLoader();
+		// Bootstrap (null) and platform class loaders only ever load JDK classes; user
+		// and student code is loaded by the application/system class loader (or a child
+		// of it). A JDK-origin instance is safe to call overridable methods on, and this
+		// correctly trusts legitimate JDK subclasses (e.g. sun.security.ssl.SSLSocketImpl
+		// extends java.net.Socket, jdk.nio.zipfs paths) that an exact-class check would
+		// wrongly reject. Class.getClassLoader() is final and cannot be spoofed.
+		if (loader != null && loader != ClassLoader.getPlatformClassLoader()) {
+			throw new SecurityException(
+					"Ares Security Error (Reason: Student-Code; Stage: Execution): Ares cannot safely inspect an"
+							+ " argument of untrusted type " + value.getClass().getName()
+							+ " (not a JDK type) but was blocked by Ares.");
+		}
+	}
+
+	/**
 	 * Finds the caller directly above the first method on the current call stack
 	 * that belongs to the given restricted package.
 	 * <p>

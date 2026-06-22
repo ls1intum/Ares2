@@ -522,6 +522,73 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 	private static final ThreadLocal<String[]> CALLSTACK_INSPECTION_CACHE = new ThreadLocal<>();
 
 	/**
+	 * Per-thread re-entrancy guard for the AspectJ advice. The advice body performs
+	 * file-system work (path canonicalisation, settings/localisation reads) and
+	 * stack walks; under load-time weaving those operations are themselves woven and
+	 * re-enter the advice on the same thread. Without a guard the advice recurses on
+	 * its own internal operations, producing unbounded redundant work (and, during
+	 * JDK class loading, a {@link ClassCircularityError}). {@link #enterAdvice()}
+	 * returns {@code false} when the advice is already executing on this thread so the
+	 * nested invocation returns immediately; the outermost invocation clears the flag
+	 * in a {@code finally} via {@link #exitAdvice()}. Skipping nested invocations is
+	 * correct because the advice itself is trusted Ares code, not student code.
+	 */
+	@Nonnull
+	private static final ThreadLocal<Boolean> ADVICE_IN_PROGRESS = ThreadLocal.withInitial(() -> Boolean.FALSE);
+
+	/**
+	 * Marks entry into an advice body for the current thread.
+	 *
+	 * @return {@code true} if this is the outermost (non-re-entrant) invocation and
+	 *         the caller should proceed; {@code false} if the advice is already
+	 *         executing on this thread and the caller must return immediately.
+	 */
+	protected static boolean enterAdvice() {
+		if (Boolean.TRUE.equals(ADVICE_IN_PROGRESS.get())) {
+			return false;
+		}
+		ADVICE_IN_PROGRESS.set(Boolean.TRUE);
+		return true;
+	}
+
+	/**
+	 * Clears the per-thread advice re-entrancy flag. Must be called from a
+	 * {@code finally} paired with an {@link #enterAdvice()} that returned
+	 * {@code true}.
+	 */
+	protected static void exitAdvice() {
+		ADVICE_IN_PROGRESS.set(Boolean.FALSE);
+	}
+
+	/**
+	 * Verifies that {@code value}'s runtime class is JDK-origin before the advice
+	 * invokes any overridable method on it. The advice runs inside the re-entrancy
+	 * guard ({@link #enterAdvice()}); if it called an overridable method (e.g.
+	 * {@code toString()}, {@code intValue()}, {@code iterator()}) on an
+	 * attacker-supplied subclass, that student code would execute while the guard is
+	 * active and any forbidden operation it performs would be silently skipped. Only
+	 * the bootstrap and platform class loaders load JDK classes; student/user code is
+	 * loaded by the application class loader (or a child). A JDK-origin instance is
+	 * safe to call overridable methods on, and trusting the loader correctly allows
+	 * legitimate JDK subclasses (e.g. {@code sun.security.ssl.SSLSocketImpl extends
+	 * java.net.Socket}) that an exact-class check would wrongly reject. An untrusted
+	 * subtype is treated as a violation (fail-closed) and blocked, because Ares
+	 * cannot inspect it without running untrusted code. {@link Class#getClassLoader()}
+	 * is final and cannot be spoofed.
+	 *
+	 * @param value the attacker-controlled argument about to be inspected
+	 */
+	protected static void requireTrustedRuntimeType(@Nonnull Object value) {
+		ClassLoader loader = value.getClass().getClassLoader();
+		if (loader != null && loader != ClassLoader.getPlatformClassLoader()) {
+			throw new SecurityException(
+					"Ares Security Error (Reason: Student-Code; Stage: Execution): Ares cannot safely inspect an"
+							+ " argument of untrusted type " + value.getClass().getName()
+							+ " (not a JDK type) but was blocked by Ares.");
+		}
+	}
+
+	/**
 	 * Finds the caller directly above the first method on the current call stack
 	 * that belongs to the given restricted package.
 	 * <p>

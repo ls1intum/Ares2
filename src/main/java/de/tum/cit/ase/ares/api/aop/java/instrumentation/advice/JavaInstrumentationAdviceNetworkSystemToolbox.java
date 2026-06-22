@@ -234,6 +234,7 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 			return target;
 		}
 		if (value instanceof InetSocketAddress inetSocketAddress) {
+			requireTrustedRuntimeType(value);
 			String host = inetSocketAddress.getHostString();
 			if (host == null || host.isBlank()) {
 				InetAddress address = inetSocketAddress.getAddress();
@@ -242,6 +243,7 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 			return new NetworkTarget(host, inetSocketAddress.getPort());
 		}
 		if (value instanceof SocketAddress socketAddress) {
+			requireTrustedRuntimeType(value);
 			String socketAddressAsString = socketAddress.toString();
 			int delimiter = socketAddressAsString.lastIndexOf(':');
 			if (delimiter > 0 && delimiter + 1 < socketAddressAsString.length()) {
@@ -260,6 +262,7 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		try {
 			Class<?> httpRequestClass = Class.forName("java.net.http.HttpRequest", false, null);
 			if (httpRequestClass.isInstance(value)) {
+				requireTrustedRuntimeType(value);
 				Object uri = httpRequestClass.getMethod("uri").invoke(value);
 				return variableToTarget(uri);
 			}
@@ -277,9 +280,11 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 			return new NetworkTarget(url.getHost(), port >= 0 ? port : -1);
 		}
 		if (value instanceof URLConnection urlConnection) {
+			requireTrustedRuntimeType(value);
 			return variableToTarget(urlConnection.getURL());
 		}
 		if (value instanceof DatagramPacket datagramPacket) {
+			requireTrustedRuntimeType(value);
 			InetAddress address = datagramPacket.getAddress();
 			if (address != null && datagramPacket.getPort() > 0) {
 				return new NetworkTarget(address.getHostAddress(), datagramPacket.getPort());
@@ -287,12 +292,15 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 			return null;
 		}
 		if (value instanceof Socket socket) {
+			requireTrustedRuntimeType(value);
 			return extractSocketTarget(socket);
 		}
 		if (value instanceof DatagramSocket datagramSocket) {
+			requireTrustedRuntimeType(value);
 			return extractDatagramSocketTarget(datagramSocket);
 		}
 		if (value instanceof SocketChannel socketChannel) {
+			requireTrustedRuntimeType(value);
 			try {
 				return variableToTarget(socketChannel.getRemoteAddress());
 			} catch (Exception ignored) {
@@ -300,6 +308,7 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 			}
 		}
 		if (value instanceof DatagramChannel datagramChannel) {
+			requireTrustedRuntimeType(value);
 			try {
 				return variableToTarget(datagramChannel.getRemoteAddress());
 			} catch (Exception ignored) {
@@ -307,6 +316,7 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 			}
 		}
 		if (value instanceof InetAddress inetAddress) {
+			requireTrustedRuntimeType(value);
 			return new NetworkTarget(inetAddress.getHostAddress(), -1);
 		}
 		if (value instanceof String str) {
@@ -465,6 +475,7 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 			return new NetworkTarget(host, port);
 		}
 		if (hostCandidate instanceof InetAddress inetAddress) {
+			requireTrustedRuntimeType(hostCandidate);
 			return new NetworkTarget(inetAddress.getHostAddress(), port);
 		}
 		return null;
@@ -481,6 +492,7 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		if (!(value instanceof Number number)) {
 			return null;
 		}
+		requireTrustedRuntimeType(value);
 		int port = number.intValue();
 		if (port < 0 || port > 65_535) {
 			return null;
@@ -845,6 +857,24 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	 * @author Kevin Fischer
 	 */
 	public static void checkNetworkSystemInteraction(@Nonnull String action, @Nonnull String declaringTypeName,
+			@Nonnull String methodName, @Nonnull String methodSignature, @Nullable Object[] attributes,
+			@Nullable Object[] parameters, @Nullable Object instance) {
+		// Re-entrancy guard: the advice body performs network/file work and stack walks
+		// that lazily load JDK classes; loading those re-enters the advice on the same
+		// thread, causing ClassCircularityError and unbounded recursion. Skip nested
+		// invocations (trusted Ares internals); enforce only the outermost one.
+		if (!enterAdvice()) {
+			return;
+		}
+		try {
+			checkNetworkSystemInteractionImpl(action, declaringTypeName, methodName, methodSignature, attributes,
+					parameters, instance);
+		} finally {
+			exitAdvice();
+		}
+	}
+
+	private static void checkNetworkSystemInteractionImpl(@Nonnull String action, @Nonnull String declaringTypeName,
 			@Nonnull String methodName, @Nonnull String methodSignature, @Nullable Object[] attributes,
 			@Nullable Object[] parameters, @Nullable Object instance) {
 		// <editor-fold desc="Get information from settings">
