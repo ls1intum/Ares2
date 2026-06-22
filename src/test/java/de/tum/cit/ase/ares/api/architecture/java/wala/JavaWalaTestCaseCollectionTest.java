@@ -10,6 +10,7 @@ import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.lang.ArchRule;
 
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 
 /**
@@ -28,10 +29,15 @@ public class JavaWalaTestCaseCollectionTest {
 		// Check if the cause is a SecurityException
 		Throwable cause = ex.getCause();
 		Assertions.assertTrue(cause instanceof SecurityException);
-		// Print actual message for debugging
-		System.out.println("Actual message: " + cause.getMessage());
-		Assertions.assertTrue(cause.getMessage().contains("utility.initialization")
-				|| cause.getMessage().contains("nicht instanziiert werden"));
+		// Compare against the localized message rather than a hard-coded German
+		// substring: the active locale on CI (English) differs from a German
+		// development machine, so a fixed-language check is environment-dependent.
+		// Recomputing the expected text through the same Messages mechanism keeps
+		// the assertion locale-independent while still proving it is the
+		// utility-initialization error for this class.
+		String expectedMessage = Messages.localized("security.general.utility.initialization",
+				JavaWalaTestCaseCollection.class.getSimpleName());
+		Assertions.assertEquals(expectedMessage, cause.getMessage());
 	}
 
 	@Test
