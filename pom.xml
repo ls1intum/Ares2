@@ -24,8 +24,7 @@
 			junit-platform 1.14 while this project builds on junit-platform 6.x, which
 			likely contributes. Revisit once jqwik ships a JUnit 6 compatible release. -->
 		<jqwik-version>1.9.3</jqwik-version>
-		<!-- 1. Testing: 1.3 AssertJ -->
-		<assertj-version>3.27.6</assertj-version>
+		<1.10.1</assertj-version>
 		<!-- 1. Testing: 1.4 Mockito -->
 		<mockito-version>5.23.0</mockito-version>
 		<!-- 1. Testing: 1.5 Hamcrest -->
