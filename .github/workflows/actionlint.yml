@@ -1,0 +1,37 @@
+name: Lint GitHub Workflows
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - ".github/**"
+  push:
+    branches: [ "main" ]
+    paths:
+      - ".github/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: actionlint-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  actionlint:
+    name: actionlint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Run actionlint
+        env:
+          ACTIONLINT_VERSION: "1.7.12"
+        run: |
+          bash <(curl --silent --location \
+            "https://raw.githubusercontent.com/rhysd/actionlint/v${ACTIONLINT_VERSION}/scripts/download-actionlint.bash") \
+            "${ACTIONLINT_VERSION}"
+          ./actionlint -color

@@ -1,6 +1,8 @@
 {
   "scanSettings": {
-    "baseBranches": []
+    "enableScan": true,
+    "baseBranches": ["main"],
+    "scanDependabotPR": false
   },
   "checkRunSettings": {
     "vulnerableCheckRunConclusionLevel": "failure",
