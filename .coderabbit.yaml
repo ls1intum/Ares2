@@ -1,0 +1,52 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+language: en-GB
+reviews:
+  profile: chill
+  request_changes_workflow: true
+  high_level_summary: true
+  review_status: false
+  poem: false
+  path_filters:
+    - "!target/**"
+    - "!var/**"
+    - "!**/*.class"
+    - "!**/*.jar"
+    - "!**/*.log"
+    - "!**/*.png"
+    - "!**/*.drawio.png"
+    - "!**/*.csv"
+  path_instructions:
+    - path: src/main/java/**/*.java
+      instructions: >-
+        Review as a Java 17 security library used for Artemis programming exercises.
+        Prioritise sandbox escapes, fail-open behaviour, unsafe reflection, concurrency
+        issues in global test settings, and changes that weaken file, command, thread, or
+        network restrictions. Prefer simple Java code and one field or method declaration
+        per line.
+    - path: src/test/java/**/*.java
+      instructions: >-
+        Check that security tests fail closed, distinguish fixture failures from sandbox
+        failures, and avoid in-process network servers for sandboxed network tests.
+    - path: docs/**/*.md
+      instructions: >-
+        Use current British English. Check that security limitations and setup instructions
+        are explicit and do not overstate guarantees.
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    drafts: false
+  tools:
+    shellcheck:
+      enabled: true
+    markdownlint:
+      enabled: true
+    github-checks:
+      enabled: true
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  learnings:
+    scope: auto
