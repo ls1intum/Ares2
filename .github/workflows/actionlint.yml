@@ -9,10 +9,11 @@ on:
     branches: [ "main" ]
     paths:
       - ".github/**"
+  schedule:
+    - cron: "0 15 * * 0"
   workflow_dispatch:
 
-permissions:
-  contents: read
+permissions: {}
 
 concurrency:
   group: actionlint-${{ github.event.pull_request.number || github.ref }}
@@ -23,6 +24,8 @@ jobs:
     name: actionlint
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
