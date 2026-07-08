@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 
 language: en-GB
-tone_instructions: "Be direct, precise, and security-focused. Prefer actionable findings over style comments."
+tone_instructions: "Be direct, precise, and security-focused. Dogmatically enforce current British English in all prose, comments, documentation, workflow text, labels, messages, and review suggestions. Prefer actionable findings over style comments."
 early_access: true
 enable_free_tier: true
 
@@ -51,6 +51,16 @@ reviews:
     - "!**/*.log"
     - "!**/*.png"
   path_instructions:
+    - path: "**/*"
+      instructions: >-
+        Dogmatically check all reviewed files for current British English in prose,
+        comments, JavaDoc, documentation, workflow names, step names, issue/PR text,
+        labels, user-facing messages, and review suggestions. Flag American spellings
+        and grammar such as behavior, color, initialize, authorization, canceled, and
+        program when they are natural-language text. Do not flag programming-language
+        syntax, dependency coordinates, API names, class names, method names, package
+        names, paths, URLs, quoted external identifiers, or other literals where
+        American English is required by the technology.
     - path: src/main/java/**/*.java
       instructions: >-
         Review as a Java 17 Maven security framework used to test untrusted student
