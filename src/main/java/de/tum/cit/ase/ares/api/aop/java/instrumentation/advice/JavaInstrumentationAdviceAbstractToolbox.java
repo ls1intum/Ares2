@@ -559,16 +559,17 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	}
 
 	/**
-	 * Verifies that {@code value}'s EXACT runtime class is {@code trusted} before the
-	 * advice invokes any overridable method on it. {@link Object#getClass()} is
+	 * Verifies that {@code value}'s EXACT runtime class is {@code trusted} before
+	 * the advice invokes any overridable method on it. {@link Object#getClass()} is
 	 * {@code final} and cannot be spoofed, so this is a reliable trust check. The
-	 * advice runs inside the re-entrancy guard ({@link #enterAdvice()}); if it invoked
-	 * an overridable method (e.g. {@code toString()}, {@code intValue()}) on an
-	 * attacker-supplied subclass, that student code would execute while the guard is
-	 * active and any forbidden operation it performs would be silently skipped. To
-	 * keep that impossible, the advice only calls methods on exact trusted JDK
-	 * classes; an untrusted subtype is treated as a violation (fail-closed) and
-	 * blocked, because Ares cannot inspect it without running untrusted code.
+	 * advice runs inside the re-entrancy guard ({@link #enterAdvice()}); if it
+	 * invoked an overridable method (e.g. {@code toString()}, {@code intValue()})
+	 * on an attacker-supplied subclass, that student code would execute while the
+	 * guard is active and any forbidden operation it performs would be silently
+	 * skipped. To keep that impossible, the advice only calls methods on exact
+	 * trusted JDK classes; an untrusted subtype is treated as a violation
+	 * (fail-closed) and blocked, because Ares cannot inspect it without running
+	 * untrusted code.
 	 *
 	 * @param value   the attacker-controlled argument about to be inspected
 	 * @param trusted the exact JDK class the advice is allowed to call methods on
@@ -577,8 +578,10 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 		ClassLoader loader = value.getClass().getClassLoader();
 		// Bootstrap (null) and platform class loaders only ever load JDK classes; user
 		// and student code is loaded by the application/system class loader (or a child
-		// of it). A JDK-origin instance is safe to call overridable methods on, and this
-		// correctly trusts legitimate JDK subclasses (e.g. sun.security.ssl.SSLSocketImpl
+		// of it). A JDK-origin instance is safe to call overridable methods on, and
+		// this
+		// correctly trusts legitimate JDK subclasses (e.g.
+		// sun.security.ssl.SSLSocketImpl
 		// extends java.net.Socket, jdk.nio.zipfs paths) that an exact-class check would
 		// wrongly reject. Class.getClassLoader() is final and cannot be spoofed.
 		if (loader != null && loader != ClassLoader.getPlatformClassLoader()) {
