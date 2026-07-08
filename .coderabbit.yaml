@@ -1,52 +1,185 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 
 language: en-GB
+tone_instructions: "Be direct, precise, and security-focused. Prefer actionable findings over style comments."
+early_access: true
+enable_free_tier: true
+
 reviews:
-  profile: chill
+  profile: assertive
   request_changes_workflow: true
   high_level_summary: true
-  review_status: false
-  poem: false
+  high_level_summary_in_walkthrough: true
+  review_status: true
+  review_details: true
+  commit_status: true
+  fail_commit_status: true
+  collapse_walkthrough: true
+  changed_files_summary: true
+  sequence_diagrams: true
+  estimate_code_review_effort: true
+  assess_linked_issues: true
+  related_issues: true
+  related_prs: true
+  suggested_labels: true
+  auto_apply_labels: false
+  labeling_instructions:
+    - label: security fix
+      instructions: Apply when a change fixes or mitigates a sandbox escape, policy bypass, unsafe default, dependency vulnerability, or repository security issue.
+    - label: aop
+      instructions: Apply when a change touches AspectJ, instrumentation, Byte Buddy, Java agent code, or runtime advice.
+    - label: architecture
+      instructions: Apply when a change touches ArchUnit, WALA, static call graph analysis, or architecture-mode enforcement.
+    - label: policy
+      instructions: Apply when a change touches security policy parsing, policy data classes, YAML handling, or permission modelling.
+    - label: tests
+      instructions: Apply when a change primarily touches JUnit, jqwik, fixtures, test utilities, or integration tests.
+    - label: docs
+      instructions: Apply when a change primarily touches documentation, manuals, Markdown, or AsciiDoc.
   path_filters:
-    - "!target/**"
-    - "!var/**"
+    - ".github/**"
+    - ".settings/**"
+    - "docs/**"
+    - "src/**"
+    - "pom.xml"
+    - "README.md"
+    - "renovate.json"
+    - "AGENTS.md"
+    - "SECURITY.md"
     - "!**/*.class"
     - "!**/*.jar"
     - "!**/*.log"
     - "!**/*.png"
-    - "!**/*.drawio.png"
-    - "!**/*.csv"
   path_instructions:
     - path: src/main/java/**/*.java
       instructions: >-
-        Review as a Java 17 security library used for Artemis programming exercises.
-        Prioritise sandbox escapes, fail-open behaviour, unsafe reflection, concurrency
-        issues in global test settings, and changes that weaken file, command, thread, or
-        network restrictions. Prefer simple Java code and one field or method declaration
-        per line.
+        Review as a Java 17 Maven security framework used to test untrusted student
+        code in Artemis programming exercises. Prioritise sandbox escapes, fail-open
+        behaviour, unsafe reflection, classloader/bootstrap boundary mistakes,
+        global mutable state, concurrency races, insufficient canonicalisation, and
+        changes that weaken file, command, thread, network, package, or class access
+        restrictions. Treat unrecognised security-sensitive inputs as a potential
+        fail-closed requirement. Prefer simple Java code and one field or method
+        declaration per line.
+    - path: src/main/java/de/tum/cit/ase/ares/api/aop/**/*.java
+      instructions: >-
+        Focus on runtime enforcement integrity: intercepted methods, argument
+        extraction, null handling, recursive advice guards, bootstrap classloader
+        interaction, and whether denied operations can reach the JVM or operating
+        system before checks run.
+    - path: src/main/java/de/tum/cit/ase/ares/api/architecture/**/*.java
+      instructions: >-
+        Focus on static-analysis soundness: missing deny-listed APIs, library-mediated
+        access, reflection, classloader tricks, call graph incompleteness, and mismatches
+        between architecture-mode and runtime AOP/instrumentation behaviour.
+    - path: src/main/java/de/tum/cit/ase/ares/api/policy/**/*.java
+      instructions: >-
+        Check that policy parsing is strict, explicit, and fail-closed. Flag ambiguous
+        defaults, path traversal risks, unsafe placeholder expansion, overly broad
+        allow-lists, and discrepancies between documented and enforced semantics.
+    - path: src/main/java/de/tum/cit/ase/ares/api/securitytest/**/*.java
+      instructions: >-
+        Check that security-test factory, scanner, creator, and execution code cannot
+        be influenced by student-controlled classes to bypass trusted-package,
+        supervised-code, or test-class boundaries.
     - path: src/test/java/**/*.java
       instructions: >-
-        Check that security tests fail closed, distinguish fixture failures from sandbox
-        failures, and avoid in-process network servers for sandboxed network tests.
+        Require tests to distinguish fixture failures from sandbox failures. Network
+        tests must not start in-process listeners inside the sandbox; external fixtures
+        may be skipped when absent, but explicit Ares SecurityException failures must
+        propagate.
+    - path: .github/workflows/**/*.yml
+      instructions: >-
+        Review GitHub Actions for least-privilege permissions, safe event choice,
+        pinned third-party actions, safe pull_request_target usage, no secret exposure
+        to untrusted code, and branch-protection compatibility.
     - path: docs/**/*.md
       instructions: >-
-        Use current British English. Check that security limitations and setup instructions
-        are explicit and do not overstate guarantees.
+        Use current British English. Check that security guarantees, known limitations,
+        and required external fixtures are explicit and do not overstate enforcement.
+    - path: pom.xml
+      instructions: >-
+        Review Maven changes for dependency vulnerability exposure, Java 17 compatibility,
+        plugin supply-chain risk, unnecessary module opens, and build behaviour that could
+        weaken sandbox tests or instrumentation.
   auto_review:
     enabled: true
     auto_incremental_review: true
+    auto_pause_after_reviewed_commits: 0
+    ignore_title_keywords:
+      - WIP
+      - DO NOT REVIEW
     drafts: false
+    base_branches:
+      - main
+  pre_merge_checks:
+    title:
+      mode: warning
+      requirements: "The title should be concise and describe the security or automation impact."
+    description:
+      mode: warning
+    custom_checks:
+      - name: Sandbox fail-closed behaviour
+        mode: error
+        instructions: >-
+          Pass only if changes to enforcement code preserve fail-closed behaviour for
+          unknown, malformed, null, or partially resolved security-sensitive inputs.
+      - name: Trusted boundary preservation
+        mode: error
+        instructions: >-
+          Pass only if changes preserve separation between trusted Ares infrastructure,
+          test fixtures, and supervised/student-controlled code.
+      - name: GitHub workflow least privilege
+        mode: error
+        instructions: >-
+          Pass only if workflow changes use minimal permissions, do not expose secrets
+          to untrusted PR code, and avoid unsafe pull_request_target checkout patterns.
   tools:
+    ast-grep:
+      essential_rules: true
     shellcheck:
       enabled: true
     markdownlint:
       enabled: true
     github-checks:
       enabled: true
+      timeout_ms: 900000
+    yamllint:
+      enabled: true
+    actionlint:
+      enabled: true
+    zizmor:
+      enabled: true
+    pmd:
+      enabled: true
+    fbinfer:
+      enabled: true
+      enable_java: true
+    opengrep:
+      enabled: true
+    semgrep:
+      enabled: true
+    gitleaks:
+      enabled: true
+    trufflehog:
+      enabled: true
+    osvScanner:
+      enabled: true
+    trivy:
+      enabled: true
+    checkmake:
+      enabled: true
+    presidio:
+      enabled: true
+    skillspector:
+      enabled: true
 
 chat:
   auto_reply: true
+  allow_non_org_members: false
 
 knowledge_base:
   learnings:
+    scope: auto
+  issues:
     scope: auto
