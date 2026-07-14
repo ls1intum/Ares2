@@ -1,19 +1,16 @@
 name: Pull Request Labeler
 
+# pull_request_target, not pull_request: a fork's pull_request token is read-only
+# and cannot apply labels. The labeler neither checks out nor executes pull request
+# code, and it reads .github/labeler.yml from the base ref, so no untrusted input runs here.
 on:
-  pull_request:
+  pull_request_target:
     branches: [ "main" ]
-  push:
-    branches: [ "main" ]
-  schedule:
-    - cron: "0 13 * * 0"
-  workflow_dispatch:
 
 permissions: {}
 
 jobs:
   label:
-    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -21,7 +18,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Label pull request
-        uses: actions/labeler@v6
+        uses: actions/labeler@b8dd2d9be0f68b860e7dae5dae7d772984eacd6d # v6
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           sync-labels: true
