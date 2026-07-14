@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<!--
+	Ares PMD rules.
+
+	This starts from the maven-pmd-plugin default rule set, so the analysis stays the one the
+	project has been measuring, and removes only the pure code-style rules that either fight the
+	formatter or object to a deliberate idiom. UnnecessaryFullyQualifiedName alone accounted for
+	169 of the 244 findings, firing on calls such as JavaAOPTestCase.setJavaAdviceSettingValue(..)
+	written inside JavaAOPTestCase itself, where the qualification is there to make a static call
+	obvious at the call site. What is left are the rules that point at defects: dead code, empty
+	catch blocks and error-prone control flow.
+-->
+<ruleset name="Ares"
+		xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+
+	<description>Ares rules: the maven-pmd-plugin defaults without the style rules the formatter owns.</description>
+
+	<rule ref="rulesets/java/maven-pmd-plugin-default.xml">
+		<exclude name="UnnecessaryFullyQualifiedName"/>
+		<exclude name="UselessParentheses"/>
+		<exclude name="UnnecessaryReturn"/>
+		<exclude name="EmptyControlStatement"/>
+		<exclude name="TooManyStaticImports"/>
+	</rule>
+</ruleset>

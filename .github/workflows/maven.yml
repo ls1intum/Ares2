@@ -14,17 +14,19 @@ on:
 
 permissions: {}
 
+concurrency:
+  group: maven-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  build-and-test:
-
+  # The mandatory gate. Everything else waits on it, so a broken build costs one job
+  # rather than four.
+  build:
+    name: Build
     runs-on: ubuntu-24.04
-
-    # Fail fast and preserve the test log instead of letting the heavy suite run
-    # until the runner loses communication (~1h). Lets us see which test hangs.
-    timeout-minutes: 45
+    timeout-minutes: 20
     permissions:
       contents: read
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v7
@@ -44,5 +46,101 @@ jobs:
       - name: Build
         run: mvn clean package -DskipTests
 
+  static-analysis:
+    name: Static Code Analysis
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      # SpotBugs reads class files, so the sources have to be compiled first.
+      - name: Compile
+        run: mvn -DskipTests compile
+
+      # Each check runs even when an earlier one failed, so that one run reports every tool
+      # rather than only the first to complain. The job still fails if any step failed.
+      - name: Spotless
+        if: ${{ !cancelled() }}
+        run: mvn spotless:check
+
+      - name: Checkstyle
+        if: ${{ !cancelled() }}
+        run: mvn checkstyle:check
+
+      - name: PMD
+        if: ${{ !cancelled() }}
+        run: mvn pmd:check
+
+      - name: SpotBugs
+        if: ${{ !cancelled() }}
+        run: mvn spotbugs:check
+
+      - name: Upload analysis reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: static-analysis-reports
+          path: |
+            target/checkstyle-result.xml
+            target/pmd.xml
+            target/spotbugsXml.xml
+          if-no-files-found: warn
+
+  architecture-tests:
+    name: Architecture Tests
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
       - name: Test
-        run: mvn test -f pom.xml
+        run: mvn test -Parchitecture-tests -f pom.xml
+
+  tests:
+    name: Tests
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Test
+        run: mvn test -Pfunctional-tests -f pom.xml

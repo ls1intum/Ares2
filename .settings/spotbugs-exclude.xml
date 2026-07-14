@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+	Ares SpotBugs exclusions.
+
+	Only patterns that fire on a deliberate Ares design decision are excluded here. Everything
+	else stays enforced, including the SECURITY category.
+-->
+<FindBugsFilter
+		xmlns="https://github.com/spotbugs/filter/3.0.0"
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xsi:schemaLocation="https://github.com/spotbugs/filter/3.0.0 https://raw.githubusercontent.com/spotbugs/spotbugs/master/spotbugs/etc/findbugsfilter.xsd">
+
+	<!--
+		The advice toolboxes and other utility classes forbid instantiation by throwing a
+		SecurityException from their constructor, which is exactly what this pattern reports.
+		Removing the throw would hand student code a way to instantiate the security machinery,
+		so the pattern is a false positive against this design.
+	-->
+	<Match>
+		<Bug pattern="CT_CONSTRUCTOR_THROW"/>
+	</Match>
+
+	<!--
+		The advice catches NullPointerException on purpose and converts it into a
+		SecurityException, because an argument supplied by student code may be null at any point
+		the advice inspects it, and failing open there would let the operation through.
+	-->
+	<Match>
+		<Bug pattern="DCN_NULLPOINTER_EXCEPTION"/>
+	</Match>
+
+	<!--
+		Storing and returning the policy arrays without copying is intentional. The advice runs
+		on every intercepted call, so a defensive copy per invocation sits directly in the hot
+		path, and the arrays it holds are internal to the security machinery, which student code
+		cannot reach: the architecture-analysis layer forbids student references to these classes.
+		Revisit if that layer ever stops being authoritative.
+	-->
+	<Match>
+		<Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+	</Match>
+</FindBugsFilter>

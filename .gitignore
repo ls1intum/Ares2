@@ -26,6 +26,9 @@ gradle-app.setting
 /reports
 !/.settings/org.eclipse.*
 !/.settings/eclipse*rules*
+!/.settings/checkstyle-rules.xml
+!/.settings/pmd-rules.xml
+!/.settings/spotbugs-exclude.xml
 /artemis-java-test-sandbox.iml
 /Ares.iml
 /.idea
