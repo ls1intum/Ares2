@@ -37,6 +37,8 @@ reviews:
     - label: docs
       instructions: Apply when a change primarily touches documentation, manuals, Markdown, or AsciiDoc.
   path_filters:
+    - ".coderabbit.yaml"
+    - ".whitesource"
     - ".github/**"
     - ".settings/**"
     - "docs/**"
