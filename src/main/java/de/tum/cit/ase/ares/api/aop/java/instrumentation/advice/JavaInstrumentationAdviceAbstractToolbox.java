@@ -559,28 +559,32 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	}
 
 	/**
-	 * Verifies that {@code value}'s EXACT runtime class is {@code trusted} before the
-	 * advice invokes any overridable method on it. {@link Object#getClass()} is
-	 * {@code final} and cannot be spoofed, so this is a reliable trust check. The
-	 * advice runs inside the re-entrancy guard ({@link #enterAdvice()}); if it invoked
-	 * an overridable method (e.g. {@code toString()}, {@code intValue()}) on an
-	 * attacker-supplied subclass, that student code would execute while the guard is
-	 * active and any forbidden operation it performs would be silently skipped. To
-	 * keep that impossible, the advice only calls methods on exact trusted JDK
-	 * classes; an untrusted subtype is treated as a violation (fail-closed) and
-	 * blocked, because Ares cannot inspect it without running untrusted code.
+	 * Verifies that {@code value} originates from the JDK before the advice invokes
+	 * any overridable method on it. The check is loader-based: a class loaded by
+	 * the bootstrap or platform class loader can only be a JDK class, and
+	 * {@link Class#getClassLoader()} is {@code final} and cannot be spoofed, so
+	 * this is a reliable trust check. It therefore also trusts legitimate JDK
+	 * subclasses, which an exact-class comparison would wrongly reject.
+	 * <p>
+	 * The advice runs inside the re-entrancy guard ({@link #enterAdvice()}); if it
+	 * invoked an overridable method (e.g. {@code toString()}, {@code intValue()})
+	 * on an attacker-supplied subclass, that student code would execute while the
+	 * guard is active and any forbidden operation it performs would be silently
+	 * skipped. To keep that impossible, a value from any other class loader is
+	 * treated as a violation (fail-closed) and blocked, because Ares cannot inspect
+	 * it without running untrusted code.
 	 *
-	 * @param value   the attacker-controlled argument about to be inspected
-	 * @param trusted the exact JDK class the advice is allowed to call methods on
+	 * @param value the attacker-controlled argument about to be inspected
 	 */
 	static void requireTrustedRuntimeType(@Nonnull Object value) {
 		ClassLoader loader = value.getClass().getClassLoader();
-		// Bootstrap (null) and platform class loaders only ever load JDK classes; user
-		// and student code is loaded by the application/system class loader (or a child
-		// of it). A JDK-origin instance is safe to call overridable methods on, and this
-		// correctly trusts legitimate JDK subclasses (e.g. sun.security.ssl.SSLSocketImpl
-		// extends java.net.Socket, jdk.nio.zipfs paths) that an exact-class check would
-		// wrongly reject. Class.getClassLoader() is final and cannot be spoofed.
+		// Bootstrap (null) and platform class loaders only ever load JDK classes;
+		// user and student code is loaded by the application/system class loader,
+		// or by a child of it. A JDK-origin instance is safe to call overridable
+		// methods on, and this also trusts legitimate JDK subclasses that an
+		// exact-class check would wrongly reject, such as SSLSocketImpl extending
+		// java.net.Socket or the zipfs paths. Class.getClassLoader() is final and
+		// cannot be spoofed.
 		if (loader != null && loader != ClassLoader.getPlatformClassLoader()) {
 			throw new SecurityException(
 					"Ares Security Error (Reason: Student-Code; Stage: Execution): Ares cannot safely inspect an"

@@ -798,19 +798,27 @@
 					</java>
 				</configuration>
 			</plugin>
-			<!-- Static analysis (manual execution, report-only): these are NOT bound to
-				the build lifecycle and are configured never to fail the build. Run them
-				on demand, e.g. `mvn checkstyle:check`, `mvn pmd:check`, `mvn pmd:cpd-check`
-				or `mvn spotbugs:check`; or generate reports via `mvn checkstyle:checkstyle`,
-				`mvn pmd:pmd`, `mvn spotbugs:spotbugs`. -->
+			<!-- Static analysis: these are NOT bound to the build lifecycle, so an ordinary
+				`mvn package` does not pay for them, but each `check` goal now fails on a
+				violation and the static-analysis CI job runs all of them. Run them on demand,
+				e.g. `mvn checkstyle:check`, `mvn pmd:check`, `mvn pmd:cpd-check` or
+				`mvn spotbugs:check`; or generate reports via `mvn checkstyle:checkstyle`,
+				`mvn pmd:pmd`, `mvn spotbugs:spotbugs`.
+
+				The rule sets live in .settings next to the Eclipse formatter rules. They are
+				deliberately trimmed so that no rule contradicts the formatter (which owns
+				indentation, tabs, line length and import order) and no rule objects to a
+				deliberate security idiom; see the comment in each file. The findings that
+				remain are a real backlog, so these checks are red until it is cleared. -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-checkstyle-plugin</artifactId>
 				<version>3.6.0</version>
 				<configuration>
-					<configLocation>google_checks.xml</configLocation>
-					<failOnViolation>false</failOnViolation>
-					<failsOnError>false</failsOnError>
+					<configLocation>${basedir}${file.separator}.settings${file.separator}checkstyle-rules.xml</configLocation>
+					<failOnViolation>true</failOnViolation>
+					<failsOnError>true</failsOnError>
+					<violationSeverity>error</violationSeverity>
 					<consoleOutput>true</consoleOutput>
 				</configuration>
 			</plugin>
@@ -819,7 +827,10 @@
 				<artifactId>maven-pmd-plugin</artifactId>
 				<version>3.28.0</version>
 				<configuration>
-					<failOnViolation>false</failOnViolation>
+					<rulesets>
+						<ruleset>${basedir}${file.separator}.settings${file.separator}pmd-rules.xml</ruleset>
+					</rulesets>
+					<failOnViolation>true</failOnViolation>
 					<printFailingErrors>true</printFailingErrors>
 				</configuration>
 			</plugin>
@@ -828,7 +839,8 @@
 				<artifactId>spotbugs-maven-plugin</artifactId>
 				<version>4.10.2.0</version>
 				<configuration>
-					<failOnError>false</failOnError>
+					<excludeFilterFile>${basedir}${file.separator}.settings${file.separator}spotbugs-exclude.xml</excludeFilterFile>
+					<failOnError>true</failOnError>
 				</configuration>
 			</plugin>
 		</plugins>
@@ -912,6 +924,49 @@
 		<developerConnection>scm:git:https://github.com/ls1intum/Ares2.git</developerConnection>
 	</scm>
 	<profiles>
+		<!-- Test selection for CI. The suite is split across two jobs that run in parallel,
+			because a single job did not finish inside its 45 minute budget. Neither profile is
+			active by default, so a plain `mvn test` still runs the whole suite locally and for
+			any downstream consumer.
+
+			The architecture tests are selected by package rather than moved into a directory of
+			their own: 13 of them sit in the same package as the code they exercise and call its
+			package-private members, so moving them would mean widening the visibility of the
+			security internals purely to satisfy a CI layout. -->
+		<profile>
+			<id>architecture-tests</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<configuration>
+							<includes>
+								<include>**/api/architecture/**/*Test.java</include>
+								<include>**/integration/architecture/**/*Test.java</include>
+							</includes>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>functional-tests</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<configuration>
+							<excludes>
+								<exclude>**/api/architecture/**/*Test.java</exclude>
+								<exclude>**/integration/architecture/**/*Test.java</exclude>
+							</excludes>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
 		<!-- For code coverage using JaCoCo -->
 		<profile>
 			<id>coverage</id>

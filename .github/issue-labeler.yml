@@ -1,0 +1,67 @@
+aop:
+  - aop
+  - aspectj
+  - instrumentation
+  - byte buddy
+  - javaagent
+  - advice
+  - caseSensitive: false
+
+architecture:
+  - architecture
+  - archunit
+  - wala
+  - call graph
+  - callgraph
+  - static analysis
+  - caseSensitive: false
+
+ast:
+  - ast
+  - abstract syntax tree
+  - parser
+  - recursion
+  - unwanted node
+  - caseSensitive: false
+
+policy:
+  - policy
+  - yaml
+  - permission
+  - allowlist
+  - whitelist
+  - blacklist
+  - caseSensitive: false
+
+docs:
+  - documentation
+  - docs
+  - readme
+  - manual
+  - tutorial
+  - caseSensitive: false
+
+tests:
+  - test
+  - tests
+  - junit
+  - jqwik
+  - integration
+  - caseSensitive: false
+
+securitytest:
+  - securitytest
+  - security test
+  - test case factory
+  - sandbox
+  - supervised code
+  - caseSensitive: false
+
+other:
+  - build
+  - ci
+  - maven
+  - dependency
+  - renovate
+  - release
+  - caseSensitive: false

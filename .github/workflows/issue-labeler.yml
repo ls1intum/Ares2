@@ -1,0 +1,21 @@
+name: Issue Labeler
+
+on:
+  issues:
+    types: [ opened, edited ]
+
+permissions: {}
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+      contents: read
+    steps:
+      - name: Label issue
+        uses: MaximilianAnzinger/issue-labeler@00977a029cf7d460956aa4d48af58a91a28c139a
+        with:
+          configuration-path: .github/issue-labeler.yml
+          repo-token: ${{ github.token }}

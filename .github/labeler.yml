@@ -1,0 +1,62 @@
+aop:
+  - changed-files:
+      - any-glob-to-any-file:
+          - src/main/java/de/tum/cit/ase/ares/api/aop/**/*
+          - src/test/java/de/tum/cit/ase/ares/api/aop/**/*
+          - src/test/java/de/tum/cit/ase/ares/integration/aop/**/*
+          - docs/aop/**/*
+
+architecture:
+  - changed-files:
+      - any-glob-to-any-file:
+          - src/main/java/de/tum/cit/ase/ares/api/architecture/**/*
+          - src/test/java/de/tum/cit/ase/ares/api/architecture/**/*
+          - src/test/java/de/tum/cit/ase/ares/integration/architecture/**/*
+          - docs/architecture/**/*
+
+ast:
+  - changed-files:
+      - any-glob-to-any-file:
+          - src/main/java/de/tum/cit/ase/ares/api/ast/**/*
+          - src/test/java/de/tum/cit/ase/ares/integration/AstAssertionTest.java
+          - src/test/java/de/tum/cit/ase/ares/integration/testuser/subject/structural/astTestFiles/**/*
+
+policy:
+  - changed-files:
+      - any-glob-to-any-file:
+          - src/main/java/de/tum/cit/ase/ares/api/policy/**/*
+          - src/test/java/de/tum/cit/ase/ares/api/policy/**/*
+          - src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/**/*
+          - docs/policy/**/*
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - docs/**/*
+          - "*.md"
+          - "*.adoc"
+          - SECURITY.md
+          - pull_request_template.md
+
+tests:
+  - changed-files:
+      - any-glob-to-any-file:
+          - src/test/**/*
+
+securitytest:
+  - changed-files:
+      - any-glob-to-any-file:
+          - src/main/java/de/tum/cit/ase/ares/api/securitytest/**/*
+          - src/test/java/de/tum/cit/ase/ares/api/securitytest/**/*
+          - docs/securitytest/**/*
+
+other:
+  - changed-files:
+      - any-glob-to-any-file:
+          - .github/**/*
+          - .coderabbit.yaml
+          - .whitesource
+          - .gitignore
+          - LICENSE
+          - pom.xml
+          - renovate.json
