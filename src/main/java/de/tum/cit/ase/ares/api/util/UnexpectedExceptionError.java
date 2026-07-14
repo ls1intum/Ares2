@@ -19,8 +19,9 @@ public final class UnexpectedExceptionError extends Error {
 		super(message, sanitize(cause), true, true);
 		this.originalType = originalType;
 		setStackTrace(stackTrace);
-		for (Throwable sup : suppressed)
+		for (Throwable sup : suppressed) {
 			addSuppressed(sanitize(sup));
+		}
 	}
 
 	public Class<? extends Throwable> getOriginalType() {
@@ -28,8 +29,9 @@ public final class UnexpectedExceptionError extends Error {
 	}
 
 	public static UnexpectedExceptionError wrap(Throwable t) {
-		if (t == null)
+		if (t == null) {
 			return null;
+		}
 		var message = invoke(t::toString);
 		var cause = invoke(t::getCause);
 		var originalType = t.getClass();

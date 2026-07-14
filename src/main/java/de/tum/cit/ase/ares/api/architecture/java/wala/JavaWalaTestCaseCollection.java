@@ -21,7 +21,7 @@ import de.tum.cit.ase.ares.api.util.FileTools;
  * does not: - Use reflection - Access file system - Access network - Terminate
  * JVM - Execute system commands - Create threads
  */
-public class JavaWalaTestCaseCollection {
+public final class JavaWalaTestCaseCollection {
 
 	// <editor-fold desc="Constructor">
 	private JavaWalaTestCaseCollection() {

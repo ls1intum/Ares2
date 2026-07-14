@@ -333,9 +333,9 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 			Iterator<StackWalker.StackFrame> iterator = frames.iterator();
 			while (iterator.hasNext()) {
 				String className = iterator.next().getClassName();
-				if (className.startsWith("jdk.internal.loader.") || className.equals("java.lang.ClassLoader")
-						|| className.equals("java.security.SecureClassLoader")
-						|| className.equals("java.net.URLClassLoader")) {
+				if (className.startsWith("jdk.internal.loader.") || "java.lang.ClassLoader".equals(className)
+						|| "java.security.SecureClassLoader".equals(className)
+						|| "java.net.URLClassLoader".equals(className)) {
 					return Boolean.TRUE;
 				}
 			}
@@ -385,9 +385,9 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 * architecture test setup.
 	 */
 	private static boolean isTrustedSetupUtility(@Nonnull String className) {
-		return className.equals("de.tum.cit.ase.ares.api.util.ProjectSourcesFinder")
-				|| className.equals("de.tum.cit.ase.ares.api.structural.testutils.ClassNameScanner")
-				|| className.equals("de.tum.cit.ase.ares.api.util.FileTools");
+		return "de.tum.cit.ase.ares.api.util.ProjectSourcesFinder".equals(className)
+				|| "de.tum.cit.ase.ares.api.structural.testutils.ClassNameScanner".equals(className)
+				|| "de.tum.cit.ase.ares.api.util.FileTools".equals(className);
 	}
 	// </editor-fold>
 

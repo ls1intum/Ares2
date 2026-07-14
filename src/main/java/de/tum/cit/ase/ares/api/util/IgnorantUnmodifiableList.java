@@ -227,8 +227,9 @@ public final class IgnorantUnmodifiableList<E> extends AbstractList<E> implement
 			}
 
 			private void checkChangeAction() {
-				if (!changeAllowed)
+				if (!changeAllowed) {
 					throw new IllegalStateException();
+				}
 			}
 		};
 	}

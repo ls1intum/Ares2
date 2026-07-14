@@ -30,11 +30,12 @@ public final class SecurityConstants {
 				.findFirst().orElse(null);
 		// Search for additional trusted packages specified by system properties
 		String additionalTurstedPackages = System.getProperty(AresSystemProperties.ARES_SECURITY_TRUSTED_PACKAGES);
-		if (additionalTurstedPackages != null)
+		if (additionalTurstedPackages != null) {
 			USER_DEFINED_STACK_WHITELIST = Stream.of(additionalTurstedPackages.split(",")).filter(not(String::isBlank)) //$NON-NLS-1$
 					.collect(Collectors.toUnmodifiableSet());
-		else
+		} else {
 			USER_DEFINED_STACK_WHITELIST = Set.of();
+		}
 	}
 	static final String SECURITY_PACKAGE_NAME = SecurityConstants.class.getPackageName();
 

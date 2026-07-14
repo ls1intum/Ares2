@@ -28,11 +28,13 @@ public final class ThrowableSanitizer {
 	}
 
 	public static Throwable sanitize(final Throwable t, MessageTransformer messageTransformer) {
-		if (t == null)
+		if (t == null) {
 			return null;
+		}
 		return SanitizationUtils.sanitizeWithinScopeOf(t, () -> {
-			if (UnexpectedExceptionError.class.equals(t.getClass()))
+			if (UnexpectedExceptionError.class.equals(t.getClass())) {
 				return t;
+			}
 			var firstPossibleSan = SANITIZERS.stream().filter(s -> s.canSanitize(t)).findFirst();
 			return firstPossibleSan.orElse(ArbitraryThrowableSanitizer.INSTANCE).sanitize(t, messageTransformer);
 		});

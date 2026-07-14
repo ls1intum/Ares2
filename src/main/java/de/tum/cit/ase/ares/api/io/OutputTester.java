@@ -50,8 +50,9 @@ public final class OutputTester implements LineAcceptor {
 
 	@Override
 	public void acceptOutput(CharBuffer output) {
-		if (output.isEmpty())
+		if (output.isEmpty()) {
 			return;
+		}
 		DynamicLine currentLine;
 		if (getCurrentLine().map(Line::isComplete).orElse(true)) {
 			// start new line
@@ -81,8 +82,9 @@ public final class OutputTester implements LineAcceptor {
 				lastWasCarriageReturn = false;
 			}
 		}
-		if (lastPos != output.length())
+		if (lastPos != output.length()) {
 			currentLine.append(output.subSequence(lastPos, output.length()));
+		}
 	}
 
 	private void addNewLine(AbstractLine line) {
@@ -91,8 +93,9 @@ public final class OutputTester implements LineAcceptor {
 	}
 
 	Optional<Line> getCurrentLine() {
-		if (actualOutput.isEmpty())
+		if (actualOutput.isEmpty()) {
 			return Optional.empty();
+		}
 		return Optional.of(actualOutput.get(actualOutput.size() - 1));
 	}
 
@@ -220,8 +223,9 @@ public final class OutputTester implements LineAcceptor {
 			// fast-forward needs to stay the same or JUnit LineMatcher won't recognize it
 			if (!isFastForward) {
 				// don't quote lines that were marked as regular expressions by the user
-				if (!isRegEx)
+				if (!isRegEx) {
 					newLine.replace(0, newLine.length(), Pattern.quote(newLine.toString()));
+				}
 				// insert random comment to avoid equality comparison working
 				newLine.insert(0, String.format("(?x)#%08X%n", i)); //$NON-NLS-1$
 				newLine.append('#').append(randomString);
@@ -251,14 +255,15 @@ public final class OutputTester implements LineAcceptor {
 			var lineNumber = Integer.parseInt(matcher.group(1), 16);
 			var expectedLine = lines.get(lineNumber);
 			var cleanExpectedLine = new StringBuilder(expectedLine);
-			if (startsWithEscape(expectedLine))
+			if (startsWithEscape(expectedLine)) {
 				cleanExpectedLine.append('`').setCharAt(0, '`');
-			else if (isRegExLine(expectedLine))
+			} else if (isRegExLine(expectedLine)) {
 				cleanExpectedLine.delete(0, 2).delete(cleanExpectedLine.length() - 2, cleanExpectedLine.length())
 						.insert(0, " `").insert(0, localized("output_tester.line_matching_regex_mismatch")) //$NON-NLS-1$ //$NON-NLS-2$
 						.append('`');
-			else
+			} else {
 				cleanExpectedLine.insert(0, '`').append('`');
+			}
 			String newFailureMessage = matcher.replaceFirst(cleanExpectedLine.toString());
 			return new AssertionFailedError(newFailureMessage, tryReplaceExpected(lines, afe.getExpected()),
 					afe.getActual().getEphemeralValue());
@@ -268,13 +273,16 @@ public final class OutputTester implements LineAcceptor {
 
 	private static Object tryReplaceExpected(List<String> expectedLines, ValueWrapper expectedValueWrapper) {
 		Object value = expectedValueWrapper.getEphemeralValue();
-		if (!(value instanceof String))
+		if (!(value instanceof String)) {
 			return value;
+		}
 		return expectedLines.stream().map(line -> {
-			if (startsWithEscape(line))
+			if (startsWithEscape(line)) {
 				return line.substring(1);
-			if (isRegExLine(line))
+			}
+			if (isRegExLine(line)) {
 				return line.substring(2, line.length() - 2);
+			}
 			return line;
 		}).collect(Collectors.joining(IOTester.LINE_SEPARATOR));
 	}
@@ -289,8 +297,9 @@ public final class OutputTester implements LineAcceptor {
 
 	private List<Line> processLines(OutputTestOptions... outputOptions) {
 		boolean ignoreLastEmpty = !OutputTestOptions.DONT_IGNORE_LAST_EMPTY_LINE.isIn(outputOptions);
-		if (ignoreLastEmpty && !actualOutput.isEmpty() && actualOutput.get(actualOutput.size() - 1).text().isEmpty())
+		if (ignoreLastEmpty && !actualOutput.isEmpty() && actualOutput.get(actualOutput.size() - 1).text().isEmpty()) {
 			return actualOutput.subList(0, actualOutput.size() - 1);
+		}
 		return actualOutput;
 	}
 }

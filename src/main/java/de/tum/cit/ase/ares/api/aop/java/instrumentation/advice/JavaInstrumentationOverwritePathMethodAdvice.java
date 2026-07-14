@@ -16,6 +16,11 @@ import net.bytebuddy.asm.Advice;
  * checks.
  */
 public final class JavaInstrumentationOverwritePathMethodAdvice {
+	private JavaInstrumentationOverwritePathMethodAdvice() {
+		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+				"security.instrumentation.utility.initialization", "JavaInstrumentationOverwritePathMethodAdvice"));
+	}
+
 	/**
 	 * This method is called when a method overwriting files is entered. It performs
 	 * security checks to determine whether the method execution is allowed

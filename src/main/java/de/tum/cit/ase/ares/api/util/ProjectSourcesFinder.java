@@ -15,9 +15,14 @@ import org.w3c.dom.*;
 import org.xml.sax.SAXException;
 
 import de.tum.cit.ase.ares.api.AresConfiguration;
+import de.tum.cit.ase.ares.api.localization.Messages;
 
 @API(status = Status.INTERNAL)
-public class ProjectSourcesFinder {
+public final class ProjectSourcesFinder {
+	private ProjectSourcesFinder() {
+		throw new SecurityException(
+				Messages.localized("security.general.utility.initialization", "ProjectSourcesFinder"));
+	}
 
 	private static final Logger LOG = LoggerFactory.getLogger(ProjectSourcesFinder.class);
 
@@ -58,15 +63,17 @@ public class ProjectSourcesFinder {
 	}
 
 	public static boolean isMavenProject() {
-		if (pomXmlPath == null)
+		if (pomXmlPath == null) {
 			return false;
+		}
 		File projectFile = new File(pomXmlPath);
 		return projectFile.exists() && !projectFile.isDirectory();
 	}
 
 	public static boolean isGradleProject() {
-		if (buildGradlePath == null)
+		if (buildGradlePath == null) {
 			return false;
+		}
 		File projectFile = new File(buildGradlePath);
 		return projectFile.exists() && !projectFile.isDirectory();
 	}

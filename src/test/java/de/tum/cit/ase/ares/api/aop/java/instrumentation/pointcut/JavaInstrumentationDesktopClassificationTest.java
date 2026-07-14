@@ -33,24 +33,24 @@ class JavaInstrumentationDesktopClassificationTest {
 	@Test
 	void desktopFileAccessMethodsAreClassifiedAsExecute() {
 		assertEquals(List.of("open", "edit", "print", "browse", "browseFileDirectory"),
-				JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteFiles.get(DESKTOP),
+				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_FILES.get(DESKTOP),
 				"Desktop open/edit/print/browse/browseFileDirectory must be classified as a file execute.");
 	}
 
 	@Test
 	void desktopIsNeverClassifiedAsReadOverwriteOrCreate() {
-		assertFalse(JavaInstrumentationPointcutDefinitions.methodsWhichCanReadFiles.containsKey(DESKTOP),
+		assertFalse(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_READ_FILES.containsKey(DESKTOP),
 				"Desktop must not be classified as a file read.");
-		assertFalse(JavaInstrumentationPointcutDefinitions.methodsWhichCanOverwriteFiles.containsKey(DESKTOP),
+		assertFalse(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_OVERWRITE_FILES.containsKey(DESKTOP),
 				"Desktop must not be classified as a file overwrite.");
-		assertFalse(JavaInstrumentationPointcutDefinitions.methodsWhichCanCreateFiles.containsKey(DESKTOP),
+		assertFalse(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_FILES.containsKey(DESKTOP),
 				"Desktop must not be classified as a file create.");
 	}
 
 	@Test
 	void desktopDeleteIsOnlyMoveToTrash() {
 		assertEquals(List.of("moveToTrash"),
-				JavaInstrumentationPointcutDefinitions.methodsWhichCanDeleteFiles.get(DESKTOP),
+				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_DELETE_FILES.get(DESKTOP),
 				"Only Desktop.moveToTrash deletes a file; the other Desktop methods are executes.");
 	}
 }

@@ -38,9 +38,10 @@ public abstract class MethodTestProvider extends StructuralTestProvider {
 	 */
 	protected DynamicContainer generateTestsForAllClasses() throws URISyntaxException {
 		List<DynamicNode> tests = new ArrayList<>();
-		if (structureOracleJSON == null)
+		if (structureOracleJSON == null) {
 			throw failure(
 					"The MethodTest test can only run if the structural oracle (test.json) is present. If you do not provide it, delete MethodTest.java!"); //$NON-NLS-1$
+		}
 		for (var i = 0; i < structureOracleJSON.size(); i++) {
 			var expectedClassJSON = structureOracleJSON.get(i);
 			// Only test the classes that have methods defined in the structure oracle.
@@ -54,13 +55,14 @@ public abstract class MethodTestProvider extends StructuralTestProvider {
 						() -> testMethods(expectedClassStructure)));
 			}
 		}
-		if (tests.isEmpty())
+		if (tests.isEmpty()) {
 			throw failure(
 					"No tests for methods available in the structural oracle (test.json). Either provide attributes information or delete MethodTest.java!"); //$NON-NLS-1$
-		/*
-		 * Using a custom URI here to workaround surefire rendering the JUnit XML
-		 * without the correct test names.
-		 */
+			/*
+			 * Using a custom URI here to workaround surefire rendering the JUnit XML
+			 * without the correct test names.
+			 */
+		}
 		return dynamicContainer(getClass().getName(), new URI(getClass().getName()), tests.stream());
 	}
 
@@ -118,8 +120,9 @@ public abstract class MethodTestProvider extends StructuralTestProvider {
 
 					// If all are correct, then we found the desired method and we can break the
 					// loop
-					if (checks.hasPassedAll())
+					if (checks.hasPassedAll()) {
 						break;
+					}
 				}
 				/*
 				 * TODO: we should also take wrong case and typos into account (i.e. the else
@@ -133,16 +136,21 @@ public abstract class MethodTestProvider extends StructuralTestProvider {
 	private static void checkMethodCorrectness(String expectedClassName, String expectedName,
 			JsonNode expectedParameters, MethodChecks methodChecks) {
 		String parameters = StructuralTestProvider.describeParameters(expectedParameters);
-		if (!methodChecks.name)
+		if (!methodChecks.name) {
 			throw localizedFailure("structural.method.name", expectedName, expectedClassName, parameters); //$NON-NLS-1$
-		if (!methodChecks.parameters)
+		}
+		if (!methodChecks.parameters) {
 			throw localizedFailure("structural.method.parameters", expectedName, expectedClassName, parameters); //$NON-NLS-1$
-		if (!methodChecks.modifiers)
+		}
+		if (!methodChecks.modifiers) {
 			throw localizedFailure("structural.method.modifiers", expectedName, expectedClassName, parameters); //$NON-NLS-1$
-		if (!methodChecks.annotations)
+		}
+		if (!methodChecks.annotations) {
 			throw localizedFailure("structural.method.annoations", expectedName, expectedClassName, parameters); //$NON-NLS-1$
-		if (!methodChecks.returnType)
+		}
+		if (!methodChecks.returnType) {
 			throw localizedFailure("structural.method.return", expectedName, expectedClassName, parameters); //$NON-NLS-1$
+		}
 	}
 
 	private static class MethodChecks {

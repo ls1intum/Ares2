@@ -30,7 +30,8 @@ public class JupiterIOExtension implements BeforeEachCallback, AfterEachCallback
 	@Override
 	public void afterEach(ExtensionContext context) {
 		// If this is null, there was an exception in before, so ignore it here
-		if (ioTesterManager != null)
+		if (ioTesterManager != null) {
 			ioTesterManager.afterTestExecution();
+		}
 	}
 }

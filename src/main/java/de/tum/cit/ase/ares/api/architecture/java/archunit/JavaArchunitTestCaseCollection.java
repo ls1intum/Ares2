@@ -26,7 +26,7 @@ import de.tum.cit.ase.ares.api.util.FileTools;
  * analyzed code does not: - Use reflection - Access file system - Access
  * network - Terminate JVM - Execute system commands - Create threads
  */
-public class JavaArchunitTestCaseCollection {
+public final class JavaArchunitTestCaseCollection {
 
 	// <editor-fold desc="Constructor">
 	private JavaArchunitTestCaseCollection() {

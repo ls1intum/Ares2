@@ -16,6 +16,11 @@ import net.bytebuddy.asm.Advice;
  * security checks.
  */
 public final class JavaInstrumentationSendNetworkMethodAdvice {
+	private JavaInstrumentationSendNetworkMethodAdvice() {
+		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+				"security.instrumentation.utility.initialization", "JavaInstrumentationSendNetworkMethodAdvice"));
+	}
+
 	/**
 	 * This method is called when a method sending network data is entered. It
 	 * performs security checks to determine whether the method execution is allowed

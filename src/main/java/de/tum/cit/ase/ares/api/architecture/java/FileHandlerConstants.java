@@ -10,7 +10,7 @@ import de.tum.cit.ase.ares.api.util.FileTools;
  * in the Java architecture. These methods are used to create the rules for the
  * architecture tests. The paths are used to read the methods from the files.
  */
-public class FileHandlerConstants {
+public final class FileHandlerConstants {
 
 	// <editor-fold desc="Java Archunit Methods">
 	public static final Path ARCHUNIT_FILESYSTEM_METHODS = FileTools.resolveFileOnSourceDirectory("templates",

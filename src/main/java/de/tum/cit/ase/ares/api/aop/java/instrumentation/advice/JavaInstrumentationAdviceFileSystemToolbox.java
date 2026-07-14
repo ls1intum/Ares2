@@ -379,7 +379,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				return Path.of(url.toURI()).normalize().toAbsolutePath();
 			} else if (variableValue instanceof String) {
 				// Empty string is not a valid path
-				if (variableValue.equals("")) {
+				if ("".equals(variableValue)) {
 					throw new SecurityException(localize("security.instrumentation.invalid.path", variableValue));
 				}
 				// "/" is the root directory and is a valid path - let it be processed normally
@@ -1367,7 +1367,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			// allowed
 			// This is a side effect of how the JVM resolves classes and is not a security
 			// concern
-			if (pathIllegallyInteractedThroughAttribute.equals("/")) {
+			if ("/".equals(pathIllegallyInteractedThroughAttribute)) {
 				isInternalAllowed = true;
 			}
 
@@ -1458,7 +1458,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			// <editor-fold desc="Check instrumentation mode early">
 			@Nullable
 			final String aopMode = getValueFromSettings("aopMode");
-			if (aopMode == null || aopMode.isEmpty() || !aopMode.equals("INSTRUMENTATION")) {
+			if (aopMode == null || aopMode.isEmpty() || !"INSTRUMENTATION".equals(aopMode)) {
 				return;
 			}
 			@Nullable

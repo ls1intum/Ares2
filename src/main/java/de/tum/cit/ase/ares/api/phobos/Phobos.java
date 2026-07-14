@@ -32,7 +32,7 @@ import de.tum.cit.ase.ares.api.util.FileTools;
  * @since 2.0.0
  * @author Ajayvir Singh
  */
-public class Phobos {
+public final class Phobos {
 
 	private Phobos() {
 		throw new IllegalStateException("Utility class should not be instantiated");

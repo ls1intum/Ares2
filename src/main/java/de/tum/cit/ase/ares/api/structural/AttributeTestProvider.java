@@ -40,9 +40,10 @@ public abstract class AttributeTestProvider extends StructuralTestProvider {
 	 */
 	protected DynamicContainer generateTestsForAllClasses() throws URISyntaxException {
 		List<DynamicNode> tests = new ArrayList<>();
-		if (structureOracleJSON == null)
+		if (structureOracleJSON == null) {
 			throw failure(
 					"The AttributeTest test can only run if the structural oracle (test.json) is present. If you do not provide it, delete AttributeTest.java!"); //$NON-NLS-1$
+		}
 		for (var i = 0; i < structureOracleJSON.size(); i++) {
 			var expectedClassJSON = structureOracleJSON.get(i);
 			// Only test the classes that have attributes defined in the oracle.
@@ -57,13 +58,14 @@ public abstract class AttributeTestProvider extends StructuralTestProvider {
 						() -> testAttributes(expectedClassStructure)));
 			}
 		}
-		if (tests.isEmpty())
+		if (tests.isEmpty()) {
 			throw failure(
 					"No tests for attributes available in the structural oracle (test.json). Either provide attributes information or delete AttributeTest.java!"); //$NON-NLS-1$
-		/*
-		 * Using a custom URI here to workaround surefire rendering the JUnit XML
-		 * without the correct test names.
-		 */
+			/*
+			 * Using a custom URI here to workaround surefire rendering the JUnit XML
+			 * without the correct test names.
+			 */
+		}
 		return dynamicContainer(getClass().getName(), new URI(getClass().getName()), tests.stream());
 	}
 
@@ -125,8 +127,9 @@ public abstract class AttributeTestProvider extends StructuralTestProvider {
 							expectedModifiers);
 					annotationsAreCorrect = checkAnnotations(observedAttribute.getAnnotations(), expectedAnnotations);
 					// If all are correct, then we found our attribute and we can break the loop
-					if (typeIsCorrect && modifiersAreCorrect && annotationsAreCorrect)
+					if (typeIsCorrect && modifiersAreCorrect && annotationsAreCorrect) {
 						break;
+					}
 				}
 				// TODO: we should also take wrong case and typos into account (the else case)
 			}
@@ -137,14 +140,18 @@ public abstract class AttributeTestProvider extends StructuralTestProvider {
 
 	private static void checkAttributeCorrectness(boolean nameIsCorrect, boolean typeIsCorrect,
 			boolean modifiersAreCorrect, boolean annotationsAreCorrect, String expectedName, String expectedClassName) {
-		if (!nameIsCorrect)
+		if (!nameIsCorrect) {
 			throw localizedFailure("structural.attribute.name", expectedName, expectedClassName); //$NON-NLS-1$
-		if (!typeIsCorrect)
+		}
+		if (!typeIsCorrect) {
 			throw localizedFailure("structural.attribute.type", expectedName, expectedClassName); //$NON-NLS-1$
-		if (!modifiersAreCorrect)
+		}
+		if (!modifiersAreCorrect) {
 			throw localizedFailure("structural.attribute.modifiers", expectedName, expectedClassName); //$NON-NLS-1$
-		if (!annotationsAreCorrect)
+		}
+		if (!annotationsAreCorrect) {
 			throw localizedFailure("structural.attribute.annotations", expectedName, expectedClassName); //$NON-NLS-1$
+		}
 	}
 
 	/**
@@ -161,8 +168,9 @@ public abstract class AttributeTestProvider extends StructuralTestProvider {
 	 */
 	protected static void checkEnumValues(String expectedClassName, Class<?> observedClass,
 			JsonNode expectedEnumValues) {
-		if (!observedClass.isEnum())
+		if (!observedClass.isEnum()) {
 			throw localizedFailure("structural.attribute.noEnumConstants", expectedClassName); //$NON-NLS-1$
+		}
 		@SuppressWarnings("unchecked")
 		var observedEnumValues = ((Class<? extends Enum<?>>) observedClass).getEnumConstants();
 		var observedEnumNames = Stream.of(observedEnumValues).map(Enum::name).collect(Collectors.toSet());

@@ -44,28 +44,34 @@ public final class ReportingUtils {
 		boolean aresInternalError = isAresInternalError(t);
 		// Always surface genuine framework faults to instructors via the server log,
 		// even when the failure occurs inside a hidden test.
-		if (aresInternalError)
+		if (aresInternalError) {
 			LOG.error("Ares internal error during test execution", t); //$NON-NLS-1$
-		// Hidden tests must never reveal why they failed, so their uniform message
-		// takes
-		// precedence over the more specific internal-error message for the student
-		// view.
-		if (context.findTestType().orElse(null) == TestType.HIDDEN)
+			// Hidden tests must never reveal why they failed, so their uniform message
+			// takes
+			// precedence over the more specific internal-error message for the student
+			// view.
+		}
+		if (context.findTestType().orElse(null) == TestType.HIDDEN) {
 			return new AssertionError(localized("test_guard.hidden_test_failed")); //$NON-NLS-1$
-		if (aresInternalError)
+		}
+		if (aresInternalError) {
 			return new AssertionError(localized("reporting.ares_internal_error")); //$NON-NLS-1$
+		}
 		Optional<String> nonprivilegedFailureMessage = ConfigurationUtils.getNonprivilegedFailureMessage(context);
-		if (nonprivilegedFailureMessage.isPresent())
+		if (nonprivilegedFailureMessage.isPresent()) {
 			return processThrowablePrivilegedOnly(t, nonprivilegedFailureMessage.get());
+		}
 		return processThrowableRegularly(t);
 	}
 
 	private static boolean isAresInternalError(Throwable t) {
-		if (!(t instanceof SecurityException))
+		if (!(t instanceof SecurityException)) {
 			return false;
+		}
 		String message = BlacklistedInvoker.invokeOrElse(t::getMessage, () -> null);
-		if (message == null)
+		if (message == null) {
 			return false;
+		}
 		// Only suppress genuine framework setup failures: the message must carry the
 		// Ares-Code reason marker AND name the settings class. Requiring both markers
 		// avoids misclassifying a student-thrown SecurityException that merely mentions
@@ -79,8 +85,9 @@ public final class ReportingUtils {
 	}
 
 	private static Throwable processThrowablePrivilegedOnly(Throwable t, String nonprivilegedFailureMessage) {
-		if (t instanceof PrivilegedException)
+		if (t instanceof PrivilegedException) {
 			return trySanitizeThrowable(t, ReportingUtils::transformMessage);
+		}
 		return new AssertionError(nonprivilegedFailureMessage);
 	}
 
@@ -95,8 +102,9 @@ public final class ReportingUtils {
 	}
 
 	private static String transformMessage(ThrowableInfo info) {
-		if (!AssertionError.class.isAssignableFrom(info.getClass()))
+		if (!AssertionError.class.isAssignableFrom(info.getClass())) {
 			addStackframeInfoToMessage(info);
+		}
 		return info.getMessage();
 	}
 

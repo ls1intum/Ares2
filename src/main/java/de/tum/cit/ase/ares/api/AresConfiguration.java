@@ -13,7 +13,7 @@ import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
  * @version 1.0.0
  */
 @API(status = Status.MAINTAINED)
-public class AresConfiguration {
+public final class AresConfiguration {
 
 	private AresConfiguration() {
 	}

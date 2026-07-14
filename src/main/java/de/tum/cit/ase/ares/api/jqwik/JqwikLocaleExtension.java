@@ -26,10 +26,12 @@ public class JqwikLocaleExtension implements AroundContainerHook {
 	@Override
 	public void beforeContainer(ContainerLifecycleContext context) {
 		var annot = AnnotationSupport.findAnnotation(context.optionalElement(), UseLocale.class);
-		if (annot.isEmpty())
+		if (annot.isEmpty()) {
 			return;
-		if (oldLocale != null)
+		}
+		if (oldLocale != null) {
 			throw new AnnotationFormatError(localized("jqwik.duplicate_locale_extension_failure")); //$NON-NLS-1$
+		}
 		oldLocale = Locale.getDefault();
 		var newLocale = new Locale(annot.get().value());
 		Locale.setDefault(newLocale);
@@ -37,7 +39,8 @@ public class JqwikLocaleExtension implements AroundContainerHook {
 
 	@Override
 	public void afterContainer(ContainerLifecycleContext context) {
-		if (oldLocale != null)
+		if (oldLocale != null) {
 			Locale.setDefault(oldLocale);
+		}
 	}
 }

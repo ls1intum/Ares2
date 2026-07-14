@@ -69,7 +69,8 @@ public class DynamicConstructor<T> implements Checkable {
 	public void check(Check... checks) {
 		toConstructor();
 		int modifiers = toConstructor().getModifiers();
-		for (Check check : checks)
+		for (Check check : checks) {
 			check.checkModifiers(modifiers, () -> localized("dynamics.constructor.name", this)); //$NON-NLS-1$
+		}
 	}
 }

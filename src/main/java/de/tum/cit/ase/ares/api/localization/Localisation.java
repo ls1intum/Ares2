@@ -11,7 +11,7 @@ import com.opencsv.exceptions.CsvException;
 import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaCSVFileLoader;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
-public class Localisation {
+public final class Localisation {
 
 	private Localisation() {
 		throw new IllegalStateException("Utility class should not be instantiated");

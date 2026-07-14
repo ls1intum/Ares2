@@ -27,7 +27,7 @@ public final class IOExtensionUtils {
 		// REMOVED: Installation of ArtemisSecurityManager;
 	}
 
-	private static final HashMap<Class<? extends IOManager<?>>, Supplier<? extends IOManager<?>>> ioManagerCache = new HashMap<>();
+	private static final HashMap<Class<? extends IOManager<?>>, Supplier<? extends IOManager<?>>> IO_MANAGER_CACHE = new HashMap<>();
 
 	private final AresIOContext context;
 	private final IOManager<?> ioManager;
@@ -62,7 +62,7 @@ public final class IOExtensionUtils {
 	private static IOManager<?> createIOManagerFor(TestContext testContext) {
 		var ioManagerClass = TestContextUtils.findAnnotationIn(testContext, WithIOManager.class)
 				.<Class<? extends IOManager<?>>>map(WithIOManager::value).orElse(DEFAULT_IO_MANAGER);
-		return ioManagerCache.computeIfAbsent(ioManagerClass, IOExtensionUtils::generateIOManagerSupplier).get();
+		return IO_MANAGER_CACHE.computeIfAbsent(ioManagerClass, IOExtensionUtils::generateIOManagerSupplier).get();
 	}
 
 	private static Supplier<IOManager<?>> generateIOManagerSupplier(Class<? extends IOManager<?>> ioManagerClass) {

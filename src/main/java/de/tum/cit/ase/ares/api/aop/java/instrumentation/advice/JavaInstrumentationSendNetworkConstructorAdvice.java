@@ -14,6 +14,11 @@ import net.bytebuddy.asm.Advice;
  * security checks.
  */
 public final class JavaInstrumentationSendNetworkConstructorAdvice {
+	private JavaInstrumentationSendNetworkConstructorAdvice() {
+		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+				"security.instrumentation.utility.initialization", "JavaInstrumentationSendNetworkConstructorAdvice"));
+	}
+
 	/**
 	 * This method is called when a constructor sending network data is entered. It
 	 * performs security checks to determine whether the constructor execution is

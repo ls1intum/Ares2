@@ -45,7 +45,7 @@ import com.opencsv.exceptions.CsvException;
  * intended for use in scenarios where secure and reliable file handling is
  * required.
  */
-public class FileTools {
+public final class FileTools {
 
 	private static final Pattern JAR_PATH_PATTERN = Pattern.compile("(?i)^(.*?\\.jar)(?:!|[\\\\/])(.+)$");
 
@@ -483,9 +483,12 @@ public class FileTools {
 	// <editor-fold desc="Format">
 
 	private static int countOccurrences(String content, String needle) {
-		if (content == null || needle == null || needle.isEmpty())
+		if (content == null || needle == null || needle.isEmpty()) {
 			return 0;
-		int count = 0, idx = 0, step = needle.length();
+		}
+		int count = 0;
+		int idx = 0;
+		int step = needle.length();
 		while ((idx = content.indexOf(needle, idx)) != -1) {
 			count++;
 			idx += step;
@@ -494,8 +497,9 @@ public class FileTools {
 	}
 
 	private static String replacePlaceholdersWithFormatSpec(String content, String[] placeholders) {
-		if (content == null || placeholders == null)
+		if (content == null || placeholders == null) {
 			return content;
+		}
 		String result = content;
 		for (String ph : placeholders) {
 			if (ph != null && !ph.isEmpty()) {

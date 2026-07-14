@@ -15,6 +15,11 @@ import net.bytebuddy.asm.Advice;
  * JavaInstrumentationAdviceFileSystemToolbox to perform these security checks.
  */
 public final class JavaInstrumentationDeletePathMethodAdvice {
+	private JavaInstrumentationDeletePathMethodAdvice() {
+		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+				"security.instrumentation.utility.initialization", "JavaInstrumentationDeletePathMethodAdvice"));
+	}
+
 	/**
 	 * This method is called when a method deleting files is entered. It performs
 	 * security checks to determine whether the method execution is allowed

@@ -132,10 +132,11 @@ public final class JupiterSecurityExtension
 				resetSettingsInStandardClassLoader();
 				resetSettingsInBootstrapClassLoader();
 			} catch (Exception e) {
-				if (failure == null)
+				if (failure == null) {
 					failure = e;
-				else
+				} else {
 					failure.addSuppressed(e);
+				}
 			}
 		}
 		throw failure;

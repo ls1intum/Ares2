@@ -37,9 +37,10 @@ public abstract class ConstructorTestProvider extends StructuralTestProvider {
 	 */
 	protected DynamicContainer generateTestsForAllClasses() throws URISyntaxException {
 		List<DynamicNode> tests = new ArrayList<>();
-		if (structureOracleJSON == null)
+		if (structureOracleJSON == null) {
 			throw failure(
 					"The ConstructorTest can only run if the structural oracle (test.json) is present. If you do not provide it, delete ConstructorTest.java!"); //$NON-NLS-1$
+		}
 		for (var i = 0; i < structureOracleJSON.size(); i++) {
 			var expectedClassJSON = structureOracleJSON.get(i);
 
@@ -54,13 +55,14 @@ public abstract class ConstructorTestProvider extends StructuralTestProvider {
 						() -> testConstructors(expectedClassStructure)));
 			}
 		}
-		if (tests.isEmpty())
+		if (tests.isEmpty()) {
 			throw failure(
 					"No tests for constructors available in the structural oracle (test.json). Either provide constructor information or delete ConstructorTest.java!"); //$NON-NLS-1$
-		/*
-		 * Using a custom URI here to workaround surefire rendering the JUnit XML
-		 * without the correct test names.
-		 */
+			/*
+			 * Using a custom URI here to workaround surefire rendering the JUnit XML
+			 * without the correct test names.
+			 */
+		}
 		return dynamicContainer(getClass().getName(), new URI(getClass().getName()), tests.stream());
 	}
 
@@ -117,8 +119,9 @@ public abstract class ConstructorTestProvider extends StructuralTestProvider {
 				annotationsAreRight = checkAnnotations(observedAnnotations, expectedAnnotations);
 
 				// If both are correct, then we found our constructor and we can break the loop
-				if (parametersAreRight && modifiersAreRight && annotationsAreRight)
+				if (parametersAreRight && modifiersAreRight && annotationsAreRight) {
 					break;
+				}
 			}
 			checkConstructorCorrectness(expectedClassName, expectedParameters, parametersAreRight, modifiersAreRight,
 					annotationsAreRight);
@@ -128,11 +131,14 @@ public abstract class ConstructorTestProvider extends StructuralTestProvider {
 	private static void checkConstructorCorrectness(String expectedClassName, JsonNode expectedParameters,
 			boolean parametersAreCorrect, boolean modifiersAreCorrect, boolean annotationsAreCorrect) {
 		String parameters = describeParameters(expectedParameters);
-		if (!parametersAreCorrect)
+		if (!parametersAreCorrect) {
 			throw localizedFailure("structural.constructor.parameters", expectedClassName, parameters); //$NON-NLS-1$
-		if (!modifiersAreCorrect)
+		}
+		if (!modifiersAreCorrect) {
 			throw localizedFailure("structural.constructor.modifiers", expectedClassName, parameters); //$NON-NLS-1$
-		if (!annotationsAreCorrect)
+		}
+		if (!annotationsAreCorrect) {
 			throw localizedFailure("structural.constructor.annotations", expectedClassName, parameters); //$NON-NLS-1$
+		}
 	}
 }

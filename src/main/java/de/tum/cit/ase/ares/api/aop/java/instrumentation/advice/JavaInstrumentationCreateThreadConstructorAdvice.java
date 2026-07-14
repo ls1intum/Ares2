@@ -14,6 +14,11 @@ import net.bytebuddy.asm.Advice;
  * checks.
  */
 public final class JavaInstrumentationCreateThreadConstructorAdvice {
+	private JavaInstrumentationCreateThreadConstructorAdvice() {
+		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+				"security.instrumentation.utility.initialization", "JavaInstrumentationCreateThreadConstructorAdvice"));
+	}
+
 	/**
 	 * This method is called when a constructor creating threads is entered. It
 	 * performs security checks to determine whether the constructor execution is

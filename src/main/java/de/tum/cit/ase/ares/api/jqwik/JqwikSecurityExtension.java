@@ -75,10 +75,11 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
 		// Fix for issue #1, add as suppressed exception
 		if (error != null) {
 			Optional<Throwable> propExecError = result.throwable();
-			if (propExecError.isPresent())
+			if (propExecError.isPresent()) {
 				propExecError.get().addSuppressed(error);
-			else
+			} else {
 				result = result.mapToFailed(error);
+			}
 		}
 		return result;
 	}

@@ -28,7 +28,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumenta
  * This class is the entry point for the Java instrumentation agent. It installs
  * the agent builder for the different types of file operations.
  */
-public class JavaInstrumentationAgent {
+public final class JavaInstrumentationAgent {
 
 	private JavaInstrumentationAgent() {
 		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
@@ -56,48 +56,58 @@ public class JavaInstrumentationAgent {
 		java.lang.StackWalker walker = java.lang.StackWalker.getInstance();
 		walker.walk(stream -> stream.limit(1L).count());
 
-		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanReadFiles,
+		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_READ_FILES,
 				JavaInstrumentationBindingDefinitions::createReadPathMethodBinding);
-		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanOverwriteFiles,
+		installAgentBuilder(inst, unsafeFactory,
+				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_OVERWRITE_FILES,
 				JavaInstrumentationBindingDefinitions::createOverwritePathMethodBinding);
-		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanCreateFiles,
+		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_FILES,
 				JavaInstrumentationBindingDefinitions::createCreatePathMethodBinding);
-		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteFiles,
+		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_FILES,
 				JavaInstrumentationBindingDefinitions::createExecutePathMethodBinding);
-		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanDeleteFiles,
+		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_DELETE_FILES,
 				JavaInstrumentationBindingDefinitions::createDeletePathMethodBinding);
-		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanCreateThreads,
+		installAgentBuilder(inst, unsafeFactory,
+				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_THREADS,
 				JavaInstrumentationBindingDefinitions::createCreateThreadMethodBinding);
-		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteCommands,
+		installAgentBuilder(inst, unsafeFactory,
+				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_COMMANDS,
 				JavaInstrumentationBindingDefinitions::createExecuteCommandMethodBinding);
-		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanConnectToNetwork,
+		installAgentBuilder(inst, unsafeFactory,
+				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CONNECT_TO_NETWORK,
 				JavaInstrumentationBindingDefinitions::createConnectNetworkMethodBinding);
-		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanSendToNetwork,
+		installAgentBuilder(inst, unsafeFactory,
+				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_SEND_TO_NETWORK,
 				JavaInstrumentationBindingDefinitions::createSendNetworkMethodBinding);
 		installAgentBuilder(inst, unsafeFactory,
-				JavaInstrumentationPointcutDefinitions.methodsWhichCanReceiveFromNetwork,
+				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_RECEIVE_FROM_NETWORK,
 				JavaInstrumentationBindingDefinitions::createReceiveNetworkMethodBinding);
 
-		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanReadFiles,
+		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_READ_FILES,
 				JavaInstrumentationBindingDefinitions::createReadPathConstructorBinding);
-		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanOverwriteFiles,
+		installAgentBuilder(inst, unsafeFactory,
+				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_OVERWRITE_FILES,
 				JavaInstrumentationBindingDefinitions::createOverwritePathConstructorBinding);
-		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanCreateFiles,
+		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_FILES,
 				JavaInstrumentationBindingDefinitions::createCreatePathConstructorBinding);
-		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteFiles,
+		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_FILES,
 				JavaInstrumentationBindingDefinitions::createExecutePathConstructorBinding);
-		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanDeleteFiles,
+		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_DELETE_FILES,
 				JavaInstrumentationBindingDefinitions::createDeletePathConstructorBinding);
-		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanCreateThreads,
+		installAgentBuilder(inst, unsafeFactory,
+				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_THREADS,
 				JavaInstrumentationBindingDefinitions::createCreateThreadConstructorBinding);
-		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteCommands,
+		installAgentBuilder(inst, unsafeFactory,
+				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_COMMANDS,
 				JavaInstrumentationBindingDefinitions::createExecuteCommandConstructorBinding);
-		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanConnectToNetwork,
+		installAgentBuilder(inst, unsafeFactory,
+				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CONNECT_TO_NETWORK,
 				JavaInstrumentationBindingDefinitions::createConnectNetworkConstructorBinding);
-		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.methodsWhichCanSendToNetwork,
+		installAgentBuilder(inst, unsafeFactory,
+				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_SEND_TO_NETWORK,
 				JavaInstrumentationBindingDefinitions::createSendNetworkConstructorBinding);
 		installAgentBuilder(inst, unsafeFactory,
-				JavaInstrumentationPointcutDefinitions.methodsWhichCanReceiveFromNetwork,
+				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_RECEIVE_FROM_NETWORK,
 				JavaInstrumentationBindingDefinitions::createReceiveNetworkConstructorBinding);
 	}
 

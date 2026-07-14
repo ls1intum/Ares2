@@ -16,11 +16,13 @@ final class TestInStream extends InputStream {
 
 	@Override
 	public int read() throws IOException {
-		if (input == null)
+		if (input == null) {
 			tryLoadNextLine();
+		}
 		int res = input.read();
-		if (input.available() == 0)
+		if (input.available() == 0) {
 			input = null;
+		}
 		return res;
 	}
 
@@ -31,11 +33,13 @@ final class TestInStream extends InputStream {
 
 	@Override
 	public int read(byte[] b, int off, int len) throws IOException {
-		if (input == null)
+		if (input == null) {
 			tryLoadNextLine();
+		}
 		int res = input.read(b, off, len);
-		if (input.available() == 0)
+		if (input.available() == 0) {
 			input = null;
+		}
 		return res;
 	}
 

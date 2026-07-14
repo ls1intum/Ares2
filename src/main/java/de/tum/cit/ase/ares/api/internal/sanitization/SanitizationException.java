@@ -17,7 +17,7 @@ class SanitizationException extends RuntimeException {
 	private final Class<?> originClass;
 	private final Throwable unsafeCause;
 
-	public SanitizationException(Class<?> originClass, Throwable cause) {
+	SanitizationException(Class<?> originClass, Throwable cause) {
 		super(generateMessage(originClass, cause));
 		this.originClass = Objects.requireNonNull(originClass, "sanitization failure origin class must not be null"); //$NON-NLS-1$
 		unsafeCause = Objects.requireNonNull(cause, "sanitization failure cause must not be null"); //$NON-NLS-1$

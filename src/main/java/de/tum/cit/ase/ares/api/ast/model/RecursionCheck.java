@@ -30,13 +30,13 @@ import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeS
 import com.github.javaparser.utils.SourceRoot;
 
 @API(status = API.Status.INTERNAL)
-public class RecursionCheck {
+public final class RecursionCheck {
 
 	private static final String JAVA_FILE_EXTENSION = ".java";
 
 	private static final String CLASS_PATTERN = "\\.(\\w+)\\.[a-z]\\w*\\(";
 
-	private static final Logger log = LoggerFactory.getLogger(RecursionCheck.class);
+	private static final Logger LOG = LoggerFactory.getLogger(RecursionCheck.class);
 
 	private RecursionCheck() {
 		throw new IllegalStateException(localized("ast.hide.implicit.constructor"));
@@ -108,7 +108,7 @@ public class RecursionCheck {
 		// Check if the position is null
 		if (nodePosition == null) {
 			// Log an error message
-			log.error("Error in MethodCallGraph: Vertex position not found for vertex: {}", vertexName);
+			LOG.error("Error in MethodCallGraph: Vertex position not found for vertex: {}", vertexName);
 
 			// Throw an IllegalStateException with a descriptive message
 			throw new IllegalStateException(localized("ast.node.position.not.determined"));

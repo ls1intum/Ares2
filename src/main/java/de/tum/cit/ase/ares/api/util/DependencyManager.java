@@ -27,7 +27,7 @@ import org.xml.sax.SAXException;
 public class DependencyManager {
 
 	/** Logger for the DependencyManager class. */
-	private static final Logger log = LoggerFactory.getLogger(DependencyManager.class);
+	private static final Logger LOG = LoggerFactory.getLogger(DependencyManager.class);
 
 	/** The path to the build configuration file. */
 	private final String filePath;
@@ -121,7 +121,7 @@ public class DependencyManager {
 				String existingArtifactId = dependency.getElementsByTagName("artifactId").item(0).getTextContent();
 
 				if (existingGroupId.equals(groupId) && existingArtifactId.equals(artifactId)) {
-					DependencyManager.log.info("Dependency {}:{} already exists in pom.xml", groupId, artifactId);
+					DependencyManager.LOG.info("Dependency {}:{} already exists in pom.xml", groupId, artifactId);
 					return; // Exit without adding duplicate
 				}
 			}
@@ -195,7 +195,7 @@ public class DependencyManager {
 		// Check if the dependency already exists
 		for (String line : lines) {
 			if (line.trim().contains("implementation '" + groupId + ":" + artifactId)) {
-				log.info("Dependency {}:{} already exists in build.gradle", groupId, artifactId);
+				LOG.info("Dependency {}:{} already exists in build.gradle", groupId, artifactId);
 				return; // Exit without adding duplicate
 			}
 		}
@@ -305,7 +305,7 @@ public class DependencyManager {
 			// Save the updated pom.xml file
 			saveXmlChanges(doc, pomFile);
 		} else {
-			log.info("Plugin {}:{} already exists.", groupId, artifactId);
+			LOG.info("Plugin {}:{} already exists.", groupId, artifactId);
 		}
 	}
 
@@ -421,7 +421,7 @@ public class DependencyManager {
 			manager.addPlugin("dev.aspectj", "aspectj-maven-plugin", "1.14", List.of(complianceLevel, aspectDirectory),
 					List.of(execution1, execution2));
 		} catch (Exception e) {
-			log.error(e.getMessage());
+			LOG.error(e.getMessage());
 		}
 	}
 }

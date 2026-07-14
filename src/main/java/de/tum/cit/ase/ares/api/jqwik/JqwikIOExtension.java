@@ -42,13 +42,14 @@ public final class JqwikIOExtension implements AroundPropertyHook {
 			return property.execute();
 		} finally {
 			// unregister controller if necessary
-			if (ioExtensionUtils.providesController())
+			if (ioExtensionUtils.providesController()) {
 				RegisteredArbitraryProviders.unregister(controllerProvider);
+			}
 			ioExtensionUtils.afterTestExecution();
 		}
 	}
 
-	private static class ControllerProvider implements ArbitraryProvider {
+	private static final class ControllerProvider implements ArbitraryProvider {
 
 		private final Predicate<Class<?>> canProvideControllerFor;
 		private final Object controllerInstance;

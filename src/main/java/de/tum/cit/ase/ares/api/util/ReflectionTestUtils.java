@@ -393,9 +393,10 @@ public final class ReflectionTestUtils {
 	 */
 	private static void setValueOfAttribute(Object object, String attributeName, Object newValue, boolean forceAccess) {
 		Field field = getAttribute(object, attributeName, forceAccess);
-		if (Modifier.isFinal(field.getModifiers()))
+		if (Modifier.isFinal(field.getModifiers())) {
 			throw localizedFailure("reflection_test_utils.attribute_set_final", attributeName, //$NON-NLS-1$
 					object.getClass().getSimpleName());
+		}
 		try {
 			field.set(object, newValue);
 		} catch (@SuppressWarnings("unused") IllegalAccessException iae) {
@@ -716,8 +717,9 @@ public final class ReflectionTestUtils {
 	}
 
 	private static String describeParameters(Class<?>... parameterTypes) {
-		if (parameterTypes.length == 0)
+		if (parameterTypes.length == 0) {
 			return localized("reflection_test_utils.no_parameters"); //$NON-NLS-1$
+		}
 		return localized("reflection_test_utils.with_parameters", getParameterTypesAsString(parameterTypes)); //$NON-NLS-1$
 	}
 
@@ -759,15 +761,17 @@ public final class ReflectionTestUtils {
 	 * @return the same, unchanged object in case it was not null
 	 */
 	private static <T> T requireNonNull(T object, String key, Object... messageArgs) {
-		if (object == null)
+		if (object == null) {
 			throw localizedFailure(key, messageArgs);
+		}
 		return object;
 	}
 
 	private static String getIllegalAccessSource(Member member) {
-		if (!Modifier.isPublic(member.getModifiers()))
+		if (!Modifier.isPublic(member.getModifiers())) {
 			return localized(
 					"reflection_test_utils.construct." + member.getClass().getSimpleName().toLowerCase(Locale.ROOT)); //$NON-NLS-1$
+		}
 		return localized("reflection_test_utils.construct.class"); //$NON-NLS-1$
 	}
 }

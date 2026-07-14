@@ -8,7 +8,7 @@ import java.util.stream.Stream;
  * Provides utility methods to search for declared and inherited public,
  * protected, and (package) private members of classes.
  */
-class ClassMemberAccessor {
+final class ClassMemberAccessor {
 	private ClassMemberAccessor() {
 	}
 

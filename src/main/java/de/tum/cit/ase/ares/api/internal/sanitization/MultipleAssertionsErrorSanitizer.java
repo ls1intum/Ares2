@@ -31,8 +31,9 @@ enum MultipleAssertionsErrorSanitizer implements SpecificThrowableSanitizer {
 			// has a description, that we now have to get somehow
 			String messageWithoutDecscription = invoke(() -> new MultipleAssertionsError(mae.getErrors()).getMessage());
 			String start = SanitizationUtils.removeSuffixMatching(info.getMessage(), messageWithoutDecscription);
-			if (start != null)
+			if (start != null) {
 				description = start.substring(1, start.length() - 2);
+			}
 		}
 		/*
 		 * Note that this will only affect the description, not the whole message (this
