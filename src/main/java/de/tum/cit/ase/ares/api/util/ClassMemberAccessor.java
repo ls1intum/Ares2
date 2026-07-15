@@ -10,6 +10,8 @@ import java.util.stream.Stream;
  */
 final class ClassMemberAccessor {
 	private ClassMemberAccessor() {
+		throw new SecurityException(de.tum.cit.ase.ares.api.localization.Messages.localized(
+				"security.general.utility.initialization", ClassMemberAccessor.class.getSimpleName()));
 	}
 
 	/**
