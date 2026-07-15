@@ -359,10 +359,10 @@ public final class JavaInstrumentationBindingDefinitions {
 	// <editor-fold desc="Create Thread">
 	/**
 	 * This method creates a binding for the create thread pointcut. It applies the
-	 * instrumentation advice for file deletion operations defined in the
+	 * instrumentation advice for thread creation operations defined in the
 	 * corresponding pointcuts, ensuring that security-related advice is applied
 	 * when methods that create threads are invoked. This safeguards against
-	 * unauthorised or harmful file deletion operations.
+	 * unauthorised or harmful thread creation operations.
 	 *
 	 * @param builder          The builder used to create the binding.
 	 * @param typeDescription  The description of the class whose methods are being
@@ -372,10 +372,10 @@ public final class JavaInstrumentationBindingDefinitions {
 	 *                         reasons).
 	 * @param protectionDomain The protection domain being ignored (for
 	 *                         compatibility reasons).
-	 * @return The builder with the binding applied for file deletion operations.
+	 * @return The builder with the binding applied for thread creation operations.
 	 * @throws SecurityException If the binding could not be created for the create
 	 *                           thread, preventing the enforcement of security
-	 *                           policies for file deletion operations.
+	 *                           policies for thread creation operations.
 	 */
 	public static DynamicType.Builder<?> createCreateThreadMethodBinding(DynamicType.Builder<?> builder,
 			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
