@@ -10,9 +10,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,6 +44,7 @@ import com.ibm.wala.types.MethodReference;
 import com.ibm.wala.types.TypeReference;
 import com.tngtech.archunit.core.domain.Dependency;
 import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 
 import de.tum.cit.ase.ares.api.localization.Messages;
@@ -139,6 +142,7 @@ public class CustomCallgraphBuilder {
 				.filter(entry -> !entry.isBlank()).collect(Collectors.toCollection(LinkedHashSet::new));
 		Deque<JavaClass> pending = new ArrayDeque<>();
 		Set<String> visitedClasses = new HashSet<>();
+		Map<String, JavaClasses> importedJars = new HashMap<>();
 		ClassFileImporter importer = new ClassFileImporter();
 
 		for (String entry : entries) {
@@ -165,12 +169,21 @@ public class CustomCallgraphBuilder {
 					continue;
 				}
 				URL location = CustomCallgraphBuilder.class.getResource(convertTypeNameToClassName(targetName));
-				if (location == null || !"file".equals(location.getProtocol())) {
+				if (location == null
+						|| !("file".equals(location.getProtocol()) || "jar".equals(location.getProtocol()))) {
 					continue;
 				}
-				classpathEntryFor(location).ifPresent(entries::add);
+				Optional<String> classpathEntry = classpathEntryFor(location);
+				classpathEntry.ifPresent(entries::add);
 				try {
-					JavaClass resolved = importer.importUrl(location).get(targetName);
+					JavaClass resolved;
+					if ("jar".equals(location.getProtocol()) && classpathEntry.isPresent()) {
+						JavaClasses jarClasses = importedJars.computeIfAbsent(classpathEntry.get(),
+								ignored -> importer.importUrl(location));
+						resolved = jarClasses.get(targetName);
+					} else {
+						resolved = importer.importUrl(location).get(targetName);
+					}
 					pending.addLast(resolved);
 				} catch (RuntimeException ignored) {
 					// WALA will surface a genuinely required but unresolvable dependency while
