@@ -4,14 +4,16 @@ import java.lang.reflect.*;
 import java.util.*;
 import java.util.stream.Stream;
 
+import de.tum.cit.ase.ares.api.localization.Messages;
+
 /**
  * Provides utility methods to search for declared and inherited public,
  * protected, and (package) private members of classes.
  */
 final class ClassMemberAccessor {
 	private ClassMemberAccessor() {
-		throw new SecurityException(de.tum.cit.ase.ares.api.localization.Messages.localized(
-				"security.general.utility.initialization", ClassMemberAccessor.class.getSimpleName()));
+		throw new SecurityException(
+				Messages.localized("security.general.utility.initialization", "ClassMemberAccessor"));
 	}
 
 	/**

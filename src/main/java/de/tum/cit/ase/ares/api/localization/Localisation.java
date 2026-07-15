@@ -14,7 +14,7 @@ import de.tum.cit.ase.ares.api.util.FileTools;
 public final class Localisation {
 
 	private Localisation() {
-		throw new IllegalStateException("Utility class should not be instantiated");
+		throw new SecurityException(Messages.localized("security.general.utility.initialization", "Localisation"));
 	}
 
 	public static List<Path> filesToCopy() {
