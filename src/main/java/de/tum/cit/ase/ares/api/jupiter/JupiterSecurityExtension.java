@@ -15,6 +15,8 @@ import org.junit.jupiter.api.extension.*;
 import org.junit.platform.commons.function.Try;
 
 import de.tum.cit.ase.ares.api.Policy;
+import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 
 @API(status = Status.INTERNAL)
@@ -117,19 +119,29 @@ public final class JupiterSecurityExtension
 			SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policyPath).projectFolderPath(withinPath)
 					.build().createTestCases().executeTestCases();
 		}
+		boolean instrumentationMode = JavaAOPTestCaseSettings.isInstrumentationMode();
+		T result = null;
 		Throwable failure = null;
 		try {
-			return invocation.proceed();
+			result = invocation.proceed();
 		} catch (Throwable t) {
 			failure = t;
 		} finally {
+			Throwable transformationFailure = null;
+			if (instrumentationMode) {
+				try {
+					JavaInstrumentationAgent.throwIfTransformationFailed();
+				} catch (SecurityException e) {
+					transformationFailure = e;
+				}
+			}
 			try {
 				// ALWAYS reset settings AFTER the test to ensure clean state for subsequent
 				// tests, since security is now enforced by default.
 				resetSettingsInStandardClassLoader();
 				resetSettingsInBootstrapClassLoader();
 			} catch (Exception e) {
-				if (failure == null) {
+				if (failure == null && transformationFailure == null) {
 					// The test itself passed, so invocation.proceed() left a pending return on
 					// this method. Assigning to failure would let that return run and swallow
 					// this teardown failure, leaving the next test with un-reset security
@@ -137,10 +149,23 @@ public final class JupiterSecurityExtension
 					// return and propagates the teardown failure instead.
 					throw e;
 				}
-				failure.addSuppressed(e);
+				if (transformationFailure != null) {
+					transformationFailure.addSuppressed(e);
+				} else {
+					failure.addSuppressed(e);
+				}
+			}
+			if (transformationFailure != null) {
+				if (failure != null) {
+					transformationFailure.addSuppressed(failure);
+				}
+				throw transformationFailure;
 			}
 		}
-		throw failure;
+		if (failure != null) {
+			throw failure;
+		}
+		return result;
 	}
 
 	public static void resetSettings(Class<?> javaTestCaseSettingsClass) {
@@ -198,14 +223,11 @@ public final class JupiterSecurityExtension
 
 	static void resetSettingsWithMethod(Method resetMethod) {
 		try {
-			resetMethod.setAccessible(true);
 			resetMethod.invoke(null);
 		} catch (IllegalAccessException e) {
 			throw new SecurityException(localize("security.settings.reset.access.denied"), e);
 		} catch (InvocationTargetException e) {
 			throw new SecurityException(localize("security.settings.error.within.method"), e);
-		} finally {
-			resetMethod.setAccessible(false);
 		}
 	}
 

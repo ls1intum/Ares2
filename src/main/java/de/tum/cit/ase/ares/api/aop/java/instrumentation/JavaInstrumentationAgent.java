@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.asm.MemberSubstitution;
@@ -14,6 +15,7 @@ import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.loading.ClassInjector;
 import net.bytebuddy.dynamic.loading.ClassInjector.UsingUnsafe.Factory;
 import net.bytebuddy.matcher.ElementMatchers;
+import net.bytebuddy.utility.JavaModule;
 
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.CommandTarget;
@@ -38,6 +40,15 @@ public final class JavaInstrumentationAgent {
 	private static volatile Instrumentation instrumentation;
 	private static volatile Factory classInjectorFactory;
 	private static final Set<String> INSTRUMENTED_THREAD_MONITOR_PACKAGES = ConcurrentHashMap.newKeySet();
+	private static final Object THREAD_MONITOR_PACKAGE_REGISTRATION_LOCK = new Object();
+	private static final AtomicReference<TransformationFailure> TRANSFORMATION_FAILURE = new AtomicReference<>();
+	private static final AgentBuilder.Listener TRANSFORMATION_FAILURE_LISTENER = new AgentBuilder.Listener.Adapter() {
+		@Override
+		public void onError(String typeName, ClassLoader classLoader, JavaModule module, boolean loaded,
+				Throwable throwable) {
+			TRANSFORMATION_FAILURE.compareAndSet(null, new TransformationFailure(typeName, throwable));
+		}
+	};
 
 	private JavaInstrumentationAgent() {
 		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
@@ -134,6 +145,25 @@ public final class JavaInstrumentationAgent {
 	}
 
 	/**
+	 * Fails the current security test if Byte Buddy could not transform a matched
+	 * class. Byte Buddy reports transformer errors to its listeners instead of
+	 * propagating them through the application call that triggered class loading.
+	 * Without this explicit check, the affected class would continue uninstrumented
+	 * and the sandbox would fail open.
+	 *
+	 * @throws SecurityException if any installed Ares transformer has failed
+	 */
+	public static void throwIfTransformationFailed() {
+		TransformationFailure failure = TRANSFORMATION_FAILURE.get();
+		if (failure != null) {
+			throw new SecurityException(
+					JavaInstrumentationAdviceAbstractToolbox
+							.localize("security.instrumentation.agent.transformation.error", failure.typeName()),
+					failure.cause());
+		}
+	}
+
+	/**
 	 * Installs call-site substitutions for Thread monitor operations in one
 	 * restricted package.
 	 * <p>
@@ -153,8 +183,12 @@ public final class JavaInstrumentationAgent {
 				|| restrictedPackage.isBlank()) {
 			return;
 		}
-		if (INSTRUMENTED_THREAD_MONITOR_PACKAGES.add(restrictedPackage)) {
+		synchronized (THREAD_MONITOR_PACKAGE_REGISTRATION_LOCK) {
+			if (INSTRUMENTED_THREAD_MONITOR_PACKAGES.contains(restrictedPackage)) {
+				return;
+			}
 			installThreadMonitorCallSiteBuilder(currentInstrumentation, currentFactory, restrictedPackage);
+			INSTRUMENTED_THREAD_MONITOR_PACKAGES.add(restrictedPackage);
 		}
 	}
 
@@ -172,7 +206,7 @@ public final class JavaInstrumentationAgent {
 						"security.instrumentation.agent.toolbox.installation.failed", "bootstrap injector is null"));
 			}
 
-			// Load classes in dependency order to ensure proper initialization
+			// Load classes in dependency order to ensure proper initialisation
 
 			// Step 1: Load fundamental classes
 			injectClassesSafely(classInjector,
@@ -270,27 +304,35 @@ public final class JavaInstrumentationAgent {
 			Map<String, List<String>> methodsMap, AgentBuilder.Transformer transformer) {
 		try {
 			new AgentBuilder.Default()
-					// Ignore ByteBuddy's own classes to avoid infinite recursion
-					.ignore(ElementMatchers.nameStartsWith("net.bytebuddy."))
-					// Ignore deepest JDK internals that must never be instrumented.
-					// sun.nio.ch.*Impl
-					// classes are intentionally NOT excluded here so SocketChannelImpl,
-					// DatagramChannelImpl, AsynchronousSocketChannel impls remain instrumentable
-					// for their connect / send / receive methods which the abstract NIO base
-					// classes only declare.
-					.ignore(ElementMatchers.nameStartsWith("jdk.internal."))
-					.ignore(ElementMatchers.nameStartsWith("java.lang.invoke."))
-					.ignore(ElementMatchers.nameStartsWith("java.lang.reflect."))
-					// StackWalker plumbing must stay un-instrumented; the advice toolbox uses
-					// StackWalker on every call-stack inspection and any retransformation here
-					// trips ClassCircularityError when the first pointcut fires.
-					.ignore(ElementMatchers.nameStartsWith("java.lang.StackWalker"))
-					.ignore(ElementMatchers.nameStartsWith("java.lang.StackStreamFactory"))
-					.ignore(ElementMatchers.nameStartsWith("java.lang.StackFrameInfo"))
-					.ignore(ElementMatchers.nameStartsWith("java.lang.LiveStackFrameInfo"))
-					// Ignore Ares internal classes to avoid self-instrumentation
-					.ignore(ElementMatchers.nameStartsWith("de.tum.cit.ase.ares.api.aop.java.instrumentation."))
-					.with(AgentBuilder.TypeStrategy.Default.REBASE)
+					// Use one combined matcher: AgentBuilder.ignore replaces the previous
+					// matcher, so separate calls would accidentally re-enable earlier groups.
+					.ignore(ElementMatchers.nameStartsWith("net.bytebuddy.")
+							// Mockito injects MockMethodDispatcher into the bootstrap loader while its
+							// advice class is loading. Resolving that class's hierarchy from another
+							// transformer before injection has completed fails. Exclude only the advice
+							// class itself: Mockito-generated implementations of guarded interfaces must
+							// remain instrumentable.
+							.or(ElementMatchers
+									.nameStartsWith("org.mockito.internal.creation.bytebuddy.MockMethodAdvice"))
+							// Ignore deepest JDK internals that must never be instrumented.
+							// sun.nio.ch.*Impl
+							// classes are intentionally NOT excluded here so SocketChannelImpl,
+							// DatagramChannelImpl, AsynchronousSocketChannel impls remain instrumentable
+							// for their connect / send / receive methods which the abstract NIO base
+							// classes only declare.
+							.or(ElementMatchers.nameStartsWith("jdk.internal."))
+							.or(ElementMatchers.nameStartsWith("java.lang.invoke."))
+							.or(ElementMatchers.nameStartsWith("java.lang.reflect."))
+							// StackWalker plumbing must stay un-instrumented; the advice toolbox uses
+							// StackWalker on every call-stack inspection and any retransformation here
+							// trips ClassCircularityError when the first pointcut fires.
+							.or(ElementMatchers.nameStartsWith("java.lang.StackWalker"))
+							.or(ElementMatchers.nameStartsWith("java.lang.StackStreamFactory"))
+							.or(ElementMatchers.nameStartsWith("java.lang.StackFrameInfo"))
+							.or(ElementMatchers.nameStartsWith("java.lang.LiveStackFrameInfo"))
+							// Ignore Ares internal classes to avoid self-instrumentation
+							.or(ElementMatchers.nameStartsWith("de.tum.cit.ase.ares.api.aop.java.instrumentation.")))
+					.with(TRANSFORMATION_FAILURE_LISTENER).with(AgentBuilder.TypeStrategy.Default.REBASE)
 					.with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
 					.with(new AgentBuilder.InjectionStrategy.UsingUnsafe.OfFactory(unsafeFactory))
 					.disableClassFormatChanges()
@@ -319,9 +361,10 @@ public final class JavaInstrumentationAgent {
 			Method preciseWaitMethod = JavaInstrumentationThreadSystemCallSite.class.getMethod("wait", Object.class,
 					long.class, int.class);
 
-			new AgentBuilder.Default().ignore(ElementMatchers.nameStartsWith("net.bytebuddy."))
-					.ignore(ElementMatchers.nameStartsWith("de.tum.cit.ase.ares.api."))
-					.with(AgentBuilder.TypeStrategy.Default.REBASE)
+			new AgentBuilder.Default()
+					.ignore(ElementMatchers.nameStartsWith("net.bytebuddy.")
+							.or(ElementMatchers.nameStartsWith("de.tum.cit.ase.ares.api.")))
+					.with(TRANSFORMATION_FAILURE_LISTENER).with(AgentBuilder.TypeStrategy.Default.REBASE)
 					.with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
 					.with(new AgentBuilder.InjectionStrategy.UsingUnsafe.OfFactory(unsafeFactory))
 					.disableClassFormatChanges()
@@ -354,5 +397,8 @@ public final class JavaInstrumentationAgent {
 		net.bytebuddy.matcher.ElementMatcher.Junction<MethodDescription> matcher = ElementMatchers
 				.isDeclaredBy(Thread.class).and(ElementMatchers.named("start")).and(ElementMatchers.takesArguments(0));
 		return MemberSubstitution.relaxed().method(matcher).replaceWith(replacement).on(ElementMatchers.any());
+	}
+
+	private record TransformationFailure(String typeName, Throwable cause) {
 	}
 }

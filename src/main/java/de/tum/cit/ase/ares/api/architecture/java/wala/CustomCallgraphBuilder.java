@@ -2,9 +2,15 @@ package de.tum.cit.ase.ares.api.architecture.java.wala;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.JarURLConnection;
+import java.net.URI;
+import java.net.URL;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
@@ -34,6 +40,7 @@ import com.ibm.wala.ipa.summaries.SummarizedMethod;
 import com.ibm.wala.types.ClassLoaderReference;
 import com.ibm.wala.types.MethodReference;
 import com.ibm.wala.types.TypeReference;
+import com.tngtech.archunit.core.domain.Dependency;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 
@@ -87,6 +94,8 @@ public class CustomCallgraphBuilder {
 	 * access-ordered LRU keeps the hot entries while capping total retention.
 	 */
 	private static final int ANALYSIS_CACHE_MAX_ENTRIES = 32;
+	private static final java.util.Map<String, String> EXPANDED_CLASSPATH_CACHE = boundedLruMap(
+			ANALYSIS_CACHE_MAX_ENTRIES);
 	private static final java.util.Map<String, CachedAnalysis> ANALYSIS_CACHE = boundedLruMap(
 			ANALYSIS_CACHE_MAX_ENTRIES);
 	private static final java.util.Map<String, CallGraph> CALL_GRAPH_CACHE = boundedLruMap(ANALYSIS_CACHE_MAX_ENTRIES);
@@ -107,10 +116,96 @@ public class CustomCallgraphBuilder {
 
 	public CustomCallgraphBuilder(String classPath) {
 		this.classFileImporter = new ClassFileImporter();
-		this.constructionClassPath = classPath;
-		CachedAnalysis cached = ANALYSIS_CACHE.computeIfAbsent(filterClassPath(classPath), CachedAnalysis::build);
+		String filteredClassPath = filterClassPath(classPath);
+		this.constructionClassPath = EXPANDED_CLASSPATH_CACHE.computeIfAbsent(filteredClassPath,
+				CustomCallgraphBuilder::expandClassPathWithReachableDependencies);
+		CachedAnalysis cached = ANALYSIS_CACHE.computeIfAbsent(constructionClassPath, CachedAnalysis::build);
 		this.scope = cached.scope;
 		this.classHierarchy = cached.classHierarchy;
+	}
+
+	/**
+	 * Adds the bytecode locations of application classes referenced by the narrowly
+	 * supervised package. Entry points remain restricted to that original package,
+	 * but WALA can follow calls into helpers and third-party classes outside it.
+	 * <p>
+	 * Adding only the packages that contain reachable dependencies avoids widening
+	 * the hierarchy to the complete build output, which previously made virtual
+	 * dispatch over every unrelated {@link Runnable} implementation prohibitively
+	 * expensive.
+	 */
+	private static String expandClassPathWithReachableDependencies(String classPath) {
+		LinkedHashSet<String> entries = Arrays.stream(classPath.split(File.pathSeparator))
+				.filter(entry -> !entry.isBlank()).collect(Collectors.toCollection(LinkedHashSet::new));
+		Deque<JavaClass> pending = new ArrayDeque<>();
+		Set<String> visitedClasses = new HashSet<>();
+		ClassFileImporter importer = new ClassFileImporter();
+
+		for (String entry : entries) {
+			File entryFile = new File(entry);
+			if (!entryFile.isDirectory()) {
+				continue;
+			}
+			try {
+				pending.addAll(importer.importPath(entryFile.toPath()));
+			} catch (RuntimeException ignored) {
+				// The WALA scope builder reports an unusable original classpath later. A
+				// best-effort dependency expansion must not hide that diagnostic.
+			}
+		}
+
+		while (!pending.isEmpty()) {
+			JavaClass source = pending.removeFirst();
+			if (!visitedClasses.add(source.getName())) {
+				continue;
+			}
+			for (Dependency dependency : source.getDirectDependenciesFromSelf()) {
+				String targetName = dependency.getTargetClass().getName();
+				if (!isApplicationDependency(targetName) || visitedClasses.contains(targetName)) {
+					continue;
+				}
+				URL location = CustomCallgraphBuilder.class.getResource(convertTypeNameToClassName(targetName));
+				if (location == null || !"file".equals(location.getProtocol())) {
+					continue;
+				}
+				classpathEntryFor(location).ifPresent(entries::add);
+				try {
+					JavaClass resolved = importer.importUrl(location).get(targetName);
+					pending.addLast(resolved);
+				} catch (RuntimeException ignored) {
+					// WALA will surface a genuinely required but unresolvable dependency while
+					// constructing the graph. Continue collecting all other resolvable classes.
+				}
+			}
+		}
+		return String.join(File.pathSeparator, entries);
+	}
+
+	private static boolean isApplicationDependency(String className) {
+		return !(className.startsWith("java.") || className.startsWith("javax.") || className.startsWith("jdk.")
+				|| className.startsWith("sun.") || className.startsWith("com.sun.")
+				|| className.startsWith("de.tum.cit.ase.ares.api.") || className.startsWith("org.junit.")
+				|| className.startsWith("org.opentest4j.") || className.startsWith("net.bytebuddy.")
+				|| className.startsWith("org.aspectj.") || className.startsWith("com.ibm.wala.")
+				|| className.startsWith("com.tngtech.archunit."));
+	}
+
+	private static Optional<String> classpathEntryFor(URL location) {
+		try {
+			if ("file".equals(location.getProtocol())) {
+				File classFile = new File(location.toURI());
+				File packageDirectory = classFile.getParentFile();
+				return packageDirectory == null ? Optional.empty() : Optional.of(packageDirectory.getPath());
+			}
+			if ("jar".equals(location.getProtocol())) {
+				JarURLConnection connection = (JarURLConnection) location.openConnection();
+				URI jarUri = connection.getJarFileURL().toURI();
+				return Optional.of(new File(jarUri).getPath());
+			}
+		} catch (IOException | java.net.URISyntaxException | ClassCastException ignored) {
+			// Unsupported locations remain unresolved and are handled by WALA.
+		}
+		return Optional.empty();
 	}
 
 	/**
@@ -233,7 +328,7 @@ public class CustomCallgraphBuilder {
 	 * the next Gradle run rebuilds it.
 	 */
 	public CallGraph buildCallGraph(String classPathToAnalyze) {
-		String cacheKey = filterClassPath(constructionClassPath) + "::" + filterClassPath(classPathToAnalyze);
+		String cacheKey = constructionClassPath + "::" + filterClassPath(classPathToAnalyze);
 		CallGraph cached = CALL_GRAPH_CACHE.get(cacheKey);
 		if (cached != null) {
 			return cached;

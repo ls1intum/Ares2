@@ -115,6 +115,12 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	/* -------------------------------------------------------------------- */
 
 	@PublicTest
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
+	void test_pathToFileDelete_archunit_aspectj() {
+		assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaPathToFileDelete, FileDeleteMain.class);
+	}
+
+	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
 	void test_pathToFileDelete_archunit_instrumentation() {
 		assertAresSecurityExceptionDelete(FileDeleteMain::accessFileSystemViaPathToFileDelete, FileDeleteMain.class);
@@ -221,8 +227,28 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	}
 
 	/* -------------------------------------------------------------------- */
-	/* SecureDirectoryStream.deleteFile() – WALA variants */
+	/* SecureDirectoryStream.deleteFile() */
 	/* -------------------------------------------------------------------- */
+
+	@PublicTest
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
+	void test_sdsDeleteFile_archunit_aspectj() {
+		assertAresSecurityExceptionDelete(() -> {
+			try (SecureDirectoryStream<Path> secureDirectoryStream = openSecureDirectoryStream()) {
+				FilesDeleteSecureDirectory.accessFileSystemViaSecureDirectoryStreamDeleteFile(secureDirectoryStream);
+			}
+		}, FilesDeleteSecureDirectory.class, NOT_TRUSTED_FILE_PATH.getFileName());
+	}
+
+	@PublicTest
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)
+	void test_sdsDeleteFile_archunit_instrumentation() {
+		assertAresSecurityExceptionDelete(() -> {
+			try (SecureDirectoryStream<Path> secureDirectoryStream = openSecureDirectoryStream()) {
+				FilesDeleteSecureDirectory.accessFileSystemViaSecureDirectoryStreamDeleteFile(secureDirectoryStream);
+			}
+		}, FilesDeleteSecureDirectory.class, NOT_TRUSTED_FILE_PATH.getFileName());
+	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILES_DELETE_WITHIN_PATH)

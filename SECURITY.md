@@ -2,22 +2,21 @@
 
 ## Supported Versions
 
-Currently, the only supported Ares version is whatever the current one is (as shown in the [README](https://github.com/ls1intum/Ares2/blob/main/README.adoc)).
-See the [Wiki](https://github.com/ls1intum/Ares2/wiki) for the changes and how to adjust your tests to them.
+Currently, the only supported Ares version is whatever the current release is (as shown in the [Releases](https://github.com/ls1intum/Ares2/releases)). Pre-release lines (alpha, beta, and release-candidate builds) are not covered by this policy.
+
+## Reporting a bug
+
+If the problem relates to a bug that is associated with unexpected behavior or inconvenience or something non-critical is broken, simply report it as a bug and use the [issues](https://github.com/ls1intum/Ares2/issues) for that.
 
 ## Reporting a Vulnerability
 
-If the security problem relates to a bug that is associated with unexpected behavior or inconvenience or something non-critical is broken,
-simply report it as a bug and [use the bug report template for that](https://github.com/ls1intum/Ares2/issues/new?assignees=&labels=&template=bug_report.md&title=).
+If the problem relates to a vulnerability that could be used maliciously or is in another way a security issue, please do not make the issue public. Instead, collect the following information first:
+- as with a bug report, describe how the vulnerability can be reproduced
+- state the system and the versions in use, especially your Ares version
+- provide any additional information and context, if possible
 
-If what you discovered could be used maliciously or is in another way an actual security vulnerability, please do not make the issue public, but follow these steps:
-- similar to a bug report, collect information how it can be reproduced
-- state the system and the versions that are used, especially your Ares-Version.
-- provide additional information and context, if possible
-- write that in an email to c.femers@tum.de (if you wish to use PGP, the fingerprint for the email address is `80703280C4ACE4256AABFF825E2C13E54FFC3F2A`)
+Then choose one of these reporting channels:
+- **Preferred:** use GitHub's Private Vulnerability Reporting. Open the [Security tab](https://github.com/ls1intum/Ares2/security/advisories) of the repository and click "Report a vulnerability". This keeps the report encrypted and private within GitHub until a fix is published.
+- **Alternative:** send the information by email to paulsenm@in.tum.de.
 
-You should get a reply from me in the next 1-2 days.
-I will create a Security Advisory draft that will be published when the vulnerability is resolved.
-Should that take over a week, I will you inform you upfront if possible and report the progress after the week and how it is going.
-
-*Even better: Name your GitHub-Account in the email so I can add you to the discussion of the Security Advisory draft!*
+I will acknowledge receipt within 7 working days and provide an initial assessment within 14 working days. If you do not hear back within these timeframes, please send a follow-up in case the message was missed.

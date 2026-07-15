@@ -34,7 +34,7 @@ import javax.annotation.Nullable;
  * instrumentation advice, ensuring consistent enforcement of security policies.
  * Uses static utility methods and a private constructor to prevent
  * instantiation. Reflection is used to decouple the toolbox from direct
- * dependencies on settings and localization classes, supporting flexible and
+ * dependencies on settings and localisation classes, supporting flexible and
  * dynamic test setups.
  *
  * @since 2.0.0
@@ -407,15 +407,16 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 
 	/**
 	 * Returns the class name of the Runnable task carried by a {@link Thread}, or
-	 * {@code null} when the thread has no task (an overridden {@code run()}) or the
-	 * task cannot be read. Lambda tasks resolve to {@code "Lambda-Expression"}.
-	 * Reading the task directly from the receiver makes the thread check
-	 * self-sufficient, so it does not depend on the FieldHolder attribute being
-	 * separately readable (that field read may be skipped under strong
-	 * encapsulation).
+	 * {@code null} when the thread has no task (an overridden {@code run()}). An
+	 * unreadable task fails closed. Lambda tasks resolve to
+	 * {@code "Lambda-Expression"}. Reading the task directly from the receiver
+	 * makes the thread check self-sufficient, so it does not depend on the
+	 * FieldHolder attribute being separately readable (that field read may be
+	 * skipped under strong encapsulation).
 	 *
 	 * @param thread the thread receiver to inspect
-	 * @return the task class name, or {@code null} if there is no readable task
+	 * @return the task class name, or {@code null} if there is no task
+	 * @throws SecurityException if the task cannot be read
 	 */
 	@Nullable
 	private static String threadTaskClassName(@Nonnull Thread thread) {
@@ -430,11 +431,12 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	/**
 	 * Reads the Runnable task object from a {@link Thread}, trying the modern
 	 * {@code holder.task} layout first and the legacy {@code target} field as a
-	 * fallback, each via reflection then Unsafe. Returns {@code null} if no task is
-	 * set or it cannot be read.
+	 * fallback, each via reflection then Unsafe. Returns {@code null} only if the
+	 * task field was read successfully and contains no task.
 	 *
 	 * @param thread the thread receiver to inspect
-	 * @return the task object, or {@code null}
+	 * @return the task object, or {@code null} if the task field is empty
+	 * @throws SecurityException if no supported layout can be read
 	 */
 	@Nullable
 	private static Object readThreadTask(@Nonnull Thread thread) {
@@ -453,8 +455,8 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		try {
 			Field targetField = Thread.class.getDeclaredField("target");
 			return readField(targetField, thread);
-		} catch (NoSuchFieldException ignored) {
-			return null;
+		} catch (NoSuchFieldException e) {
+			throw new SecurityException(localize("security.advice.thread.task.reflection.error", thread), e);
 		}
 	}
 
@@ -462,11 +464,13 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	 * Reads an object field via standard reflection, falling back to
 	 * {@code sun.misc.Unsafe} when strong encapsulation blocks reflective access,
 	 * so the overridden-run() detection still works on a locked-down runtime.
-	 * Returns {@code null} if the value is null or cannot be read by either means.
+	 * Returns {@code null} only when a successful read yields null. Failure of both
+	 * mechanisms is denied rather than being confused with an empty field.
 	 *
 	 * @param field the field to read
 	 * @param owner the instance to read it from
-	 * @return the field value, or {@code null}
+	 * @return the field value, or {@code null} if the field contains null
+	 * @throws SecurityException if neither access mechanism can read the field
 	 */
 	@Nullable
 	private static Object readField(@Nonnull Field field, @Nonnull Object owner) {
@@ -487,8 +491,8 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 			Method getObject = unsafeClass.getMethod("getObject", Object.class, long.class);
 			return getObject.invoke(unsafe, owner, offset);
 		} catch (ClassNotFoundException | NoSuchFieldException | NoSuchMethodException | IllegalAccessException
-				| InvocationTargetException | InaccessibleObjectException | NullPointerException ignored) {
-			return null;
+				| InvocationTargetException | InaccessibleObjectException | NullPointerException e) {
+			throw new SecurityException(localize("security.advice.thread.task.reflection.error", owner), e);
 		}
 	}
 
@@ -610,8 +614,15 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		}
 	}
 
-	public static void recordThreadClassBeforeStart(@Nonnull Thread thread) {
-		JavaInstrumentationThreadSystemCallSite.recordAllowedThread(thread, variableToClassname(thread));
+	static void recordThreadClassBeforeStart(@Nonnull Thread thread) {
+		if (!enterAdvice()) {
+			return;
+		}
+		try {
+			JavaInstrumentationThreadSystemCallSite.recordAllowedThread(thread, variableToClassname(thread));
+		} finally {
+			exitAdvice();
+		}
 	}
 
 	private static void checkThreadSystemInteractionImpl(@Nonnull String action, @Nonnull String declaringTypeName,

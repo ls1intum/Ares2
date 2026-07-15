@@ -19,12 +19,6 @@ import de.tum.cit.ase.ares.api.context.*;
 @API(status = Status.INTERNAL)
 public final class TimeoutUtils {
 
-	static {
-		/*
-		 * Initialise SecurityManager when we are still in the main thread
-		 */
-	}
-
 	private TimeoutUtils() {
 	}
 

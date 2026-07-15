@@ -7,12 +7,15 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.List;
+import java.lang.ref.Reference;
+import java.lang.ref.ReferenceQueue;
+import java.lang.ref.WeakReference;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
-import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.WeakHashMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -47,9 +50,44 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	 * The recorded class survives Thread.exit() clearing the task field and is
 	 * revalidated against every active policy rather than preserving stale permission.
 	 */
-	private static final Map<Thread, String> ALLOWED_THREAD_CLASSES = Collections.synchronizedMap(
-			new WeakHashMap<Thread, String>());
+	private static final ReferenceQueue<Thread> ALLOWED_THREAD_CLASSES_QUEUE = new ReferenceQueue<>();
+	private static final Map<WeakReference<Thread>, String> ALLOWED_THREAD_CLASSES = new HashMap<>();
 	// </editor-fold>
+
+	private static String getRecordedThreadClass(Thread thread) {
+		synchronized (ALLOWED_THREAD_CLASSES) {
+			removeClearedThreadEntries();
+			for (Map.Entry<WeakReference<Thread>, String> entry : ALLOWED_THREAD_CLASSES.entrySet()) {
+				if (entry.getKey().get() == thread) {
+					return entry.getValue();
+				}
+			}
+			return null;
+		}
+	}
+
+	private static void recordAllowedThread(Thread thread, String threadClassName) {
+		if (threadClassName == null) {
+			return;
+		}
+		synchronized (ALLOWED_THREAD_CLASSES) {
+			removeClearedThreadEntries();
+			Iterator<WeakReference<Thread>> iterator = ALLOWED_THREAD_CLASSES.keySet().iterator();
+			while (iterator.hasNext()) {
+				if (iterator.next().get() == thread) {
+					iterator.remove();
+				}
+			}
+			ALLOWED_THREAD_CLASSES.put(new WeakReference<>(thread, ALLOWED_THREAD_CLASSES_QUEUE), threadClassName);
+		}
+	}
+
+	private static void removeClearedThreadEntries() {
+		Reference<? extends Thread> clearedReference;
+		while ((clearedReference = ALLOWED_THREAD_CLASSES_QUEUE.poll()) != null) {
+			ALLOWED_THREAD_CLASSES.remove(clearedReference);
+		}
+	}
 
 	// <editor-fold desc="Thread system methods">
 
@@ -465,15 +503,17 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 
 	/**
 	 * Returns the class name of the Runnable task carried by a {@link Thread}, or
-	 * {@code null} when the thread has no task (an overridden {@code run()}) or the
-	 * task cannot be read. Lambda tasks resolve to {@code "Lambda-Expression"}.
+	 * {@code null} when the thread has no task (an overridden {@code run()}). An
+	 * unreadable task fails closed. Lambda tasks resolve to
+	 * {@code "Lambda-Expression"}.
 	 * Reading the task directly from the receiver makes the thread check
 	 * self-sufficient, so it does not depend on the FieldHolder attribute being
 	 * separately readable (that field read may be skipped under strong
 	 * encapsulation).
 	 *
 	 * @param thread the thread receiver to inspect
-	 * @return the task class name, or {@code null} if there is no readable task
+	 * @return the task class name, or {@code null} if there is no task
+	 * @throws SecurityException if the task cannot be read
 	 */
 	@Nullable
 	private static String threadTaskClassName(@Nonnull Thread thread) {
@@ -488,11 +528,12 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	/**
 	 * Reads the Runnable task object from a {@link Thread}, trying the modern
 	 * {@code holder.task} layout first and the legacy {@code target} field as a
-	 * fallback, each via reflection then Unsafe. Returns {@code null} if no task is
-	 * set or it cannot be read.
+	 * fallback, each via reflection then Unsafe. Returns {@code null} only if the
+	 * task field was read successfully and contains no task.
 	 *
 	 * @param thread the thread receiver to inspect
-	 * @return the task object, or {@code null}
+	 * @return the task object, or {@code null} if the task field is empty
+	 * @throws SecurityException if no supported layout can be read
 	 */
 	@Nullable
 	private static Object readThreadTask(@Nonnull Thread thread) {
@@ -511,8 +552,8 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 		try {
 			Field targetField = Thread.class.getDeclaredField("target");
 			return readField(targetField, thread);
-		} catch (NoSuchFieldException ignored) {
-			return null;
+		} catch (NoSuchFieldException e) {
+			throw new SecurityException(localize("security.advice.transform.path.exception.detail", thread), e);
 		}
 	}
 
@@ -520,11 +561,13 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	 * Reads an object field via standard reflection, falling back to
 	 * {@code sun.misc.Unsafe} when strong encapsulation blocks reflective access, so
 	 * the overridden-run() detection still works on a locked-down runtime. Returns
-	 * {@code null} if the value is null or cannot be read by either means.
+	 * {@code null} only when a successful read yields null. Failure of both
+	 * mechanisms is denied rather than being confused with an empty field.
 	 *
 	 * @param field the field to read
 	 * @param owner the instance to read it from
-	 * @return the field value, or {@code null}
+	 * @return the field value, or {@code null} if the field contains null
+	 * @throws SecurityException if neither access mechanism can read the field
 	 */
 	@Nullable
 	private static Object readField(@Nonnull Field field, @Nonnull Object owner) {
@@ -545,8 +588,8 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 			Method getObject = unsafeClass.getMethod("getObject", Object.class, long.class);
 			return getObject.invoke(unsafe, owner, offset);
 		} catch (ClassNotFoundException | NoSuchFieldException | NoSuchMethodException | IllegalAccessException
-				| InvocationTargetException | InaccessibleObjectException | NullPointerException ignored) {
-			return null;
+				| InvocationTargetException | InaccessibleObjectException | NullPointerException e) {
+			throw new SecurityException(localize("security.advice.transform.path.exception.detail", owner), e);
 		}
 	}
 
@@ -756,7 +799,7 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 		@Nonnull
 		Set<String> threadClassNames = new LinkedHashSet<>();
 		String recordedThreadClass = !decrementQuota && instance instanceof Thread
-				? ALLOWED_THREAD_CLASSES.get((Thread) instance)
+				? getRecordedThreadClass((Thread) instance)
 				: null;
 		if (parameters != null) {
 			for (Object parameter : parameters) {
@@ -796,9 +839,7 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 		}
 		if (decrementQuota && instance instanceof Thread) {
 			String resolvedThreadClass = variableToClassname(instance);
-			if (resolvedThreadClass != null) {
-				ALLOWED_THREAD_CLASSES.put((Thread) instance, resolvedThreadClass);
-			}
+			recordAllowedThread((Thread) instance, resolvedThreadClass);
 		}
 		// </editor-fold>
 	}

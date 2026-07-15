@@ -126,10 +126,6 @@ public class JavaWriter implements Writer {
 
 	@Nonnull
 	private List<Path> createLocalisationFiles(@Nonnull Path testFolderPath) {
-		if (testFolderPath.toString().isBlank()) {
-			return List.of();
-		}
-
 		int nameCount = testFolderPath.getNameCount();
 		Path resourcesFolderPath;
 		if (testFolderPath.toString().isEmpty() || nameCount < 3) {
@@ -150,9 +146,6 @@ public class JavaWriter implements Writer {
 	@Nonnull
 	private List<Path> createPhobosFiles(@Nonnull String packageName,
 			@Nonnull List<JavaPhobosTestCase> javaPhobosTestCases, @Nonnull Path testFolderPath) {
-		if (testFolderPath.toString().isBlank()) {
-			return List.of();
-		}
 		List<Path> copyTargets = Phobos.targetsToCopyTo(testFolderPath).stream()
 				.map(JavaWriter::confineToWorkingDirectory).toList();
 		Path editTarget = confineToWorkingDirectory(Phobos.targetToCopyTo(testFolderPath));

@@ -356,7 +356,7 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 	 * Returns {@code true} only while Ares itself is reading framework support
 	 * files for structural and architecture test setup through one of its trusted
 	 * utilities ({@code ProjectSourcesFinder}, {@code ClassNameScanner},
-	 * {@code FileTools}).
+	 * {@code FileTools}, {@code CustomCallgraphBuilder}).
 	 * <p>
 	 * The exemption is granted only when the trusted utility was invoked by Ares
 	 * internal code: walking towards the callers, all consecutive trusted-utility
@@ -396,7 +396,8 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 	private static boolean isTrustedSetupUtility(@Nonnull String className) {
 		return className.equals("de.tum.cit.ase.ares.api.util.ProjectSourcesFinder")
 				|| className.equals("de.tum.cit.ase.ares.api.structural.testutils.ClassNameScanner")
-				|| className.equals("de.tum.cit.ase.ares.api.util.FileTools");
+				|| className.equals("de.tum.cit.ase.ares.api.util.FileTools")
+				|| className.equals("de.tum.cit.ase.ares.api.architecture.java.wala.CustomCallgraphBuilder");
 	}
 	// </editor-fold>
 

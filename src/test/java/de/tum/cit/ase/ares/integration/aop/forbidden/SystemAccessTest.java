@@ -230,19 +230,26 @@ abstract class SystemAccessTest {
 
 	// <editor-fold desc="Denial Reason Policy Files">
 
-	// Network connection is only intercepted by the AspectJ weaving path; the
-	// instrumentation path does not intercept java.net.Socket connections, so only
-	// the AspectJ network policies are used for end-to-end denial-reason tests.
-
 	/**
 	 * Base path for Archunit AspectJ policy - One network connection allowed
 	 */
 	protected static final String ARCHUNIT_ASPECTJ_POLICY_ONE_NETWORK_CONNECTION_ALLOWED = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOneNetworkConnectionAllowed.yaml";
 
 	/**
+	 * Base path for Archunit Instrumentation policy - One network connection
+	 * allowed
+	 */
+	protected static final String ARCHUNIT_INSTRUMENTATION_POLICY_ONE_NETWORK_CONNECTION_ALLOWED = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOneNetworkConnectionAllowed.yaml";
+
+	/**
 	 * Base path for Wala AspectJ policy - One network connection allowed
 	 */
 	protected static final String WALA_ASPECTJ_POLICY_ONE_NETWORK_CONNECTION_ALLOWED = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOneNetworkConnectionAllowed.yaml";
+
+	/**
+	 * Base path for Wala Instrumentation policy - One network connection allowed
+	 */
+	protected static final String WALA_INSTRUMENTATION_POLICY_ONE_NETWORK_CONNECTION_ALLOWED = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOneNetworkConnectionAllowed.yaml";
 
 	// </editor-fold>
 

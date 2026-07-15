@@ -59,6 +59,7 @@ public class CreateThreadMain {
 			try {
 				thread.wait(1L);
 			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
 				throw new RuntimeException(e);
 			}
 		}

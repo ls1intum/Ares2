@@ -1,6 +1,8 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -15,6 +17,23 @@ import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings;
 import example.student.InstrumentationSecurityProbe;
 
 class JavaInstrumentationAdviceThreadSystemToolboxTest {
+	private static final class EqualitySpoofingThread extends Thread {
+		private final Thread spoofedThread;
+
+		private EqualitySpoofingThread(Thread spoofedThread) {
+			this.spoofedThread = spoofedThread;
+		}
+
+		@Override
+		public boolean equals(Object other) {
+			return other == spoofedThread;
+		}
+
+		@Override
+		public int hashCode() {
+			return spoofedThread.hashCode();
+		}
+	}
 
 	/**
 	 * Loads the localization bundle while still unrestricted, so that building a
@@ -40,6 +59,17 @@ class JavaInstrumentationAdviceThreadSystemToolboxTest {
 		JavaAOPTestCase.setJavaAdviceSettingValue("aopMode", "INSTRUMENTATION", "ARCH", "INSTRUMENTATION");
 		JavaAOPTestCase.setJavaAdviceSettingValue("restrictedPackage", "example.student", "ARCH", "INSTRUMENTATION");
 		JavaAOPTestCase.setJavaAdviceSettingValue("allowedListedClasses", new String[0], "ARCH", "INSTRUMENTATION");
+	}
+
+	@Test
+	void recordedThreadClassesUseIdentityRatherThanStudentEquality() {
+		Thread admittedThread = new Thread();
+		Thread spoofingThread = new EqualitySpoofingThread(admittedThread);
+
+		JavaInstrumentationThreadSystemCallSite.recordAllowedThread(admittedThread, "allowed.Task");
+
+		assertEquals("allowed.Task", JavaInstrumentationThreadSystemCallSite.getRecordedThreadClass(admittedThread));
+		assertNull(JavaInstrumentationThreadSystemCallSite.getRecordedThreadClass(spoofingThread));
 	}
 
 	@Test

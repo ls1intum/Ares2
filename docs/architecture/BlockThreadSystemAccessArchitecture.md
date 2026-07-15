@@ -1062,7 +1062,7 @@ Method <de.student.StudentCode.processAsync()> calls method <java.util.concurren
 - Precise violation detection
 - Understanding exact call paths
 - Production-grade security validation
-- **Minimizing false positives from JDK internal thread usage**
+- **Minimising false positives from JDK internal thread usage**
 - Analysing complex concurrent code (lambdas, executors, CompletableFuture)
 
 ---
@@ -1139,4 +1139,4 @@ void testNoThreadCreation() {
 
 ---
 
-**The architecture testing approach provides comprehensive security validation at compile/test time, complementing the runtime AOP approach for defense-in-depth security against thread creation attacks. WALA mode is particularly powerful for thread analysis due to its path classification, which suppresses JDK-internal false positives while attributing genuine violations to the responsible student code.**
+**The architecture testing approach provides comprehensive security validation at compile/test time, complementing the runtime AOP approach for defence-in-depth security against thread creation attacks. WALA mode is particularly powerful for thread analysis due to its path classification, which suppresses JDK-internal false positives while attributing genuine violations to the responsible student code.**

@@ -36,7 +36,7 @@ import javax.annotation.Nullable;
  * instrumentation advice, ensuring consistent enforcement of security policies.
  * Uses static utility methods and a private constructor to prevent
  * instantiation. Reflection is used to decouple the toolbox from direct
- * dependencies on settings and localization classes, supporting flexible and
+ * dependencies on settings and localisation classes, supporting flexible and
  * dynamic test setups. Network targets are resolved to a canonical
  * host-and-port pair before comparison, which avoids the multi-level traversal
  * required for file-path or thread-class checks.
@@ -716,17 +716,9 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	 *                                   inspection
 	 * @param declaringTypeName          fully qualified declaring type name
 	 * @param methodName                 method being intercepted
-	 * @param methodSignature            JVM method signature
 	 * @param attributes                 instance attributes (if any)
 	 * @param parameters                 intercepted method arguments
 	 * @param instance                   instance on which the method is invoked
-	 * @param restrictedPackage          package prefix under security scrutiny;
-	 *                                   reserved for structural symmetry with the
-	 *                                   file-system toolbox; currently unused
-	 * @param allowedClasses             classes allowed within the restricted
-	 *                                   package; reserved for structural symmetry
-	 *                                   with the file-system toolbox; currently
-	 *                                   unused
 	 * @param networkSystemMethodToCheck offending method discovered in the
 	 *                                   restricted call stack
 	 * @param studentCalledMethod        external method initiating the restricted
@@ -882,6 +874,13 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	private static void checkNetworkSystemInteractionImpl(@Nonnull String action, @Nonnull String declaringTypeName,
 			@Nonnull String methodName, @Nonnull String methodSignature, @Nullable Object[] attributes,
 			@Nullable Object[] parameters, @Nullable Object instance) {
+		// Byte Buddy resolves the bytecode of a class being transformed through
+		// ClassLoader.getResourceAsStream -> URL.openStream. This is trusted local
+		// class-resource loading, not a student network connection. Blocking it aborts
+		// the transformation and leaves the class unprotected.
+		if (isByteBuddyTransformationInProgress()) {
+			return;
+		}
 		// <editor-fold desc="Get information from settings">
 		@Nullable
 		final String aopMode = getValueFromSettings("aopMode");

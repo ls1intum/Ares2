@@ -127,7 +127,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 		Class<?> settingsClass = SETTINGS_CLASS_CACHE;
 		if (settingsClass == null) {
 			// Use null as ClassLoader to explicitly load from Bootstrap ClassLoader
-			// Use false to avoid class initialization which could trigger file system
+			// Use false to avoid class initialisation which could trigger file system
 			// operations.
 			settingsClass = Objects.requireNonNull(
 					Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", false, null),
@@ -203,7 +203,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 		}
 		try {
 			// Use null as ClassLoader to explicitly load from Bootstrap ClassLoader
-			// Use false to avoid class initialization which could trigger file system
+			// Use false to avoid class initialisation which could trigger file system
 			// operations
 			@Nonnull
 			Class<?> adviceSettingsClass = Objects.requireNonNull(
@@ -260,12 +260,12 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	/**
 	 * Retrieves a localised message based on a key and optional arguments.
 	 * <p>
-	 * Description: Attempts to fetch a localized string from the Messages class
-	 * using reflection. Falls back to the key if localization fails.
+	 * Description: Attempts to fetch a localised string from the Messages class
+	 * using reflection. Falls back to the key if localisation fails.
 	 *
-	 * @param key  the localization key identifying the message
-	 * @param args optional arguments to format the localized message
-	 * @return the localized message string, or the key itself if localization fails
+	 * @param key  the localisation key identifying the message
+	 * @param args optional arguments to format the localised message
+	 * @return the localised message string, or the key itself if localisation fails
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */
@@ -289,7 +289,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 			}
 		} catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException
 				| IllegalAccessException e) {
-			// Fallback: Return the key if localization fails
+			// Fallback: Return the key if localisation fails
 			return key;
 		}
 	}
@@ -347,7 +347,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 * Returns {@code true} only while Ares itself is reading framework support
 	 * files for structural and architecture test setup through one of its trusted
 	 * utilities ({@code ProjectSourcesFinder}, {@code ClassNameScanner},
-	 * {@code FileTools}).
+	 * {@code FileTools}, {@code CustomCallgraphBuilder}).
 	 * <p>
 	 * The exemption is granted only when the trusted utility was invoked by Ares
 	 * internal code: walking towards the callers, all consecutive trusted-utility
@@ -380,6 +380,26 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	}
 
 	/**
+	 * Returns whether the current thread is resolving bytecode for an active Byte
+	 * Buddy class transformation.
+	 * <p>
+	 * Byte Buddy's class-file locator obtains application bytecode through
+	 * {@code ClassLoader.getResourceAsStream}, which reaches
+	 * {@code URL.openStream}. Treating that trusted lookup as a student network
+	 * connection aborts the transformer and lets the original, unprotected class
+	 * load. The executing transformer frame is a stronger signal than a generic
+	 * class-loader frame: it cannot occur around an ordinary student-initiated URL
+	 * access.
+	 *
+	 * @return {@code true} while Byte Buddy is executing a class transformer
+	 */
+	static boolean isByteBuddyTransformationInProgress() {
+		return STACK_WALKER
+				.walk(frames -> frames.map(StackWalker.StackFrame::getClassName).anyMatch(className -> className
+						.startsWith("net.bytebuddy.agent.builder.AgentBuilder$Default$ExecutingTransformer")));
+	}
+
+	/**
 	 * Returns true when {@code className} is one of Ares' trusted setup utilities
 	 * that legitimately read framework support files during structural and
 	 * architecture test setup.
@@ -387,7 +407,8 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	private static boolean isTrustedSetupUtility(@Nonnull String className) {
 		return "de.tum.cit.ase.ares.api.util.ProjectSourcesFinder".equals(className)
 				|| "de.tum.cit.ase.ares.api.structural.testutils.ClassNameScanner".equals(className)
-				|| "de.tum.cit.ase.ares.api.util.FileTools".equals(className);
+				|| "de.tum.cit.ase.ares.api.util.FileTools".equals(className)
+				|| "de.tum.cit.ase.ares.api.architecture.java.wala.CustomCallgraphBuilder".equals(className);
 	}
 	// </editor-fold>
 

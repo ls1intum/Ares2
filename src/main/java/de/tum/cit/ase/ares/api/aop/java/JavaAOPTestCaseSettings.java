@@ -61,6 +61,15 @@ public final class JavaAOPTestCaseSettings {
 	}
 
 	/**
+	 * Reports whether the current policy uses the instrumentation backend.
+	 *
+	 * @return {@code true} while instrumentation enforcement is active
+	 */
+	public static boolean isInstrumentationMode() {
+		return "INSTRUMENTATION".equals(aopMode);
+	}
+
+	/**
 	 * The mode of the build.
 	 */
 	private static volatile String buildMode = null;

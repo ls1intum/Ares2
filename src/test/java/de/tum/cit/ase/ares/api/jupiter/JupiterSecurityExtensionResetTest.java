@@ -49,7 +49,7 @@ class JupiterSecurityExtensionResetTest {
 	private static final class Resettable {
 		private static boolean resetCalled;
 
-		private static void reset() {
+		public static void reset() {
 			resetCalled = true;
 		}
 	}
@@ -58,7 +58,7 @@ class JupiterSecurityExtensionResetTest {
 	}
 
 	private static final class ThrowingReset {
-		private static void reset() {
+		public static void reset() {
 			throw new IllegalStateException("reset failed");
 		}
 	}
