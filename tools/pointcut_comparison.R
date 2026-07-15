@@ -54,11 +54,11 @@ parse_instrumentation <- function(filepath) {
   
   # Define which maps to extract and their actions
   maps <- list(
-    list(name = "methodsWhichCanReadFiles", action = "READ"),
-    list(name = "methodsWhichCanOverwriteFiles", action = "OVERWRITE"),
-    list(name = "methodsWhichCanExecuteFiles", action = "EXECUTE"),
-    list(name = "methodsWhichCanDeleteFiles", action = "DELETE"),
-    list(name = "methodsWhichCanCreateFiles", action = "CREATE")
+    list(name = "METHODS_WHICH_CAN_READ_FILES", action = "READ"),
+    list(name = "METHODS_WHICH_CAN_OVERWRITE_FILES", action = "OVERWRITE"),
+    list(name = "METHODS_WHICH_CAN_EXECUTE_FILES", action = "EXECUTE"),
+    list(name = "METHODS_WHICH_CAN_DELETE_FILES", action = "DELETE"),
+    list(name = "METHODS_WHICH_CAN_CREATE_FILES", action = "CREATE")
   )
   
   results <- data.frame(

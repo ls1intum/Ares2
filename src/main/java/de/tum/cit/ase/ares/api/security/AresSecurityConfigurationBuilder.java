@@ -44,7 +44,10 @@ public final class AresSecurityConfigurationBuilder {
 	 * Cache for the content of the build file so that we don't need to read it each
 	 * time. It must not change during program execution, anyway.
 	 */
-	private static String buildConfigurationFileContent;
+	// volatile pairs with the double-checked lazy init below, so the use-site read
+	// always sees
+	// a fully written string rather than a partially constructed one.
+	private static volatile String buildConfigurationFileContent;
 
 	private Optional<Class<?>> testClass;
 	private Optional<Method> testMethod;
@@ -194,7 +197,11 @@ public final class AresSecurityConfigurationBuilder {
 		}
 		try {
 			if (buildConfigurationFileContent == null) {
-				buildConfigurationFileContent = Files.readString(expectedProjectBuildFilePath);
+				synchronized (AresSecurityConfigurationBuilder.class) {
+					if (buildConfigurationFileContent == null) {
+						buildConfigurationFileContent = Files.readString(expectedProjectBuildFilePath);
+					}
+				}
 			}
 			var enforcerFileRules = Stream.concat(
 					// include all package prefixes that are statically whitelisted

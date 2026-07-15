@@ -133,10 +133,14 @@ public final class JupiterSecurityExtension
 				resetSettingsInBootstrapClassLoader();
 			} catch (Exception e) {
 				if (failure == null) {
-					failure = e;
-				} else {
-					failure.addSuppressed(e);
+					// The test itself passed, so invocation.proceed() left a pending return on
+					// this method. Assigning to failure would let that return run and swallow
+					// this teardown failure, leaving the next test with un-reset security
+					// settings (fail-open). Throwing from the finally overrides the pending
+					// return and propagates the teardown failure instead.
+					throw e;
 				}
+				failure.addSuppressed(e);
 			}
 		}
 		throw failure;
@@ -182,9 +186,19 @@ public final class JupiterSecurityExtension
 			resetMethod.invoke(null);
 			resetMethod.setAccessible(false);
 		} catch (ClassNotFoundException e) {
-			// Class not yet loaded in Bootstrap ClassLoader - OK if no instrumentation yet
-		} catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-			// Reset failed - log silently
+			// Class not yet loaded in the bootstrap class loader: there is nothing to
+			// reset,
+			// which is the only benign reason this can fail.
+		} catch (NoSuchMethodException e) {
+			// The class is present but its reset failed. Fail closed rather than let the
+			// next
+			// test inherit stale security settings, matching resetSettings for the standard
+			// class loader.
+			throw new SecurityException(localize("security.settings.reset.method.not.found"), e);
+		} catch (IllegalAccessException e) {
+			throw new SecurityException(localize("security.settings.reset.access.denied"), e);
+		} catch (InvocationTargetException e) {
+			throw new SecurityException(localize("security.settings.error.within.method"), e);
 		}
 	}
 
