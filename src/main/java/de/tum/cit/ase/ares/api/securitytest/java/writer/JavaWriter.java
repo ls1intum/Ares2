@@ -58,7 +58,11 @@ public class JavaWriter implements Writer {
 	private List<Path> createJavaArchitectureFiles(@Nonnull ArchitectureMode architectureMode,
 			@Nonnull String packageName, @Nonnull String mainClassInPackageName,
 			@Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases, @Nullable Path testFolderPath) {
-		if (testFolderPath == null || testFolderPath.toString().isBlank()) {
+		// Guard only against null; an empty path (Path.of(""), the current working
+		// directory in
+		// precompile mode) is a valid target and must still generate the architecture
+		// files.
+		if (testFolderPath == null) {
 			return List.of();
 		}
 		return Stream
@@ -102,7 +106,10 @@ public class JavaWriter implements Writer {
 	private List<Path> createJavaAOPFiles(@Nonnull AOPMode aopMode, @Nonnull List<String> essentialClasses,
 			@Nonnull List<String> testClasses, @Nonnull String packageName, @Nonnull String mainClassInPackageName,
 			@Nonnull List<JavaAOPTestCase> javaAOPTestCases, @Nullable Path testFolderPath) {
-		if (testFolderPath == null || testFolderPath.toString().isBlank()) {
+		// Guard only against null; an empty path (Path.of(""), the current working
+		// directory in
+		// precompile mode) is a valid target and must still generate the AOP files.
+		if (testFolderPath == null) {
 			return List.of();
 		}
 		@Nonnull

@@ -964,7 +964,7 @@ The command system security mechanism provides **comprehensive protection** thro
 3. **Command-Based Validation**: Strict enforcement of allowed commands with argument matching
 4. **Executable-Path Validation**: Optional additional allow-list of executable file paths (`pathsAllowedToBeExecuted`, see 5.3.4) with PATH resolution and fail-closed handling of unresolvable commands
 5. **Detailed Error Messages**: Precise violation reporting with full call context
-6. **Flexible Configuration**: YAML-based security policies with command and argument whitelists
+6. **Flexible Configuration**: YAML-based security policies with command and argument allow-lists
 
 The system operates **transparently** using AOP techniques, requiring no modifications to student code, and enforces policies **before** dangerous operations execute.
 

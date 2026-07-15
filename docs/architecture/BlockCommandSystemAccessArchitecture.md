@@ -54,7 +54,7 @@ Architecture testing validates that code follows specific structural rules by an
 - **Use Case**: Detecting direct and transitive method access patterns to command execution APIs
 
 ### **WALA (Call Graph Analysis)**
-- **Type**: Static analysis with call-graph modeling using IBM WALA framework
+- **Type**: Static analysis with call-graph modelling using IBM WALA framework
 - **Strength**: Precise call path detection, understands complex call chains
 - **Method**: Builds a complete call graph representing all possible method invocations
 - **Use Case**: Finding reachable command execution methods through complex call chains
@@ -143,7 +143,7 @@ Both ArchUnit and WALA modes monitor the same set of command execution methods, 
 
 **What is Architecture Testing?**
 
-Instead of intercepting method calls at runtime (AOP approach), architecture testing analyzes the compiled bytecode to detect which command execution methods the student code accesses. This happens during the test phase, before the code actually runs.
+Instead of intercepting method calls at runtime (AOP approach), architecture testing analyses the compiled bytecode to detect which command execution methods the student code accesses. This happens during the test phase, before the code actually runs.
 
 **Two Analysis Approaches:**
 - **ArchUnit**: Fast static analysis of class dependencies
@@ -281,7 +281,7 @@ JavaClasses javaClasses = new ClassFileImporter()
 1. ClassFileImporter scans the classpath (runtime path) or the given packages (generated-code path) for `.class` files
 2. Loads class metadata (methods, fields, dependencies)
 3. Excludes Ares internal classes (`/de/tum/cit/ase/ares/api/`); the generated-code variant additionally excludes test classes
-4. Creates `JavaClasses` object containing all analyzed classes
+4. Creates `JavaClasses` object containing all analysed classes
 
 **Analysis Process:**
 1. **Import Classes**: Load `.class` files using `ClassFileImporter`
@@ -661,7 +661,7 @@ Result: VIOLATION (direct command execution by student, never suppressed)
 
 ## 5.6 Legacy Utilities: ReachabilityChecker and CustomDFSPathFinder
 
-The DFS-based path finding in the `wala` package is **legacy and no longer on the production validation path**; validation now runs through `WalaRule.check` as described above. `ReachabilityChecker.findReachableMethods(...)` (which delegates to `CustomDFSPathFinder`) is not called during validation anymore. Note that `ReachabilityChecker.getEntryPointsFromStudentSubmission(...)` is still used in production, but only by `CustomCallgraphBuilder` to collect the call-graph entry points.
+The DFS-based path finding in the `wala` package is **legacy and no longer on the production validation path**; validation now runs through `WalaRule.check` as described above. `ReachabilityChecker.findReachableMethods(...)` (which delegates to `CustomDFSPathFinder`) is not called during validation any more. Note that `ReachabilityChecker.getEntryPointsFromStudentSubmission(...)` is still used in production, but only by `CustomCallgraphBuilder` to collect the call-graph entry points.
 
 For historical context, `CustomDFSPathFinder` implements an **iterative** depth-first search (not a recursive one): it keeps the current path on a `Deque` stack, tracks per-node `pendingChildren` iterators, orders successors deterministically via `sortedSuccessors` (sorted by method signature, since WALA's `HashSet`-backed successor order differs between JVM runs), and skips methods listed in the false-positives file `templates/architecture/java/wala/false-positives/false-positives-file.txt`:
 

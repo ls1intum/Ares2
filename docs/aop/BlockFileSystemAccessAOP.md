@@ -38,7 +38,7 @@
      - [5.4.5 Allow Ares Internal Files](#545-allow-ares-internal-files)
    - [5.5 Check 5: Block Access with Detailed Error Message](#55-check-5-block-access-with-detailed-error-message)
 6. [Ares 2 AOP File System Access Control: Operation Type Classification](#6-ares-2-aop-file-system-access-control-operation-type-classification)
-   - [6.1 Category A: OpenOptions Prioritization](#61-category-a-openoptions-prioritization)
+   - [6.1 Category A: OpenOptions Prioritization](#61-category-a-openoptions-prioritisation)
    - [6.2 Category B: RandomAccessFile Mode Detection](#62-category-b-randomaccessfile-mode-detection)
    - [6.3 Category C: Preparatory Operations](#63-category-c-preparatory-operations)
    - [6.4 Category D: Wrong Subsystem](#64-category-d-wrong-subsystem)
@@ -690,7 +690,7 @@ public void checkFileSystemInteraction(
 - Distinguish between different versions of the same method (overloading)
 - Example: `java.io.FileInputStream.<init>(Ljava/lang/String;)V` → Identifies a `FileInputStream` constructor taking a String parameter
 
-> 💡 **Why `formatSignature()`?** AspectJ's raw `Signature.toLongString()` prepends Java modifiers (e.g. `"public transient "`) and omits `.<init>` for constructors. The helper `formatSignature()` normalizes the AspectJ join-point signature to the same `<init>`-style shape that the Byte Buddy (Instrumentation) side produces, so both backends report identical signatures.
+> 💡 **Why `formatSignature()`?** AspectJ's raw `Signature.toLongString()` prepends Java modifiers (e.g. `"public transient "`) and omits `.<init>` for constructors. The helper `formatSignature()` normalises the AspectJ join-point signature to the same `<init>`-style shape that the Byte Buddy (Instrumentation) side produces, so both backends report identical signatures.
 
 ---
 
@@ -1100,7 +1100,7 @@ Test method identified → Stored for error message → 🌕 **Continue to Check
 
 Determine which security actions to validate based on method parameters. **Real-world analogy:** Like a door that needs both a key AND a fingerprint scan - some file operations need multiple permissions checked simultaneously.
 
-Most methods need just one permission (e.g., "read"), but some need multiple (e.g., a `READ`+`WRITE` channel is validated against both the read and the overwrite allowlist). This check analyzes the operation mode to determine which permission types need validation.
+Most methods need just one permission (e.g., "read"), but some need multiple (e.g., a `READ`+`WRITE` channel is validated against both the read and the overwrite allowlist). This check analyses the operation mode to determine which permission types need validation.
 
 **2. How it works**
 
@@ -1112,7 +1112,7 @@ List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action, 
 
 1. **Search for StandardOpenOption in parameters:**
    - If found, map each option to corresponding actions
-   - Apply semantic prioritization rules (see below) so the checked actions match the caller's intent
+   - Apply semantic prioritisation rules (see below) so the checked actions match the caller's intent
 
 2. **If no StandardOpenOption found:**
    - Use the `action` parameter from the advice class (e.g., "read", "overwrite")
@@ -1122,7 +1122,7 @@ List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action, 
    - Each entry: `(action, canBeNonExistent)`
    - Example: `[("overwrite", true)]`
 
-**Semantic prioritization rules:**
+**Semantic prioritisation rules:**
 
 - **`DELETE_ON_CLOSE` always wins:** whenever it is present, the operation is treated as a pure `("delete", false)` check, regardless of any other options or of which pointcut intercepted the call.
 - **`CREATE_NEW` + write option → create only:** the primary intent is creating a new file; the `WRITE` option is just an implementation detail, so the result is `[("create", true)]` and no "overwrite" check is added.
@@ -1155,7 +1155,7 @@ This uses the default action "read" from `JavaInstrumentationReadPathMethodAdvic
 **Why Can CREATE Paths Be Non-Existent?**
 When creating a new file, the file doesn't exist yet. The security check must validate the path before the file is created.
 
-**Multiple Permissions:** If multiple modes are specified, all corresponding permissions are checked **after** the semantic prioritization rules above have been applied (e.g., `DELETE_ON_CLOSE` collapses everything to "delete", and create+overwrite is merged into a single "overwrite" check).
+**Multiple Permissions:** If multiple modes are specified, all corresponding permissions are checked **after** the semantic prioritisation rules above have been applied (e.g., `DELETE_ON_CLOSE` collapses everything to "delete", and create+overwrite is merged into a single "overwrite" check).
 
 **Default:** If no `StandardOpenOption` found, uses the `action` parameter passed to `checkFileSystemInteraction()` based on which method was intercepted (e.g., `FileInputStream` → `"read"`).
 
@@ -1288,7 +1288,7 @@ for (Object variable : filteredVariables) {
         continue;  // Not path-like (arrays/Lists are recursed into element by element)
     }
 
-    // 3. Canonicalize the candidate FIRST (symlink resolution, TOCTOU defence)
+    // 3. Canonicalise the candidate FIRST (symlink resolution, TOCTOU defence)
     Path candidate;
     if (Files.exists(actualPath, LinkOption.NOFOLLOW_LINKS)) {
         // Follow ALL symlinks to the real target - deliberately WITHOUT
@@ -1307,7 +1307,7 @@ for (Object variable : filteredVariables) {
     boolean hasAllowedPrefix = false;
     for (String allowedPathString : allowedPaths) {
         Path allowedPath = variableToPath(allowedPathString);
-        // Allowed paths are canonicalized the same way: toRealPath() when they
+        // Allowed paths are canonicalised the same way: toRealPath() when they
         // exist, otherwise via their deepest existing ancestor. Non-existing
         // policy entries are NOT skipped - a rule like "allow protected/file.txt"
         // must hold even before the file is created.
@@ -1328,12 +1328,12 @@ for (Object variable : filteredVariables) {
 - **`parameterIgnoreRule`** (IgnoreValues): From 5.4.2 (`FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT`) - determines which parameters to check
 - **`filteredVariables`** (Object[]): From 5.4.2 - subset of parameters to validate
 - **`allowedPaths`** (String[]): From 5.4.1 - list of allowed path prefixes
-- **`candidate`** (Path): Canonicalized path of the file being accessed (all symlinks resolved via `toRealPath()`, or via the deepest existing ancestor when the target does not exist yet)
+- **`candidate`** (Path): Canonicalised path of the file being accessed (all symlinks resolved via `toRealPath()`, or via the deepest existing ancestor when the target does not exist yet)
 - **`allowNonExistingPaths`** (boolean): Whether missing paths are allowed for this action (e.g., create/delete)
-- **`allowedPath`** (Path): Canonicalized allowed path prefix (same resolution rules as the candidate)
+- **`allowedPath`** (Path): Canonicalised allowed path prefix (same resolution rules as the candidate)
 - **`variableToPath()`** (method): Helper that converts `String`, `Path`, `File`, and `URI`/`URL` values with a `file` scheme to a normalized absolute `Path`; other types (and non-`file` URIs/URLs) are ignored
 - **`resolveExistingAncestorRealPath()`** (method): Helper that resolves symlinks in the deepest existing ancestor of a non-existing path and re-appends the remaining segments
-- **`pathMatches()`** (method): Helper that canonicalizes the allowed path and checks whether the candidate starts with it
+- **`pathMatches()`** (method): Helper that canonicalises the allowed path and checks whether the candidate starts with it
 
 **4. Result**
 
@@ -1400,7 +1400,7 @@ This exemption is applied at **all three** check sites: parameter-based, receive
 - `.class` reads performed by the class-loading machinery (a class-loader frame is on the stack, or the caller is `Class.forName`/`ClassLoader`)
 - `.jar` reads from system infrastructure (the Maven local repository or the JDK installation under `java.home`)
 - JDK-internal reads under `java.home` and native-library loads (`.dylib`/`.jnilib`/`.so`/`.dll`)
-- JCE crypto-policy files read during TLS/cryptography initialization
+- JCE crypto-policy files read during TLS/cryptography initialisation
 - Entry reads on an **already-open** `JarFile`/`ZipFile` (the constructor is NOT exempt and still validates its path)
 - The root path `"/"` when found in object attributes (a side effect of class resolution)
 
@@ -1467,7 +1467,7 @@ Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.Student
 
 This section explains why the **detected operation type** may differ from the **intuitively expected operation** based on the API being tested. Understanding these categories is essential for correctly configuring security expectations in test scenarios.
 
-<a id="61-category-a-openoptions-prioritization"></a>
+<a id="61-category-a-openoptions-prioritisation"></a>
 ## 6.1 Category A: OpenOptions Prioritization
 
 **Problem:** When multiple `StandardOpenOption` values are passed to NIO methods, certain options take precedence over others in the `deriveActionChecks()` method.

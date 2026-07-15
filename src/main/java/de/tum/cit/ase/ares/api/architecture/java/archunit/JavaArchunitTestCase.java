@@ -132,8 +132,18 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 	 * Keyed on category name plus {@code System.identityHashCode} of the
 	 * {@code JavaClasses}; that instance is rebuilt at most once per JVM fork.
 	 */
-	private static final java.util.concurrent.ConcurrentHashMap<String, java.util.Optional<SecurityException>> RULE_OUTCOME_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
-	private static final java.util.concurrent.ConcurrentHashMap<String, java.util.Optional<SecurityException>> PACKAGE_OUTCOME_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+	// The cached value is a FutureTask rather than the plain outcome so that the
+	// expensive
+	// ArchUnit check does not run inside computeIfAbsent: computeIfAbsent only
+	// allocates the task
+	// and returns immediately, releasing the map's bin lock, while the actual
+	// evaluation happens
+	// in task.run() outside the map. A concurrent caller for the same key sees the
+	// same task, so
+	// the check still runs at most once and the second caller simply blocks on
+	// task.get().
+	private static final java.util.concurrent.ConcurrentHashMap<String, java.util.concurrent.FutureTask<java.util.Optional<SecurityException>>> RULE_OUTCOME_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+	private static final java.util.concurrent.ConcurrentHashMap<String, java.util.concurrent.FutureTask<java.util.Optional<SecurityException>>> PACKAGE_OUTCOME_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
 
 	/**
 	 * Per-instance identity tokens for the analysed {@link JavaClasses}. Replaces
@@ -160,18 +170,45 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 		// no-exemption outcome (or vice versa).
 		String allowedClassesSignature = getAllowedClasses().stream().map(ClassPermission::className).sorted()
 				.collect(java.util.stream.Collectors.joining(","));
-		java.util.Optional<SecurityException> cached;
+		java.util.concurrent.FutureTask<java.util.Optional<SecurityException>> task;
 		if (supported == JavaArchitectureTestCaseSupported.PACKAGE_IMPORT) {
 			String allowedSignature = allowedPackages.stream().map(p -> p.importTheFollowingPackage()).sorted()
 					.collect(java.util.stream.Collectors.joining(","));
 			String pkgKey = allowedSignature + "#" + allowedClassesSignature + "@" + javaClassesToken(javaClasses);
-			cached = PACKAGE_OUTCOME_CACHE.computeIfAbsent(pkgKey, unusedKey -> runRuleAndCapture(supported));
+			task = PACKAGE_OUTCOME_CACHE.computeIfAbsent(pkgKey,
+					unusedKey -> new java.util.concurrent.FutureTask<>(() -> runRuleAndCapture(supported)));
 		} else {
 			String key = supported.name() + "#" + allowedClassesSignature + "@" + javaClassesToken(javaClasses);
-			cached = RULE_OUTCOME_CACHE.computeIfAbsent(key, unusedKey -> runRuleAndCapture(supported));
+			task = RULE_OUTCOME_CACHE.computeIfAbsent(key,
+					unusedKey -> new java.util.concurrent.FutureTask<>(() -> runRuleAndCapture(supported)));
 		}
+		// run() evaluates the rule only for the first caller of this key; for any later
+		// caller the
+		// task is already run, so run() is a no-op and awaitOutcome just returns the
+		// cached result.
+		task.run();
+		java.util.Optional<SecurityException> cached = awaitOutcome(task);
 		if (cached.isPresent()) {
 			throw cached.get();
+		}
+	}
+
+	private static java.util.Optional<SecurityException> awaitOutcome(
+			java.util.concurrent.FutureTask<java.util.Optional<SecurityException>> task) {
+		try {
+			return task.get();
+		} catch (InterruptedException interrupted) {
+			Thread.currentThread().interrupt();
+			throw new IllegalStateException("Interrupted while awaiting the architecture rule outcome", interrupted);
+		} catch (java.util.concurrent.ExecutionException executionFailure) {
+			Throwable cause = executionFailure.getCause();
+			if (cause instanceof RuntimeException runtimeCause) {
+				throw runtimeCause;
+			}
+			if (cause instanceof Error errorCause) {
+				throw errorCause;
+			}
+			throw new IllegalStateException("The architecture rule evaluation failed", executionFailure);
 		}
 	}
 

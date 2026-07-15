@@ -59,7 +59,7 @@ Architecture testing validates that code follows specific structural rules by an
 - **Use Case**: Detecting direct and transitive method access patterns to thread creation APIs
 
 ### **WALA (Call Graph Analysis)**
-- **Type**: Static analysis with call graph modeling using IBM WALA framework
+- **Type**: Static analysis with call graph modelling using IBM WALA framework
 - **Strength**: Precise call path detection, understands complex call chains
 - **Method**: Builds a call graph representing all possible method invocations
 - **Use Case**: Finding reachable thread creation methods through complex call chains, including lambda expressions
@@ -148,7 +148,7 @@ Each analysis mode loads its forbidden thread methods from its own template file
 
 **What is Architecture Testing?**
 
-Instead of intercepting method calls at runtime (AOP approach), architecture testing analyzes the compiled bytecode to detect which thread creation methods the student code accesses. This happens during the test phase, before the code actually runs.
+Instead of intercepting method calls at runtime (AOP approach), architecture testing analyses the compiled bytecode to detect which thread creation methods the student code accesses. This happens during the test phase, before the code actually runs.
 
 **Two Analysis Approaches:**
 - **ArchUnit**: Fast static analysis of class dependencies
@@ -496,7 +496,7 @@ JavaClasses javaClasses = new ClassFileImporter()
 1. `ClassFileImporter` scans the given path for `.class` files
 2. Loads class metadata (methods, fields, dependencies)
 3. Excludes Ares' own framework classes (`/de/tum/cit/ase/ares/api/`), so the rules never flag Ares' trusted advice code
-4. Creates a `JavaClasses` object containing all analyzed classes
+4. Creates a `JavaClasses` object containing all analysed classes
 
 Note: the **generated-template** variant (see [6.1](#61-writing-architecture-test-cases)) differs slightly. It additionally uses `ImportOption.Predefined.DO_NOT_INCLUDE_TESTS` and imports by package (`importPackages(...)`) instead of by path.
 
