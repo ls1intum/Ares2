@@ -482,33 +482,6 @@ public final class FileTools {
 
 	// <editor-fold desc="Format">
 
-	private static int countOccurrences(String content, String needle) {
-		if (content == null || needle == null || needle.isEmpty()) {
-			return 0;
-		}
-		int count = 0;
-		int idx = 0;
-		int step = needle.length();
-		while ((idx = content.indexOf(needle, idx)) != -1) {
-			count++;
-			idx += step;
-		}
-		return count;
-	}
-
-	private static String replacePlaceholdersWithFormatSpec(String content, String[] placeholders) {
-		if (content == null || placeholders == null) {
-			return content;
-		}
-		String result = content;
-		for (String ph : placeholders) {
-			if (ph != null && !ph.isEmpty()) {
-				result = result.replace(ph, "%s");
-			}
-		}
-		return result;
-	}
-
 	private static String formatTemplate(String template, String[] values, Path pathForError) {
 		try {
 			return String.format(template, (Object[]) values);

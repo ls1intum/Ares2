@@ -58,6 +58,9 @@ public class JavaWriter implements Writer {
 	private List<Path> createJavaArchitectureFiles(@Nonnull ArchitectureMode architectureMode,
 			@Nonnull String packageName, @Nonnull String mainClassInPackageName,
 			@Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases, @Nullable Path testFolderPath) {
+		if (testFolderPath == null || testFolderPath.toString().isBlank()) {
+			return List.of();
+		}
 		return Stream
 				.concat(Stream.concat(
 						FileTools
@@ -99,6 +102,9 @@ public class JavaWriter implements Writer {
 	private List<Path> createJavaAOPFiles(@Nonnull AOPMode aopMode, @Nonnull List<String> essentialClasses,
 			@Nonnull List<String> testClasses, @Nonnull String packageName, @Nonnull String mainClassInPackageName,
 			@Nonnull List<JavaAOPTestCase> javaAOPTestCases, @Nullable Path testFolderPath) {
+		if (testFolderPath == null || testFolderPath.toString().isBlank()) {
+			return List.of();
+		}
 		@Nonnull
 		ArrayList<String> allowedClasses = Stream.concat(essentialClasses.stream(), testClasses.stream())
 				.collect(ArrayList::new, ArrayList::add, ArrayList::addAll);

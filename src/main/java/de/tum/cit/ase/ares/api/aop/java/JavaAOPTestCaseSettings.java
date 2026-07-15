@@ -17,6 +17,13 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  * @version 2.0.0
  * @since 2.0.0
  */
+// Every setting below is read and written by name through reflection, from
+// JavaInstrumentationAdviceAbstractToolbox (getValueFromSettings ->
+// resolveSettingsField -> getDeclaredField) and from the woven aspects. No compiler-visible
+// reference to them exists, so PMD reports each one as an unused private field. They are the
+// only channel through which a security policy reaches the advice: deleting one silently
+// disarms the check it configures.
+@SuppressWarnings("PMD.UnusedPrivateField")
 public final class JavaAOPTestCaseSettings {
 
 	/**

@@ -7,16 +7,11 @@ import java.util.Map;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
-import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.DynamicType;
-import net.bytebuddy.dynamic.loading.ClassInjector;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.utility.JavaModule;
 
-import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceThreadSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationConnectNetworkConstructorAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationConnectNetworkMethodAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationCreatePathConstructorAdvice;
@@ -167,36 +162,6 @@ public final class JavaInstrumentationBindingDefinitions {
 		}
 	}
 
-	/**
-	 * This method loads the toolbox classes into the bootstrap loader using the
-	 * provided class loader. It ensures that the required classes for the
-	 * instrumentation (such as the advice and test case settings) are available in
-	 * the runtime environment. This process is essential for enforcing the
-	 * necessary security checks during file system operations, ensuring that all
-	 * file interactions comply with the security policies defined in the advice.
-	 *
-	 * @param classLoader The class loader responsible for loading the toolbox
-	 *                    classes.
-	 * @throws SecurityException If the toolbox classes could not be loaded into the
-	 *                           bootstrap loader, potentially affecting the
-	 *                           integrity of the security checks.
-	 */
-	private static void loadToolbox(ClassLoader classLoader) {
-		try {
-			// new
-			ClassInjector.UsingUnsafe.ofBootLoader()
-					// .UsingUnsafe(classLoader)
-					.inject(Map.of(new TypeDescription.ForLoadedType(JavaInstrumentationAdviceFileSystemToolbox.class),
-							ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceFileSystemToolbox.class),
-							new TypeDescription.ForLoadedType(JavaInstrumentationAdviceThreadSystemToolbox.class),
-							ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceThreadSystemToolbox.class),
-							new TypeDescription.ForLoadedType(JavaAOPTestCaseSettings.class),
-							ClassFileLocator.ForClassLoader.read(JavaAOPTestCaseSettings.class)));
-		} catch (Exception e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-					"security.instrumentation.binding.bootstrap.loader.failure", String.valueOf(e.getMessage())), e);
-		}
-	}
 	// </editor-fold>
 
 	// <editor-fold desc="Read Path">

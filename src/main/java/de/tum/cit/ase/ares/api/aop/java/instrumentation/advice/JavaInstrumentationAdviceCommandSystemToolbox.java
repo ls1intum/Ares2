@@ -1,7 +1,6 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 
 //<editor-fold desc="imports">
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox.*;
 
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
@@ -185,11 +184,11 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 			// arbitrary argument. Substring ("contains") matching is deliberately NOT used:
 			// it would let a student append arbitrary content (allowed "echo hi" matching
 			// actual "echo hi; rm -rf ~"), which defeats argument pinning.
-			if (!allowed.isEmpty() && (actual.endsWith("/" + allowed) || actual.endsWith("\\" + allowed))) {
-				continue;
+			boolean matchesOnSeparatorBoundary = !allowed.isEmpty()
+					&& (actual.endsWith("/" + allowed) || actual.endsWith("\\" + allowed));
+			if (!matchesOnSeparatorBoundary) {
+				return false;
 			}
-			// No match
-			return false;
 		}
 		return true;
 	}
@@ -679,7 +678,7 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 		}
 		try {
 			checkCommandSystemInteractionImpl(action, declaringTypeName, methodName, methodSignature, attributes,
-					parameters, instance);
+					parameters);
 		} finally {
 			exitAdvice();
 		}
@@ -687,7 +686,7 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 
 	private static void checkCommandSystemInteractionImpl(@Nonnull String action, @Nonnull String declaringTypeName,
 			@Nonnull String methodName, @Nonnull String methodSignature, @Nullable Object[] attributes,
-			@Nullable Object[] parameters, @Nullable Object instance) {
+			@Nullable Object[] parameters) {
 		// <editor-fold desc="Get information from settings">
 		@Nullable
 		final String aopMode = getValueFromSettings("aopMode");

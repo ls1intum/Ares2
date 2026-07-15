@@ -93,7 +93,7 @@ public class SecurityPolicyYAMLReader extends SecurityPolicyReader {
 		private YAMLMapper yamlMapper;
 
 		@Nonnull
-		public Builder yamlMapper(@Nullable YAMLMapper yamlMapper) {
+		public Builder yamlMapper(@Nonnull YAMLMapper yamlMapper) {
 			this.yamlMapper = Objects.requireNonNull(yamlMapper, "yamlMapper must not be null");
 			return this;
 		}

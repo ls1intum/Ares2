@@ -165,18 +165,10 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 			String allowedSignature = allowedPackages.stream().map(p -> p.importTheFollowingPackage()).sorted()
 					.collect(java.util.stream.Collectors.joining(","));
 			String pkgKey = allowedSignature + "#" + allowedClassesSignature + "@" + javaClassesToken(javaClasses);
-			cached = PACKAGE_OUTCOME_CACHE.get(pkgKey);
-			if (cached == null) {
-				cached = runRuleAndCapture(supported);
-				PACKAGE_OUTCOME_CACHE.put(pkgKey, cached);
-			}
+			cached = PACKAGE_OUTCOME_CACHE.computeIfAbsent(pkgKey, unusedKey -> runRuleAndCapture(supported));
 		} else {
 			String key = supported.name() + "#" + allowedClassesSignature + "@" + javaClassesToken(javaClasses);
-			cached = RULE_OUTCOME_CACHE.get(key);
-			if (cached == null) {
-				cached = runRuleAndCapture(supported);
-				RULE_OUTCOME_CACHE.put(key, cached);
-			}
+			cached = RULE_OUTCOME_CACHE.computeIfAbsent(key, unusedKey -> runRuleAndCapture(supported));
 		}
 		if (cached.isPresent()) {
 			throw cached.get();

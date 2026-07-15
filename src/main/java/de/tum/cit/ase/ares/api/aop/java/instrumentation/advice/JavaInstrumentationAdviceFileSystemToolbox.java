@@ -1,7 +1,5 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox.*;
-
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Array;
@@ -113,9 +111,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			// socket/stream is not a path. File/String-named PrintStreams still validate
 			// their path at index 0.
 			Map.entry("java.io.PrintStream.<init>", IgnoreValues.allExcept(0)));
-
-	private static final EnumSet<StandardOpenOption> CREATE_OPTIONS = EnumSet.of(StandardOpenOption.CREATE,
-			StandardOpenOption.CREATE_NEW);
 
 	/**
 	 * Internal Ares files that should be excluded from file system interception.
@@ -627,15 +622,13 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * </ul>
 	 * </p>
 	 *
-	 * @param parameters    the constructor parameters (File/String, mode)
-	 * @param defaultAction the action from the pointcut context (unused, mode
-	 *                      parameter takes priority)
+	 * @param parameters the constructor parameters (File/String, mode)
 	 * @return the effective action based on the mode, or null if no mode string
 	 *         found
 	 * @since 2.0.0
 	 */
 	@Nullable
-	private static String getRandomAccessFileModeAction(@Nullable Object[] parameters, @Nonnull String defaultAction) {
+	private static String getRandomAccessFileModeAction(@Nullable Object[] parameters) {
 		if (parameters == null || parameters.length < 2) {
 			return null;
 		}
@@ -825,7 +818,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			}
 			// Check for RandomAccessFile mode string first
 			if ("java.io.RandomAccessFile".equals(declaringTypeName)) {
-				String modeAction = getRandomAccessFileModeAction(parameters, defaultAction);
+				String modeAction = getRandomAccessFileModeAction(parameters);
 				if (modeAction != null) {
 					// RandomAccessFile write modes can create files that don't exist yet,
 					// so always check the path even when the file is absent.
@@ -1193,8 +1186,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 */
 	private static void checkFileSystemInteractionForAction(@Nonnull String action,
 			boolean allowNonExistingPathsToBeConsidered, @Nonnull String declaringTypeName, @Nonnull String methodName,
-			@Nonnull String methodSignature, @Nullable Object[] attributes, @Nullable Object[] parameters,
-			@Nullable Object instance, @Nullable String restrictedPackage, @Nullable String[] allowedClasses,
+			@Nullable Object[] attributes, @Nullable Object[] parameters, @Nullable Object instance,
 			@Nonnull String fileSystemMethodToCheck, @Nullable String studentCalledMethod,
 			@Nonnull String fullMethodSignature) {
 		// <editor-fold desc="Resolve allowed paths">
@@ -1492,9 +1484,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 					parameters);
 			for (Map.Entry<String, Boolean> actionCheck : actionsToValidate) {
 				checkFileSystemInteractionForAction(actionCheck.getKey(), Boolean.TRUE.equals(actionCheck.getValue()),
-						declaringTypeName, methodName, methodSignature, attributes, parameters, instance,
-						restrictedPackage, allowedClasses, fileSystemMethodToCheck, studentCalledMethod,
-						fullMethodSignature);
+						declaringTypeName, methodName, attributes, parameters, instance, fileSystemMethodToCheck,
+						studentCalledMethod, fullMethodSignature);
 			}
 		} finally {
 			exitAdvice();

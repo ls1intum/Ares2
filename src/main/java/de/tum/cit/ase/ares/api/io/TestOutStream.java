@@ -17,7 +17,7 @@ final class TestOutStream extends OutputStream {
 	private final LineAcceptor outputAcceptor;
 	private final OutputStream mirror;
 	private final long maxChars;
-	private long charCount;
+	private final java.util.concurrent.atomic.AtomicLong charCount = new java.util.concurrent.atomic.AtomicLong();
 	private volatile boolean closed;
 
 	private final ByteArrayOutputStream currentInput;
@@ -81,7 +81,7 @@ final class TestOutStream extends OutputStream {
 	}
 
 	void resetInternalState() {
-		charCount = 0;
+		charCount.set(0);
 		currentInput.reset();
 	}
 
@@ -89,9 +89,9 @@ final class TestOutStream extends OutputStream {
 		if (closed) {
 			throw new IOException(localized("output_tester.output_closed")); //$NON-NLS-1$
 		}
-		charCount += newChars;
-		if (charCount > maxChars) {
-			throw new SecurityException(localized("output_tester.output_maxExceeded", charCount)); //$NON-NLS-1$
+		long totalChars = charCount.addAndGet(newChars);
+		if (totalChars > maxChars) {
+			throw new SecurityException(localized("output_tester.output_maxExceeded", totalChars)); //$NON-NLS-1$
 		}
 	}
 }

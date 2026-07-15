@@ -50,6 +50,12 @@ import de.tum.cit.ase.ares.api.util.FileTools;
  */
 public class JavaWalaTestCase extends JavaArchitectureTestCase {
 
+	/**
+	 * One shared source of randomness; a fresh SecureRandom per call reseeds
+	 * needlessly.
+	 */
+	private static final java.security.SecureRandom SECURE_RANDOM = new java.security.SecureRandom();
+
 	// <editor-fold desc="Disk-backed rule outcome cache">
 
 	/**
@@ -198,7 +204,7 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		Path secretFile = CACHE_DIR.resolve("secret");
 		try {
 			byte[] secret = new byte[32];
-			new java.security.SecureRandom().nextBytes(secret);
+			SECURE_RANDOM.nextBytes(secret);
 			try {
 				// Create atomically with 0600 so the secret never exists world-readable.
 				try {

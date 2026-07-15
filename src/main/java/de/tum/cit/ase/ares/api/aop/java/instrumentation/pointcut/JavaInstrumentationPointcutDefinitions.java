@@ -193,14 +193,15 @@ public final class JavaInstrumentationPointcutDefinitions {
 			Map<String, List<String>> methodsMap) {
 		ElementMatcher.Junction<TypeDescription> hierarchyMatcher = ElementMatchers.none();
 		List<MethodPointcutSpec> constructorSpecs = new ArrayList<>();
-		for (String key : methodsMap.keySet()) {
+		for (Map.Entry<String, List<String>> entry : methodsMap.entrySet()) {
+			String key = entry.getKey();
 			ElementMatcher.Junction<TypeDescription> keyMatcher = ElementMatchers.named(key);
 			ElementMatcher.Junction<TypeDescription> subTypeMatcher = ElementMatchers.hasSuperType(keyMatcher);
 			ElementMatcher.Junction<TypeDescription> typeMatcher = keyMatcher.or(subTypeMatcher);
 
 			if (typeMatcher.matches(typeDescription)) {
 				hierarchyMatcher = hierarchyMatcher.or(typeMatcher);
-				List<String> names = methodsMap.get(key);
+				List<String> names = entry.getValue();
 				if (names != null) {
 					for (String name : names) {
 						MethodPointcutSpec spec = MethodPointcutSpec.parse(name);

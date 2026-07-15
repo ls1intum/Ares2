@@ -1,7 +1,5 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox.*;
-
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -372,6 +370,11 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	 * @param value the object to convert
 	 * @return the resolved network target, or {@code null}
 	 */
+	// JavaInstrumentationAdviceNetworkSystemToolboxTest calls this through
+	// getDeclaredMethod("toTarget", ..), so no compiler-visible caller exists and
+	// PMD reports it
+	// as unused. Removing it breaks that test.
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
 	@Nullable
 	private static NetworkTarget toTarget(@Nullable Object value) {
 		return variableToTarget(value);
@@ -388,6 +391,10 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	 * @param parameters the intercepted argument array
 	 * @return the resolved target, or {@code null} if no target can be derived
 	 */
+	// Reflectively exercised by JavaInstrumentationAdviceNetworkSystemToolboxTest,
+	// like
+	// toTarget above, so PMD cannot see a caller.
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
 	@Nullable
 	private static NetworkTarget parametersToTarget(@Nonnull Object[] parameters) {
 		return parametersToTarget(parameters, new BitSet(parameters.length));
@@ -731,11 +738,9 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	 * @author Kevin Fischer
 	 */
 	private static void checkNetworkSystemInteractionForAction(@Nonnull String action,
-			@Nonnull String declaringTypeName, @Nonnull String methodName, @Nonnull String methodSignature,
-			@Nullable Object[] attributes, @Nullable Object[] parameters, @Nullable Object instance,
-			@Nullable String restrictedPackage, @Nullable String[] allowedClasses,
-			@Nonnull String networkSystemMethodToCheck, @Nullable String studentCalledMethod,
-			@Nonnull String fullMethodSignature) {
+			@Nonnull String declaringTypeName, @Nonnull String methodName, @Nullable Object[] attributes,
+			@Nullable Object[] parameters, @Nullable Object instance, @Nonnull String networkSystemMethodToCheck,
+			@Nullable String studentCalledMethod, @Nonnull String fullMethodSignature) {
 		// <editor-fold desc="Resolve allowed hosts and ports">
 		@Nullable
 		final String[] allowedHosts = switch (action) {
@@ -908,9 +913,8 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 
 		List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action);
 		for (Map.Entry<String, Boolean> actionCheck : actionsToValidate) {
-			checkNetworkSystemInteractionForAction(actionCheck.getKey(), declaringTypeName, methodName, methodSignature,
-					attributes, parameters, instance, restrictedPackage, allowedClasses, networkSystemMethodToCheck,
-					studentCalledMethod, fullMethodSignature);
+			checkNetworkSystemInteractionForAction(actionCheck.getKey(), declaringTypeName, methodName, attributes,
+					parameters, instance, networkSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
 		}
 	}
 

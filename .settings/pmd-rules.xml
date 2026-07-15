@@ -3,9 +3,9 @@
 	Ares PMD rules.
 
 	This starts from the maven-pmd-plugin default rule set, so the analysis stays the one the
-	project has been measuring, and removes only the pure code-style rules that either fight the
-	formatter or object to a deliberate idiom. UnnecessaryFullyQualifiedName alone accounted for
-	169 of the 244 findings, firing on calls such as JavaAOPTestCase.setJavaAdviceSettingValue(..)
+	project has been measuring, and removes only the rules that either fight the formatter or
+	object to a deliberate idiom. UnnecessaryFullyQualifiedName alone accounted for 169 of the
+	original 244 findings, firing on calls such as JavaAOPTestCase.setJavaAdviceSettingValue(..)
 	written inside JavaAOPTestCase itself, where the qualification is there to make a static call
 	obvious at the call site. What is left are the rules that point at defects: dead code, empty
 	catch blocks and error-prone control flow.
@@ -18,10 +18,34 @@
 	<description>Ares rules: the maven-pmd-plugin defaults without the style rules the formatter owns.</description>
 
 	<rule ref="rulesets/java/maven-pmd-plugin-default.xml">
+		<!-- Formatting and style: owned by spotless and the Eclipse formatter. -->
 		<exclude name="UnnecessaryFullyQualifiedName"/>
 		<exclude name="UselessParentheses"/>
 		<exclude name="UnnecessaryReturn"/>
 		<exclude name="EmptyControlStatement"/>
 		<exclude name="TooManyStaticImports"/>
+
+		<!--
+			Ares enumerates the threads a student's code has started, and ThreadGroup is the only
+			API that reports live threads it does not itself hold a reference to. The rule is
+			right that ThreadGroup is not thread-safe; there is simply no alternative for this,
+			and TestUtils only reads from it.
+		-->
+		<exclude name="AvoidThreadGroup"/>
+
+		<!-- Re-declared below so that a documented empty catch block is accepted. -->
+		<exclude name="EmptyCatchBlock"/>
+	</rule>
+
+	<!--
+		Every empty catch block in Ares carries a comment saying why the exception is ignored,
+		for example that a class is simply not loaded in the bootstrap class loader yet, or that
+		a pre-existing directory is validated further down before it is trusted. Swallowing an
+		exception silently stays a violation; swallowing one with a written reason does not.
+	-->
+	<rule ref="category/java/errorprone.xml/EmptyCatchBlock">
+		<properties>
+			<property name="allowCommentedBlocks" value="true"/>
+		</properties>
 	</rule>
 </ruleset>

@@ -6,6 +6,7 @@ import java.io.*;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -416,7 +417,8 @@ public abstract class StructuralTestProvider {
 			return null;
 		}
 		var result = new StringBuilder();
-		try (var bufferedReader = new BufferedReader(new InputStreamReader(structureOracleFileUrl.openStream()))) {
+		try (var bufferedReader = new BufferedReader(
+				new InputStreamReader(structureOracleFileUrl.openStream(), StandardCharsets.UTF_8))) {
 			var buffer = new char[8192];
 			int length;
 			while ((length = bufferedReader.read(buffer, 0, buffer.length)) != -1) {

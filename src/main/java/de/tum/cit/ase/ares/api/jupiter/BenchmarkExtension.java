@@ -23,7 +23,12 @@ public class BenchmarkExtension implements BeforeTestExecutionCallback, AfterTes
 
 	@Override
 	public void afterTestExecution(ExtensionContext context) throws IOException {
-		long startTime = context.getStore(ExtensionContext.Namespace.GLOBAL).get(START_TIME, long.class);
+		Long startTime = context.getStore(ExtensionContext.Namespace.GLOBAL).get(START_TIME, Long.class);
+		if (startTime == null) {
+			// beforeTestExecution did not run for this test, so there is nothing to
+			// measure.
+			return;
+		}
 		long duration = (System.nanoTime() - startTime) / 1_000_000;
 		// Files.write(Path.of("benchmark.csv"), String.format("%s,%d,%d\n",
 		// context.getDisplayName(), duration, 6).getBytes(),

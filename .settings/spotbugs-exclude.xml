@@ -39,4 +39,88 @@
 	<Match>
 		<Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
 	</Match>
+
+	<!--
+		The advice settings in the aspects have to be public and static because
+		JavaAOPTestCase.setJavaAdviceSettingValue writes them reflectively, by name, before a
+		test case runs. Narrowing their visibility would break the only channel through which a
+		security policy reaches the woven advice.
+	-->
+	<Match>
+		<Package name="de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut"/>
+		<Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
+	</Match>
+
+	<!--
+		The throwable sanitisers dispatch on the throwable's type before they cast it, so the
+		cast is safe by construction. SpotBugs cannot see the dispatch, because it happens
+		through the sanitiser registry rather than through an instanceof in the same method.
+	-->
+	<Match>
+		<Package name="de.tum.cit.ase.ares.api.internal.sanitization"/>
+		<Bug pattern="BC_UNCONFIRMED_CAST"/>
+	</Match>
+
+	<!--
+		The advice re-checks values that its own annotations already declare non-null. That
+		redundancy is deliberate: the advice inspects arguments handed to it by student code
+		across a reflective boundary, where an annotation is a promise rather than a guarantee,
+		and a missed null there fails open.
+	-->
+	<Match>
+		<Package name="~de\.tum\.cit\.ase\.ares\.api\.aop\.java\..*"/>
+		<Bug pattern="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE"/>
+	</Match>
+
+	<!--
+		toTarget and parametersToTarget have no compiler-visible caller because
+		JavaInstrumentationAdviceNetworkSystemToolboxTest reaches them through
+		getDeclaredMethod. They are the unit-testable core of network target resolution, so
+		removing them as dead code would delete what those tests exercise.
+	-->
+	<Match>
+		<Method name="~(toTarget|parametersToTarget)"/>
+		<Bug pattern="UPM_UNCALLED_PRIVATE_METHOD"/>
+	</Match>
+
+	<!--
+		WalaRule and CustomDFSPathFinder walk a WALA call graph with getSuccNodes and
+		getPredNodes, whose return type is Iterator<? extends CGNode>. SpotBugs cannot prove
+		that such an iterator yields non-null elements, so it reports a possible null
+		dereference on each traversal loop. The call-graph nodes WALA hands back are never
+		null, and the loops that use the element already guard it (for example
+		"if (successor != null && visited.add(successor))"), so there is no reachable
+		dereference. Guarding the iterator in code does not move the finding, because the
+		element, not the iterator, is what SpotBugs models as nullable.
+	-->
+	<Match>
+		<Package name="de.tum.cit.ase.ares.api.architecture.java.wala"/>
+		<Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"/>
+	</Match>
+
+	<!--
+		structureOracleJSON is the parsed structure oracle, populated lazily on first use and
+		read by every structural test provider that extends this class and by the structural
+		test subjects. It therefore cannot be final and has to stay protected. SpotBugs flags
+		it as a mutable static that should be final, which does not fit a lazily-initialised
+		shared cache.
+	-->
+	<Match>
+		<Class name="de.tum.cit.ase.ares.api.structural.StructuralTestProvider"/>
+		<Field name="structureOracleJSON"/>
+		<Bug pattern="MS_SHOULD_BE_FINAL"/>
+	</Match>
+
+	<!--
+		NodePosition.compareTo orders positions by their begin line and column only, so that
+		unwanted AST nodes can be reported in source order. Equality is deliberately left as
+		identity: two distinct AST nodes that start at the same position are different nodes,
+		and NodePosition is never placed in a TreeSet or TreeMap where compareTo would stand in
+		for equals. Adding a value-based equals consistent with the two-field ordering would
+		instead make nodes at the same start position compare equal, which is wrong.
+	-->
+	<Match>
+		<Class name="de.tum.cit.ase.ares.api.ast.model.NodePosition"/>
+		<Bug pattern="EQ_COMPARETO_USE_OBJECT_EQUALS"/>
+	</Match>
 </FindBugsFilter>

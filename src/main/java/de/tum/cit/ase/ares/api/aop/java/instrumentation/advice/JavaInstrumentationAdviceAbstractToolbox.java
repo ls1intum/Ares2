@@ -628,8 +628,9 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 		// above it.
 		return STACK_WALKER.walk(frames -> {
 			boolean restrictedSeen = false;
+			String callerAboveRestrictedPackage = null;
 			Iterator<StackWalker.StackFrame> iterator = frames.iterator();
-			while (iterator.hasNext()) {
+			while (callerAboveRestrictedPackage == null && iterator.hasNext()) {
 				StackWalker.StackFrame frame = iterator.next();
 				String className = frame.getClassName();
 				boolean ignorable = false;
@@ -639,19 +640,16 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 						break;
 					}
 				}
-				if (ignorable) {
-					continue;
-				}
-				if (!restrictedSeen) {
-					if (className.startsWith(restrictedPackage)
+				if (!ignorable) {
+					if (restrictedSeen) {
+						callerAboveRestrictedPackage = className + "." + frame.getMethodName();
+					} else if (className.startsWith(restrictedPackage)
 							&& !className.startsWith("de.tum.cit.ase.ares.api.aop.java.instrumentation")) {
 						restrictedSeen = true;
 					}
-					continue;
 				}
-				return className + "." + frame.getMethodName();
 			}
-			return null;
+			return callerAboveRestrictedPackage;
 		});
 	}
 	// </editor-fold>
