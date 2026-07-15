@@ -5,6 +5,7 @@ import static java.lang.invoke.MethodType.methodType;
 import java.lang.annotation.AnnotationFormatError;
 import java.lang.invoke.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 import org.apiguardian.api.API;
@@ -27,7 +28,12 @@ public final class IOExtensionUtils {
 		// REMOVED: Installation of ArtemisSecurityManager;
 	}
 
-	private static final HashMap<Class<? extends IOManager<?>>, Supplier<? extends IOManager<?>>> ioManagerCache = new HashMap<>();
+	// ConcurrentHashMap rather than HashMap: parallel JUnit test containers resolve
+	// their IO
+	// managers through computeIfAbsent on this shared static cache, and a plain
+	// HashMap would
+	// race on the concurrent insert and could corrupt its buckets.
+	private static final ConcurrentHashMap<Class<? extends IOManager<?>>, Supplier<? extends IOManager<?>>> IO_MANAGER_CACHE = new ConcurrentHashMap<>();
 
 	private final AresIOContext context;
 	private final IOManager<?> ioManager;
@@ -62,7 +68,7 @@ public final class IOExtensionUtils {
 	private static IOManager<?> createIOManagerFor(TestContext testContext) {
 		var ioManagerClass = TestContextUtils.findAnnotationIn(testContext, WithIOManager.class)
 				.<Class<? extends IOManager<?>>>map(WithIOManager::value).orElse(DEFAULT_IO_MANAGER);
-		return ioManagerCache.computeIfAbsent(ioManagerClass, IOExtensionUtils::generateIOManagerSupplier).get();
+		return IO_MANAGER_CACHE.computeIfAbsent(ioManagerClass, IOExtensionUtils::generateIOManagerSupplier).get();
 	}
 
 	private static Supplier<IOManager<?>> generateIOManagerSupplier(Class<? extends IOManager<?>> ioManagerClass) {

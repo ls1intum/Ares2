@@ -10,7 +10,7 @@ import javax.annotation.Nullable;
 
 import de.tum.cit.ase.ares.api.localization.Messages;
 
-public class JavaAOPTestCaseToolbox {
+public final class JavaAOPTestCaseToolbox {
 	private JavaAOPTestCaseToolbox() {
 		throw new SecurityException(
 				Messages.localized("security.instrumentation.utility.initialization", "JavaAOPTestCaseToolbox"));

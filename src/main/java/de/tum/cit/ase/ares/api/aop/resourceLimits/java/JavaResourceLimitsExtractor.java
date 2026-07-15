@@ -71,8 +71,9 @@ public class JavaResourceLimitsExtractor implements ResourceLimitsExtractor {
 				String name = m.getName();
 				try {
 					long val = (long) m.invoke(p);
-					if (val < 0)
+					if (val < 0) {
 						continue;
+					}
 					min.merge(name, val, Math::min);
 				} catch (ReflectiveOperationException e) {
 					throw new SecurityException(

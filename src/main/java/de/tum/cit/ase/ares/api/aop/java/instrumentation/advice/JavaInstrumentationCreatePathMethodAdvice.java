@@ -15,6 +15,11 @@ import net.bytebuddy.asm.Advice;
  * JavaInstrumentationAdviceFileSystemToolbox to perform these security checks.
  */
 public final class JavaInstrumentationCreatePathMethodAdvice {
+	private JavaInstrumentationCreatePathMethodAdvice() {
+		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+				"security.instrumentation.utility.initialization", "JavaInstrumentationCreatePathMethodAdvice"));
+	}
+
 	/**
 	 * This method is called when a method creating files is entered. It performs
 	 * security checks to determine whether the method execution is allowed

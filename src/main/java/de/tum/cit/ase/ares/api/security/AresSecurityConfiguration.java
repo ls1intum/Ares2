@@ -106,10 +106,12 @@ public final class AresSecurityConfiguration {
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (!(obj instanceof AresSecurityConfiguration))
+		}
+		if (!(obj instanceof AresSecurityConfiguration)) {
 			return false;
+		}
 		AresSecurityConfiguration other = (AresSecurityConfiguration) obj;
 		return Objects.equals(executionPath, other.executionPath) && Objects.equals(testClass, other.testClass)
 				&& Objects.equals(testMethod, other.testMethod)

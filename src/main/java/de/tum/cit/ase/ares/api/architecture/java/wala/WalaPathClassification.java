@@ -22,7 +22,7 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  * of truth for which prefixes are trusted.
  * </p>
  */
-public class WalaPathClassification {
+public final class WalaPathClassification {
 
 	// <editor-fold desc="Constructor">
 	private WalaPathClassification() {

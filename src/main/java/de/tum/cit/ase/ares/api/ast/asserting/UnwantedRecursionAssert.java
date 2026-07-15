@@ -29,7 +29,7 @@ import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
  * @since 1.12.0
  */
 @API(status = Status.MAINTAINED)
-public class UnwantedRecursionAssert extends AbstractAssert<UnwantedRecursionAssert, Path> {
+public final class UnwantedRecursionAssert extends AbstractAssert<UnwantedRecursionAssert, Path> {
 
 	/**
 	 * The regular expression to match an identifier

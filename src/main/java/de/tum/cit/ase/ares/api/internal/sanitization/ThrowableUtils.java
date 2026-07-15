@@ -23,12 +23,15 @@ final class ThrowableUtils {
 			.collect(Collectors.toUnmodifiableSet());
 
 	static final BiFunction<String, Object, Object> PROPERTY_SANITIZER = (name, value) -> {
-		if (value == null)
+		if (value == null) {
 			return value;
-		if (value instanceof Throwable)
+		}
+		if (value instanceof Throwable) {
 			return ThrowableSanitizer.sanitize((Throwable) value);
-		if (value instanceof Throwable[])
+		}
+		if (value instanceof Throwable[]) {
 			return Arrays.stream((Throwable[]) value).map(ThrowableSanitizer::sanitize).toArray(Throwable[]::new);
+		}
 		return value;
 	};
 
@@ -36,10 +39,12 @@ final class ThrowableUtils {
 			.comparingByKey((firstProperty, secondProperty) -> {
 				boolean firstIsLessImportant = THROWABLE_PROPERTIES.contains(firstProperty);
 				boolean secondIsLessImportant = THROWABLE_PROPERTIES.contains(secondProperty);
-				if (firstIsLessImportant && !secondIsLessImportant)
+				if (firstIsLessImportant && !secondIsLessImportant) {
 					return 1;
-				if (secondIsLessImportant && !firstIsLessImportant)
+				}
+				if (secondIsLessImportant && !firstIsLessImportant) {
 					return -1;
+				}
 				return firstProperty.compareTo(secondProperty);
 			});
 
@@ -72,8 +77,9 @@ final class ThrowableUtils {
 	static <T extends Throwable> Constructor<T> findPreferredConstructor(Class<T> type) {
 		@SuppressWarnings("unchecked")
 		var allConstructors = (Constructor<T>[]) type.getConstructors();
-		if (allConstructors.length == 0)
+		if (allConstructors.length == 0) {
 			return null;
+		}
 		var classPropertyTypeCount = getRelevantPropertiesWithMethods(type, IGNORE_PROPERTIES).stream()
 				.collect(Collectors.groupingBy(property -> property.getValue().getReturnType(), Collectors.counting()));
 		return Stream.of(allConstructors)
@@ -102,8 +108,9 @@ final class ThrowableUtils {
 	static Set<Entry<String, Method>> getRelevantPropertiesWithMethods(Class<?> type, Set<String> namesToIgnore) {
 		return Stream.of(type.getMethods()).map(method -> {
 			var propertyName = extractProperty(method);
-			if (propertyName == null || namesToIgnore.contains(propertyName))
+			if (propertyName == null || namesToIgnore.contains(propertyName)) {
 				return null;
+			}
 			return Map.entry(propertyName, method);
 		}).filter(Objects::nonNull).collect(Collectors.toUnmodifiableSet());
 	}
@@ -122,12 +129,15 @@ final class ThrowableUtils {
 	}
 
 	static String extractProperty(Method method) {
-		if (method.getParameterCount() > 0)
+		if (method.getParameterCount() > 0) {
 			return null;
-		if (method.isBridge() || method.isSynthetic())
+		}
+		if (method.isBridge() || method.isSynthetic()) {
 			return null;
-		if (void.class.equals(method.getReturnType()))
+		}
+		if (void.class.equals(method.getReturnType())) {
 			return null;
+		}
 		String name = method.getName();
 		if (name.startsWith("get") && name.length() > 3 && Character.isUpperCase(name.charAt(3))) { //$NON-NLS-1$
 			var propertyName = new StringBuilder(name);
@@ -142,10 +152,13 @@ final class ThrowableUtils {
 		var used = new HashSet<>();
 		return Stream.of(constructor.getParameterTypes()).map(argType -> {
 			var valueList = valueSource.get(argType);
-			if (valueList != null)
-				for (var value : valueList)
-					if (used.add(value))
+			if (valueList != null) {
+				for (var value : valueList) {
+					if (used.add(value)) {
 						return value;
+					}
+				}
+			}
 			return null;
 		}).toArray();
 	}

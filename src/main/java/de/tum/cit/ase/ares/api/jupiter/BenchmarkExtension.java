@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
  */
 public class BenchmarkExtension implements BeforeTestExecutionCallback, AfterTestExecutionCallback {
 	private static final String START_TIME = "start_time";
-	private static final Logger log = LoggerFactory.getLogger(BenchmarkExtension.class);
+	private static final Logger LOG = LoggerFactory.getLogger(BenchmarkExtension.class);
 
 	@Override
 	public void beforeTestExecution(ExtensionContext context) {
@@ -28,6 +28,6 @@ public class BenchmarkExtension implements BeforeTestExecutionCallback, AfterTes
 		// Files.write(Path.of("benchmark.csv"), String.format("%s,%d,%d\n",
 		// context.getDisplayName(), duration, 6).getBytes(),
 		// java.nio.file.StandardOpenOption.APPEND);
-		BenchmarkExtension.log.info("Test '{}' executed in: {} ms", context.getDisplayName(), duration);
+		BenchmarkExtension.LOG.info("Test '{}' executed in: {} ms", context.getDisplayName(), duration);
 	}
 }

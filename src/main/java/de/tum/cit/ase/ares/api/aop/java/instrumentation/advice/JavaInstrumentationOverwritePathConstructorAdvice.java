@@ -14,6 +14,12 @@ import net.bytebuddy.asm.Advice;
  * checks.
  */
 public final class JavaInstrumentationOverwritePathConstructorAdvice {
+	private JavaInstrumentationOverwritePathConstructorAdvice() {
+		throw new SecurityException(
+				JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.utility.initialization",
+						"JavaInstrumentationOverwritePathConstructorAdvice"));
+	}
+
 	/**
 	 * This method is called when a constructor overwriting files is entered. It
 	 * performs security checks to determine whether the constructor execution is

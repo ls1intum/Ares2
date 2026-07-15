@@ -2,9 +2,14 @@ package de.tum.cit.ase.ares.api;
 
 import java.nio.file.Path;
 
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 
-public class Main {
+public final class Main {
+	private Main() {
+		throw new SecurityException(Messages.localized("security.general.utility.initialization", "Main"));
+	}
+
 	public static void main(String[] args) {
 		SecurityPolicyReaderAndDirector securityPolicyReaderAndDirector = new SecurityPolicyReaderAndDirector(
 				Path.of("/Users", "markuspaulsen", "Documents", "Ares2", "src", "main", "resources",

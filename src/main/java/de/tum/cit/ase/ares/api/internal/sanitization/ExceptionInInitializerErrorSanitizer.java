@@ -29,12 +29,13 @@ enum ExceptionInInitializerErrorSanitizer implements SpecificThrowableSanitizer 
 		 * SanitizationUtils.copyThrowableInfoSafe a cause is present and its call to
 		 * initCause fails
 		 */
-		if (newMessage != null && !newMessage.isEmpty())
+		if (newMessage != null && !newMessage.isEmpty()) {
 			newEiie = new ExceptionInInitializerError(newMessage);
-		else if (exception != null)
+		} else if (exception != null) {
 			newEiie = new ExceptionInInitializerError(info.getCause());
-		else
+		} else {
 			newEiie = new ExceptionInInitializerError();
+		}
 		SanitizationUtils.copyThrowableInfoSafe(info, newEiie);
 		return newEiie;
 	}

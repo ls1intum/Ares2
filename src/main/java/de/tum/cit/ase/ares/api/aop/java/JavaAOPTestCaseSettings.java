@@ -17,7 +17,7 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  * @version 2.0.0
  * @since 2.0.0
  */
-public class JavaAOPTestCaseSettings {
+public final class JavaAOPTestCaseSettings {
 
 	/**
 	 * Lock object for synchronizing access to all security-related settings.

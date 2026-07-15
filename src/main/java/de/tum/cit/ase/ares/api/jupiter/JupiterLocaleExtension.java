@@ -18,8 +18,9 @@ public class JupiterLocaleExtension implements BeforeAllCallback, AfterAllCallba
 	@Override
 	public void beforeAll(ExtensionContext context) {
 		var annot = AnnotationSupport.findAnnotation(context.getElement(), UseLocale.class);
-		if (annot.isEmpty())
+		if (annot.isEmpty()) {
 			return;
+		}
 		getStore(context).put(OLD_LOCALE_KEY, Locale.getDefault());
 		var newLocale = new Locale(annot.get().value());
 		Locale.setDefault(newLocale);
@@ -28,8 +29,9 @@ public class JupiterLocaleExtension implements BeforeAllCallback, AfterAllCallba
 	@Override
 	public void afterAll(ExtensionContext context) {
 		var oldLocale = getStore(context).remove(OLD_LOCALE_KEY, Locale.class);
-		if (oldLocale != null)
+		if (oldLocale != null) {
 			Locale.setDefault(oldLocale);
+		}
 	}
 
 	private Store getStore(ExtensionContext context) {

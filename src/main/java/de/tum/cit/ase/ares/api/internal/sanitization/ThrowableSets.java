@@ -35,16 +35,21 @@ final class ThrowableSets {
 	static {
 		HashSet<Class<? extends Throwable>> join = new HashSet<>(Java.SAFE_TYPES);
 		join.addAll(Own.SAFE_TYPES);
-		if (classCanBeFound(JUNIT4_CHECK_CLASS))
+		if (classCanBeFound(JUNIT4_CHECK_CLASS)) {
 			join.addAll(JUnit4.SAFE_TYPES);
-		if (classCanBeFound(JUNIT5_CHECK_CLASS))
+		}
+		if (classCanBeFound(JUNIT5_CHECK_CLASS)) {
 			join.addAll(JUnit5.SAFE_TYPES);
-		if (classCanBeFound(JQWIK_CHECK_CLASS))
+		}
+		if (classCanBeFound(JQWIK_CHECK_CLASS)) {
 			join.addAll(Jqwik.SAFE_TYPES);
-		if (classCanBeFound(ASSERTJ_CHECK_CLASS))
+		}
+		if (classCanBeFound(ASSERTJ_CHECK_CLASS)) {
 			join.addAll(AssertJ.SAFE_TYPES);
-		if (classCanBeFound(OPENTEST4J_CHECK_CLASS))
+		}
+		if (classCanBeFound(OPENTEST4J_CHECK_CLASS)) {
 			join.addAll(OpenTest4J.SAFE_TYPES);
+		}
 		SAFE_TYPES = Collections.unmodifiableSet(join);
 	}
 

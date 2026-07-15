@@ -20,8 +20,9 @@ public abstract class AbstractLine implements Line {
 
 	@Override
 	public boolean equals(Object obj) {
-		if (!(obj instanceof AbstractLine))
+		if (!(obj instanceof AbstractLine)) {
 			return false;
+		}
 		Line other = (Line) obj;
 		return Objects.equals(text(), other.text());
 	}
@@ -37,18 +38,21 @@ public abstract class AbstractLine implements Line {
 	}
 
 	public final void setLineNumber(int lineNumber) {
-		if (lineNumber <= 0)
+		if (lineNumber <= 0) {
 			throw new IllegalArgumentException("Line number cannot be set to " + lineNumber); //$NON-NLS-1$
-		if (this.lineNumber != -1)
+		}
+		if (this.lineNumber != -1) {
 			throw new IllegalStateException("Line number has already been set"); //$NON-NLS-1$
+		}
 		this.lineNumber = lineNumber;
 	}
 
 	static boolean containsLineBreaks(CharSequence text) {
 		for (var i = 0; i < text.length(); i++) {
 			var character = text.charAt(i);
-			if (character == '\r' || character == '\n')
+			if (character == '\r' || character == '\n') {
 				return true;
+			}
 		}
 		return false;
 	}

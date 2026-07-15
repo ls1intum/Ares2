@@ -691,7 +691,7 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 		// <editor-fold desc="Get information from settings">
 		@Nullable
 		final String aopMode = getValueFromSettings("aopMode");
-		if (aopMode == null || aopMode.isEmpty() || !aopMode.equals("INSTRUMENTATION")) {
+		if (aopMode == null || aopMode.isEmpty() || !"INSTRUMENTATION".equals(aopMode)) {
 			return;
 		}
 		@Nullable

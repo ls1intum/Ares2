@@ -108,16 +108,18 @@ public class ClassNameScanner {
 			/*
 			 * 1) check whether the class might have the wrong case
 			 */
-			if (foundObservedClassName.equalsIgnoreCase(expectedClassName))
+			if (foundObservedClassName.equalsIgnoreCase(expectedClassName)) {
 				return createScanResult(foundObservedClassName, foundObservedPackageNames, classPresentMultiple,
 						classCorrectlyPlaced, WRONG_CASE_MULTIPLE, WRONG_CASE_CORRECT_PLACE, WRONG_CASE_MISPLACED);
+			}
 			/*
 			 * 2) check whether there are similar classes (e.g. the student has a small typo
 			 * in the class name)
 			 */
-			if (isMisspelledWithHighProbability(expectedClassName, foundObservedClassName))
+			if (isMisspelledWithHighProbability(expectedClassName, foundObservedClassName)) {
 				return createScanResult(foundObservedClassName, foundObservedPackageNames, classPresentMultiple,
 						classCorrectlyPlaced, TYPOS_MULTIPLE, TYPOS_CORRECT_PLACE, TYPOS_MISPLACED);
+			}
 		}
 		return createScanResult(ScanResultType.NOTFOUND, expectedClassName, null);
 	}
@@ -126,17 +128,19 @@ public class ClassNameScanner {
 			boolean classPresentMultiple, boolean classCorrectlyPlaced, ScanResultType multipleTimes,
 			ScanResultType correctPlace, ScanResultType misplaced) {
 		ScanResultType scanResultType;
-		if (classPresentMultiple)
+		if (classPresentMultiple) {
 			scanResultType = multipleTimes;
-		else
+		} else {
 			scanResultType = classCorrectlyPlaced ? correctPlace : misplaced;
+		}
 		return createScanResult(scanResultType, foundObservedClassName, foundObservedPackageName);
 	}
 
 	private ScanResultType getScanResultTypeClassFound(List<String> observedPackageNames) {
 		boolean classIsPresentMultipleTimes = observedPackageNames.size() > 1;
-		if (classIsPresentMultipleTimes)
+		if (classIsPresentMultipleTimes) {
 			return CORRECT_NAME_MULTIPLE;
+		}
 		boolean classIsCorrectlyPlaced = observedPackageNames.contains(expectedPackageName);
 		return classIsCorrectlyPlaced ? CORRECT_NAME_CORRECT_PLACE : CORRECT_NAME_MISPLACED;
 	}
@@ -220,17 +224,20 @@ public class ClassNameScanner {
 			var packageName = StreamSupport.stream(packagePath.spliterator(), false).map(Object::toString)
 					.collect(Collectors.joining(".")); //$NON-NLS-1$
 
-			if (foundClasses.containsKey(className))
+			if (foundClasses.containsKey(className)) {
 				foundClasses.get(className).add(packageName);
-			else
+			} else {
 				foundClasses.put(className, new ArrayList<>(List.of(packageName)));
+			}
 		}
 		// TODO: we should also support inner classes here
 		if (node.isDirectory()) {
 			String[] subNodes = node.list();
-			if (subNodes != null && subNodes.length > 0)
-				for (String currentSubNode : subNodes)
+			if (subNodes != null && subNodes.length > 0) {
+				for (String currentSubNode : subNodes) {
 					walkProjectFileStructure(assignmentFolder, new File(node, currentSubNode), foundClasses);
+				}
+			}
 		}
 	}
 
@@ -302,23 +309,26 @@ public class ClassNameScanner {
 		 * typos seem to occur almost never by accident.
 		 */
 		int lengthDifferenceAbs = Math.abs(a.length() - b.length());
-		if (lengthDifferenceAbs > 2)
+		if (lengthDifferenceAbs > 2) {
 			return false;
+		}
 		/*
 		 * This is the case for most typos, simply one missing or added character or two
 		 * next to each other are swapped. (We only use this rule for strings with
 		 * length of at least two)
 		 */
 		double distance = StringSimilarity.damerauLevenshteinDistance(a, b);
-		if (distance <= 1.0 && Math.max(a.length(), b.length()) > 2)
+		if (distance <= 1.0 && Math.max(a.length(), b.length()) > 2) {
 			return true;
+		}
 		/*
 		 * We accept everything with a distance below two as typo. At three and above,
 		 * misspelled identifiers can be easily recognized by a human or might not be
 		 * spelling errors.
 		 */
-		if (distance > 2)
+		if (distance > 2) {
 			return false;
+		}
 		/*
 		 * Otherwise, if the JW-similarity is below 0.9, it is unlikely that the two
 		 * names should be the same. Often, they are opposites or different concepts
@@ -330,8 +340,9 @@ public class ClassNameScanner {
 	}
 
 	static String describePackageNameLocalized(String packageName) {
-		if (packageName == null || packageName.isBlank())
+		if (packageName == null || packageName.isBlank()) {
 			return localized("structural.scan.defaultPackage"); //$NON-NLS-1$
+		}
 		return packageName;
 	}
 }

@@ -166,8 +166,9 @@ public enum PathType {
 
 	private static Path relativizeSafe(Path any, int offset) {
 		var path = any.normalize().toAbsolutePath();
-		if (!Objects.equals(path.getRoot(), CURRENT_PATH.getRoot()))
+		if (!Objects.equals(path.getRoot(), CURRENT_PATH.getRoot())) {
 			return path;
+		}
 		return CURRENT_PATH_HIERARCHY.get(offset).relativize(path).normalize();
 	}
 
@@ -183,18 +184,21 @@ public enum PathType {
 			String cleaned;
 			cleaned = GLOB_SINGLE_DOT_ELIMINATION.matcher(globPattern).replaceAll(""); //$NON-NLS-1$
 			Matcher m;
-			while ((m = GLOB_DOUBLE_DOT_ELIMINATION.matcher(cleaned)).find())
+			while ((m = GLOB_DOUBLE_DOT_ELIMINATION.matcher(cleaned)).find()) {
 				cleaned = m.replaceAll(""); //$NON-NLS-1$
+			}
 			var offset = 0;
 			while (cleaned.startsWith("..")) { //$NON-NLS-1$
-				if (cleaned.length() == 2)
+				if (cleaned.length() == 2) {
 					cleaned = ""; //$NON-NLS-1$
-				else
+				} else {
 					cleaned = cleaned.substring(3);
+				}
 				offset++;
 			}
-			if (offset >= CURRENT_PATH_HIERARCHY.size())
+			if (offset >= CURRENT_PATH_HIERARCHY.size()) {
 				throw new IllegalArgumentException("relative glob pattern for current path requires offset " + offset); //$NON-NLS-1$
+			}
 			this.relativeOffset = offset;
 			this.normalizedGlobPattern = cleaned;
 		}

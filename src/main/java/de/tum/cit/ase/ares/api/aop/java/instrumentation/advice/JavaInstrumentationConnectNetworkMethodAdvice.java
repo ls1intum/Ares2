@@ -17,6 +17,11 @@ import net.bytebuddy.asm.Advice;
  * checks.
  */
 public final class JavaInstrumentationConnectNetworkMethodAdvice {
+	private JavaInstrumentationConnectNetworkMethodAdvice() {
+		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+				"security.instrumentation.utility.initialization", "JavaInstrumentationConnectNetworkMethodAdvice"));
+	}
+
 	/**
 	 * This method is called when a method connecting to networks is entered. It
 	 * performs security checks to determine whether the method execution is allowed

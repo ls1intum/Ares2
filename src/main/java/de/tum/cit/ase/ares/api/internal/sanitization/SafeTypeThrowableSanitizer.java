@@ -80,12 +80,13 @@ enum SafeTypeThrowableSanitizer implements SpecificThrowableSanitizer {
 
 	private ThrowableCreator findThrowableCreator(Class<? extends Throwable> type) {
 		var throwableCreator = SPECIFIC_CREATORS.get(type.getName());
-		if (throwableCreator == null)
+		if (throwableCreator == null) {
 			throwableCreator = ThrowableUtils.getThrowableCreatorFor(type);
+		}
 		return throwableCreator;
 	}
 
-	private static class ThrowableCreatorWrapper implements ThrowableCreator {
+	private static final class ThrowableCreatorWrapper implements ThrowableCreator {
 		private final Supplier<ThrowableCreator> throwableCreatorSupplier;
 		private ThrowableCreator throwableCreator;
 
@@ -95,8 +96,9 @@ enum SafeTypeThrowableSanitizer implements SpecificThrowableSanitizer {
 
 		@Override
 		public Throwable create(ThrowableInfo throwableInfo) {
-			if (throwableCreator == null)
+			if (throwableCreator == null) {
 				throwableCreator = throwableCreatorSupplier.get();
+			}
 			return throwableCreator.create(throwableInfo);
 		}
 	}
@@ -164,12 +166,14 @@ enum SafeTypeThrowableSanitizer implements SpecificThrowableSanitizer {
 			var actual = info.getProperty(ACTUAL);
 			String withoutMessage = new ComparisonCompactor(MAX_CONTEXT_LENGTH, expected, actual).compact(""); //$NON-NLS-1$
 			var start = SanitizationUtils.removeSuffixMatching(message, withoutMessage);
-			if (start == null)
+			if (start == null) {
 				message = ""; //$NON-NLS-1$
-			else
+			} else {
 				message = start.trim();
-			if (ComparisonFailure.class.isAssignableFrom(info.getType()))
+			}
+			if (ComparisonFailure.class.isAssignableFrom(info.getType())) {
 				return new ComparisonFailure(message, expected, actual);
+			}
 			return new org.junit.ComparisonFailure(message, expected, actual);
 		}
 	}
@@ -204,8 +208,9 @@ enum SafeTypeThrowableSanitizer implements SpecificThrowableSanitizer {
 			// (Preconditions.notNull). The default duplication always prefers the
 			// two-argument constructor, so a cause-less original would pass null and
 			// fail. Pick the constructor that matches the available cause instead.
-			if (cause == null)
+			if (cause == null) {
 				return new ParameterResolutionException(message);
+			}
 			return new ParameterResolutionException(message, cause);
 		}
 	}

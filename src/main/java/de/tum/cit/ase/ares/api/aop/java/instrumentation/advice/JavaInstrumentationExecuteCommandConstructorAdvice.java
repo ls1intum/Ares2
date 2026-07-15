@@ -14,6 +14,12 @@ import net.bytebuddy.asm.Advice;
  * checks.
  */
 public final class JavaInstrumentationExecuteCommandConstructorAdvice {
+	private JavaInstrumentationExecuteCommandConstructorAdvice() {
+		throw new SecurityException(
+				JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.utility.initialization",
+						"JavaInstrumentationExecuteCommandConstructorAdvice"));
+	}
+
 	/**
 	 * This method is called when a constructor that can execute commands is
 	 * entered. It performs security checks to determine whether the constructor

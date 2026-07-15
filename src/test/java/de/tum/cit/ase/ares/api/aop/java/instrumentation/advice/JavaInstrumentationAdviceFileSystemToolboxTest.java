@@ -93,11 +93,11 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 	void testInstrumentationPointcutsContainNewCoverage() {
 		// java.net.URL.openStream is a network fetch, so it is bound to the network
 		// connect pointcut, not the file-read pointcut.
-		assertTrue(JavaInstrumentationPointcutDefinitions.methodsWhichCanConnectToNetwork.get("java.net.URL")
+		assertTrue(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CONNECT_TO_NETWORK.get("java.net.URL")
 				.contains("openStream"));
-		assertTrue(JavaInstrumentationPointcutDefinitions.methodsWhichCanDeleteFiles
+		assertTrue(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_DELETE_FILES
 				.get("org.apache.commons.io.FileUtils").contains("forceDelete"));
-		assertTrue(JavaInstrumentationPointcutDefinitions.methodsWhichCanDeleteFiles
+		assertTrue(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_DELETE_FILES
 				.get("java.nio.file.spi.FileSystemProvider").contains("delete"));
 	}
 

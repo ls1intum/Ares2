@@ -27,7 +27,7 @@ import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
  * @since 1.12.0
  */
 @API(status = Status.MAINTAINED)
-public class UnwantedNodesAssert extends AbstractAssert<UnwantedNodesAssert, Path> {
+public final class UnwantedNodesAssert extends AbstractAssert<UnwantedNodesAssert, Path> {
 
 	/**
 	 * The language level for the Java parser

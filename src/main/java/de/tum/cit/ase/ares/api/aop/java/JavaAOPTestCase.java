@@ -376,6 +376,13 @@ public class JavaAOPTestCase extends AOPTestCase {
 						"threadClassAllowedToBeCreated",
 						threadCreationExtractor.getPermittedThreadClasses().toArray(String[]::new))
 				.forEach((k, v) -> JavaAOPTestCase.setJavaAdviceSettingValue(k, v, architectureMode, aopMode));
+		// The cases above are exhaustive over JavaAOPTestCaseSupported today, so this
+		// branch is only reachable once a new kind of test case is added. Failing here
+		// rather than silently applying no advice settings keeps that mistake loud: a
+		// test case whose settings were never written would run unguarded.
+		default -> throw new IllegalStateException(
+				"Ares Security Error (Reason: Ares-Code; Stage: Execution): No advice settings are defined for the security test case "
+						+ aopTestCaseSupported + ".");
 		}
 	}
 	// </editor-fold>

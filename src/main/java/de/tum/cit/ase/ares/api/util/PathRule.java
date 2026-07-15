@@ -46,15 +46,17 @@ public final class PathRule {
 	}
 
 	public boolean matchesWithLevel(Path path, PathActionLevel request) {
-		if (ruleType == RuleType.BLACKLIST)
+		if (ruleType == RuleType.BLACKLIST) {
 			return request.isAboveOrEqual(actionLevel) && pathMatcher.matches(path);
+		}
 		return request.isBelowOrEqual(actionLevel) && pathMatcher.matches(path);
 	}
 
 	public boolean matchesRecursivelyWithLevel(Path path, PathActionLevel request) {
 		// common ancestor must match
-		if (!matchesWithLevel(path, request))
+		if (!matchesWithLevel(path, request)) {
 			return false;
+		}
 		// then pattern must allow children
 		return pathType.isPatternRecursive(pathPattern);
 	}
@@ -71,10 +73,12 @@ public final class PathRule {
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (!(obj instanceof PathRule))
+		}
+		if (!(obj instanceof PathRule)) {
 			return false;
+		}
 		PathRule other = (PathRule) obj;
 		return actionLevel == other.actionLevel && pathType == other.pathType && ruleType == other.ruleType
 				&& Objects.equals(pathPattern, other.pathPattern);

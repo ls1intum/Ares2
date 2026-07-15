@@ -37,8 +37,9 @@ public final class TimeoutUtils {
 
 	public static <T> T performTimeoutExecution(ThrowingSupplier<T> execution, TestContext context) throws Throwable {
 		var timeout = findTimeout(context);
-		if (timeout.isEmpty())
+		if (timeout.isEmpty()) {
 			return execution.get();
+		}
 		return executeWithTimeout(timeout.get(), () -> rethrowThrowableSafe(execution), context);
 	}
 
@@ -65,8 +66,9 @@ public final class TimeoutUtils {
 			return invokeChecked(() -> future.get(timeout.toMillis(), TimeUnit.MILLISECONDS));
 		} catch (ExecutionException ex) {
 			// should never happen, but you never know
-			if (ex.getCause() instanceof ExecutionException)
+			if (ex.getCause() instanceof ExecutionException) {
 				throw ex.getCause().getCause();
+			}
 			throw ex.getCause();
 		} catch (@SuppressWarnings("unused") TimeoutException ex) {
 			throw generateTimeoutFailure(timeout, context);
@@ -77,8 +79,9 @@ public final class TimeoutUtils {
 
 	private static AssertionFailedError generateTimeoutFailure(Duration timeout, TestContext context) {
 		var failure = localizedFailure("timeout.failure_message", formatDuration(timeout)); //$NON-NLS-1$
-		if (TestContextUtils.findAnnotationIn(context, PrivilegedExceptionsOnly.class).isPresent())
+		if (TestContextUtils.findAnnotationIn(context, PrivilegedExceptionsOnly.class).isPresent()) {
 			throw new PrivilegedException(failure);
+		}
 		return failure;
 	}
 
@@ -88,14 +91,18 @@ public final class TimeoutUtils {
 		int m = duration.toMinutesPart();
 		int s = duration.toSecondsPart();
 		int ms = duration.toMillisPart();
-		if (h != 0)
+		if (h != 0) {
 			parts.add(h + " h"); //$NON-NLS-1$
-		if (m != 0)
+		}
+		if (m != 0) {
 			parts.add(m + " min"); //$NON-NLS-1$
-		if (s != 0)
+		}
+		if (s != 0) {
 			parts.add(s + " s"); //$NON-NLS-1$
-		if (ms != 0)
+		}
+		if (ms != 0) {
 			parts.add(ms + " ms"); //$NON-NLS-1$
+		}
 		return String.join(" ", parts); //$NON-NLS-1$
 	}
 
@@ -105,8 +112,9 @@ public final class TimeoutUtils {
 		@Override
 		public Thread newThread(Runnable r) {
 			var thread = new Thread(r, "ajts-to-" + TIMEOUT_THREAD_ID.getAndIncrement()); //$NON-NLS-1$
-			if (thread.getPriority() != Thread.NORM_PRIORITY)
+			if (thread.getPriority() != Thread.NORM_PRIORITY) {
 				thread.setPriority(Thread.NORM_PRIORITY);
+			}
 			// REMOVED: Thread-whitelisting-request to ArtemisSecurityManager
 			return thread;
 		}

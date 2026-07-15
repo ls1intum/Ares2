@@ -111,8 +111,9 @@ public final class ThrowableInfo {
 		cause = ThrowableSanitizer.sanitize(cause);
 		// defensive copy
 		suppressed = suppressed.clone();
-		for (var i = 0; i < suppressed.length; i++)
+		for (var i = 0; i < suppressed.length; i++) {
 			suppressed[i] = ThrowableSanitizer.sanitize(suppressed[i]);
+		}
 		sanitized = additionalProperties.isEmpty();
 		return this;
 	}
@@ -166,8 +167,9 @@ public final class ThrowableInfo {
 		var stackTrace = (StackTraceElement[]) properties.get(STACK_TRACE);
 		var suppressed = (Throwable[]) properties.get(SUPPRESSED);
 		var additionalProperties = new HashMap<>(properties);
-		for (var throwableProperty : THROWABLE_PROPERTIES)
+		for (var throwableProperty : THROWABLE_PROPERTIES) {
 			additionalProperties.remove(throwableProperty);
+		}
 		return new ThrowableInfo(type, message, cause, stackTrace.clone(), suppressed.clone(), additionalProperties);
 	}
 
@@ -209,22 +211,30 @@ public final class ThrowableInfo {
 
 		@SuppressWarnings("unchecked")
 		final T cast(Object value) {
-			if (value == null && type.isPrimitive())
+			if (value == null && type.isPrimitive()) {
 				throw new NullPointerException("cannot cast null to primitive: " + type); //$NON-NLS-1$
-			if (byte.class.equals(type))
+			}
+			if (byte.class.equals(type)) {
 				return (T) Byte.class.cast(value);
-			if (short.class.equals(type))
+			}
+			if (short.class.equals(type)) {
 				return (T) Short.class.cast(value);
-			if (char.class.equals(type))
+			}
+			if (char.class.equals(type)) {
 				return (T) Character.class.cast(value);
-			if (int.class.equals(type))
+			}
+			if (int.class.equals(type)) {
 				return (T) Integer.class.cast(value);
-			if (long.class.equals(type))
+			}
+			if (long.class.equals(type)) {
 				return (T) Long.class.cast(value);
-			if (float.class.equals(type))
+			}
+			if (float.class.equals(type)) {
 				return (T) Float.class.cast(value);
-			if (double.class.equals(type))
+			}
+			if (double.class.equals(type)) {
 				return (T) Double.class.cast(value);
+			}
 			return type.cast(value);
 		}
 	}

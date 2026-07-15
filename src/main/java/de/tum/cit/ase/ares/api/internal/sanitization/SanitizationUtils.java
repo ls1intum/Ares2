@@ -13,8 +13,9 @@ final class SanitizationUtils {
 
 	static void copyThrowableInfoSafe(ThrowableInfo from, Throwable to) {
 		// make sure everything is sanitized
-		if (!from.isSanitized())
+		if (!from.isSanitized()) {
 			from.sanitize();
+		}
 		// this returns either null or another Throwable instance
 		Throwable fromCause = from.getCause();
 		StackTraceElement[] fromStackTrace = from.getStackTrace();
@@ -33,16 +34,19 @@ final class SanitizationUtils {
 				 * initCause can fail if a cause is already present, so we add it as suppressed
 				 * to not loose information
 				 */
-				if (fromCause != null)
+				if (fromCause != null) {
 					to.addSuppressed(fromCause); // OK: final method
+				}
 			}
 		}
 		// note that this has the possibility of silently failing
 		invoke(() -> to.setStackTrace(fromStackTrace));
 		// add suppressed Throwables only if there are none in to but some in from
-		if (toSuppr.length == 0 && fromSuppr.length > 0)
-			for (Throwable suppressed : fromSuppr)
+		if (toSuppr.length == 0 && fromSuppr.length > 0) {
+			for (Throwable suppressed : fromSuppr) {
 				to.addSuppressed(suppressed); // OK: final method
+			} // OK: final method
+		}
 	}
 
 	static <T> T sanitizeWithinScopeOf(Object scope, SanitizationAction<T> sanitizationAction) {
@@ -61,8 +65,9 @@ final class SanitizationUtils {
 
 	static String removeSuffixMatching(String s, String suffix) {
 		int end = s.lastIndexOf(suffix);
-		if (end == -1 || end + suffix.length() < s.length())
+		if (end == -1 || end + suffix.length() < s.length()) {
 			return null;
+		}
 		return s.substring(0, end);
 	}
 }

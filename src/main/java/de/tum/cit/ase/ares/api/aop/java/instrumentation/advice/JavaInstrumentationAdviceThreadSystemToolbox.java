@@ -325,7 +325,7 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 			String className = variableClass.getName();
 
 			// Check if the class name matches Thread.FieldHolder pattern
-			return className.equals("java.lang.Thread$FieldHolder")
+			return "java.lang.Thread$FieldHolder".equals(className)
 					|| className.endsWith("$FieldHolder") && className.startsWith("java.lang.Thread");
 		} catch (Exception e) {
 			return false;
@@ -617,7 +617,7 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		// <editor-fold desc="Get information from settings">
 		@Nullable
 		final String aopMode = getValueFromSettings("aopMode");
-		if (aopMode == null || aopMode.isEmpty() || !aopMode.equals("INSTRUMENTATION")) {
+		if (aopMode == null || aopMode.isEmpty() || !"INSTRUMENTATION".equals(aopMode)) {
 			return;
 		}
 		@Nullable

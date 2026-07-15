@@ -61,8 +61,9 @@ public final class TestUtils {
 
 	public static ThreadGroup getRootThreadGroup() {
 		ThreadGroup group = Thread.currentThread().getThreadGroup();
-		for (ThreadGroup tg = group; tg != null; tg = group.getParent())
+		for (ThreadGroup tg = group; tg != null; tg = group.getParent()) {
 			group = tg;
+		}
 		return group;
 	}
 }

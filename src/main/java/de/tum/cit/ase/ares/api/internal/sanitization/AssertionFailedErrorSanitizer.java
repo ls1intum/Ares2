@@ -26,17 +26,19 @@ enum AssertionFailedErrorSanitizer implements SpecificThrowableSanitizer {
 		AssertionFailedError newAfe;
 		// If both expected and actual are null, this cannot arise from assertEquals,
 		// and thus afe was constructed only by providing a message (and cause)
-		if (expected == null && actual == null)
+		if (expected == null && actual == null) {
 			newAfe = new AssertionFailedError(newMessage);
-		else
+		} else {
 			newAfe = new AssertionFailedError(newMessage, sanitizeValue(expected), sanitizeValue(actual));
+		}
 		SanitizationUtils.copyThrowableInfoSafe(info, newAfe);
 		return newAfe;
 	}
 
 	private static Object sanitizeValue(ValueWrapper vw) {
-		if (vw == null)
+		if (vw == null) {
 			return null;
+		}
 		return SanitizationUtils.sanitizeWithinScopeOf(vw.getType(), () -> invoke(vw::getStringRepresentation));
 	}
 }

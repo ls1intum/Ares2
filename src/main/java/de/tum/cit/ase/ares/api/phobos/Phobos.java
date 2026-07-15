@@ -11,6 +11,7 @@ import javax.annotation.Nonnull;
 import com.opencsv.exceptions.CsvException;
 
 import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaCSVFileLoader;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.phobos.java.JavaPhobosTestCaseSupported;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.NetworkPermission;
@@ -32,10 +33,10 @@ import de.tum.cit.ase.ares.api.util.FileTools;
  * @since 2.0.0
  * @author Ajayvir Singh
  */
-public class Phobos {
+public final class Phobos {
 
 	private Phobos() {
-		throw new IllegalStateException("Utility class should not be instantiated");
+		throw new SecurityException(Messages.localized("security.general.utility.initialization", "Phobos"));
 	}
 
 	/**

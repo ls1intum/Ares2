@@ -11,7 +11,7 @@ public final class Messages {
 
 	private static final String BUNDLE_NAME = "de.tum.cit.ase.ares.api.localization.messages"; //$NON-NLS-1$
 
-	private static final Map<Locale, ResourceBundle> resourceBundleCache = Collections
+	private static final Map<Locale, ResourceBundle> RESOURCE_BUNDLE_CACHE = Collections
 			.synchronizedMap(new LruCache<>(100));
 
 	private Messages() {
@@ -20,8 +20,9 @@ public final class Messages {
 	public static String localized(String key, Object... args) {
 		try {
 			String localizedText = getBundleForCurrentLocale().getString(key);
-			if (args.length == 0)
+			if (args.length == 0) {
 				return localizedText;
+			}
 			return String.format(localizedText, args);
 		} catch (@SuppressWarnings("unused") MissingResourceException e) {
 			return '!' + key + '!';
@@ -37,7 +38,8 @@ public final class Messages {
 	}
 
 	private static ResourceBundle getBundleForCurrentLocale() {
-		return resourceBundleCache.computeIfAbsent(Locale.getDefault(Category.DISPLAY), Messages::loadBundleForLocale);
+		return RESOURCE_BUNDLE_CACHE.computeIfAbsent(Locale.getDefault(Category.DISPLAY),
+				Messages::loadBundleForLocale);
 	}
 
 	private static ResourceBundle loadBundleForLocale(Locale locale) {

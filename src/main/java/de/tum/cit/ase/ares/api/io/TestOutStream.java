@@ -8,10 +8,10 @@ import java.nio.charset.*;
 
 final class TestOutStream extends OutputStream {
 
-	private static final CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder();
+	private static final CharsetDecoder DECODER = StandardCharsets.UTF_8.newDecoder();
 	static {
-		decoder.onUnmappableCharacter(CodingErrorAction.REPORT);
-		decoder.onMalformedInput(CodingErrorAction.REPORT);
+		DECODER.onUnmappableCharacter(CodingErrorAction.REPORT);
+		DECODER.onMalformedInput(CodingErrorAction.REPORT);
 	}
 
 	private final LineAcceptor outputAcceptor;
@@ -33,24 +33,27 @@ final class TestOutStream extends OutputStream {
 	public void write(int b) throws IOException {
 		checkCharCount(1);
 		currentInput.write(b);
-		if (mirror != null)
+		if (mirror != null) {
 			mirror.write(b);
+		}
 	}
 
 	@Override
 	public void write(byte[] b) throws IOException {
 		checkCharCount(b.length);
 		currentInput.write(b);
-		if (mirror != null)
+		if (mirror != null) {
 			mirror.write(b);
+		}
 	}
 
 	@Override
 	public void write(byte[] b, int offset, int length) throws IOException {
 		checkCharCount(length);
 		currentInput.write(b, offset, length);
-		if (mirror != null)
+		if (mirror != null) {
 			mirror.write(b, offset, length);
+		}
 	}
 
 	@Override
@@ -59,9 +62,9 @@ final class TestOutStream extends OutputStream {
 		var bytes = ByteBuffer.wrap(currentInput.toByteArray());
 		CharBuffer result;
 		try {
-			result = decoder.decode(bytes);
+			result = DECODER.decode(bytes);
 		} catch (CharacterCodingException e) {
-			var problemString = new String(bytes.array(), decoder.charset());
+			var problemString = new String(bytes.array(), DECODER.charset());
 			throw new IllegalArgumentException(localized("output_tester.output_is_invalid_utf8", problemString), //$NON-NLS-1$
 					e);
 		}
@@ -72,8 +75,9 @@ final class TestOutStream extends OutputStream {
 	@Override
 	public void close() throws IOException {
 		closed = true;
-		if (mirror != null)
+		if (mirror != null) {
 			mirror.close();
+		}
 	}
 
 	void resetInternalState() {
@@ -82,10 +86,12 @@ final class TestOutStream extends OutputStream {
 	}
 
 	private void checkCharCount(int newChars) throws IOException {
-		if (closed)
+		if (closed) {
 			throw new IOException(localized("output_tester.output_closed")); //$NON-NLS-1$
+		}
 		charCount += newChars;
-		if (charCount > maxChars)
+		if (charCount > maxChars) {
 			throw new SecurityException(localized("output_tester.output_maxExceeded", charCount)); //$NON-NLS-1$
+		}
 	}
 }

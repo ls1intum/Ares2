@@ -7,8 +7,9 @@ final class StaticLine extends AbstractLine {
 
 	StaticLine(String text) {
 		this.text = Objects.requireNonNull(text);
-		if (AbstractLine.containsLineBreaks(text))
+		if (AbstractLine.containsLineBreaks(text)) {
 			throw new IllegalArgumentException("Line must not contain any new lines"); //$NON-NLS-1$
+		}
 	}
 
 	@Override

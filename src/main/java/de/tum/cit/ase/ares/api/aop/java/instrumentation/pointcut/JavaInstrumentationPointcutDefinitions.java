@@ -22,7 +22,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentati
  * operations will be instrumented and monitored to enforce security policies at
  * runtime.
  */
-public class JavaInstrumentationPointcutDefinitions {
+public final class JavaInstrumentationPointcutDefinitions {
 
 	// <editor-fold desc="Constructor">
 
@@ -242,7 +242,7 @@ public class JavaInstrumentationPointcutDefinitions {
 	 * method names. Initially empty; add entries as needed, e.g.:
 	 * Map.ofEntries(Map.entry("java.lang.Runtime", List.of("exec")))
 	 */
-	public static final Map<String, List<String>> ignoredMethodsByClass = Map.ofEntries(
+	public static final Map<String, List<String>> IGNORED_METHODS_BY_CLASS = Map.ofEntries(
 			Map.entry("java.io.ByteArrayInputStream", List.of("read")),
 			// RandomAccessFile.read is intentionally excluded to avoid recursive
 			// self-interception during class and JAR loading in instrumentation mode.
@@ -313,9 +313,9 @@ public class JavaInstrumentationPointcutDefinitions {
 			}
 		}
 		// Subtract ignored methods for this type hierarchy
-		if (!ignoredMethodsByClass.isEmpty()) {
+		if (!IGNORED_METHODS_BY_CLASS.isEmpty()) {
 			Set<String> ignored = new TreeSet<>();
-			for (Map.Entry<String, List<String>> entry : ignoredMethodsByClass.entrySet()) {
+			for (Map.Entry<String, List<String>> entry : IGNORED_METHODS_BY_CLASS.entrySet()) {
 				String key = entry.getKey();
 				List<String> values = entry.getValue();
 				ElementMatcher.Junction<TypeDescription> keyClassMatcher = ElementMatchers.named(key);
@@ -354,7 +354,7 @@ public class JavaInstrumentationPointcutDefinitions {
 	 * class names, and the values are lists of method names that are considered to
 	 * be file read operations.
 	 */
-	public static final Map<String, List<String>> methodsWhichCanReadFiles = Map.ofEntries(
+	public static final Map<String, List<String>> METHODS_WHICH_CAN_READ_FILES = Map.ofEntries(
 			// java.io
 			Map.entry("java.io.Reader", List.of("<init>")), Map.entry("java.io.BufferedInputStream", List.of("<init>")),
 			Map.entry("java.io.FileInputStream", List.of("<init>")),
@@ -406,7 +406,7 @@ public class JavaInstrumentationPointcutDefinitions {
 	 * represent class names, and the values are lists of method names that are
 	 * considered to be file overwrite operations.
 	 */
-	public static final Map<String, List<String>> methodsWhichCanOverwriteFiles = Map.ofEntries(
+	public static final Map<String, List<String>> METHODS_WHICH_CAN_OVERWRITE_FILES = Map.ofEntries(
 			// java.io
 			// Note: Generic write/append/flush/close methods are NOT monitored here.
 			// Reason: System.out/System.err internally use these methods, which would cause
@@ -431,7 +431,7 @@ public class JavaInstrumentationPointcutDefinitions {
 							"renameTo")),
 			// java.nio
 			// Note: newByteChannel is intentionally NOT included here - it's in
-			// methodsWhichCanReadFiles.
+			// METHODS_WHICH_CAN_READ_FILES.
 			// The actual operation is determined by OpenOptions via deriveActionChecks().
 			// Methods like Files.readString() and Files.readAllLines() internally call
 			// newByteChannel()
@@ -441,15 +441,15 @@ public class JavaInstrumentationPointcutDefinitions {
 							"setLastModifiedTime", "setOwner", "setPosixFilePermissions", "write", "writeString")),
 			Map.entry("java.nio.file.attribute.UserDefinedFileAttributeView", List.of("write")),
 			// Note: "open" is intentionally NOT included here - it's in
-			// methodsWhichCanReadFiles.
+			// METHODS_WHICH_CAN_READ_FILES.
 			// The actual operation is determined by OpenOptions via deriveActionChecks().
 			// Note: "map" is intentionally NOT included here - it's in
-			// methodsWhichCanReadFiles.
+			// METHODS_WHICH_CAN_READ_FILES.
 			// The actual operation is determined by MapMode via deriveActionChecks().
 			Map.entry("java.nio.channels.FileChannel", List.of("truncate", "write", "transferTo")),
 			Map.entry("java.nio.channels.AsynchronousFileChannel", List.of("truncate", "write")),
 			// Note: newByteChannel is intentionally NOT included here - it's in
-			// methodsWhichCanReadFiles.
+			// METHODS_WHICH_CAN_READ_FILES.
 			// The actual operation is determined by OpenOptions via deriveActionChecks().
 			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("copy", "move", "setAttribute")),
 			// javax.print
@@ -471,7 +471,7 @@ public class JavaInstrumentationPointcutDefinitions {
 	 * ProcessBuilder.start/startPipeline are handled by the Command System instead,
 	 * as they execute commands rather than individual files.
 	 */
-	public static final Map<String, List<String>> methodsWhichCanExecuteFiles = Map.ofEntries(
+	public static final Map<String, List<String>> METHODS_WHICH_CAN_EXECUTE_FILES = Map.ofEntries(
 			// java.lang - only load/loadLibrary, not exec (handled by Command System)
 			Map.entry("java.lang.Runtime", List.of("load", "loadLibrary")),
 			Map.entry("java.lang.System", List.of("load", "loadLibrary")),
@@ -488,7 +488,7 @@ public class JavaInstrumentationPointcutDefinitions {
 	 * class names, and the values are lists of method names that are considered to
 	 * be file delete operations.
 	 */
-	public static final Map<String, List<String>> methodsWhichCanDeleteFiles = Map.ofEntries(
+	public static final Map<String, List<String>> METHODS_WHICH_CAN_DELETE_FILES = Map.ofEntries(
 			// java.awt
 			// Desktop.moveToTrash deletes a file; the AspectJ backend already treats it as
 			// a delete, so the instrumentation backend must too (engine symmetry).
@@ -509,7 +509,7 @@ public class JavaInstrumentationPointcutDefinitions {
 	 * the deriveActionChecks method will detect these options and properly classify
 	 * as "create".
 	 */
-	public static final Map<String, List<String>> methodsWhichCanCreateFiles = Map.ofEntries(
+	public static final Map<String, List<String>> METHODS_WHICH_CAN_CREATE_FILES = Map.ofEntries(
 			Map.entry("java.io.File", List.of("createNewFile", "createTempFile", "mkdir", "mkdirs")),
 			Map.entry("java.io.FileOutputStream", List.of("<init>")),
 			Map.entry("java.io.FileWriter", List.of("<init>")), Map.entry("java.io.PrintWriter", List.of("<init>")),
@@ -517,7 +517,7 @@ public class JavaInstrumentationPointcutDefinitions {
 			// Note: FileChannel.open, AsynchronousFileChannel.open, and
 			// Files.newByteChannel are
 			// intentionally NOT included here. These methods are in
-			// methodsWhichCanReadFiles, and the
+			// METHODS_WHICH_CAN_READ_FILES, and the
 			// actual operation is determined by OpenOptions via deriveActionChecks().
 			// Methods like
 			// Files.readString() and Files.readAllLines() internally call newByteChannel()
@@ -535,7 +535,7 @@ public class JavaInstrumentationPointcutDefinitions {
 	 * represent class names, and the values are lists of method names that are
 	 * considered to be thread create operations.
 	 */
-	public static final Map<String, List<String>> methodsWhichCanCreateThreads = Map.ofEntries(
+	public static final Map<String, List<String>> METHODS_WHICH_CAN_CREATE_THREADS = Map.ofEntries(
 			// java.lang
 			Map.entry("java.lang.Thread", List.of("start", "startVirtualThread")),
 			// Binary nested-class names ($, not .) so ByteBuddy's named(...) matcher
@@ -575,7 +575,7 @@ public class JavaInstrumentationPointcutDefinitions {
 	 * represent class names, and the values are lists of method names that are
 	 * considered to be command execution operations.
 	 */
-	public static final Map<String, List<String>> methodsWhichCanExecuteCommands = Map.ofEntries(
+	public static final Map<String, List<String>> METHODS_WHICH_CAN_EXECUTE_COMMANDS = Map.ofEntries(
 			// java.lang
 			Map.entry("java.lang.Runtime", List.of("exec")),
 			Map.entry("java.lang.ProcessBuilder", List.of("start", "<init>")));
@@ -585,7 +585,7 @@ public class JavaInstrumentationPointcutDefinitions {
 	/**
 	 * This map contains the methods which can connect to network targets.
 	 */
-	public static final Map<String, List<String>> methodsWhichCanConnectToNetwork = Map.ofEntries(
+	public static final Map<String, List<String>> METHODS_WHICH_CAN_CONNECT_TO_NETWORK = Map.ofEntries(
 			Map.entry("java.net.Socket", List.of("connect", "<init>")),
 			Map.entry("java.net.DatagramSocket", List.of("connect", "<init>")),
 			Map.entry("java.net.NetMulticastSocket", List.of("connect", "connectInternal", "<init>")),
@@ -605,7 +605,7 @@ public class JavaInstrumentationPointcutDefinitions {
 			Map.entry("javax.net.ssl.HttpsURLConnection", List.of("connect", "<init>")),
 			Map.entry("javax.net.SocketFactory", List.of("createSocket")),
 			Map.entry("javax.net.ssl.SSLSocketFactory", List.of("createSocket")),
-			// openStream is also a file-read pointcut (methodsWhichCanReadFiles); it is
+			// openStream is also a file-read pointcut (METHODS_WHICH_CAN_READ_FILES); it is
 			// additionally a network connect because for a non-file URL it opens a
 			// connection. The file-read advice ignores non-file URLs and the network advice
 			// ignores file URLs, so classifying it as both gives full coverage in either
@@ -618,7 +618,7 @@ public class JavaInstrumentationPointcutDefinitions {
 	/**
 	 * This map contains the methods which can send data over the network.
 	 */
-	public static final Map<String, List<String>> methodsWhichCanSendToNetwork = Map.ofEntries(
+	public static final Map<String, List<String>> METHODS_WHICH_CAN_SEND_TO_NETWORK = Map.ofEntries(
 			Map.entry("java.net.Socket", List.of("getOutputStream")),
 			Map.entry("java.net.DatagramSocket", List.of("send")),
 			Map.entry("java.net.NetMulticastSocket", List.of("send")),
@@ -633,7 +633,7 @@ public class JavaInstrumentationPointcutDefinitions {
 	/**
 	 * This map contains the methods which can receive data from the network.
 	 */
-	public static final Map<String, List<String>> methodsWhichCanReceiveFromNetwork = Map.ofEntries(
+	public static final Map<String, List<String>> METHODS_WHICH_CAN_RECEIVE_FROM_NETWORK = Map.ofEntries(
 			Map.entry("java.net.DatagramSocket", List.of("receive")),
 			Map.entry("java.net.NetMulticastSocket", List.of("receive")),
 			Map.entry("java.nio.channels.DatagramChannel", List.of("receive")),

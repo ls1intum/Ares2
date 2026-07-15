@@ -212,16 +212,18 @@ public final class IOTester {
 	}
 
 	public static synchronized IOTester installNew(boolean mirrorOutput, long maxChars) {
-		if (isInstalled())
+		if (isInstalled()) {
 			throw new IllegalStateException(localized("io_tester.already_installed")); //$NON-NLS-1$
+		}
 		instance = new IOTester(mirrorOutput, maxChars);
 		instance.install();
 		return instance;
 	}
 
 	public static synchronized void uninstallCurrent() {
-		if (!isInstalled())
+		if (!isInstalled()) {
 			throw new IllegalStateException(localized("io_tester.not_installed")); //$NON-NLS-1$
+		}
 		instance.uninstall();
 		instance = null;
 	}

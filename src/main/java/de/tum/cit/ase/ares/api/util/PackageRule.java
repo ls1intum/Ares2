@@ -49,18 +49,21 @@ public final class PackageRule {
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (!(obj instanceof PackageRule))
+		}
+		if (!(obj instanceof PackageRule)) {
 			return false;
+		}
 		PackageRule other = (PackageRule) obj;
 		return Objects.equals(packagePattern, other.packagePattern) && ruleType == other.ruleType;
 	}
 
 	private static Pattern convertPackagePatternToRegex(String packagePattern) {
 		String[] parts = Pattern.quote(packagePattern).split("\\*\\*", -1); //$NON-NLS-1$
-		for (var i = 0; i < parts.length; i++)
+		for (var i = 0; i < parts.length; i++) {
 			parts[i] = parts[i].replace("*", "\\E[^.]*\\Q"); //$NON-NLS-1$ //$NON-NLS-2$
+		}
 		return Pattern.compile(String.join("\\E.*\\Q", parts), Pattern.DOTALL); //$NON-NLS-1$
 	}
 

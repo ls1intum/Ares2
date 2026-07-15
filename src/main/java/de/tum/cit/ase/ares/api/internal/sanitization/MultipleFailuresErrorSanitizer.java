@@ -32,14 +32,16 @@ enum MultipleFailuresErrorSanitizer implements SpecificThrowableSanitizer {
 		MultipleFailuresError newMfe = createNewInstance(mfe, messageTransformer.apply(info), List.of());
 		SanitizationUtils.copyThrowableInfoSafe(info, newMfe);
 		// Retain failure information in the suppressed Throwables
-		for (Throwable failure : failures)
+		for (Throwable failure : failures) {
 			newMfe.addSuppressed(failure);
+		}
 		return newMfe;
 	}
 
 	private static MultipleFailuresError createNewInstance(Throwable t, String heading, List<Throwable> failures) {
-		if (t.getClass().equals(MultipleFailuresError.class))
+		if (t.getClass().equals(MultipleFailuresError.class)) {
 			return new MultipleFailuresError(heading, failures);
+		}
 		return new AssertJMultipleFailuresError(heading, failures);
 	}
 }

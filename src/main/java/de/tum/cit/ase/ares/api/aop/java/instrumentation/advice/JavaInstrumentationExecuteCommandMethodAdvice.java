@@ -17,6 +17,11 @@ import net.bytebuddy.asm.Advice;
  * checks.
  */
 public final class JavaInstrumentationExecuteCommandMethodAdvice {
+	private JavaInstrumentationExecuteCommandMethodAdvice() {
+		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+				"security.instrumentation.utility.initialization", "JavaInstrumentationExecuteCommandMethodAdvice"));
+	}
+
 	/**
 	 * This method is called when a method that can execute commands is entered. It
 	 * performs security checks to determine whether the method execution is allowed

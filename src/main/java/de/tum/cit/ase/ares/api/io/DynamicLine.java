@@ -11,8 +11,9 @@ final class DynamicLine extends AbstractLine {
 
 	DynamicLine(CharSequence text) {
 		textUnderConstruction = new StringBuilder(text);
-		if (AbstractLine.containsLineBreaks(text))
+		if (AbstractLine.containsLineBreaks(text)) {
 			throw new IllegalArgumentException("Line must not contain any new lines"); //$NON-NLS-1$
+		}
 	}
 
 	DynamicLine() {
@@ -20,17 +21,20 @@ final class DynamicLine extends AbstractLine {
 	}
 
 	public void complete() {
-		if (isComplete())
+		if (isComplete()) {
 			throw new IllegalStateException("Line already complete"); //$NON-NLS-1$
+		}
 		text = textUnderConstruction.toString();
 		textUnderConstruction = null;
 	}
 
 	public void append(CharSequence s) {
-		if (isComplete())
+		if (isComplete()) {
 			throw new IllegalStateException("Line already completed"); //$NON-NLS-1$
-		if (AbstractLine.containsLineBreaks(s))
+		}
+		if (AbstractLine.containsLineBreaks(s)) {
 			throw new IllegalArgumentException("Line must not contain any new lines"); //$NON-NLS-1$
+		}
 		textUnderConstruction.append(s);
 	}
 

@@ -24,10 +24,11 @@ public class DynamicField<T> implements Checkable {
 
 	public DynamicField(DynamicClass<?> dClass, DynamicClass<T> fType, boolean ignoreCase, String... possibleNames) {
 		this.owner = Objects.requireNonNull(dClass);
-		if (ignoreCase)
+		if (ignoreCase) {
 			this.name = Stream.of(possibleNames).map(String::toLowerCase).collect(Collectors.toUnmodifiableList());
-		else
+		} else {
 			this.name = List.of(possibleNames);
+		}
 		this.type = Objects.requireNonNull(fType);
 		this.ignoreCase = ignoreCase;
 	}
@@ -78,8 +79,9 @@ public class DynamicField<T> implements Checkable {
 	}
 
 	public void setOf(Object o, T newValue) {
-		if (Modifier.isFinal(toField().getModifiers()))
+		if (Modifier.isFinal(toField().getModifiers())) {
 			throw localizedFailure("dynamics.field.final", name, owner); //$NON-NLS-1$
+		}
 		try {
 			toField().set(o, type.cast(newValue));
 		} catch (IllegalAccessException e) {
@@ -109,9 +111,11 @@ public class DynamicField<T> implements Checkable {
 		ArrayList<Field> al = new ArrayList<>();
 		Class<?> current = c;
 		while (current != Object.class) {
-			for (Field ff : current.getDeclaredFields())
-				if (type.toClass().isAssignableFrom(ff.getType()))
+			for (Field ff : current.getDeclaredFields()) {
+				if (type.toClass().isAssignableFrom(ff.getType())) {
 					al.add(ff);
+				}
+			}
 			current = current.getSuperclass();
 		}
 		return al;
@@ -125,7 +129,8 @@ public class DynamicField<T> implements Checkable {
 	@Override
 	public void check(Check... checks) {
 		int modifiers = toField().getModifiers();
-		for (Check check : checks)
+		for (Check check : checks) {
 			check.checkModifiers(modifiers, () -> localized("dynamics.field.name", this)); //$NON-NLS-1$
+		}
 	}
 }

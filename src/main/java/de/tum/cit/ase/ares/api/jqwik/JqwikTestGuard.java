@@ -38,11 +38,13 @@ public final class JqwikTestGuard implements AroundPropertyHook {
 
 	private static PropertyExecutionResult postProcess(PropertyExecutionResult per, TestContext context) {
 		var t = per.throwable();
-		if (t.isEmpty())
+		if (t.isEmpty()) {
 			return per;
+		}
 		Throwable newT = ReportingUtils.processThrowable(t.get(), context);
-		if (newT instanceof Error && !(newT instanceof AssertionError))
+		if (newT instanceof Error && !(newT instanceof AssertionError)) {
 			throw (Error) newT;
+		}
 		return per.mapTo(per.status(), newT);
 	}
 }

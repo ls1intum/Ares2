@@ -48,7 +48,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentati
  * established security policies, preventing unauthorized or malicious file
  * operations.
  */
-public class JavaInstrumentationBindingDefinitions {
+public final class JavaInstrumentationBindingDefinitions {
 
 	// <editor-fold desc="Constructor">
 	/**
@@ -76,7 +76,7 @@ public class JavaInstrumentationBindingDefinitions {
 			ProtectionDomain protectionDomain) {
 		try {
 			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
-					JavaInstrumentationPointcutDefinitions.methodsWhichCanCreateFiles,
+					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_FILES,
 					JavaInstrumentationCreatePathMethodAdvice.class);
 		} catch (Exception e) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
@@ -100,7 +100,7 @@ public class JavaInstrumentationBindingDefinitions {
 			ProtectionDomain protectionDomain) {
 		try {
 			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
-					JavaInstrumentationPointcutDefinitions.methodsWhichCanCreateFiles,
+					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_FILES,
 					JavaInstrumentationCreatePathConstructorAdvice.class);
 		} catch (Exception e) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
@@ -225,7 +225,7 @@ public class JavaInstrumentationBindingDefinitions {
 			ProtectionDomain protectionDomain) {
 		try {
 			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
-					JavaInstrumentationPointcutDefinitions.methodsWhichCanReadFiles,
+					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_READ_FILES,
 					JavaInstrumentationReadPathMethodAdvice.class);
 		} catch (Exception e) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
@@ -238,7 +238,7 @@ public class JavaInstrumentationBindingDefinitions {
 			ProtectionDomain protectionDomain) {
 		try {
 			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
-					JavaInstrumentationPointcutDefinitions.methodsWhichCanReadFiles,
+					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_READ_FILES,
 					JavaInstrumentationReadPathConstructorAdvice.class);
 		} catch (Exception e) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
@@ -273,7 +273,7 @@ public class JavaInstrumentationBindingDefinitions {
 			ProtectionDomain protectionDomain) {
 		try {
 			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
-					JavaInstrumentationPointcutDefinitions.methodsWhichCanOverwriteFiles,
+					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_OVERWRITE_FILES,
 					JavaInstrumentationOverwritePathMethodAdvice.class);
 		} catch (Exception e) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
@@ -286,7 +286,7 @@ public class JavaInstrumentationBindingDefinitions {
 			ProtectionDomain protectionDomain) {
 		try {
 			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
-					JavaInstrumentationPointcutDefinitions.methodsWhichCanOverwriteFiles,
+					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_OVERWRITE_FILES,
 					JavaInstrumentationOverwritePathConstructorAdvice.class);
 		} catch (Exception e) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
@@ -321,7 +321,7 @@ public class JavaInstrumentationBindingDefinitions {
 			ProtectionDomain protectionDomain) {
 		try {
 			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
-					JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteFiles,
+					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_FILES,
 					JavaInstrumentationExecutePathMethodAdvice.class);
 		} catch (Exception e) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
@@ -334,7 +334,7 @@ public class JavaInstrumentationBindingDefinitions {
 			ProtectionDomain protectionDomain) {
 		try {
 			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
-					JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteFiles,
+					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_FILES,
 					JavaInstrumentationExecutePathConstructorAdvice.class);
 		} catch (Exception e) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
@@ -369,7 +369,7 @@ public class JavaInstrumentationBindingDefinitions {
 			ProtectionDomain protectionDomain) {
 		try {
 			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
-					JavaInstrumentationPointcutDefinitions.methodsWhichCanDeleteFiles,
+					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_DELETE_FILES,
 					JavaInstrumentationDeletePathMethodAdvice.class);
 		} catch (Exception e) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
@@ -382,7 +382,7 @@ public class JavaInstrumentationBindingDefinitions {
 			ProtectionDomain protectionDomain) {
 		try {
 			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
-					JavaInstrumentationPointcutDefinitions.methodsWhichCanDeleteFiles,
+					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_DELETE_FILES,
 					JavaInstrumentationDeletePathConstructorAdvice.class);
 		} catch (Exception e) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
@@ -417,7 +417,7 @@ public class JavaInstrumentationBindingDefinitions {
 			ProtectionDomain protectionDomain) {
 		try {
 			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
-					JavaInstrumentationPointcutDefinitions.methodsWhichCanCreateThreads,
+					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_THREADS,
 					JavaInstrumentationCreateThreadMethodAdvice.class);
 		} catch (Exception e) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
@@ -430,7 +430,7 @@ public class JavaInstrumentationBindingDefinitions {
 			ProtectionDomain protectionDomain) {
 		try {
 			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
-					JavaInstrumentationPointcutDefinitions.methodsWhichCanCreateThreads,
+					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_THREADS,
 					JavaInstrumentationCreateThreadConstructorAdvice.class);
 		} catch (Exception e) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
@@ -466,7 +466,7 @@ public class JavaInstrumentationBindingDefinitions {
 			ProtectionDomain protectionDomain) {
 		try {
 			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
-					JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteCommands,
+					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_COMMANDS,
 					JavaInstrumentationExecuteCommandMethodAdvice.class);
 		} catch (Exception e) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
@@ -479,7 +479,7 @@ public class JavaInstrumentationBindingDefinitions {
 			ProtectionDomain protectionDomain) {
 		try {
 			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
-					JavaInstrumentationPointcutDefinitions.methodsWhichCanExecuteCommands,
+					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_COMMANDS,
 					JavaInstrumentationExecuteCommandConstructorAdvice.class);
 		} catch (Exception e) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
@@ -494,7 +494,7 @@ public class JavaInstrumentationBindingDefinitions {
 			ProtectionDomain protectionDomain) {
 		try {
 			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
-					JavaInstrumentationPointcutDefinitions.methodsWhichCanConnectToNetwork,
+					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CONNECT_TO_NETWORK,
 					JavaInstrumentationConnectNetworkMethodAdvice.class);
 		} catch (Exception e) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
@@ -507,7 +507,7 @@ public class JavaInstrumentationBindingDefinitions {
 			ProtectionDomain protectionDomain) {
 		try {
 			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
-					JavaInstrumentationPointcutDefinitions.methodsWhichCanConnectToNetwork,
+					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CONNECT_TO_NETWORK,
 					JavaInstrumentationConnectNetworkConstructorAdvice.class);
 		} catch (Exception e) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
@@ -522,7 +522,7 @@ public class JavaInstrumentationBindingDefinitions {
 			ProtectionDomain protectionDomain) {
 		try {
 			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
-					JavaInstrumentationPointcutDefinitions.methodsWhichCanSendToNetwork,
+					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_SEND_TO_NETWORK,
 					JavaInstrumentationSendNetworkMethodAdvice.class);
 		} catch (Exception e) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
@@ -535,7 +535,7 @@ public class JavaInstrumentationBindingDefinitions {
 			ProtectionDomain protectionDomain) {
 		try {
 			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
-					JavaInstrumentationPointcutDefinitions.methodsWhichCanSendToNetwork,
+					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_SEND_TO_NETWORK,
 					JavaInstrumentationSendNetworkConstructorAdvice.class);
 		} catch (Exception e) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
@@ -550,7 +550,7 @@ public class JavaInstrumentationBindingDefinitions {
 			ProtectionDomain protectionDomain) {
 		try {
 			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
-					JavaInstrumentationPointcutDefinitions.methodsWhichCanReceiveFromNetwork,
+					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_RECEIVE_FROM_NETWORK,
 					JavaInstrumentationReceiveNetworkMethodAdvice.class);
 		} catch (Exception e) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
@@ -563,7 +563,7 @@ public class JavaInstrumentationBindingDefinitions {
 			ProtectionDomain protectionDomain) {
 		try {
 			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
-					JavaInstrumentationPointcutDefinitions.methodsWhichCanReceiveFromNetwork,
+					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_RECEIVE_FROM_NETWORK,
 					JavaInstrumentationReceiveNetworkConstructorAdvice.class);
 		} catch (Exception e) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox

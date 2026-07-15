@@ -41,19 +41,21 @@ public final class TestGuardUtils {
 	public static void checkForHidden(TestContext context) {
 		if (hasAnnotationType(context, TestType.HIDDEN)) {
 			// check if there are both, that would be a mistake
-			if (hasAnnotationType(context, TestType.PUBLIC))
+			if (hasAnnotationType(context, TestType.PUBLIC)) {
 				throw new AnnotationFormatError(
 						localized("test_guard.test_cannot_be_public_and_hidden", context.displayName())); //$NON-NLS-1$
-
+			}
 			var now = ZonedDateTime.now();
 			var finalDeadline = extractDeadline(context);
 			// check if now is after the deadline including extensions
-			if (now.isAfter(finalDeadline))
+			if (now.isAfter(finalDeadline)) {
 				return;
+			}
 			// check if now is in the activate hidden tests period
 			Optional<ZonedDateTime> activationBefore = extractActivationBefore(context);
-			if (activationBefore.map(now::isBefore).orElse(false))
+			if (activationBefore.map(now::isBefore).orElse(false)) {
 				return;
+			}
 			throw localizedFailure("test_guard.hidden_test_before_deadline_message"); //$NON-NLS-1$
 		}
 		if (hasAnnotation(context, Deadline.class) || hasAnnotation(context, ExtendedDeadline.class)) {
@@ -73,8 +75,9 @@ public final class TestGuardUtils {
 
 	public static ZonedDateTime extractDeadline(TestContext context) {
 		var deadline = extractDeadline(context.testClass(), context.testMethod());
-		if (deadline.isPresent())
+		if (deadline.isPresent()) {
 			return deadline.get();
+		}
 		throw new AnnotationFormatError(localized("test_guard.hidden_test_missing_deadline", context.displayName())); //$NON-NLS-1$
 	}
 
@@ -83,8 +86,9 @@ public final class TestGuardUtils {
 		var methodDelta = getExtensionDurationOf(testMethod);
 		// Then only the method counts ("override"), because it has its own deadline
 
-		if (methodLevel.isPresent())
+		if (methodLevel.isPresent()) {
 			return methodLevel.map(dl -> dl.plus(methodDelta.orElse(Duration.ZERO)));
+		}
 		// look in the class otherwise
 		var classLevel = findAnnotation(testClass, Deadline.class).map(Deadline::value)
 				.map(TestGuardUtils::parseDeadline);
@@ -155,14 +159,16 @@ public final class TestGuardUtils {
 	 */
 	private static String[] splitIntoDateTimeAndZone(String deadlineString) {
 		int firstSpace = deadlineString.indexOf(' ');
-		if (firstSpace == -1)
+		if (firstSpace == -1) {
 			return new String[] { deadlineString, null };
+		}
 		int lastSpace = deadlineString.lastIndexOf(' ');
 		var potentialZoneIdString = deadlineString.substring(lastSpace + 1);
 		// either it has two spaces and thereby three parts (YYYY-MM-DD hh:mm ZONE) or
 		// the last part matches a ZoneId start
-		if (firstSpace != lastSpace || potentialZoneIdString.matches(ZONE_ID_START_PATTERN))
+		if (firstSpace != lastSpace || potentialZoneIdString.matches(ZONE_ID_START_PATTERN)) {
 			return new String[] { deadlineString.substring(0, lastSpace), potentialZoneIdString };
+		}
 		return new String[] { deadlineString, null };
 	}
 
@@ -176,14 +182,16 @@ public final class TestGuardUtils {
 	@API(status = Status.INTERNAL)
 	public static Duration parseDuration(String durationString) {
 		var matcher = DURATION_PATTERN.matcher(durationString);
-		if (!matcher.matches())
+		if (!matcher.matches()) {
 			throw new AnnotationFormatError(localized("test_guard.invalid_extended_deadline_format", durationString)); //$NON-NLS-1$
+		}
 		int d = Optional.ofNullable(matcher.group("d")).map(Integer::parseInt).orElse(0); //$NON-NLS-1$
 		int h = Optional.ofNullable(matcher.group("h")).map(Integer::parseInt).orElse(0); //$NON-NLS-1$
 		int m = Optional.ofNullable(matcher.group("m")).map(Integer::parseInt).orElse(0); //$NON-NLS-1$
 		var duration = Duration.ofDays(d).plusHours(h).plusMinutes(m);
-		if (duration.isZero() || duration.isNegative())
+		if (duration.isZero() || duration.isNegative()) {
 			throw new AnnotationFormatError(localized("test_guard.extended_deadline_zero_or_negative", durationString)); //$NON-NLS-1$
+		}
 		return duration;
 	}
 }

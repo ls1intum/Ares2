@@ -25,7 +25,7 @@ import de.tum.cit.ase.ares.api.localization.Messages;
 /**
  * A utility class to check reachability in a call graph.
  */
-public class ReachabilityChecker {
+public final class ReachabilityChecker {
 	// <editor-fold desc="Constructor">
 	private ReachabilityChecker() {
 		throw new SecurityException(

@@ -38,9 +38,10 @@ public abstract class ClassTestProvider extends StructuralTestProvider {
 	 */
 	protected DynamicContainer generateTestsForAllClasses() throws URISyntaxException {
 		List<DynamicNode> tests = new ArrayList<>();
-		if (structureOracleJSON == null)
+		if (structureOracleJSON == null) {
 			throw failure(
 					"The ClassTest test can only run if the structural oracle (test.json) is present. If you do not provide it, delete ClassTest.java!"); //$NON-NLS-1$
+		}
 		for (var i = 0; i < structureOracleJSON.size(); i++) {
 			var expectedClassJSON = structureOracleJSON.get(i);
 			var expectedClassPropertiesJSON = expectedClassJSON.get(JSON_PROPERTY_CLASS);
@@ -58,9 +59,10 @@ public abstract class ClassTestProvider extends StructuralTestProvider {
 				tests.add(dynamicTest("testClass[" + expectedClassName + "]", () -> testClass(expectedClassStructure))); //$NON-NLS-1$ //$NON-NLS-2$
 			}
 		}
-		if (tests.isEmpty())
+		if (tests.isEmpty()) {
 			throw failure(
 					"No tests for classes available in the structural oracle (test.json). Either provide attributes information or delete ClassTest.java!"); //$NON-NLS-1$
+		}
 		/*
 		 * Using a custom URI here to workaround surefire rendering the JUnit XML
 		 * without the correct test names.
@@ -97,19 +99,23 @@ public abstract class ClassTestProvider extends StructuralTestProvider {
 	private static void checkBasicClassProperties(String expectedClassName, Class<?> observedClass,
 			JsonNode expectedClassPropertiesJSON) {
 		if (checkBooleanOf(expectedClassPropertiesJSON, "isAbstract") //$NON-NLS-1$
-				&& !Modifier.isAbstract(observedClass.getModifiers()))
+				&& !Modifier.isAbstract(observedClass.getModifiers())) {
 			throw localizedFailure("structural.class.abstract", expectedClassName); //$NON-NLS-1$
-		if (checkBooleanOf(expectedClassPropertiesJSON, "isEnum") && !observedClass.isEnum()) //$NON-NLS-1$
+		}
+		if (checkBooleanOf(expectedClassPropertiesJSON, "isEnum") && !observedClass.isEnum()) { //$NON-NLS-1$
 			throw localizedFailure("structural.class.enum", expectedClassName); //$NON-NLS-1$
+		}
 		if (checkBooleanOf(expectedClassPropertiesJSON, "isInterface") //$NON-NLS-1$
-				&& !Modifier.isInterface(observedClass.getModifiers()))
+				&& !Modifier.isInterface(observedClass.getModifiers())) {
 			throw localizedFailure("structural.class.interface", expectedClassName); //$NON-NLS-1$
+		}
 		if (expectedClassPropertiesJSON.has(JSON_PROPERTY_MODIFIERS)) {
 			var expectedModifiers = getExpectedJsonProperty(expectedClassPropertiesJSON, JSON_PROPERTY_MODIFIERS);
 			var modifiersAreCorrect = checkModifiers(Modifier.toString(observedClass.getModifiers()).split(" "), //$NON-NLS-1$
 					expectedModifiers);
-			if (!modifiersAreCorrect)
+			if (!modifiersAreCorrect) {
 				throw localizedFailure("structural.class.modifiers", expectedClassName); //$NON-NLS-1$
+			}
 		}
 	}
 
@@ -148,8 +154,9 @@ public abstract class ClassTestProvider extends StructuralTestProvider {
 						break;
 					}
 				}
-				if (!implementsInterface)
+				if (!implementsInterface) {
 					throw localizedFailure("structural.class.implements", expectedClassName, expectedInterface); //$NON-NLS-1$
+				}
 			}
 		}
 	}
@@ -160,8 +167,9 @@ public abstract class ClassTestProvider extends StructuralTestProvider {
 			var expectedAnnotations = expectedClassPropertiesJSON.get(JSON_PROPERTY_ANNOTATIONS);
 			var observedAnnotations = observedClass.getAnnotations();
 			var annotationsAreRight = checkAnnotations(observedAnnotations, expectedAnnotations);
-			if (!annotationsAreRight)
+			if (!annotationsAreRight) {
 				throw localizedFailure("structural.class.annotations", expectedClassName); //$NON-NLS-1$
+			}
 		}
 	}
 }

@@ -44,7 +44,10 @@ public final class AresSecurityConfigurationBuilder {
 	 * Cache for the content of the build file so that we don't need to read it each
 	 * time. It must not change during program execution, anyway.
 	 */
-	private static String buildConfigurationFileContent;
+	// volatile pairs with the double-checked lazy init below, so the use-site read
+	// always sees
+	// a fully written string rather than a partially constructed one.
+	private static volatile String buildConfigurationFileContent;
 
 	private Optional<Class<?>> testClass;
 	private Optional<Method> testMethod;
@@ -151,27 +154,33 @@ public final class AresSecurityConfigurationBuilder {
 	}
 
 	private void validate() {
-		if (allowedThreadCount.orElse(0) < 0)
+		if (allowedThreadCount.orElse(0) < 0) {
 			throw new ConfigurationException(localized("security.configuration_invalid_negative_threads")); //$NON-NLS-1$
-		if (!Collections.disjoint(allowedLocalPorts, excludedLocalPorts))
+		}
+		if (!Collections.disjoint(allowedLocalPorts, excludedLocalPorts)) {
 			throw new ConfigurationException(localized("security.configuration_invalid_port_rule_intersection")); //$NON-NLS-1$
+		}
 		allowedLocalPorts.forEach(AresSecurityConfigurationBuilder::validatePortRange);
 		excludedLocalPorts.forEach(AresSecurityConfigurationBuilder::validatePortRange);
 		allowLocalPortsAbove.ifPresent(value -> {
 			validatePortRange(value);
-			if (allowedLocalPorts.stream().anyMatch(allowed -> allowed > value))
+			if (allowedLocalPorts.stream().anyMatch(allowed -> allowed > value)) {
 				throw new ConfigurationException(localized("security.configuration_invalid_port_allowed_in_rage")); //$NON-NLS-1$
-			if (excludedLocalPorts.stream().anyMatch(exclusion -> exclusion <= value))
+			}
+			if (excludedLocalPorts.stream().anyMatch(exclusion -> exclusion <= value)) {
 				throw new ConfigurationException(localized("security.configuration_invalid_port_exclude_outside_rage")); //$NON-NLS-1$
+			}
 		});
 		validateTrustedPackages(trustedPackages);
 	}
 
 	private static void validatePortRange(int value) {
-		if (value < AllowLocalPort.MINIMUM)
+		if (value < AllowLocalPort.MINIMUM) {
 			throw new ConfigurationException(localized("security.configuration_invalid_port_negative")); //$NON-NLS-1$
-		if (value > AllowLocalPort.MAXIMUM)
+		}
+		if (value > AllowLocalPort.MAXIMUM) {
 			throw new ConfigurationException(localized("security.configuration_invalid_port_over_max")); //$NON-NLS-1$
+		}
 	}
 
 	private static void validateTrustedPackages(Set<PackageRule> trustedPackages) {
@@ -187,8 +196,13 @@ public final class AresSecurityConfigurationBuilder {
 			return;
 		}
 		try {
-			if (buildConfigurationFileContent == null)
-				buildConfigurationFileContent = Files.readString(expectedProjectBuildFilePath);
+			if (buildConfigurationFileContent == null) {
+				synchronized (AresSecurityConfigurationBuilder.class) {
+					if (buildConfigurationFileContent == null) {
+						buildConfigurationFileContent = Files.readString(expectedProjectBuildFilePath);
+					}
+				}
+			}
 			var enforcerFileRules = Stream.concat(
 					// include all package prefixes that are statically whitelisted
 					SecurityConstants.STACK_WHITELIST.stream(),
@@ -205,8 +219,9 @@ public final class AresSecurityConfigurationBuilder {
 					.collect(Collectors.toList());
 			LOG.debug("Validated build configuration regarding trusted package rules, {} are missing.", missing.size()); //$NON-NLS-1$
 			// If nothing is missing, we're good. Otherwise tell the user what is missing
-			if (missing.isEmpty())
+			if (missing.isEmpty()) {
 				return;
+			}
 			throw new ConfigurationException("Ares has detected that the build configuration is probably incomplete." //$NON-NLS-1$
 					+ " The following file-must-not-exist rules seem to be missing:\n    " //$NON-NLS-1$
 					+ String.join("\n    ", missing) //$NON-NLS-1$

@@ -293,8 +293,9 @@ public class CustomCallgraphBuilder {
 	 * no narrowing is applied).
 	 */
 	private static String derivePackagePrefix(String classPath) {
-		if (classPath == null)
+		if (classPath == null) {
 			return null;
+		}
 		String first = classPath.split(File.pathSeparator)[0].replace(File.separatorChar, '/');
 		String[] markers = { "/build/classes/java/main/", "build/classes/java/main/", "/target/classes/",
 				"target/classes/" };
@@ -302,10 +303,12 @@ public class CustomCallgraphBuilder {
 			int idx = first.indexOf(marker);
 			if (idx >= 0) {
 				String pkg = first.substring(idx + marker.length());
-				if (pkg.isBlank())
+				if (pkg.isBlank()) {
 					return null;
-				if (!pkg.endsWith("/"))
+				}
+				if (!pkg.endsWith("/")) {
 					pkg = pkg + "/";
+				}
 				return "L" + pkg;
 			}
 		}

@@ -24,10 +24,12 @@ public final class InputTester implements LineProvider {
 
 	@Override
 	public Line getNextLine() {
-		if (hasNextLine())
+		if (hasNextLine()) {
 			return expectedInput.get(position++);
-		if (expectedInput.isEmpty())
+		}
+		if (expectedInput.isEmpty()) {
 			throw new IllegalStateException(localized("input_tester.no_input_expected")); //$NON-NLS-1$
+		}
 		throw new IllegalStateException(localized("input_tester.no_more_input_expected", getCurrentLine())); //$NON-NLS-1$
 	}
 

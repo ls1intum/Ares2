@@ -42,7 +42,7 @@ public class CustomDFSPathFinder {
 	 * Description: Directed graph whose nodes are CGNode instances and edges
 	 * represent call relationships.
 	 */
-	private final Graph<CGNode> G;
+	private final Graph<CGNode> graph;
 
 	/**
 	 * Filter defining target nodes.
@@ -129,12 +129,12 @@ public class CustomDFSPathFinder {
 	 *
 	 * @since 2.0.0
 	 * @author Sarp Sahinalp
-	 * @param G     graph to traverse, must not be null
+	 * @param graph graph to traverse, must not be null
 	 * @param nodes iterator over root nodes, must not be null
 	 * @param f     filter predicate for target nodes, must not be null
 	 */
-	public CustomDFSPathFinder(Graph<CGNode> G, Iterator<CGNode> nodes, Predicate<CGNode> f) {
-		if (G == null) {
+	public CustomDFSPathFinder(Graph<CGNode> graph, Iterator<CGNode> nodes, Predicate<CGNode> f) {
+		if (graph == null) {
 			throw new IllegalArgumentException(Messages.localized("architecture.wala.graph.null"));
 		}
 		if (nodes == null) {
@@ -143,7 +143,7 @@ public class CustomDFSPathFinder {
 		if (f == null) {
 			throw new IllegalArgumentException(Messages.localized("architecture.wala.filter.null"));
 		}
-		this.G = G;
+		this.graph = graph;
 		this.roots = nodes;
 		this.P = f;
 	}
@@ -179,7 +179,7 @@ public class CustomDFSPathFinder {
 	 */
 	private Iterator<? extends CGNode> sortedSuccessors(CGNode node) {
 		java.util.List<CGNode> list = new ArrayList<>();
-		G.getSuccNodes(node).forEachRemaining(list::add);
+		graph.getSuccNodes(node).forEachRemaining(list::add);
 		list.sort(java.util.Comparator.comparing(n -> n.getMethod().getSignature()));
 		return list.iterator();
 	}

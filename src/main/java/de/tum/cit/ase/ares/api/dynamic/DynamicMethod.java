@@ -38,8 +38,9 @@ public class DynamicMethod<T> implements Checkable {
 			try {
 				m = owner.toClass().getDeclaredMethod(name, DynamicClass.resolveAll(parameters));
 				m.trySetAccessible();
-				if (!returnType.toClass().isAssignableFrom(m.getReturnType()))
+				if (!returnType.toClass().isAssignableFrom(m.getReturnType())) {
 					throw localizedFailure("dynamics.method.return", this, returnType); //$NON-NLS-1$
+				}
 			} catch (NoSuchMethodException e) {
 				throw localizedFailure(e, "dynamics.method.not_found", returnType, this); //$NON-NLS-1$
 			}
@@ -53,8 +54,9 @@ public class DynamicMethod<T> implements Checkable {
 			try {
 				m = owner.toClass().getDeclaredMethod(name, DynamicClass.resolveAll(parameters));
 				m.trySetAccessible();
-				if (!returnType.toClass().isAssignableFrom(m.getReturnType()))
+				if (!returnType.toClass().isAssignableFrom(m.getReturnType())) {
 					return false;
+				}
 			} catch (@SuppressWarnings("unused") Exception e) {
 				return false;
 			}
@@ -80,8 +82,9 @@ public class DynamicMethod<T> implements Checkable {
 	}
 
 	public T invokeStatic(Object... params) {
-		if (!Modifier.isStatic(toMethod().getModifiers()))
+		if (!Modifier.isStatic(toMethod().getModifiers())) {
 			throw localizedFailure("dynamics.method.static", this); //$NON-NLS-1$
+		}
 		return invokeOn(null, params);
 	}
 
@@ -125,7 +128,8 @@ public class DynamicMethod<T> implements Checkable {
 	@Override
 	public void check(Check... checks) {
 		int modifiers = toMethod().getModifiers();
-		for (Check check : checks)
+		for (Check check : checks) {
 			check.checkModifiers(modifiers, () -> localized("dynamics.method.name", this)); //$NON-NLS-1$
+		}
 	}
 }
