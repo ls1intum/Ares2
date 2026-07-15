@@ -826,7 +826,8 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 	// <editor-fold desc="accessThreadSystemViaNotifyThreadOnly">
 	// notify() on a thread whose class is allowed to be created must pass. Both
 	// engines perform a membership-only manipulation check which does not consume
-	// the creation quota; instrumentation reaches it through call-site substitution.
+	// the creation quota; instrumentation reaches it through call-site
+	// substitution.
 	@PublicTest
 	@Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_THREAD)
 	public void test_notifyThreadOnlyMavenArchunitAspectJ() {

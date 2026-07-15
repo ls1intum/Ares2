@@ -120,7 +120,6 @@ public final class JavaInstrumentationAgent {
 		installAgentBuilder(inst, unsafeFactory,
 				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_RECEIVE_FROM_NETWORK,
 				JavaInstrumentationBindingDefinitions::createReceiveNetworkConstructorBinding);
-
 	}
 
 	/**
@@ -141,9 +140,9 @@ public final class JavaInstrumentationAgent {
 	 * Object's final native monitor methods cannot be advised at their declaration,
 	 * so their application-side call sites have to be rewritten. Restricting the
 	 * transformer to the package governed by the current policy is both the precise
-	 * security boundary and avoids transforming every framework and dependency class
-	 * in the JVM. Retransformation covers restricted classes that were loaded during
-	 * test discovery before the policy became available.
+	 * security boundary and avoids transforming every framework and dependency
+	 * class in the JVM. Retransformation covers restricted classes that were loaded
+	 * during test discovery before the policy became available.
 	 *
 	 * @param restrictedPackage package prefix governed by the current policy
 	 */
