@@ -133,10 +133,14 @@ public final class JupiterSecurityExtension
 				resetSettingsInBootstrapClassLoader();
 			} catch (Exception e) {
 				if (failure == null) {
-					failure = e;
-				} else {
-					failure.addSuppressed(e);
+					// The test itself passed, so invocation.proceed() left a pending return on
+					// this method. Assigning to failure would let that return run and swallow
+					// this teardown failure, leaving the next test with un-reset security
+					// settings (fail-open). Throwing from the finally overrides the pending
+					// return and propagates the teardown failure instead.
+					throw e;
 				}
+				failure.addSuppressed(e);
 			}
 		}
 		throw failure;

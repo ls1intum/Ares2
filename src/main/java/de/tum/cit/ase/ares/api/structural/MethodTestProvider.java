@@ -146,7 +146,7 @@ public abstract class MethodTestProvider extends StructuralTestProvider {
 			throw localizedFailure("structural.method.modifiers", expectedName, expectedClassName, parameters); //$NON-NLS-1$
 		}
 		if (!methodChecks.annotations) {
-			throw localizedFailure("structural.method.annoations", expectedName, expectedClassName, parameters); //$NON-NLS-1$
+			throw localizedFailure("structural.method.annotations", expectedName, expectedClassName, parameters); //$NON-NLS-1$
 		}
 		if (!methodChecks.returnType) {
 			throw localizedFailure("structural.method.return", expectedName, expectedClassName, parameters); //$NON-NLS-1$
