@@ -29,4 +29,39 @@ public class CreateThreadMain {
 			illegalThread.notify();
 		}
 	}
+
+	/**
+	 * Tests Thread.notify() without a preceding start(), so notify() is the thread
+	 * operation actually exercised rather than being masked by an earlier start().
+	 */
+	public static void notifyThreadOnly() {
+		Thread thread = new Thread(new IllegalThread());
+		synchronized (thread) {
+			thread.notify();
+		}
+	}
+
+	/**
+	 * Tests Thread.notifyAll(), the sibling wake operation of notify().
+	 */
+	public static void notifyAllThreadOnly() {
+		Thread thread = new Thread(new IllegalThread());
+		synchronized (thread) {
+			thread.notifyAll();
+		}
+	}
+
+	/**
+	 * Tests the parameterised Object.wait(long) monitor operation on a Thread.
+	 */
+	public static void waitThreadOnly() {
+		Thread thread = new Thread(new IllegalThread());
+		synchronized (thread) {
+			try {
+				thread.wait(1L);
+			} catch (InterruptedException e) {
+				throw new RuntimeException(e);
+			}
+		}
+	}
 }

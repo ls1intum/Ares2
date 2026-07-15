@@ -28,7 +28,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesReadMavenArchunitAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = FILES_READ_PATH)
 	public void test_accessFileSystemViaFilesReadMavenArchunitAspectJ() {
@@ -41,7 +41,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesReadMavenArchunitInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = FILES_READ_PATH)
 	public void test_accessFileSystemViaFilesReadMavenArchunitInstrumentation() {
@@ -54,7 +54,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesReadMavenWalaAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = FILES_READ_PATH)
 	public void test_accessFileSystemViaFilesReadMavenWalaAspectJ() {
@@ -67,7 +67,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesReadMavenWalaInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = FILES_READ_PATH)
 	public void test_accessFileSystemViaFilesReadMavenWalaInstrumentation() {
@@ -83,7 +83,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = THIRD_PARTY_PACKAGE_PATH)
 	public void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ() {
@@ -97,7 +97,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_EVERYTHING_FORBIDDEN, withinPath = THIRD_PARTY_PACKAGE_PATH)
 	public void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation() {
@@ -113,7 +113,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFileReaderReadCharArrayMavenArchunitAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_EVERYTHING_FORBIDDEN, withinPath = FILE_READER_PATH)
 	public void test_accessFileSystemViaFileReaderReadCharArrayMavenArchunitAspectJ() {
@@ -127,7 +127,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFileReaderReadCharArrayMavenArchunitInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_EVERYTHING_FORBIDDEN, withinPath = FILE_READER_PATH)
 	public void test_accessFileSystemViaFileReaderReadCharArrayMavenArchunitInstrumentation() {
@@ -141,7 +141,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFileReaderReadCharArrayMavenWalaAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = FILE_READER_PATH)
 	public void test_accessFileSystemViaFileReaderReadCharArrayMavenWalaAspectJ() {
@@ -155,7 +155,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFileReaderReadCharArrayMavenWalaInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_EVERYTHING_FORBIDDEN, withinPath = FILE_READER_PATH)
 	public void test_accessFileSystemViaFileReaderReadCharArrayMavenWalaInstrumentation() {
@@ -171,7 +171,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenArchunitAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_EVERYTHING_FORBIDDEN, withinPath = FILE_READER_PATH)
 	public void test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenArchunitAspectJ() {
@@ -185,7 +185,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenArchunitInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_EVERYTHING_FORBIDDEN, withinPath = FILE_READER_PATH)
 	public void test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenArchunitInstrumentation() {
@@ -199,7 +199,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenWalaAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = FILE_READER_PATH)
 	public void test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenWalaAspectJ() {
@@ -213,7 +213,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenWalaInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_EVERYTHING_FORBIDDEN, withinPath = FILE_READER_PATH)
 	public void test_accessFileSystemViaFileReaderReadCharArrayOffsetLengthMavenWalaInstrumentation() {
@@ -230,7 +230,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesReadAllLinesMavenArchunitAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = FILES_READ_PATH)
 	public void test_accessFileSystemViaFilesReadAllLinesMavenArchunitAspectJ() {
@@ -243,7 +243,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesReadAllLinesMavenArchunitInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = FILES_READ_PATH)
 	public void test_accessFileSystemViaFilesReadAllLinesMavenArchunitInstrumentation() {
@@ -256,7 +256,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesReadAllLinesMavenWalaAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = FILES_READ_PATH)
 	public void test_accessFileSystemViaFilesReadAllLinesMavenWalaAspectJ() {
@@ -269,7 +269,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesReadAllLinesMavenWalaInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = FILES_READ_PATH)
 	public void test_accessFileSystemViaFilesReadAllLinesMavenWalaInstrumentation() {
@@ -285,7 +285,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesReadAllLinesCharsetMavenArchunitAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = FILES_READ_PATH)
 	public void test_accessFileSystemViaFilesReadAllLinesCharsetMavenArchunitAspectJ() {
@@ -299,7 +299,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesReadAllLinesCharsetMavenArchunitInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = FILES_READ_PATH)
 	public void test_accessFileSystemViaFilesReadAllLinesCharsetMavenArchunitInstrumentation() {
@@ -313,7 +313,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesReadAllLinesCharsetMavenWalaAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = FILES_READ_PATH)
 	public void test_accessFileSystemViaFilesReadAllLinesCharsetMavenWalaAspectJ() {
@@ -327,7 +327,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesReadAllLinesCharsetMavenWalaInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = FILES_READ_PATH)
 	public void test_accessFileSystemViaFilesReadAllLinesCharsetMavenWalaInstrumentation() {
@@ -344,7 +344,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesReadStringCharsetMavenArchunitAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = FILES_READ_PATH)
 	public void test_accessFileSystemViaFilesReadStringCharsetMavenArchunitAspectJ() {
@@ -357,7 +357,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesReadStringCharsetMavenArchunitInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = FILES_READ_PATH)
 	public void test_accessFileSystemViaFilesReadStringCharsetMavenArchunitInstrumentation() {
@@ -370,7 +370,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesReadStringCharsetMavenWalaAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = FILES_READ_PATH)
 	public void test_accessFileSystemViaFilesReadStringCharsetMavenWalaAspectJ() {
@@ -383,7 +383,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesReadStringCharsetMavenWalaInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = FILES_READ_PATH)
 	public void test_accessFileSystemViaFilesReadStringCharsetMavenWalaInstrumentation() {
@@ -399,7 +399,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesLinesMavenArchunitAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = FILES_READ_PATH)
 	public void test_accessFileSystemViaFilesLinesMavenArchunitAspectJ() {
@@ -412,7 +412,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesLinesMavenArchunitInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = FILES_READ_PATH)
 	public void test_accessFileSystemViaFilesLinesMavenArchunitInstrumentation() {
@@ -425,7 +425,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesLinesMavenWalaAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = FILES_READ_PATH)
 	public void test_accessFileSystemViaFilesLinesMavenWalaAspectJ() {
@@ -438,7 +438,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesLinesMavenWalaInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = FILES_READ_PATH)
 	public void test_accessFileSystemViaFilesLinesMavenWalaInstrumentation() {
@@ -454,7 +454,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesLinesCharsetMavenArchunitAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = FILES_READ_PATH)
 	public void test_accessFileSystemViaFilesLinesCharsetMavenArchunitAspectJ() {
@@ -467,7 +467,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesLinesCharsetMavenArchunitInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = FILES_READ_PATH)
 	public void test_accessFileSystemViaFilesLinesCharsetMavenArchunitInstrumentation() {
@@ -480,7 +480,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesLinesCharsetMavenWalaAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = FILES_READ_PATH)
 	public void test_accessFileSystemViaFilesLinesCharsetMavenWalaAspectJ() {
@@ -493,7 +493,7 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesLinesCharsetMavenWalaInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = FILES_READ_PATH)
 	public void test_accessFileSystemViaFilesLinesCharsetMavenWalaInstrumentation() {

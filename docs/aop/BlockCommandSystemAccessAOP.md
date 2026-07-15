@@ -25,6 +25,7 @@
      - [5.3.1 Load List of Allowed Commands](#531-load-list-of-allowed-commands)
      - [5.3.2 Apply Special Rules for Specific Methods](#532-apply-special-rules-for-specific-methods)
      - [5.3.3 Check Method Parameters for Commands](#533-check-method-parameters-for-commands)
+     - [5.3.4 Check Executable File Paths (pathsAllowedToBeExecuted)](#534-check-executable-file-paths-pathsallowedtobeexecuted)
    - [5.4 Check 4: Extract and Validate Commands from Object State](#54-check-4-extract-and-validate-commands-from-object-state)
    - [5.5 Check 5: Block Access with Detailed Error Message](#55-check-5-block-access-with-detailed-error-message)
 6. [Conclusion](#6-conclusion)
@@ -64,6 +65,7 @@ Security policies are configured through settings that instructors can adjust:
 | **allowedListedClasses** | `String[]` | Trusted helper classes students can use | `["de.student.util.Helper"]` |
 | **commandsAllowedToBeExecuted** | `String[]` | Commands students are allowed to execute | `["ls", "echo"]` |
 | **argumentsAllowedToBePassed** | `String[][]` | Arguments allowed for each command | `[["--help"], ["-n", "Hello"]]` |
+| **pathsAllowedToBeExecuted** | `String[]` | Optional allow-list of executable file paths the commands may resolve to (see 5.3.4) | `["/usr/bin/ls"]` |
 
 ---
 
@@ -73,7 +75,7 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 
 1. **Security Enabled**: `aopMode == "INSTRUMENTATION"` or `aopMode == "ASPECTJ"`
 2. **Student Code Detected**: Call chain contains code in `restrictedPackage` and not in `allowedListedClasses`
-3. **Command Not Allowed**: Command doesn't match any entry in `commandsAllowedToBeExecuted` with matching arguments from `argumentsAllowedToBePassed`
+3. **Command Not Allowed**: Command doesn't match any entry in `commandsAllowedToBeExecuted` with matching arguments from `argumentsAllowedToBePassed`, **or** (when `pathsAllowedToBeExecuted` is configured) the command's executable file path is not covered by that allow-list (see 5.3.4)
 
 **If ANY condition fails → Access is ALLOWED** 🟢
 
@@ -213,17 +215,18 @@ Commands can appear in **different places** depending on how the method is used:
 |-------------|------|-------------|
 | **declaringTypeName** | `String` | **Class name** where the method is defined. Example: `"java.lang.Runtime"`. |
 | **methodName** | `String` | **Method name**. Example: `"exec"` or `"<init>"` for constructors. |
-| **methodSignature** | `String` | **Method signature** with parameter types. Example: `"(Ljava/lang/String;)Ljava/lang/Process;"` for exec taking a String. **Reading signatures:** `(Ljava/lang/String;)Ljava/lang/Process;` means "takes a String parameter, returns a Process". |
+| **methodSignature** | `String` | **Method signature** with parameter types in source form. Example: `"(java.lang.String)"` for exec taking a String. **Reading signatures:** `(java.lang.String)` means "takes a String parameter". The return type is not part of the signature. |
 
-> 💡 **Method Signature Explained:** `(Ljava/lang/String;)Ljava/lang/Process;`
+> 💡 **Method Signature Explained:** `(java.lang.String)`
 > - `(` = Parameter list begins
-> - `Ljava/lang/String;` = Parameter of type String
-> - `)` = Parameter list ends  
-> - `Ljava/lang/Process;` = Returns a Process object
+> - `java.lang.String` = Parameter of type String
+> - `)` = Parameter list ends
+>
+> Byte Buddy's `@Advice.Origin("#s")` yields this source form (no return type). The AspectJ side produces the same shape via `formatSignature()`, so both backends report signatures as `<declaringType>.<methodName>(<paramType1>,<paramType2>,...)` once the class and method name are prepended.
 >
 > **More Examples:**
-> - `([Ljava/lang/String;)Ljava/lang/Process;` = String array parameter, returns Process
-> - `()V` = no parameters, void return
+> - `(java.lang.String[])` = String array parameter
+> - `()` = no parameters
 
 **2. How Do We Collect This Information:**
 
@@ -247,7 +250,10 @@ public void checkCommandSystemInteraction(
 ) {
     String declaringTypeName = thisJoinPoint.getSignature().getDeclaringTypeName();
     String methodName = thisJoinPoint.getSignature().getName();
-    String methodSignature = thisJoinPoint.getSignature().toLongString();
+    // formatSignature() strips Java modifiers (e.g. "public transient") from
+    // AspectJ's join-point signature and normalises constructors to "<init>",
+    // so both backends produce the same signature shape.
+    String fullMethodSignature = formatSignature(thisJoinPoint.getSignature());
     // Information is now available for validation
 }
 ```
@@ -256,7 +262,7 @@ public void checkCommandSystemInteraction(
 - Identify which command operation was attempted
 - Look up special handling rules for specific methods
 - Distinguish between different versions of the same method (overloading)
-- Example: `java.lang.Runtime.exec(Ljava/lang/String;)Ljava/lang/Process;` → Identifies a `Runtime.exec` method taking a String parameter
+- Example: `java.lang.Runtime.exec(java.lang.String)` → Identifies a `Runtime.exec` method taking a String parameter
 
 ---
 
@@ -292,34 +298,33 @@ public void checkCommandSystemInteraction(
 }
 ```
 
-**Both modes then use identical attribute extraction (using Java's built-in ability to inspect object contents):**
+**Both modes then use best-effort attribute extraction (using Java's built-in ability to inspect object contents):**
 ```java
 // For constructors, instance is null (object doesn't exist yet)
-if (instance == null) {
-    return;  // Skip for constructors
-}
+// → attributes stays an empty array
 
 // Ares uses Java's inspection capabilities to access private fields
-final Field[] fields = instance.getClass().getDeclaredFields();
+final Field[] fields = instance != null ? instance.getClass().getDeclaredFields() : new Field[0];
 final Object[] attributes = new Object[fields.length];
 
 for (int i = 0; i < fields.length; i++) {
     try {
         fields[i].setAccessible(true);  // Make private fields accessible
         attributes[i] = fields[i].get(instance);  // Read the value
-    } catch (InaccessibleObjectException e) {
-        throw new SecurityException("Cannot access field: " + fields[i].getName(), e);
-    } catch (IllegalAccessException e) {
-        throw new SecurityException("Illegal access to field: " + fields[i].getName(), e);
-    } catch (IllegalArgumentException e) {
-        throw new SecurityException("Invalid field access: " + fields[i].getName(), e);
-    } catch (NullPointerException e) {
-        throw new SecurityException("Null pointer accessing field: " + fields[i].getName(), e);
-    } catch (ExceptionInInitializerError e) {
-        throw new SecurityException("Initialization error for field: " + fields[i].getName(), e);
+    } catch (InaccessibleObjectException | IllegalAccessException | SecurityException
+            | IllegalArgumentException | NullPointerException | ExceptionInInitializerError e) {
+        // Skip the unreadable field rather than aborting the whole interaction:
+        // a JDK-internal field that throws on read must not turn a JDK-side
+        // reflection limit into an Ares SecurityException. The security check
+        // still runs over the parameters and the readable fields.
+        continue;
     }
 }
 ```
+
+**Difference between the modes for unreadable fields:**
+- **Byte Buddy**: skips the unreadable field (the corresponding `attributes` slot stays `null`) and continues.
+- **AspectJ**: null-fills the unreadable field, but treats the `command` field of `ProcessBuilder` before `start()` as **critical**: if that field cannot be read, Ares cannot inspect what would be executed, so it **fails closed** and later throws a SecurityException reporting the command as `<unknown>` instead of letting an uninspected command through.
 
 **3. How All Object State Information Is Used:**
 - Extract commands that might be stored inside the object
@@ -377,7 +382,7 @@ After collecting this information, Ares passes it to the security validation com
 > ├─ action: "execute"
 > ├─ declaringTypeName: "java.lang.Runtime"
 > ├─ methodName: "exec"
-> ├─ methodSignature: "(Ljava/lang/String;)Ljava/lang/Process;"
+> ├─ methodSignature: "(java.lang.String)"
 > ├─ parameters: ["rm -rf /"]
 > ├─ attributes: [...] (Runtime internal fields)
 > └─ instance: Runtime instance
@@ -399,9 +404,12 @@ checkCommandSystemInteraction(
     methodName,           // Which method?
     methodSignature,      // Exact signature?
     attributes,           // Object's internal field values (Object[])
-    parameters            // Values passed to method (Object[])
+    parameters,           // Values passed to method (Object[])
+    instance              // The receiver object of the intercepted call (may be null)
 )
 ```
+
+The AspectJ implementation takes the equivalent information from the `JoinPoint` object instead of separate parameters: `checkCommandSystemInteraction(action, thisJoinPoint)`.
 
 **How is the action determined?**
 
@@ -431,6 +439,8 @@ The security validator performs a **series of checks** to decide whether the com
 4. **Are All Commands in Object State Allowed?** → If no: 🔴
 5. **Block and Throw Error** → If violation found
 
+> 💡 **Re-entrancy guard:** Before any check runs, both backends call `enterAdvice()`. The advice body itself performs file work and stack walks that can lazily load JDK classes, which would re-enter the advice on the same thread and cause `ClassCircularityError` or unbounded recursion. Nested invocations on the same thread (trusted Ares internals) are therefore skipped; only the outermost invocation is enforced, and `exitAdvice()` clears the per-thread flag in a `finally` block.
+
 ---
 
 ## 5.1 Check 1: Is Security Enabled?
@@ -443,17 +453,30 @@ Without this check, the security system would either always run (causing unneces
 
 **2. How it works**
 
+Each implementation checks only its own mode value:
+
+**Byte Buddy (Instrumentation) Mode:**
 ```java
-// Read security settings
 String aopMode = getValueFromSettings("aopMode");
-if (aopMode == null || (!aopMode.equals("INSTRUMENTATION") && !aopMode.equals("ASPECTJ"))) {
+if (aopMode == null || aopMode.isEmpty() || !aopMode.equals("INSTRUMENTATION")) {
+    return;  // Security is disabled, allow everything
+}
+String restrictedPackage = getValueFromSettings("restrictedPackage");
+if (restrictedPackage == null || restrictedPackage.isEmpty()) {
+    return;  // No restricted package configured, allow everything
+}
+```
+
+**AspectJ Mode:**
+```java
+String aopMode = getValueFromSettings("aopMode");
+if (aopMode == null || !aopMode.equals("ASPECTJ")) {
     return;  // Security is disabled, allow everything
 }
 ```
 
-Both implementations check the `aopMode` setting but accept different values:
-- Byte Buddy checks for `"INSTRUMENTATION"`
-- AspectJ checks for `"ASPECTJ"`
+- Byte Buddy accepts only `"INSTRUMENTATION"` (and additionally requires a non-empty `aopMode` and returns early - allowing the operation - when `restrictedPackage` is null or empty)
+- AspectJ accepts only `"ASPECTJ"` (a null `restrictedPackage` leads to the same allow result in the subsequent call-stack check)
 
 **3. Used variables**
 
@@ -522,7 +545,8 @@ Result: Student code detected at StudentCode.deleteEverything()
 **2. How it works**
 
 ```java
-String violatingMethod = checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses);
+String violatingMethod = checkIfCallstackCriteriaIsViolated(
+    restrictedPackage, allowedClasses, declaringTypeName, methodName);
 if (violatingMethod == null) {
     return;  // Not from student code
 }
@@ -530,45 +554,47 @@ if (violatingMethod == null) {
 
 **Detailed steps:**
 
-1. **Capture the Call History:**
+1. **Walk the Call History Once:** Instead of `Thread.currentThread().getStackTrace()` (which allocates a `Throwable` and materialises the full stack), Ares uses a cached `StackWalker` and performs a **single combined, lazy walk** (`inspectCallstackOnce`) that stops as soon as it has found both the violation and the caller above the first restricted frame:
    ```java
-   StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+   String[] inspection = inspectCallstackOnce(restrictedPackage, allowedClasses);
    ```
 
-2. **Walk Through Each Method Call:**
+2. **Skip Ares Internal Code, Class Loading and Reflection Trampolines:** For each walked frame, ignorable frames are skipped by prefix:
    ```java
-   for (StackTraceElement element : stackTrace) {
-       String className = element.getClassName();
-   ```
-
-3. **Skip Ares Internal Code and Java ClassLoader:**
-   ```java
-   boolean shouldSkip = false;
-   for (String ignorePattern : IGNORE_CALLSTACK) {
-       if (className.startsWith(ignorePattern)) {
-           shouldSkip = true;
+   boolean ignorable = false;
+   for (String ignore : IGNORE_CALLSTACK) {
+       if (className.startsWith(ignore)) {
+           ignorable = true;
            break;
        }
    }
-   if (shouldSkip) {
-       continue;  // Skip this method, it's part of Ares or Java internals
+   if (ignorable) {
+       continue;  // Skip this frame, it's part of Ares or Java internals
    }
    ```
 
-4. **Check if This is Student Code:**
+3. **Check if This is Student Code:**
    ```java
-   if (className.startsWith(restrictedPackage)) {
-       // This method is in the student package
+   boolean inRestricted = className.startsWith(restrictedPackage);
    ```
 
-5. **Check if it's an Allowed Helper Class:**
+4. **Check if it's an Allowed Helper Class:** There is no separate helper method; the check is an inline **prefix** loop, so an entry in `allowedClasses` allows the class itself and everything whose fully qualified name starts with that entry:
    ```java
-       if (!isInAllowedList(allowedClasses, element)) {
-           // Not in the allowed list → This is restricted student code
-           return className + "." + element.getMethodName();
+   boolean allowed = false;
+   if (allowedClasses != null) {
+       for (String allowedClass : allowedClasses) {
+           if (className.startsWith(allowedClass)) {
+               allowed = true;
+               break;
+           }
        }
    }
+   if (!allowed) {
+       violation = className + "." + frame.getMethodName();
+   }
    ```
+
+5. **Cache the Result Per Thread:** The same walk also records the first non-ignored caller **above** the first restricted frame. Both results are stored in a per-thread cache (`CALLSTACK_INSPECTION_CACHE`) so the immediately following `findFirstMethodOutsideOfRestrictedPackage` call (5.2.3) can consume it without walking the stack a second time.
 
 6. **If No Student Code Found:**
    ```java
@@ -578,12 +604,12 @@ if (violatingMethod == null) {
 **3. Used variables**
 
 - **`restrictedPackage`** (String): From 5.2.1 - defines student code boundary
-- **`allowedClasses`** (String[]): From 5.2.1 - list of trusted helper classes
+- **`allowedClasses`** (String[]): From 5.2.1 - list of trusted helper class name **prefixes** (matched via `className.startsWith(...)`)
 - **`violatingMethod`** (String): Returns the fully qualified method name of the student code that triggered the command operation, or `null` if no student code found
-- **`stackTrace`** (StackTraceElement[]): The complete call chain showing all method calls leading to this point
-- **`IGNORE_CALLSTACK`** (String[]): Instrumentation uses `["java.lang.ClassLoader", "de.tum.cit.ase.ares.api."]`; AspectJ uses `["java.lang.ClassLoader", "de.tum.cit.ase.ares.api.", "de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension", "de.tum.cit.ase.ares.api.jqwik.JqwikSecurityExtension", "de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationBindingDefinitions"]`
-- **`className`** (String): The fully qualified class name for each method in the call stack
-- **`isInAllowedList()`** (method): Helper function that returns `true` if the class is listed in the `allowedClasses` array
+- **`STACK_WALKER`** (StackWalker): Cached `StackWalker` instance used for the single lazy walk over the call chain
+- **`IGNORE_CALLSTACK`** (List<String>): Identical in both backends: `["java.lang.ClassLoader", "de.tum.cit.ase.ares.api.", "com.intellij.rt.debugger.", "jdk.internal.loader.", "jdk.internal.reflect."]`
+- **`className`** (String): The fully qualified class name for each frame in the call stack
+- **`CALLSTACK_INSPECTION_CACHE`** (ThreadLocal<String[]>): Per-thread one-shot cache of the walk result, consumed by `findFirstMethodOutsideOfRestrictedPackage`
 
 **4. Result**
 
@@ -602,7 +628,7 @@ Identify which test method triggered the student code. This helps instructors kn
 String testMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
 ```
 
-Continue walking backwards through the call history (from 5.2.2) to find the first method **outside** the student package - this is the test method that called the student code.
+This looks for the first non-ignored method **above** the first restricted frame in the call history - this is the test method that called the student code. In the common case no second stack walk is needed: the result was already computed during the combined walk in 5.2.2 and is consumed from the per-thread cache (`CALLSTACK_INSPECTION_CACHE`); only when the cache is empty does the method perform its own `StackWalker` walk.
 
 **Example from the visual diagram above:**
 ```
@@ -638,10 +664,15 @@ Load the configuration that specifies which commands are allowed to be executed 
 ```java
 String[] commandsAllowedToBeExecuted = getValueFromSettings("commandsAllowedToBeExecuted");
 String[][] argumentsAllowedToBePassed = getValueFromSettings("argumentsAllowedToBePassed");
+String[] pathsAllowedToBeExecuted = getValueFromSettings("pathsAllowedToBeExecuted");
 
-// Validate configuration consistency
-if (commandsAllowedToBeExecuted.length != argumentsAllowedToBePassed.length) {
-    throw new SecurityException("Configuration error: commands and arguments arrays must have same length");
+// Validate configuration consistency (null arrays count as size 0);
+// the error message is the localised key "security.advice.command.allowed.size"
+int commandsSize = commandsAllowedToBeExecuted == null ? 0 : commandsAllowedToBeExecuted.length;
+int argumentsSize = argumentsAllowedToBePassed == null ? 0 : argumentsAllowedToBePassed.length;
+if (commandsSize != argumentsSize) {
+    throw new SecurityException(localize("security.advice.command.allowed.size",
+            argumentsSize, commandsSize));
 }
 ```
 
@@ -649,6 +680,7 @@ if (commandsAllowedToBeExecuted.length != argumentsAllowedToBePassed.length) {
 
 - **`commandsAllowedToBeExecuted`** (String[]): Array of commands that students are allowed to execute (e.g., `["ls", "echo"]`)
 - **`argumentsAllowedToBePassed`** (String[][]): 2D array where each entry contains the allowed arguments for the corresponding command (e.g., `[["--help"], ["-n", "Hello"]]`)
+- **`pathsAllowedToBeExecuted`** (String[]): Optional allow-list of executable **file paths**; used by the additional executable-path validation layer (see 5.3.4)
 
 **4. Result**
 
@@ -698,61 +730,79 @@ Extract and validate all commands from method parameters. This step systematical
 // 1. Filter parameters based on special rules
 Object[] filteredVariables = filterVariables(parameters, ignoreRule);
 
-// 2. Extract command from each parameter
-for (Object variable : filteredVariables) {
-    String[] command = variableToCommand(variable);
-    
-    // 3. Check if command is forbidden
-    if (checkIfCommandIsForbidden(command, commandsAllowedToBeExecuted, argumentsAllowedToBePassed)) {
-        // Command is NOT allowed → Record violation
-        return String.join(" ", command);
+// 2. Extract command from each parameter and check if it is forbidden
+for (Object observedVariable : filteredVariables) {
+    if (analyseViolation(observedVariable, commandsAllowedToBeExecuted, argumentsAllowedToBePassed)) {
+        // Command is NOT allowed → Record violation (e.g. "rm -rf /")
+        return extractViolationPath(observedVariable, commandsAllowedToBeExecuted, argumentsAllowedToBePassed);
     }
 }
 ```
 
 **Command Conversion Logic:**
 
-The `variableToCommand()` method handles different command formats:
+The `variableToCommand()` method converts different command representations into a `CommandTarget` record (a pair of command name + argument array):
 
 ```java
-private static String[] variableToCommand(Object variableValue) {
+private static CommandTarget variableToCommand(Object variableValue) {
+    String[] parts = null;
     if (variableValue == null) {
         return null;
-    } else if (variableValue instanceof String[]) {
-        return (String[]) variableValue;  // Already an array
+    } else if (variableValue instanceof String[] && ((String[]) variableValue).length != 0) {
+        parts = (String[]) variableValue;  // Already an array (empty arrays are rejected)
     } else if (variableValue instanceof List<?>) {
-        return ((List<String>) variableValue).toArray(new String[0]);  // Convert List to array
+        // List is an interface; fail closed on non-JDK List subtypes before
+        // calling any overridable method on them (see note below)
+        requireTrustedRuntimeType(variableValue);
+        if (((List<?>) variableValue).stream().allMatch(o -> o instanceof String)) {
+            parts = ((List<String>) variableValue).toArray(new String[0]);  // All elements must be Strings
+        }
     } else if (variableValue instanceof String) {
-        return ((String) variableValue).split(" ");  // Split string by spaces
-    } else {
+        parts = parseCommandString((String) variableValue);  // Quote-aware shell-like parsing, NOT split-by-space
+    }
+    if (parts == null || parts.length == 0) {
         return null;
     }
+    String command = parts[0];
+    String[] arguments = parts.length > 1 ? Arrays.copyOfRange(parts, 1, parts.length) : new String[0];
+    return new CommandTarget(command, arguments);
 }
 ```
+
+Key points:
+- Strings are parsed with `parseCommandString()`, a **quote-aware** parser that handles single quotes, double quotes and backslash escapes like a shell. A naive split-by-space would let quoted arguments manipulate argument boundaries.
+- **`requireTrustedRuntimeType()` fails closed** for `List` values whose runtime class was not loaded by the bootstrap or platform class loader: Ares would otherwise have to invoke overridable methods (`stream()`, `toArray()`) on an attacker-supplied subclass while the re-entrancy guard is active, so untrusted `List` subtypes are blocked with a SecurityException instead of being inspected.
+- Lists containing non-String elements and empty `String[]` arrays yield no command (`null`), as does an empty parse result.
 
 **Command Validation Logic:**
 
 ```java
 private static boolean checkIfCommandIsForbidden(
-    String[] actualFullCommand,
+    CommandTarget actual,
     String[] allowedCommands,
     String[][] allowedArguments
 ) {
-    if (actualFullCommand == null) return false;
-    if (allowedCommands == null || allowedCommands.length == 0) return true;
-    
-    String actualCommand = actualFullCommand[0];  // Command name
-    String[] actualArguments = Arrays.copyOfRange(actualFullCommand, 1, actualFullCommand.length);  // Arguments
-    
+    if (actual == null) {
+        return false;
+    }
+    // Null or empty allow-lists mean nothing is allowed → forbidden
+    if (allowedCommands == null || allowedCommands.length == 0 || allowedArguments == null
+            || allowedArguments.length == 0) {
+        return true;
+    }
+    // Iterate ALL entries: the same command name may appear multiple times,
+    // each with a different allowed argument list, and any matching entry allows
     for (int i = 0; i < allowedCommands.length; i++) {
-        if (allowedCommands[i].equals(actualCommand)) {
-            // Command found, check if arguments match
-            return !Arrays.deepEquals(allowedArguments[i], actualArguments);
+        if (commandMatches(actual.command(), allowedCommands[i])
+                && argumentsMatch(allowedArguments[i], actual.arguments())) {
+            return false;  // Explicitly allowed
         }
     }
-    return true;  // Command not in allowed list
+    return true;  // No allow entry matches
 }
 ```
+
+Argument matching (`argumentsMatch`) requires the same number of arguments and, per argument, either an **exact** match or a **relative-vs-absolute path tolerance**: a non-empty allowed token also matches an actual argument that ends with it on a path-separator boundary (e.g. allowed `src/main/file.sh` matches actual `/home/user/project/src/main/file.sh`). Substring ("contains") matching is deliberately not used, since it would let a student append arbitrary content to an allowed argument.
 
 **3. Used variables**
 
@@ -761,13 +811,45 @@ private static boolean checkIfCommandIsForbidden(
 - **`filteredVariables`** (Object[]): From 5.3.2 - subset of parameters to validate
 - **`commandsAllowedToBeExecuted`** (String[]): From 5.3.1 - list of allowed command names
 - **`argumentsAllowedToBePassed`** (String[][]): From 5.3.1 - allowed arguments for each command
-- **`command`** (String[]): Extracted command as array (command name + arguments)
-- **`variableToCommand()`** (method): Helper that converts various types (String, String[], List<String>) to command arrays
+- **`CommandTarget`** (record): Extracted command as a pair of command name and argument array
+- **`variableToCommand()`** (method): Helper that converts various types (String, String[], List<String>) to a `CommandTarget`
 
 **4. Result**
 
-- All commands allowed → 🌕 **Continue to Check 4**
+- All commands allowed → 🌕 **Continue to 5.3.4**
 - Forbidden command found → Record violation → 🔴 **Block and throw security exception**
+
+### 5.3.4 Check Executable File Paths (pathsAllowedToBeExecuted)
+
+**1. Purpose**
+
+Optionally restrict not only **which command names** may be executed, but also **which executable files on disk** they may resolve to. This closes the gap where an allowed command name (e.g. `git`) could be shadowed by a malicious executable of the same name. Both backends run this layer (`checkIfExecutablePathCriteriaIsViolated`) directly after each command check - once on the parameters and once on the object attributes.
+
+**2. How it works**
+
+```java
+String pathViolation = checkIfExecutablePathCriteriaIsViolated(
+    filteredVariables, pathsAllowedToBeExecuted, ignoreRule);
+if (pathViolation != null) {
+    throw new SecurityException(localize("security.advice.illegal.file.execution", ...));
+}
+```
+
+- **Opt-in narrowing:** If `pathsAllowedToBeExecuted` is null or empty, this layer allows everything - the command-name allow-list alone governs. It never turns into a deny-all.
+- **Executable resolution (`resolveExecutable`):** A command token containing a path separator is resolved literally. A **bare command name** (e.g. `git`) is looked up on the `PATH` environment variable, mirroring the operating system's search (on Windows additionally trying the `PATHEXT` extensions) and skipping non-executable matches.
+- **Fail-closed for unresolvable commands:** If an execute-path list IS configured but the command resolves to no existing executable file (including a bare name not found on `PATH`), it cannot be proven to be on the list and is **denied** rather than silently passed.
+- **Path matching:** The resolved executable path is allowed if it equals an allowed path or lies below an allowed directory (paths are normalised and symlinks resolved for existing files).
+- **Precise error message:** Reaching this check means the command-name check already passed, so the violation is reported with the dedicated key `security.advice.illegal.file.execution` and the denial reason "The command is allow-listed, but its executable file path is not in the execute allow-list."
+
+**3. Used variables**
+
+- **`pathsAllowedToBeExecuted`** (String[]): From 5.3.1 - allow-list of executable file paths or directories (setting defined in `JavaAOPTestCaseSettings`)
+- **`resolveExecutable()`** (method): Resolves a command token to an existing executable file, searching `PATH`/`PATHEXT` for bare names
+
+**4. Result**
+
+- No execute-path list configured, or all executables allowed → 🌕 **Continue to Check 4**
+- Executable file path not in the allow-list (or unresolvable) → 🔴 **Block and throw security exception**
 
 ---
 
@@ -785,7 +867,9 @@ Extract and validate all commands from the object's internal state. This is crit
 
 | Method | What We Check | Why |
 |--------|---------------|-----|
-| `ProcessBuilder.start()` | Only attribute at position 1 | The `command` field is at index 1 in the object's fields |
+| `ProcessBuilder.start()` | Only the `command` field | Its index is resolved dynamically via `findFieldIndex(ProcessBuilder.class, "command")` because field indices shift across JDK versions (e.g. JDK 21 added a `LOGGER` field to `ProcessBuilder`) |
+
+After the command check, the executable-path layer from 5.3.4 also runs on the same attributes. In AspectJ mode there is one additional fail-closed rule: if the `command` field of `ProcessBuilder` could not be read during attribute extraction (see 4.2), the `start()` call is denied with the command reported as `<unknown>`, because an unreadable command cannot be validated against the allow-list.
 
 **3. Used variables**
 
@@ -817,30 +901,29 @@ throw new SecurityException(localize(
     violatingMethod,           // de.student.StudentCode.exploit
     action,                    // "execute"
     violatingCommand,          // "rm -rf /"
-    fullMethodSignature +      // "java.lang.Runtime.exec(Ljava/lang/String;)Ljava/lang/Process;"
-    " (called by " + studentCalledMethod + ")"  // " (called by org.junit.TestClass.testStudent)"
+    fullMethodSignature        // "java.lang.Runtime.exec(java.lang.String)"
+        + " (called by " + studentCalledMethod + ")"  // " (called by org.junit.TestClass.testStudent)"
+        + " | " + buildDenialReason(noAllowRuleConfigured)  // " | Reason: No configured allow rule permits this access."
 ));
 ```
+
+The trailing `buildDenialReason(...)` suffix distinguishes between "no allow rule configured at all" and "an allow rule exists but does not permit this access". Executable-path violations (5.3.4) use the separate key `security.advice.illegal.file.execution` with their own denial reason instead.
 
 **3. Used variables**
 
 - **`violatingMethod`** (String): From 5.2.2 - the student method that attempted the command execution (e.g., `"de.student.StudentCode.exploit"`)
 - **`action`** (String): From section 4.4 - the type of operation attempted (always `"execute"` for command system)
 - **`violatingCommand`** (String): From 5.3.3/5.4 - the forbidden command that was attempted (e.g., `"rm -rf /"`)
-- **`fullMethodSignature`** (String): From section 4.1 - complete method signature showing exactly which method was called (e.g., `"java.lang.Runtime.exec(Ljava/lang/String;)Ljava/lang/Process;"`)
+- **`fullMethodSignature`** (String): From section 4.1 - complete method signature showing exactly which method was called (e.g., `"java.lang.Runtime.exec(java.lang.String)"`)
 - **`studentCalledMethod`** (String): From 5.2.3 - the test method that invoked the student code (e.g., `"org.junit.TestClass.testStudent"`)
+- **`noAllowRuleConfigured`** (boolean): Whether the command allow-lists are null or empty; determines which denial reason `buildDenialReason()` appends
 - **`localize()`** (method): Translates the error message to the configured language
 
 **4. Result**
 
-**Example Error Message:**
+**Example Error Message** (format defined by the localised key `security.advice.illegal.command.execution`: `"Ares Security Error (Reason: Student-Code; Stage: Execution): %s tried to illegally %s Command %s via %s but was blocked by Ares."`):
 ```
-SecurityException: Unauthorized command execution detected
-Student method: de.student.StudentCode.exploit
-Operation: execute
-Forbidden command: rm -rf /
-Attempted via: java.lang.Runtime.exec(Ljava/lang/String;)Ljava/lang/Process;
-Test method: org.junit.TestClass.testStudent
+Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.StudentCode.exploit tried to illegally execute Command rm -rf / via java.lang.Runtime.exec(java.lang.String) (called by org.junit.TestClass.testStudent) | Reason: No configured allow rule permits this access. but was blocked by Ares.
 ```
 
 🔴 **SecurityException thrown** - Analysis terminated, command operation blocked
@@ -879,12 +962,13 @@ The command system security mechanism provides **comprehensive protection** thro
 1. **API Coverage**: 3 intercepted methods covering all standard command execution paths
 2. **Call Stack Analysis**: Distinguishes trusted framework code from untrusted student code
 3. **Command-Based Validation**: Strict enforcement of allowed commands with argument matching
-4. **Detailed Error Messages**: Precise violation reporting with full call context
-5. **Flexible Configuration**: YAML-based security policies with command and argument whitelists
+4. **Executable-Path Validation**: Optional additional allow-list of executable file paths (`pathsAllowedToBeExecuted`, see 5.3.4) with PATH resolution and fail-closed handling of unresolvable commands
+5. **Detailed Error Messages**: Precise violation reporting with full call context
+6. **Flexible Configuration**: YAML-based security policies with command and argument whitelists
 
 The system operates **transparently** using AOP techniques, requiring no modifications to student code, and enforces policies **before** dangerous operations execute.
 
-> 💡 **Byte Buddy vs. AspectJ:** Validation flow is aligned, but the ignored callstack prefixes differ between modes (see Check 2 for the exact lists).
+> 💡 **Byte Buddy vs. AspectJ:** Validation flow is aligned, and the ignored callstack prefixes are identical in both modes (see Check 2 for the exact list). Both backends also share the re-entrancy guard (`enterAdvice()`/`exitAdvice()`), the fail-closed `requireTrustedRuntimeType()` blocking of non-JDK `List` subtypes, and the executable-path validation layer (5.3.4); AspectJ additionally fails closed with an `<unknown>` denial when the `ProcessBuilder` command field is unreadable.
 
 **Implementation Differences:**
 
@@ -898,4 +982,4 @@ The system operates **transparently** using AOP techniques, requiring no modific
 | **Parameters Access** | `@Advice.AllArguments` annotation | `JoinPoint.getArgs()` |
 | **Validation Logic** | Delegates to `JavaInstrumentationAdviceCommandSystemToolbox` | Implements in `JavaAspectJCommandSystemAdviceDefinitions` |
 
-**Both implementations provide the same validation logic for command extraction and permission checking; ignore-callstack prefixes differ by mode.**
+**Both implementations provide the same validation logic for command extraction and permission checking, including identical ignore-callstack prefixes.**

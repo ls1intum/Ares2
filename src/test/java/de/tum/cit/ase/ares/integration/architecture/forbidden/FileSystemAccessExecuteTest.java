@@ -23,28 +23,28 @@ class FileSystemAccessExecuteTest extends SystemAccessTest {
 	private static final String THIRD_PARTY_PACKAGE_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/thirdPartyPackage";
 
 	// <editor-fold desc="accessFileSystemViaRuntime">
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = RUNTIME_PATH)
 	void test_accessFileSystemViaRuntimeMavenArchunitAspectJ() throws Exception {
 		RuntimeExecuteMain.accessFileSystemViaRuntime();
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = RUNTIME_PATH)
 	void test_accessFileSystemViaRuntimeMavenArchunitInstrumentation() throws Exception {
 		RuntimeExecuteMain.accessFileSystemViaRuntime();
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = RUNTIME_PATH)
 	void test_accessFileSystemViaRuntimeMavenWalaAspectJ() throws Exception {
 		RuntimeExecuteMain.accessFileSystemViaRuntime();
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = RUNTIME_PATH)
 	void test_accessFileSystemViaRuntimeMavenWalaInstrumentation() throws Exception {
@@ -53,28 +53,28 @@ class FileSystemAccessExecuteTest extends SystemAccessTest {
 	// </editor-fold>
 
 	// <editor-fold desc="accessFileSystemViaRuntimeArray">
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = RUNTIME_PATH)
 	void test_accessFileSystemViaRuntimeArrayMavenArchunitAspectJ() throws Exception {
 		RuntimeExecuteMain.accessFileSystemViaRuntimeArray();
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = RUNTIME_PATH)
 	void test_accessFileSystemViaRuntimeArrayMavenArchunitInstrumentation() throws Exception {
 		RuntimeExecuteMain.accessFileSystemViaRuntimeArray();
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = RUNTIME_PATH)
 	void test_accessFileSystemViaRuntimeArrayMavenWalaAspectJ() throws Exception {
 		RuntimeExecuteMain.accessFileSystemViaRuntimeArray();
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = RUNTIME_PATH)
 	void test_accessFileSystemViaRuntimeArrayMavenWalaInstrumentation() throws Exception {
@@ -83,28 +83,28 @@ class FileSystemAccessExecuteTest extends SystemAccessTest {
 	// </editor-fold>
 
 	// <editor-fold desc="accessFileSystemViaDesktop">
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = DESKTOP_PATH)
 	void test_accessFileSystemViaDesktopMavenArchunitAspectJ() throws Exception {
 		DesktopExecuteMain.accessFileSystemViaDesktop();
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = DESKTOP_PATH)
 	void test_accessFileSystemViaDesktopMavenArchunitInstrumentation() throws Exception {
 		DesktopExecuteMain.accessFileSystemViaDesktop();
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = DESKTOP_PATH)
 	void test_accessFileSystemViaDesktopMavenWalaAspectJ() throws Exception {
 		DesktopExecuteMain.accessFileSystemViaDesktop();
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = DESKTOP_PATH)
 	void test_accessFileSystemViaDesktopMavenWalaInstrumentation() throws Exception {
@@ -113,28 +113,28 @@ class FileSystemAccessExecuteTest extends SystemAccessTest {
 	// </editor-fold>
 
 	// <editor-fold desc="accessFileSystemViaDesktopBrowse">
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = DESKTOP_PATH)
 	void test_accessFileSystemViaDesktopBrowseMavenArchunitAspectJ() throws Exception {
 		DesktopExecuteMain.accessFileSystemViaDesktopBrowse();
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = DESKTOP_PATH)
 	void test_accessFileSystemViaDesktopBrowseMavenArchunitInstrumentation() throws Exception {
 		DesktopExecuteMain.accessFileSystemViaDesktopBrowse();
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = DESKTOP_PATH)
 	void test_accessFileSystemViaDesktopBrowseMavenWalaAspectJ() throws Exception {
 		DesktopExecuteMain.accessFileSystemViaDesktopBrowse();
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = DESKTOP_PATH)
 	void test_accessFileSystemViaDesktopBrowseMavenWalaInstrumentation() throws Exception {
@@ -143,28 +143,28 @@ class FileSystemAccessExecuteTest extends SystemAccessTest {
 	// </editor-fold>
 
 	// <editor-fold desc="accessFileSystemViaDesktopBrowseFileDirectory">
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = DESKTOP_PATH)
 	void test_accessFileSystemViaDesktopBrowseFileDirectoryMavenArchunitAspectJ() throws Exception {
 		DesktopExecuteMain.accessFileSystemViaDesktopBrowseFileDirectory();
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = DESKTOP_PATH)
 	void test_accessFileSystemViaDesktopBrowseFileDirectoryMavenArchunitInstrumentation() throws Exception {
 		DesktopExecuteMain.accessFileSystemViaDesktopBrowseFileDirectory();
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = DESKTOP_PATH)
 	void test_accessFileSystemViaDesktopBrowseFileDirectoryMavenWalaAspectJ() throws Exception {
 		DesktopExecuteMain.accessFileSystemViaDesktopBrowseFileDirectory();
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = DESKTOP_PATH)
 	void test_accessFileSystemViaDesktopBrowseFileDirectoryMavenWalaInstrumentation() throws Exception {
@@ -173,28 +173,28 @@ class FileSystemAccessExecuteTest extends SystemAccessTest {
 	// </editor-fold>
 
 	// <editor-fold desc="accessFileSystemViaDesktopEdit">
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = DESKTOP_PATH)
 	void test_accessFileSystemViaDesktopEditMavenArchunitAspectJ() throws Exception {
 		DesktopExecuteMain.accessFileSystemViaDesktopEdit();
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = DESKTOP_PATH)
 	void test_accessFileSystemViaDesktopEditMavenArchunitInstrumentation() throws Exception {
 		DesktopExecuteMain.accessFileSystemViaDesktopEdit();
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = DESKTOP_PATH)
 	void test_accessFileSystemViaDesktopEditMavenWalaAspectJ() throws Exception {
 		DesktopExecuteMain.accessFileSystemViaDesktopEdit();
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = DESKTOP_PATH)
 	void test_accessFileSystemViaDesktopEditMavenWalaInstrumentation() throws Exception {
@@ -203,28 +203,28 @@ class FileSystemAccessExecuteTest extends SystemAccessTest {
 	// </editor-fold>
 
 	// <editor-fold desc="accessFileSystemViaDesktopPrint">
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = DESKTOP_PATH)
 	void test_accessFileSystemViaDesktopPrintMavenArchunitAspectJ() throws Exception {
 		DesktopExecuteMain.accessFileSystemViaDesktopPrint();
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = DESKTOP_PATH)
 	void test_accessFileSystemViaDesktopPrintMavenArchunitInstrumentation() throws Exception {
 		DesktopExecuteMain.accessFileSystemViaDesktopPrint();
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = DESKTOP_PATH)
 	void test_accessFileSystemViaDesktopPrintMavenWalaAspectJ() throws Exception {
 		DesktopExecuteMain.accessFileSystemViaDesktopPrint();
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = DESKTOP_PATH)
 	void test_accessFileSystemViaDesktopPrintMavenWalaInstrumentation() throws Exception {
@@ -233,28 +233,28 @@ class FileSystemAccessExecuteTest extends SystemAccessTest {
 	// </editor-fold>
 
 	// <editor-fold desc="accessFileSystemViaProcessBuilder">
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = PROCESS_BUILDER_PATH)
 	void test_accessFileSystemViaProcessBuilderMavenArchunitAspectJ() throws Exception {
 		ProcessBuilderExecuteMain.accessFileSystemViaProcessBuilder();
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = PROCESS_BUILDER_PATH)
 	void test_accessFileSystemViaProcessBuilderMavenArchunitInstrumentation() throws Exception {
 		ProcessBuilderExecuteMain.accessFileSystemViaProcessBuilder();
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = PROCESS_BUILDER_PATH)
 	void test_accessFileSystemViaProcessBuilderMavenWalaAspectJ() throws Exception {
 		ProcessBuilderExecuteMain.accessFileSystemViaProcessBuilder();
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = PROCESS_BUILDER_PATH)
 	void test_accessFileSystemViaProcessBuilderMavenWalaInstrumentation() throws Exception {
@@ -263,28 +263,28 @@ class FileSystemAccessExecuteTest extends SystemAccessTest {
 	// </editor-fold>
 
 	// <editor-fold desc="accessFileSystemViaThirdPartyPackage">
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = THIRD_PARTY_PACKAGE_PATH)
 	void test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ() throws Exception {
 		ExecuteThirdPartyPackageMain.accessFileSystemViaThirdPartyPackage();
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = THIRD_PARTY_PACKAGE_PATH)
 	void test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation() throws Exception {
 		ExecuteThirdPartyPackageMain.accessFileSystemViaThirdPartyPackage();
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = THIRD_PARTY_PACKAGE_PATH)
 	void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ() throws Exception {
 		ExecuteThirdPartyPackageMain.accessFileSystemViaThirdPartyPackage();
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = THIRD_PARTY_PACKAGE_PATH)
 	void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation() throws Exception {

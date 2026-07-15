@@ -536,6 +536,22 @@ abstract class SystemAccessTest {
 		return securityException;
 	}
 
+	/**
+	 * Test that the given executable throws a SecurityException for an illegal
+	 * thread-manipulation operation (e.g. {@code Thread.notify()}), which the
+	 * AspectJ engine intercepts via a caller-side {@code call() && target(Thread+)}
+	 * pointcut. The rendered action word is "manipulate" rather than "create".
+	 *
+	 * @param executable The executable that should throw a SecurityException
+	 * @param clazz      The class that performed the thread manipulation operation
+	 */
+	protected SecurityException assertAresSecurityExceptionThreadManipulate(Executable executable, Class<?> clazz) {
+		SecurityException securityException = assertThrowsAresSecurityException(executable);
+		assertGeneralErrorMessageWithThread(securityException.getMessage(), "illegally manipulate",
+				"illegal manipulate", clazz);
+		return securityException;
+	}
+
 	protected void assertAresRuntimeExceptionThread(Executable executable, Class<?> clazz) {
 		RuntimeException runtimeException = Assertions.assertThrows(RuntimeException.class, executable, ERROR_MESSAGE);
 		assertGeneralErrorMessageWithThread(runtimeException.getMessage(), "illegally create", "illegal create", clazz);

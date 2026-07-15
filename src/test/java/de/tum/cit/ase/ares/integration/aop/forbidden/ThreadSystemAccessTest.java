@@ -25,8 +25,6 @@ class ThreadSystemAccessTest extends SystemAccessTest {
 
 	// <editor-fold desc="accessThreadSystemViaStartThread">
 
-	// Not possible to test with AspectJ
-	@Disabled
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
 	public void test_startThreadMavenArchunitAspectJ() {
@@ -39,8 +37,6 @@ class ThreadSystemAccessTest extends SystemAccessTest {
 		assertAresSecurityExceptionThread(CreateThreadMain::startThread, CreateThreadMain.class);
 	}
 
-	// Not possible to test with AspectJ
-	@Disabled
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
 	public void test_startThreadMavenWalaAspectJ() {
@@ -324,8 +320,6 @@ class ThreadSystemAccessTest extends SystemAccessTest {
 
 	// <editor-fold desc="accessThreadSystemViaNotifyThread">
 
-	// Not possible to test with AspectJ
-	@Disabled
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
 	public void test_notifyThreadMavenArchunitAspectJ() {
@@ -338,8 +332,6 @@ class ThreadSystemAccessTest extends SystemAccessTest {
 		assertAresSecurityExceptionThread(CreateThreadMain::notifyThread, CreateThreadMain.class);
 	}
 
-	// Not possible to test with AspectJ
-	@Disabled
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
 	public void test_notifyThreadMavenWalaAspectJ() {
@@ -353,6 +345,58 @@ class ThreadSystemAccessTest extends SystemAccessTest {
 	}
 
 	// </editor-fold>
+
+	// <editor-fold desc="accessThreadSystemViaNotifyThreadOnly">
+	// Only AspectJ variants exist here: the AspectJ engine intercepts
+	// Thread.notify() via a
+	// caller-side call() && target(Thread+) pointcut. The Instrumentation engine
+	// structurally
+	// cannot, because notify()/notifyAll()/wait() are final methods declared by
+	// java.lang.Object
+	// that Thread cannot override, so target-class rewriting has no Thread.notify()
+	// to weave. See
+	// docs/aop/AspectJVsInstrumentationWeaknesses.md.
+	@PublicTest
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
+	public void test_notifyThreadOnlyMavenArchunitAspectJ() {
+		assertAresSecurityExceptionThreadManipulate(CreateThreadMain::notifyThreadOnly, CreateThreadMain.class);
+	}
+
+	@PublicTest
+	@Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
+	public void test_notifyThreadOnlyMavenWalaAspectJ() {
+		assertAresSecurityExceptionThreadManipulate(CreateThreadMain::notifyThreadOnly, CreateThreadMain.class);
+	}
+	// </editor-fold>
+
+	// <editor-fold desc="accessThreadSystemViaNotifyAllThreadOnly">
+	@PublicTest
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
+	public void test_notifyAllThreadOnlyMavenArchunitAspectJ() {
+		assertAresSecurityExceptionThreadManipulate(CreateThreadMain::notifyAllThreadOnly, CreateThreadMain.class);
+	}
+
+	@PublicTest
+	@Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
+	public void test_notifyAllThreadOnlyMavenWalaAspectJ() {
+		assertAresSecurityExceptionThreadManipulate(CreateThreadMain::notifyAllThreadOnly, CreateThreadMain.class);
+	}
+	// </editor-fold>
+
+	// <editor-fold desc="accessThreadSystemViaWaitThreadOnly">
+	@PublicTest
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
+	public void test_waitThreadOnlyMavenArchunitAspectJ() {
+		assertAresSecurityExceptionThreadManipulate(CreateThreadMain::waitThreadOnly, CreateThreadMain.class);
+	}
+
+	@PublicTest
+	@Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
+	public void test_waitThreadOnlyMavenWalaAspectJ() {
+		assertAresSecurityExceptionThreadManipulate(CreateThreadMain::waitThreadOnly, CreateThreadMain.class);
+	}
+	// </editor-fold>
+
 	// <editor-fold desc="accessThreadSystemViaExecuteRunnable">
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = EXECUTOR_SERVICE_WITHIN_PATH)

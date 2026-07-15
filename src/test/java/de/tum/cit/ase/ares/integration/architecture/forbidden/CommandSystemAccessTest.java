@@ -22,7 +22,7 @@ class CommandSystemAccessTest extends SystemAccessTest {
 				"test_executeCommandViaRuntimeMavenArchunitAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = RUNTIME_PATH)
 	void test_executeCommandViaRuntimeMavenArchunitAspectJ() throws Exception {
@@ -35,7 +35,7 @@ class CommandSystemAccessTest extends SystemAccessTest {
 				"test_executeCommandViaRuntimeMavenArchunitInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = RUNTIME_PATH)
 	void test_executeCommandViaRuntimeMavenArchunitInstrumentation() throws Exception {
@@ -48,7 +48,7 @@ class CommandSystemAccessTest extends SystemAccessTest {
 				"test_executeCommandViaRuntimeMavenWalaAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = RUNTIME_PATH)
 	void test_executeCommandViaRuntimeMavenWalaAspectJ() throws Exception {
@@ -61,7 +61,7 @@ class CommandSystemAccessTest extends SystemAccessTest {
 				"test_executeCommandViaRuntimeMavenWalaInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = RUNTIME_PATH)
 	void test_executeCommandViaRuntimeMavenWalaInstrumentation() throws Exception {
@@ -76,7 +76,7 @@ class CommandSystemAccessTest extends SystemAccessTest {
 				"test_executeCommandViaProcessBuilderMavenArchunitAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = PROCESS_BUILDER_PATH)
 	void test_executeCommandViaProcessBuilderMavenArchunitAspectJ() throws Exception {
@@ -89,7 +89,7 @@ class CommandSystemAccessTest extends SystemAccessTest {
 				"test_executeCommandViaProcessBuilderMavenArchunitInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = PROCESS_BUILDER_PATH)
 	void test_executeCommandViaProcessBuilderMavenArchunitInstrumentation() throws Exception {
@@ -102,7 +102,7 @@ class CommandSystemAccessTest extends SystemAccessTest {
 				"test_executeCommandViaProcessBuilderMavenWalaAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = PROCESS_BUILDER_PATH)
 	void test_executeCommandViaProcessBuilderMavenWalaAspectJ() throws Exception {
@@ -115,7 +115,7 @@ class CommandSystemAccessTest extends SystemAccessTest {
 				"test_executeCommandViaProcessBuilderMavenWalaInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = PROCESS_BUILDER_PATH)
 	void test_executeCommandViaProcessBuilderMavenWalaInstrumentation() throws Exception {
@@ -130,7 +130,7 @@ class CommandSystemAccessTest extends SystemAccessTest {
 				"test_executeCommandViaRuntimeWithArgsMavenArchunitAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = RUNTIME_PATH)
 	void test_executeCommandViaRuntimeWithArgsMavenArchunitAspectJ() throws Exception {
@@ -143,7 +143,7 @@ class CommandSystemAccessTest extends SystemAccessTest {
 				"test_executeCommandViaRuntimeWithArgsMavenArchunitInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = RUNTIME_PATH)
 	void test_executeCommandViaRuntimeWithArgsMavenArchunitInstrumentation() throws Exception {
@@ -156,7 +156,7 @@ class CommandSystemAccessTest extends SystemAccessTest {
 				"test_executeCommandViaRuntimeWithArgsMavenWalaAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = RUNTIME_PATH)
 	void test_executeCommandViaRuntimeWithArgsMavenWalaAspectJ() throws Exception {
@@ -169,7 +169,7 @@ class CommandSystemAccessTest extends SystemAccessTest {
 				"test_executeCommandViaRuntimeWithArgsMavenWalaInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = RUNTIME_PATH)
 	void test_executeCommandViaRuntimeWithArgsMavenWalaInstrumentation() throws Exception {
@@ -184,7 +184,7 @@ class CommandSystemAccessTest extends SystemAccessTest {
 				"test_executeCommandViaRuntimeArrayMavenArchunitAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = RUNTIME_PATH)
 	void test_executeCommandViaRuntimeArrayMavenArchunitAspectJ() throws Exception {
@@ -197,7 +197,7 @@ class CommandSystemAccessTest extends SystemAccessTest {
 				"test_executeCommandViaRuntimeArrayMavenArchunitInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = RUNTIME_PATH)
 	void test_executeCommandViaRuntimeArrayMavenArchunitInstrumentation() throws Exception {
@@ -210,7 +210,7 @@ class CommandSystemAccessTest extends SystemAccessTest {
 				"test_executeCommandViaRuntimeArrayMavenWalaAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = RUNTIME_PATH)
 	void test_executeCommandViaRuntimeArrayMavenWalaAspectJ() throws Exception {
@@ -223,7 +223,7 @@ class CommandSystemAccessTest extends SystemAccessTest {
 				"test_executeCommandViaRuntimeArrayMavenWalaInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = RUNTIME_PATH)
 	void test_executeCommandViaRuntimeArrayMavenWalaInstrumentation() throws Exception {
@@ -238,7 +238,7 @@ class CommandSystemAccessTest extends SystemAccessTest {
 				"test_executeCommandViaRuntimeArrayWithArgsMavenArchunitAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = RUNTIME_PATH)
 	void test_executeCommandViaRuntimeArrayWithArgsMavenArchunitAspectJ() throws Exception {
@@ -251,7 +251,7 @@ class CommandSystemAccessTest extends SystemAccessTest {
 				"test_executeCommandViaRuntimeArrayWithArgsMavenArchunitInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = RUNTIME_PATH)
 	void test_executeCommandViaRuntimeArrayWithArgsMavenArchunitInstrumentation() throws Exception {
@@ -264,7 +264,7 @@ class CommandSystemAccessTest extends SystemAccessTest {
 				"test_executeCommandViaRuntimeArrayWithArgsMavenWalaAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = RUNTIME_PATH)
 	void test_executeCommandViaRuntimeArrayWithArgsMavenWalaAspectJ() throws Exception {
@@ -277,7 +277,7 @@ class CommandSystemAccessTest extends SystemAccessTest {
 				"test_executeCommandViaRuntimeArrayWithArgsMavenWalaInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = RUNTIME_PATH)
 	void test_executeCommandViaRuntimeArrayWithArgsMavenWalaInstrumentation() throws Exception {

@@ -59,4 +59,18 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
             call(* java.util.stream.Stream+.parallel()) ||
             call(* java.util.stream.BaseStream+.parallel())
             );
+
+    // Thread monitor manipulation (notify/notifyAll/wait). These are final methods declared by
+    // java.lang.Object, so call(* java.lang.Thread+.notify()) does not weave (AspectJ resolves the
+    // declaring type to java.lang.Object). call() on Object+ combined with a target(Thread+) runtime
+    // guard confines interception to Thread receivers. The Instrumentation engine cannot mirror
+    // this: target-class rewriting has no Thread.notify() to weave. See
+    // docs/aop/AspectJVsInstrumentationWeaknesses.md.
+    pointcut threadManipulateMethods(): (
+            (call(* java.lang.Object+.notify())        && target(java.lang.Thread+)) ||
+            (call(* java.lang.Object+.notifyAll())     && target(java.lang.Thread+)) ||
+            (call(* java.lang.Object+.wait())          && target(java.lang.Thread+)) ||
+            (call(* java.lang.Object+.wait(long))      && target(java.lang.Thread+)) ||
+            (call(* java.lang.Object+.wait(long, int)) && target(java.lang.Thread+))
+            );
 }

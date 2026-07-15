@@ -13,7 +13,7 @@ Two AOP modes are supported (defined in the `AOPMode` enum):
 - **INSTRUMENTATION**: Byte Buddy-based load-time weaving via a Java agent (`JavaInstrumentationAgent`)
 - **ASPECTJ**: compile-time weaving via AspectJ `.aj` files
 
-The abstract `AOPTestCase` class aggregates four dedicated extractors, one for each guarded subsystem, which derive the set of permitted operations from the active security policy:
+The abstract `AOPTestCase` class aggregates four dedicated extractors (file system, network system, command system, thread system), one for each guarded subsystem, which derive the set of permitted operations from the active security policy:
 
 | Sub-Package | Responsibility |
 |---|---|
@@ -21,7 +21,7 @@ The abstract `AOPTestCase` class aggregates four dedicated extractors, one for e
 | `networkSystem/` | Extracts permitted hosts, ports, and connection operations |
 | `commandSystem/` | Extracts permitted commands and arguments |
 | `threadSystem/` | Extracts permitted thread creation limits |
-| `resourceLimits/` | Extracts CPU, memory, and heap constraints |
+| `resourceLimits/` | Extracts execution timeout limits (tightest timeout in milliseconds); separate from the four `AOPTestCase` extractors |
 | `java/aspectj/` | AspectJ pointcut and advice definitions (`.aj` files) |
 | `java/instrumentation/` | Byte Buddy agent, advice toolboxes, and pointcut definitions |
 | `java/javaAOPModeData/` | CSV-based configuration data loaders |
@@ -38,7 +38,7 @@ The abstract `AOPTestCase` class aggregates four dedicated extractors, one for e
 This package performs **static code analysis** to verify that student code does not use forbidden APIs or packages. Two analysis back-ends are available (selected via the `ArchitectureMode` enum):
 
 - **ArchUnit** (`java/archunit/`): rule-based package and class checks, including a custom `TransitivelyAccessesMethodsCondition`
-- **WALA** (`java/wala/`): whole-programme call-graph construction (`CustomCallgraphBuilder`) with reachability analysis (`ReachabilityChecker`, `CustomDFSPathFinder`)
+- **WALA** (`java/wala/`): whole-programme call-graph construction (`CustomCallgraphBuilder`) with rule checking via `WalaRule` (forward BFS from entry points plus a per-sink reverse walk, with false-positive classification in `WalaPathClassification`); `ReachabilityChecker` and `CustomDFSPathFinder` remain as legacy helpers
 
 The abstract `ArchitectureTestCase` holds `JavaClasses`, a `CallGraph`, and permitted `PackagePermission` sets.
 
@@ -47,7 +47,7 @@ The abstract `ArchitectureTestCase` holds `JavaClasses`, a `CallGraph`, and perm
 | `java/archunit/` | ArchUnit-based architecture rule checks and custom conditions |
 | `java/wala/` | WALA-based call-graph construction and reachability analysis |
 
-The supported check categories are: `FILESYSTEM_INTERACTION`, `NETWORK_CONNECTION`, `COMMAND_EXECUTION`, `THREAD_CREATION`, `PACKAGE_IMPORT`, `TERMINATE_JVM`, `REFLECTION`, `SERIALIZATION`, `CLASS_LOADING`.
+The supported check categories are: `FILESYSTEM_INTERACTION`, `NETWORK_CONNECTION`, `COMMAND_EXECUTION`, `THREAD_CREATION`, `PACKAGE_IMPORT`, `TERMINATE_JVM`, `REFLECTION`, `SERIALIZATION`, `CLASS_LOADING`, `NATIVE_CODE`, `AGENT_ATTACH`, `ENVIRONMENT_ACCESS`, `MODULE_SYSTEM`, `JNDI_INJECTION`.
 
 **Key design patterns:** Abstract Factory (ArchUnit/WALA as concrete products), Strategy (analysis back-ends).
 
@@ -170,6 +170,7 @@ This package integrates the Ares testing framework with the **jqwik** property-b
 | `JqwikSecurityExtension` | Security enforcement hook |
 | `JqwikIOExtension` | I/O testing hook |
 | `JqwikStrictTimeoutExtension` | Timeout enforcement |
+| `JqwikLocaleExtension` | Applies the `@UseLocale` annotation around test containers |
 | `JqwikTestGuard` | Pre- and post-condition guard |
 | `JqwikContext` | Adapter from jqwik's lifecycle context to the Ares `TestContext` |
 
@@ -192,6 +193,7 @@ This package integrates Ares with **JUnit Jupiter**. It is the primary test-fram
 | `JupiterTestGuard` | Applies pre- and post-test guards |
 | `JupiterSecurityExtension` | Reads the `@Policy` annotation, configures and activates the security policy, resets settings before and after each test |
 | `JupiterStrictTimeoutExtension` | Enforces strict timeouts |
+| `JupiterLocaleExtension` | Applies the `@UseLocale` annotation before/after all tests of a class |
 | `UnifiedInvocationInterceptor` | Collapses all `InvocationInterceptor` callbacks into a single generic method |
 | `JupiterContext` | Adapts JUnit's `ExtensionContext` to the Ares `TestContext` |
 | `BenchmarkExtension` | Performance benchmarking extension |
@@ -228,7 +230,7 @@ Phobos provides an alternative security mechanism based on **external container 
 | `PhobosTestCase` | Abstract base class with extractors for file-system, network, and resource-limit permissions |
 | `JavaPhobosTestCase` | Java implementation producing sandbox configuration from the security policy |
 | `PhobosTestCaseSupported` | Interface for supported Phobos test cases |
-| `JavaPhobosTestCaseSupported` | Enum: `FILESYSTEM_INTERACTION`, `NETWORK_CONNECTION`, `RESOURCE_LIMIT` |
+| `JavaPhobosTestCaseSupported` | Enum: `FILESYSTEM_INTERACTION`, `NETWORK_CONNECTION`, `TIMEOUT` |
 
 `JavaPhobosTestCase` transforms the abstract permission model into concrete shell-script and configuration-file content that an external sandbox runtime can enforce.
 
@@ -253,7 +255,6 @@ SecurityPolicy
         ├── CommandPermission[]
         ├── ThreadPermission[]
         ├── PackagePermission[]
-        ├── ClassPermission[]
         └── ResourceLimitsPermission[]
 ```
 
@@ -279,6 +280,7 @@ This package manages the **annotation-driven runtime security configuration**, w
 | `AresSecurityConfigurationBuilder` | Builds the configuration from `TestContext` annotations with automatic Maven/Gradle detection |
 | `SecurityConstants` | Static whitelist/blacklist sets for stack-frame analysis (Java standard library, JUnit, Ares internals, etc.) |
 | `AresSystemProperties` | System properties consumed by Ares |
+| `FixSystemErrAppender` | Logback appender writing to the original `System.err` so logging does not collide with `IOTester` |
 | `ConfigurationException` | Thrown on configuration errors |
 
 `AresSecurityConfigurationBuilder` reads annotations such as `@WhitelistPath`, `@BlacklistPath`, `@AllowThreads`, and `@AllowLocalPort` from the test context and assembles an immutable `AresSecurityConfiguration`.
@@ -342,6 +344,8 @@ This package provides a **cross-cutting collection of utility classes** used thr
 | `ReflectionTestUtils` | Assertion helpers for structural tests |
 | `RuleType` | Enum: `WHITELIST`, `BLACKLIST` |
 | `DelayedFilter` | Predicate-based delayed filtering |
+| `StringSimilarity` | Vendored string-similarity metrics (Levenshtein, Damerau, Jaro-Winkler) |
+| `YamlPlaceholderResolver` | Resolves a fixed set of placeholders (e.g. `${PROJECT_ROOT}`) in YAML content before parsing |
 | `IgnorantUnmodifiableList` | List wrapper that silently ignores mutating operations |
 | `UnexpectedExceptionError` | Specialised `Error` for wrapping unexpected exceptions |
 

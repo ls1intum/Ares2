@@ -8,19 +8,25 @@
    - [1.3 Summary: When Is Thread Manipulation Blocked?](#13-summary-when-is-thread-manipulation-blocked)
    - [1.4 What Code Is Trusted vs. Restricted?](#14-what-code-is-trusted-vs-restricted)
 2. [Ares Monitors Thread Methods](#2-ares-monitors-thread-methods)
-   - [2.1 THREAD SYSTEM - CREATE Operations (With Parameters)](#21-thread-system---create-operations-with-parameters)
-   - [2.2 THREAD SYSTEM - CREATE Operations (Without Parameters)](#22-thread-system---create-operations-without-parameters)
-3. [Student Code Triggers Security Check](#3-student-code-triggers-security-check)
-4. [Ares Collects Information About the Thread Creation](#4-ares-collects-information-about-the-thread-creation)
-   - [4.1 Loading Java Classes (ArchUnit)](#41-loading-java-classes-archunit)
-   - [4.2 Building the Call Graph (WALA)](#42-building-the-call-graph-wala)
-5. [Ares Validates the Thread Creation](#5-ares-validates-the-thread-creation)
-   - [5.1 ArchUnit Mode: Static Analysis](#51-archunit-mode-static-analysis)
-   - [5.2 WALA Mode: Call Graph Analysis](#52-wala-mode-call-graph-analysis)
-   - [5.3 Transitive Access Detection](#53-transitive-access-detection)
-   - [5.4 Reachability Analysis (WALA)](#54-reachability-analysis-wala)
-   - [5.5 False Positive Filtering (WALA)](#55-false-positive-filtering-wala)
-6. [Conclusion](#6-conclusion)
+   - [2.1 ArchUnit Mode (Static Dependency Analysis)](#21-archunit-mode-static-dependency-analysis)
+   - [2.2 WALA Mode (Call Graph Analysis)](#22-wala-mode-call-graph-analysis)
+3. [Monitored Thread System Methods](#3-monitored-thread-system-methods)
+   - [3.1 THREAD SYSTEM - CREATE Operations (With Parameters)](#31-thread-system---create-operations-with-parameters)
+   - [3.2 THREAD SYSTEM - CREATE Operations (Without Parameters)](#32-thread-system---create-operations-without-parameters)
+4. [ArchUnit Analysis Flow](#4-archunit-analysis-flow)
+   - [4.1 Loading Java Classes](#41-loading-java-classes)
+   - [4.2 Defining Architecture Rules](#42-defining-architecture-rules)
+   - [4.3 Executing Rules](#43-executing-rules)
+   - [4.4 Transitive Access Detection](#44-transitive-access-detection)
+5. [WALA Analysis Flow](#5-wala-analysis-flow)
+   - [5.1 Building the Call Graph](#51-building-the-call-graph)
+   - [5.2 Finding Entry Points](#52-finding-entry-points)
+   - [5.3 Rule Checking with WalaRule](#53-rule-checking-with-walarule)
+   - [5.4 Path Classification and False Positive Filtering](#54-path-classification-and-false-positive-filtering)
+6. [Test Case Generation](#6-test-case-generation)
+   - [6.1 Writing Architecture Test Cases](#61-writing-architecture-test-cases)
+   - [6.2 Executing Architecture Test Cases](#62-executing-architecture-test-cases)
+7. [Conclusion](#7-conclusion)
 
 ---
 
@@ -52,22 +58,22 @@ Architecture testing validates that code follows specific structural rules by an
 - **Method**: Analyzes class dependencies and method calls in compiled bytecode
 - **Use Case**: Detecting direct and transitive method access patterns to thread creation APIs
 
-### **WALA (Dynamic Call Graph Analysis)**
-- **Type**: Static analysis with dynamic modeling using IBM WALA framework
+### **WALA (Call Graph Analysis)**
+- **Type**: Static analysis with call graph modeling using IBM WALA framework
 - **Strength**: Precise call path detection, understands complex call chains
-- **Method**: Builds a complete call graph representing all possible method invocations
+- **Method**: Builds a call graph representing all possible method invocations
 - **Use Case**: Finding reachable thread creation methods through complex call chains, including lambda expressions
-- **Special Feature**: Advanced false positive filtering for JDK-internal thread usage
+- **Special Feature**: Path classification (`WalaPathClassification`) that attributes each violation to the nearest student frame and suppresses transitive-JDK false positives
 
 **Validation Flow:**
 
 1. **Load Classes**: Import compiled `.class` files from classpath
-2. **Build Analysis Model**: 
+2. **Build Analysis Model**:
    - ArchUnit: Load class metadata and dependencies
-   - WALA: Build complete call graph with entry points
+   - WALA: Build call graph with entry points
 3. **Define Rules**: Specify forbidden method patterns (thread creation operations)
 4. **Execute Analysis**: Check if student code violates rules
-5. **Report Violations**: Generate detailed error messages with call paths
+5. **Report Violations**: Generate detailed error messages with caller, forbidden method, and entry point
 
 ---
 
@@ -77,16 +83,17 @@ Security policies are configured through settings that instructors can adjust:
 
 | Setting | Type | Description | Example |
 |---------|------|-------------|---------|
-| **architectureMode** | `String` | Analysis framework | `"ARCHUNIT"` or `"WALA"` |
-| **allowedPackages** | `PackagePermission[]` | Packages allowed to be imported/used | `[new PackagePermission("java.lang")]` |
+| **architectureMode** | `ArchitectureMode` enum at policy level (selected via the `ProgrammingLanguageConfiguration`); passed as a `String` to the write/execute methods | Analysis framework | `ArchitectureMode.ARCHUNIT` or `ArchitectureMode.WALA`; `"ARCHUNIT"` / `"WALA"` at the method level |
+| **allowedPackages** | `Set<PackagePermission>` | Packages allowed to be imported; only consulted by the PACKAGE_IMPORT rule, **not** by THREAD_CREATION | `Set.of(new PackagePermission("java.lang"))` |
+| **allowedClasses** | `Set<ClassPermission>` | Classes exempt from the architecture rules (essential/test infrastructure) | `Set.of(new ClassPermission("de.tum.cit.ase.Helper"))` |
 | **classPath** | `String` | Path to compiled student code | `"target/classes"` |
-| **restrictedPackage** | `String` | Package containing student code | `"de.student."` |
+| **theSupervisedCodeUsesTheFollowingPackage** | `String` (policy field) | Package containing the supervised (student) code; steers the AOP instrumentation, **not** the architecture rules | `"de.student"` |
 
 **Architecture-Specific Configuration:**
 - No thread quota management (no `threadNumberAllowedToBeCreated`) - Architecture testing detects ANY thread creation attempt
 - No thread class allowlists (no `threadClassAllowedToBeCreated`) - All thread creation is flagged
 - No AOP mode selection - Uses `architectureMode` instead
-- Package-level permissions instead of thread-level permissions
+- Exemptions are **class-based** (`allowedClasses` / `ClassPermission`), not package-based
 
 ---
 
@@ -97,7 +104,7 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 1. **Architecture Mode Enabled**: `architectureMode == "ARCHUNIT"` or `architectureMode == "WALA"`
 2. **Student Code Contains Thread Manipulation Calls**: Analysis detects method calls to thread manipulation APIs
 3. **Calls Are Reachable**: The forbidden methods can be reached from student code (directly or transitively)
-4. **Not in Allowed Packages**: The accessed classes are not in the `allowedPackages` list
+4. **Not Exempt**: The involved classes are not on the `allowedClasses` (`ClassPermission`) allow-list, and (in WALA mode) the path is not classified as an all-infrastructure or transitive-JDK false-positive path
 
 **If ANY condition fails → No Violation Detected** 🟢
 
@@ -108,7 +115,7 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 - 🔴 No distinction between different thread types (all treated equally)
 
 **Legend:**
-- 🔴 AssertionError thrown → Security violation detected in code structure
+- 🔴 SecurityException thrown → Security violation detected in code structure
 - 🟢 No violations found → Code passes architecture analysis
 
 ---
@@ -116,15 +123,15 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 ## 1.4 What Code Is Trusted vs. Restricted?
 
 **Trusted Code (No Restrictions):**
-- Code outside the `restrictedPackage`
-- JDK standard library (unless explicitly checking imports)
-- Ares internal code
+- Ares internal code (`de.tum.cit.ase.ares.api.*` is excluded from the ArchUnit import and classified as infrastructure by WALA)
+- In WALA mode: all packages on the `WalaPathClassification.INFRA_PREFIXES` list (`java.`, `javax.`, `sun.`, `jdk.`, `com.sun.`, `net.bytebuddy.`, `org.aspectj.`, `com.ibm.wala.`, `com.tngtech.archunit.`, plus the reproducibility test-helper packages `anonymous.toolclasses.` and `metatest.`) and all classes loaded by the JDK boot/extension class loaders
+- Classes on the `allowedClasses` allow-list
 
 **Restricted Code (Subject to Security Checks):**
-- All code within `restrictedPackage`
-- All classes that call thread manipulation methods from the forbidden lists
+- ArchUnit mode: **every** class imported from the analysed class path (there is no package-based trust boundary; only Ares' own `/de/tum/cit/ase/ares/api/` classes are excluded from the import)
+- WALA mode: every class whose methods become entry points; the entry-point set is narrowed to the package directory derived from the analysed classpath (see [5.2](#52-finding-entry-points)), not by a policy `restrictedPackage` setting
 
-**Security Assumptions:** 
+**Security Assumptions:**
 - Student code is compiled and available as `.class` files
 - Class files have not been tampered with after compilation
 - Call graph accurately represents possible execution paths (WALA mode)
@@ -133,7 +140,7 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 
 # 2. Ares Monitors Thread Methods
 
-Both ArchUnit and WALA modes monitor the same set of thread creation methods, loaded from template files:
+Each analysis mode loads its forbidden thread methods from its own template file. The two lists overlap in their core (Thread.start, executors, parallel streams) but differ substantially in size and content: the ArchUnit list contains **378 entries**, the WALA list contains **90 entries** (see [Section 3](#3-monitored-thread-system-methods)).
 
 **Template Locations:**
 - **ArchUnit**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/archunit/methods/thread-manipulation-methods.txt`
@@ -145,22 +152,27 @@ Instead of intercepting method calls at runtime (AOP approach), architecture tes
 
 **Two Analysis Approaches:**
 - **ArchUnit**: Fast static analysis of class dependencies
-- **WALA**: Precise call graph analysis with false positive filtering (critical for thread analysis!)
+- **WALA**: Precise call graph analysis with path classification (critical for thread analysis!)
 
 ---
 
-## 2.1 THREAD SYSTEM - CREATE Operations (With Parameters)
+## 2.1 ArchUnit Mode (Static Dependency Analysis)
 
 **Framework:** TNGs ArchUnit (https://www.archunit.org/)
 
 **How it works:**
 ```java
-// Define rule
-ArchRule rule = noClasses()
-    .should(new TransitivelyAccessesMethodsCondition(
-        javaAccess -> forbiddenMethods.contains(javaAccess.getTarget().getFullName())
-    ))
-    .as("No class should create threads");
+// Define rule (see JavaArchunitTestCaseCollection.createNoClassShouldHaveMethodRule)
+ArchRule rule = ArchRuleDefinition.noClasses()
+    .that(isNotAllowedClass(allowedClasses))  // exempt allow-listed classes
+    .should(new TransitivelyAccessesMethodsCondition(new DescribedPredicate<>(ruleName) {
+        @Override
+        public boolean test(JavaAccess<?> javaAccess) {
+            return forbiddenMethods.stream()
+                .anyMatch(method -> javaAccess.getTarget().getFullName().startsWith(method));
+        }
+    }))
+    .as(ruleName);  // localised: "Manipulates threads"
 
 // Execute rule
 rule.check(javaClasses);  // Throws AssertionError if violated
@@ -200,12 +212,12 @@ class Helper {
 }
 
 // ArchUnit detects: StudentCode → Helper.createWorkerThread → Thread.start
-// Reports: "StudentCode transitively accesses Thread.start by [StudentCode.processInParallel→Helper.createWorkerThread]"
+// Reports: "StudentCode transitively accesses <java.lang.Thread.start()> by [StudentCode.processInParallel()->Helper.createWorkerThread()]"
 ```
 
 ---
 
-## 2.2 WALA Mode (Dynamic Call Graph Analysis)
+## 2.2 WALA Mode (Call Graph Analysis)
 
 **Framework:** IBM WALA (T.J. Watson Libraries for Analysis)
 
@@ -214,35 +226,28 @@ class Helper {
 // Build call graph
 CallGraph cg = new CustomCallgraphBuilder(classPath).buildCallGraph(classPath);
 
-// Find reachable forbidden methods
-List<CGNode> path = ReachabilityChecker.findReachableMethods(
-    cg, 
-    cg.getEntrypointNodes().iterator(),
-    node -> forbiddenMethods.contains(node.getMethod().getSignature())
-);
-
-if (path != null) {
-    throw new AssertionError("Forbidden method reachable: " + path);
-}
+// Check the rule (see WalaRule.check)
+WalaRule rule = JavaWalaTestCaseCollection.NO_CLASS_MUST_CREATE_THREADS;
+rule.check(cg, allowedClasses);  // Throws AssertionError if violated
 ```
 
-**Analysis Process:**
-1. **Create Analysis Scope**: Define which classes to include/exclude
+**Analysis Process (WalaRule.check):**
+1. **Create Analysis Scope**: Define which classpath entries and JDK classes to include/exclude
 2. **Build Class Hierarchy**: Resolve all type relationships
 3. **Construct Call Graph**: Map all possible method call relationships
-4. **Find Entry Points**: Identify starting methods in student code
-5. **Reachability Analysis**: Use DFS to find paths to forbidden methods
-6. **Filter False Positives**: Remove JDK helper paths (critical for thread analysis!)
+4. **Collect Forbidden Sinks**: Find every call-graph node whose signature matches a forbidden method
+5. **Forward Reachability**: BFS from the entry points; only sinks reachable from student entry points are considered
+6. **Per-Sink Reverse Walk**: For each reachable sink, reverse-walk through infrastructure frames to every distinct nearest-student approach and classify the reconstructed path (see [5.4](#54-path-classification-and-false-positive-filtering))
 
 **Strengths:**
 - ✅ Very precise call path detection
 - ✅ Understands complex call patterns (lambdas, method references, executors)
-- ✅ **Advanced JDK helper filtering** (reduces false positives significantly)
-- ✅ Provides exact call paths with line numbers
+- ✅ **Path classification** attributes violations to the nearest student frame and suppresses transitive-JDK false positives
+- ✅ Provides the caller, forbidden method, declaring class, line number, and entry point in the error message
 - ✅ Models runtime behavior more accurately
 
 **Limitations:**
-- ⚠️ Slower analysis (call graph construction is expensive)
+- ⚠️ Slower analysis (call graph construction is expensive; mitigated by per-JVM and disk caches)
 - ⚠️ Requires more memory
 - ⚠️ More complex configuration (exclusions, entry points)
 - ⚠️ May still have false positives for very dynamic code
@@ -255,144 +260,115 @@ class StudentCode {
         ExecutorService executor = Executors.newFixedThreadPool(10);
         executor.submit(() -> processData());  // Lambda creates thread - Forbidden!
     }
-    
+
     void processData() {
         // ... processing logic
     }
 }
 
-// WALA detects: 
-// StudentCode.processAsync → ExecutorService.submit → ThreadPoolExecutor.execute → Thread.start
-// Reports: Method call at StudentCode.java:4 reaches forbidden ThreadPoolExecutor.execute
+// WALA detects:
+// StudentCode.processAsync is the nearest student frame reaching the forbidden
+// sink ExecutorService.submit (itself already on the forbidden list)
+// Reports: Method <de.student.StudentCode.processAsync()> calls method
+// <java.util.concurrent.ExecutorService.submit(java.lang.Runnable)> ...
 ```
 
-**Special WALA Features for Thread Analysis:**
+**Special WALA Feature for Thread Analysis: Path Classification**
 
-**JDK Helper Filtering (Critical for Thread Detection):**
-
-Thread creation is extensively used by JDK internals (file I/O, networking, class loading). WALA mode includes sophisticated filtering:
+Thread creation is extensively used by JDK internals (file I/O, networking, class loading). WALA mode therefore classifies every reconstructed path before reporting it, using `WalaPathClassification`:
 
 ```java
-private static final List<String> JDK_THREAD_HELPERS = List.of(
-    /* File I/O helpers that internally use threads */
-    "Lsun/nio/fs/", "sun/nio/fs/",
-    "Lsun/nio/ch/", "sun/nio/ch/",
-    "Ljava/nio/file/Files", "java/nio/file/Files",
-    
-    /* Class loading helpers that use threads */
-    "Ljava/lang/ClassLoader", "java/lang/ClassLoader",
-    "Ljava/lang/Class", "java/lang/Class",
-    "Ljdk/internal/loader/NativeLibraries", "jdk/internal/loader/NativeLibraries",
-    
-    /* Network helpers that use threads */
-    "Ljava/net/InetAddress", "java/net/InetAddress",
-    
-    /* Thread class itself (for internal operations) */
-    "Ljava/lang/Thread", "java/lang/Thread",
-    
-    /* Reflection helpers */
-    "Ljava/lang/reflect/Method", "java/lang/reflect/Method"
-);
+// WalaPathClassification.java
+public static final List<String> INFRA_PREFIXES = List.of(
+    "java.", "javax.", "sun.", "jdk.", "com.sun.",
+    "de.tum.cit.ase.ares.api.", "net.bytebuddy.", "org.aspectj.",
+    "com.ibm.wala.", "com.tngtech.archunit.",
+    "anonymous.toolclasses.", "metatest.");
 
-private static final List<String> ALLOWED_HELPER_APIS = List.of(
-    "java.lang.Thread.<init>",              // Creating thread objects (not starting)
-    "java.lang.Thread.interrupt",           // Interrupting threads
-    "java.lang.Thread.getContextClassLoader",
-    "java.lang.Thread.getStackTrace",
-    "java.lang.ClassLoader.getSystemClassLoader",
-    "java.lang.ClassLoader.loadLibrary",
-    "java.lang.Runtime.load",
-    "java.lang.Runtime.loadLibrary",
-    "java.io.File.getName",
-    "java.lang.Class.forName",
-    "java.net.InetAddress.getAllByName",
-    "java.lang.Class.getDeclaredField",
-    "java.lang.reflect.Method.invoke",
-    "java.lang.Class.checkMemberAccess",
-    "java.io.File.<init>",
-    "java.lang.Class.getClassLoader"
-);
-
-// Sophisticated filtering logic
-boolean isLegitimateJDKPath(List<CGNode> path) {
-    CGNode forbidden = path.get(path.size() - 1);
-    
-    // Check if the API is an allowed helper
-    boolean isHelperApi = ALLOWED_HELPER_APIS.stream()
-        .anyMatch(sig -> forbidden.getMethod().getSignature().startsWith(sig));
-    
-    // Check if path goes through JDK helper classes
-    boolean hasHelperInPath = path.stream().anyMatch(node -> {
-        String cls = node.getMethod().getDeclaringClass().getName().toString();
-        return JDK_THREAD_HELPERS.stream().anyMatch(cls::startsWith);
-    });
-    
-    // Ignore if it's a helper API called through helper classes
-    return isHelperApi && hasHelperInPath;
-}
+static final List<String> TRANSITIVE_FALSE_POSITIVE_PREFIXES = List.of(
+    "java.", "javax.", "sun.", "jdk.", "com.sun.",
+    "de.tum.cit.ase.ares.", "net.bytebuddy.", "org.aspectj.",
+    "com.ibm.wala.", "com.tngtech.archunit.");
 ```
 
-**Why This Filtering Is Critical:**
+- **`nearestStudentFrame(path)`** scans the path from the forbidden sink back towards the entry point and returns the first frame that is *not* infrastructure (not in `INFRA_PREFIXES` and not loaded by the JDK boot/extension class loader). If the entire path is infrastructure, the path is dropped.
+- **`isFalsePositiveTransitivePath(path, studentIdx)`** suppresses the path when every frame strictly between the nearest student frame and the sink is a transitive-false-positive frame (JDK or framework internals). This is the case when student code calls a permitted JDK API (e.g. `BufferedReader`) whose internal implementation transitively reaches a forbidden method such as `Thread.start()`.
+- **Direct violations are never suppressed**: if the student frame is immediately adjacent to the forbidden sink, the path is always reported.
+- The two project test-helper packages (`anonymous.toolclasses.`, `metatest.`) count as infrastructure for frame attribution but deliberately **not** for false-positive suppression, so a student call routed through such a helper into a forbidden JDK API is still reported.
 
-Without this filtering, WALA would report false positives for innocent operations:
-- ❌ `Files.list()` → internally uses `DirectoryStream` → creates threads
-- ❌ `Class.forName()` → class loader uses threads internally
-- ❌ `InetAddress.getByName()` → DNS lookup uses threads
+**Why This Classification Is Critical:**
 
-With filtering:
-- ✅ Ignores JDK internal thread usage
-- ✅ Detects genuine student code creating threads
+Without it, WALA would report false positives for innocent operations:
+- ❌ `Files.list()` → internal JDK machinery may reach thread-related methods
+- ❌ `Class.forName()` → class loader internals
+- ❌ `InetAddress.getByName()` → DNS lookup internals
+
+With classification:
+- ✅ All-infrastructure paths and transitive-JDK side effects are ignored
+- ✅ Genuine student code creating threads is detected and attributed to the correct student frame
 
 ---
 
 # 3. Monitored Thread System Methods
 
-Both ArchUnit and WALA modes monitor the same set of thread creation methods, loaded from template files:
+Each mode loads its forbidden methods from its own template file:
 
 **Template Locations:**
-- **ArchUnit**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/archunit/methods/thread-manipulation-methods.txt`
-- **WALA**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/wala/methods/thread-manipulation-methods.txt`
+- **ArchUnit**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/archunit/methods/thread-manipulation-methods.txt` (378 entries)
+- **WALA**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/wala/methods/thread-manipulation-methods.txt` (90 entries)
+
+The lists are **not identical**: the WALA list is a focused set of thread creation and manipulation entry points, while the ArchUnit list additionally covers a large number of thread-adjacent JDK APIs (see the grouped overview in [3.2](#32-thread-system---create-operations-without-parameters)). The entries below are annotated where they are present in only one of the two files.
 
 ---
 
 ## 3.1 THREAD SYSTEM - CREATE Operations (With Parameters)
 
-**Security Component:** Thread creation monitor (methods that receive task/runnable as parameter)
+**Security Component:** Thread creation monitor (methods that receive a task/runnable as parameter)
 
-**Monitored Methods (loaded from `thread-manipulation-methods.txt`):**
+**Monitored Methods (present in both methods files unless noted):**
 
 **java.lang.Thread:**
 - `Thread.startVirtualThread(Runnable)`
+- `Thread(...)` constructors (`Thread()`, `Thread(Runnable)`, `Thread(Runnable, String)`, `Thread(String)`, `Thread(ThreadGroup, Runnable)`, `Thread(ThreadGroup, Runnable, String)`, `Thread(ThreadGroup, Runnable, String, long)`, ...)
 
-**java.lang.Thread.Builder:**
+**java.lang.Thread.Builder (ArchUnit list only):**
 - `Thread.Builder.start(Runnable)`
-- `Thread.Builder.run(Runnable)`
-
-**java.lang.Thread.Builder.OfPlatform:**
 - `Thread.Builder.OfPlatform.start(Runnable)`
 
-**java.lang.ThreadGroup:**
-- `ThreadGroup.newThread(Runnable)`
+**java.lang.ThreadBuilders (WALA list only):**
+- `ThreadBuilders$PlatformThreadFactory.newThread(Runnable)`
+- `ThreadBuilders$PlatformThreadBuilder.unstarted(Runnable)`
 
 **java.util.concurrent.Executor:**
 - `Executor.execute(Runnable)`
 
 **java.util.concurrent.ExecutorService:**
+- `ExecutorService.execute(Runnable)`
 - `ExecutorService.submit(Runnable)`
+- `ExecutorService.submit(Runnable, Object)`
 - `ExecutorService.submit(Callable)`
-- `ExecutorService.invokeAll(Collection)`
-- `ExecutorService.invokeAny(Collection)`
+- `ExecutorService.invokeAll(Collection)` (also the timed overload)
+- `ExecutorService.invokeAny(Collection)` (also the timed overload)
 
 **java.util.concurrent.AbstractExecutorService:**
 - `AbstractExecutorService.submit(Runnable)`
+- `AbstractExecutorService.submit(Runnable, Object)`
 - `AbstractExecutorService.submit(Callable)`
-- `AbstractExecutorService.invokeAll(Collection)`
-- `AbstractExecutorService.invokeAny(Collection)`
+- `AbstractExecutorService.invokeAll(Collection)` (also the timed overload)
+- `AbstractExecutorService.invokeAny(Collection)` (also the timed overload)
 
 **java.util.concurrent.ThreadPoolExecutor:**
 - `ThreadPoolExecutor.execute(Runnable)`
 - `ThreadPoolExecutor.submit(Runnable)`
+- `ThreadPoolExecutor.submit(Runnable, Object)`
 - `ThreadPoolExecutor.submit(Callable)`
+- WALA additionally lists `ThreadPoolExecutor.shutdown()`, `ThreadPoolExecutor.shutdownNow()` and a class-level `java.util.concurrent.ThreadPoolExecutor` entry
+
+**java.util.concurrent.Executors (factory methods):**
+- `Executors.newCachedThreadPool()` / `newCachedThreadPool(ThreadFactory)`
+- `Executors.newFixedThreadPool(int)` / `newFixedThreadPool(int, ThreadFactory)`
+- `Executors.newSingleThreadExecutor()` / `newSingleThreadExecutor(ThreadFactory)`
+- ArchUnit additionally lists `Executors.newVirtualThreadPerTaskExecutor()`
 
 **java.util.concurrent.ScheduledExecutorService:**
 - `ScheduledExecutorService.schedule(Runnable, long, TimeUnit)`
@@ -408,10 +384,8 @@ Both ArchUnit and WALA modes monitor the same set of thread creation methods, lo
 
 **java.util.concurrent.ForkJoinPool:**
 - `ForkJoinPool.execute(Runnable)`
-- `ForkJoinPool.execute(ForkJoinTask)`
 - `ForkJoinPool.submit(Runnable)`
 - `ForkJoinPool.submit(Callable)`
-- `ForkJoinPool.submit(ForkJoinTask)`
 
 **java.util.concurrent.CompletableFuture:**
 - `CompletableFuture.runAsync(Runnable)`
@@ -420,24 +394,14 @@ Both ArchUnit and WALA modes monitor the same set of thread creation methods, lo
 - `CompletableFuture.supplyAsync(Supplier, Executor)`
 - `CompletableFuture.thenApplyAsync(Function)`
 - `CompletableFuture.thenApplyAsync(Function, Executor)`
-- `CompletableFuture.thenCombineAsync(CompletionStage, BiFunction)`
+- `CompletableFuture.thenCombineAsync(CompletionStage, BiFunction)` (also the Executor overload)
 - `CompletableFuture.thenCombine(CompletionStage, BiFunction)`
 
 **java.util.concurrent.ThreadFactory:**
 - `ThreadFactory.newThread(Runnable)`
 
-**java.util.concurrent.Executors$DelegatedExecutorService:**
-- `Executors$DelegatedExecutorService.submit(Runnable)`
-- `Executors$DelegatedExecutorService.submit(Callable)`
-- `Executors$DelegatedExecutorService.invokeAll(Collection)`
-- `Executors$DelegatedExecutorService.invokeAny(Collection)`
-
-**java.util.concurrent.Executors$DefaultThreadFactory:**
-- `Executors$DefaultThreadFactory.newThread(Runnable)`
-
-**java.util.concurrent.ExecutorCompletionService:**
-- `ExecutorCompletionService.submit(Runnable)`
-- `ExecutorCompletionService.submit(Callable)`
+**java.util.Timer:**
+- `Timer.<init>` (all constructors)
 
 ---
 
@@ -445,7 +409,7 @@ Both ArchUnit and WALA modes monitor the same set of thread creation methods, lo
 
 **Security Component:** Thread creation monitor (methods that start threads without task parameter)
 
-**Monitored Methods:**
+**Monitored Methods (present in both files):**
 
 **java.lang.Thread:**
 - `Thread.start()`
@@ -459,15 +423,43 @@ Both ArchUnit and WALA modes monitor the same set of thread creation methods, lo
 **java.util.stream.BaseStream:**
 - `BaseStream.parallel()`
 
+**Additional ArchUnit-only coverage (grouped overview of the 378-entry list):**
+
+The ArchUnit list goes far beyond thread *creation* and also flags thread *manipulation* and thread-adjacent APIs:
+- **Thread lifecycle and interrogation**: `Thread.sleep(...)`, `Thread.join(...)`, `Thread.yield()`, `Thread.interrupt()` / `interrupted()` / `isInterrupted()`, `Thread.isAlive()`, `Thread.run()`, priority/daemon/name setters and getters, `Thread.getAllStackTraces()`, `Object.wait(long)`
+- **ThreadGroup manipulation**: constructors, `interrupt()`, `enumerate(...)`, `setMaxPriority(...)`, `list()`, ...
+- **ThreadLocal**: `ThreadLocal.get()` / `set(Object)` / `remove()`, `ThreadLocalRandom.current()`
+- **Locks and synchronisers**: `LockSupport.park*` / `unpark(...)`, `AbstractQueuedSynchronizer` / `AbstractQueuedLongSynchronizer` (incl. their `ConditionObject.await*` methods), `StampedLock`, `ReentrantLock.toString()`
+- **Coordination primitives**: `SynchronousQueue`, `Exchanger`, `LinkedTransferQueue`, `DelayQueue`, `ForkJoinTask.fork()` / `get()` / `quietlyJoin(...)`, `FutureTask`, `CountedCompleter`
+- **Modern concurrency**: `Executors.newVirtualThreadPerTaskExecutor()`, `StructuredTaskScope` (constructors and `fork(Callable)`), `SubmissionPublisher.subscribe(...)`
+- **Timers**: `java.util.Timer` constructors, `TimeUnit.sleep(long)` / `timedJoin(...)`
+- **AWT / Swing / sound / print internals**: `java.awt.EventQueue.<init>()`, `JTable.print(...)`, `sun.awt.*`, `com.sun.media.sound.*`, ...
+- **RMI internals**: `java.rmi.server.UID.<init>()`, `sun.rmi.*`
+- **JDK-internal and GraalVM helpers**: `jdk.internal.*`, `org.graalvm.*`, `sun.*`
+
 ---
 
 **Method Signature Format:**
+
+The two files use different signature formats. Entries omit return types; blank lines and lines whose first non-whitespace character is `#` are ignored by `FileTools.readMethodsFile`.
+
+ArchUnit (source form):
 ```
-java.lang.Thread.start()V
-java.util.concurrent.ExecutorService.submit(Ljava/lang/Runnable;)Ljava/util/concurrent/Future;
-java.util.concurrent.ThreadPoolExecutor.execute(Ljava/lang/Runnable;)V
-java.util.concurrent.CompletableFuture.runAsync(Ljava/lang/Runnable;)Ljava/util/concurrent/CompletableFuture;
+java.lang.Thread.start()
+java.lang.Thread.sleep(long, int)
+java.util.concurrent.ExecutorService.submit(java.util.concurrent.Callable)
+java.util.concurrent.CompletableFuture.runAsync(java.lang.Runnable)
 ```
+
+WALA (JVM-descriptor parameters):
+```
+java.lang.Thread.start()
+java.util.concurrent.ExecutorService.submit(Ljava/lang/Runnable;)
+java.util.concurrent.ThreadPoolExecutor.execute(Ljava/lang/Runnable;)
+java.util.concurrent.CompletableFuture.runAsync(Ljava/lang/Runnable;)
+```
+
+ArchUnit matches entries as prefixes of `JavaAccess.getTarget().getFullName()` (after converting Java array notation such as `byte[]` to the JNI form `[B`). WALA matches with the return type stripped from the actual signature and the descriptors normalised (see `WalaRule.matchesForbiddenMethod`).
 
 **Why These Methods?**
 
@@ -491,21 +483,22 @@ These are the **comprehensive set of APIs** in Java for creating and managing th
 
 **Step 1: Import Compiled Classes**
 
+At runtime, Ares imports the classes via `ArchitectureMode.getJavaClasses(classPath)`:
+
 ```java
 JavaClasses javaClasses = new ClassFileImporter()
-    .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
-    .withImportOption(location -> {
-        String path = location.toString().replace("\\", "/");
-        return !path.contains("/ares/api/");  // Exclude Ares internal classes
-    })
-    .importPackages("de.student");  // Import student package
+    .withImportOption(location ->
+        !location.toString().replace("\\", "/").contains("/de/tum/cit/ase/ares/api/"))
+    .importPath(classPath);
 ```
 
 **What happens:**
-1. ClassFileImporter scans the classpath for `.class` files
+1. `ClassFileImporter` scans the given path for `.class` files
 2. Loads class metadata (methods, fields, dependencies)
-3. Excludes test classes and Ares internal classes
-4. Creates `JavaClasses` object containing all analyzed classes
+3. Excludes Ares' own framework classes (`/de/tum/cit/ase/ares/api/`), so the rules never flag Ares' trusted advice code
+4. Creates a `JavaClasses` object containing all analyzed classes
+
+Note: the **generated-template** variant (see [6.1](#61-writing-architecture-test-cases)) differs slightly. It additionally uses `ImportOption.Predefined.DO_NOT_INCLUDE_TESTS` and imports by package (`importPackages(...)`) instead of by path.
 
 ---
 
@@ -513,32 +506,38 @@ JavaClasses javaClasses = new ClassFileImporter()
 
 **Step 2: Create Architecture Rule**
 
-```java
-// Load forbidden methods from template file
-Set<String> forbiddenMethods = FileTools.readMethodsFile(
-    FileTools.readFile(FileHandlerConstants.ARCHUNIT_THREAD_MANIPULATION_METHODS)
-);
+`JavaArchunitTestCaseCollection.createNoClassShouldHaveMethodRule` builds the rule; the forbidden methods are loaded lazily from the template file on the first check:
 
-// Create custom condition that checks method access
-DescribedPredicate<JavaAccess<?>> checkForbiddenAccess = 
-    new DescribedPredicate<>("accesses forbidden thread creation method") {
+```java
+// Rule name is localised: "Manipulates threads"
+// (messages key: security.architecture.manipulate.threads)
+ArchRule rule = ArchRuleDefinition.noClasses()
+    .that(isNotAllowedClass(allowedClasses))  // exempt allow-listed classes
+    .should(new TransitivelyAccessesMethodsCondition(new DescribedPredicate<>(ruleName) {
+        private Set<String> forbiddenMethods;
+
         @Override
         public boolean test(JavaAccess<?> javaAccess) {
-            return forbiddenMethods.stream()
+            if (forbiddenMethods == null) {
+                forbiddenMethods = FileTools.readMethodsFile(
+                        FileTools.readFile(FileHandlerConstants.ARCHUNIT_THREAD_MANIPULATION_METHODS))
+                    .stream().map(JavaArchunitTestCaseCollection::convertArrayNotation)
+                    .collect(Collectors.toSet());
+            }
+            return forbiddenMethods.stream().filter(method -> !method.isEmpty())
                 .anyMatch(method -> javaAccess.getTarget().getFullName().startsWith(method));
         }
-    };
-
-// Create rule that no class should access forbidden methods
-ArchRule rule = ArchRuleDefinition.noClasses()
-    .should(new TransitivelyAccessesMethodsCondition(checkForbiddenAccess))
-    .as("No class should create threads");
+    }))
+    .as(ruleName);
 ```
 
 **Rule Components:**
-- **DescribedPredicate**: Tests if a method access is forbidden
+- **DescribedPredicate**: Tests if a method access is forbidden (prefix match on the target's full name)
 - **TransitivelyAccessesMethodsCondition**: Finds transitive access paths
-- **ArchRule**: Complete rule that can be checked against JavaClasses
+- **`.that(isNotAllowedClass(...))`**: Exempts classes on the `allowedClasses` allow-list (delegating to `JavaArchitectureTestCase.isAllowedClass`, which also matches nested classes on the `$` boundary)
+- **ArchRule**: Complete rule that can be checked against `JavaClasses`
+
+The pre-built constant `JavaArchunitTestCaseCollection.NO_CLASS_MUST_CREATE_THREADS` is the unfiltered variant (empty allow-list), used by the generated-template path. The runtime execution path instead obtains the rule via `allowAwareRuleFor(THREAD_CREATION, allowedClasses, allowedPackages)`.
 
 ---
 
@@ -546,29 +545,35 @@ ArchRule rule = ArchRuleDefinition.noClasses()
 
 **Step 3: Run Architecture Test**
 
+The runtime path is `JavaArchunitTestCase.executeArchitectureTestCase`, which internally runs the rule and converts violations:
+
 ```java
+// inside JavaArchunitTestCase.runRuleAndCapture
 try {
-    rule.check(javaClasses);  // Throws AssertionError if violated
-} catch (AssertionError e) {
-    // Parse error message and throw SecurityException
-    JavaArchitectureTestCase.parseErrorMessage(e);
+    JavaArchunitTestCaseCollection
+        .allowAwareRuleFor(supported, getAllowedClasses(), allowedPackages)
+        .check(javaClasses);
+} catch (AssertionError ae) {
+    JavaArchitectureTestCase.parseErrorMessage(ae);  // throws SecurityException
 }
 ```
 
-**When violation is found:**
+**When a violation is found**, ArchUnit produces an `AssertionError` such as:
 ```
-Architecture Violation [Priority: MEDIUM] - Rule 'No class should create threads' was violated (1 times):
-Method <de.student.StudentCode.processAsync()> transitively accesses method <java.util.concurrent.ExecutorService.submit(Ljava/lang/Runnable;)Ljava/util/concurrent/Future;> by 
-  [de.student.StudentCode.processAsync() -> java.util.concurrent.Executors.newFixedThreadPool() -> java.util.concurrent.ExecutorService.submit()]
+Architecture Violation [Priority: MEDIUM] - Rule 'Manipulates threads' was violated (1 times):
+Method <de.student.StudentCode.processAsync()> calls method <java.util.concurrent.ExecutorService.submit(java.util.concurrent.Callable)> in (StudentCode.java:15) accesses <java.util.concurrent.ExecutorService.submit(java.util.concurrent.Callable)>
 ```
 
-**Error is converted to:**
-```java
-throw new SecurityException(
-    "Ares Security Error (Reason: Student-Code; Stage: Execution): " +
-    "Illegal thread creation: StudentCode.processAsync transitively calls ExecutorService.submit"
-);
+**The error is converted** by `parseErrorMessage` into a `SecurityException` using the format from `messages.properties` (key `security.archunit.violation.error`, line 97):
 ```
+Ares Security Error (Reason: Student-Code; Stage: Execution): %s tried to illegally %s via %s (called by %s) but was blocked by Ares.
+```
+For the thread rule, the action placeholder is `manipulate threads` (mapped from the rule name "Manipulates threads"), e.g.:
+```
+Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.StudentCode.processAsync() tried to illegally manipulate threads via java.util.concurrent.ExecutorService.submit(java.util.concurrent.Callable) (called by de.student.StudentCode) but was blocked by Ares.
+```
+
+The outcome (pass or the parsed `SecurityException`) is cached in-memory per (rule category, allow-list, `JavaClasses` instance), so repeated executions in the same JVM replay the cached verdict instead of re-scanning.
 
 ---
 
@@ -578,27 +583,25 @@ throw new SecurityException(
 
 ```java
 public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClass> {
-    
+
     @Override
     public void check(JavaClass clazz, ConditionEvents events) {
         // Get all method accesses from this class
-        for (JavaAccess<?> access : clazz.getAccessesFromSelf()) {
-            // Find transitive path to forbidden method
-            List<JavaAccess<?>> path = findPathToViolatingMethod(access);
-            
+        for (JavaAccess<?> accessInsideClass : clazz.getAccessesFromSelf()) {
+            // Find transitive path to a violating (forbidden) method
+            List<JavaAccess<?>> path = transitiveAccessPath
+                .findPathFromViolatingMethodTo(accessInsideClass);
+
             if (!path.isEmpty()) {
                 // Report violation with complete call chain
-                events.add(createViolationEvent(access, path));
+                events.add(newTransitiveAccessPathFoundEvent(accessInsideClass, path));
             }
         }
     }
-    
-    private List<JavaAccess<?>> findPathToViolatingMethod(JavaAccess<?> access) {
-        // Use DFS to find path from current access to forbidden method
-        // Returns: [access1 -> access2 -> ... -> forbiddenAccess]
-    }
 }
 ```
+
+The inner class `TransitiveAccessPath` performs a depth-first search: `findPathFromViolatingMethodTo(JavaAccess)` recursively follows the accesses originating from each target method (avoiding cycles via a visited set) until the predicate matches, then returns the reversed access chain. `newTransitiveAccessPathFoundEvent` renders the chain and registers it via `SimpleConditionEvent.satisfied(access, message)`; because the rule is a `noClasses().should(...)` rule, a *satisfied* condition event constitutes a violation.
 
 **Example Path Detection:**
 
@@ -617,78 +620,65 @@ Result: Path found = [StudentCode.processData → Helper.processInParallel → E
 
 ## 5.1 Building the Call Graph
 
-**Step 1: Create Analysis Scope**
+All steps below are implemented in `CustomCallgraphBuilder`.
+
+**Step 1: Filter the Classpath and Create the Analysis Scope**
+
+Before WALA sees the classpath, `filterClassPath` drops entries matching `CLASSPATH_EXCLUDE_SUBSTRINGS`: compiled test outputs, JUnit/test-platform libraries, Mockito, AssertJ/Hamcrest/jqwik, JaCoCo, Gradle test-runner infrastructure, static-analysis tooling, Ares' own jar, the WALA runtime, and the AspectJ runtime. It also widens the scope with the verified helper subdirectory (`anonymous/toolclasses`) so student superclasses can be resolved without pulling in every other category's classes.
 
 ```java
-// Read exclusions file (to ignore JDK internals)
-File exclusionsFile = FileTools.readFile(
-    FileTools.resolveFileOnSourceDirectory("templates", "architecture", "java", "exclusions.txt")
-);
-
-// Create analysis scope
 AnalysisScope scope = Java9AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(
-    classPath + File.pathSeparator + System.getProperty("java.class.path"),
-    exclusionsFile
-);
+    filteredClassPath,
+    FileTools.readFile(FileTools.resolveFileOnSourceDirectory(
+        "templates", "architecture", "java", "exclusions.txt")));
 
-// Build class hierarchy
 ClassHierarchy classHierarchy = ClassHierarchyFactory.make(scope);
 ```
 
-**Exclusions File Example:**
+**Exclusions File (excerpt of `exclusions.txt`):**
 ```
-# Exclude JDK internals to improve performance
-sun/.*
-com/sun/.*
-jdk/internal/.*
+jdk/.*
+java/time/.*
+sun/security/.*
+java/text/.*
+java/util/function.*
+...
 ```
+(These JDK areas are excluded from the scope to keep the analysis fast; they are not relevant to the rules.)
 
-**Step 2: Define Entry Points**
+The scope and class hierarchy are cached per filtered classpath in a bounded LRU, so subsequent tests in the same JVM reuse them.
+
+**Step 2: Collect Entry Points** (see [5.2](#52-finding-entry-points))
+
+**Step 3: Build the Call Graph**
 
 ```java
-// Find all methods in student code as potential entry points
-List<DefaultEntrypoint> entryPoints = new ArrayList<>();
+// Configure analysis options with the scope and the collected entry points
+AnalysisOptions options = new AnalysisOptions(scope, customEntryPoints);
 
-for (IClass iClass : classHierarchy) {
-    if (iClass.getClassLoader().getReference().equals(ClassLoaderReference.Application)) {
-        for (IMethod method : iClass.getDeclaredMethods()) {
-            if (!method.getName().toString().equals("main")) {
-                entryPoints.add(new DefaultEntrypoint(method.getReference(), classHierarchy));
-            }
-        }
-    }
-}
-```
+// Create call graph builder (0-1-CFA algorithm)
+CallGraphBuilder<?> builder = Util.makeZeroOneCFABuilder(
+    Language.JAVA, options, new AnalysisCacheImpl(), classHierarchy);
 
-**Step 3: Build Call Graph**
-
-```java
-// Configure analysis options
-AnalysisOptions options = new AnalysisOptions();
-options.setEntrypoints(entryPoints);
-
-// Create call graph builder (0-CFA algorithm)
-CallGraphBuilder<?> builder = Util.makeZeroCFABuilder(
-    Language.JAVA,
-    options,
-    new AnalysisCacheImpl(),
-    classHierarchy
-);
+// Wrap the default selectors so JDK (primordial) methods stay opaque:
+// the call edge from student code to a JDK method is still recorded,
+// but WALA does not load or analyse the JDK method's bytecode.
+options.setSelector(new JdkOpaqueMethodTargetSelector(
+    options.getMethodTargetSelector(), classHierarchy));
 
 // Build call graph
 CallGraph callGraph = builder.makeCallGraph(options, null);
 ```
 
+The `JdkOpaqueMethodTargetSelector` returns an empty `SummarizedMethod` for primordial (JDK) targets, so forbidden JDK sinks such as `Thread.start()` appear as call-graph nodes (which `WalaRule` needs) without WALA descending into JDK bytecode. Built call graphs are cached per classpath pair in a bounded LRU.
+
 **Call Graph Structure:**
 ```
 CallGraph:
   ├─ CGNode: StudentCode.processAsync()
-  │   ├─ successor: Executors.newFixedThreadPool()
-  │   └─ successor: ExecutorService.submit()
-  ├─ CGNode: ExecutorService.submit()
-  │   └─ successor: ThreadPoolExecutor.execute()
-  └─ CGNode: ThreadPoolExecutor.execute()
-      └─ successor: Thread.start() (FORBIDDEN!)
+  │   ├─ successor: Executors.newFixedThreadPool()   (opaque JDK node)
+  │   └─ successor: ExecutorService.submit()          (opaque JDK node, FORBIDDEN!)
+  └─ ...
 ```
 
 ---
@@ -697,12 +687,21 @@ CallGraph:
 
 **Entry Point Selection:**
 
-Entry points are methods where analysis should start. WALA uses all methods in student code (except `main`) as entry points to ensure comprehensive coverage.
+`ReachabilityChecker.getEntryPointsFromStudentSubmission(classPath, classHierarchy)` turns **every declared method** of every class loaded by the Application class loader into a `DefaultEntrypoint`. There is **no** special-casing of `main`; it becomes an entry point like any other method.
 
-**Why exclude `main`?**
-- In test scenarios, tests invoke student methods directly
-- `main` is typically not the actual entry point for student code
-- Including `main` may introduce unnecessary analysis paths
+The narrowing happens afterwards in `CustomCallgraphBuilder.buildCallGraph`: the entry points are filtered to the package directory derived from the analysed classpath (e.g. `build/classes/java/main/anonymous/foo/bar` → prefix `Lanonymous/foo/bar/`), so each architecture rule only flags violations in the classes under test rather than spilling into unrelated categories that share the wider scope:
+
+```java
+String narrowPackagePrefix = derivePackagePrefix(classPathToAnalyze);
+List<DefaultEntrypoint> customEntryPoints = ReachabilityChecker
+    .getEntryPointsFromStudentSubmission(filterClassPath(classPathToAnalyze), classHierarchy)
+    .stream()
+    .filter(ep -> narrowPackagePrefix == null
+        || ep.getMethod().getDeclaringClass().getName().toString().startsWith(narrowPackagePrefix))
+    .collect(Collectors.toCollection(ArrayList::new));
+```
+
+Entry-point lists are cached per (class hierarchy, classpath) in a bounded LRU.
 
 **Entry Point Representation:**
 ```java
@@ -714,74 +713,29 @@ DefaultEntrypoint(
 
 ---
 
-## 5.3 Reachability Analysis
+## 5.3 Rule Checking with WalaRule
 
-**Step 4: Find Paths to Forbidden Methods**
+**Step 4: Check the Rule Against the Call Graph**
 
-```java
-// Load forbidden methods
-Set<String> forbiddenMethods = FileTools.readMethodsFile(
-    FileTools.readFile(FileHandlerConstants.WALA_THREAD_MANIPULATION_METHODS)
-);
+The rule check is implemented in `WalaRule.check(CallGraph, Set<ClassPermission>)` (WalaRule.java:65-98). It is a **per-sink reverse-reachability** analysis, not a single forward DFS:
 
-// Find reachable forbidden methods
-List<CGNode> path = ReachabilityChecker.findReachableMethods(
-    callGraph,
-    callGraph.getEntrypointNodes().iterator(),
-    node -> forbiddenMethods.stream()
-        .anyMatch(sig -> node.getMethod().getSignature().startsWith(sig))
-);
+1. **Collect forbidden sinks**: every `CGNode` whose method signature matches a forbidden entry (`isForbidden`; matching strips return types and normalises descriptors). The sinks are sorted by signature so the reported violation is deterministic across JVM runs.
+2. **Forward reachability**: a BFS over successor edges from the entry points (`forwardReachableFromEntrypoints`). If the call graph has **no entry points at all**, the check **fails closed** with a `SecurityException` (message key `security.architecture.wala.entrypoints.empty`) instead of silently passing, because an empty entry set means the analysis was mis-scoped.
+3. **Per-sink evaluation** (`evaluateSink`): for each entry-reachable sink, reverse-walk from the sink through *infrastructure frames only* and evaluate each distinct nearest-student approach `[nearestStudentFrame, ...infra..., sink]` the moment it is found. Each approach gets an entry-to-student prefix via reverse BFS (`reversePathToEntry`; if the nearest student frame is allow-listed, a prefix through a non-allowed student ancestor is preferred), and the full witness path is classified by `evaluatePath`.
+4. **Throw on the first genuine violation**: a path that survives classification produces an `AssertionError`. A backstop of 64 approaches per sink (`MAX_APPROACHES_PER_SINK`) bounds pathological graphs; hitting the bound is logged, never silently passed.
 
-if (path != null && !path.isEmpty()) {
-    // Extract source position
-    IMethod.SourcePosition sourcePos = path.get(path.size() - 1)
-        .getMethod()
-        .getSourcePosition(0);
-    
-    throw new AssertionError(String.format(
-        "Forbidden method '%s' reachable from '%s' at line %d",
-        path.get(path.size() - 1).getMethod().getSignature(),
-        path.get(0).getMethod().getSignature(),
-        sourcePos.getFirstLine()
-    ));
-}
+**Why not a single forward DFS?** The previous implementation (`ReachabilityChecker.findReachableMethods` delegating to `CustomDFSPathFinder`) marked nodes globally visited and therefore reported each sink on exactly one path; an allow-listed or false-positive caller discovered first could permanently mask a genuine violation by a different caller of the same sink. Both classes still exist in the codebase but are **legacy** for rule checking: `ReachabilityChecker` remains in use only for entry-point collection, and `CustomDFSPathFinder` (which also consumed the `false-positives-file.txt` exclusion list) has been superseded by the per-sink reverse walk in `WalaRule`.
+
+**Violation Message:**
+
+A genuine violation raises an `AssertionError` with the localised format (`messages.properties` key `security.architecture.method.call.message`, line 115):
 ```
-
-**DFS Path Finding Algorithm:**
-
-```java
-public class CustomDFSPathFinder {
-    List<CGNode> find() {
-        Set<CGNode> visited = new HashSet<>();
-        Stack<CGNode> currentPath = new Stack<>();
-        
-        for (CGNode entryPoint : entryPoints) {
-            List<CGNode> result = dfs(entryPoint, visited, currentPath);
-            if (result != null) return result;
-        }
-        return null;
-    }
-    
-    List<CGNode> dfs(CGNode node, Set<CGNode> visited, Stack<CGNode> path) {
-        if (visited.contains(node)) return null;
-        visited.add(node);
-        path.push(node);
-        
-        // Check if this node is a target
-        if (isTargetNode(node)) {
-            return new ArrayList<>(path);  // Found path!
-        }
-        
-        // Recursively check successors
-        for (CGNode successor : callGraph.getSuccNodes(node)) {
-            List<CGNode> result = dfs(successor, visited, path);
-            if (result != null) return result;
-        }
-        
-        path.pop();
-        return null;
-    }
-}
+'%s'\n Method <%s> calls method <%s> in (%s.java:%d) accesses <%s>
+```
+with the arguments (rule name, caller signature, forbidden signature, declaring class of the forbidden method, line number, entry-point signature). WALA's JVM-descriptor signatures are converted to source form (`formatJvmSignature`) so the message matches ArchUnit's output format. Example:
+```
+'Manipulates threads'
+ Method <de.student.StudentCode.processAsync()> calls method <java.util.concurrent.ExecutorService.submit(java.lang.Runnable)> in (ExecutorService.java:15) accesses <de.student.StudentCode.processAsync()>
 ```
 
 **Example Reachability Detection:**
@@ -789,187 +743,107 @@ public class CustomDFSPathFinder {
 ```
 Entry: StudentCode.processAsync()
   ↓ calls
-Executors.newFixedThreadPool(10)
-  ↓ returns
-ExecutorService (ThreadPoolExecutor instance)
-  ↓ calls
-ExecutorService.submit(lambda)
-  ↓ calls
-ThreadPoolExecutor.execute()  ← FORBIDDEN METHOD REACHED!
+ExecutorService.submit(lambda)   ← FORBIDDEN SINK (on the WALA methods list)
 
-Path: [StudentCode.processAsync, Executors.newFixedThreadPool, ExecutorService.submit, ThreadPoolExecutor.execute]
+Nearest student frame: StudentCode.processAsync()  (adjacent to the sink → never suppressed)
+Result: AssertionError → parsed into a SecurityException
 ```
 
 ---
 
-## 5.4 False Positive Filtering for JDK Helpers
+## 5.4 Path Classification and False Positive Filtering
 
 **Challenge:** JDK classes extensively use threads internally for legitimate operations:
-- File I/O: `Files.list()` creates threads for directory traversal
-- Networking: `InetAddress.getByName()` uses threads for DNS lookups
-- Class Loading: `ClassLoader` uses threads for parallel loading
+- File I/O: directory traversal, asynchronous channels
+- Networking: DNS lookups
+- Class Loading: parallel class loading
 
 **Without filtering:** Almost every student program would be flagged!
 
-**Solution:** Sophisticated filtering of JDK helper paths.
+**Solution:** Every reconstructed path is classified by `WalaPathClassification` before it is reported.
 
 ```java
-private static final List<String> JDK_THREAD_HELPERS = List.of(
-    /* File system helpers */
-    "Lsun/nio/fs/", "sun/nio/fs/",
-    "Lsun/nio/ch/", "sun/nio/ch/",
-    "Ljava/nio/file/Files", "java/nio/file/Files",
-    
-    /* Class loading helpers */
-    "Ljava/lang/ClassLoader", "java/lang/ClassLoader",
-    "Ljava/lang/Class", "java/lang/Class",
-    "Ljdk/internal/loader/NativeLibraries", "jdk/internal/loader/NativeLibraries",
-    
-    /* Network helpers */
-    "Ljava/net/InetAddress", "java/net/InetAddress",
-    
-    /* Thread helpers */
-    "Ljava/lang/Thread", "java/lang/Thread",
-    
-    /* Reflection helpers */
-    "Ljava/lang/reflect/Method", "java/lang/reflect/Method"
-);
+// WalaPathClassification.java:59-79
+public static final List<String> INFRA_PREFIXES = List.of(
+    "java.", "javax.", "sun.", "jdk.", "com.sun.",
+    "de.tum.cit.ase.ares.api.", "net.bytebuddy.", "org.aspectj.",
+    "com.ibm.wala.", "com.tngtech.archunit.",
+    "anonymous.toolclasses.", "metatest.");
 
-private static final List<String> ALLOWED_HELPER_APIS = List.of(
-    "java.lang.Thread.<init>",              // Creating thread object (not starting)
-    "java.lang.Thread.interrupt",           // Interrupting threads
-    "java.lang.Thread.getContextClassLoader",
-    "java.lang.Thread.getStackTrace",
-    "java.lang.ClassLoader.getSystemClassLoader",
-    "java.lang.ClassLoader.loadLibrary",
-    "java.lang.Runtime.load",
-    "java.lang.Runtime.loadLibrary",
-    "java.io.File.getName",
-    "java.io.File.<init>",
-    "java.lang.Class.forName",
-    "java.lang.Class.getDeclaredField",
-    "java.lang.Class.getClassLoader",
-    "java.lang.Class.checkMemberAccess",
-    "java.net.InetAddress.getAllByName",
-    "java.lang.reflect.Method.invoke"
-);
-
-// Sophisticated filtering wrapper
-private static WalaRule wrapIgnoringJdkHelpers(WalaRule base) {
-    return new WalaRule(base.ruleName, base.forbiddenMethods) {
-        @Override
-        public void check(CallGraph cg) {
-            List<CGNode> path = ReachabilityChecker.findReachableMethods(
-                cg,
-                cg.getEntrypointNodes().iterator(),
-                n -> base.forbiddenMethods.stream()
-                    .anyMatch(sig -> n.getMethod().getSignature().startsWith(sig))
-            );
-
-            if (path == null || path.isEmpty()) {
-                return;  // No forbidden method reached
-            }
-
-            CGNode forbidden = path.get(path.size() - 1);
-
-            /* Is the API one helpers legitimately call? */
-            boolean helperApi = ALLOWED_HELPER_APIS.stream()
-                .anyMatch(sig -> forbidden.getMethod().getSignature().startsWith(sig));
-
-            /* Does the call chain contain at least one helper frame? */
-            boolean helperSeen = path.stream().anyMatch(n -> {
-                String cls = n.getMethod().getDeclaringClass().getName().toString();
-                return JDK_THREAD_HELPERS.stream().anyMatch(cls::startsWith);
-            });
-
-            if (helperApi && helperSeen) {
-                return;  // Housekeeping path – ignore
-            }
-
-            /* Otherwise: genuine violation */
-            base.check(cg);
-        }
-    };
-}
+static final List<String> TRANSITIVE_FALSE_POSITIVE_PREFIXES = List.of(
+    "java.", "javax.", "sun.", "jdk.", "com.sun.",
+    "de.tum.cit.ase.ares.", "net.bytebuddy.", "org.aspectj.",
+    "com.ibm.wala.", "com.tngtech.archunit.");
 ```
 
-**Filtering Logic:**
+**Classification Logic (WalaRule.evaluatePath):**
 
-1. **Find path to forbidden method** (e.g., Thread.start())
-2. **Check if it's a helper API** (e.g., Thread.<init> is allowed)
-3. **Check if path contains JDK helpers** (e.g., Files, ClassLoader)
-4. **If both true → IGNORE** (legitimate JDK internal use)
-5. **Otherwise → REPORT** (student code creating threads)
+1. **Find the nearest student frame** (`nearestStudentFrame`): scan the path from the forbidden sink back towards the entry point; the first frame that is not infrastructure (not in `INFRA_PREFIXES`, not loaded by the JDK boot/extension class loader, not malformed) is the student frame. **All-infrastructure paths are dropped.**
+2. **Suppress transitive-JDK false positives** (`isFalsePositiveTransitivePath`): if every frame strictly between the student frame and the sink is a transitive-false-positive frame, the student merely called a permitted JDK/framework API whose internals reached the forbidden method → the path is ignored. **Direct violations (student frame adjacent to the sink) are never suppressed.**
+3. **Apply the class allow-list**: with a non-empty `allowedClasses` set, a path is exempt ONLY when *every* student frame on it is allow-listed; if a non-allowed student frame reaches the forbidden API through an allow-listed helper, the violation is still reported against that non-allowed frame.
+4. **Report**: otherwise the path is a genuine violation and the localised `AssertionError` is raised.
 
-**Example Filtering:**
+**Example Classification:**
 
-**Path 1 (Ignored - Legitimate JDK Use):**
+**Path 1 (Ignored - Transitive JDK Side Effect):**
 ```
-StudentCode.listFiles()
+StudentCode.listFiles()               (nearest student frame)
   ↓
-Files.list(Path)  (JDK helper)
+java.nio.file.Files.list(Path)        (JDK frame)
   ↓
-UnixDirectoryStream.<init>()  (internal JDK class)
+sun.nio.fs.UnixDirectoryStream.<init>()  (JDK frame)
   ↓
-ThreadPoolExecutor.execute()  (internal thread pool)
-  ↓
-Thread.<init>()  (allowed helper API)
+java.lang.Thread.start()              (forbidden sink)
 
-Result: IGNORED (Files.list() legitimately uses threads internally)
-Analysis: helperApi=true (Thread.<init> is allowed), helperSeen=true (Files is in JDK_THREAD_HELPERS)
+Result: IGNORED — every frame between the student frame and the sink is JDK
+        (isFalsePositiveTransitivePath == true)
 ```
 
-**Path 2 (Ignored - Class Loading):**
+**Path 2 (Detected - Direct Violation):**
 ```
-StudentCode.loadClass()
+StudentCode.processAsync()            (nearest student frame, adjacent to sink)
   ↓
-Class.forName("com.example.MyClass")  (JDK helper)
-  ↓
-ClassLoader.loadClass()  (JDK helper)
-  ↓
-Thread.start()  (internal class loading thread)
+java.lang.Thread.start()              (forbidden sink)
 
-Result: IGNORED (Class loading legitimately uses threads)
-Analysis: helperApi=false, but path goes through ClassLoader (JDK helper)
+Result: VIOLATION — direct violations are never suppressed
 ```
 
-**Path 3 (Detected - Real Violation):**
+**Path 3 (Detected - Executor Service):**
 ```
-StudentCode.processAsync()
+StudentCode.parallelProcess()         (nearest student frame, adjacent to sink)
   ↓
-new Thread(() -> process()).start()  (direct call, no helpers)
+java.util.concurrent.ExecutorService.submit(...)  (forbidden sink)
 
-Result: VIOLATION (direct thread creation by student)
-Analysis: helperApi=false, helperSeen=false (no JDK helpers in path)
-```
-
-**Path 4 (Detected - Executor Service):**
-```
-StudentCode.parallelProcess()
-  ↓
-Executors.newFixedThreadPool(10)
-  ↓
-ExecutorService.submit(() -> task())
-  ↓
-ThreadPoolExecutor.execute()  (FORBIDDEN!)
-
-Result: VIOLATION (student explicitly creates thread pool)
-Analysis: helperApi=false, helperSeen=false (student code, not JDK internal)
+Result: VIOLATION — the forbidden API is the call the student wrote
 ```
 
-**Why This Filtering Is Essential:**
+**Path 4 (Detected - Routed Through a Project Test Helper):**
+```
+StudentCode.trickyCall()              (nearest non-helper student caller)
+  ↓
+anonymous.toolclasses.Helper.spawn()  (infra for attribution, but NOT a
+  ↓                                    transitive-false-positive frame)
+java.lang.Thread.start()              (forbidden sink)
 
-Without filtering, these innocent operations would be flagged:
+Result: VIOLATION — project test helpers are deliberately excluded from
+        TRANSITIVE_FALSE_POSITIVE_PREFIXES, so routing through them does
+        not launder a forbidden call
+```
+
+**Legacy false-positives file:** the older DFS-based path finder (`CustomDFSPathFinder`) additionally skipped the method signatures listed in `templates/architecture/java/wala/false-positives/false-positives-file.txt` (`FileHandlerConstants.FALSE_POSITIVES_FILE_SYSTEM_INTERACTIONS`). That mechanism is superseded by the prefix-based classification above for rule checking; the file's content still feeds into the WALA disk-cache fingerprint so edits invalidate cached verdicts.
+
+**Why This Classification Is Essential:**
+
+Without it, these innocent operations would be flagged:
 - ❌ `Files.list("/tmp")` → false positive
 - ❌ `Class.forName("MyClass")` → false positive
 - ❌ `InetAddress.getByName("localhost")` → false positive
-- ❌ `System.out.println()` → may trigger class loading → false positive
 
-With filtering:
-- ✅ Ignores JDK internal thread usage
-- ✅ Detects genuine student code creating threads
-- ✅ Dramatically reduces false positives
-- ✅ Makes architecture testing practical for thread analysis
+With it:
+- ✅ JDK-internal side effects are ignored
+- ✅ Genuine student code creating threads is detected
+- ✅ Violations are attributed to the correct (nearest, non-exempt) student frame
+- ✅ Architecture testing becomes practical for thread analysis
 
 ---
 
@@ -991,26 +865,24 @@ JavaArchunitTestCase testCase = JavaArchunitTestCase.archunitBuilder()
 String testCode = testCase.writeArchitectureTestCase("ARCHUNIT", "");
 ```
 
+The generator fills the placeholders (`${javaClasses}`) in the template `templates/architecture/java/archunit/rules/THREAD_CREATION.txt`.
+
 **Generated Code Example:**
 ```java
 @Test
-void testNoThreadCreation() {
-    JavaClasses javaClasses = new ClassFileImporter()
+public void threadSystemShouldNotBeAccessed() {
+    javaClasses = new ClassFileImporter()
         .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
         .withImportOption(location -> {
             String path = location.toString().replace("\\", "/");
-            return !path.contains("/ares/api/");
+            return !path.contains("/de/tum/cit/ase/ares/api/");
         })
         .importPackages("de.student");
-    
-    Set<PackagePermission> allowedPackages = Set.of(
-        new PackagePermission("java.lang")
-    );
-    
-    JavaArchunitTestCaseCollection.NO_CLASS_MUST_CREATE_THREADS
-        .check(javaClasses);
+    JavaArchunitTestCaseCollection.NO_CLASS_MUST_CREATE_THREADS.check(javaClasses);
 }
 ```
+
+Note: the thread template does not emit an `allowedPackages` block (that placeholder is only used by the PACKAGE_IMPORT template), and the static `NO_CLASS_MUST_CREATE_THREADS` constant is the unfiltered rule without class exemptions.
 
 **WALA Test Case Generation:**
 
@@ -1025,20 +897,14 @@ JavaWalaTestCase testCase = JavaWalaTestCase.walaBuilder()
 String testCode = testCase.writeArchitectureTestCase("WALA", "");
 ```
 
-**Generated Code Example:**
+**Generated Code Example** (from `templates/architecture/java/wala/rules/THREAD_CREATION.txt`, `${callGraph}` filled in):
 ```java
 @Test
-void testNoThreadCreation() {
-    String classPath = System.getProperty("java.class.path");
-    CallGraph callGraph = new CustomCallgraphBuilder(classPath)
-        .buildCallGraph(classPath);
-    
-    Set<PackagePermission> allowedPackages = Set.of(
-        new PackagePermission("java.lang")
-    );
-    
-    JavaWalaTestCaseCollection.NO_CLASS_MUST_CREATE_THREADS
-        .check(callGraph);
+public void threadSystemShouldNotBeAccessed() {
+    callGraph = new de.tum.cit.ase.ares.api.architecture.java.wala.CustomCallgraphBuilder(
+            System.getProperty("java.class.path"))
+        .buildCallGraph(System.getProperty("java.class.path"));
+    JavaWalaTestCaseCollection.NO_CLASS_MUST_CREATE_THREADS.check(callGraph);
 }
 ```
 
@@ -1071,29 +937,40 @@ executeArchitectureTestCase()
 Switch on architectureMode
   ├─ ARCHUNIT → JavaArchunitTestCase.executeArchitectureTestCase()
   │   ↓
-  │   JavaArchunitTestCaseCollection.NO_CLASS_MUST_CREATE_THREADS.check(javaClasses)
+  │   in-memory outcome cache (per rule, allow-list, JavaClasses instance)
+  │   ↓ on cache miss
+  │   JavaArchunitTestCaseCollection.allowAwareRuleFor(THREAD_CREATION,
+  │       allowedClasses, allowedPackages).check(javaClasses)
   │   ↓
-  │   [AssertionError thrown if violation found]
+  │   [AssertionError caught internally, parsed into SecurityException]
   │
   └─ WALA → JavaWalaTestCase.executeArchitectureTestCase()
       ↓
-      JavaWalaTestCaseCollection.NO_CLASS_MUST_CREATE_THREADS.check(callGraph)
-      ↓ (with JDK helper filtering)
-      [AssertionError thrown if violation found]
+      HMAC-protected disk-backed outcome cache (JavaWalaTestCase.java:53-324;
+      keyed by classpath, Ares-jar mtime, rule name, and SHA-256 fingerprints
+      of class structure, bytecode, allow-lists, and the blocklist files) —
+      on a cache hit the call graph is never built
+      ↓ on cache miss
+      callGraphSupplier.get()  (lazy call-graph construction)
+      ↓
+      JavaWalaTestCaseCollection.NO_CLASS_MUST_CREATE_THREADS.check(cg, allowedClasses)
+      ↓ (with path classification)
+      [AssertionError caught internally, parsed into SecurityException]
 ```
 
-**Error Parsing:**
+**Error Handling:**
+
+The `AssertionError` never escapes `executeArchitectureTestCase`; it is caught inside `runRuleAndCapture` and converted via `JavaArchitectureTestCase.parseErrorMessage`. Callers therefore only see the `SecurityException`:
 
 ```java
 try {
     testCase.executeArchitectureTestCase(architectureMode, aopMode);
-} catch (AssertionError e) {
-    JavaArchitectureTestCase.parseErrorMessage(e);
+} catch (SecurityException e) {
+    // Already in the Ares error format:
+    // "Ares Security Error (Reason: Student-Code; Stage: Execution):
+    //  <caller> tried to illegally manipulate threads via <target> (called by <class>)
+    //  but was blocked by Ares."
 }
-
-// parseErrorMessage converts:
-// "Architecture Violation [Priority: MEDIUM] - Rule 'No class should create threads' was violated"
-// → SecurityException: "Ares Security Error: Illegal thread creation detected: ..."
 ```
 
 ---
@@ -1107,8 +984,8 @@ try {
 - ✅ Works **before code execution** - catches violations during testing phase
 - ✅ Provides **two analysis modes**: Fast (ArchUnit) and Precise (WALA)
 - ✅ Detects **transitive calls** - finds violations even through helper methods
-- ✅ **Advanced false positive filtering** - ignores JDK internal thread usage (WALA mode)
-- ✅ Generates **clear error messages** with complete call chains
+- ✅ **Path classification** (WALA mode) - suppresses transitive-JDK false positives and attributes violations to the nearest student frame
+- ✅ Generates **clear error messages** with caller, forbidden method, and entry point
 
 **When do you need this?**
 - When you want to prevent students from creating threads entirely
@@ -1120,8 +997,8 @@ try {
 **How does it work (simplified)?**
 1. Compile student code to `.class` files
 2. Architecture analysis scans bytecode for thread creation method calls
-3. WALA mode filters out JDK internal thread usage (Files.list, ClassLoader, etc.)
-4. If forbidden patterns detected → Report violation with call chain
+3. WALA mode classifies each call path and drops JDK-internal side effects
+4. If forbidden patterns detected → Report violation with caller and forbidden method
 5. Unlike AOP, this happens during testing, not when code runs
 
 ---
@@ -1133,13 +1010,13 @@ try {
 | **Analysis Time** | Before execution (static) | During execution (runtime) |
 | **Detection** | Analyzes code structure | Intercepts method calls |
 | **Granularity** | Binary (allowed/forbidden) | Quota-based permissions |
-| **Performance Impact** | Analysis overhead only | Runtime overhead on every call |
-| **False Positives** | Possible (WALA filters JDK) | None (only executed code checked) |
+| **Performance Impact** | Analysis overhead only (mitigated by outcome caches) | Runtime overhead on every call |
+| **False Positives** | Possible (WALA classifies paths) | None (only executed code checked) |
 | **Coverage** | All code paths | Only executed paths |
-| **Configuration** | Package-level permissions | Thread class + quota permissions |
+| **Configuration** | Class-level exemptions (`allowedClasses`) plus WALA infra-prefix classification | Thread class + quota permissions |
 | **Use Case** | Pre-submission validation | Runtime security enforcement |
 | **Error Timing** | Test phase | Production execution |
-| **JDK Internal Handling** | Filtered (WALA mode) | Not needed (runtime checks actual code) |
+| **JDK Internal Handling** | Classified as infrastructure (WALA mode) | Not needed (runtime checks actual code) |
 
 ---
 
@@ -1151,13 +1028,12 @@ try {
 - Uses ArchUnit's `ArchRule` and custom `TransitivelyAccessesMethodsCondition`
 - Analyzes class dependencies and method access patterns
 - No call graph construction required
-- No false positive filtering (may report JDK internal usage)
+- No path classification (may report JDK-adjacent usage; the much longer methods list is tuned accordingly)
 
-**Violation Example:**
+**Violation Example (raw AssertionError before conversion):**
 ```
-Architecture Violation [Priority: MEDIUM] - Rule 'No class should create threads' was violated (1 times):
-Method <de.student.StudentCode.processAsync()> transitively accesses method <java.util.concurrent.ExecutorService.submit(Ljava/lang/Runnable;)Ljava/util/concurrent/Future;> by 
-  [de.student.StudentCode.processAsync() -> java.util.concurrent.Executors.newFixedThreadPool() -> java.util.concurrent.ExecutorService.submit()]
+Architecture Violation [Priority: MEDIUM] - Rule 'Manipulates threads' was violated (1 times):
+Method <de.student.StudentCode.processAsync()> calls method <java.util.concurrent.ExecutorService.submit(java.util.concurrent.Callable)> in (StudentCode.java:15) accesses <java.util.concurrent.ExecutorService.submit(java.util.concurrent.Callable)>
 ```
 
 **Best For:**
@@ -1168,19 +1044,18 @@ Method <de.student.StudentCode.processAsync()> transitively accesses method <jav
 
 ---
 
-### **WALA Mode (Call Graph Analysis with False Positive Filtering)**
+### **WALA Mode (Call Graph Analysis with Path Classification)**
 
 **Implementation:**
-- Builds complete call graph using IBM WALA framework
-- Performs reachability analysis from entry points to forbidden methods
-- **Critical feature: Sophisticated JDK helper filtering**
+- Builds a call graph using IBM WALA (0-1-CFA, JDK methods kept opaque)
+- Per-sink reverse-reachability analysis in `WalaRule.check`
+- **Critical feature: path classification via `WalaPathClassification`**
 - Reduces false positives dramatically
 
-**Violation Example:**
+**Violation Example (raw AssertionError before conversion; format `security.architecture.method.call.message`):**
 ```
-Forbidden method 'java.util.concurrent.ThreadPoolExecutor.execute(Ljava/lang/Runnable;)V' is reachable from 'de.student.StudentCode.processAsync()V' 
-in class 'de.student.StudentCode' at line 15
-Called by test method: 'org.example.TestClass.testAsync()V'
+'Manipulates threads'
+ Method <de.student.StudentCode.processAsync()> calls method <java.util.concurrent.ThreadPoolExecutor.execute(java.lang.Runnable)> in (ThreadPoolExecutor.java:15) accesses <de.student.StudentCode.processAsync()>
 ```
 
 **Best For:**
@@ -1194,28 +1069,27 @@ Called by test method: 'org.example.TestClass.testAsync()V'
 
 ### **Forbidden Method Templates**
 
-Both modes load forbidden methods from text files:
+Both modes load forbidden methods from text files. Every non-empty, non-comment line is one signature; return types are omitted, and `#` comment lines are ignored.
 
-**File Format:**
+**ArchUnit File Format (source form):**
 ```
-# Direct thread creation
-java.lang.Thread.start()V
-java.lang.Thread.startVirtualThread(Ljava/lang/Runnable;)Ljava/lang/Thread;
+java.lang.Thread.start()
+java.lang.Thread.startVirtualThread(java.lang.Runnable)
+java.util.concurrent.ExecutorService.submit(java.lang.Runnable)
+java.util.concurrent.ThreadPoolExecutor.execute(java.lang.Runnable)
+java.util.Collection.parallelStream()
+java.util.stream.Stream.parallel()
+```
 
-# Executor services
-java.util.concurrent.ExecutorService.submit(Ljava/lang/Runnable;)Ljava/util/concurrent/Future;
-java.util.concurrent.ThreadPoolExecutor.execute(Ljava/lang/Runnable;)V
-java.util.concurrent.ScheduledExecutorService.schedule(Ljava/lang/Runnable;JLjava/util/concurrent/TimeUnit;)Ljava/util/concurrent/ScheduledFuture;
-
-# CompletableFuture async operations
-java.util.concurrent.CompletableFuture.runAsync(Ljava/lang/Runnable;)Ljava/util/concurrent/CompletableFuture;
-java.util.concurrent.CompletableFuture.supplyAsync(Ljava/util/function/Supplier;)Ljava/util/concurrent/CompletableFuture;
-
-# Parallel streams
-java.util.Collection.parallelStream()Ljava/util/stream/Stream;
-java.util.stream.Stream.parallel()Ljava/util/stream/Stream;
-
-# ... more methods
+**WALA File Format (JVM-descriptor parameters):**
+```
+java.lang.Thread.start()
+java.lang.Thread.startVirtualThread(Ljava/lang/Runnable;)
+java.util.concurrent.ExecutorService.submit(Ljava/lang/Runnable;)
+java.util.concurrent.ThreadPoolExecutor.execute(Ljava/lang/Runnable;)
+java.util.concurrent.ScheduledExecutorService.schedule(Ljava/lang/Runnable;JLjava/util/concurrent/TimeUnit;)
+java.util.concurrent.CompletableFuture.runAsync(Ljava/lang/Runnable;)
+java.util.Collection.parallelStream()
 ```
 
 **Template Locations:**
@@ -1232,7 +1106,7 @@ java.util.stream.Stream.parallel()Ljava/util/stream/Stream;
     <dependency>
         <groupId>de.tum.cit.ase</groupId>
         <artifactId>ares</artifactId>
-        <version>2.0.1-Beta6</version>
+        <version>2.0.1-Beta8</version>
     </dependency>
 </dependencies>
 ```
@@ -1244,12 +1118,12 @@ void testNoThreadCreation() {
     // Load student classes
     JavaClasses javaClasses = new ClassFileImporter()
         .importPackages("de.student");
-    
+
     // Build call graph for WALA mode
     String classPath = System.getProperty("java.class.path");
     CallGraph callGraph = new CustomCallgraphBuilder(classPath)
         .buildCallGraph(classPath);
-    
+
     // Create test case
     JavaArchitectureTestCase testCase = JavaArchitectureTestCase.builder()
         .javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.THREAD_CREATION)
@@ -1257,12 +1131,12 @@ void testNoThreadCreation() {
         .javaClasses(javaClasses)
         .callGraph(callGraph)  // null for ArchUnit mode
         .build();
-    
-    // Execute (WALA mode recommended for thread analysis due to false positive filtering)
-    testCase.executeArchitectureTestCase("WALA", "");
+
+    // Execute (WALA mode recommended for thread analysis due to its path classification)
+    testCase.executeArchitectureTestCase("WALA", "");  // throws SecurityException on violation
 }
 ```
 
 ---
 
-**The architecture testing approach provides comprehensive security validation at compile/test time, complementing the runtime AOP approach for defense-in-depth security against thread creation attacks. WALA mode is particularly powerful for thread analysis due to its sophisticated false positive filtering of JDK-internal thread usage.**
+**The architecture testing approach provides comprehensive security validation at compile/test time, complementing the runtime AOP approach for defense-in-depth security against thread creation attacks. WALA mode is particularly powerful for thread analysis due to its path classification, which suppresses JDK-internal false positives while attributing genuine violations to the responsible student code.**

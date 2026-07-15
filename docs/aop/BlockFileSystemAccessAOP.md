@@ -90,7 +90,7 @@ This document explains how Ares 2 decides whether student code may access the fi
 | **Performance Impact** | Runtime overhead on every call | Analysis overhead only |
 | **False Positives** | None (only executed code checked) | Possible (unreachable code) |
 | **Coverage** | Only executed paths | All code paths |
-| **Configuration** | Path-level permissions | Package-level permissions |
+| **Configuration** | Path-level permissions | Class-level exemptions; package permissions only affect the separate import rule |
 | **Use Case** | Runtime security enforcement | Pre-submission validation |
 | **Error Timing** | Production execution | Test phase |
 
@@ -171,7 +171,7 @@ Instructors define file system access policies in a policy file, and Ares 2 tran
 2. **Student code detected**: The call stack contains classes in `restrictedPackage` and not in `allowedListedClasses`
 3. **Derived actions**: The actions are derived from the intercepted method and any `StandardOpenOption` values (may include multiple actions)
 4. **Path violation found**: After method-specific parameter filtering, at least one extracted path (from parameters or attributes) does not match the list of allowed paths for its allowed actions
-5. **Not internal to Ares**: The violating path is not an internal configuration/resource file of Ares (applies to attribute-based violations; parameter-based violations are blocked immediately)
+5. **Not exempt infrastructure access**: The violating path is not an internal configuration/resource file of Ares and does not fall under one of the JVM-infrastructure exemptions (class-loading `.class` reads, system JAR reads, JDK-internal reads, native-library loads, JCE crypto-policy files, archive entry reads, root `/`). These exemptions apply at all check sites (parameters, receiver, and attributes).
 
 Plain-language summary: if student code triggers a monitored file method and the path is outside the allowlist for the needed action, Ares blocks the access.
 
@@ -201,7 +201,7 @@ Ares classifies file system interactions into five action types. These labels dr
 - **OVERWRITE**: Writing or mutating existing content/attributes (write/append/truncate, metadata setters).
 - **CREATE**: Creating new files, directories, or links (create* APIs, file system creation/open).
 - **DELETE**: Removing files or scheduling deletion/trash operations.
-- **EXECUTE**: In Ares, 'Execute' is a broad category covering execution of binaries, opening files in external applications, and complex file manipulations like moving/copying (for example, `Runtime.exec(...)` or `ProcessBuilder.start(...)`).
+- **EXECUTE**: In Ares, 'Execute' is a broad category covering execution-like file actions such as loading native libraries and opening files or URIs in external applications (for example, `Runtime.load(...)`, `System.loadLibrary(...)`, or `Desktop.open(...)`). Command execution APIs such as `Runtime.exec(...)` and `ProcessBuilder.start(...)` belong to the Command System.
 
 Some APIs can appear under multiple actions because they imply more than one permission (for example, `copy`/`move` or `StandardOpenOption` combinations).
 
@@ -249,7 +249,6 @@ Read APIs listed below access file contents or metadata without modifying them.
 
 | Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
 | --- | --- | --- | --- | --- |
-| java.io.DataInputStream | `<new>` | ✅ | ✅ | ❌ |
 | java.io.DataInput | read | ✅ | ✅ | ❌ |
 | java.io.DataInput | readBoolean | ✅ | ✅ | ❌ |
 | java.io.DataInput | readByte | ✅ | ✅ | ❌ |
@@ -304,11 +303,11 @@ Read APIs listed below access file contents or metadata without modifying them.
 
 **Reads only specific parts of a file**
 
+> **Note:** Generic `InputStream.read()` and `Reader.read()` calls are **not** monitored by either backend. These streams/readers are already validated at construction time (`FileInputStream.<new>`, `Reader.<new>`), so monitoring every subsequent `read()` call would be redundant. `RandomAccessFile.read` is intercepted by AspectJ, but Byte Buddy explicitly **excludes** it via `ignoredMethodsByClass` to avoid recursive self-interception during class and JAR loading in instrumentation mode; the `RandomAccessFile.<new>` constructor pointcut still covers the access in both backends.
+
 | Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
 | --- | --- | --- | --- | --- |
-| java.io.RandomAccessFile | read | ✅ | ✅ | ❌ |
-| java.io.InputStream | read | ✅ | ✅ | ❌ |
-| java.io.Reader | read | ✅ | ✅ | ❌ |
+| java.io.RandomAccessFile | read | ✅ | ❌ (excluded, covered by `<new>`) | ❌ |
 | java.nio.channels.SeekableByteChannel | read | ✅ | ✅ | ❌ |
 
 **Only reads the file hierarchy**
@@ -373,7 +372,6 @@ Write APIs listed below modify existing content or attributes.
 
 | Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
 | --- | --- | --- | --- | --- |
-| java.io.DataOutputStream | `<new>` | ✅ | ✅ | ❌ |
 | java.io.DataOutput | writeBoolean | ✅ | ✅ | ❌ |
 | java.io.DataOutput | writeByte | ✅ | ✅ | ❌ |
 | java.io.DataOutput | writeBytes | ✅ | ✅ | ❌ |
@@ -461,6 +459,8 @@ Link creation APIs and conditional creates (e.g., `FileChannel.open` with create
 
 > **Note:** `FileChannel.open` and `AsynchronousFileChannel.open` do NOT have dedicated CREATE pointcuts in either AspectJ or Byte Buddy. These methods are monitored via READ pointcuts, and the actual operation type (read/write/create) is determined dynamically by analyzing the `OpenOption` parameters via `deriveActionChecks()`. When called with `CREATE` or `CREATE_NEW` options, they are classified as create operations at runtime.
 
+> **Note:** The two backends differ for buffered wrappers: AspectJ has `BufferedOutputStream.<new>` in its `fileCreateMethods` pointcut, whereas Byte Buddy monitors it only via the OVERWRITE map. `BufferedWriter.<new>` has no dedicated CREATE pointcut in either backend; it is intercepted through the `Writer.<new>` OVERWRITE pointcut (`BufferedWriter` extends `Writer`).
+
 | Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
 | --- | --- | --- | --- | --- |
 | java.io.File | createNewFile | ✅ | ✅ | ✅ |
@@ -469,8 +469,8 @@ Link creation APIs and conditional creates (e.g., `FileChannel.open` with create
 | java.nio.file.Files | createTempFile | ✅ | ✅ | ✅ |
 | java.nio.file.Files | createLink | ✅ | ✅ | ✅ |
 | java.nio.file.Files | createSymbolicLink | ✅ | ✅ | ✅ |
-| java.io.BufferedOutputStream | `<new>` | ✅ | ✅ | ✅ |
-| java.io.BufferedWriter | `<new>` | ✅ | ✅ | ✅ |
+| java.io.BufferedOutputStream | `<new>` | ✅ | ❌ (via OVERWRITE pointcut) | ✅ |
+| java.io.BufferedWriter | `<new>` | ❌ (via `Writer.<new>` OVERWRITE pointcut) | ❌ (via `Writer.<new>` OVERWRITE pointcut) | ✅ |
 | java.io.FileOutputStream | `<new>` | ✅ | ✅ | ✅ |
 | java.io.FileWriter | `<new>` | ✅ | ✅ | ✅ |
 | java.io.PrintWriter | `<new>` | ✅ | ✅ | ✅ |
@@ -509,6 +509,8 @@ Delete APIs listed below can remove files and empty directories.
 | java.io.File | delete | ✅ | ✅ | ✅ |
 | java.nio.file.Files | delete | ✅ | ✅ | ✅ |
 | java.nio.file.Files | deleteIfExists | ✅ | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | delete | ✅ | ✅ | ❌ |
+| org.apache.commons.io.FileUtils | forceDelete | ✅ | ✅ | ❌ |
 | java.awt.Desktop | moveToTrash | ✅ | ✅ | ❌ |
 | java.io.File | deleteOnExit | ✅ | ✅ | ✅ |
 
@@ -519,14 +521,17 @@ Delete APIs listed below can remove files and empty directories.
 | java.io.File | delete | ✅ | ✅ | ✅ |
 | java.nio.file.Files | delete | ✅ | ✅ | ✅ |
 | java.nio.file.Files | deleteIfExists | ✅ | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | delete | ✅ | ✅ | ❌ |
+| org.apache.commons.io.FileUtils | forceDelete | ✅ | ✅ | ❌ |
 | java.awt.Desktop | moveToTrash | ✅ | ✅ | ❌ |
 | java.io.File | deleteOnExit | ✅ | ✅ | ✅ |
 
 **Also monitored in delete pointcuts (can delete source file)**
 
+> **Note:** `Files.move` is monitored under both WRITE and DELETE because it writes the destination **and** deletes the source. `Files.copy` is intentionally **not** in the delete pointcuts of either backend, because copying does not delete the source; it is monitored under WRITE only.
+
 | Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
 | --- | --- | --- | --- | --- |
-| java.nio.file.Files | copy | ✅ | ✅ | ❌ |
 | java.nio.file.Files | move | ✅ | ✅ | ❌ |
 
 ---
@@ -534,7 +539,7 @@ Delete APIs listed below can remove files and empty directories.
 <a id="26-what-are-the-monitored-execute-operations"></a>
 ## 2.6 What Are The Monitored EXECUTE Operations?
 
-**What does "Execute" mean?** File system actions that trigger execution-like behavior such as launching processes or opening files with their default programs (e.g., `Runtime.exec(...)` or `ProcessBuilder.start(...)`).
+**What does "Execute" mean?** File system actions that trigger execution-like behaviour such as loading native libraries or opening files with their default programmes (e.g., `Runtime.load(...)`, `System.loadLibrary(...)`, or `Desktop.open(...)`). Process spawning (`Runtime.exec(...)`, `ProcessBuilder.start(...)`) is handled by the Command System.
 
 **Security Component:** Execute operation monitor
 
@@ -544,7 +549,7 @@ Execute APIs listed below trigger execution-like behavior on files.
 
 **Executes the file on the console (command line execution)**
 
-> **Note:** `ProcessBuilder.start()`, `ProcessBuilder.startPipeline()`, and `Runtime.exec()` are handled by the **Command System** rather than the File System in both AspectJ and Byte Buddy modes, as they execute commands rather than individual files. The File System pointcuts for execute only cover library loading (`load`/`loadLibrary`).
+> **Note:** `ProcessBuilder.start()` and `Runtime.exec()` are handled by the **Command System** rather than the File System in both AspectJ and Byte Buddy modes, as they execute commands rather than individual files. `ProcessBuilder.startPipeline()` has no direct pointcut in either the file system or the command system; it is only caught indirectly (an attribute-filter rule exists for it, and its internal thread creation triggers the Thread system). The File System pointcuts for execute only cover library loading (`load`/`loadLibrary`) and Desktop launches.
 
 | Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
 | --- | --- | --- | --- | --- |
@@ -562,11 +567,8 @@ Execute APIs listed below trigger execution-like behavior on files.
 | java.awt.Desktop | print | ✅ | ✅ | ❌ |
 | java.awt.Desktop | browse | ✅ | ✅ | ❌ |
 | java.awt.Desktop | browseFileDirectory | ✅ | ✅ | ❌ |
-| java.awt.Desktop | mail | ✅ | ✅ | ❌ |
-| java.awt.Desktop | openHelpViewer | ✅ | ✅ | ❌ |
-| java.awt.Desktop | setDefaultMenuBar | ✅ | ✅ | ❌ |
-| java.awt.Desktop | setOpenFileHandler | ✅ | ✅ | ❌ |
-| java.awt.Desktop | setOpenURIHandler | ✅ | ✅ | ❌ |
+
+> **Note:** Other `Desktop` methods such as `mail`, `openHelpViewer`, `setDefaultMenuBar`, `setOpenFileHandler`, and `setOpenURIHandler` are **not** intercepted by either backend. Both backends monitor exactly `open`, `edit`, `print`, `browse`, and `browseFileDirectory` (plus `moveToTrash` under DELETE).
 
 ---
 
@@ -677,7 +679,7 @@ public void checkFileSystemInteraction(
 ) {
     String declaringTypeName = thisJoinPoint.getSignature().getDeclaringTypeName();
     String methodName = thisJoinPoint.getSignature().getName();
-    String methodSignature = thisJoinPoint.getSignature().toLongString();
+    String fullMethodSignature = formatSignature(thisJoinPoint.getSignature());
     // Information is now available for validation
 }
 ```
@@ -687,6 +689,8 @@ public void checkFileSystemInteraction(
 - Look up special handling rules for specific methods
 - Distinguish between different versions of the same method (overloading)
 - Example: `java.io.FileInputStream.<init>(Ljava/lang/String;)V` → Identifies a `FileInputStream` constructor taking a String parameter
+
+> 💡 **Why `formatSignature()`?** AspectJ's raw `Signature.toLongString()` prepends Java modifiers (e.g. `"public transient "`) and omits `.<init>` for constructors. The helper `formatSignature()` normalizes the AspectJ join-point signature to the same `<init>`-style shape that the Byte Buddy (Instrumentation) side produces, so both backends report identical signatures.
 
 ---
 
@@ -738,14 +742,13 @@ for (int i = 0; i < fields.length; i++) {
     try {
         fields[i].setAccessible(true);  // Make private fields accessible
         attributes[i] = fields[i].get(instance);  // Read the value
-    } catch (InaccessibleObjectException | IllegalAccessException | SecurityException e) {
-        continue;  // Skip fields that cannot be accessed
-    } catch (IllegalArgumentException e) {
-        throw new SecurityException("Invalid field access: " + fields[i].getName(), e);
-    } catch (NullPointerException e) {
-        throw new SecurityException("Null pointer accessing field: " + fields[i].getName(), e);
-    } catch (ExceptionInInitializerError e) {
-        throw new SecurityException("Initialization error for field: " + fields[i].getName(), e);
+    } catch (InaccessibleObjectException | IllegalAccessException | SecurityException
+            | IllegalArgumentException | NullPointerException | ExceptionInInitializerError e) {
+        // Skip an unreadable field rather than aborting the whole interaction:
+        // a JDK-internal field that throws on read must not turn a JDK-side
+        // reflection limit into an Ares SecurityException. The check still runs
+        // over the parameters and the readable fields.
+        continue;
     }
 }
 ```
@@ -820,11 +823,13 @@ The action type (e.g., `"read"`) is **automatically determined** based on which 
 
 | Intercepted Method Example | Action Type |
 |---------------------------|-------------|
-| `FileInputStream.read()`, `Files.readString()` | `"read"` |
-| `FileOutputStream.write()`, `Files.write()` | `"overwrite"` |
+| `FileInputStream.<new>`, `Files.readString()` | `"read"` |
+| `FileChannel.write()`, `Files.write()` | `"overwrite"` |
 | `File.createNewFile()`, `Files.createFile()` | `"create"` |
 | `File.delete()`, `Files.delete()` | `"delete"` |
-| `Runtime.exec()`, `ProcessBuilder.start()` | `"execute"` |
+| `Runtime.load()`, `Desktop.open()` | `"execute"` |
+
+> **Note:** Streams are checked at construction time (`FileInputStream.<new>`), not on every `read()`/`write()` call. Command execution (`Runtime.exec()`, `ProcessBuilder.start()`) is handled by the separate Command System, not by the file system's `"execute"` action.
 
 **For File System Operations:**
 ```java
@@ -890,17 +895,35 @@ Verify that file system security monitoring is turned on. This check ensures tha
 
 **2. How it works**
 
+Each backend checks the `aopMode` setting against **its own** value only, so at most one backend is ever active:
+
+**Byte Buddy (Instrumentation) Mode:**
 ```java
-// Read security settings
 String aopMode = getValueFromSettings("aopMode");
-if (aopMode == null || (!aopMode.equals("INSTRUMENTATION") && !aopMode.equals("ASPECTJ"))) {
-    return;  // Security is disabled, allow everything
+if (aopMode == null || aopMode.isEmpty() || !aopMode.equals("INSTRUMENTATION")) {
+    return;  // This backend is not active, allow everything
+}
+String restrictedPackage = getValueFromSettings("restrictedPackage");
+if (restrictedPackage == null || restrictedPackage.isEmpty()) {
+    return;  // No student package configured yet
+}
+if (isProjectSourcesFinderInProgress()) {
+    return;  // Ares itself is reading framework support files
 }
 ```
 
-Both implementations check the `aopMode` setting but accept different values:
-- Byte Buddy checks for `"INSTRUMENTATION"`
-- AspectJ checks for `"ASPECTJ"`
+**AspectJ Mode:**
+```java
+String aopMode = getValueFromSettings("aopMode");
+if (aopMode == null || !aopMode.equals("ASPECTJ")) {
+    return;  // This backend is not active, allow everything
+}
+if (isProjectSourcesFinderInProgress()) {
+    return;  // Ares itself is reading framework support files
+}
+```
+
+The instrumentation backend additionally returns early when `restrictedPackage` is null or empty; the AspectJ backend instead null-guards `restrictedPackage` later, before the call-stack check. Both backends skip validation while Ares's own trusted setup utilities are reading framework support files (`isProjectSourcesFinderInProgress()`).
 
 **3. Used variables**
 
@@ -970,7 +993,8 @@ Result: Student code detected at StudentCode.readSecretFile()
 **2. How it works**
 
 ```java
-String violatingMethod = checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses);
+String violatingMethod = checkIfCallstackCriteriaIsViolated(
+        restrictedPackage, allowedClasses, declaringTypeName, methodName);
 if (violatingMethod == null) {
     return;  // Not from student code
 }
@@ -978,60 +1002,57 @@ if (violatingMethod == null) {
 
 **Detailed steps:**
 
-1. **Capture the Call History:**
+1. **Walk the Call History Once (Lazily):** Instead of materializing a full `StackTraceElement[]` via `Thread.currentThread().getStackTrace()`, both backends use a cached `StackWalker` that streams the frames lazily and stops as soon as the needed frames are found. The single-pass helper `inspectCallstackOnce(restrictedPackage, allowedClasses)` finds **both** the violating student frame and the first non-ignored caller above the first restricted frame in one walk:
    ```java
-   StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+   String[] inspection = inspectCallstackOnce(restrictedPackage, allowedClasses);
    ```
 
-2. **Walk Through Each Method Call:**
+2. **Skip Ares Internal Code, Class Loading, and Reflection Trampolines:** Inside the walk, every frame whose class name starts with an `IGNORE_CALLSTACK` prefix is skipped:
    ```java
-   for (StackTraceElement element : stackTrace) {
-       String className = element.getClassName();
-   ```
-
-3. **Skip Ares Internal Code and Java ClassLoader:**
-   ```java
-   boolean shouldSkip = false;
-   for (String ignorePattern : IGNORE_CALLSTACK) {
-       if (className.startsWith(ignorePattern)) {
-           shouldSkip = true;
+   boolean ignorable = false;
+   for (String ignore : IGNORE_CALLSTACK) {
+       if (className.startsWith(ignore)) {
+           ignorable = true;
            break;
        }
    }
-   if (shouldSkip) {
-       continue;  // Skip this method, it's part of Ares or Java internals
+   if (ignorable) {
+       continue;  // Part of Ares, class loading, debugging, or reflection internals
    }
    ```
 
-4. **Check if This is Student Code:**
+3. **Check if a Frame is Student Code:**
    ```java
-   if (className.startsWith(restrictedPackage)) {
-       // This method is in the student package
+   boolean inRestricted = className.startsWith(restrictedPackage);
    ```
 
-5. **Check if it's an Allowed Helper Class:**
+4. **Check if it's an Allowed Helper Class (inline prefix loop):**
    ```java
-       if (!isInAllowedList(allowedClasses, element)) {
-           // Not in the allowed list → This is restricted student code
-           return className + "." + element.getMethodName();
+   boolean allowed = false;
+   if (allowedClasses != null) {
+       for (String allowedClass : allowedClasses) {
+           if (className.startsWith(allowedClass)) {
+               allowed = true;
+               break;
+           }
        }
    }
+   if (!allowed) {
+       violation = className + "." + frame.getMethodName();  // Restricted student code
+   }
    ```
 
-6. **If No Student Code Found:**
-   ```java
-   return null;  // No restricted student code in call chain
-   ```
+5. **Cache the Result Per Thread:** The result (violating frame plus the caller above the first restricted frame) is stored in a per-thread cache so the immediately following lookup of the calling test method (5.2.3) does not need a second stack walk. If no restricted frame is found, `null` is returned (no student code in the call chain).
 
 **3. Used variables**
 
 - **`restrictedPackage`** (String): From 5.2.1 - defines student code boundary
 - **`allowedClasses`** (String[]): From 5.2.1 - list of trusted helper classes
 - **`violatingMethod`** (String): Returns the fully qualified method name of the student code that triggered the file operation, or `null` if no student code found
-- **`stackTrace`** (StackTraceElement[]): The complete call chain showing all method calls leading to this point
-- **`IGNORE_CALLSTACK`** (String[]): Instrumentation uses `["java.lang.ClassLoader", "de.tum.cit.ase.ares.api."]`; AspectJ uses `["java.lang.ClassLoader", "de.tum.cit.ase.ares.api.", "de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension", "de.tum.cit.ase.ares.api.jqwik.JqwikSecurityExtension", "de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationBindingDefinitions"]`
+- **`declaringTypeName`**, **`methodName`** (String): The intercepted class and method, passed through to `checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses, declaringTypeName, methodName)` for diagnostics
+- **`STACK_WALKER`** (StackWalker): Cached walker that streams the call chain lazily instead of materializing a full `StackTraceElement[]`
+- **`IGNORE_CALLSTACK`** (List<String>): Identical in both backends: `["java.lang.ClassLoader", "de.tum.cit.ase.ares.api.", "com.intellij.rt.debugger.", "jdk.internal.loader.", "jdk.internal.reflect."]`
 - **`className`** (String): The fully qualified class name for each method in the call stack
-- **`isInAllowedList()`** (method): Helper function that returns `true` if the class is listed in the `allowedClasses` array
 
 **4. Result**
 
@@ -1079,33 +1100,40 @@ Test method identified → Stored for error message → 🌕 **Continue to Check
 
 Determine which security actions to validate based on method parameters. **Real-world analogy:** Like a door that needs both a key AND a fingerprint scan - some file operations need multiple permissions checked simultaneously.
 
-Most methods need just one permission (e.g., "read"), but some need multiple. For example, `Files.write()` with `CREATE` and `WRITE` options needs both "create" and "overwrite" permissions. This check analyzes the operation mode to determine which permission types need validation.
+Most methods need just one permission (e.g., "read"), but some need multiple (e.g., a `READ`+`WRITE` channel is validated against both the read and the overwrite allowlist). This check analyzes the operation mode to determine which permission types need validation.
 
 **2. How it works**
 
 ```java
-List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action, parameters);
+List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action, declaringTypeName, parameters);
 ```
 
 **How It Works:**
 
 1. **Search for StandardOpenOption in parameters:**
    - If found, map each option to corresponding actions
-   - Build list of all required permissions
-   
+   - Apply semantic prioritization rules (see below) so the checked actions match the caller's intent
+
 2. **If no StandardOpenOption found:**
    - Use the `action` parameter from the advice class (e.g., "read", "overwrite")
-   - This is the default behavior for simple operations
+   - Special handling: `RandomAccessFile` mode strings (see Section 6.2) and legacy append=false booleans (`FileWriter`, `FileOutputStream`, `PrintWriter`), which turn "create" into "overwrite"
 
 3. **Return list of actions with non-existence flags:**
    - Each entry: `(action, canBeNonExistent)`
-   - Example: `[("create", true), ("overwrite", false)]`
+   - Example: `[("overwrite", true)]`
+
+**Semantic prioritization rules:**
+
+- **`DELETE_ON_CLOSE` always wins:** whenever it is present, the operation is treated as a pure `("delete", false)` check, regardless of any other options or of which pointcut intercepted the call.
+- **`CREATE_NEW` + write option → create only:** the primary intent is creating a new file; the `WRITE` option is just an implementation detail, so the result is `[("create", true)]` and no "overwrite" check is added.
+- **`CREATE` + write option → single overwrite check:** "write to file, creating it if absent" is semantically an overwrite, so "create" and "overwrite" are merged into one `("overwrite", true)` check (the `true` keeps non-existing paths validated).
+- **`READ` is always validated separately:** a `READ`+`WRITE` channel can read file contents, so a file that is overwrite-allowed but not read-allowed must not be readable through it.
 
 **Example with StandardOpenOption:**
 ```java
 Files.write(path, data, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
 ```
-This triggers validation for **both** "create" and "overwrite" actions.
+`CREATE` and `WRITE` are first mapped to "create" and "overwrite", then merged into a **single** `("overwrite", true)` check by the create+overwrite rule above.
 
 **Example without StandardOpenOption:**
 ```java
@@ -1127,7 +1155,7 @@ This uses the default action "read" from `JavaInstrumentationReadPathMethodAdvic
 **Why Can CREATE Paths Be Non-Existent?**
 When creating a new file, the file doesn't exist yet. The security check must validate the path before the file is created.
 
-**Multiple Permissions:** If multiple modes are specified, **all** corresponding permissions are checked.
+**Multiple Permissions:** If multiple modes are specified, all corresponding permissions are checked **after** the semantic prioritization rules above have been applied (e.g., `DELETE_ON_CLOSE` collapses everything to "delete", and create+overwrite is merged into a single "overwrite" check).
 
 **Default:** If no `StandardOpenOption` found, uses the `action` parameter passed to `checkFileSystemInteraction()` based on which method was intercepted (e.g., `FileInputStream` → `"read"`).
 
@@ -1139,7 +1167,7 @@ When creating a new file, the file doesn't exist yet. The security check must va
 
 **4. Result**
 
-List of actions to validate (e.g., `[("create", true), ("overwrite", false)]`) → 🌕 **Continue to Check 4**
+List of actions to validate (e.g., `[("overwrite", true)]` for `CREATE`+`WRITE`, or `[("read", false), ("overwrite", false)]` for `READ`+`WRITE`) → 🌕 **Continue to Check 4**
 
 ---
 
@@ -1194,21 +1222,47 @@ Apply method-specific rules to determine which parameters or object fields shoul
 
 **2. How it works**
 
+There are **two** ignore maps: one for the object's attributes and one for the method parameters.
+
 ```java
-IgnoreValues ignoreRule = FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(
+// Attribute side
+IgnoreValues attributeIgnoreRule = FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(
     declaringTypeName + "." + methodName,
     IgnoreValues.NONE
 );
-Object[] filteredVariables = filterVariables(attributes, ignoreRule);
+Object[] filteredAttributes = filterVariables(attributes, attributeIgnoreRule);
+
+// Parameter side
+IgnoreValues parameterIgnoreRule = FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(
+    declaringTypeName + "." + methodName,
+    IgnoreValues.NONE
+);
+Object[] filteredParameters = filterVariables(parameters, parameterIgnoreRule);
 ```
 
-**Current file system special cases (attribute-based):**
+**Current file system special cases (attribute-based, `FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT`):**
 
 | Method | What We Check | Why |
 |--------|---------------|-----|
-| `File.delete()` | Only the relevant `File` attribute | The path is stored in the `File` object, not passed as a parameter |
-| `File.deleteOnExit()` | Only the relevant `File` attribute | The path is stored in the `File` object, not passed as a parameter |
-| `File.createNewFile()` | Only the relevant `File` attribute | The path is stored in the `File` object, not passed as a parameter |
+| `File.delete()` | Only the `path` field of the `File` object | The path is stored in the `File` object, not passed as a parameter |
+| `File.deleteOnExit()` | Only the `path` field of the `File` object | The path is stored in the `File` object, not passed as a parameter |
+| `File.createNewFile()` | Only the `path` field of the `File` object | The path is stored in the `File` object, not passed as a parameter |
+| `ProcessBuilder.start()` | Only the `command` field | Only the command field carries the executable path; other fields (environment, redirects) are irrelevant |
+| `ProcessBuilder.startPipeline()` | Only the `command` field | Same as `ProcessBuilder.start()` |
+
+**Current file system special cases (parameter-based, `FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT`):**
+
+| Method | What We Check | Why |
+|--------|---------------|-----|
+| `Files.createTempFile(dir, prefix, suffix, ...)` | Only parameter 0 (the directory `Path`) | Prefix/suffix strings are not paths |
+| `Files.writeString(path, csq, ...)` | Only parameter 0 (the `Path`) | The written content is not a path |
+| `Files.write(path, bytes, ...)` | Only parameter 0 (the `Path`) | The written content is not a path |
+| `Files.readString(path, cs)` | Only parameter 0 (the `Path`) | The charset is not a path |
+| `File.createTempFile(prefix, suffix)` | Nothing (all parameters ignored) | There is no path parameter at all |
+| `Runtime.exec(cmd, ...)` | Only parameter 0 (the command) | Flags like `"-c"` are not paths |
+| `RandomAccessFile.<new>(file, mode)` | Only parameter 0 (the file) | The mode string (`"r"`/`"rw"`/...) is not a path |
+| `DataOutputStream.writeUTF/writeChars/writeBytes(String)` | Nothing (all parameters ignored) | The argument is payload, never a path; the underlying file was validated when the `FileOutputStream` was opened |
+| `PrintStream.<new>(sink, ...)` | Only parameter 0 (the sink) | A charset name like `"UTF-8"` is not a path |
 
 **4. Result**
 
@@ -1224,49 +1278,62 @@ Extract and validate all file paths from method parameters. This step systematic
 **2. How it works**
 
 ```java
-// 1. Filter parameters based on special rules
-Object[] filteredVariables = filterVariables(parameters, ignoreRule);
+// 1. Filter parameters based on special rules (FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT, see 5.4.2)
+Object[] filteredVariables = filterVariables(parameters, parameterIgnoreRule);
 
-// 2. Extract paths from each parameter
+// 2. Extract a path candidate from each parameter
 for (Object variable : filteredVariables) {
-    Path candidate = variableToPath(variable);
-    if (candidate == null) {
-        continue;
+    Path actualPath = variableToPath(variable);  // String, Path, File, or file:// URI/URL
+    if (actualPath == null) {
+        continue;  // Not path-like (arrays/Lists are recursed into element by element)
     }
 
-    // 3. Normalize and validate path
-    Path normalizedCandidate = candidate.normalize().toAbsolutePath();
-    if (Files.exists(normalizedCandidate) && !allowNonExistingPaths) {
-        normalizedCandidate = normalizedCandidate.toRealPath(LinkOption.NOFOLLOW_LINKS);
+    // 3. Canonicalize the candidate FIRST (symlink resolution, TOCTOU defence)
+    Path candidate;
+    if (Files.exists(actualPath, LinkOption.NOFOLLOW_LINKS)) {
+        // Follow ALL symlinks to the real target - deliberately WITHOUT
+        // NOFOLLOW_LINKS, so a symlink inside an allowed folder cannot
+        // point outside the sandbox undetected.
+        candidate = actualPath.toRealPath();
+    } else {
+        // Non-existing target (e.g. a file about to be created): resolve
+        // symlinks in the deepest EXISTING ancestor and re-append the
+        // remaining segments, so a symlinked parent directory cannot
+        // redirect the create/overwrite outside the allowlist.
+        candidate = resolveExistingAncestorRealPath(actualPath.normalize().toAbsolutePath());
     }
-    
+
+    // 4. Compare against every allowed path prefix
+    boolean hasAllowedPrefix = false;
     for (String allowedPathString : allowedPaths) {
-        Path allowedPath = Path.of(allowedPathString).normalize().toAbsolutePath();
-        if (!allowNonExistingPaths && !Files.exists(allowedPath)) {
-            continue;
-        }
-        if (Files.exists(allowedPath)) {
-            allowedPath = allowedPath.toRealPath(LinkOption.NOFOLLOW_LINKS);
-        }
-        if (normalizedCandidate.startsWith(allowedPath)) {
-            continue;  // Path is allowed
+        Path allowedPath = variableToPath(allowedPathString);
+        // Allowed paths are canonicalized the same way: toRealPath() when they
+        // exist, otherwise via their deepest existing ancestor. Non-existing
+        // policy entries are NOT skipped - a rule like "allow protected/file.txt"
+        // must hold even before the file is created.
+        if (pathMatches(candidate, allowedPath, allowNonExistingPaths)) {
+            hasAllowedPrefix = true;
+            break;
         }
     }
-    // Path is NOT allowed → Record violation
+    if (!hasAllowedPrefix) {
+        // Path is NOT allowed → Record violation
+    }
 }
 ```
 
 **3. Used variables**
 
 - **`parameters`** (Object[]): From section 4.3 - all method parameters
-- **`ignoreRule`** (IgnoreValues): From 5.4.2 - determines which parameters to check
+- **`parameterIgnoreRule`** (IgnoreValues): From 5.4.2 (`FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT`) - determines which parameters to check
 - **`filteredVariables`** (Object[]): From 5.4.2 - subset of parameters to validate
 - **`allowedPaths`** (String[]): From 5.4.1 - list of allowed path prefixes
-- **`candidate`** (Path): Converted path candidate (String/Path/File only; other types are ignored)
-- **`normalizedCandidate`** (Path): Normalized absolute path of the file being accessed
-- **`allowNonExistingPaths`** (boolean): Whether missing paths are allowed for this action (e.g., create)
-- **`allowedPath`** (Path): Normalized, absolute, real path of an allowed path prefix
-- **`variableToPath()`** (method): Helper that converts only `String`, `Path`, or `File` values to `Path`
+- **`candidate`** (Path): Canonicalized path of the file being accessed (all symlinks resolved via `toRealPath()`, or via the deepest existing ancestor when the target does not exist yet)
+- **`allowNonExistingPaths`** (boolean): Whether missing paths are allowed for this action (e.g., create/delete)
+- **`allowedPath`** (Path): Canonicalized allowed path prefix (same resolution rules as the candidate)
+- **`variableToPath()`** (method): Helper that converts `String`, `Path`, `File`, and `URI`/`URL` values with a `file` scheme to a normalized absolute `Path`; other types (and non-`file` URIs/URLs) are ignored
+- **`resolveExistingAncestorRealPath()`** (method): Helper that resolves symlinks in the deepest existing ancestor of a non-existing path and re-appends the remaining segments
+- **`pathMatches()`** (method): Helper that canonicalizes the allowed path and checks whether the candidate starts with it
 
 **4. Result**
 
@@ -1306,25 +1373,42 @@ Allow Ares to access its own configuration and resource files. Ares needs to rea
 **2. How it works**
 
 ```java
-boolean isInternalAllowed = INTERNAL_PATH_SUFFIXES.stream()
-    .anyMatch(pathViolation::endsWith);
+boolean isInternalAllowed = false;
+for (String suffix : INTERNAL_PATH_SUFFIXES) {
+    if (pathViolation.endsWith(suffix)) {
+        isInternalAllowed = true;
+        break;
+    }
+}
 
 if (!isInternalAllowed) {
     throw SecurityException;
 }
 ```
 
-**Ares Internal Files:**
+This exemption is applied at **all three** check sites: parameter-based, receiver-based, and attribute-based violations.
+
+**Ares Internal Files (`INTERNAL_PATH_SUFFIXES`, 6 entries):**
 - `"ares/api/localization/Messages.class"`
 - `"ares/api/localization/messages.class"`
 - `"ares/api/localization/messages.properties"`
 - `"ares/api/util/LruCache.class"`
+- `"ares/api/configuration/essentialFiles/java/EssentialPackages.yaml"`
+- `"ares/api/configuration/essentialFiles/java/EssentialClasses.yaml"`
+
+**Further infrastructure exemptions:** Besides Ares's own files, a flagged path is also allowed when the access is JVM/library infrastructure rather than student file access:
+- `.class` reads performed by the class-loading machinery (a class-loader frame is on the stack, or the caller is `Class.forName`/`ClassLoader`)
+- `.jar` reads from system infrastructure (the Maven local repository or the JDK installation under `java.home`)
+- JDK-internal reads under `java.home` and native-library loads (`.dylib`/`.jnilib`/`.so`/`.dll`)
+- JCE crypto-policy files read during TLS/cryptography initialization
+- Entry reads on an **already-open** `JarFile`/`ZipFile` (the constructor is NOT exempt and still validates its path)
+- The root path `"/"` when found in object attributes (a side effect of class resolution)
 
 **3. Used variables**
 
-- **`pathViolation`** (String): The file path that was flagged as forbidden in 5.4.4 (attribute-based)
-- **`INTERNAL_PATH_SUFFIXES`** (List<String>): Predefined list of Ares internal file path suffixes that should always be allowed
-- **`isInternalAllowed`** (boolean): `true` if the path ends with an Ares internal file suffix, `false` otherwise
+- **`pathViolation`** (String): The file path that was flagged as forbidden in 5.4.3 (parameters), the receiver check, or 5.4.4 (attributes)
+- **`INTERNAL_PATH_SUFFIXES`** (Set<String>): Predefined list of Ares internal file path suffixes that should always be allowed
+- **`isInternalAllowed`** (boolean): `true` if the path ends with an Ares internal file suffix or matches one of the infrastructure exemptions, `false` otherwise
 
 **4. Result**
 
@@ -1348,32 +1432,30 @@ Block the forbidden file operation and provide a comprehensive error message. Wh
 throw new SecurityException(localize(
     "security.advice.illegal.file.execution",
     violatingMethod,           // de.student.StudentCode.exploit
-    action,                    // "read"
+    messageAction,             // "read" (the reported verb; "create" is aliased to
+                               // "overwrite" for truncating writers, see below)
     violatingPath,             // "/etc/passwd"
-    fullMethodSignature +      // "java.io.FileInputStream.<init>(Ljava/lang/String;)V"
-    " (called by " + studentCalledMethod + ")"  // " (called by org.junit.TestClass.testStudent)"
+    fullMethodSignature        // "java.io.FileInputStream.<init>(Ljava/lang/String;)V"
+        + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+        + " | " + buildDenialReason(noAllowRuleConfigured)
 ));
 ```
 
 **3. Used variables**
 
 - **`violatingMethod`** (String): From 5.2.2 - the student method that attempted the file access (e.g., `"de.student.StudentCode.exploit"`)
-- **`action`** (String): From section 4.4 - the type of operation attempted (e.g., `"read"`, `"write"`, `"delete"`)
+- **`messageAction`** (String): The reported operation verb. Usually the checked action from 5.3, but when a "create" pointcut intercepts a class/method that semantically truncates/overwrites (`FileOutputStream`, `FileWriter`, `PrintWriter`, or `Files.newBufferedWriter`/`newOutputStream` without `append=true`), "create" is aliased to `"overwrite"` in the message
 - **`violatingPath`** (String): From 5.4.3/5.4.4 - the forbidden file path that was accessed (e.g., `"/etc/passwd"`)
 - **`fullMethodSignature`** (String): From section 4.1 - complete method signature showing exactly which method was called (e.g., `"java.io.FileInputStream.<init>(Ljava/lang/String;)V"`)
-- **`studentCalledMethod`** (String): From 5.2.3 - the test method that invoked the student code (e.g., `"org.junit.TestClass.testStudent"`)
+- **`studentCalledMethod`** (String): From 5.2.3 - the test method that invoked the student code (e.g., `"org.junit.TestClass.testStudent"`); omitted from the message when null
+- **`buildDenialReason()`** (method): Appends why the access was denied - either no allow rule was configured for this action at all, or a rule exists but does not permit this path
 - **`localize()`** (method): Translates the error message to the configured language
 
 **4. Result**
 
-**Example Error Message:**
+**Example Error Message** (a single line, from the `security.advice.illegal.file.execution` template `"... %s tried to illegally %s File %s via %s but was blocked by Ares."`):
 ```
-SecurityException: Unauthorized file access detected
-Student method: de.student.StudentCode.exploit
-Operation: read
-Forbidden path: /etc/passwd
-Attempted via: java.nio.file.Files.readString(Ljava/nio/file/Path;)Ljava/lang/String;
-Test method: org.junit.TestClass.testStudent
+Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.StudentCode.exploit tried to illegally read File /etc/passwd via java.nio.file.Files.readString(java.nio.file.Path) (called by org.junit.TestClass.testStudent) | <denial reason> but was blocked by Ares.
 ```
 
 🔴 **SecurityException thrown** - Analysis terminated, file operation blocked
@@ -1391,7 +1473,13 @@ This section explains why the **detected operation type** may differ from the **
 **Problem:** When multiple `StandardOpenOption` values are passed to NIO methods, certain options take precedence over others in the `deriveActionChecks()` method.
 
 **Technical Background:**
-The `deriveActionChecks()` method in `JavaInstrumentationAdviceFileSystemToolbox.java` processes `StandardOpenOption` values in a specific order using a switch statement:
+The `deriveActionChecks()` method first applies two overriding rules, then maps the remaining options individually:
+
+1. **`DELETE_ON_CLOSE` has the highest priority:** when present, the operation is always classified as `("delete", false)`, regardless of any other options or of which pointcut intercepted the call.
+2. **`CREATE_NEW` + a write option (`WRITE`/`APPEND`/`TRUNCATE_EXISTING`) → create only:** the primary intent is creating a new file, so the result is `[("create", true)]`.
+3. Otherwise, each option is mapped individually: `CREATE`/`CREATE_NEW` → "create" (non-existing allowed), `WRITE`/`APPEND`/`TRUNCATE_EXISTING` → "overwrite", `READ` → "read", `DELETE_ON_CLOSE` → "delete". Afterwards, a resulting create+overwrite combination (e.g. from plain `CREATE`+`WRITE`) is merged into a single `("overwrite", true)` check.
+
+The AspectJ backend (`JavaAspectJFileSystemAdviceDefinitions.aj`) implements the per-option mapping with a switch statement and `Map.merge`:
 
 ```java
 for (StandardOpenOption option : options) {
@@ -1417,16 +1505,18 @@ for (StandardOpenOption option : options) {
 }
 ```
 
-**Consequence:** When both `CREATE_NEW` and `WRITE` are present, both "create" and "overwrite" are added to the actions map. The security check validates ALL derived actions, meaning `WRITE` triggers an "overwrite" check even when the developer's intent was file creation.
+The Byte Buddy backend (`JavaInstrumentationAdviceFileSystemToolbox.java`) implements the identical logic with an if-else chain over `option.name()` plus a `mergeBoolean()` helper instead of switch/`Map.merge`. This is deliberate: a switch on an enum and method references would generate synthetic inner classes (`SwitchMap`, lambda classes) that may not be present in the agent JAR and would cause `NoClassDefFoundError` at runtime.
+
+**Consequence:** The reported operation reflects the derived intent, not the raw options. `CREATE_NEW`+`WRITE` yields only a "create" check; plain `CREATE`+`WRITE` yields a single "overwrite" check (with non-existing paths still validated); `DELETE_ON_CLOSE` always yields a "delete" check.
 
 **Affected Test Cases:**
 
 | Test | Expected Intent | Detected Operation | Reason |
 |------|-----------------|-------------------|--------|
-| FileSystemCreateAccess#7 | create | overwrite | `Files.newByteChannel(CREATE_NEW, WRITE)` - WRITE triggers overwrite |
-| FileSystemCreateAccess#8 | create | overwrite | `FileChannel.open(CREATE_NEW, WRITE)` - WRITE triggers overwrite |
-| FileSystemDeleteAccess#7 | delete | overwrite | `Files.newByteChannel(DELETE_ON_CLOSE, WRITE)` - WRITE has precedence |
-| FileSystemDeleteAccess#8 | delete | overwrite | `FileChannel.open(DELETE_ON_CLOSE, WRITE)` - WRITE has precedence |
+| FileSystemCreateAccess#7 | create | create | `Files.newByteChannel(CREATE_NEW, WRITE)` - CREATE_NEW+WRITE is prioritized as create |
+| FileSystemCreateAccess#8 | create | create | `FileChannel.open(CREATE_NEW, WRITE)` - CREATE_NEW+WRITE is prioritized as create |
+| FileSystemDeleteAccess#7 | delete | delete | `Files.newByteChannel(DELETE_ON_CLOSE, WRITE)` - DELETE_ON_CLOSE has highest priority |
+| FileSystemDeleteAccess#8 | delete | delete | `FileChannel.open(DELETE_ON_CLOSE, WRITE)` - DELETE_ON_CLOSE has highest priority |
 | FileSystemWriteAccess#14 | overwrite | read | `MappedByteBuffer` requires `FileChannel.open(READ)` first |
 
 <a id="62-category-b-randomaccessfile-mode-detection"></a>
@@ -1438,14 +1528,20 @@ for (StandardOpenOption option : options) {
 The `getRandomAccessFileModeAction()` method maps mode strings to security actions:
 
 ```java
-private static String getRandomAccessFileModeAction(Object[] parameters) {
+private static String getRandomAccessFileModeAction(Object[] parameters, String defaultAction) {
+    if (parameters == null || parameters.length < 2) {
+        return null;
+    }
     // RandomAccessFile constructor: (File/String file, String mode)
+    // The mode is always the second parameter
     Object modeParam = parameters[1];
     if (modeParam instanceof String) {
         String mode = (String) modeParam;
         if ("r".equals(mode)) {
             return "read";
         } else if ("rw".equals(mode) || "rws".equals(mode) || "rwd".equals(mode)) {
+            // The mode parameter takes priority over the pointcut context
+            // (defaultAction) because it explicitly declares the user's intent.
             return "overwrite";
         }
     }

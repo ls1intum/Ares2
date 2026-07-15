@@ -2,7 +2,7 @@
 
 > **Audience:** IT-Education experts with no security background.
 > **Scope:** All classes inside `SecurityPolicy.java`, and the `policySubComponents` package.
-> **Ares Version:** 2.0.1-Beta6
+> **Ares Version:** 2.0.1-Beta8
 
 **Related documentation:**
 - [How to Make a Project an Ares Project](../HowToMakeAProjectAnAresProject.md), project setup (build.gradle / pom.xml)
@@ -53,7 +53,7 @@
 ## 1. Prerequisites
 
 - **Java 17** or later
-- **Gradle 7+** or **Maven 3.8+** for building
+- **Gradle** or **Maven 3.8+** for building, with versions compatible with the AspectJ and test plugins used by the project
 - **JUnit 5** (Jupiter) for test execution
 - **Ares 2**
 
@@ -155,11 +155,11 @@ The `@Policy` annotation has three parameters:
 |-----------|------|---------|-------------|
 | `value` | `String` | `""` | The path to the security policy YAML file, **relative to the project root**. For example, `"SecurityPolicy.yaml"` refers to a file at the top level of your project. You can also place policies in subdirectories, e.g., `"policies/FileIOPolicy.yaml"`. Ares 2 reads this file at test startup and configures all security restrictions accordingly. |
 | `withinPath` | `String` | `""` | The path to the **compiled** student bytecode, **relative to the build output directory**. This tells Ares 2 which `.class` files to monitor and restrict. The path must match the package structure of the supervised student code. See the mapping table below. |
-| `activated` | `boolean` | `true` | Whether the policy is active. In JUnit Jupiter, set to `false` to run in **unprotected mode** (AOP settings are reset and policy enforcement is skipped). |
+| `activated` | `boolean` | `true` | Whether the policy is active. Set to `false` to run in **unprotected mode** (AOP settings are reset and policy enforcement is skipped). |
 
-> **Note:** `JqwikSecurityExtension` currently does not evaluate `activated`; it enforces the policy when `@Policy` is present.
+> **Note:** Both `JupiterSecurityExtension` and `JqwikSecurityExtension` evaluate `activated`. Setting `@Policy(activated = false)` is the only way to disable enforcement for a supervised test.
 
-> **Important:** Always place the `@Policy` annotation on the **test method**, not on the test class. In the current extension implementation, class-level placement does not activate policy enforcement for individual test methods.
+> **Important:** The `@Policy` annotation can be placed on the **test method** or on the **test class**. A class-level annotation applies to all test methods in the class; a method-level annotation takes precedence over a class-level one (they are not merged).
 
 **`withinPath` mapping, project structure to bytecode path:**
 
@@ -179,8 +179,10 @@ The interaction between test annotations (`@Public`, `@Hidden`, `@Test`, `@Publi
 | Scenario | Annotations | Resource Access |
 |----------|-------------|-----------------|
 | **No Supervision** | No `@Test`/`@PublicTest`/`@HiddenTest` & no `@Policy` | No Ares security code is activated at all, student code runs with no restrictions |
-| **Supervision Without Policy** | `@Public`/`@Hidden` + `@Test`/`@PublicTest`/`@HiddenTest` but **no** `@Policy` | No policy-based sandbox is activated; student code is not restricted by SecurityPolicy permissions |
+| **Supervision Without Policy** | `@Public`/`@Hidden` + `@Test`/`@PublicTest`/`@HiddenTest` but **no** `@Policy` | Ares enforces a **default most-restricted policy**: every file, network, command, thread, and package access is denied, and a restrictive timeout of 10,000 ms applies |
 | **Supervision With Policy** | `@Public`/`@Hidden` + `@Test`/`@PublicTest`/`@HiddenTest` **and** `@Policy` | Student code can access **only allowed** supervised resources (explicit allowlist via policy) |
+
+> **Opting out:** The only way to disable enforcement for a supervised test is an explicit `@Policy(activated = false)`.
 
 ### 5.3 Step 3: Run the Tests
 
@@ -197,10 +199,10 @@ When you run the tests, Ares 2 will automatically enforce the security policy. I
 Ares 2's behaviour depends on whether test supervision is active (via `@Test`, `@PublicTest`, or `@HiddenTest`) and whether a `@Policy` annotation is present:
 
 - **Without supervision** (no test annotation present, no policy annotation present): Student code runs freely with no restrictions.
-- **With supervision but no policy** (test annotation present, no policy annotation present): Ares 2 does not activate SecurityPolicy-based enforcement. Student code is not restricted by policy permissions unless a `@Policy` annotation is present and active.
+- **With supervision but no policy** (test annotation present, no policy annotation present): Ares 2 enforces a **default most-restricted configuration**. It falls back to Maven, ArchUnit, and AspectJ as build, analysis, and enforcement modes, derives the supervised scope by scanning the project, and denies every resource access (via `ResourceAccesses.createRestrictive()`) with a single restrictive timeout of 10,000 ms. Static ArchUnit rules are executed immediately; runtime interception in this mode relies on AspectJ weaving, so code that is not AspectJ-woven is covered by the static checks only. The only opt-out is an explicit `@Policy(activated = false)`.
 - **With supervision and a policy** (test annotation present, policy annotation present): Ares 2 enforces only the permissions explicitly listed in the policy file. Everything else is forbidden.
 
-When you define a security policy file, you start with maximum security (everything forbidden) and selectively allow only what the exercise absolutely requires. Specifying an explicit `@Policy` annotation with a restrictive policy object (for example, `theFollowingResourceAccessesArePermitted` containing six empty lists) activates Ares 2's security enforcement machinery and enforces default-deny for policy-controlled resources. This is stricter than supervision without a policy, where SecurityPolicy enforcement is not activated.
+When you define a security policy file, you start with maximum security (everything forbidden) and selectively allow only what the exercise absolutely requires. Specifying an explicit `@Policy` annotation with a restrictive policy object (for example, `theFollowingResourceAccessesArePermitted` containing six empty lists) enforces default-deny for policy-controlled resources. This is equivalent in strictness to supervision without a policy; the difference is that an explicit `@Policy` lets you choose the configuration (build tool, analysis framework, enforcement mechanism) and selectively grant permissions.
 
 ### 6.2 What Can Be Controlled?
 
@@ -225,8 +227,8 @@ The security policy does not cover the following resource types. They are enforc
 | JNDI | JNDI lookup access via `InitialContext` and `InitialDirContext` (LDAP/RMI/DNS injection paths) | Block `new InitialContext().lookup("ldap://...")` |
 | JVM Termination | Terminating the JVM via `System.exit()`, `Runtime.exit()`, `Runtime.halt()`, and JDK tool `main()` methods | Block `System.exit(0)` |
 | Module System | JPMS module boundary crossings: internal API access, `setAccessible` bypass, `Module.implAddOpens`/`implAddExports`, `MethodHandles.privateLookupIn` | Block `field.setAccessible(true)` on module-internal fields |
-| Native Code | Loading native libraries (`System.loadLibrary`, `System.load`, `Runtime.loadLibrary`) and `sun.misc.Unsafe` operations (memory allocation, CAS, direct byte buffers) | Block `System.loadLibrary("native")` |
-| Reflection | 201 methods in `java.lang.reflect.*`, `java.lang.invoke.*`, `Class.forName()`, `Method.invoke()`, `Field.set()`, `Proxy.newProxyInstance()`, `sun.misc.Unsafe`, `java.lang.foreign.*` (FFI/Panama) | Block `Method.invoke(obj, args)` |
+| Native Code | Loading native libraries (`System.loadLibrary`, `System.load`, `Runtime.loadLibrary`, `Runtime.load`) and `sun.misc.Unsafe` operations (memory allocation, CAS, direct byte buffers) | Block `System.loadLibrary("native")` |
+| Reflection | Roughly 190 methods in `java.lang.reflect.*`, `java.lang.invoke.*`, `Class.forName()`, `Method.invoke()`, `Field.set()`, `Proxy.newProxyInstance()`, `sun.misc.Unsafe`, `java.lang.foreign.*` (FFI/Panama) | Block `Method.invoke(obj, args)` |
 | Serialization | Java object serialization via `ObjectInputStream` and `ObjectOutputStream` | Block `new ObjectInputStream(stream).readObject()` |
 | Test Utilities | Ares 2 test infrastructure classes that are listed in the policy as `theFollowingClassesAreTestClasses` to exempt them from security restrictions | Exempt `com.instructor.ExerciseTest` |
 | Agent | JVM agent attach and instrumentation APIs: `Instrumentation` access, class redefinition/retransformation, `VirtualMachine.attach`, `loadAgent` | Block `VirtualMachine.attach(pid)` |
@@ -356,7 +358,7 @@ The `theFollowingClassesAreTestClasses` field lists the fully qualified names of
 
 **Field Properties:**
 - **Type:** Array of strings
-- **Required:** Yes (but can be an empty array `[]` if all test code is external to the supervised package; if omitted, Ares 2 auto-detects by scanning for classes annotated with `@Test`, `@PublicTest`, `@HiddenTest`, or extending `TestCase`)
+- **Required:** Yes (the field must be present, `SupervisedCode` rejects a `null` array, but it can be an empty array `[]` if all test code is external to the supervised package. With a policy present, the exempt test classes come **only** from this list, Ares is fail-closed here and never derives the exemption set by scanning the student-controlled project. Auto-detection by scanning happens only on the no-policy fallback path.)
 - **Description:** List of fully qualified test class names that are trusted and not subject to security restrictions
 
 **Examples:**
@@ -729,11 +731,10 @@ Ares 2 validates all policy fields when the YAML file is parsed. If validation f
 | `importTheFollowingPackage` | Must not be `null` or blank | `IllegalArgumentException` with a localized message |
 | `timeout` | Must be ≥ 0 (default: 10000 ms) | `IllegalArgumentException` with a localized message |
 
-When a student's code violates a policy at runtime, Ares throws a `SecurityException` with a descriptive message such as:
+When a student's code violates a policy at runtime, Ares throws a `SecurityException` with a descriptive single-line message such as:
 
 ```
-Security violation: Access to file '/etc/passwd' is not permitted.
-Allowed paths: [src/main/resources/data]
+Ares Security Error (Reason: Student-Code; Stage: Execution): com.student.Main.readSecrets tried to illegally read File /etc/passwd via java.nio.file.Files.readString(java.nio.file.Path) | Reason: No allow rule configured for this resource type. but was blocked by Ares.
 ```
 
 ### Common Mistakes
@@ -741,10 +742,10 @@ Allowed paths: [src/main/resources/data]
 | Mistake | Symptom | Fix |
 |---------|---------|-----|
 | Using **tabs** instead of spaces in YAML | YAML parse error | Use spaces only (2-space indentation recommended) |
-| Wrong `withinPath` for Gradle vs. Maven | Policy has no effect (student code unrestricted) | Gradle: `classes/java/main/...`, Maven: `classes/...` |
+| Wrong `withinPath` for Gradle vs. Maven | Ares analyses or instruments the wrong bytecode path, which can produce missing-class/import errors, fail-closed WALA entry-point errors, or missing runtime coverage for the intended classes | Gradle: `classes/java/main/...`, Maven: `classes/...` |
 | Empty lists `[]` vs. missing field | Varying behaviour | Always include all six `regarding*` lists explicitly, even if empty |
 | Agent not loaded (`-javaagent` missing) | Static analysis works but runtime enforcement does not | See [How to Make a Project an Ares Project](../HowToMakeAProjectAnAresProject.md) |
-| `@Policy` on class but not on test method | Policy does not activate for individual tests | Place `@Policy` on the test method for reliable activation |
+| Expecting method-level and class-level `@Policy` to combine | Only the method-level policy applies | A class-level `@Policy` applies to all test methods in the class; a method-level `@Policy` takes precedence over (does not merge with) the class-level one |
 
 ### Runtime Violations
 
@@ -761,17 +762,14 @@ regardingFileSystemInteractions:
     deleteAllFiles: false
 ```
 
-If a student's code calls `new FileWriter("data/output.txt")`, the test fails because `overwriteAllFiles` is `false`:
+If a student's code calls `new FileWriter("data/output.txt")`, the test fails because `overwriteAllFiles` is `false` (the message is a single line):
 ```
-java.lang.SecurityException: Security violation, 
-File write access to 'data/output.txt' is not permitted.
-Policy allows: [read] on path 'data'. Denied operation: [write].
+java.lang.SecurityException: Ares Security Error (Reason: Student-Code; Stage: Execution): com.student.Main.writeOutput tried to illegally overwrite File data/output.txt via java.io.FileWriter.<init>(java.lang.String) | Reason: No allow rule configured for this resource type. but was blocked by Ares.
 ```
 
-If the student's code calls `Files.readString(Path.of("/etc/shadow"))`, the test fails because `/etc/shadow` is not under the allowed path `data`:
+If the student's code calls `Files.readString(Path.of("/etc/shadow"))`, the test fails because `/etc/shadow` is not under the allowed path `data` (the message is a single line):
 ```
-Security violation: Access to file '/etc/shadow' is not permitted.
-Allowed paths: [data]
+java.lang.SecurityException: Ares Security Error (Reason: Student-Code; Stage: Execution): com.student.Main.readSecrets tried to illegally read File /etc/shadow via java.nio.file.Files.readString(java.nio.file.Path) | Reason: No configured allow rule permits this access. but was blocked by Ares.
 ```
 
 ### Diagnosis Guide
@@ -779,10 +777,10 @@ Allowed paths: [data]
 | Problem | Possible Cause | Solution |
 |---------|---------------|----------|
 | YAML parse error on startup | Using **tabs** instead of spaces | Use spaces only (2-space indentation recommended) |
-| Policy has no effect (student code unrestricted) | Wrong `withinPath` for Gradle vs. Maven | Gradle: `classes/java/main/...`, Maven: `classes/...` |
+| Ares analyses or instruments the wrong bytecode path | Wrong `withinPath` for Gradle vs. Maven | Gradle: `classes/java/main/...`, Maven: `classes/...` |
 | Varying behaviour with empty vs. missing fields | Some `regarding*` lists omitted instead of set to `[]` | Always include all six `regarding*` lists explicitly, even if empty |
 | Static analysis works but runtime enforcement does not | Agent not loaded (`-javaagent` missing) | See [How to Make a Project an Ares Project](../HowToMakeAProjectAnAresProject.md) |
-| Policy does not activate for individual test methods | `@Policy` placed on the class instead of the test method | Place `@Policy` on each test method for reliable activation |
+| A different policy applies than expected | Both a method-level and a class-level `@Policy` are present; the method-level one takes precedence (no merging) | Check both annotation levels; class-level `@Policy` applies to all test methods unless a method-level `@Policy` overrides it |
 | `IllegalArgumentException` when loading the policy | A required field is `null`, blank, or out of range | Check validation rules above |
 | `SecurityException` at runtime in student code | Student code accesses a resource not listed in the policy | Either the policy is working as intended, or add the missing permission |
 

@@ -111,7 +111,7 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 
 	// ===================== DISABLED TESTS BELOW =====================
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = FILES_WRITE_PATH)
 	void test_accessFileSystemViaFilesWriteMavenArchunitAspectJ() {
@@ -119,7 +119,7 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 				WriteFilesWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = FILES_WRITE_PATH)
 	void test_accessFileSystemViaFilesWriteMavenArchunitInstrumentation() {
@@ -127,7 +127,7 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 				WriteFilesWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = FILES_WRITE_PATH)
 	void test_accessFileSystemViaFilesWriteMavenWalaAspectJ() {
@@ -135,7 +135,7 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 				WriteFilesWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = FILES_WRITE_PATH)
 	void test_accessFileSystemViaFilesWriteMavenWalaInstrumentation() {
@@ -143,7 +143,7 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 				WriteFilesWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = BUFFERED_WRITER_PATH)
 	void test_accessFileSystemViaBufferedWriterMavenArchunitAspectJ() {
@@ -151,7 +151,7 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 				BufferedWriterWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = BUFFERED_WRITER_PATH)
 	void test_accessFileSystemViaBufferedWriterMavenArchunitInstrumentation() {
@@ -159,7 +159,7 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 				BufferedWriterWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = BUFFERED_WRITER_PATH)
 	void test_accessFileSystemViaBufferedWriterMavenWalaAspectJ() {
@@ -167,7 +167,7 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 				BufferedWriterWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = BUFFERED_WRITER_PATH)
 	void test_accessFileSystemViaBufferedWriterMavenWalaInstrumentation() {
@@ -175,7 +175,7 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 				BufferedWriterWriteMain.class, NOT_TRUSTED_FILE_PATH);
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = THIRD_PARTY_PACKAGE_PATH)
 	void test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ() {
@@ -183,7 +183,7 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 				ThirdPartyPackagePenguin.class, THIRD_PARTY_OVERWRITE_PATH);
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = THIRD_PARTY_PACKAGE_PATH)
 	void test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation() {
@@ -191,7 +191,7 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 				ThirdPartyPackagePenguin.class, THIRD_PARTY_OVERWRITE_PATH);
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = THIRD_PARTY_PACKAGE_PATH)
 	void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ() {
@@ -199,7 +199,7 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 				ThirdPartyPackagePenguin.class, THIRD_PARTY_OVERWRITE_PATH);
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = THIRD_PARTY_PACKAGE_PATH)
 	void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation() {

@@ -30,7 +30,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 				"test_accessFileSystemViaFileDeleteMavenArchunitAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = FILE_DELETE_PATH)
 	void test_accessFileSystemViaFileDeleteMavenArchunitAspectJ() {
@@ -43,7 +43,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 				"test_accessFileSystemViaFileDeleteMavenArchunitInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = FILE_DELETE_PATH)
 	void test_accessFileSystemViaFileDeleteMavenArchunitInstrumentation() {
@@ -56,7 +56,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 				"test_accessFileSystemViaFileDeleteMavenWalaAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = FILE_DELETE_PATH)
 	void test_accessFileSystemViaFileDeleteMavenWalaAspectJ() {
@@ -70,7 +70,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 				"test_accessFileSystemViaFileDeleteMavenWalaInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = FILE_DELETE_PATH)
 	void test_accessFileSystemViaFileDeleteMavenWalaInstrumentation() {
@@ -86,7 +86,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 				"test_accessFileSystemViaFileDeleteOnExitMavenArchunitAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = FILE_DELETE_PATH)
 	void test_accessFileSystemViaFileDeleteOnExitMavenArchunitAspectJ() {
@@ -100,7 +100,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 				"test_accessFileSystemViaFileDeleteOnExitMavenArchunitInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = FILE_DELETE_PATH)
 	void test_accessFileSystemViaFileDeleteOnExitMavenArchunitInstrumentation() {
@@ -113,7 +113,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 				"test_accessFileSystemViaFileDeleteOnExitMavenWalaAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = FILE_DELETE_PATH)
 	void test_accessFileSystemViaFileDeleteOnExitMavenWalaAspectJ() {
@@ -127,7 +127,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 				"test_accessFileSystemViaFileDeleteOnExitMavenWalaInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = FILE_DELETE_PATH)
 	void test_accessFileSystemViaFileDeleteOnExitMavenWalaInstrumentation() {
@@ -143,7 +143,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesDeleteMavenArchunitAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = FILES_DELETE_PATH)
 	void test_accessFileSystemViaFilesDeleteMavenArchunitAspectJ() {
@@ -156,7 +156,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesDeleteMavenArchunitInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = FILES_DELETE_PATH)
 	void test_accessFileSystemViaFilesDeleteMavenArchunitInstrumentation() {
@@ -169,7 +169,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesDeleteMavenWalaAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = FILES_DELETE_PATH)
 	void test_accessFileSystemViaFilesDeleteMavenWalaAspectJ() {
@@ -183,7 +183,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesDeleteMavenWalaInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = FILES_DELETE_PATH)
 	void test_accessFileSystemViaFilesDeleteMavenWalaInstrumentation() {
@@ -199,7 +199,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesDeleteIfExistsMavenArchunitAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = FILES_DELETE_PATH)
 	void test_accessFileSystemViaFilesDeleteIfExistsMavenArchunitAspectJ() {
@@ -213,7 +213,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesDeleteIfExistsMavenArchunitInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = FILES_DELETE_PATH)
 	void test_accessFileSystemViaFilesDeleteIfExistsMavenArchunitInstrumentation() {
@@ -227,7 +227,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesDeleteIfExistsMavenWalaAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = FILES_DELETE_PATH)
 	void test_accessFileSystemViaFilesDeleteIfExistsMavenWalaAspectJ() {
@@ -241,7 +241,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 				"test_accessFileSystemViaFilesDeleteIfExistsMavenWalaInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = FILES_DELETE_PATH)
 	void test_accessFileSystemViaFilesDeleteIfExistsMavenWalaInstrumentation() {
@@ -284,7 +284,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 				"test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = THIRD_PARTY_PACKAGE_PATH)
 	void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ() {
@@ -298,7 +298,7 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 				"test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation");
 	}
 
-	@Disabled
+	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = THIRD_PARTY_PACKAGE_PATH)
 	void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation() {

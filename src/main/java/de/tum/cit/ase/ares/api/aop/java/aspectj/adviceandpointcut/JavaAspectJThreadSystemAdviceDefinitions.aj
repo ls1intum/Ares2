@@ -239,9 +239,14 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	 * @param actualClassname      the class name of the thread being requested
 	 * @param allowedThreadClasses the thread classes that are allowed to be created
 	 * @param allowedThreadNumbers the number of threads allowed to be created
+	 * @param decrementQuota       {@code true} to consume the per-class creation quota
+	 *                             on a match (creation); {@code false} to check
+	 *                             membership only without decrementing (manipulation
+	 *                             such as notify/wait, which is not a creation and so
+	 *                             must not exhaust the creation quota)
 	 * @return true if path is forbidden; false otherwise
 	 */
-	private static boolean checkIfThreadIsForbidden(@Nullable ThreadTarget target, @Nullable String[] allowedThreadClasses, @Nullable int[] allowedThreadNumbers) {
+	private static boolean checkIfThreadIsForbidden(@Nullable ThreadTarget target, @Nullable String[] allowedThreadClasses, @Nullable int[] allowedThreadNumbers, boolean decrementQuota) {
 		if (target == null || target.className() == null) {
 			return false;
 		}
@@ -267,11 +272,15 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 			boolean matches = isImplicitOperation ? actualClassname.equals(allowedClassName)
 					: threadClassMatches(actualClassname, allowedClassName);
 			if (matches) {
-				return handleFoundClassIsForbidden(allowedThreadNumbers, i);
+				// Manipulation (decrementQuota == false) only requires the thread class to be a
+				// member of the allow-list; it must not consume the creation quota, otherwise a
+				// notify/wait after an allowed start() would be wrongly denied once the quota is
+				// exhausted.
+				return decrementQuota ? handleFoundClassIsForbidden(allowedThreadNumbers, i) : false;
 			}
 		}
 		if (starIndex != -1) {
-			return handleFoundClassIsForbidden(allowedThreadNumbers, starIndex);
+			return decrementQuota ? handleFoundClassIsForbidden(allowedThreadNumbers, starIndex) : false;
 		}
 		return true;
 	}
@@ -616,12 +625,17 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	 *
 	 * @param action the thread system action being performed
 	 * @param thisJoinPoint the join point representing the method call
+	 * @param decrementQuota whether a matched allowed class consumes the creation
+	 *                       quota ({@code true} for creation) or is checked for
+	 *                       membership only without decrementing ({@code false} for
+	 *                       manipulation such as notify/wait, which is not a creation)
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */
 	public void checkThreadSystemInteraction(
 			@Nonnull String action,
-			@Nonnull JoinPoint thisJoinPoint
+			@Nonnull JoinPoint thisJoinPoint,
+			boolean decrementQuota
 	) {
 		// Re-entrancy guard: the advice body's own file-system and stack-walk work is
 		// woven and re-enters this advice on the same thread, causing unbounded
@@ -631,7 +645,7 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 			return;
 		}
 		try {
-			checkThreadSystemInteractionImpl(action, thisJoinPoint);
+			checkThreadSystemInteractionImpl(action, thisJoinPoint, decrementQuota);
 		} finally {
 			exitAdvice();
 		}
@@ -639,7 +653,8 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 
 	private void checkThreadSystemInteractionImpl(
 			@Nonnull String action,
-			@Nonnull JoinPoint thisJoinPoint
+			@Nonnull JoinPoint thisJoinPoint,
+			boolean decrementQuota
 	) {
 		// <editor-fold desc="Get information from settings">
 		@Nullable
@@ -755,7 +770,28 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 			}
 		}
 		for (String threadClassName : threadClassNames) {
-			if (checkIfThreadIsForbidden(new ThreadTarget(threadClassName), allowedThreadClasses, allowedThreadNumbers)) {
+			// A manipulate (notify/wait) receiver resolves to the bare java.lang.Thread only when its
+			// task class cannot be read: either a never-started taskless thread, or a thread that was
+			// started and has since nulled its target field as it terminates (JDK Thread.exit()).
+			// The main false positive to avoid is the latter: a student-created allowed thread that
+			// finished. A student cannot reach a started forbidden thread here (its start() is
+			// blocked), so among student-created receivers a non-NEW bare thread is a legitimately
+			// created one. Skip that case only (allow-list configured, receiver already started); a
+			// never-started taskless thread stays NEW and is still checked (and denied when
+			// java.lang.Thread is not allow-listed), and under an everything-forbidden policy nothing
+			// is skipped. State (not TERMINATED) is deliberate: Thread.exit() nulls target before the
+			// state reaches TERMINATED, so keying on TERMINATED would be racy.
+			//
+			// Residual: non-NEW also matches pre-existing threads such as Thread.currentThread(), so
+			// in a hypothetical pure-AspectJ policy manipulating an unrelated live thread's monitor is
+			// not caught here. The bundled architecture+AspectJ / WALA+AspectJ policies still flag such
+			// a call statically, so this is a documented pure-AspectJ residual, not a gap in the
+			// configured engines. Creation is unaffected: it resolves its task before termination.
+			if (!decrementQuota && !noAllowRuleConfigured && "java.lang.Thread".equals(threadClassName)
+					&& (instance instanceof Thread) && ((Thread) instance).getState() != Thread.State.NEW) {
+				continue;
+			}
+			if (checkIfThreadIsForbidden(new ThreadTarget(threadClassName), allowedThreadClasses, allowedThreadNumbers, decrementQuota)) {
 				throw new SecurityException(localize(
 						"security.advice.illegal.thread.execution", systemMethodToCheck, action, threadClassName,
 						fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
@@ -771,7 +807,15 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	before():
 			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemPointcutDefinitions.threadCreateMethodsWithParameters() ||
 					de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemPointcutDefinitions.threadCreateMethodsWithoutParameters() {
-		checkThreadSystemInteraction("create", thisJoinPoint);
+		checkThreadSystemInteraction("create", thisJoinPoint, true);
+	}
+
+	// Thread manipulation (notify/notifyAll/wait on a Thread receiver): membership-only check,
+	// so it does not consume the creation quota. AspectJ-only; the Instrumentation engine cannot
+	// intercept these inherited final Object methods (see the pointcut definition and the docs).
+	before():
+			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemPointcutDefinitions.threadManipulateMethods() {
+		checkThreadSystemInteraction("manipulate", thisJoinPoint, false);
 	}
 
 }

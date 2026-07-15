@@ -823,6 +823,89 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 	}
 	// </editor-fold>
 
+	// <editor-fold desc="accessThreadSystemViaNotifyThreadOnly">
+	// notify() on a thread whose class is allowed to be created must pass: the
+	// AspectJ manipulate
+	// advice is membership-only and does not consume the creation quota. The
+	// Instrumentation
+	// variants never intercept notify() at all, so they also expect no exception.
+	@PublicTest
+	@Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_THREAD)
+	public void test_notifyThreadOnlyMavenArchunitAspectJ() {
+		assertNoAresSecurityException(CreateThreadMain::notifyThreadOnly);
+	}
+
+	@PublicTest
+	@Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_THREAD)
+	public void test_notifyThreadOnlyMavenArchunitInstrumentation() {
+		assertNoAresSecurityException(CreateThreadMain::notifyThreadOnly);
+	}
+
+	@PublicTest
+	@Policy(value = POLICY_MAVEN_WALA_ASPECTJ_THREAD, withinPath = WITHIN_PATH_THREAD)
+	public void test_notifyThreadOnlyMavenWalaAspectJ() {
+		assertNoAresSecurityException(CreateThreadMain::notifyThreadOnly);
+	}
+
+	@PublicTest
+	@Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_THREAD)
+	public void test_notifyThreadOnlyMavenWalaInstrumentation() {
+		assertNoAresSecurityException(CreateThreadMain::notifyThreadOnly);
+	}
+	// </editor-fold>
+
+	// <editor-fold desc="accessThreadSystemViaNotifyAllThreadOnly">
+	@PublicTest
+	@Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_THREAD)
+	public void test_notifyAllThreadOnlyMavenArchunitAspectJ() {
+		assertNoAresSecurityException(CreateThreadMain::notifyAllThreadOnly);
+	}
+
+	@PublicTest
+	@Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_THREAD)
+	public void test_notifyAllThreadOnlyMavenArchunitInstrumentation() {
+		assertNoAresSecurityException(CreateThreadMain::notifyAllThreadOnly);
+	}
+
+	@PublicTest
+	@Policy(value = POLICY_MAVEN_WALA_ASPECTJ_THREAD, withinPath = WITHIN_PATH_THREAD)
+	public void test_notifyAllThreadOnlyMavenWalaAspectJ() {
+		assertNoAresSecurityException(CreateThreadMain::notifyAllThreadOnly);
+	}
+
+	@PublicTest
+	@Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_THREAD)
+	public void test_notifyAllThreadOnlyMavenWalaInstrumentation() {
+		assertNoAresSecurityException(CreateThreadMain::notifyAllThreadOnly);
+	}
+	// </editor-fold>
+
+	// <editor-fold desc="accessThreadSystemViaWaitThreadOnly">
+	@PublicTest
+	@Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_THREAD)
+	public void test_waitThreadOnlyMavenArchunitAspectJ() {
+		assertNoAresSecurityException(CreateThreadMain::waitThreadOnly);
+	}
+
+	@PublicTest
+	@Policy(value = POLICY_MAVEN_ARCHUNIT_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_THREAD)
+	public void test_waitThreadOnlyMavenArchunitInstrumentation() {
+		assertNoAresSecurityException(CreateThreadMain::waitThreadOnly);
+	}
+
+	@PublicTest
+	@Policy(value = POLICY_MAVEN_WALA_ASPECTJ_THREAD, withinPath = WITHIN_PATH_THREAD)
+	public void test_waitThreadOnlyMavenWalaAspectJ() {
+		assertNoAresSecurityException(CreateThreadMain::waitThreadOnly);
+	}
+
+	@PublicTest
+	@Policy(value = POLICY_MAVEN_WALA_INSTRUMENTATION_THREAD, withinPath = WITHIN_PATH_THREAD)
+	public void test_waitThreadOnlyMavenWalaInstrumentation() {
+		assertNoAresSecurityException(CreateThreadMain::waitThreadOnly);
+	}
+	// </editor-fold>
+
 	// <editor-fold desc="accessThreadSystemViaNewThread">
 	@PublicTest
 	@Policy(value = POLICY_MAVEN_ARCHUNIT_ASPECTJ_THREAD, withinPath = WITHIN_PATH_THREAD_FACTORY)

