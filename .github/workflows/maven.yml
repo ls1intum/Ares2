@@ -122,8 +122,8 @@ jobs:
       - name: Unit tests
         run: mvn test -Punit-core-tests -f pom.xml
 
-      # Architecture unit tests exercise WALA's process-global state. Keep the
-      # established one-fork-per-class isolation for these 13 classes only.
+      # Architecture unit tests exercise the same execution-scoped WALA lifecycle
+      # used by the integration matrices.
       - name: Architecture unit tests
         run: mvn test -Punit-architecture-tests -f pom.xml
 
@@ -144,17 +144,17 @@ jobs:
           - name: ArchUnit + instrumentation
             method-suffixes: '*MavenArchunitInstrumentation+*_archunit_instrumentation'
             architecture-method-suffixes: '*MavenArchunitInstrumentation_test'
-            reuse-forks: 'false'
+            reuse-forks: 'true'
             run-core-tests: false
           - name: WALA + AspectJ
             method-suffixes: '*MavenWalaAspectJ+*_wala_aspectj'
             architecture-method-suffixes: '*MavenWalaAspectJ_test'
-            reuse-forks: 'false'
+            reuse-forks: 'true'
             run-core-tests: false
           - name: WALA + instrumentation
             method-suffixes: '*MavenWalaInstrumentation+*_wala_instrumentation'
             architecture-method-suffixes: '*MavenWalaInstrumentation_test'
-            reuse-forks: 'false'
+            reuse-forks: 'true'
             run-core-tests: false
     permissions:
       contents: read
@@ -178,14 +178,10 @@ jobs:
 
       - name: jqwik integration tests
         if: ${{ matrix.run-core-tests }}
-        run: >-
-          mvn test -f pom.xml
-          -Dtest=de.tum.cit.ase.ares.integration.JqwickTest
-          -Dsurefire-reuse-forks=false
+        run: mvn test -f pom.xml -Dtest=de.tum.cit.ase.ares.integration.JqwickTest
 
-      # Method-level selection happens before Surefire creates forks. WALA keeps the
-      # proven one-fork-per-class isolation, but each WALA job now starts only the 14
-      # classes belonging to its mode rather than the complete functional suite.
+      # Method-level selection starts only the classes belonging to this mode. All
+      # mode combinations reuse one fork; WALA state remains policy-scoped.
       - name: Test mode combination
         run: >-
           mvn test -f pom.xml

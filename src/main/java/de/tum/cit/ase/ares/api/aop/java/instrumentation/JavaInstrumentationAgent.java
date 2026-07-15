@@ -1,7 +1,9 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation;
 
 import java.lang.instrument.Instrumentation;
+import java.lang.instrument.UnmodifiableClassException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,6 +33,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.NetworkTarget;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.ThreadTarget;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationBindingDefinitions;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationPointcutDefinitions;
+import de.tum.cit.ase.ares.api.localization.Messages;
 
 /**
  * This class is the entry point for the Java instrumentation agent. It installs
@@ -63,6 +66,10 @@ public final class JavaInstrumentationAgent {
 	 * @param inst      The instrumentation instance.
 	 */
 	public static void premain(String agentArgs, Instrumentation inst) {
+		// ResourceBundle loading performs file-system operations. Populate Ares'
+		// localisation cache before those JDK operations are instrumented, otherwise a
+		// first security diagnostic can recursively request its own message bundle.
+		Messages.init();
 		Factory unsafeFactory = Factory.resolve(inst);
 		instrumentation = inst;
 		classInjectorFactory = unsafeFactory;
@@ -131,6 +138,7 @@ public final class JavaInstrumentationAgent {
 		installAgentBuilder(inst, unsafeFactory,
 				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_RECEIVE_FROM_NETWORK,
 				JavaInstrumentationBindingDefinitions::createReceiveNetworkConstructorBinding);
+		installThreadMonitorCallSiteBuilder(inst, unsafeFactory);
 	}
 
 	/**
@@ -164,6 +172,15 @@ public final class JavaInstrumentationAgent {
 	}
 
 	/**
+	 * Starts a new test-scoped transformation session. A failure is reported at the
+	 * end of the test in which it occurred; it must not poison every later test in
+	 * a reused JVM after that failure has already been surfaced.
+	 */
+	public static void beginTransformationSession() {
+		TRANSFORMATION_FAILURE.set(null);
+	}
+
+	/**
 	 * Installs call-site substitutions for Thread monitor operations in one
 	 * restricted package.
 	 * <p>
@@ -184,11 +201,21 @@ public final class JavaInstrumentationAgent {
 			return;
 		}
 		synchronized (THREAD_MONITOR_PACKAGE_REGISTRATION_LOCK) {
-			if (INSTRUMENTED_THREAD_MONITOR_PACKAGES.contains(restrictedPackage)) {
+			if (!INSTRUMENTED_THREAD_MONITOR_PACKAGES.add(restrictedPackage)) {
 				return;
 			}
-			installThreadMonitorCallSiteBuilder(currentInstrumentation, currentFactory, restrictedPackage);
-			INSTRUMENTED_THREAD_MONITOR_PACKAGES.add(restrictedPackage);
+			Class<?>[] loadedRestrictedClasses = Arrays.stream(currentInstrumentation.getAllLoadedClasses())
+					.filter(currentInstrumentation::isModifiableClass)
+					.filter(type -> type.getName().startsWith(restrictedPackage)).toArray(Class<?>[]::new);
+			if (loadedRestrictedClasses.length == 0) {
+				return;
+			}
+			try {
+				currentInstrumentation.retransformClasses(loadedRestrictedClasses);
+			} catch (UnmodifiableClassException e) {
+				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+						.localize("security.instrumentation.agent.installation.error", restrictedPackage), e);
+			}
 		}
 	}
 
@@ -350,7 +377,7 @@ public final class JavaInstrumentationAgent {
 	 * when the runtime receiver is a Thread.
 	 */
 	private static void installThreadMonitorCallSiteBuilder(Instrumentation inst,
-			ClassInjector.UsingUnsafe.Factory unsafeFactory, String restrictedPackage) {
+			ClassInjector.UsingUnsafe.Factory unsafeFactory) {
 		try {
 			Method notifyMethod = JavaInstrumentationThreadSystemCallSite.class.getMethod("notify", Object.class);
 			Method startMethod = JavaInstrumentationThreadSystemCallSite.class.getMethod("start", Thread.class);
@@ -368,8 +395,8 @@ public final class JavaInstrumentationAgent {
 					.with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
 					.with(new AgentBuilder.InjectionStrategy.UsingUnsafe.OfFactory(unsafeFactory))
 					.disableClassFormatChanges()
-					.type(ElementMatchers.nameStartsWith(restrictedPackage)
-							.and(ElementMatchers.not(ElementMatchers.isInterface())),
+					.type(typeDescription -> !typeDescription.isInterface() && INSTRUMENTED_THREAD_MONITOR_PACKAGES
+							.stream().anyMatch(prefix -> typeDescription.getName().startsWith(prefix)),
 							ElementMatchers.not(ElementMatchers.isBootstrapClassLoader()))
 					.transform((builder, typeDescription, classLoader, javaModule, protectionDomain) -> builder
 							.visit(threadStartSubstitution(startMethod))

@@ -73,9 +73,9 @@
 		<spotless.version>3.7.0</spotless.version>
 		<!-- if JaCoCo is not executed -->
 		<argLine></argLine>
-		<!-- WALA requires process isolation, while ArchUnit modes can reuse one JVM.
-			CI overrides this property per mode. -->
-		<surefire-reuse-forks>false</surefire-reuse-forks>
+		<!-- Analysis and instrumentation state is scoped for safe reuse in one test JVM.
+			CI may still override this property for diagnostic isolation. -->
+		<surefire-reuse-forks>true</surefire-reuse-forks>
 		<!-- full certificate fingerprint: 23E62BB282A473EE4DDA2F8763EFD39363D21A8D -->
 		<gpg.key.id>23E62BB282A473EE4DDA2F8763EFD39363D21A8D</gpg.key.id>
 	</properties>
@@ -451,15 +451,9 @@
 				<version>3.5.6</version>
 				<configuration>
 					<forkCount>1</forkCount>
-					<!-- Start a fresh JVM for every test class instead of reusing one for the
-						whole suite. The WALA call-graph analysis accumulates global state across
-						test methods in a shared JVM; past a threshold this non-deterministically
-						makes WALA report zero violations for forbidden operations (parallelStream,
-						third-party deletes), so security meta-tests that expect a violation fail.
-						The effect is architecture-dependent (observed on x86_64 CI, not on local
-						arm64), which makes it impossible to reproduce reliably without process
-						isolation. A fresh JVM per class resets that global state, since each class
-						passes in isolation. -->
+					<!-- Reuse one fork by default. Each WALA policy now owns its mutable scope,
+						hierarchy, analysis cache, entry points and call graph; instrumentation uses
+						one dynamic package transformer and test-scoped failure reporting. -->
 					<reuseForks>${surefire-reuse-forks}</reuseForks>
 					<!-- Kill (and report) a hung forked JVM rather than letting CI run until
 						the runner dies. 2400s sits above a legitimate full-suite run yet below

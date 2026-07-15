@@ -1,6 +1,5 @@
 package de.tum.cit.ase.ares.api.architecture.java.wala;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -10,15 +9,11 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import com.ibm.wala.classLoader.IMethod;
-import com.ibm.wala.core.util.config.AnalysisScopeReader;
 import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.ibm.wala.ipa.callgraph.impl.DefaultEntrypoint;
 import com.ibm.wala.ipa.cha.ClassHierarchy;
-import com.ibm.wala.ipa.cha.ClassHierarchyException;
-import com.ibm.wala.ipa.cha.ClassHierarchyFactory;
 import com.ibm.wala.types.ClassLoaderReference;
-import com.ibm.wala.util.debug.UnimplementedError;
 
 import de.tum.cit.ase.ares.api.localization.Messages;
 
@@ -61,38 +56,6 @@ public final class ReachabilityChecker {
 	}
 
 	/**
-	 * Cache for the entry-point list keyed by {@code (applicationClassHierarchy
-	 * identity, classPath)}. The hierarchy reference is part of the key because
-	 * {@link DefaultEntrypoint} captures it: a different application hierarchy must
-	 * not reuse another's entry points.
-	 * <p>
-	 * The intermediate {@link ClassHierarchy} created by
-	 * {@link #createClassHierarchy} is intentionally NOT cached separately. Each
-	 * inner hierarchy reloads the full JDK primordial scope, so caching ~13
-	 * hierarchies per phase exhausts the 512 MB Gradle test-worker heap and crashes
-	 * the JVM (observed empirically: testPermitted died with "Could not complete
-	 * execution for Gradle Test Executor"). Caching the entry-point list alone is
-	 * sufficient: on cache hit the inner-hierarchy build is skipped entirely; on
-	 * miss the hierarchy is built once, used to enumerate methods, and then
-	 * released for GC since {@link DefaultEntrypoint} only retains references to
-	 * {@link com.ibm.wala.types.MethodReference} and the application hierarchy.
-	 */
-	private static final int ENTRYPOINTS_CACHE_MAX_ENTRIES = 64;
-	// Size-capped LRU so a long-lived worker does not retain entry-point lists for
-	// every analysed classpath indefinitely.
-	private static final java.util.Map<String, List<DefaultEntrypoint>> ENTRYPOINTS_CACHE = java.util.Collections
-			.synchronizedMap(new java.util.LinkedHashMap<String, List<DefaultEntrypoint>>(16, 0.75f, true) {
-				@Override
-				protected boolean removeEldestEntry(java.util.Map.Entry<String, List<DefaultEntrypoint>> eldest) {
-					return size() > ENTRYPOINTS_CACHE_MAX_ENTRIES;
-				}
-			});
-
-	private static ClassHierarchy createClassHierarchy(String classPath) throws IOException, ClassHierarchyException {
-		return ClassHierarchyFactory.make(AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(classPath, null));
-	}
-
-	/**
 	 * Get entry points from a student submission.
 	 *
 	 * @param classPath                 The path to the student submission.
@@ -109,22 +72,11 @@ public final class ReachabilityChecker {
 			throw new SecurityException(Messages.localized("security.common.not.null", "ClassHierarchy",
 					"getEntryPointsFromStudentSubmission"));
 		}
-		String cacheKey = System.identityHashCode(applicationClassHierarchy) + "::" + classPath;
-		List<DefaultEntrypoint> cached = ENTRYPOINTS_CACHE.get(cacheKey);
-		if (cached != null) {
-			return cached;
-		}
-		try {
-			List<DefaultEntrypoint> fresh = StreamSupport.stream(createClassHierarchy(classPath).spliterator(), false)
-					.filter(iClass -> iClass.getClassLoader().getReference().equals(ClassLoaderReference.Application))
-					.flatMap(iClass -> iClass.getDeclaredMethods().stream()).map(IMethod::getReference)
-					.map(methodReference -> new DefaultEntrypoint(methodReference, applicationClassHierarchy))
-					.collect(Collectors.toCollection(ArrayList::new));
-			List<DefaultEntrypoint> immutable = Collections.unmodifiableList(fresh);
-			List<DefaultEntrypoint> existing = ENTRYPOINTS_CACHE.putIfAbsent(cacheKey, immutable);
-			return existing != null ? existing : immutable;
-		} catch (ClassHierarchyException | IOException | UnimplementedError e) {
-			throw new SecurityException(Messages.localized("security.architecture.class.hierarchy.error"), e);
-		}
+		List<DefaultEntrypoint> entryPoints = StreamSupport.stream(applicationClassHierarchy.spliterator(), false)
+				.filter(iClass -> iClass.getClassLoader().getReference().equals(ClassLoaderReference.Application))
+				.flatMap(iClass -> iClass.getDeclaredMethods().stream()).map(IMethod::getReference)
+				.map(methodReference -> new DefaultEntrypoint(methodReference, applicationClassHierarchy))
+				.collect(Collectors.toCollection(ArrayList::new));
+		return Collections.unmodifiableList(entryPoints);
 	}
 }

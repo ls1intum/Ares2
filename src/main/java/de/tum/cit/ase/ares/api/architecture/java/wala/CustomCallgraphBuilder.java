@@ -53,9 +53,11 @@ import de.tum.cit.ase.ares.api.util.FileTools;
 /**
  * Utility to build a call graph for Java binaries using WALA framework.
  * <p>
- * Caches the analysis scope, class hierarchy, and the call graph itself per
- * JVM, keyed by the classpath strings, so that subsequent tests in the same
- * Gradle task reuse a single graph instead of rebuilding it for every test.
+ * Every builder owns one isolated WALA analysis session. WALA class hierarchies
+ * are mutable while a call graph is built, so scopes, hierarchies, analysis
+ * caches, entry points, and graphs must never be shared between policy
+ * executions in the same JVM. A second request for the same analysed classpath
+ * may reuse the graph inside this builder only.
  *
  * @since 2.0.0
  * @author Sarp Sahinalp
@@ -65,10 +67,6 @@ public class CustomCallgraphBuilder {
 
 	/** Substrings that disqualify a classpath entry from the analysis scope. */
 	private static final List<String> CLASSPATH_EXCLUDE_SUBSTRINGS = List.of(
-			// Test build outputs (compiled test sources and resources, across JVM
-			// languages)
-			"/build/classes/java/test/", "/build/resources/test/", "/build/classes/groovy/test/",
-			"/build/classes/kotlin/test/",
 			// JUnit and supporting test-platform libraries
 			"/junit-", "/junit5-", "/junit-jupiter", "/junit-platform", "/junit-vintage", "/opentest4j",
 			"/apiguardian-api", "/junit-pioneer",
@@ -91,40 +89,24 @@ public class CustomCallgraphBuilder {
 			// AspectJ runtime and tooling, used by Ares' AOP layer
 			"/aspectjweaver", "/aspectjrt", "/aspectjtools");
 
-	/**
-	 * Upper bound on cached call graphs / analyses. Call graphs are large, so an
-	 * unbounded cache would exhaust memory in a long-lived worker; an
-	 * access-ordered LRU keeps the hot entries while capping total retention.
-	 */
-	private static final int ANALYSIS_CACHE_MAX_ENTRIES = 32;
-	private static final java.util.Map<String, String> EXPANDED_CLASSPATH_CACHE = boundedLruMap(
-			ANALYSIS_CACHE_MAX_ENTRIES);
-	private static final java.util.Map<String, CachedAnalysis> ANALYSIS_CACHE = boundedLruMap(
-			ANALYSIS_CACHE_MAX_ENTRIES);
-	private static final java.util.Map<String, CallGraph> CALL_GRAPH_CACHE = boundedLruMap(ANALYSIS_CACHE_MAX_ENTRIES);
-
-	private static <V> java.util.Map<String, V> boundedLruMap(int maxEntries) {
-		return java.util.Collections.synchronizedMap(new java.util.LinkedHashMap<String, V>(16, 0.75f, true) {
-			@Override
-			protected boolean removeEldestEntry(java.util.Map.Entry<String, V> eldest) {
-				return size() > maxEntries;
-			}
-		});
-	}
-
 	private final ClassFileImporter classFileImporter;
 	private final AnalysisScope scope;
 	private final ClassHierarchy classHierarchy;
-	private final String constructionClassPath;
+	private String analysedClassPath;
+	private CallGraph callGraph;
 
 	public CustomCallgraphBuilder(String classPath) {
 		this.classFileImporter = new ClassFileImporter();
 		String filteredClassPath = filterClassPath(classPath);
-		this.constructionClassPath = EXPANDED_CLASSPATH_CACHE.computeIfAbsent(filteredClassPath,
-				CustomCallgraphBuilder::expandClassPathWithReachableDependencies);
-		CachedAnalysis cached = ANALYSIS_CACHE.computeIfAbsent(constructionClassPath, CachedAnalysis::build);
-		this.scope = cached.scope;
-		this.classHierarchy = cached.classHierarchy;
+		String expandedClassPath = expandClassPathWithReachableDependencies(filteredClassPath);
+		try {
+			this.scope = Java9AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(expandedClassPath,
+					FileTools.readFile(FileTools.resolveFileOnSourceDirectory("templates", "architecture", "java",
+							"exclusions.txt")));
+			this.classHierarchy = ClassHierarchyFactory.make(scope);
+		} catch (ClassHierarchyException | IOException e) {
+			throw new SecurityException(Messages.localized("security.architecture.class.hierarchy.error"), e);
+		}
 	}
 
 	/**
@@ -336,20 +318,22 @@ public class CustomCallgraphBuilder {
 	}
 
 	/**
-	 * Builds the call graph for the given classpath, or returns a previously built
-	 * graph cached on the JVM. The cache lives for the lifetime of the test JVM:
-	 * the next Gradle run rebuilds it.
+	 * Builds the call graph for the given classpath. Repeated calls on this builder
+	 * for the same path return its session-local graph; a builder cannot be reused
+	 * for a different analysis target.
 	 */
-	public CallGraph buildCallGraph(String classPathToAnalyze) {
-		String cacheKey = constructionClassPath + "::" + filterClassPath(classPathToAnalyze);
-		CallGraph cached = CALL_GRAPH_CACHE.get(cacheKey);
-		if (cached != null) {
-			return cached;
+	public synchronized CallGraph buildCallGraph(String classPathToAnalyze) {
+		String filteredClassPathToAnalyse = filterClassPath(classPathToAnalyze);
+		validateClassPath(filteredClassPathToAnalyse);
+		if (callGraph != null) {
+			if (!analysedClassPath.equals(filteredClassPathToAnalyse)) {
+				throw new SecurityException(Messages.localized("security.architecture.build.call.graph.error"));
+			}
+			return callGraph;
 		}
 		try {
-			// Build entry points from the WIDENED classpath so
-			// getEntryPointsFromStudentSubmission's
-			// internal hierarchy can fully resolve student class supertypes
+			// Build entry points from this session's widened hierarchy so it can fully
+			// resolve student class supertypes
 			// (anonymous.toolclasses.ProtectedResourceAccess, …); without that step,
 			// the outer student classes are silently dropped and only standalone
 			// helpers (inner enums) become entry points. After collection, restrict
@@ -358,7 +342,7 @@ public class CustomCallgraphBuilder {
 			// than spilling into unrelated category classes that share the wider scope.
 			String narrowPackagePrefix = derivePackagePrefix(classPathToAnalyze);
 			List<DefaultEntrypoint> customEntryPoints = ReachabilityChecker
-					.getEntryPointsFromStudentSubmission(filterClassPath(classPathToAnalyze), classHierarchy).stream()
+					.getEntryPointsFromStudentSubmission(filteredClassPathToAnalyse, classHierarchy).stream()
 					.filter(ep -> narrowPackagePrefix == null
 							|| ep.getMethod().getDeclaringClass().getName().toString().startsWith(narrowPackagePrefix))
 					.collect(Collectors.toCollection(ArrayList::new));
@@ -382,13 +366,21 @@ public class CustomCallgraphBuilder {
 			// around line 1577 in WALA 1.6.12), so wrapping after makeZeroOneCFABuilder
 			// takes effect.
 			options.setSelector(new JdkOpaqueMethodTargetSelector(options.getMethodTargetSelector(), classHierarchy));
-			CallGraph callGraph = builder.makeCallGraph(options, null);
-			CallGraph existing = CALL_GRAPH_CACHE.putIfAbsent(cacheKey, callGraph);
-			return existing != null ? existing : callGraph;
+			callGraph = builder.makeCallGraph(options, null);
+			analysedClassPath = filteredClassPathToAnalyse;
+			return callGraph;
 		} catch (Exception e) {
 			// Chain the cause so a genuine analysis failure is diagnosable and never
 			// silently mistaken for a clean result.
 			throw new SecurityException(Messages.localized("security.architecture.build.call.graph.error"), e);
+		}
+	}
+
+	private static void validateClassPath(String classPath) {
+		boolean hasExistingEntry = Arrays.stream(classPath.split(File.pathSeparator)).filter(entry -> !entry.isBlank())
+				.map(File::new).anyMatch(File::exists);
+		if (!hasExistingEntry) {
+			throw new SecurityException(Messages.localized("security.architecture.build.call.graph.error"));
 		}
 	}
 
@@ -405,8 +397,9 @@ public class CustomCallgraphBuilder {
 			return null;
 		}
 		String first = classPath.split(File.pathSeparator)[0].replace(File.separatorChar, '/');
-		String[] markers = { "/build/classes/java/main/", "build/classes/java/main/", "/target/classes/",
-				"target/classes/" };
+		String[] markers = { "/build/classes/java/main/", "build/classes/java/main/", "/build/classes/java/test/",
+				"build/classes/java/test/", "/target/classes/", "target/classes/", "/target/test-classes/",
+				"target/test-classes/" };
 		for (String marker : markers) {
 			int idx = first.indexOf(marker);
 			if (idx >= 0) {
@@ -490,29 +483,6 @@ public class CustomCallgraphBuilder {
 				return new SummarizedMethod(r, summary, declaringClass);
 			});
 			return fresh;
-		}
-	}
-
-	/** Cached scope and hierarchy keyed by filtered classpath. */
-	private static final class CachedAnalysis {
-		final AnalysisScope scope;
-		final ClassHierarchy classHierarchy;
-
-		private CachedAnalysis(AnalysisScope scope, ClassHierarchy classHierarchy) {
-			this.scope = scope;
-			this.classHierarchy = classHierarchy;
-		}
-
-		static CachedAnalysis build(String filteredClassPath) {
-			try {
-				AnalysisScope scope = Java9AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(filteredClassPath,
-						FileTools.readFile(FileTools.resolveFileOnSourceDirectory("templates", "architecture", "java",
-								"exclusions.txt")));
-				ClassHierarchy hierarchy = ClassHierarchyFactory.make(scope);
-				return new CachedAnalysis(scope, hierarchy);
-			} catch (ClassHierarchyException | IOException e) {
-				throw new SecurityException(Messages.localized("security.architecture.class.hierarchy.error"), e);
-			}
 		}
 	}
 }

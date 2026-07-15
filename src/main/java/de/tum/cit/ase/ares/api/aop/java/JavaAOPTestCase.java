@@ -184,7 +184,8 @@ public class JavaAOPTestCase extends AOPTestCase {
 			// missing copies are silently skipped.
 			setSettingFieldOnLoader(adviceSetting, value, null);
 			setSettingFieldOnLoader(adviceSetting, value, Thread.currentThread().getContextClassLoader());
-			if ("restrictedPackage".equals(adviceSetting) && value instanceof String restrictedPackage) {
+			if ("restrictedPackage".equals(adviceSetting) && value instanceof String restrictedPackage
+					&& "INSTRUMENTATION".equalsIgnoreCase(aopMode)) {
 				JavaInstrumentationAgent.registerThreadMonitorRestrictedPackage(restrictedPackage);
 			}
 			return;

@@ -22,6 +22,9 @@ import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 @API(status = Status.INTERNAL)
 public final class JupiterSecurityExtension
 		implements UnifiedInvocationInterceptor, BeforeTestExecutionCallback, AfterTestExecutionCallback {
+	private static final ExtensionContext.Namespace NAMESPACE = ExtensionContext.Namespace
+			.create(JupiterSecurityExtension.class);
+	private static final String POLICY_PREPARED_KEY = "policy-prepared";
 
 	// <editor-fold desc="Lifecycle Callbacks">
 
@@ -56,6 +59,7 @@ public final class JupiterSecurityExtension
 	public void beforeTestExecution(ExtensionContext extensionContext) throws Exception {
 		resetSettingsInStandardClassLoader();
 		resetSettingsInBootstrapClassLoader();
+		JavaInstrumentationAgent.beginTransformationSession();
 
 		JupiterContext testContext = JupiterContext.of(extensionContext);
 		Optional<Policy> methodPolicy = findAnnotation(testContext.testMethod(), Policy.class);
@@ -73,6 +77,7 @@ public final class JupiterSecurityExtension
 			SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policyPath).projectFolderPath(withinPath)
 					.build().createTestCases().executeTestCases();
 		}
+		extensionContext.getStore(NAMESPACE).put(POLICY_PREPARED_KEY, Boolean.TRUE);
 	}
 
 	/**
@@ -80,8 +85,15 @@ public final class JupiterSecurityExtension
 	 */
 	@Override
 	public void afterTestExecution(ExtensionContext extensionContext) throws Exception {
-		resetSettingsInStandardClassLoader();
-		resetSettingsInBootstrapClassLoader();
+		try {
+			if (JavaAOPTestCaseSettings.isInstrumentationMode()) {
+				JavaInstrumentationAgent.throwIfTransformationFailed();
+			}
+		} finally {
+			extensionContext.getStore(NAMESPACE).remove(POLICY_PREPARED_KEY);
+			resetSettingsInStandardClassLoader();
+			resetSettingsInBootstrapClassLoader();
+		}
 	}
 
 	// </editor-fold>
@@ -97,12 +109,8 @@ public final class JupiterSecurityExtension
 		boolean hasPolicyAnnotation = policyOpt.isPresent();
 		boolean isAresActivated = policyOpt.map(Policy::activated).orElse(true);
 
-		// ALWAYS reset settings first to ensure clean state for every test.
-		// This prevents settings from a previous test from affecting the current test.
-		// We have to reset both the settings classes in the runtime and the bootstrap
-		// class loader to be able to run multiple tests in the same JVM instance.
-		resetSettingsInStandardClassLoader();
-		resetSettingsInBootstrapClassLoader();
+		boolean policyAlreadyPrepared = Boolean.TRUE
+				.equals(extensionContext.getStore(NAMESPACE).get(POLICY_PREPARED_KEY, Boolean.class));
 
 		// Determine security enforcement:
 		// - @Policy(activated=true) → enforce with custom policy from file
@@ -111,7 +119,15 @@ public final class JupiterSecurityExtension
 		// Skip enforcement during constructor interception (no test method present
 		// yet).
 		boolean isTestMethodPresent = testContext.testMethod().isPresent();
-		if (isAresActivated && (hasPolicyAnnotation || isTestMethodPresent)) {
+		if (!policyAlreadyPrepared) {
+			// Invocation interception is the fallback for execution environments that do
+			// not invoke BeforeTestExecutionCallback. Normal Jupiter execution has already
+			// prepared the policy and must not build the same WALA graph twice.
+			resetSettingsInStandardClassLoader();
+			resetSettingsInBootstrapClassLoader();
+			JavaInstrumentationAgent.beginTransformationSession();
+		}
+		if (!policyAlreadyPrepared && isAresActivated && (hasPolicyAnnotation || isTestMethodPresent)) {
 			Path policyPath = policyOpt.filter(p -> !p.value().isBlank())
 					.map(JupiterSecurityExtension::testAndGetPolicyValue).orElse(null);
 			Path withinPath = policyOpt.filter(p -> !p.withinPath().isBlank())

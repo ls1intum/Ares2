@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.architecture.java.wala;
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.nio.file.Path;
@@ -13,6 +14,7 @@ import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import com.ibm.wala.ipa.cha.ClassHierarchy;
 import com.tngtech.archunit.core.domain.JavaClass;
 
 public class CustomCallgraphBuilderTest {
@@ -127,6 +129,30 @@ public class CustomCallgraphBuilderTest {
 		CustomCallgraphBuilder builder = new CustomCallgraphBuilder(FIXTURE_CLASSPATH);
 		Set<JavaClass> subclasses = builder.getImmediateSubclasses("non.existent.ClassName");
 		Assertions.assertTrue(subclasses.isEmpty());
+	}
+
+	@Test
+	void testBuildersOwnIndependentClassHierarchies() throws Exception {
+		CustomCallgraphBuilder firstBuilder = new CustomCallgraphBuilder(FIXTURE_CLASSPATH);
+		CustomCallgraphBuilder secondBuilder = new CustomCallgraphBuilder(FIXTURE_CLASSPATH);
+		Field hierarchyField = CustomCallgraphBuilder.class.getDeclaredField("classHierarchy");
+		hierarchyField.setAccessible(true);
+		ClassHierarchy firstHierarchy = (ClassHierarchy) hierarchyField.get(firstBuilder);
+		ClassHierarchy secondHierarchy = (ClassHierarchy) hierarchyField.get(secondBuilder);
+
+		Assertions.assertNotSame(firstHierarchy, secondHierarchy,
+				"Each policy execution must own a fresh mutable WALA hierarchy");
+	}
+
+	@Test
+	void testDerivePackagePrefixSupportsProductionAndTestOutputs() throws Exception {
+		Method method = CustomCallgraphBuilder.class.getDeclaredMethod("derivePackagePrefix", String.class);
+		method.setAccessible(true);
+
+		Assertions.assertEquals("Lexample/student/", method.invoke(null, "target/classes/example/student"));
+		Assertions.assertEquals("Lexample/student/", method.invoke(null, "target/test-classes/example/student"));
+		Assertions.assertEquals("Lexample/student/", method.invoke(null, "build/classes/java/main/example/student"));
+		Assertions.assertEquals("Lexample/student/", method.invoke(null, "build/classes/java/test/example/student"));
 	}
 
 	@Test
