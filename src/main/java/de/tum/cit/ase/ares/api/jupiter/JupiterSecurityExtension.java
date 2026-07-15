@@ -186,9 +186,19 @@ public final class JupiterSecurityExtension
 			resetMethod.invoke(null);
 			resetMethod.setAccessible(false);
 		} catch (ClassNotFoundException e) {
-			// Class not yet loaded in Bootstrap ClassLoader - OK if no instrumentation yet
-		} catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-			// Reset failed - log silently
+			// Class not yet loaded in the bootstrap class loader: there is nothing to
+			// reset,
+			// which is the only benign reason this can fail.
+		} catch (NoSuchMethodException e) {
+			// The class is present but its reset failed. Fail closed rather than let the
+			// next
+			// test inherit stale security settings, matching resetSettings for the standard
+			// class loader.
+			throw new SecurityException(localize("security.settings.reset.method.not.found"), e);
+		} catch (IllegalAccessException e) {
+			throw new SecurityException(localize("security.settings.reset.access.denied"), e);
+		} catch (InvocationTargetException e) {
+			throw new SecurityException(localize("security.settings.error.within.method"), e);
 		}
 	}
 

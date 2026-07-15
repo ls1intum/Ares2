@@ -58,11 +58,11 @@ public abstract class MethodTestProvider extends StructuralTestProvider {
 		if (tests.isEmpty()) {
 			throw failure(
 					"No tests for methods available in the structural oracle (test.json). Either provide attributes information or delete MethodTest.java!"); //$NON-NLS-1$
-			/*
-			 * Using a custom URI here to workaround surefire rendering the JUnit XML
-			 * without the correct test names.
-			 */
 		}
+		/*
+		 * Using a custom URI here to workaround surefire rendering the JUnit XML
+		 * without the correct test names.
+		 */
 		return dynamicContainer(getClass().getName(), new URI(getClass().getName()), tests.stream());
 	}
 
