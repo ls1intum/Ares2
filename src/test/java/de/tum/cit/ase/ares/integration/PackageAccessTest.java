@@ -2,7 +2,6 @@ package de.tum.cit.ase.ares.integration;
 
 import static de.tum.cit.ase.ares.testutilities.CustomConditions.*;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.platform.testkit.engine.Events;
 
 import de.tum.cit.ase.ares.integration.testuser.PackageAccessUser;
@@ -44,11 +43,5 @@ class PackageAccessTest {
 	@TestTest
 	void test_package_dBlackAndWhitelisting() {
 		tests.assertThatEvents().haveExactly(1, finishedSuccessfully(package_dBlackAndWhitelisting));
-	}
-
-	@Disabled("Classes are only checked when they are loaded, so changing this again is impossible")
-	@TestTest
-	void test_package_eBlackAgain() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(package_eBlackAgain, SecurityException.class));
 	}
 }

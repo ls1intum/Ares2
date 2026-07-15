@@ -69,6 +69,17 @@ public class JavaWriterTest {
 		}
 
 		@Test
+		@DisplayName("Should reject a null test folder before creating any files")
+		void shouldRejectNullTestFolderBeforeCreatingFiles() {
+			NullPointerException failure = assertThrows(NullPointerException.class,
+					() -> javaWriter.writeTestCases(buildMode, architectureMode, aopMode, essentialPackages,
+							essentialClasses, testClasses, packageName, mainClassInPackageName,
+							javaArchitectureTestCases, javaAOPTestCases, javaPhobosTestCases, null));
+			assertEquals("testFolderPath must not be null", failure.getMessage());
+			verifyNoInteractions(architectureMode, aopMode);
+		}
+
+		@Test
 		@DisplayName("Should write test cases and return file paths")
 		void shouldWriteTestCasesAndReturnFilePaths() {
 			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);

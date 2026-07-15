@@ -277,7 +277,7 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 		}
 
 		/**
-		 * Sets the Java classes to be analyzed by this architecture test case.
+		 * Sets the Java classes to be analysed by this architecture test case.
 		 *
 		 * @param javaClasses Collection of Java classes for analysis
 		 * @return This builder instance for method chaining

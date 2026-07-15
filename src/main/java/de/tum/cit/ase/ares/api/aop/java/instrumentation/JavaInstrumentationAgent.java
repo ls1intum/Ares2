@@ -1,10 +1,15 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation;
 
 import java.lang.instrument.Instrumentation;
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import net.bytebuddy.agent.builder.AgentBuilder;
+import net.bytebuddy.asm.MemberSubstitution;
+import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.loading.ClassInjector;
 import net.bytebuddy.dynamic.loading.ClassInjector.UsingUnsafe.Factory;
@@ -19,6 +24,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentati
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceNetworkSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceThreadSystemToolbox;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationThreadSystemCallSite;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.NetworkTarget;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.ThreadTarget;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationBindingDefinitions;
@@ -29,6 +35,9 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumenta
  * the agent builder for the different types of file operations.
  */
 public final class JavaInstrumentationAgent {
+	private static volatile Instrumentation instrumentation;
+	private static volatile Factory classInjectorFactory;
+	private static final Set<String> INSTRUMENTED_THREAD_MONITOR_PACKAGES = ConcurrentHashMap.newKeySet();
 
 	private JavaInstrumentationAgent() {
 		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
@@ -44,6 +53,8 @@ public final class JavaInstrumentationAgent {
 	 */
 	public static void premain(String agentArgs, Instrumentation inst) {
 		Factory unsafeFactory = Factory.resolve(inst);
+		instrumentation = inst;
+		classInjectorFactory = unsafeFactory;
 
 		putToolboxOnBootClassLoader(unsafeFactory);
 
@@ -109,6 +120,7 @@ public final class JavaInstrumentationAgent {
 		installAgentBuilder(inst, unsafeFactory,
 				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_RECEIVE_FROM_NETWORK,
 				JavaInstrumentationBindingDefinitions::createReceiveNetworkConstructorBinding);
+
 	}
 
 	/**
@@ -122,6 +134,31 @@ public final class JavaInstrumentationAgent {
 		premain(agentArgs, inst);
 	}
 
+	/**
+	 * Installs call-site substitutions for Thread monitor operations in one
+	 * restricted package.
+	 * <p>
+	 * Object's final native monitor methods cannot be advised at their declaration,
+	 * so their application-side call sites have to be rewritten. Restricting the
+	 * transformer to the package governed by the current policy is both the precise
+	 * security boundary and avoids transforming every framework and dependency class
+	 * in the JVM. Retransformation covers restricted classes that were loaded during
+	 * test discovery before the policy became available.
+	 *
+	 * @param restrictedPackage package prefix governed by the current policy
+	 */
+	public static void registerThreadMonitorRestrictedPackage(String restrictedPackage) {
+		Instrumentation currentInstrumentation = instrumentation;
+		Factory currentFactory = classInjectorFactory;
+		if (currentInstrumentation == null || currentFactory == null || restrictedPackage == null
+				|| restrictedPackage.isBlank()) {
+			return;
+		}
+		if (INSTRUMENTED_THREAD_MONITOR_PACKAGES.add(restrictedPackage)) {
+			installThreadMonitorCallSiteBuilder(currentInstrumentation, currentFactory, restrictedPackage);
+		}
+	}
+
 	private static void putToolboxOnBootClassLoader(Factory unsafeFactory) {
 		try {
 			// Fail closed: the toolboxes MUST be injected into the boot class loader so
@@ -131,50 +168,53 @@ public final class JavaInstrumentationAgent {
 			// sandbox. A boot-injection failure now propagates to the outer handler, which
 			// refuses to install the agent rather than running degraded.
 			ClassInjector classInjector = unsafeFactory.make(null, null);
-
-			if (classInjector != null) {
-				// Load classes in dependency order to ensure proper initialization
-
-				// Step 1: Load fundamental classes
-				injectClassesSafely(classInjector,
-						Map.ofEntries(
-								Map.entry(IgnoreValues.class.getName(),
-										ClassFileLocator.ForClassLoader.read(IgnoreValues.class)),
-								Map.entry(JavaAOPTestCaseSettings.class.getName(),
-										ClassFileLocator.ForClassLoader.read(JavaAOPTestCaseSettings.class))));
-
-				// Step 2: Load the abstract toolbox (depends on basic classes)
-				injectClassesSafely(classInjector,
-						Map.ofEntries(Map.entry(JavaInstrumentationAdviceAbstractToolbox.class.getName(),
-								ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceAbstractToolbox.class))));
-
-				// Step 3: Load target value types (used by concrete toolboxes)
-				injectClassesSafely(classInjector, Map.ofEntries(
-						Map.entry(FileTarget.class.getName(), ClassFileLocator.ForClassLoader.read(FileTarget.class)),
-						Map.entry(NetworkTarget.class.getName(),
-								ClassFileLocator.ForClassLoader.read(NetworkTarget.class)),
-						Map.entry(ThreadTarget.class.getName(),
-								ClassFileLocator.ForClassLoader.read(ThreadTarget.class)),
-						Map.entry(CommandTarget.class.getName(),
-								ClassFileLocator.ForClassLoader.read(CommandTarget.class))));
-
-				// Step 4: Load concrete toolbox implementations (depend on abstract toolbox and
-				// targets)
-				injectClassesSafely(classInjector,
-						Map.ofEntries(
-								Map.entry(JavaInstrumentationAdviceFileSystemToolbox.class.getName(),
-										ClassFileLocator.ForClassLoader
-												.read(JavaInstrumentationAdviceFileSystemToolbox.class)),
-								Map.entry(JavaInstrumentationAdviceThreadSystemToolbox.class.getName(),
-										ClassFileLocator.ForClassLoader
-												.read(JavaInstrumentationAdviceThreadSystemToolbox.class)),
-								Map.entry(JavaInstrumentationAdviceNetworkSystemToolbox.class.getName(),
-										ClassFileLocator.ForClassLoader
-												.read(JavaInstrumentationAdviceNetworkSystemToolbox.class)),
-								Map.entry(JavaInstrumentationAdviceCommandSystemToolbox.class.getName(),
-										ClassFileLocator.ForClassLoader
-												.read(JavaInstrumentationAdviceCommandSystemToolbox.class))));
+			if (classInjector == null) {
+				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
+						"security.instrumentation.agent.toolbox.installation.failed", "bootstrap injector is null"));
 			}
+
+			// Load classes in dependency order to ensure proper initialization
+
+			// Step 1: Load fundamental classes
+			injectClassesSafely(classInjector,
+					Map.ofEntries(
+							Map.entry(IgnoreValues.class.getName(),
+									ClassFileLocator.ForClassLoader.read(IgnoreValues.class)),
+							Map.entry(JavaAOPTestCaseSettings.class.getName(),
+									ClassFileLocator.ForClassLoader.read(JavaAOPTestCaseSettings.class))));
+
+			// Step 2: Load the abstract toolbox (depends on basic classes)
+			injectClassesSafely(classInjector,
+					Map.ofEntries(Map.entry(JavaInstrumentationAdviceAbstractToolbox.class.getName(),
+							ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceAbstractToolbox.class))));
+
+			// Step 3: Load target value types (used by concrete toolboxes)
+			injectClassesSafely(classInjector, Map.ofEntries(
+					Map.entry(FileTarget.class.getName(), ClassFileLocator.ForClassLoader.read(FileTarget.class)),
+					Map.entry(NetworkTarget.class.getName(), ClassFileLocator.ForClassLoader.read(NetworkTarget.class)),
+					Map.entry(ThreadTarget.class.getName(), ClassFileLocator.ForClassLoader.read(ThreadTarget.class)),
+					Map.entry(CommandTarget.class.getName(),
+							ClassFileLocator.ForClassLoader.read(CommandTarget.class))));
+
+			// Step 4: Load concrete toolbox implementations (depend on abstract toolbox and
+			// targets)
+			injectClassesSafely(classInjector,
+					Map.ofEntries(
+							Map.entry(JavaInstrumentationAdviceFileSystemToolbox.class.getName(),
+									ClassFileLocator.ForClassLoader
+											.read(JavaInstrumentationAdviceFileSystemToolbox.class)),
+							Map.entry(JavaInstrumentationAdviceThreadSystemToolbox.class.getName(),
+									ClassFileLocator.ForClassLoader
+											.read(JavaInstrumentationAdviceThreadSystemToolbox.class)),
+							Map.entry(JavaInstrumentationThreadSystemCallSite.class.getName(),
+									ClassFileLocator.ForClassLoader
+											.read(JavaInstrumentationThreadSystemCallSite.class)),
+							Map.entry(JavaInstrumentationAdviceNetworkSystemToolbox.class.getName(),
+									ClassFileLocator.ForClassLoader
+											.read(JavaInstrumentationAdviceNetworkSystemToolbox.class)),
+							Map.entry(JavaInstrumentationAdviceCommandSystemToolbox.class.getName(),
+									ClassFileLocator.ForClassLoader
+											.read(JavaInstrumentationAdviceCommandSystemToolbox.class))));
 		} catch (Exception e) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
 					"security.instrumentation.agent.toolbox.installation.failed", String.valueOf(e.getMessage())), e);
@@ -261,5 +301,59 @@ public final class JavaInstrumentationAgent {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
 					"security.instrumentation.agent.installation.error", String.join(", ", methodsMap.keySet())), e);
 		}
+	}
+
+	/**
+	 * Rewrites application-side invocations of Object's final monitor methods. The
+	 * wrappers preserve ordinary Object behaviour and invoke the thread policy only
+	 * when the runtime receiver is a Thread.
+	 */
+	private static void installThreadMonitorCallSiteBuilder(Instrumentation inst,
+			ClassInjector.UsingUnsafe.Factory unsafeFactory, String restrictedPackage) {
+		try {
+			Method notifyMethod = JavaInstrumentationThreadSystemCallSite.class.getMethod("notify", Object.class);
+			Method startMethod = JavaInstrumentationThreadSystemCallSite.class.getMethod("start", Thread.class);
+			Method notifyAllMethod = JavaInstrumentationThreadSystemCallSite.class.getMethod("notifyAll", Object.class);
+			Method waitMethod = JavaInstrumentationThreadSystemCallSite.class.getMethod("wait", Object.class);
+			Method timedWaitMethod = JavaInstrumentationThreadSystemCallSite.class.getMethod("wait", Object.class,
+					long.class);
+			Method preciseWaitMethod = JavaInstrumentationThreadSystemCallSite.class.getMethod("wait", Object.class,
+					long.class, int.class);
+
+			new AgentBuilder.Default().ignore(ElementMatchers.nameStartsWith("net.bytebuddy."))
+					.ignore(ElementMatchers.nameStartsWith("de.tum.cit.ase.ares.api."))
+					.with(AgentBuilder.TypeStrategy.Default.REBASE)
+					.with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
+					.with(new AgentBuilder.InjectionStrategy.UsingUnsafe.OfFactory(unsafeFactory))
+					.disableClassFormatChanges()
+					.type(ElementMatchers.nameStartsWith(restrictedPackage)
+							.and(ElementMatchers.not(ElementMatchers.isInterface())),
+							ElementMatchers.not(ElementMatchers.isBootstrapClassLoader()))
+					.transform((builder, typeDescription, classLoader, javaModule, protectionDomain) -> builder
+							.visit(threadStartSubstitution(startMethod))
+							.visit(monitorSubstitution("notify", 0, notifyMethod))
+							.visit(monitorSubstitution("notifyAll", 0, notifyAllMethod))
+							.visit(monitorSubstitution("wait", 0, waitMethod))
+							.visit(monitorSubstitution("wait", 1, timedWaitMethod))
+							.visit(monitorSubstitution("wait", 2, preciseWaitMethod)))
+					.installOn(inst);
+		} catch (ReflectiveOperationException e) {
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.instrumentation.agent.installation.error", "Object monitor call sites"), e);
+		}
+	}
+
+	private static net.bytebuddy.asm.AsmVisitorWrapper.ForDeclaredMethods monitorSubstitution(String methodName,
+			int argumentCount, Method replacement) {
+		net.bytebuddy.matcher.ElementMatcher.Junction<MethodDescription> matcher = ElementMatchers
+				.isDeclaredBy(Object.class).and(ElementMatchers.named(methodName))
+				.and(ElementMatchers.takesArguments(argumentCount));
+		return MemberSubstitution.relaxed().method(matcher).replaceWith(replacement).on(ElementMatchers.any());
+	}
+
+	private static net.bytebuddy.asm.AsmVisitorWrapper.ForDeclaredMethods threadStartSubstitution(Method replacement) {
+		net.bytebuddy.matcher.ElementMatcher.Junction<MethodDescription> matcher = ElementMatchers
+				.isDeclaredBy(Thread.class).and(ElementMatchers.named("start")).and(ElementMatchers.takesArguments(0));
+		return MemberSubstitution.relaxed().method(matcher).replaceWith(replacement).on(ElementMatchers.any());
 	}
 }

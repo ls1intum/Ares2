@@ -40,7 +40,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentati
  * overwriting, executing, or deleting files. These bindings enable
  * security-related advice to be applied to monitor and control file operations
  * at runtime. The advice ensures that file system interactions adhere to the
- * established security policies, preventing unauthorized or malicious file
+ * established security policies, preventing unauthorised or malicious file
  * operations.
  */
 public final class JavaInstrumentationBindingDefinitions {
@@ -110,7 +110,7 @@ public final class JavaInstrumentationBindingDefinitions {
 	 * pointcuts, and advice. The binding connects the bytecode modification process
 	 * to the specific methods defined by the pointcuts and applies the provided
 	 * advice. This ensures that security policies are enforced on methods
-	 * interacting with the file system, preventing unauthorized actions such as
+	 * interacting with the file system, preventing unauthorised actions such as
 	 * file manipulation or access.
 	 *
 	 * @param builder         The builder used to create the binding.
@@ -170,7 +170,7 @@ public final class JavaInstrumentationBindingDefinitions {
 	 * instrumentation advice for file read operations defined in the corresponding
 	 * pointcuts, ensuring that security-related advice is applied when methods that
 	 * read files are invoked. This helps to enforce security policies related to
-	 * file read operations, preventing unauthorized access to files.
+	 * file read operations, preventing unauthorised access to files.
 	 *
 	 * @param builder          The builder used to create the binding.
 	 * @param typeDescription  The description of the class whose methods are being
@@ -217,7 +217,7 @@ public final class JavaInstrumentationBindingDefinitions {
 	 * This method creates a binding for the overwrite path pointcut. It applies the
 	 * instrumentation advice for file overwrite operations defined in the
 	 * corresponding pointcuts, ensuring that security-related advice is applied
-	 * when methods that overwrite files are invoked. This ensures that unauthorized
+	 * when methods that overwrite files are invoked. This ensures that unauthorised
 	 * or potentially harmful file overwriting actions are detected and prevented.
 	 *
 	 * @param builder          The builder used to create the binding.
@@ -266,7 +266,7 @@ public final class JavaInstrumentationBindingDefinitions {
 	 * instrumentation advice for file execution operations defined in the
 	 * corresponding pointcuts, ensuring that security-related advice is applied
 	 * when methods that execute files are invoked. This helps to prevent
-	 * unauthorized file executions that could compromise the system's integrity.
+	 * unauthorised file executions that could compromise the system's integrity.
 	 *
 	 * @param builder          The builder used to create the binding.
 	 * @param typeDescription  The description of the class whose methods are being
@@ -314,7 +314,7 @@ public final class JavaInstrumentationBindingDefinitions {
 	 * instrumentation advice for file deletion operations defined in the
 	 * corresponding pointcuts, ensuring that security-related advice is applied
 	 * when methods that delete files are invoked. This safeguards against
-	 * unauthorized or harmful file deletion operations.
+	 * unauthorised or harmful file deletion operations.
 	 *
 	 * @param builder          The builder used to create the binding.
 	 * @param typeDescription  The description of the class whose methods are being
@@ -362,7 +362,7 @@ public final class JavaInstrumentationBindingDefinitions {
 	 * instrumentation advice for file deletion operations defined in the
 	 * corresponding pointcuts, ensuring that security-related advice is applied
 	 * when methods that create threads are invoked. This safeguards against
-	 * unauthorized or harmful file deletion operations.
+	 * unauthorised or harmful file deletion operations.
 	 *
 	 * @param builder          The builder used to create the binding.
 	 * @param typeDescription  The description of the class whose methods are being
@@ -410,7 +410,7 @@ public final class JavaInstrumentationBindingDefinitions {
 	 * the instrumentation advice for command execution operations defined in the
 	 * corresponding pointcuts, ensuring that security-related advice is applied
 	 * when methods that execute commands are invoked. This safeguards against
-	 * unauthorized or harmful command execution operations.
+	 * unauthorised or harmful command execution operations.
 	 *
 	 * @param builder          The builder used to create the binding.
 	 * @param typeDescription  The description of the class whose methods are being

@@ -8,15 +8,13 @@ import java.lang.annotation.*;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 
-//REMOVED: Import of ArtemisSecurityManager
-
 /**
- * Allows to specify which threads are trusted and whitelisted.
+ * Specifies which threads are trusted and allow-listed.
  * <p>
  * The default trust scope is {@link TrustScope#MINIMAL minimal}, so student
  * threads and threads executing arbitrary code are excluded. Other modes may
  * only provide security against mistakes, but are not fully secure unless the
- * user can ensure that student code is never trusted / whitelisted (which is
+ * user can ensure that student code is never trusted or allow-listed (which is
  * hard to do).
  * <p>
  * Possible ways how student code can be prevented from being in trusted
@@ -24,7 +22,7 @@ import org.apiguardian.api.API.Status;
  * <ul>
  * <li>Removing student classes that reside in trusted packages after
  * compilation.</li>
- * <li>Whitelist paths such that only student classes in a specific package can
+ * <li>Allow-list paths such that only student classes in a specific package can
  * be loaded. This could look like
  * <code>@WhitelistPath("target/classes/de/tum")</code> for student classes that
  * should be in packages <code>de.tum.*</code>. Note that this likely requires
@@ -41,14 +39,13 @@ import org.apiguardian.api.API.Status;
  * {@link TrustScope#EXTENDED} if the test code requires more permissions than
  * student code to work.
  * <p>
- * Note that the stack frame whitelisting is an additional check to the thread
- * whitelisting. A not-whitelisted thread cannot have whitelisted stack frames,
- * but a whitelisted thread can still have non-whitelisted stack frames, such as
- * student methods being invoked from the test method.
+ * Note that stack-frame allow-listing is an additional check to thread
+ * allow-listing. A thread which is not allow-listed cannot have allow-listed
+ * stack frames, but an allow-listed thread can still have non-allow-listed
+ * stack frames, such as student methods being invoked from the test method.
  * <p>
- * If test code requires a single thread to be whitelisted and the test code has
- * access to this thread, consider using REMOVED: Link to
- * ArtemisSecurityManager.requestThreadWhitelisting(Thread).
+ * Prefer the minimal trust scope; broader trust must be justified by the test
+ * framework's thread model.
  *
  * @since 1.7.3
  * @version 1.1.0

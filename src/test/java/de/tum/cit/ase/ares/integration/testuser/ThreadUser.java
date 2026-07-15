@@ -52,13 +52,6 @@ public class ThreadUser {
 		ForkJoinPool.commonPool().awaitQuiescence(5, TimeUnit.SECONDS);
 	}
 
-	@Disabled("Inconsistent on the CI environment")
-	@PublicTest
-	@StrictTimeout(2)
-	void testThreadBomb() {
-		ThreadPenguin.spawnEndlessThreads();
-	}
-
 	@PublicTest
 	void testThreadExtension() throws Throwable {
 		new ThreadPenguin().start();

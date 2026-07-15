@@ -20,7 +20,7 @@
    - [5.1 Check 1: Is Security Enabled?](#51-check-1-is-security-enabled)
    - [5.2 Check 2: Does the Call Come from Student Code?](#52-check-2-does-the-call-come-from-student-code)
      - [5.2.1 Load Configuration](#521-load-configuration)
-     - [5.2.2 Analyze the Call Chain](#522-analyze-the-call-chain)
+     - [5.2.2 Analyse the Call Chain](#522-analyse-the-call-chain)
      - [5.2.3 Find Which Test Called the Student Code](#523-find-which-test-called-the-student-code)
    - [5.3 Check 3: Extract and Validate Thread Classes from Parameters](#53-check-3-extract-and-validate-thread-classes-from-parameters)
      - [5.3.1 Load List of Allowed Thread Classes](#531-load-list-of-allowed-thread-classes)
@@ -34,7 +34,7 @@
 
 # 1. High-Level Overview
 
-This document describes how Ares 2 prevents unauthorized thread creation in student code.
+This document describes how Ares 2 prevents unauthorised thread creation in student code.
 
 ---
 
@@ -103,7 +103,7 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 **Security Assumptions:** 
 - Student code cannot modify Ares security settings (guaranteed by making settings private; reflection is disabled for student code)
 - Student code cannot interfere with security monitoring (guaranteed by making settings private; reflection is disabled for student code)
-- Student code executes after Ares is initialized (guaranteed by build pipeline)
+- Student code executes after Ares is initialised (guaranteed by build pipeline)
 
 ---
 
@@ -576,7 +576,7 @@ String[] allowedClasses = getValueFromSettings("allowedListedClasses");
 
 Configuration loaded → 🌕 **Continue to 5.2.2**
 
-### 5.2.2 Analyze the Call Chain
+### 5.2.2 Analyse the Call Chain
 
 **1. Purpose**
 
@@ -946,7 +946,7 @@ private static boolean handleFoundClassIsForbidden(int[] allowedThreadNumbers, i
 
 **Matching Rules:**
 
-| Scenario | Behavior |
+| Scenario | Behaviour |
 |----------|----------|
 | Exact class match | Check quota for that class |
 | Lambda vs. `"Lambda-Expression"` | Check lambda quota |

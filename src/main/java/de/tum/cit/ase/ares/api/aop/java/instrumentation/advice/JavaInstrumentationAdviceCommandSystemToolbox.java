@@ -21,7 +21,7 @@ import javax.annotation.Nullable;
  * policies at runtime by checking command system interactions (create) against
  * allowed classes and command counts, call stack criteria, and variable
  * criteria. Uses reflection to interact with test case settings and
- * localization utilities. Designed to prevent unauthorized command system
+ * localisation utilities. Designed to prevent unauthorised command system
  * operations during Java application execution, especially in test and
  * instrumentation scenarios.
  * <p>
@@ -308,7 +308,7 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 	// <editor-fold desc="Violation analysis">
 
 	/**
-	 * Analyzes a variable to determine if it violates allowed commands.
+	 * Analyses a variable to determine if it violates allowed commands.
 	 * <p>
 	 * Description: Recursively checks if the variable or its elements (if an array
 	 * or List) are in violation of the allowed commands. Returns true if any
@@ -316,7 +316,7 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param observedVariable the variable to analyze
+	 * @param observedVariable the variable to analyse
 	 * @param allowedCommands  whitelist of allowed commands
 	 * @param allowedArguments the allowed arguments per command
 	 * @return true if a violation is found, false otherwise
@@ -662,7 +662,7 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 	 * @param parameters        optional method parameters
 	 * @param instance          the receiver object of the intercepted call; may be
 	 *                          null
-	 * @throws SecurityException if unauthorized access is detected
+	 * @throws SecurityException if unauthorised access is detected
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */

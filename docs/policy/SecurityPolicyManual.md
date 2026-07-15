@@ -229,7 +229,7 @@ The security policy does not cover the following resource types. They are enforc
 | Module System | JPMS module boundary crossings: internal API access, `setAccessible` bypass, `Module.implAddOpens`/`implAddExports`, `MethodHandles.privateLookupIn` | Block `field.setAccessible(true)` on module-internal fields |
 | Native Code | Loading native libraries (`System.loadLibrary`, `System.load`, `Runtime.loadLibrary`, `Runtime.load`) and `sun.misc.Unsafe` operations (memory allocation, CAS, direct byte buffers) | Block `System.loadLibrary("native")` |
 | Reflection | Roughly 190 methods in `java.lang.reflect.*`, `java.lang.invoke.*`, `Class.forName()`, `Method.invoke()`, `Field.set()`, `Proxy.newProxyInstance()`, `sun.misc.Unsafe`, `java.lang.foreign.*` (FFI/Panama) | Block `Method.invoke(obj, args)` |
-| Serialization | Java object serialization via `ObjectInputStream` and `ObjectOutputStream` | Block `new ObjectInputStream(stream).readObject()` |
+| Serialisation | Java object serialisation via `ObjectInputStream` and `ObjectOutputStream` | Block `new ObjectInputStream(stream).readObject()` |
 | Test Utilities | Ares 2 test infrastructure classes that are listed in the policy as `theFollowingClassesAreTestClasses` to exempt them from security restrictions | Exempt `com.instructor.ExerciseTest` |
 | Agent | JVM agent attach and instrumentation APIs: `Instrumentation` access, class redefinition/retransformation, `VirtualMachine.attach`, `loadAgent` | Block `VirtualMachine.attach(pid)` |
 
@@ -662,7 +662,7 @@ Before releasing an exercise:
 
 2. **Test common mistakes:** Try variations of incorrect solutions to ensure they are properly restricted.
 
-3. **Test malicious scenarios:** Attempt to read unauthorized files, make network connections, etc. to verify the policy blocks them.
+3. **Test malicious scenarios:** Attempt to read unauthorised files, make network connections, etc. to verify the policy blocks them.
 
 ---
 
@@ -722,14 +722,14 @@ Ares 2 validates all policy fields when the YAML file is parsed. If validation f
 
 | Field | Validation Rule | Error on Violation |
 |-------|----------------|--------------------|
-| `onThisPathAndAllPathsBelow` | Must not be `null` or blank | `IllegalArgumentException` with a localized message |
-| `onTheHost` | Must not be `null` or blank | `IllegalArgumentException` with a localized message |
-| `onThePort` | Must be between 0 and 65535 | `IllegalArgumentException` with a localized message |
-| `executeTheCommand` | Must not be `null` or blank | `IllegalArgumentException` with a localized message |
-| `createTheFollowingNumberOfThreads` | Must be ≥ 0 | `IllegalArgumentException` with a localized message |
-| `ofThisClass` | Must not be `null` or blank | `IllegalArgumentException` with a localized message |
-| `importTheFollowingPackage` | Must not be `null` or blank | `IllegalArgumentException` with a localized message |
-| `timeout` | Must be ≥ 0 (default: 10000 ms) | `IllegalArgumentException` with a localized message |
+| `onThisPathAndAllPathsBelow` | Must not be `null` or blank | `IllegalArgumentException` with a localised message |
+| `onTheHost` | Must not be `null` or blank | `IllegalArgumentException` with a localised message |
+| `onThePort` | Must be between 0 and 65535 | `IllegalArgumentException` with a localised message |
+| `executeTheCommand` | Must not be `null` or blank | `IllegalArgumentException` with a localised message |
+| `createTheFollowingNumberOfThreads` | Must be ≥ 0 | `IllegalArgumentException` with a localised message |
+| `ofThisClass` | Must not be `null` or blank | `IllegalArgumentException` with a localised message |
+| `importTheFollowingPackage` | Must not be `null` or blank | `IllegalArgumentException` with a localised message |
+| `timeout` | Must be ≥ 0 (default: 10000 ms) | `IllegalArgumentException` with a localised message |
 
 When a student's code violates a policy at runtime, Ares throws a `SecurityException` with a descriptive single-line message such as:
 

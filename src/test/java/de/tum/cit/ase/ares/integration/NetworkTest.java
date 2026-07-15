@@ -4,7 +4,6 @@ import static de.tum.cit.ase.ares.testutilities.CustomConditions.*;
 
 import java.net.SocketTimeoutException;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.platform.testkit.engine.Events;
 
 import de.tum.cit.ase.ares.integration.testuser.NetworkUser;
@@ -41,12 +40,6 @@ class NetworkTest {
 	@TestTest
 	void test_connectLocallyAllowed() {
 		tests.assertThatEvents().haveExactly(3, finishedSuccessfully(connectLocallyAllowed));
-	}
-
-	@Disabled("Does currently not work on the CI system for some reason")
-	@TestTest
-	void test_serverAllowedAndAccept() {
-		tests.assertThatEvents().haveExactly(1, finishedSuccessfully(serverAllowedAndAccept));
 	}
 
 	@TestTest

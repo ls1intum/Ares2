@@ -1,22 +1,18 @@
 package de.tum.cit.ase.ares.integration;
 
 import static de.tum.cit.ase.ares.testutilities.CustomConditions.*;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.lang.Thread.State;
 import java.util.*;
 import java.util.stream.*;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.function.Executable;
 import org.junit.platform.testkit.engine.Events;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.StrictTimeout;
-import de.tum.cit.ase.ares.api.TestUtils;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
 import de.tum.cit.ase.ares.integration.testuser.subject.threads.ThreadPenguin;
@@ -29,36 +25,12 @@ class ThreadTest {
 	@UserTestResults
 	private static Events tests;
 
-	private final String commonPoolInterruptable = "commonPoolInterruptable";
-	private final String testThreadBomb = "testThreadBomb";
-	private final String testThreadExtension = "testThreadExtension";
 	private final String testThreadGroup = "testThreadGroup";
 	private final String threadLimitExceeded = "threadLimitExceeded";
-	private final String threadWhitelistingWithPathCorrect = "threadWhitelistingWithPathCorrect";
 	private final String threadWhitelistingWithPathFail = "threadWhitelistingWithPathFail";
 	private final String threadWhitelistingWithPathPenguin = "threadWhitelistingWithPathPenguin";
 
 	private final String errorMessage = "No Security Exception was thrown. Check if the policy is correctly applied.";
-
-	@Disabled("@UserBased is commented out; tests field is null")
-	@TestTest
-	void test_commonPoolInterruptable() {
-		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(commonPoolInterruptable, AssertionError.class, "execution timed out after 300 ms"));
-
-		assertCommonPoolIdleAndIntact();
-	}
-
-	private static void assertCommonPoolIdleAndIntact() {
-		ThreadGroup root = TestUtils.getRootThreadGroup();
-		Thread[] allThreads = new Thread[root.activeCount() + 10];
-		TestUtils.getRootThreadGroup().enumerate(allThreads, true);
-		Map<String, State> commonPoolThreadStates = Stream.of(allThreads).filter(Objects::nonNull)
-				.peek(System.out::println).filter(t -> t.getName().contains("commonPool"))
-				.collect(Collectors.toMap(Thread::getName, Thread::getState));
-		assertThat(commonPoolThreadStates).doesNotContainValue(State.RUNNABLE);
-		assertThat(commonPoolThreadStates).doesNotContainValue(State.TERMINATED);
-	}
 
 	/**
 	 * Asserts that the exception message contains general error details for
@@ -97,18 +69,6 @@ class ThreadTest {
 		assertThreadErrorMessage(se.getMessage(), operationText);
 	}
 
-	@Disabled("Currently unused because this is very inconsistent depending on the CI environment")
-	@TestTest
-	void test_testThreadBomb() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testThreadBomb, SecurityException.class));
-	}
-
-	@Disabled("@UserBased is commented out; tests field is null")
-	@TestTest
-	void test_testThreadExtension() {
-		tests.assertThatEvents().haveExactly(1, finishedSuccessfully(testThreadExtension));
-	}
-
 	@TestTest
 	void test_testThreadGroup() {
 		// OUTCOMMENTED: Test does not pass
@@ -123,12 +83,6 @@ class ThreadTest {
 		// SecurityException.class,
 		// "too many threads: 2 (max: 1) in line 36 in ThreadPenguin.java",
 		// Option.MESSAGE_CONTAINS));
-	}
-
-	@Disabled("@UserBased is commented out; tests field is null")
-	@TestTest
-	void test_threadWhitelistingWithPathCorrect() {
-		tests.assertThatEvents().haveExactly(1, finishedSuccessfully(threadWhitelistingWithPathCorrect));
 	}
 
 	@TestTest

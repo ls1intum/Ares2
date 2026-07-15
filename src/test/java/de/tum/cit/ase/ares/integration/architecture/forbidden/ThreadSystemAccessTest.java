@@ -16,12 +16,14 @@ import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.thread.CreateThreadMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.threadFactory.CreateThreadFactoryMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.threadPoolExecutor.CreateThreadPoolExecutorMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.manipulate.thread.ManipulateThreadMain;
 
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
 @Execution(ExecutionMode.SAME_THREAD)
 public class ThreadSystemAccessTest extends SystemAccessTest {
 
 	private static final String THREAD_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/thread";
+	private static final String THREAD_MANIPULATION_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/manipulate/thread";
 	private static final String EXECUTOR_SERVICE_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/executorService";
 	private static final String SCHEDULED_EXECUTOR_SERVICE_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/scheduledExecutorService";
 	private static final String THREAD_POOL_EXECUTOR_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/threadPoolExecutor";
@@ -381,30 +383,30 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 	// <editor-fold desc="accessThreadSystemViaNotifyThread">
 	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
-	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = THREAD_PATH)
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = THREAD_MANIPULATION_PATH)
 	public void test_notifyThreadMavenArchunitAspectJ() {
-		CreateThreadMain.notifyThread();
+		ManipulateThreadMain.notifyThread();
 	}
 
 	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
-	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = THREAD_PATH)
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = THREAD_MANIPULATION_PATH)
 	public void test_notifyThreadMavenArchunitInstrumentation() {
-		CreateThreadMain.notifyThread();
+		ManipulateThreadMain.notifyThread();
 	}
 
 	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
-	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = THREAD_PATH)
+	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = THREAD_MANIPULATION_PATH)
 	public void test_notifyThreadMavenWalaAspectJ() {
-		CreateThreadMain.notifyThread();
+		ManipulateThreadMain.notifyThread();
 	}
 
 	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
-	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = THREAD_PATH)
+	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = THREAD_MANIPULATION_PATH)
 	public void test_notifyThreadMavenWalaInstrumentation() {
-		CreateThreadMain.notifyThread();
+		ManipulateThreadMain.notifyThread();
 	}
 	// </editor-fold>
 

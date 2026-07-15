@@ -84,7 +84,14 @@ public abstract class StructuralTestProvider {
 	private static final String PACKAGE_PATH_SEPARATOR = "."; //$NON-NLS-1$
 	private static final Pattern PACKAGE_NAME_IN_GENERIC_TYPE = Pattern.compile("(?:[^\\[\\]<>?,\\s.]++\\.)++"); //$NON-NLS-1$
 
-	protected static JsonNode structureOracleJSON;
+	/**
+	 * Structural oracle owned by this provider instance.
+	 * <p>
+	 * Provider subclasses for different exercises may execute concurrently. Keeping
+	 * the oracle on the instance prevents one provider from replacing another
+	 * provider's expected structure while its dynamic tests are being generated.
+	 */
+	protected JsonNode structureOracleJSON;
 
 	protected StructuralTestProvider() {
 		// make constructor only protected

@@ -1,6 +1,9 @@
 package de.tum.cit.ase.ares.integration.aop.forbidden;
 
-import org.junit.jupiter.api.Disabled;
+import java.util.concurrent.CountDownLatch;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
@@ -11,10 +14,14 @@ import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.thread.CreateThreadMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.threadFactory.CreateThreadFactoryMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.threadPoolExecutor.CreateThreadPoolExecutorMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.manipulate.thread.ManipulateThreadMain;
 
 class ThreadSystemAccessTest extends SystemAccessTest {
+	private CountDownLatch stopPreExistingThread;
+	private Thread preExistingLiveThread;
 
 	private static final String THREAD_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/thread";
+	private static final String THREAD_MANIPULATION_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/manipulate/thread";
 	private static final String EXECUTOR_SERVICE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/executorService";
 	private static final String SCHEDULED_EXECUTOR_SERVICE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/scheduledExecutorService";
 	private static final String THREAD_POOL_EXECUTOR_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/threadPoolExecutor";
@@ -22,6 +29,30 @@ class ThreadSystemAccessTest extends SystemAccessTest {
 	private static final String PARALLEL_STREAM_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/parallelStream";
 	private static final String FORK_JOIN_POOL_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/forkJoinPool";
 	private static final String THREAD_FACTORY_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/threadFactory";
+
+	@BeforeEach
+	void startPreExistingThread() {
+		stopPreExistingThread = new CountDownLatch(1);
+		preExistingLiveThread = new Thread(() -> {
+			try {
+				stopPreExistingThread.await();
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+			}
+		});
+		preExistingLiveThread.start();
+	}
+
+	@AfterEach
+	void stopPreExistingThread() {
+		stopPreExistingThread.countDown();
+		try {
+			preExistingLiveThread.join(5_000L);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new AssertionError("Interrupted while stopping the pre-existing thread", e);
+		}
+	}
 
 	// <editor-fold desc="accessThreadSystemViaStartThread">
 
@@ -321,80 +352,200 @@ class ThreadSystemAccessTest extends SystemAccessTest {
 	// <editor-fold desc="accessThreadSystemViaNotifyThread">
 
 	@PublicTest
-	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_MANIPULATION_WITHIN_PATH)
 	public void test_notifyThreadMavenArchunitAspectJ() {
-		assertAresSecurityExceptionThread(CreateThreadMain::notifyThread, CreateThreadMain.class);
+		assertAresSecurityExceptionThread(ManipulateThreadMain::notifyThread, ManipulateThreadMain.class);
 	}
 
 	@PublicTest
-	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_MANIPULATION_WITHIN_PATH)
 	public void test_notifyThreadMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionThread(CreateThreadMain::notifyThread, CreateThreadMain.class);
+		assertAresSecurityExceptionThread(ManipulateThreadMain::notifyThread, ManipulateThreadMain.class);
 	}
 
 	@PublicTest
-	@Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
+	@Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_MANIPULATION_WITHIN_PATH)
 	public void test_notifyThreadMavenWalaAspectJ() {
-		assertAresSecurityExceptionThread(CreateThreadMain::notifyThread, CreateThreadMain.class);
+		assertAresSecurityExceptionThread(ManipulateThreadMain::notifyThread, ManipulateThreadMain.class);
 	}
 
 	@PublicTest
-	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
+	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_MANIPULATION_WITHIN_PATH)
 	public void test_notifyThreadMavenWalaInstrumentation() {
-		assertAresSecurityExceptionThread(CreateThreadMain::notifyThread, CreateThreadMain.class);
+		assertAresSecurityExceptionThread(ManipulateThreadMain::notifyThread, ManipulateThreadMain.class);
 	}
 
 	// </editor-fold>
 
 	// <editor-fold desc="accessThreadSystemViaNotifyThreadOnly">
-	// Only AspectJ variants exist here: the AspectJ engine intercepts
-	// Thread.notify() via a
-	// caller-side call() && target(Thread+) pointcut. The Instrumentation engine
-	// structurally
-	// cannot, because notify()/notifyAll()/wait() are final methods declared by
-	// java.lang.Object
-	// that Thread cannot override, so target-class rewriting has no Thread.notify()
-	// to weave. See
-	// docs/aop/AspectJVsInstrumentationWeaknesses.md.
+	// Both engines intercept this at the call site: AspectJ weaves the invocation
+	// and
+	// instrumentation substitutes it with a policy-checking wrapper.
 	@PublicTest
-	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_MANIPULATION_WITHIN_PATH)
 	public void test_notifyThreadOnlyMavenArchunitAspectJ() {
-		assertAresSecurityExceptionThreadManipulate(CreateThreadMain::notifyThreadOnly, CreateThreadMain.class);
+		assertAresSecurityExceptionThreadManipulate(ManipulateThreadMain::notifyThreadOnly, ManipulateThreadMain.class);
 	}
 
 	@PublicTest
-	@Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
-	public void test_notifyThreadOnlyMavenWalaAspectJ() {
-		assertAresSecurityExceptionThreadManipulate(CreateThreadMain::notifyThreadOnly, CreateThreadMain.class);
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_MANIPULATION_WITHIN_PATH)
+	public void test_notifyThreadOnlyMavenArchunitInstrumentation() {
+		assertAresSecurityExceptionThreadManipulate(ManipulateThreadMain::notifyThreadOnly, ManipulateThreadMain.class);
 	}
+
+	@PublicTest
+	@Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_MANIPULATION_WITHIN_PATH)
+	public void test_notifyThreadOnlyMavenWalaAspectJ() {
+		assertAresSecurityExceptionThreadManipulate(ManipulateThreadMain::notifyThreadOnly, ManipulateThreadMain.class);
+	}
+
+	@PublicTest
+	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_MANIPULATION_WITHIN_PATH)
+	public void test_notifyThreadOnlyMavenWalaInstrumentation() {
+		assertAresSecurityExceptionThreadManipulate(ManipulateThreadMain::notifyThreadOnly, ManipulateThreadMain.class);
+	}
+
 	// </editor-fold>
 
 	// <editor-fold desc="accessThreadSystemViaNotifyAllThreadOnly">
 	@PublicTest
-	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_MANIPULATION_WITHIN_PATH)
 	public void test_notifyAllThreadOnlyMavenArchunitAspectJ() {
-		assertAresSecurityExceptionThreadManipulate(CreateThreadMain::notifyAllThreadOnly, CreateThreadMain.class);
+		assertAresSecurityExceptionThreadManipulate(ManipulateThreadMain::notifyAllThreadOnly,
+				ManipulateThreadMain.class);
 	}
 
 	@PublicTest
-	@Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
-	public void test_notifyAllThreadOnlyMavenWalaAspectJ() {
-		assertAresSecurityExceptionThreadManipulate(CreateThreadMain::notifyAllThreadOnly, CreateThreadMain.class);
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_MANIPULATION_WITHIN_PATH)
+	public void test_notifyAllThreadOnlyMavenArchunitInstrumentation() {
+		assertAresSecurityExceptionThreadManipulate(ManipulateThreadMain::notifyAllThreadOnly,
+				ManipulateThreadMain.class);
 	}
+
+	@PublicTest
+	@Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_MANIPULATION_WITHIN_PATH)
+	public void test_notifyAllThreadOnlyMavenWalaAspectJ() {
+		assertAresSecurityExceptionThreadManipulate(ManipulateThreadMain::notifyAllThreadOnly,
+				ManipulateThreadMain.class);
+	}
+
+	@PublicTest
+	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_MANIPULATION_WITHIN_PATH)
+	public void test_notifyAllThreadOnlyMavenWalaInstrumentation() {
+		assertAresSecurityExceptionThreadManipulate(ManipulateThreadMain::notifyAllThreadOnly,
+				ManipulateThreadMain.class);
+	}
+
 	// </editor-fold>
 
 	// <editor-fold desc="accessThreadSystemViaWaitThreadOnly">
 	@PublicTest
-	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_MANIPULATION_WITHIN_PATH)
 	public void test_waitThreadOnlyMavenArchunitAspectJ() {
-		assertAresSecurityExceptionThreadManipulate(CreateThreadMain::waitThreadOnly, CreateThreadMain.class);
+		assertAresSecurityExceptionThreadManipulate(ManipulateThreadMain::waitThreadOnly, ManipulateThreadMain.class);
 	}
 
 	@PublicTest
-	@Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
-	public void test_waitThreadOnlyMavenWalaAspectJ() {
-		assertAresSecurityExceptionThreadManipulate(CreateThreadMain::waitThreadOnly, CreateThreadMain.class);
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_MANIPULATION_WITHIN_PATH)
+	public void test_waitThreadOnlyMavenArchunitInstrumentation() {
+		assertAresSecurityExceptionThreadManipulate(ManipulateThreadMain::waitThreadOnly, ManipulateThreadMain.class);
 	}
+
+	@PublicTest
+	@Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_MANIPULATION_WITHIN_PATH)
+	public void test_waitThreadOnlyMavenWalaAspectJ() {
+		assertAresSecurityExceptionThreadManipulate(ManipulateThreadMain::waitThreadOnly, ManipulateThreadMain.class);
+	}
+
+	@PublicTest
+	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_MANIPULATION_WITHIN_PATH)
+	public void test_waitThreadOnlyMavenWalaInstrumentation() {
+		assertAresSecurityExceptionThreadManipulate(ManipulateThreadMain::waitThreadOnly, ManipulateThreadMain.class);
+	}
+
+	// </editor-fold>
+
+	// <editor-fold desc="accessThreadSystemViaPreExistingThreads">
+	@PublicTest
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_MANIPULATION_WITHIN_PATH)
+	public void test_notifyCurrentThreadMavenArchunitAspectJ() {
+		assertAresSecurityExceptionThreadManipulate(ManipulateThreadMain::notifyCurrentThread,
+				ManipulateThreadMain.class);
+		assertAresSecurityExceptionThreadManipulate(ManipulateThreadMain::notifyAllCurrentThread,
+				ManipulateThreadMain.class);
+		assertAresSecurityExceptionThreadManipulate(ManipulateThreadMain::waitCurrentThread,
+				ManipulateThreadMain.class);
+	}
+
+	@PublicTest
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_MANIPULATION_WITHIN_PATH)
+	public void test_notifyCurrentThreadMavenArchunitInstrumentation() {
+		assertAresSecurityExceptionThreadManipulate(ManipulateThreadMain::notifyCurrentThread,
+				ManipulateThreadMain.class);
+		assertAresSecurityExceptionThreadManipulate(ManipulateThreadMain::notifyAllCurrentThread,
+				ManipulateThreadMain.class);
+		assertAresSecurityExceptionThreadManipulate(ManipulateThreadMain::waitCurrentThread,
+				ManipulateThreadMain.class);
+	}
+
+	@PublicTest
+	@Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_MANIPULATION_WITHIN_PATH)
+	public void test_notifyCurrentThreadMavenWalaAspectJ() {
+		assertAresSecurityExceptionThreadManipulate(ManipulateThreadMain::notifyCurrentThread,
+				ManipulateThreadMain.class);
+		assertAresSecurityExceptionThreadManipulate(ManipulateThreadMain::notifyAllCurrentThread,
+				ManipulateThreadMain.class);
+		assertAresSecurityExceptionThreadManipulate(ManipulateThreadMain::waitCurrentThread,
+				ManipulateThreadMain.class);
+	}
+
+	@PublicTest
+	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_MANIPULATION_WITHIN_PATH)
+	public void test_notifyCurrentThreadMavenWalaInstrumentation() {
+		assertAresSecurityExceptionThreadManipulate(ManipulateThreadMain::notifyCurrentThread,
+				ManipulateThreadMain.class);
+		assertAresSecurityExceptionThreadManipulate(ManipulateThreadMain::notifyAllCurrentThread,
+				ManipulateThreadMain.class);
+		assertAresSecurityExceptionThreadManipulate(ManipulateThreadMain::waitCurrentThread,
+				ManipulateThreadMain.class);
+	}
+
+	@PublicTest
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_MANIPULATION_WITHIN_PATH)
+	public void test_notifyProvidedThreadMavenArchunitAspectJ() {
+		assertPreExistingLiveThreadInteractions();
+	}
+
+	@PublicTest
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_MANIPULATION_WITHIN_PATH)
+	public void test_notifyProvidedThreadMavenArchunitInstrumentation() {
+		assertPreExistingLiveThreadInteractions();
+	}
+
+	@PublicTest
+	@Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_MANIPULATION_WITHIN_PATH)
+	public void test_notifyProvidedThreadMavenWalaAspectJ() {
+		assertPreExistingLiveThreadInteractions();
+	}
+
+	@PublicTest
+	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_MANIPULATION_WITHIN_PATH)
+	public void test_notifyProvidedThreadMavenWalaInstrumentation() {
+		assertPreExistingLiveThreadInteractions();
+	}
+
+	private void assertPreExistingLiveThreadInteractions() {
+		if (!preExistingLiveThread.isAlive()) {
+			throw new AssertionError("The pre-existing thread is not alive");
+		}
+		assertAresSecurityExceptionThreadManipulate(
+				() -> ManipulateThreadMain.notifyProvidedThread(preExistingLiveThread), ManipulateThreadMain.class);
+		assertAresSecurityExceptionThreadManipulate(
+				() -> ManipulateThreadMain.notifyAllProvidedThread(preExistingLiveThread), ManipulateThreadMain.class);
+		assertAresSecurityExceptionThreadManipulate(
+				() -> ManipulateThreadMain.waitProvidedThread(preExistingLiveThread), ManipulateThreadMain.class);
+	}
+
 	// </editor-fold>
 
 	// <editor-fold desc="accessThreadSystemViaExecuteRunnable">
@@ -823,7 +974,6 @@ class ThreadSystemAccessTest extends SystemAccessTest {
 	}
 
 	@PublicTest
-	@Disabled("Instrumentation does not intercept ForkJoinPool.commonPool().execute consistently")
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = FORK_JOIN_POOL_WITHIN_PATH)
 	public void test_forkJoinPool_commonPoolExecuteMavenArchunitInstrumentation() {
 		assertAresSecurityExceptionThread(CreateForkJoinPoolMain::commonPoolExecute, CreateForkJoinPoolMain.class);
@@ -836,7 +986,6 @@ class ThreadSystemAccessTest extends SystemAccessTest {
 	}
 
 	@PublicTest
-	@Disabled("Instrumentation does not intercept ForkJoinPool.commonPool().execute consistently")
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = FORK_JOIN_POOL_WITHIN_PATH)
 	public void test_forkJoinPool_commonPoolExecuteMavenWalaInstrumentation() {
 		assertAresSecurityExceptionThread(CreateForkJoinPoolMain::commonPoolExecute, CreateForkJoinPoolMain.class);
@@ -852,7 +1001,6 @@ class ThreadSystemAccessTest extends SystemAccessTest {
 	}
 
 	@PublicTest
-	@Disabled("Instrumentation does not intercept ForkJoinPool.commonPool().submit consistently")
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = FORK_JOIN_POOL_WITHIN_PATH)
 	public void test_forkJoinPool_commonPoolSubmitCallableTaskMavenArchunitInstrumentation() {
 		assertAresSecurityExceptionThread(CreateForkJoinPoolMain::commonPoolSubmitCallableTask,
@@ -867,7 +1015,6 @@ class ThreadSystemAccessTest extends SystemAccessTest {
 	}
 
 	@PublicTest
-	@Disabled("Instrumentation does not intercept ForkJoinPool.commonPool().submit consistently")
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = FORK_JOIN_POOL_WITHIN_PATH)
 	public void test_forkJoinPool_commonPoolSubmitCallableTaskMavenWalaInstrumentation() {
 		assertAresSecurityExceptionThread(CreateForkJoinPoolMain::commonPoolSubmitCallableTask,
@@ -884,7 +1031,6 @@ class ThreadSystemAccessTest extends SystemAccessTest {
 	}
 
 	@PublicTest
-	@Disabled("Instrumentation does not intercept ForkJoinPool.commonPool().submit consistently")
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = FORK_JOIN_POOL_WITHIN_PATH)
 	public void test_forkJoinPool_commonPoolSubmitRunnableMavenArchunitInstrumentation() {
 		assertAresSecurityExceptionThread(CreateForkJoinPoolMain::commonPoolSubmitRunnable,
@@ -899,7 +1045,6 @@ class ThreadSystemAccessTest extends SystemAccessTest {
 	}
 
 	@PublicTest
-	@Disabled("Instrumentation does not intercept ForkJoinPool.commonPool().submit consistently")
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = FORK_JOIN_POOL_WITHIN_PATH)
 	public void test_forkJoinPool_commonPoolSubmitRunnableMavenWalaInstrumentation() {
 		assertAresSecurityExceptionThread(CreateForkJoinPoolMain::commonPoolSubmitRunnable,

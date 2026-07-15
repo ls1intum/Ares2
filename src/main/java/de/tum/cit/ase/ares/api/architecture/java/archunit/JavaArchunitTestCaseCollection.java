@@ -21,9 +21,9 @@ import de.tum.cit.ase.ares.api.util.FileTools;
 //</editor-fold>
 
 /**
- * Collection of security test cases that analyze Java applications using
+ * Collection of security test cases that analyse Java applications using
  * Archunit framework. This class provides static methods to verify that
- * analyzed code does not: - Use reflection - Access file system - Access
+ * analysed code does not: - Use reflection - Access file system - Access
  * network - Terminate JVM - Execute system commands - Create threads
  */
 public final class JavaArchunitTestCaseCollection {
@@ -183,6 +183,7 @@ public final class JavaArchunitTestCaseCollection {
 	public static final ArchRule NO_CLASS_MUST_CREATE_THREADS = createNoClassShouldHaveMethodRule(
 			Messages.localized("security.architecture.manipulate.threads"),
 			FileHandlerConstants.ARCHUNIT_THREAD_MANIPULATION_METHODS);
+
 	// </editor-fold>
 
 	// <editor-fold desc="Command Execution related rule">

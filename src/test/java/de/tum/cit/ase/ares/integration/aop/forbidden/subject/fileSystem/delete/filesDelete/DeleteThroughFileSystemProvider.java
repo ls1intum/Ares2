@@ -18,7 +18,8 @@ public class DeleteThroughFileSystemProvider {
 	 * deletion.
 	 */
 	public static void accessFileSystemViaFileSystemProvider() throws IOException {
-		FileSystemProvider provider = FileSystemProvider.installedProviders().get(0);
-		provider.delete(Path.of(NOT_TRUSTED_FILE));
+		Path target = Path.of(NOT_TRUSTED_FILE);
+		FileSystemProvider provider = target.getFileSystem().provider();
+		provider.delete(target);
 	}
 }

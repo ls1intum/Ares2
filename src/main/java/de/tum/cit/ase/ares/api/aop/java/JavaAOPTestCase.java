@@ -17,6 +17,7 @@ import javax.annotation.Nullable;
 import de.tum.cit.ase.ares.api.aop.AOPTestCase;
 import de.tum.cit.ase.ares.api.aop.commandSystem.java.JavaCommandSystemExtractor;
 import de.tum.cit.ase.ares.api.aop.fileSystem.java.JavaFileSystemExtractor;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox;
 import de.tum.cit.ase.ares.api.aop.java.javaAOPTestCaseToolbox.JavaAOPAdviceSettingTriple;
 import de.tum.cit.ase.ares.api.aop.java.javaAOPTestCaseToolbox.JavaAOPTestCaseToolbox;
@@ -183,6 +184,9 @@ public class JavaAOPTestCase extends AOPTestCase {
 			// missing copies are silently skipped.
 			setSettingFieldOnLoader(adviceSetting, value, null);
 			setSettingFieldOnLoader(adviceSetting, value, Thread.currentThread().getContextClassLoader());
+			if ("restrictedPackage".equals(adviceSetting) && value instanceof String restrictedPackage) {
+				JavaInstrumentationAgent.registerThreadMonitorRestrictedPackage(restrictedPackage);
+			}
 			return;
 		} catch (LinkageError e) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox

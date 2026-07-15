@@ -3,7 +3,6 @@ package de.tum.cit.ase.ares.api.io;
 import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 
 import java.io.*;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
@@ -27,10 +26,6 @@ public final class IOTester {
 
 	static final String LINE_SEPARATOR = "\n"; //$NON-NLS-1$
 
-	static {
-		checkEncoding();
-	}
-
 	private static IOTester instance;
 
 	/**
@@ -43,8 +38,6 @@ public final class IOTester {
 	 * cannot be taken by student code.
 	 */
 	private static final Object INSTALLATION_LOCK = new Object();
-
-	private final Object instanceLock = new Object();
 
 	private final InputStream oldIn;
 	private final PrintStream oldOut;
@@ -83,12 +76,14 @@ public final class IOTester {
 	}
 
 	public void install() {
-		synchronized (instanceLock) {
+		synchronized (INSTALLATION_LOCK) {
+			if (instance != this) {
+				throw new IllegalStateException(localized("io_tester.not_current_instance")); //$NON-NLS-1$
+			}
+			if (isInstalled) {
+				throw new IllegalStateException(localized("io_tester.already_installed")); //$NON-NLS-1$
+			}
 			// check permission already here, we need to be allowed to set system IO
-			// REMOVED: Getting the system's SecurityManager
-			// if this is a problem, make sure to install the security manager after
-			// IOTester
-
 			// set test streams
 			System.setIn(in);
 			System.setOut(new PrintStream(out, true, StandardCharsets.UTF_8));
@@ -99,7 +94,10 @@ public final class IOTester {
 	}
 
 	public void uninstall() {
-		synchronized (instanceLock) {
+		synchronized (INSTALLATION_LOCK) {
+			if (instance != this || !isInstalled) {
+				throw new IllegalStateException(localized("io_tester.not_current_instance")); //$NON-NLS-1$
+			}
 			// set original streams
 			System.setIn(oldIn);
 			System.setOut(oldOut);
@@ -110,7 +108,10 @@ public final class IOTester {
 	}
 
 	public void reset() {
-		synchronized (instanceLock) {
+		synchronized (INSTALLATION_LOCK) {
+			if (instance != this || !isInstalled) {
+				throw new IllegalStateException(localized("io_tester.not_current_instance")); //$NON-NLS-1$
+			}
 			inTester.resetInput();
 			outTester.resetOutput();
 			errTester.resetOutput();
@@ -251,15 +252,6 @@ public final class IOTester {
 			}
 			instance.uninstall();
 			instance = null;
-		}
-	}
-
-	private static void checkEncoding() {
-		Charset cs = Charset.defaultCharset();
-		if (!"UTF-8".equals(cs.name())) { //$NON-NLS-1$
-			String message = localized("io_tester.default_not_utf8", cs); //$NON-NLS-1$
-			System.err.println(message); // this is more noticeable in maven build log
-			throw new IllegalStateException(message);
 		}
 	}
 }

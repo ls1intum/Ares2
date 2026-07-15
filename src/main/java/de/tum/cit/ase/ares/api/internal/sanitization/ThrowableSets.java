@@ -69,7 +69,7 @@ final class ThrowableSets {
 	}
 
 	public static void init() {
-		// just for initialization
+		// just for initialisation
 	}
 
 	static final class Own {
@@ -120,8 +120,8 @@ final class ThrowableSets {
 				java.lang.NullPointerException.class, java.lang.NumberFormatException.class,
 				java.lang.OutOfMemoryError.class, java.lang.ReflectiveOperationException.class,
 				java.lang.RuntimeException.class, java.lang.SecurityException.class, java.lang.StackOverflowError.class,
-				java.lang.StringIndexOutOfBoundsException.class, // REMOVED: java.lang.ThreadDeath.class,
-				java.lang.Throwable.class, java.lang.TypeNotPresentException.class, java.lang.UnknownError.class,
+				java.lang.StringIndexOutOfBoundsException.class, java.lang.Throwable.class,
+				java.lang.TypeNotPresentException.class, java.lang.UnknownError.class,
 				java.lang.UnsatisfiedLinkError.class, java.lang.UnsupportedClassVersionError.class,
 				java.lang.UnsupportedOperationException.class, java.lang.VerifyError.class,
 				java.lang.annotation.AnnotationFormatError.class,

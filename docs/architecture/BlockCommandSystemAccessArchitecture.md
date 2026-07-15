@@ -27,11 +27,11 @@
 
 # 1. High-Level Overview
 
-This document describes how Ares 2 prevents unauthorized command execution in student code using **static code analysis** techniques via Architecture Testing frameworks.
+This document describes how Ares 2 prevents unauthorised command execution in student code using **static code analysis** techniques via Architecture Testing frameworks.
 
 **Key Difference from AOP Approach:**
 - **AOP (Runtime)**: Monitors command execution during program execution and blocks forbidden commands in real-time
-- **Architecture (Static)**: Analyzes compiled bytecode before execution to detect potential command execution violations in the code structure
+- **Architecture (Static)**: Analyses compiled bytecode before execution to detect potential command execution violations in the code structure
 
 ---
 
@@ -39,7 +39,7 @@ This document describes how Ares 2 prevents unauthorized command execution in st
 
 **What is Architecture Testing?**
 
-Architecture testing validates that code follows specific structural rules by analyzing compiled bytecode. Instead of running the code and intercepting command execution calls (AOP), it examines the program structure to find violations.
+Architecture testing validates that code follows specific structural rules by analysing compiled bytecode. Instead of running the code and intercepting command execution calls (AOP), it examines the program structure to find violations.
 
 **Think of it like:**
 - **AOP = Security Guard**: Checks command parameters when processes are actually spawned
@@ -50,7 +50,7 @@ Architecture testing validates that code follows specific structural rules by an
 ### **ArchUnit (Static Analysis)**
 - **Type**: Pure static analysis using Archunit framework
 - **Strength**: Fast, no call graph needed
-- **Method**: Analyzes class dependencies and method calls in compiled bytecode
+- **Method**: Analyses class dependencies and method calls in compiled bytecode
 - **Use Case**: Detecting direct and transitive method access patterns to command execution APIs
 
 ### **WALA (Call Graph Analysis)**
@@ -227,7 +227,7 @@ public class StudentSolution {
 
 **ArchUnit Mode:**
 1. `ClassFileImporter` loads `StudentSolution.class`
-2. Analyzes that `maliciousAction()` method calls `Runtime.exec()`
+2. Analyses that `maliciousAction()` method calls `Runtime.exec()`
 3. Checks if `Runtime.exec()` is in the forbidden methods list
 4. Reports violation: "StudentSolution.maliciousAction accesses Runtime.exec"
 
@@ -285,7 +285,7 @@ JavaClasses javaClasses = new ClassFileImporter()
 
 **Analysis Process:**
 1. **Import Classes**: Load `.class` files using `ClassFileImporter`
-2. **Analyze Dependencies**: Build class dependency graph
+2. **Analyse Dependencies**: Build class dependency graph
 3. **Check Access Patterns**: Detect direct and transitive method calls
 4. **Report Violations**: Throw `AssertionError` with call chain details
 
@@ -347,7 +347,7 @@ JavaWalaTestCaseCollection.NO_CLASS_MUST_EXECUTE_COMMANDS.check(cg, allowedClass
 - ✅ Understands complex call patterns (lambdas, method references)
 - ✅ Can filter out transitive JDK-internal calls (false positive reduction)
 - ✅ Provides exact call paths with line numbers
-- ✅ Models runtime behavior more accurately
+- ✅ Models runtime behaviour more accurately
 
 **Limitations:**
 - ⚠️ Slower analysis (call graph construction is expensive)
@@ -747,7 +747,7 @@ public void commandSystemShouldNotBeAccessed() {
 ## Summary for Programming Instructors (TL;DR)
 
 **What does Architecture Testing do?**
-- ✅ Analyzes **compiled bytecode** to detect forbidden command execution operations
+- ✅ Analyses **compiled bytecode** to detect forbidden command execution operations
 - ✅ Works **before code execution** - catches violations during testing phase
 - ✅ Provides **two analysis modes**: Fast (ArchUnit) and Precise (WALA)
 - ✅ Detects **transitive calls** - finds violations even through helper methods
@@ -772,7 +772,7 @@ public void commandSystemShouldNotBeAccessed() {
 | Aspect | Architecture (ArchUnit/WALA) | AOP (Byte Buddy/AspectJ) |
 |--------|------------------------------|--------------------------|
 | **Analysis Time** | Before execution (static) | During execution (runtime) |
-| **Detection** | Analyzes code structure | Intercepts method calls |
+| **Detection** | Analyses code structure | Intercepts method calls |
 | **Granularity** | Binary (allowed/forbidden) | Command-based permissions |
 | **Performance Impact** | Analysis overhead only | Runtime overhead on every call |
 | **False Positives** | Possible (unreachable code) | None (only executed code checked) |
@@ -789,7 +789,7 @@ public void commandSystemShouldNotBeAccessed() {
 
 **Implementation:**
 - Uses ArchUnit's `ArchRule` and custom `TransitivelyAccessesMethodsCondition`
-- Analyzes class dependencies and method access patterns
+- Analyses class dependencies and method access patterns
 - No call graph construction required
 
 **Violation Example:**

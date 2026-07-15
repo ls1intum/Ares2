@@ -105,10 +105,10 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	 *                                          supported, determining which rules
 	 *                                          to apply
 	 * @param allowedPackages                   Set of package permissions that are
-	 *                                          allowed in the analyzed code (may be
+	 *                                          allowed in the analysed code (may be
 	 *                                          null for no restrictions)
 	 * @param javaClasses                       Collection of Java classes to be
-	 *                                          analyzed by the test case
+	 *                                          analysed by the test case
 	 * @param callGraph                         Call graph representing
 	 *                                          caller-callee relationships in the
 	 *                                          code (may be null for ARCHUNIT mode)
@@ -481,7 +481,7 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		}
 
 		/**
-		 * Sets the Java classes to be analyzed by this architecture test case.
+		 * Sets the Java classes to be analysed by this architecture test case.
 		 *
 		 * @since 2.0.0
 		 * @author Sarp Sahinalp

@@ -9,7 +9,7 @@ import net.bytebuddy.asm.Advice;
  * application.
  * <p>
  * If an execution attempt violates these policies, a SecurityException is
- * thrown, preventing unauthorized file overwritings. The class interacts with
+ * thrown, preventing unauthorised file overwritings. The class interacts with
  * the JavaInstrumentationAdviceFileSystemToolbox to perform these security
  * checks.
  */

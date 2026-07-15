@@ -747,7 +747,7 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		}
 
 		/**
-		 * Sets the Java classes to be analyzed by this architecture test case.
+		 * Sets the Java classes to be analysed by this architecture test case.
 		 *
 		 * @since 2.0.0
 		 * @author Sarp Sahinalp

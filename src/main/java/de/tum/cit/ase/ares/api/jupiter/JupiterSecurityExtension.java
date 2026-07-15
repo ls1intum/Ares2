@@ -16,7 +16,6 @@ import org.junit.platform.commons.function.Try;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
-//REMOVED: Import of ArtemisSecurityManager
 
 @API(status = Status.INTERNAL)
 public final class JupiterSecurityExtension
@@ -118,7 +117,6 @@ public final class JupiterSecurityExtension
 			SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policyPath).projectFolderPath(withinPath)
 					.build().createTestCases().executeTestCases();
 		}
-		// REMOVED: Installing of ArtemisSecurityManager
 		Throwable failure = null;
 		try {
 			return invocation.proceed();
@@ -126,7 +124,6 @@ public final class JupiterSecurityExtension
 			failure = t;
 		} finally {
 			try {
-				// REMOVED: Uninstallation of ArtemisSecurityManager
 				// ALWAYS reset settings AFTER the test to ensure clean state for subsequent
 				// tests, since security is now enforced by default.
 				resetSettingsInStandardClassLoader();
@@ -181,24 +178,34 @@ public final class JupiterSecurityExtension
 			// Use false to avoid class initialization
 			Class<?> settingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", false,
 					null);
-			Method resetMethod = settingsClass.getDeclaredMethod("reset");
-			resetMethod.setAccessible(true);
-			resetMethod.invoke(null);
-			resetMethod.setAccessible(false);
+			resetSettingsInClass(settingsClass);
 		} catch (ClassNotFoundException e) {
 			// Class not yet loaded in the bootstrap class loader: there is nothing to
-			// reset,
-			// which is the only benign reason this can fail.
+			// reset, which is the only benign reason this can fail.
+		}
+	}
+
+	static void resetSettingsInClass(Class<?> settingsClass) {
+		try {
+			resetSettingsWithMethod(settingsClass.getDeclaredMethod("reset"));
 		} catch (NoSuchMethodException e) {
 			// The class is present but its reset failed. Fail closed rather than let the
-			// next
-			// test inherit stale security settings, matching resetSettings for the standard
-			// class loader.
+			// next test inherit stale security settings, matching resetSettings for the
+			// standard class loader.
 			throw new SecurityException(localize("security.settings.reset.method.not.found"), e);
+		}
+	}
+
+	static void resetSettingsWithMethod(Method resetMethod) {
+		try {
+			resetMethod.setAccessible(true);
+			resetMethod.invoke(null);
 		} catch (IllegalAccessException e) {
 			throw new SecurityException(localize("security.settings.reset.access.denied"), e);
 		} catch (InvocationTargetException e) {
 			throw new SecurityException(localize("security.settings.error.within.method"), e);
+		} finally {
+			resetMethod.setAccessible(false);
 		}
 	}
 

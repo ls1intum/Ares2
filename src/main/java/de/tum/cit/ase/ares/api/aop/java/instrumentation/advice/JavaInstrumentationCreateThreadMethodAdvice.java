@@ -11,7 +11,7 @@ import net.bytebuddy.asm.Advice;
  * the thread system security policies defined within the application.
  * <p>
  * If an execution attempt violates these policies, a SecurityException is
- * thrown, preventing unauthorized thread creation. The class interacts with the
+ * thrown, preventing unauthorised thread creation. The class interacts with the
  * JavaInstrumentationAdviceThreadSystemToolbox to perform these security
  * checks.
  */

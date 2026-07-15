@@ -11,7 +11,7 @@ import net.bytebuddy.asm.Advice;
  * the file system security policies defined within the application.
  * <p>
  * If an execution attempt violates these policies, a SecurityException is
- * thrown, preventing unauthorized file deletions. The class interacts with the
+ * thrown, preventing unauthorised file deletions. The class interacts with the
  * JavaInstrumentationAdviceFileSystemToolbox to perform these security checks.
  */
 public final class JavaInstrumentationDeletePathMethodAdvice {

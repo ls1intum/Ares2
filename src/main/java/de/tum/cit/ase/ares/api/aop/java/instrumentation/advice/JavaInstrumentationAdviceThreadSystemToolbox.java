@@ -26,7 +26,7 @@ import javax.annotation.Nullable;
  * policies at runtime by checking thread system interactions (create) against
  * allowed classes and thread counts, call stack criteria, and variable
  * criteria. Uses reflection to interact with test case settings and
- * localization utilities. Designed to prevent unauthorized thread system
+ * localisation utilities. Designed to prevent unauthorised thread system
  * operations during Java application execution, especially in test and
  * instrumentation scenarios.
  * <p>
@@ -52,6 +52,7 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	 */
 	@Nonnull
 	private static final String UNRESOLVED_THREAD_CLASS = "<unresolved-thread-class>";
+
 	// </editor-fold>
 
 	// <editor-fold desc="Constructor">
@@ -199,7 +200,7 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	 * @return true if path is forbidden; false otherwise
 	 */
 	private static boolean checkIfThreadIsForbidden(@Nullable ThreadTarget target,
-			@Nullable String[] allowedThreadClasses, @Nullable int[] allowedThreadNumbers) {
+			@Nullable String[] allowedThreadClasses, @Nullable int[] allowedThreadNumbers, boolean decrementQuota) {
 		if (target == null || target.className() == null) {
 			return false;
 		}
@@ -217,11 +218,11 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 				continue;
 			}
 			if (threadClassMatches(actualClassname, allowedClassName)) {
-				return handleFoundClassIsForbidden(allowedThreadNumbers, i);
+				return decrementQuota && handleFoundClassIsForbidden(allowedThreadNumbers, i);
 			}
 		}
 		if (starIndex != -1) {
-			return handleFoundClassIsForbidden(allowedThreadNumbers, starIndex);
+			return decrementQuota && handleFoundClassIsForbidden(allowedThreadNumbers, starIndex);
 		}
 		return true;
 	}
@@ -587,7 +588,7 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	 * @param parameters        optional method parameters
 	 * @param instance          the receiver object of the intercepted call; may be
 	 *                          null
-	 * @throws SecurityException if unauthorized access is detected
+	 * @throws SecurityException if unauthorised access is detected
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */
@@ -607,6 +608,10 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		} finally {
 			exitAdvice();
 		}
+	}
+
+	public static void recordThreadClassBeforeStart(@Nonnull Thread thread) {
+		JavaInstrumentationThreadSystemCallSite.recordAllowedThread(thread, variableToClassname(thread));
 	}
 
 	private static void checkThreadSystemInteractionImpl(@Nonnull String action, @Nonnull String declaringTypeName,
@@ -667,6 +672,7 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		boolean noAllowRuleConfigured = threadClassAllowedToBeCreated == null
 				|| threadClassAllowedToBeCreated.length == 0 || threadNumberAllowedToBeCreated == null
 				|| threadNumberAllowedToBeCreated.length == 0;
+		boolean decrementQuota = !"manipulate".equals(action);
 		// </editor-fold>
 		// <editor-fold desc="Check thread targets (quota counted once per distinct
 		// class)">
@@ -684,12 +690,19 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		// per-method ignore filtering applies here.
 		@Nonnull
 		Set<String> threadClassNames = new LinkedHashSet<>();
+		String recordedThreadClass = !decrementQuota && instance instanceof Thread
+				? JavaInstrumentationThreadSystemCallSite.getRecordedThreadClass((Thread) instance)
+				: null;
 		if (parameters != null) {
 			for (Object parameter : parameters) {
 				collectThreadClassNames(parameter, threadClassNames);
 			}
 		}
-		collectThreadClassNames(instance, threadClassNames);
+		if (recordedThreadClass != null) {
+			threadClassNames.add(recordedThreadClass);
+		} else {
+			collectThreadClassNames(instance, threadClassNames);
+		}
 		if (attributes != null) {
 			for (Object attribute : attributes) {
 				collectThreadClassNames(attribute, threadClassNames);
@@ -697,13 +710,17 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		}
 		for (String threadClassName : threadClassNames) {
 			if (checkIfThreadIsForbidden(new ThreadTarget(threadClassName), threadClassAllowedToBeCreated,
-					threadNumberAllowedToBeCreated)) {
+					threadNumberAllowedToBeCreated, decrementQuota)) {
 				throw new SecurityException(localize("security.advice.illegal.thread.execution",
 						threadSystemMethodToCheck, action, threadClassName,
 						fullMethodSignature
 								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
 								+ " | " + buildDenialReason(noAllowRuleConfigured)));
 			}
+		}
+		if (decrementQuota && instance instanceof Thread) {
+			JavaInstrumentationThreadSystemCallSite.recordAllowedThread((Thread) instance,
+					variableToClassname(instance));
 		}
 		// </editor-fold>
 	}

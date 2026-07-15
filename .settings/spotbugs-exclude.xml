@@ -99,19 +99,6 @@
 	</Match>
 
 	<!--
-		structureOracleJSON is the parsed structure oracle, populated lazily on first use and
-		read by every structural test provider that extends this class and by the structural
-		test subjects. It therefore cannot be final and has to stay protected. SpotBugs flags
-		it as a mutable static that should be final, which does not fit a lazily-initialised
-		shared cache.
-	-->
-	<Match>
-		<Class name="de.tum.cit.ase.ares.api.structural.StructuralTestProvider"/>
-		<Field name="structureOracleJSON"/>
-		<Bug pattern="MS_SHOULD_BE_FINAL"/>
-	</Match>
-
-	<!--
 		NodePosition.compareTo orders positions by their begin line and column only, so that
 		unwanted AST nodes can be reported in source order. Equality is deliberately left as
 		identity: two distinct AST nodes that start at the same position are different nodes,
@@ -122,5 +109,29 @@
 	<Match>
 		<Class name="de.tum.cit.ase.ares.api.ast.model.NodePosition"/>
 		<Bug pattern="EQ_COMPARETO_USE_OBJECT_EQUALS"/>
+	</Match>
+
+	<!--
+		The JVM supplies its Instrumentation service to premain. Retaining that opaque JVM
+		handle is required so policy configuration can install a package-specific call-site
+		transformer after the restricted package becomes known; it is never returned or exposed
+		to student code.
+	-->
+	<Match>
+		<Class name="de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent"/>
+		<Field name="instrumentation"/>
+		<Bug pattern="EI_EXPOSE_STATIC_REP2"/>
+	</Match>
+
+	<!--
+		This method is a transparent replacement for one Object.wait() invocation. It must call
+		wait exactly once and return with the same semantics as the original call site; introducing
+		a condition loop in the wrapper would change application behaviour. The caller remains
+		responsible for the standard wait-condition loop.
+	-->
+	<Match>
+		<Class name="de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationThreadSystemCallSite"/>
+		<Method name="wait" signature="(Ljava/lang/Object;)V"/>
+		<Bug pattern="WA_NOT_IN_LOOP"/>
 	</Match>
 </FindBugsFilter>

@@ -32,11 +32,11 @@
 
 # 1. High-Level Overview
 
-This document describes how Ares 2 prevents unauthorized thread creation in student code using **static code analysis** techniques via Architecture Testing frameworks.
+This document describes how Ares 2 prevents unauthorised thread creation in student code using **static code analysis** techniques via Architecture Testing frameworks.
 
 **Key Difference from AOP Approach:**
 - **AOP (Runtime)**: Monitors thread creation during program execution and enforces thread quotas in real-time
-- **Architecture (Static)**: Analyzes compiled bytecode before execution to detect potential thread creation violations in the code structure
+- **Architecture (Static)**: Analyses compiled bytecode before execution to detect potential thread creation violations in the code structure
 
 ---
 
@@ -44,7 +44,7 @@ This document describes how Ares 2 prevents unauthorized thread creation in stud
 
 **What is Architecture Testing?**
 
-Architecture testing validates that code follows specific structural rules by analyzing compiled bytecode. Instead of running the code and intercepting thread creation calls (AOP), it examines the program structure to find violations.
+Architecture testing validates that code follows specific structural rules by analysing compiled bytecode. Instead of running the code and intercepting thread creation calls (AOP), it examines the program structure to find violations.
 
 **Think of it like:**
 - **AOP = Security Guard**: Checks thread quotas when threads are actually spawned
@@ -55,7 +55,7 @@ Architecture testing validates that code follows specific structural rules by an
 ### **ArchUnit (Static Analysis)**
 - **Type**: Pure static analysis using ArchUnit framework
 - **Strength**: Fast, no call graph needed
-- **Method**: Analyzes class dependencies and method calls in compiled bytecode
+- **Method**: Analyses class dependencies and method calls in compiled bytecode
 - **Use Case**: Detecting direct and transitive method access patterns to thread creation APIs
 
 ### **WALA (Call Graph Analysis)**
@@ -180,7 +180,7 @@ rule.check(javaClasses);  // Throws AssertionError if violated
 
 **Analysis Process:**
 1. **Import Classes**: Load `.class` files using `ClassFileImporter`
-2. **Analyze Dependencies**: Build class dependency graph
+2. **Analyse Dependencies**: Build class dependency graph
 3. **Check Access Patterns**: Detect direct and transitive method calls
 4. **Report Violations**: Throw `AssertionError` with call chain details
 
@@ -244,7 +244,7 @@ rule.check(cg, allowedClasses);  // Throws AssertionError if violated
 - ✅ Understands complex call patterns (lambdas, method references, executors)
 - ✅ **Path classification** attributes violations to the nearest student frame and suppresses transitive-JDK false positives
 - ✅ Provides the caller, forbidden method, declaring class, line number, and entry point in the error message
-- ✅ Models runtime behavior more accurately
+- ✅ Models runtime behaviour more accurately
 
 **Limitations:**
 - ⚠️ Slower analysis (call graph construction is expensive; mitigated by per-JVM and disk caches)
@@ -980,7 +980,7 @@ try {
 ## Summary for Programming Instructors (TL;DR)
 
 **What does Architecture Testing do?**
-- ✅ Analyzes **compiled bytecode** to detect forbidden thread creation operations
+- ✅ Analyses **compiled bytecode** to detect forbidden thread creation operations
 - ✅ Works **before code execution** - catches violations during testing phase
 - ✅ Provides **two analysis modes**: Fast (ArchUnit) and Precise (WALA)
 - ✅ Detects **transitive calls** - finds violations even through helper methods
@@ -1008,7 +1008,7 @@ try {
 | Aspect | Architecture (ArchUnit/WALA) | AOP (Byte Buddy/AspectJ) |
 |--------|------------------------------|--------------------------|
 | **Analysis Time** | Before execution (static) | During execution (runtime) |
-| **Detection** | Analyzes code structure | Intercepts method calls |
+| **Detection** | Analyses code structure | Intercepts method calls |
 | **Granularity** | Binary (allowed/forbidden) | Quota-based permissions |
 | **Performance Impact** | Analysis overhead only (mitigated by outcome caches) | Runtime overhead on every call |
 | **False Positives** | Possible (WALA classifies paths) | None (only executed code checked) |
@@ -1026,7 +1026,7 @@ try {
 
 **Implementation:**
 - Uses ArchUnit's `ArchRule` and custom `TransitivelyAccessesMethodsCondition`
-- Analyzes class dependencies and method access patterns
+- Analyses class dependencies and method access patterns
 - No call graph construction required
 - No path classification (may report JDK-adjacent usage; the much longer methods list is tuned accordingly)
 
@@ -1063,7 +1063,7 @@ Method <de.student.StudentCode.processAsync()> calls method <java.util.concurren
 - Understanding exact call paths
 - Production-grade security validation
 - **Minimizing false positives from JDK internal thread usage**
-- Analyzing complex concurrent code (lambdas, executors, CompletableFuture)
+- Analysing complex concurrent code (lambdas, executors, CompletableFuture)
 
 ---
 

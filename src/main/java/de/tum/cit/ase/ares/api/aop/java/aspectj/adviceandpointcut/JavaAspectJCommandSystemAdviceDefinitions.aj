@@ -23,8 +23,8 @@ import org.aspectj.lang.JoinPoint;
  * Description: Provides advice that enforces command system security policies at
  * runtime by checking command system interactions (create) against allowed
  * classes and command counts, call stack criteria, and variable criteria. Uses
- * reflection to interact with test case settings and localization utilities.
- * Designed to prevent unauthorized command system operations during Java
+ * reflection to interact with test case settings and localisation utilities.
+ * Designed to prevent unauthorised command system operations during Java
  * application execution, especially in test and instrumentation scenarios.
  * <p>
  * Design Rationale: Centralizes command system security checks for Java AspectJ
@@ -309,7 +309,7 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 	// <editor-fold desc="Violation analysis">
 
 	/**
-	 * Analyzes a variable to determine if it violates allowed commands.
+	 * Analyses a variable to determine if it violates allowed commands.
 	 * <p>
 	 * Description: Recursively checks if the variable or its elements (if an array
 	 * or List) are in violation of the allowed commands. Returns true if any
@@ -317,7 +317,7 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param observedVariable the variable to analyze
+	 * @param observedVariable the variable to analyse
 	 * @param allowedCommands  whitelist of allowed commands
 	 * @param allowedArguments the allowed arguments per command
 	 * @return true if a violation is found, false otherwise
@@ -649,7 +649,7 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 	 *
 	 * @param action        the command system action being performed
 	 * @param thisJoinPoint the AspectJ join point of the intercepted call
-	 * @throws SecurityException if unauthorized access is detected
+	 * @throws SecurityException if unauthorised access is detected
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */

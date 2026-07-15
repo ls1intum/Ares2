@@ -258,7 +258,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	}
 
 	/**
-	 * Retrieves a localized message based on a key and optional arguments.
+	 * Retrieves a localised message based on a key and optional arguments.
 	 * <p>
 	 * Description: Attempts to fetch a localized string from the Messages class
 	 * using reflection. Falls back to the key if localization fails.

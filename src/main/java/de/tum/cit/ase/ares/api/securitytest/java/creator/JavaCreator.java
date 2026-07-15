@@ -164,8 +164,8 @@ public class JavaCreator implements Creator {
 	 * @author Markus Paulsen
 	 * @param supported       the supported architecture test case type; must not be
 	 *                        null
-	 * @param classes         the Java classes to analyze; must not be null
-	 * @param callGraph       the call graph to analyze; must not be null
+	 * @param classes         the Java classes to analyse; must not be null
+	 * @param callGraph       the call graph to analyse; must not be null
 	 * @param allowedPackages the set of allowed package permissions; must not be
 	 *                        null
 	 * @param allowedClasses  the set of allowed class names; must not be null
@@ -201,9 +201,9 @@ public class JavaCreator implements Creator {
 	 *                                  populate; must not be null
 	 * @param supported                 the supported AOP test case type; must not
 	 *                                  be null
-	 * @param classes                   the Java classes to analyze; must not be
+	 * @param classes                   the Java classes to analyse; must not be
 	 *                                  null
-	 * @param callGraph                 the call graph to analyze; must not be null
+	 * @param callGraph                 the call graph to analyse; must not be null
 	 * @param allowedPackages           the set of allowed package permissions; must
 	 *                                  not be null
 	 * @param allowedClasses            the set of allowed class names; must not be
@@ -295,9 +295,9 @@ public class JavaCreator implements Creator {
 	 * @since 2.0.1
 	 * @param javaArchitectureTestCases the list to populate with architecture test
 	 *                                  cases; must not be null
-	 * @param classes                   the Java classes to analyze; must not be
+	 * @param classes                   the Java classes to analyse; must not be
 	 *                                  null
-	 * @param callGraph                 the call graph to analyze; must not be null
+	 * @param callGraph                 the call graph to analyse; must not be null
 	 * @param allowedPackages           the set of allowed package permissions; must
 	 *                                  not be null
 	 * @param allowedClasses            the set of allowed class names; must not be
@@ -319,9 +319,9 @@ public class JavaCreator implements Creator {
 	 * @author Markus Paulsen
 	 * @param javaArchitectureTestCases the list to populate with architecture test
 	 *                                  cases; must not be null
-	 * @param classes                   the Java classes to analyze; must not be
+	 * @param classes                   the Java classes to analyse; must not be
 	 *                                  null
-	 * @param callGraph                 the call graph to analyze; must not be null
+	 * @param callGraph                 the call graph to analyse; must not be null
 	 * @param allowedPackages           the set of allowed package permissions; must
 	 *                                  not be null
 	 * @param allowedClasses            the set of allowed class names; must not be
@@ -352,9 +352,9 @@ public class JavaCreator implements Creator {
 	 *                                  cases; must not be null
 	 * @param javaAOPTestCases          the list to populate with AOP test cases;
 	 *                                  must not be null
-	 * @param classes                   the Java classes to analyze; must not be
+	 * @param classes                   the Java classes to analyse; must not be
 	 *                                  null
-	 * @param callGraph                 the call graph to analyze; must not be null
+	 * @param callGraph                 the call graph to analyse; must not be null
 	 * @param allowedPackages           the set of allowed package permissions; must
 	 *                                  not be null
 	 * @param allowedClasses            the set of allowed class names; must not be

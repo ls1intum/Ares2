@@ -48,7 +48,7 @@ public abstract class ArchitectureTestCase {
 
 	// The following attributes are used for caching
 	/**
-	 * Collection of Java classes to be analyzed by this test case. Contains
+	 * Collection of Java classes to be analysed by this test case. Contains
 	 * metadata and structure of loaded Java classes for static analysis. This data
 	 * is cached after initial creation to improve performance on subsequent
 	 * analyses.
@@ -57,7 +57,7 @@ public abstract class ArchitectureTestCase {
 	protected final JavaClasses javaClasses;
 
 	/**
-	 * Call graph of the analyzed Java classes in this test case. Represents method
+	 * Call graph of the analysed Java classes in this test case. Represents method
 	 * caller-callee relationships in the code, enabling analysis of method
 	 * invocation patterns and paths. May be null for analysis modes that don't
 	 * require call graph information (e.g., ARCHUNIT).
@@ -78,9 +78,9 @@ public abstract class ArchitectureTestCase {
 	 *                                      supported, determining which rules to
 	 *                                      apply
 	 * @param allowedPackages               Set of package permissions that are
-	 *                                      allowed in the analyzed code
+	 *                                      allowed in the analysed code
 	 * @param javaClasses                   Collection of Java classes to be
-	 *                                      analyzed by the test case
+	 *                                      analysed by the test case
 	 * @param callGraph                     Call graph representing caller-callee
 	 *                                      relationships in the code (may be null
 	 *                                      for ARCHUNIT mode)

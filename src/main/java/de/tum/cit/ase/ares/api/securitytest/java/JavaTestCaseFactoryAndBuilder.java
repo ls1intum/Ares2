@@ -97,13 +97,14 @@ public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBui
 	 * </p>
 	 *
 	 * @param testFolderPath the directory where test case files will be written;
-	 *                       may be null.
+	 *                       must not be null.
 	 * @return a non-null list of {@link Path} objects representing the generated
 	 *         files.
 	 */
 	@Override
 	@Nonnull
-	public List<Path> writeTestCases(@Nullable Path testFolderPath) {
+	public List<Path> writeTestCases(@Nonnull Path testFolderPath) {
+		Objects.requireNonNull(testFolderPath, "testFolderPath must not be null");
 		return writer.writeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
 				testClasses, packageName, mainClassInPackageName,
 				this.architectureTestCases.stream()

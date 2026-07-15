@@ -499,6 +499,7 @@ public final class JavaInstrumentationPointcutDefinitions {
 			// java.nio
 			Map.entry("java.nio.file.Files", List.of("delete", "deleteIfExists", "move")),
 			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("delete")),
+			Map.entry("java.nio.file.SecureDirectoryStream", List.of("deleteFile", "deleteDirectory")),
 			Map.entry("org.apache.commons.io.FileUtils", List.of("forceDelete")));
 	// </editor-fold>
 
@@ -506,9 +507,9 @@ public final class JavaInstrumentationPointcutDefinitions {
 	/**
 	 * Methods that can create new files or directories (including links). Note:
 	 * Files.write and Files.writeString are NOT included here because they default
-	 * to TRUNCATE_EXISTING behavior. When called with CREATE or CREATE_NEW options,
-	 * the deriveActionChecks method will detect these options and properly classify
-	 * as "create".
+	 * to TRUNCATE_EXISTING behaviour. When called with CREATE or CREATE_NEW
+	 * options, the deriveActionChecks method will detect these options and properly
+	 * classify as "create".
 	 */
 	public static final Map<String, List<String>> METHODS_WHICH_CAN_CREATE_FILES = Map.ofEntries(
 			Map.entry("java.io.File", List.of("createNewFile", "createTempFile", "mkdir", "mkdirs")),

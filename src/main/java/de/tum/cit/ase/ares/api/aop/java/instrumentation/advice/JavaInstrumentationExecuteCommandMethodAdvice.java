@@ -12,7 +12,7 @@ import net.bytebuddy.asm.Advice;
  * application.
  * <p>
  * If an execution attempt violates these policies, a SecurityException is
- * thrown, preventing unauthorized command execution. The class interacts with
+ * thrown, preventing unauthorised command execution. The class interacts with
  * the JavaInstrumentationAdviceCommandSystemToolbox to perform these security
  * checks.
  */

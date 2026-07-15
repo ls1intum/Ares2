@@ -10,7 +10,7 @@
    - [1.3 Which Architecture Modes / Implementations Are There?](#13-which-architecture-modes--implementations-are-there)
    - [1.4 What Are The Internal Configuration Settings?](#14-what-are-the-internal-configuration-settings)
    - [1.5 When Is File Access Generally Blocked?](#15-when-is-file-access-generally-blocked)
-2. [Ares 2 Architecture File System Access Control: Ares Monitors FileSystem Methods](#2-ares-2-architecture-file-system-access-control-ares-monitors-filesystem-methods)
+2. [Ares 2 Architecture File System Access Control: Ares Monitors FileSystem Methods](#2-ares-2-architecture-file-system-access-control-ares-monitors-file system-methods)
    - [2.1 Which Operations Does Ares 2 Architecture File System Access Control Monitor?](#21-which-operations-does-ares-2-architecture-file-system-access-control-monitor)
    - [2.2 What Are The Monitored READ Operations?](#22-what-are-the-monitored-read-operations)
    - [2.3 What Are The Monitored WRITE/OVERWRITE Operations?](#23-what-are-the-monitored-writeoverwrite-operations)
@@ -46,7 +46,7 @@ This document explains how Ares 2 decides whether student code may access the fi
 ## Summary for Programming Instructors (TL;DR)
 
 **What does Architecture Testing do?**
-- ✅ Analyzes **compiled bytecode** to detect forbidden file system operations
+- ✅ Analyses **compiled bytecode** to detect forbidden file system operations
 - ✅ Works **before code execution** - catches violations during testing phase
 - ✅ Provides **two analysis modes**: Fast (ArchUnit) and Precise (WALA)
 - ✅ Detects **transitive calls** - finds violations even through helper methods
@@ -71,7 +71,7 @@ This document explains how Ares 2 decides whether student code may access the fi
 | Aspect | Architecture (ArchUnit/WALA) | AOP (Byte Buddy/AspectJ) |
 |--------|------------------------------|---------------------------|
 | **Analysis Time** | Before execution (static) | During execution (runtime) |
-| **Detection** | Analyzes code structure | Intercepts method calls |
+| **Detection** | Analyses code structure | Intercepts method calls |
 | **Granularity** | Binary (allowed/forbidden) | Path-based permissions |
 | **Performance Impact** | Analysis overhead only | Runtime overhead on every call |
 | **False Positives** | Possible (unreachable code) | None (only executed code checked) |
@@ -97,7 +97,7 @@ Diagram note: the rendered PNG is not committed in this repository snapshot. The
 <a id="12-what-is-architecture-testing"></a>
 ## 1.2 What Is Architecture Testing?
 
-Architecture Testing is a technique that validates code follows specific structural rules by analyzing compiled bytecode **before** execution. Think of it like a building inspector reviewing building plans before construction to ensure doors don't open into forbidden areas - the code doesn't run, but the structure gets checked automatically.
+Architecture Testing is a technique that validates code follows specific structural rules by analysing compiled bytecode **before** execution. Think of it like a building inspector reviewing building plans before construction to ensure doors don't open into forbidden areas - the code doesn't run, but the structure gets checked automatically.
 
 **Concrete Example:**
 
@@ -108,7 +108,7 @@ public void readFile(String path) {
 }
 ```
 
-**With Architecture Testing:** Ares automatically analyzes bytecode and detects ALL file system method calls, no execution required.
+**With Architecture Testing:** Ares automatically analyses bytecode and detects ALL file system method calls, no execution required.
 ```java
 public void readFile(String path) {
     Files.readString(Path.of(path));  // Detected at compile/test time! ArchUnit/WALA finds this.
@@ -117,19 +117,19 @@ public void readFile(String path) {
 
 **Key Difference from AOP:**
 - **AOP (Runtime)**: Monitors method calls during program execution and blocks forbidden operations in real-time
-- **Architecture (Static)**: Analyzes compiled bytecode before execution to detect potential security violations in the code structure
+- **Architecture (Static)**: Analyses compiled bytecode before execution to detect potential security violations in the code structure
 
 ---
 
 <a id="13-which-architecture-modes--implementations-are-there"></a>
 ## 1.3 Which Architecture Modes / Implementations Are There?
 
-Ares automatically detects file system operations by analyzing compiled bytecode using one of two Architecture implementations:
+Ares automatically detects file system operations by analysing compiled bytecode using one of two Architecture implementations:
 
 - **ArchUnit (Static Analysis)**: Pure static analysis using the ArchUnit framework. Fast analysis without call graph construction.
-- **WALA (Call Graph Analysis)**: Static analysis with dynamic modeling using IBM WALA framework. Precise call path detection with false positive filtering.
+- **WALA (Call Graph Analysis)**: Static analysis with dynamic modelling using IBM WALA framework. Precise call path detection with false positive filtering.
 
-Both implementations analyze the **code structure** to find forbidden method calls, but differ in precision and performance:
+Both implementations analyse the **code structure** to find forbidden method calls, but differ in precision and performance:
 
 | Aspect | ArchUnit | WALA |
 |--------|----------|------|
@@ -195,7 +195,7 @@ In summary, Ares trusts code when:
 
 ---
 
-<a id="2-ares-2-architecture-file-system-access-control-ares-monitors-filesystem-methods"></a>
+<a id="2-ares-2-architecture-file-system-access-control-ares-monitors-file system-methods"></a>
 # 2. Ares 2 Architecture File System Access Control: Ares Monitors FileSystem Methods
 
 <a id="21-which-operations-does-ares-2-architecture-file-system-access-control-monitor"></a>
@@ -557,7 +557,7 @@ Delete APIs listed below can remove files and empty directories.
 
 **Monitored APIs:**
 
-Execute APIs listed below trigger execution-like behavior on files.
+Execute APIs listed below trigger execution-like behaviour on files.
 
 **Executes the file on the console (command line execution)**
 
@@ -610,7 +610,7 @@ public class StudentSolution {
 
 **ArchUnit Mode:**
 1. `ClassFileImporter` loads `StudentSolution.class`
-2. Analyzes that `readSecretFile()` method calls `Files.readString()`
+2. Analyses that `readSecretFile()` method calls `Files.readString()`
 3. Checks if `Files.readString()` is in the forbidden methods list
 4. Reports violation: "StudentSolution.readSecretFile transitively accesses Files.readString"
 
@@ -657,11 +657,11 @@ A separate variant exists for the generated-template path (`JavaArchunitTestCase
 1. ClassFileImporter scans the given class path for `.class` files
 2. Loads class metadata (methods, fields, dependencies)
 3. Excludes Ares internal classes (`/de/tum/cit/ase/ares/api/`)
-4. Creates `JavaClasses` object containing all analyzed classes
+4. Creates `JavaClasses` object containing all analysed classes
 
 **Analysis Process:**
 1. **Import Classes**: Load `.class` files using `ClassFileImporter`
-2. **Analyze Dependencies**: Build class dependency graph
+2. **Analyse Dependencies**: Build class dependency graph
 3. **Check Access Patterns**: Detect direct and transitive method calls
 4. **Report Violations**: Throw `AssertionError` with call chain details
 
@@ -791,7 +791,7 @@ CallGraph:
 - ✅ Understands complex call patterns (lambdas, method references, reflection)
 - ✅ Can filter out JDK internal calls (false positive reduction)
 - ✅ Provides exact call paths with line numbers
-- ✅ Models runtime behavior more accurately
+- ✅ Models runtime behaviour more accurately
 
 **Limitations:**
 - ⚠️ Slower analysis (call graph construction is expensive)

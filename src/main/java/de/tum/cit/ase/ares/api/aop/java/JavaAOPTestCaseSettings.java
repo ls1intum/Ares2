@@ -8,7 +8,7 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  * This class holds the static configuration settings used by Java
  * instrumentation aspects, such as allowed file paths, network hosts and ports,
  * command executions, and thread creations. These settings are used to control
- * and manage various security-related behaviors in the application.
+ * and manage various security-related behaviours in the application.
  * </p>
  * <p>
  * As a utility class, it is not intended to be instantiated.

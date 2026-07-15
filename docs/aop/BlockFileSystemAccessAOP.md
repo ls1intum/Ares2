@@ -27,7 +27,7 @@
    - [5.1 Check 1: Is A Respective AOP Mode Enabled Or Is AOP Fully Disabled?](#51-check-1-is-a-respective-aop-mode-enabled-or-is-aop-fully-disabled)
    - [5.2 Check 2: Is the Caller Of The Monitored File System Method The Monitored Student Code?](#52-check-2-is-the-caller-of-the-monitored-file-system-method-the-monitored-student-code)
      - [5.2.1 Load Configuration](#521-load-configuration)
-     - [5.2.2 Analyze the Call Chain](#522-analyze-the-call-chain)
+     - [5.2.2 Analyse the Call Chain](#522-analyse-the-call-chain)
      - [5.2.3 Find Which Test Called the Student Code](#523-find-which-test-called-the-student-code)
    - [5.3 Check 3: Which Operations Does The Monitored File System Method Wants To Conduct?](#53-check-3-which-operations-does-the-monitored-file-system-method-wants-to-conduct)
    - [5.4 Check 4: Which Paths Does The Monitored File System Method Wants To Access?](#54-check-4-which-paths-does-the-monitored-file-system-method-wants-to-access)
@@ -38,7 +38,7 @@
      - [5.4.5 Allow Ares Internal Files](#545-allow-ares-internal-files)
    - [5.5 Check 5: Block Access with Detailed Error Message](#55-check-5-block-access-with-detailed-error-message)
 6. [Ares 2 AOP File System Access Control: Operation Type Classification](#6-ares-2-aop-file-system-access-control-operation-type-classification)
-   - [6.1 Category A: OpenOptions Prioritization](#61-category-a-openoptions-prioritisation)
+   - [6.1 Category A: OpenOptions Prioritisation](#61-category-a-openoptions-prioritisation)
    - [6.2 Category B: RandomAccessFile Mode Detection](#62-category-b-randomaccessfile-mode-detection)
    - [6.3 Category C: Preparatory Operations](#63-category-c-preparatory-operations)
    - [6.4 Category D: Wrong Subsystem](#64-category-d-wrong-subsystem)
@@ -85,7 +85,7 @@ This document explains how Ares 2 decides whether student code may access the fi
 | Aspect | AOP (Byte Buddy/AspectJ) | Architecture (ArchUnit/WALA) |
 |--------|--------------------------|------------------------------|
 | **Analysis Time** | During execution (runtime) | Before execution (static) |
-| **Detection** | Intercepts method calls | Analyzes code structure |
+| **Detection** | Intercepts method calls | Analyses code structure |
 | **Granularity** | Path-based permissions | Binary (allowed/forbidden) |
 | **Performance Impact** | Runtime overhead on every call | Analysis overhead only |
 | **False Positives** | None (only executed code checked) | Possible (unreachable code) |
@@ -185,7 +185,7 @@ In summary, Ares trusts code when:
 **Security Assumptions:** 
 - Student code cannot modify Ares security settings (guaranteed by making settings private; reflection is disabled for student code)
 - Student code cannot interfere with security monitoring (guaranteed by making settings private; reflection is disabled for student code)
-- Student code executes after Ares is initialized (guaranteed by build pipeline)
+- Student code executes after Ares is initialised (guaranteed by build pipeline)
 
 ---
 
@@ -457,7 +457,7 @@ Link creation APIs and conditional creates (e.g., `FileChannel.open` with create
 
 **Creates files**
 
-> **Note:** `FileChannel.open` and `AsynchronousFileChannel.open` do NOT have dedicated CREATE pointcuts in either AspectJ or Byte Buddy. These methods are monitored via READ pointcuts, and the actual operation type (read/write/create) is determined dynamically by analyzing the `OpenOption` parameters via `deriveActionChecks()`. When called with `CREATE` or `CREATE_NEW` options, they are classified as create operations at runtime.
+> **Note:** `FileChannel.open` and `AsynchronousFileChannel.open` do NOT have dedicated CREATE pointcuts in either AspectJ or Byte Buddy. These methods are monitored via READ pointcuts, and the actual operation type (read/write/create) is determined dynamically by analysing the `OpenOption` parameters via `deriveActionChecks()`. When called with `CREATE` or `CREATE_NEW` options, they are classified as create operations at runtime.
 
 > **Note:** The two backends differ for buffered wrappers: AspectJ has `BufferedOutputStream.<new>` in its `fileCreateMethods` pointcut, whereas Byte Buddy monitors it only via the OVERWRITE map. `BufferedWriter.<new>` has no dedicated CREATE pointcut in either backend; it is intercepted through the `Writer.<new>` OVERWRITE pointcut (`BufferedWriter` extends `Writer`).
 
@@ -545,7 +545,7 @@ Delete APIs listed below can remove files and empty directories.
 
 **Monitored APIs:**
 
-Execute APIs listed below trigger execution-like behavior on files.
+Execute APIs listed below trigger execution-like behaviour on files.
 
 **Executes the file on the console (command line execution)**
 
@@ -964,8 +964,8 @@ String[] allowedClasses = getValueFromSettings("allowedListedClasses");
 
 Configuration loaded → 🌕 **Continue to 5.2.2**
 
-<a id="522-analyze-the-call-chain"></a>
-### 5.2.2 Analyze the Call Chain
+<a id="522-analyse-the-call-chain"></a>
+### 5.2.2 Analyse the Call Chain
 
 **1. Purpose**
 
@@ -1331,7 +1331,7 @@ for (Object variable : filteredVariables) {
 - **`candidate`** (Path): Canonicalised path of the file being accessed (all symlinks resolved via `toRealPath()`, or via the deepest existing ancestor when the target does not exist yet)
 - **`allowNonExistingPaths`** (boolean): Whether missing paths are allowed for this action (e.g., create/delete)
 - **`allowedPath`** (Path): Canonicalised allowed path prefix (same resolution rules as the candidate)
-- **`variableToPath()`** (method): Helper that converts `String`, `Path`, `File`, and `URI`/`URL` values with a `file` scheme to a normalized absolute `Path`; other types (and non-`file` URIs/URLs) are ignored
+- **`variableToPath()`** (method): Helper that converts `String`, `Path`, `File`, and `URI`/`URL` values with a `file` scheme to a normalised absolute `Path`; other types (and non-`file` URIs/URLs) are ignored
 - **`resolveExistingAncestorRealPath()`** (method): Helper that resolves symlinks in the deepest existing ancestor of a non-existing path and re-appends the remaining segments
 - **`pathMatches()`** (method): Helper that canonicalises the allowed path and checks whether the candidate starts with it
 
@@ -1349,7 +1349,7 @@ Extract and validate all file paths from the object's internal state. This step 
 
 **2. How it works (attribute-based violations only)**
 
-**Same process as checking parameters (Section 5.4.3 above)**, but we examine the object's internal field values (from Section 4.2) instead of method parameters. The path normalization and validation logic is identical.
+**Same process as checking parameters (Section 5.4.3 above)**, but we examine the object's internal field values (from Section 4.2) instead of method parameters. The path normalisation and validation logic is identical.
 
 **3. Used variables**
 
@@ -1468,7 +1468,7 @@ Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.Student
 This section explains why the **detected operation type** may differ from the **intuitively expected operation** based on the API being tested. Understanding these categories is essential for correctly configuring security expectations in test scenarios.
 
 <a id="61-category-a-openoptions-prioritisation"></a>
-## 6.1 Category A: OpenOptions Prioritization
+## 6.1 Category A: OpenOptions Prioritisation
 
 **Problem:** When multiple `StandardOpenOption` values are passed to NIO methods, certain options take precedence over others in the `deriveActionChecks()` method.
 
@@ -1513,8 +1513,8 @@ The Byte Buddy backend (`JavaInstrumentationAdviceFileSystemToolbox.java`) imple
 
 | Test | Expected Intent | Detected Operation | Reason |
 |------|-----------------|-------------------|--------|
-| FileSystemCreateAccess#7 | create | create | `Files.newByteChannel(CREATE_NEW, WRITE)` - CREATE_NEW+WRITE is prioritized as create |
-| FileSystemCreateAccess#8 | create | create | `FileChannel.open(CREATE_NEW, WRITE)` - CREATE_NEW+WRITE is prioritized as create |
+| FileSystemCreateAccess#7 | create | create | `Files.newByteChannel(CREATE_NEW, WRITE)` - CREATE_NEW+WRITE is prioritised as create |
+| FileSystemCreateAccess#8 | create | create | `FileChannel.open(CREATE_NEW, WRITE)` - CREATE_NEW+WRITE is prioritised as create |
 | FileSystemDeleteAccess#7 | delete | delete | `Files.newByteChannel(DELETE_ON_CLOSE, WRITE)` - DELETE_ON_CLOSE has highest priority |
 | FileSystemDeleteAccess#8 | delete | delete | `FileChannel.open(DELETE_ON_CLOSE, WRITE)` - DELETE_ON_CLOSE has highest priority |
 | FileSystemWriteAccess#14 | overwrite | read | `MappedByteBuffer` requires `FileChannel.open(READ)` first |

@@ -28,7 +28,7 @@ import javax.annotation.Nullable;
  * policies at runtime by checking network system interactions (connect, send,
  * receive) against allowed hosts and ports, call stack criteria, and variable
  * criteria. Uses reflection to interact with test case settings and
- * localization utilities. Designed to prevent unauthorized network system
+ * localisation utilities. Designed to prevent unauthorised network system
  * operations during Java application execution, especially in test and
  * instrumentation scenarios.
  * <p>
@@ -595,13 +595,13 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	// <editor-fold desc="Violation analysis">
 
 	/**
-	 * Analyzes a variable to determine if it violates allowed network targets.
+	 * Analyses a variable to determine if it violates allowed network targets.
 	 * <p>
 	 * Description: Attempts to resolve the variable to a {@link NetworkTarget} via
 	 * {@link #variableToTarget}. Returns {@code true} if the resolved target is
 	 * forbidden according to the allowed hosts and ports whitelist.
 	 *
-	 * @param observedVariable the variable to analyze
+	 * @param observedVariable the variable to analyse
 	 * @param allowedHosts     whitelist of allowed hosts
 	 * @param allowedPorts     whitelist of allowed ports
 	 * @return true if a violation is found, false otherwise

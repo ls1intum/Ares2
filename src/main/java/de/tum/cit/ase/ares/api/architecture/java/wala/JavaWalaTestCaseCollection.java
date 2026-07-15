@@ -16,8 +16,8 @@ import de.tum.cit.ase.ares.api.util.FileTools;
 //</editor-fold>
 
 /**
- * Collection of security test cases that analyze Java applications using WALA
- * framework. This class provides static methods to verify that analyzed code
+ * Collection of security test cases that analyse Java applications using WALA
+ * framework. This class provides static methods to verify that analysed code
  * does not: - Use reflection - Access file system - Access network - Terminate
  * JVM - Execute system commands - Create threads
  */
@@ -70,6 +70,7 @@ public final class JavaWalaTestCaseCollection {
 	public static final WalaRule NO_CLASS_MUST_CREATE_THREADS = createNoClassShouldHaveMethodRule(
 			Messages.localized("security.architecture.manipulate.threads"),
 			FileHandlerConstants.WALA_THREAD_MANIPULATION_METHODS);
+
 	// </editor-fold>
 
 	// <editor-fold desc="Command Execution related rule">

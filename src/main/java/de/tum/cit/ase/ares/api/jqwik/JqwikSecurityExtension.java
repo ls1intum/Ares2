@@ -16,7 +16,6 @@ import net.jqwik.api.lifecycle.*;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
-//REMOVED: Import of ArtemisSecurityManager
 
 /**
  * <p>
@@ -57,14 +56,12 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
 			SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policyPath).projectFolderPath(withinPath)
 					.build().createTestCases().executeTestCases();
 		}
-		// REMOVED: Installing of ArtemisSecurityManager
 		PropertyExecutionResult result;
 		Throwable error = null;
 		try {
 			result = property.execute();
 		} finally {
 			try {
-				// REMOVED: Uninstallation of ArtemisSecurityManager
 				// ALWAYS reset settings AFTER the test to ensure clean state.
 				resetSettingsInStandardClassLoader();
 				resetSettingsInBootstrapClassLoader();

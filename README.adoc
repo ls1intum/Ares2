@@ -282,9 +282,9 @@ set, Ares2 will warn you about that in the logs.
 [[advanced-blocking]]
 ==== Advanced Blocking and Security Policies with AOP, AspectJ, Instrumentation, and Architecture Testing
 
-In addition to its standard security features, Ares2 now supports advanced blocking mechanisms using **AspectJ**, **AOP (Aspect-Oriented Programming)**, **Instrumentation**, and **Architecture Tests**. These tools provide fine-grained control over student submissions, allowing testers to block specific actions like filesystem access, networking, and thread management through customizable policies defined in YAML files. Moreover, architecture-based tests enforce structural constraints on student code.
+In addition to its standard security features, Ares2 now supports advanced blocking mechanisms using **AspectJ**, **AOP (Aspect-Oriented Programming)**, **Instrumentation**, and **Architecture Tests**. These tools provide fine-grained control over student submissions, allowing testers to block specific actions like file system access, networking, and thread management through customisable policies defined in YAML files. Moreover, architecture-based tests enforce structural constraints on student code.
 
-Our goal is to prevent unauthorized access to key system resources, such as:
+Our goal is to prevent unauthorised access to key system resources, such as:
 
 * Filesystem operations (read, create, overwrite, execute, delete)
 * Networking
@@ -319,7 +319,7 @@ Postcompile mode enforces security policies at *runtime* by instrumenting the co
 * Loads the security configuration file
 * Instruments student code using Java agents (Byte Buddy)
 * Intercepts method calls to protected resources (files, network, threads, commands)
-* Validates each operation against the policy and blocks unauthorized access
+* Validates each operation against the policy and blocks unauthorised access
 
 This mode activates dynamically when tests run and provides immediate, fine-grained control over student code execution without requiring pre-generated test files.
 
@@ -340,7 +340,7 @@ defines the sandboxing policy used by both phases.
 ==== Configuration Overview (`security-policy.yaml`)
 
 Ares2 security enforcement is driven by a central configuration file.
-This file defines how the supervised program is built, analyzed, and instrumented, as well as which resources and operations are permitted at runtime.
+This file defines how the supervised program is built, analysed, and instrumented, as well as which resources and operations are permitted at runtime.
 
 Both precompile and postcompile mode rely on this configuration.
 
@@ -464,7 +464,7 @@ The resulting configuration matrix contains the following eight modes:
 
 Each mode determines:
 
-- how the submission is statically analyzed (ArchUnit vs. WALA),
+- how the submission is statically analysed (ArchUnit vs. WALA),
 - how the project is built (Maven vs. Gradle), and
 - how the bytecode is instrumented at runtime (AspectJ vs. Java agent).
 
@@ -1280,10 +1280,10 @@ annoyed or even enraged. To prevent that, please read on.
 
 Ares2 carefully controls which files and directories student code can access. Understanding path access rules is crucial for writing secure tests.
 
-*Default behavior:*
+*Default behaviour:*
 
 * Student code runs in a restricted sandbox
-* Access to most filesystem paths is blocked by default
+* Access to most file system paths is blocked by default
 * Only explicitly whitelisted paths are accessible
 * Test classes run with elevated privileges (trusted)
 
@@ -1473,7 +1473,7 @@ void testSquareCorrect(IOTester tester) { //<1>
     blocks, be aware of their newline handling).
 
 [[showing-standard-output]]
-Note that Ares2 normalizes the line breaks to `\n`, and
+Note that Ares2 normalises the line breaks to `\n`, and
 https://github.com/ls1intum/Ares2/blob/main/src/main/java/de/tum/cit/ase/ares/api/io/OutputTester.java[`OutputTester`]
 offers many different approaches to checking output (e.g. single string, list of strings, ...).
 
@@ -1610,7 +1610,7 @@ default locale via `Locale.setDefault(Locale)`
 that is also used by Ares2. The locale is changed only for the scope
 where the annotation is applied.
 
-Ares2 is currently localized in German (`de_DE`) and English (`en_US`),
+Ares2 is currently localised in German (`de_DE`) and English (`en_US`),
 where `en_US` is the fallback for any other locale.
 
 See also the https://github.com/ls1intum/Ares2/blob/main/src/test/java/de/tum/cit/ase/ares/integration/testuser/LocaleUser.java[`LocaleUser`]
@@ -1686,8 +1686,8 @@ repositories {
 </dependency>
 ----
 
-== License
+== Licence
 
-Ares2 is licensed under the MIT License.
+Ares2 is licensed under the MIT Licence.
 
 See link:LICENSE[LICENSE] for details.

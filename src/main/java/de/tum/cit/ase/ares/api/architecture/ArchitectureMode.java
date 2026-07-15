@@ -221,7 +221,7 @@ public enum ArchitectureMode {
 	// <editor-fold desc="Other methods">
 
 	/**
-	 * Imports and analyzes Java classes from the specified class path using
+	 * Imports and analyses Java classes from the specified class path using
 	 * Archunit's ClassFileImporter. This method enables static code analysis by
 	 * creating a collection of Java class metadata.
 	 *
@@ -250,7 +250,7 @@ public enum ArchitectureMode {
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param classPath the file system path containing Java classes to analyze
+	 * @param classPath the file system path containing Java classes to analyse
 	 * @return a CallGraph object for WALA mode, or null for ARCHUNIT mode
 	 */
 	@Nullable

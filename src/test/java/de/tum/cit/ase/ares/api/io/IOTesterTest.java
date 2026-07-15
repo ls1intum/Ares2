@@ -58,4 +58,22 @@ class IOTesterTest {
 	void testErr() {
 		assertThat(tester.err()).isNotNull().isSameAs(tester.getErrTester());
 	}
+
+	@Test
+	void staleInstanceCannotReplaceOrUninstallCurrentCapture() {
+		IOTester stale = tester;
+		IOTester.uninstallCurrent();
+		tester = IOTester.installNew(false, 1_000_000);
+		var currentInput = System.in;
+		var currentOutput = System.out;
+		var currentError = System.err;
+
+		assertThrows(IllegalStateException.class, stale::install);
+		assertThrows(IllegalStateException.class, stale::uninstall);
+		assertThrows(IllegalStateException.class, stale::reset);
+		assertThat(System.in).isSameAs(currentInput);
+		assertThat(System.out).isSameAs(currentOutput);
+		assertThat(System.err).isSameAs(currentError);
+		assertThat(IOTester.isInstalled()).isTrue();
+	}
 }

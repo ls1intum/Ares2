@@ -12,7 +12,6 @@ import org.slf4j.*;
 import de.tum.cit.ase.ares.api.context.TestContext;
 import de.tum.cit.ase.ares.api.context.TestType;
 import de.tum.cit.ase.ares.api.internal.sanitization.*;
-//REMOVED: Import of ArtemisSecurityManager
 
 /**
  * For handling and post processing Exceptions and Errors.

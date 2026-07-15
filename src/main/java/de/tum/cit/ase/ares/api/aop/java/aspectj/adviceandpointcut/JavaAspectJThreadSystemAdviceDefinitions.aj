@@ -9,8 +9,10 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.LinkedHashSet;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -39,6 +41,14 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	 */
 	@Nonnull
 	private static final String UNRESOLVED_THREAD_CLASS = "<unresolved-thread-class>";
+
+	/**
+	 * Weak identity map from admitted Thread receivers to their effective task class.
+	 * The recorded class survives Thread.exit() clearing the task field and is
+	 * revalidated against every active policy rather than preserving stale permission.
+	 */
+	private static final Map<Thread, String> ALLOWED_THREAD_CLASSES = Collections.synchronizedMap(
+			new WeakHashMap<Thread, String>());
 	// </editor-fold>
 
 	// <editor-fold desc="Thread system methods">
@@ -745,12 +755,19 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 		// per-method ignore filtering applies here.
 		@Nonnull
 		Set<String> threadClassNames = new LinkedHashSet<>();
+		String recordedThreadClass = !decrementQuota && instance instanceof Thread
+				? ALLOWED_THREAD_CLASSES.get((Thread) instance)
+				: null;
 		if (parameters != null) {
 			for (Object parameter : parameters) {
 				collectThreadClassNames(parameter, threadClassNames);
 			}
 		}
-		collectThreadClassNames(instance, threadClassNames);
+		if (recordedThreadClass != null) {
+			threadClassNames.add(recordedThreadClass);
+		} else {
+			collectThreadClassNames(instance, threadClassNames);
+		}
 		if (attributes != null) {
 			for (Object attribute : attributes) {
 				collectThreadClassNames(attribute, threadClassNames);
@@ -770,32 +787,17 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 			}
 		}
 		for (String threadClassName : threadClassNames) {
-			// A manipulate (notify/wait) receiver resolves to the bare java.lang.Thread only when its
-			// task class cannot be read: either a never-started taskless thread, or a thread that was
-			// started and has since nulled its target field as it terminates (JDK Thread.exit()).
-			// The main false positive to avoid is the latter: a student-created allowed thread that
-			// finished. A student cannot reach a started forbidden thread here (its start() is
-			// blocked), so among student-created receivers a non-NEW bare thread is a legitimately
-			// created one. Skip that case only (allow-list configured, receiver already started); a
-			// never-started taskless thread stays NEW and is still checked (and denied when
-			// java.lang.Thread is not allow-listed), and under an everything-forbidden policy nothing
-			// is skipped. State (not TERMINATED) is deliberate: Thread.exit() nulls target before the
-			// state reaches TERMINATED, so keying on TERMINATED would be racy.
-			//
-			// Residual: non-NEW also matches pre-existing threads such as Thread.currentThread(), so
-			// in a hypothetical pure-AspectJ policy manipulating an unrelated live thread's monitor is
-			// not caught here. The bundled architecture+AspectJ / WALA+AspectJ policies still flag such
-			// a call statically, so this is a documented pure-AspectJ residual, not a gap in the
-			// configured engines. Creation is unaffected: it resolves its task before termination.
-			if (!decrementQuota && !noAllowRuleConfigured && "java.lang.Thread".equals(threadClassName)
-					&& (instance instanceof Thread) && ((Thread) instance).getState() != Thread.State.NEW) {
-				continue;
-			}
 			if (checkIfThreadIsForbidden(new ThreadTarget(threadClassName), allowedThreadClasses, allowedThreadNumbers, decrementQuota)) {
 				throw new SecurityException(localize(
 						"security.advice.illegal.thread.execution", systemMethodToCheck, action, threadClassName,
 						fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
 								+ " | " + buildDenialReason(noAllowRuleConfigured)));
+			}
+		}
+		if (decrementQuota && instance instanceof Thread) {
+			String resolvedThreadClass = variableToClassname(instance);
+			if (resolvedThreadClass != null) {
+				ALLOWED_THREAD_CLASSES.put((Thread) instance, resolvedThreadClass);
 			}
 		}
 		// </editor-fold>
@@ -810,9 +812,9 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 		checkThreadSystemInteraction("create", thisJoinPoint, true);
 	}
 
-	// Thread manipulation (notify/notifyAll/wait on a Thread receiver): membership-only check,
-	// so it does not consume the creation quota. AspectJ-only; the Instrumentation engine cannot
-	// intercept these inherited final Object methods (see the pointcut definition and the docs).
+	// Thread manipulation (notify/notifyAll/wait on a Thread receiver): membership-only
+	// check, so it does not consume the creation quota. Instrumentation implements the
+	// same semantics through application call-site substitution.
 	before():
 			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemPointcutDefinitions.threadManipulateMethods() {
 		checkThreadSystemInteraction("manipulate", thisJoinPoint, false);

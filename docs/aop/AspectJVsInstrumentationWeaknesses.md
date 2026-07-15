@@ -122,10 +122,18 @@ methods, so a policy that forbids thread manipulation expects these to be blocke
   *membership-only* check against the thread-creation allow-list: a thread whose
   class may be created may also be notified, without consuming the creation quota.
 
-Consequence and current scope: the AspectJ engine enforces `notify/notifyAll/wait`
-on `Thread` receivers; the Instrumentation engine does not, so for this specific
-method class **AspectJ is the stronger engine**. This is *partial* parity with the
-architecture engines: enforcement is scoped to runtime `Thread` monitor targets and
-deliberately does not mirror ArchUnit's broad `java.lang.Object.wait(long)` rule,
-so that ordinary `Object`-monitor synchronisation is not blocked. Instrumentation-mode
-policies that must forbid thread manipulation should note this residual gap.
+Consequence and current scope: AspectJ enforces `notify`/`notifyAll`/`wait` on
+`Thread` receivers at runtime. It records the effective task class of each admitted
+`Thread` in a weak identity map and revalidates that class against the active policy
+on every manipulation. This survives `Thread.exit()` clearing the task field without
+mistaking `Thread.currentThread()` or another unrelated pre-existing thread for an
+allowed receiver, and without retaining permission across policy changes.
+
+Byte Buddy cannot add method-entry advice to these inherited final methods by
+transforming `Thread`. The instrumentation agent instead rewrites application call
+sites for all five `Object` monitor overloads (`notify`, `notifyAll`, and the three
+`wait` forms) to wrappers which perform the same receiver-based policy check before
+invoking the original operation. The wrappers preserve ordinary `Object`-monitor
+behaviour: the thread policy runs only when the runtime receiver is a `Thread`.
+Instrumentation uses the same weak instance tracking and membership-only
+manipulation semantics as AspectJ, without consuming the creation quota.

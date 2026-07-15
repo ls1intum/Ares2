@@ -124,7 +124,7 @@ class ReflectionTestUtilsTest {
 	void test_testInvokeMethodRethrowing_illegalArgument() {
 		tests.assertThatEvents().haveExactly(1, testFailedWith(testInvokeMethodRethrowing_illegalArgument,
 				AssertionFailedError.class,
-				"Could not invoke the method 'getAnotherAttribute' in the class SomeClass because the parameters are not implemented right. Make sure to check the parameters of the method."));
+				"Could not invoke the method 'getAnotherAttribute' in the class SomeClass because its parameters do not match the required signature. Check the method parameters."));
 	}
 
 	@TestTest
@@ -157,7 +157,7 @@ class ReflectionTestUtilsTest {
 	void test_testNewInstance_exceptionInInitializer() {
 		tests.assertThatEvents().haveExactly(1, testFailedWith(testNewInstance_exceptionInInitializer,
 				AssertionFailedError.class,
-				"The class 'SomeFailingClass' could not be initialized because an exception was thrown in a static initializer block. Make sure to implement the static initialization without errors."));
+				"The class 'SomeFailingClass' could not be initialised because an exception was thrown in a static initialiser block. Make sure to implement the static initialisation without errors."));
 	}
 
 	@TestTest
@@ -185,7 +185,7 @@ class ReflectionTestUtilsTest {
 	void test_testNewInstance_invocationTarget() {
 		tests.assertThatEvents().haveExactly(1, testFailedWith(testNewInstance_invocationTarget,
 				AssertionFailedError.class,
-				"Could not instantiate the class SomeClass because the constructor with 1 parameters threw an exception and could not be initialized. Make sure to check the constructor implementation."));
+				"Could not instantiate the class SomeClass because the constructor with 1 parameters threw an exception and could not be initialised. Make sure to check the constructor implementation."));
 	}
 
 	@TestTest

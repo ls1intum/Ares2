@@ -121,6 +121,7 @@ public class SecurityPolicyReaderAndDirector {
 	 */
 	@Nonnull
 	public List<Path> writeTestCases(Path testFolderPath) {
+		Objects.requireNonNull(testFolderPath, "testFolderPath must not be null");
 		// Fail closed, symmetrically with executeTestCases and
 		// writeTestCasesAndContinue:
 		// an out-of-order call (writeTestCases before createTestCases) must NOT
@@ -141,6 +142,7 @@ public class SecurityPolicyReaderAndDirector {
 	 */
 	@Nonnull
 	public SecurityPolicyReaderAndDirector writeTestCasesAndContinue(Path testFolderPath) {
+		Objects.requireNonNull(testFolderPath, "testFolderPath must not be null");
 		Objects.requireNonNull(this.securityTestCaseFactoryAndBuilder,
 				"securityTestCaseFactoryAndBuilder must not be null").writeTestCases(testFolderPath);
 		return this;

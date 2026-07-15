@@ -8,15 +8,11 @@ import java.lang.annotation.*;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 
-//REMOVED: Import of ArtemisSecurityManager
-
 /**
- * Allows to whitelist a package, possibly including all subpackages. Only
- * useful in combination with {@link BlacklistPackage}. The REMOVED: Link to
- * ArtemisSecurityManager will allow access for <b>non-whitelisted callers</b>
- * to the set of whitelisted packages. This annotation is
- * {@linkplain Repeatable}, and can be placed additively on the test class and
- * test method.
+ * Adds a package, possibly including all subpackages, to the allow-list. It is
+ * useful in combination with {@link BlacklistPackage}. Supervised code may
+ * access the allow-listed packages. This annotation is {@linkplain Repeatable},
+ * and can be placed additively on the test class and test method.
  * <p>
  * You can use <code>*</code> and <code>**</code> in the same way as in GLOB
  * patterns just applied to packages where the delimiter is <code>"."</code>.
@@ -24,7 +20,7 @@ import org.apiguardian.api.API.Status;
  * Use e.g. <code>@BlacklistPackage("java.util**")</code> and then
  * <code>@WhitelistPackage("java.util.function")</code> to allow access to all
  * classes in the package <code>java.util.function</code> but not any other
- * classes in <code>java.util</code> or any of its subclasses.
+ * classes in <code>java.util</code> or any of its subpackages.
  * <p>
  * <b>This annotation overpowers any {@link BlacklistPackage} annotations.</b>
  *

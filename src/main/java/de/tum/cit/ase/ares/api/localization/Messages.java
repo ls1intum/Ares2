@@ -47,6 +47,6 @@ public final class Messages {
 	}
 
 	public static void init() {
-		// just for initialization
+		// just for initialisation
 	}
 }

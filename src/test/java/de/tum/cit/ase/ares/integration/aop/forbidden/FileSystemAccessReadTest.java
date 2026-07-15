@@ -1,7 +1,5 @@
 package de.tum.cit.ase.ares.integration.aop.forbidden;
 
-import org.junit.jupiter.api.Disabled;
-
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.byteStream.DataInputStream;
@@ -16,7 +14,6 @@ import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.cha
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.characterReader.FilesNewBufferedReader;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.characterReader.InputStreamReader;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.characterReader.Reader;
-import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.classLoaderResource.ClassLoaderGetResourceAsStream;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.lineTokenReader.FilesLines;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.lineTokenReader.ScannerReader;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.wholeFileConvenience.FilesReadAllBytes;
@@ -25,7 +22,6 @@ import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.who
 
 class FileSystemAccessReadTest extends SystemAccessTest {
 	private static final String FILE_INPUT_STREAM_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/byteStream";
-	private static final String CLASS_LOADER_RESOURCE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/classLoaderResource";
 	private static final String CHARACTER_READER_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/characterReader";
 	private static final String LINE_TOKEN_READER_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/lineTokenReader";
 	private static final String WHOLE_FILE_CONVENIENCE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/wholeFileConvenience";
@@ -675,48 +671,6 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 	void test_accessFileSystemViaFilesNewByteChannelMavenWalaInstrumentation() {
 		assertAresSecurityExceptionRead(FilesNewByteChannel::accessFileSystemViaFilesNewByteChannel,
 				FilesNewByteChannel.class);
-	}
-	// </editor-fold>
-
-	// </editor-fold>
-
-	// <editor-fold desc="ClassLoader.getResourceAsStream Tests">
-
-	// <editor-fold desc="accessFileSystemViaClassLoaderGetResourceAsStream">
-	@PublicTest
-	@Disabled("ClassLoader.getResourceAsStream depends on classpath resource resolution and is not a stable file-read probe")
-	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = CLASS_LOADER_RESOURCE_WITHIN_PATH)
-	void test_accessFileSystemViaClassLoaderGetResourceAsStreamMavenArchunitAspectJ() {
-		assertAresSecurityExceptionRead(
-				ClassLoaderGetResourceAsStream::accessFileSystemViaClassLoaderGetResourceAsStream,
-				ClassLoaderGetResourceAsStream.class);
-	}
-
-	@PublicTest
-	@Disabled("ClassLoader.getResourceAsStream depends on classpath resource resolution and is not a stable file-read probe")
-	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = CLASS_LOADER_RESOURCE_WITHIN_PATH)
-	void test_accessFileSystemViaClassLoaderGetResourceAsStreamMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionRead(
-				ClassLoaderGetResourceAsStream::accessFileSystemViaClassLoaderGetResourceAsStream,
-				ClassLoaderGetResourceAsStream.class);
-	}
-
-	@PublicTest
-	@Disabled("ClassLoader.getResourceAsStream depends on classpath resource resolution and is not a stable file-read probe")
-	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = CLASS_LOADER_RESOURCE_WITHIN_PATH)
-	void test_accessFileSystemViaClassLoaderGetResourceAsStreamMavenWalaAspectJ() {
-		assertAresSecurityExceptionRead(
-				ClassLoaderGetResourceAsStream::accessFileSystemViaClassLoaderGetResourceAsStream,
-				ClassLoaderGetResourceAsStream.class);
-	}
-
-	@PublicTest
-	@Disabled("ClassLoader.getResourceAsStream depends on classpath resource resolution and is not a stable file-read probe")
-	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = CLASS_LOADER_RESOURCE_WITHIN_PATH)
-	void test_accessFileSystemViaClassLoaderGetResourceAsStreamMavenWalaInstrumentation() {
-		assertAresSecurityExceptionRead(
-				ClassLoaderGetResourceAsStream::accessFileSystemViaClassLoaderGetResourceAsStream,
-				ClassLoaderGetResourceAsStream.class);
 	}
 	// </editor-fold>
 
