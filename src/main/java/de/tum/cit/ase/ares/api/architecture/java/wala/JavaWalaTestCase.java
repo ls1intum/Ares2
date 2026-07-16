@@ -105,7 +105,9 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	@Nullable
 	private static final Path CACHE_FILE = CACHE_DIR == null ? null : CACHE_DIR.resolve("outcomes.v2");
 
-	/** Content identity of the compiled Ares implementation used for cache keys. */
+	/**
+	 * Content identity of Ares and both architecture engines used for cache keys.
+	 */
 	@Nonnull
 	private static final String IMPLEMENTATION_FINGERPRINT = implementationFingerprint();
 
@@ -700,17 +702,20 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	}
 
 	/**
-	 * Hashes the complete Ares JAR, or every compiled Ares API class when running
-	 * from an exploded classes directory. Directory modification times are
-	 * insufficient because recompilation overwrites existing class files without
-	 * necessarily changing the directory entry. If the code source cannot be read,
-	 * a process-local random value safely disables cross-process verdict reuse.
+	 * Hashes the complete Ares, WALA and ArchUnit code sources. A verdict depends
+	 * on all three implementations, so changing either analysis engine must
+	 * invalidate a PASS produced by an older engine. Directory modification times
+	 * are insufficient because recompilation overwrites existing class files
+	 * without necessarily changing the directory entry. If a code source cannot be
+	 * read, a process-local random value safely disables cross-process verdict
+	 * reuse.
 	 */
 	@Nonnull
 	private static String implementationFingerprint() {
 		try {
-			Path own = Paths.get(JavaWalaTestCase.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-			return implementationFingerprint(own);
+			return implementationFingerprint(codeSourceOf(JavaWalaTestCase.class),
+					codeSourceOf(com.ibm.wala.ipa.callgraph.CallGraph.class),
+					codeSourceOf(com.tngtech.archunit.core.domain.JavaClasses.class));
 		} catch (Exception unreadableCodeSource) {
 			byte[] random = new byte[32];
 			SECURE_RANDOM.nextBytes(random);
@@ -719,15 +724,28 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	}
 
 	@Nonnull
-	static String implementationFingerprint(@Nonnull Path codeSource) throws IOException {
+	private static Path codeSourceOf(@Nonnull Class<?> implementationClass) throws java.net.URISyntaxException {
+		return Paths.get(implementationClass.getProtectionDomain().getCodeSource().getLocation().toURI());
+	}
+
+	@Nonnull
+	static String implementationFingerprint(@Nonnull Path... codeSources) throws IOException {
+		StringBuilder combinedFingerprint = new StringBuilder();
+		for (int index = 0; index < codeSources.length; index++) {
+			combinedFingerprint.append(index).append('#').append(codeSourceFingerprint(codeSources[index])).append(';');
+		}
+		return sha256Hex(combinedFingerprint.toString());
+	}
+
+	@Nonnull
+	private static String codeSourceFingerprint(@Nonnull Path codeSource) throws IOException {
 		if (Files.isRegularFile(codeSource)) {
 			return sha256Hex(Files.readAllBytes(codeSource));
 		}
-		Path apiRoot = codeSource.resolve(Path.of("de", "tum", "cit", "ase", "ares", "api"));
-		try (Stream<Path> compiledClasses = Files.walk(apiRoot)) {
+		try (Stream<Path> compiledClasses = Files.walk(codeSource)) {
 			String contentIdentity = compiledClasses.filter(Files::isRegularFile)
 					.filter(path -> path.getFileName().toString().endsWith(".class")) //$NON-NLS-1$
-					.sorted().map(path -> apiRoot.relativize(path) + "#" + hashFile(path)) //$NON-NLS-1$
+					.sorted().map(path -> codeSource.relativize(path) + "#" + hashFile(path)) //$NON-NLS-1$
 					.collect(Collectors.joining(";")); //$NON-NLS-1$
 			return sha256Hex(contentIdentity);
 		}
@@ -743,7 +761,7 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	}
 
 	private void checkWalaRule(WalaRule rule, CallGraph callGraph, Set<ClassPermission> exemptClasses) {
-		rule.checkDirectAccesses(javaClasses, exemptClasses);
+		rule.checkDirectAccesses(javaClasses, exemptClasses, callGraph.getClassHierarchy());
 		rule.check(callGraph, exemptClasses);
 	}
 	// </editor-fold>

@@ -162,13 +162,13 @@ public class JavaCreator implements Creator {
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param supported       the supported architecture test case type; must not be
-	 *                        null
-	 * @param classes         the Java classes to analyse; must not be null
-	 * @param callGraph       the call graph to analyse; must not be null
-	 * @param allowedPackages the set of allowed package permissions; must not be
-	 *                        null
-	 * @param allowedClasses  the set of allowed class names; must not be null
+	 * @param supported         the supported architecture test case type; must not
+	 *                          be null
+	 * @param classes           the Java classes to analyse; must not be null
+	 * @param callGraphSupplier the call graph supplier to use; must not be null
+	 * @param allowedPackages   the set of allowed package permissions; must not be
+	 *                          null
+	 * @param allowedClasses    the set of allowed class names; must not be null
 	 * @return a new JavaArchitectureTestCase; never null
 	 */
 	@Nonnull
@@ -191,29 +191,12 @@ public class JavaCreator implements Creator {
 	}
 
 	/**
-	 * Creates a JavaAOPTestCase with the given parameters.
-	 *
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 * @param resourceAccesses          the resource accesses permitted by the
-	 *                                  security policy; must not be null
-	 * @param javaArchitectureTestCases the list of architecture test cases to
-	 *                                  populate; must not be null
-	 * @param supported                 the supported AOP test case type; must not
-	 *                                  be null
-	 * @param classes                   the Java classes to analyse; must not be
-	 *                                  null
-	 * @param callGraph                 the call graph to analyse; must not be null
-	 * @param allowedPackages           the set of allowed package permissions; must
-	 *                                  not be null
-	 * @param allowedClasses            the set of allowed class names; must not be
-	 *                                  null
-	 * @return a new JavaAOPTestCase; never null
-	 */
-	/**
 	 * Maps an AOP test-case category to its architecture counterpart with an
 	 * exhaustive switch, so a future enum divergence is caught at compile time
 	 * rather than as a runtime {@link IllegalArgumentException}.
+	 *
+	 * @param supported the supported AOP test-case category; must not be null
+	 * @return the corresponding architecture test-case category; never null
 	 */
 	@Nonnull
 	private static JavaArchitectureTestCaseSupported architectureCounterpartOf(
@@ -226,6 +209,27 @@ public class JavaCreator implements Creator {
 		};
 	}
 
+	/**
+	 * Creates a JavaAOPTestCase with the given parameters.
+	 *
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 * @param resourceAccesses          the resource accesses permitted by the
+	 *                                  security policy; must not be null
+	 * @param javaArchitectureTestCases the list of architecture test cases to
+	 *                                  populate; must not be null
+	 * @param supported                 the supported AOP test case type; must not
+	 *                                  be null
+	 * @param classes                   the Java classes to analyse; must not be
+	 *                                  null
+	 * @param callGraphSupplier         the call graph supplier to use; must not be
+	 *                                  null
+	 * @param allowedPackages           the set of allowed package permissions; must
+	 *                                  not be null
+	 * @param allowedClasses            the set of allowed class names; must not be
+	 *                                  null
+	 * @return a new JavaAOPTestCase; never null
+	 */
 	@Nonnull
 	private JavaAOPTestCase createAOPTestCase(@Nonnull ResourceAccesses resourceAccesses,
 			@Nonnull List<ArchitectureTestCase> javaArchitectureTestCases, @Nonnull JavaAOPTestCaseSupported supported,

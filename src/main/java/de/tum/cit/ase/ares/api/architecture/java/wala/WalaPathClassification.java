@@ -17,9 +17,7 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  * infrastructure (JDK / Ares / test helpers).
  * <p>
  * Used by {@link WalaRule} to attribute security violations to the nearest
- * student frame rather than an intermediate JDK method. Public so the
- * reserved-package guard can share {@link #INFRA_PREFIXES} as the single source
- * of truth for which prefixes are trusted.
+ * student frame rather than an intermediate JDK method.
  * </p>
  */
 public final class WalaPathClassification {
@@ -34,9 +32,11 @@ public final class WalaPathClassification {
 	// <editor-fold desc="Constants">
 
 	/**
-	 * Package prefixes (with trailing dot) that belong to infrastructure and must
-	 * not be attributed as student code. Mirrors the exclusions in AspectJ's
-	 * {@code studentScope()} pointcut.
+	 * Application-loaded package prefixes (with trailing dot) that belong to Ares
+	 * or its test infrastructure and must not be attributed as student code.
+	 * Platform classes are deliberately absent: they are classified by their WALA
+	 * classloader origin, because a third-party JAR may legally use a
+	 * {@code javax.*} or {@code com.sun.*} namespace.
 	 * <p>
 	 * The Ares prefix is the narrow {@code de.tum.cit.ase.ares.api.}, matching the
 	 * ArchUnit importer exclusion ({@code /de/tum/cit/ase/ares/api/}) and the
@@ -52,19 +52,27 @@ public final class WalaPathClassification {
 	 * Ares consumer uses different helper packages, this list will need to be made
 	 * configurable.
 	 * <p>
-	 * Exposed so the reserved-package guard rejects student code declared under any
-	 * of these prefixes, keeping the guard and this classifier from drifting apart.
 	 * </p>
 	 */
-	public static final List<String> INFRA_PREFIXES = List.of("java.", "javax.", "sun.", "jdk.", "com.sun.",
+	public static final List<String> INFRA_PREFIXES = List.of("de.tum.cit.ase.ares.api.", "net.bytebuddy.",
+			"org.aspectj.", "com.ibm.wala.", "com.tngtech.archunit.", "anonymous.toolclasses.", "metatest.");
+
+	/**
+	 * Package prefixes that supervised code may not declare. This is broader than
+	 * {@link #INFRA_PREFIXES}: platform namespaces remain reserved against student
+	 * impersonation even though application-loaded third-party libraries in those
+	 * namespaces are analysed rather than trusted.
+	 */
+	public static final List<String> RESERVED_PACKAGE_PREFIXES = List.of("java.", "javax.", "sun.", "jdk.", "com.sun.",
 			"de.tum.cit.ase.ares.api.", "net.bytebuddy.", "org.aspectj.", "com.ibm.wala.", "com.tngtech.archunit.",
 			"anonymous.toolclasses.", "metatest.");
 
 	/**
-	 * Subset of {@link #INFRA_PREFIXES} that genuinely indicates a transitive
-	 * false-positive path: the student called a permitted JDK or framework API and
-	 * the JDK or framework internally invoked a forbidden one. Only JDK,
-	 * Ares-internal, AspectJ, ByteBuddy, WALA and ArchUnit packages qualify.
+	 * Application-loaded subset of {@link #INFRA_PREFIXES} that genuinely indicates
+	 * a transitive false-positive path: the student called a permitted JDK or
+	 * framework API and the JDK or framework internally invoked a forbidden one.
+	 * JDK frames are classified separately by their primordial/extension loader;
+	 * this list covers Ares, AspectJ, ByteBuddy, WALA and ArchUnit packages.
 	 * <p>
 	 * Project-specific test helpers ({@code anonymous.toolclasses.} and
 	 * {@code metatest.}) are deliberately omitted: when student code routes through
@@ -74,9 +82,8 @@ public final class WalaPathClassification {
 	 * Command call placed inside a project test helper.
 	 * </p>
 	 */
-	static final List<String> TRANSITIVE_FALSE_POSITIVE_PREFIXES = List.of("java.", "javax.", "sun.", "jdk.",
-			"com.sun.", "de.tum.cit.ase.ares.", "net.bytebuddy.", "org.aspectj.", "com.ibm.wala.",
-			"com.tngtech.archunit.");
+	static final List<String> TRANSITIVE_FALSE_POSITIVE_PREFIXES = List.of("de.tum.cit.ase.ares.", "net.bytebuddy.",
+			"org.aspectj.", "com.ibm.wala.", "com.tngtech.archunit.");
 	// </editor-fold>
 
 	// <editor-fold desc="Public API">

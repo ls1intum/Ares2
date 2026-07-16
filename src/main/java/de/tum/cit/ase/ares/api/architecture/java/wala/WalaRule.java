@@ -15,12 +15,18 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.ibm.wala.classLoader.IClass;
 import com.ibm.wala.classLoader.IMethod;
 import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
+import com.ibm.wala.ipa.cha.IClassHierarchy;
 import com.ibm.wala.shrike.shrikeCT.InvalidClassFileException;
+import com.ibm.wala.types.ClassLoaderReference;
+import com.ibm.wala.types.TypeName;
+import com.ibm.wala.types.TypeReference;
 import com.ibm.wala.util.collections.Iterator2Iterable;
 import com.tngtech.archunit.core.domain.JavaAccess;
+import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
@@ -111,24 +117,48 @@ public class WalaRule {
 	 * @param allowedClasses classes exempted by the policy
 	 */
 	public void checkDirectAccesses(JavaClasses javaClasses, Set<ClassPermission> allowedClasses) {
+		checkDirectAccesses(javaClasses, allowedClasses, null);
+	}
+
+	/**
+	 * Checks direct bytecode accesses using ArchUnit's imported graph first and the
+	 * already-built WALA hierarchy when ArchUnit deliberately left a dependency
+	 * unresolved. If neither graph can classify an inherited target, the check
+	 * fails closed.
+	 *
+	 * @param javaClasses    imported classes under analysis
+	 * @param allowedClasses classes exempted by the policy
+	 * @param classHierarchy WALA's static class hierarchy, or {@code null} when no
+	 *                       fallback is available
+	 */
+	public void checkDirectAccesses(JavaClasses javaClasses, Set<ClassPermission> allowedClasses,
+			IClassHierarchy classHierarchy) {
 		javaClasses.stream().flatMap(javaClass -> javaClass.getAccessesFromSelf().stream())
 				.sorted(Comparator.comparing(access -> access.getOrigin().getFullName() + "->" //$NON-NLS-1$
 						+ access.getTarget().getFullName()))
 				.filter(access -> !JavaArchitectureTestCase.isAllowedClass(access.getOriginOwner().getFullName(),
 						allowedClasses))
-				.filter(this::isDirectlyForbidden).findFirst().ifPresent(this::throwDirectAccessViolation);
+				.filter(access -> isDirectlyForbidden(access, classHierarchy)).findFirst()
+				.ifPresent(this::throwDirectAccessViolation);
 	}
 
-	private boolean isDirectlyForbidden(JavaAccess<?> access) {
+	private boolean isDirectlyForbidden(JavaAccess<?> access, IClassHierarchy classHierarchy) {
 		Set<String> targets = new HashSet<>();
 		targets.add(access.getTarget().getFullName());
 		access.getTarget().resolveMember().ifPresent(member -> targets.add(member.getFullName()));
+		if (forbiddenMethods.stream().anyMatch(
+				forbidden -> targets.stream().anyMatch(target -> matchesForbiddenMethod(target, forbidden)))) {
+			return true;
+		}
 		return forbiddenMethods.stream()
-				.anyMatch(forbidden -> targets.stream().anyMatch(target -> matchesForbiddenMethod(target, forbidden))
-						|| matchesInheritedTarget(access, forbidden));
+				.anyMatch(forbidden -> matchesInheritedTarget(access, forbidden, classHierarchy));
 	}
 
-	private static boolean matchesInheritedTarget(JavaAccess<?> access, String forbidden) {
+	static boolean matchesInheritedTarget(JavaAccess<?> access, String forbidden) {
+		return matchesInheritedTarget(access, forbidden, null);
+	}
+
+	static boolean matchesInheritedTarget(JavaAccess<?> access, String forbidden, IClassHierarchy classHierarchy) {
 		String target = access.getTarget().getFullName();
 		int targetParenthesis = target.indexOf('(');
 		int forbiddenParenthesis = forbidden.indexOf('(');
@@ -147,17 +177,55 @@ public class WalaRule {
 				|| !matchesForbiddenMethod(forbiddenOwner + targetMethod, forbidden)) {
 			return false;
 		}
-		if (access.getTargetOwner().isAssignableTo(forbiddenOwner)) {
+		JavaClass targetOwner = access.getTargetOwner();
+		if (forbiddenOwner.equals(targetOwner.getFullName())) {
 			return true;
 		}
+		Set<JavaClass> assignableTypes;
 		try {
-			ClassLoader loader = Thread.currentThread().getContextClassLoader();
-			Class<?> forbiddenOwnerClass = Class.forName(forbiddenOwner, false, loader);
-			Class<?> targetOwnerClass = Class.forName(access.getTargetOwner().getFullName(), false, loader);
-			return forbiddenOwnerClass.isAssignableFrom(targetOwnerClass);
-		} catch (ClassNotFoundException | LinkageError unavailableType) {
+			assignableTypes = targetOwner.getAllClassesSelfIsAssignableTo();
+		} catch (RuntimeException incompleteHierarchy) {
+			throw new SecurityException("Could not classify inherited target " + targetOwner.getFullName(), //$NON-NLS-1$
+					incompleteHierarchy);
+		}
+		if (assignableTypes.stream().map(JavaClass::getFullName).anyMatch(forbiddenOwner::equals)) {
+			return true;
+		}
+		if (targetOwner.isFullyImported() && assignableTypes.stream().allMatch(JavaClass::isFullyImported)) {
 			return false;
 		}
+		return matchesUsingWalaHierarchy(targetOwner.getFullName(), forbiddenOwner, classHierarchy);
+	}
+
+	private static boolean matchesUsingWalaHierarchy(String targetOwner, String forbiddenOwner,
+			IClassHierarchy classHierarchy) {
+		if (classHierarchy == null) {
+			throw new SecurityException("Incomplete hierarchy for inherited target " + targetOwner); //$NON-NLS-1$
+		}
+		try {
+			IClass targetClass = lookupClass(classHierarchy, targetOwner);
+			IClass forbiddenClass = lookupClass(classHierarchy, forbiddenOwner);
+			if (targetClass == null || forbiddenClass == null) {
+				throw new SecurityException("Incomplete hierarchy for inherited target " + targetOwner); //$NON-NLS-1$
+			}
+			return classHierarchy.isAssignableFrom(forbiddenClass, targetClass);
+		} catch (SecurityException exception) {
+			throw exception;
+		} catch (RuntimeException incompleteHierarchy) {
+			throw new SecurityException("Could not classify inherited target " + targetOwner, incompleteHierarchy); //$NON-NLS-1$
+		}
+	}
+
+	private static IClass lookupClass(IClassHierarchy classHierarchy, String className) {
+		TypeName typeName = TypeName.findOrCreate("L" + className.replace('.', '/')); //$NON-NLS-1$
+		for (ClassLoaderReference loader : List.of(ClassLoaderReference.Primordial, ClassLoaderReference.Extension,
+				ClassLoaderReference.Application)) {
+			IClass resolved = classHierarchy.lookupClass(TypeReference.findOrCreate(loader, typeName));
+			if (resolved != null) {
+				return resolved;
+			}
+		}
+		return null;
 	}
 
 	private void throwDirectAccessViolation(JavaAccess<?> access) {

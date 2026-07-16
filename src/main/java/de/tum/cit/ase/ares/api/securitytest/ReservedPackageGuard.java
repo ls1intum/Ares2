@@ -13,14 +13,15 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  * <p>
  * The static analysers and the runtime AOP both treat those prefixes as trusted
  * (not student code): ArchUnit excludes {@code de.tum.cit.ase.ares.api} from
- * import, WALA classifies the {@link WalaPathClassification#INFRA_PREFIXES} as
- * infrastructure, and the runtime advice ignores stack frames in those
- * packages. A submission that declares such a package would therefore be
- * trusted by name and bypass every check. This guard fails closed before any
- * analysis or execution rather than letting that happen.
+ * import, WALA classifies Ares-owned package prefixes as infrastructure, and
+ * the runtime advice ignores stack frames in those packages. A submission that
+ * declares such a package would therefore be trusted by name and bypass every
+ * check. This guard fails closed before any analysis or execution rather than
+ * letting that happen.
  * <p>
- * The reserved set is exactly {@link WalaPathClassification#INFRA_PREFIXES}, so
- * the guard can never drift from the classifier that grants the trust.
+ * Platform namespaces are also reserved against student impersonation. WALA
+ * nevertheless analyses application-loaded third-party JARs in those namespaces
+ * and distinguishes the real platform by classloader origin.
  *
  * @since 2.0.0
  * @author Markus Paulsen
@@ -34,9 +35,9 @@ public final class ReservedPackageGuard {
 
 	/**
 	 * The package prefixes (each ending in a dot) that student code must not
-	 * declare. Identical to the classifier's infrastructure prefixes.
+	 * declare.
 	 */
-	private static final List<String> RESERVED_PREFIXES = WalaPathClassification.INFRA_PREFIXES;
+	private static final List<String> RESERVED_PREFIXES = WalaPathClassification.RESERVED_PACKAGE_PREFIXES;
 
 	/**
 	 * Returns the reserved prefix that the given package falls under, or

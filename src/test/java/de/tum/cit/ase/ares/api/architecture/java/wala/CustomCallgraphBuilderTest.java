@@ -10,6 +10,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import javax.activation.FileDataSource;
+
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -184,6 +186,28 @@ public class CustomCallgraphBuilderTest {
 	}
 
 	@Test
+	void testExpandClassPathIncludesThirdPartyJavaxJarByOrigin() throws Exception {
+		Method method = CustomCallgraphBuilder.class.getDeclaredMethod("expandClassPathWithReachableDependencies",
+				String.class);
+		method.setAccessible(true);
+		String expandedClassPath = (String) method.invoke(null, FIXTURE_CLASSPATH);
+		String activationJar = Path.of(FileDataSource.class.getProtectionDomain().getCodeSource().getLocation().toURI())
+				.toString();
+
+		Assertions.assertTrue(
+				Arrays.asList(expandedClassPath.split(Pattern.quote(File.pathSeparator))).contains(activationJar));
+	}
+
+	@Test
+	void testThirdPartyJavaxJarCannotHideLibraryMediatedForbiddenCall() {
+		CustomCallgraphBuilder builder = new CustomCallgraphBuilder(FIXTURE_CLASSPATH);
+
+		Assertions.assertThrows(AssertionError.class,
+				() -> new WalaRule("Accesses file system", Set.of("java.io.FileInputStream.<init>(Ljava/io/File;)"))
+						.check(builder.buildCallGraph(FIXTURE_CLASSPATH)));
+	}
+
+	@Test
 	void testImportJarLoadsAllSiblingClasses() throws Exception {
 		Method method = CustomCallgraphBuilder.class.getDeclaredMethod("importJar", ClassFileImporter.class,
 				String.class);
@@ -209,7 +233,10 @@ public class CustomCallgraphBuilderTest {
 	void testDirectAccessCheckCatchesJdkInterfaceTargets() {
 		JavaClasses classes = new ClassFileImporter().importPath(Path.of(PARALLEL_STREAM_FIXTURE_CLASSPATH));
 
-		Assertions.assertThrows(AssertionError.class,
+		// resolveMissingDependenciesFromClassPath=false leaves java.util.List's
+		// hierarchy incomplete. The direct check must fail closed rather than consult a
+		// mutable context classloader or silently return false.
+		Assertions.assertThrows(SecurityException.class,
 				() -> new WalaRule("Manipulates threads", Set.of("java.util.Collection.parallelStream()"))
 						.checkDirectAccesses(classes, Set.of()));
 		Assertions.assertThrows(AssertionError.class,

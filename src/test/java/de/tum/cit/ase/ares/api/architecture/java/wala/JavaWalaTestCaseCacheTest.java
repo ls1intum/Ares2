@@ -25,4 +25,25 @@ class JavaWalaTestCaseCacheTest {
 
 		Assertions.assertNotEquals(firstFingerprint, secondFingerprint);
 	}
+
+	@Test
+	void testImplementationFingerprintChangesWhenEitherArchitectureEngineChanges() throws IOException {
+		Path aresCodeSource = Files.createDirectory(temporaryDirectory.resolve("ares"));
+		Path walaCodeSource = temporaryDirectory.resolve("wala.jar");
+		Path archUnitCodeSource = temporaryDirectory.resolve("archunit.jar");
+		Files.writeString(walaCodeSource, "first WALA implementation");
+		Files.writeString(archUnitCodeSource, "first ArchUnit implementation");
+		String original = JavaWalaTestCase.implementationFingerprint(aresCodeSource, walaCodeSource,
+				archUnitCodeSource);
+
+		Files.writeString(walaCodeSource, "second WALA implementation");
+		String changedWala = JavaWalaTestCase.implementationFingerprint(aresCodeSource, walaCodeSource,
+				archUnitCodeSource);
+		Files.writeString(archUnitCodeSource, "second ArchUnit implementation");
+		String changedArchUnit = JavaWalaTestCase.implementationFingerprint(aresCodeSource, walaCodeSource,
+				archUnitCodeSource);
+
+		Assertions.assertNotEquals(original, changedWala);
+		Assertions.assertNotEquals(changedWala, changedArchUnit);
+	}
 }

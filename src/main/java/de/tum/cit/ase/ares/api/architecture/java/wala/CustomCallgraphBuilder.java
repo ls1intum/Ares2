@@ -150,18 +150,32 @@ public class CustomCallgraphBuilder {
 				if (targetName == null) {
 					continue;
 				}
-				if (!isApplicationDependency(targetName) || visitedClasses.contains(targetName)) {
+				if (visitedClasses.contains(targetName)) {
 					continue;
 				}
 				URL location = CustomCallgraphBuilder.class.getResource(convertTypeNameToClassName(targetName));
-				if (location == null
-						|| !("file".equals(location.getProtocol()) || "jar".equals(location.getProtocol()))) {
+				if (location == null) {
 					throw new SecurityException("Could not locate reachable application dependency " + targetName); //$NON-NLS-1$
+				}
+				if ("jrt".equals(location.getProtocol())) { //$NON-NLS-1$
+					// Platform ownership is established by the module-image origin, not by a
+					// package prefix. Third-party file:/jar: classes may legally use javax.* or
+					// com.sun.* and must remain visible to the analysis.
+					visitedClasses.add(targetName);
+					continue;
+				}
+				if (!("file".equals(location.getProtocol()) || "jar".equals(location.getProtocol()))) {
+					throw new SecurityException("Unsupported location for reachable application dependency " //$NON-NLS-1$
+							+ targetName + ": " + location); //$NON-NLS-1$
 				}
 				Optional<String> classpathEntry = classpathEntryFor(location);
 				if (classpathEntry.isEmpty()) {
 					throw new SecurityException("Could not derive a classpath entry for reachable dependency " //$NON-NLS-1$
 							+ targetName);
+				}
+				if (isTrustedFrameworkLocation(targetName, location, classpathEntry.get())) {
+					visitedClasses.add(targetName);
+					continue;
 				}
 				entries.add(classpathEntry.get());
 				try {
@@ -207,13 +221,21 @@ public class CustomCallgraphBuilder {
 		}
 	}
 
-	private static boolean isApplicationDependency(String className) {
-		return !(className.startsWith("java.") || className.startsWith("javax.") || className.startsWith("jdk.")
-				|| className.startsWith("sun.") || className.startsWith("com.sun.")
-				|| className.startsWith("de.tum.cit.ase.ares.api.") || className.startsWith("org.junit.")
-				|| className.startsWith("org.opentest4j.") || className.startsWith("net.bytebuddy.")
-				|| className.startsWith("org.aspectj.") || className.startsWith("com.ibm.wala.")
-				|| className.startsWith("com.tngtech.archunit."));
+	private static boolean isTrustedFrameworkLocation(String className, URL location, String classpathEntry) {
+		String normalizedEntry = classpathEntry.replace(File.separatorChar, '/');
+		if (CLASSPATH_EXCLUDE_SUBSTRINGS.stream().anyMatch(normalizedEntry::contains)) {
+			return true;
+		}
+		if (!className.startsWith("de.tum.cit.ase.ares.api.")) {
+			return false;
+		}
+		try {
+			String aresCodeSource = CustomCallgraphBuilder.class.getProtectionDomain().getCodeSource().getLocation()
+					.toExternalForm();
+			return location.toExternalForm().startsWith(aresCodeSource);
+		} catch (RuntimeException unavailableCodeSource) {
+			return false;
+		}
 	}
 
 	private static Optional<String> classpathEntryFor(URL location) {

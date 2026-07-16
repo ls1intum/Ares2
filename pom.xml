@@ -31,6 +31,8 @@
 		<archunit-version>1.4.2</archunit-version>
 		<!-- 2. Architecture: 2.2 Wala -->
 		<wala-version>1.7.2</wala-version>
+		<!-- Test fixture: genuine third-party JAR in the javax.* namespace -->
+		<javax-activation-version>1.2.0</javax-activation-version>
 		<!-- 3. AOP: 3.1 AspectJ -->
 		<!-- aspectjtools (ajc) 1.9.25 / 1.9.25.1 bundle an Eclipse JDT compiler that throws
 			an internal NullPointerException ("variableDeclaration is null",
@@ -190,12 +192,19 @@
 		-->
 		<!-- 2. Architecture: 2.2 Wala -->
 		<dependency>
-		<groupId>com.ibm.wala</groupId>
-		<artifactId>com.ibm.wala.core</artifactId>
-		<version>${wala-version}</version>
-		<!-- Multiple Cases -->
-	</dependency>
-	<!-- 3. AOP: 3.1 AspectJ -->
+			<groupId>com.ibm.wala</groupId>
+			<artifactId>com.ibm.wala.core</artifactId>
+			<version>${wala-version}</version>
+			<!-- Multiple Cases -->
+		</dependency>
+		<dependency>
+			<groupId>com.sun.activation</groupId>
+			<artifactId>javax.activation</artifactId>
+			<version>${javax-activation-version}</version>
+			<scope>test</scope>
+			<!-- Regression fixture for origin-based WALA dependency classification -->
+		</dependency>
+		<!-- 3. AOP: 3.1 AspectJ -->
 		<dependency>
 			<groupId>org.aspectj</groupId>
 			<artifactId>aspectjrt</artifactId>

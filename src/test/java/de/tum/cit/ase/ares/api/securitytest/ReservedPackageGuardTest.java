@@ -30,6 +30,8 @@ class ReservedPackageGuardTest {
 				.isEqualTo("anonymous.toolclasses.");
 		assertThat(ReservedPackageGuard.reservedPrefixOf("metatest.Foo")).isEqualTo("metatest.");
 		assertThat(ReservedPackageGuard.reservedPrefixOf("jdk.internal.misc")).isEqualTo("jdk.");
+		assertThat(ReservedPackageGuard.reservedPrefixOf("javax.activation")).isEqualTo("javax.");
+		assertThat(ReservedPackageGuard.reservedPrefixOf("com.sun.example")).isEqualTo("com.sun.");
 	}
 
 	@Test
