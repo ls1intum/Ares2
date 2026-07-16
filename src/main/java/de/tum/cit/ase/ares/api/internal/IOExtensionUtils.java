@@ -20,12 +20,6 @@ public final class IOExtensionUtils {
 
 	private static final Class<IOTesterManager> DEFAULT_IO_MANAGER = IOTesterManager.class;
 
-	static {
-		/*
-		 * Initialise SecurityManager when we are still in the main thread
-		 */
-	}
-
 	// ConcurrentHashMap rather than HashMap: parallel JUnit test containers resolve
 	// their IO
 	// managers through computeIfAbsent on this shared static cache, and a plain

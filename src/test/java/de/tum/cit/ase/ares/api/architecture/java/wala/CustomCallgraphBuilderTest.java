@@ -16,9 +16,14 @@ import org.junit.jupiter.api.Test;
 
 import com.ibm.wala.ipa.cha.ClassHierarchy;
 import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.importer.ClassFileImporter;
+
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 
 public class CustomCallgraphBuilderTest {
 	private static final String FIXTURE_CLASSPATH = "target/test-classes/de/tum/cit/ase/ares/api/architecture/java/wala/fixture";
+	private static final String PARALLEL_STREAM_FIXTURE_CLASSPATH = "target/test-classes/de/tum/cit/ase/ares/integration/wala/fixture";
 
 	@Test
 	void testConvertTypeNameToClassName_Valid() throws Exception {
@@ -176,5 +181,43 @@ public class CustomCallgraphBuilderTest {
 
 		Assertions.assertTrue(
 				Arrays.asList(expandedClassPath.split(Pattern.quote(File.pathSeparator))).contains(commonsIoJar));
+	}
+
+	@Test
+	void testImportJarLoadsAllSiblingClasses() throws Exception {
+		Method method = CustomCallgraphBuilder.class.getDeclaredMethod("importJar", ClassFileImporter.class,
+				String.class);
+		method.setAccessible(true);
+		URI commonsIoLocation = FileUtils.class.getProtectionDomain().getCodeSource().getLocation().toURI();
+		JavaClasses classes = (JavaClasses) method.invoke(null, new ClassFileImporter(),
+				Path.of(commonsIoLocation).toString());
+
+		Assertions.assertDoesNotThrow(() -> classes.get("org.apache.commons.io.FileUtils"));
+		Assertions.assertDoesNotThrow(() -> classes.get("org.apache.commons.io.IOUtils"));
+	}
+
+	@Test
+	void testNormaliseDependencyClassNameHandlesReferenceAndPrimitiveArrays() throws Exception {
+		Method method = CustomCallgraphBuilder.class.getDeclaredMethod("normaliseDependencyClassName", String.class);
+		method.setAccessible(true);
+
+		Assertions.assertEquals("java.io.File", method.invoke(null, "[[Ljava.io.File;"));
+		Assertions.assertNull(method.invoke(null, "[I"));
+	}
+
+	@Test
+	void testDirectAccessCheckCatchesJdkInterfaceTargets() {
+		JavaClasses classes = new ClassFileImporter().importPath(Path.of(PARALLEL_STREAM_FIXTURE_CLASSPATH));
+
+		Assertions.assertThrows(AssertionError.class,
+				() -> new WalaRule("Manipulates threads", Set.of("java.util.Collection.parallelStream()"))
+						.checkDirectAccesses(classes, Set.of()));
+		Assertions.assertThrows(AssertionError.class,
+				() -> new WalaRule("Manipulates threads", Set.of("java.util.stream.Stream.parallel()"))
+						.checkDirectAccesses(classes, Set.of()));
+		Assertions.assertDoesNotThrow(
+				() -> new WalaRule("Manipulates threads", Set.of("java.util.Collection.parallelStream()"))
+						.checkDirectAccesses(classes, Set.of(new ClassPermission(
+								"de.tum.cit.ase.ares.integration.wala.fixture.ParallelStreamUser"))));
 	}
 }

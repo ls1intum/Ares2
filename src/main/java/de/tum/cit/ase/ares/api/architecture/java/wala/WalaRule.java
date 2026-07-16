@@ -20,6 +20,8 @@ import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.ibm.wala.shrike.shrikeCT.InvalidClassFileException;
 import com.ibm.wala.util.collections.Iterator2Iterable;
+import com.tngtech.archunit.core.domain.JavaAccess;
+import com.tngtech.archunit.core.domain.JavaClasses;
 
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.localization.Messages;
@@ -95,6 +97,75 @@ public class WalaRule {
 			// violation among the explored approaches is never masked by an exempt one.
 			evaluateSink(cg, sink, allowedClasses, entryReachable);
 		}
+	}
+
+	/**
+	 * Checks direct bytecode accesses before the transitive WALA walk. WALA may
+	 * omit an interface call node when dispatch resolves to an internal JDK
+	 * implementation, particularly for woven calls such as
+	 * {@code Collection.parallelStream()}. ArchUnit's imported access model retains
+	 * the API target written in the bytecode, so this complementary pass prevents a
+	 * direct forbidden call from disappearing from the WALA result.
+	 *
+	 * @param javaClasses    imported classes under analysis
+	 * @param allowedClasses classes exempted by the policy
+	 */
+	public void checkDirectAccesses(JavaClasses javaClasses, Set<ClassPermission> allowedClasses) {
+		javaClasses.stream().flatMap(javaClass -> javaClass.getAccessesFromSelf().stream())
+				.sorted(Comparator.comparing(access -> access.getOrigin().getFullName() + "->" //$NON-NLS-1$
+						+ access.getTarget().getFullName()))
+				.filter(access -> !JavaArchitectureTestCase.isAllowedClass(access.getOriginOwner().getFullName(),
+						allowedClasses))
+				.filter(this::isDirectlyForbidden).findFirst().ifPresent(this::throwDirectAccessViolation);
+	}
+
+	private boolean isDirectlyForbidden(JavaAccess<?> access) {
+		Set<String> targets = new HashSet<>();
+		targets.add(access.getTarget().getFullName());
+		access.getTarget().resolveMember().ifPresent(member -> targets.add(member.getFullName()));
+		return forbiddenMethods.stream()
+				.anyMatch(forbidden -> targets.stream().anyMatch(target -> matchesForbiddenMethod(target, forbidden))
+						|| matchesInheritedTarget(access, forbidden));
+	}
+
+	private static boolean matchesInheritedTarget(JavaAccess<?> access, String forbidden) {
+		String target = access.getTarget().getFullName();
+		int targetParenthesis = target.indexOf('(');
+		int forbiddenParenthesis = forbidden.indexOf('(');
+		if (targetParenthesis < 0 || forbiddenParenthesis < 0) {
+			return false;
+		}
+		int targetMethodSeparator = target.lastIndexOf('.', targetParenthesis);
+		int forbiddenMethodSeparator = forbidden.lastIndexOf('.', forbiddenParenthesis);
+		if (targetMethodSeparator < 0 || forbiddenMethodSeparator < 0) {
+			return false;
+		}
+		String forbiddenOwner = forbidden.substring(0, forbiddenMethodSeparator);
+		String forbiddenMethod = forbidden.substring(forbiddenMethodSeparator);
+		String targetMethod = target.substring(targetMethodSeparator);
+		if (forbiddenMethod.startsWith(".<init>") //$NON-NLS-1$
+				|| !matchesForbiddenMethod(forbiddenOwner + targetMethod, forbidden)) {
+			return false;
+		}
+		if (access.getTargetOwner().isAssignableTo(forbiddenOwner)) {
+			return true;
+		}
+		try {
+			ClassLoader loader = Thread.currentThread().getContextClassLoader();
+			Class<?> forbiddenOwnerClass = Class.forName(forbiddenOwner, false, loader);
+			Class<?> targetOwnerClass = Class.forName(access.getTargetOwner().getFullName(), false, loader);
+			return forbiddenOwnerClass.isAssignableFrom(targetOwnerClass);
+		} catch (ClassNotFoundException | LinkageError unavailableType) {
+			return false;
+		}
+	}
+
+	private void throwDirectAccessViolation(JavaAccess<?> access) {
+		String caller = access.getOrigin().getFullName();
+		String target = access.getTarget().getFullName();
+		String declaringClass = access.getTargetOwner().getSimpleName();
+		throw new AssertionError(Messages.localized("security.architecture.method.call.message", ruleName, caller, //$NON-NLS-1$
+				target, declaringClass, access.getLineNumber(), caller));
 	}
 
 	/** Returns {@code true} if the node's method matches a forbidden signature. */

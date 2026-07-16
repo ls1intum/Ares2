@@ -73,8 +73,8 @@
 		<spotless.version>3.7.0</spotless.version>
 		<!-- if JaCoCo is not executed -->
 		<argLine></argLine>
-		<!-- Analysis and instrumentation state is scoped for safe reuse in one test JVM.
-			CI may still override this property for diagnostic isolation. -->
+		<!-- Analysis, instrumentation and timeout-worker state is scoped for safe reuse
+			in one test JVM. CI may still override this property for diagnostics. -->
 		<surefire-reuse-forks>true</surefire-reuse-forks>
 		<!-- full certificate fingerprint: 23E62BB282A473EE4DDA2F8763EFD39363D21A8D -->
 		<gpg.key.id>23E62BB282A473EE4DDA2F8763EFD39363D21A8D</gpg.key.id>
@@ -1023,8 +1023,8 @@
 								<exclude>**/integration/architecture/**/*Test.java</exclude>
 								<exclude>**/integration/aop/allowed/**/*Test.java</exclude>
 								<exclude>**/integration/aop/forbidden/**/*Test.java</exclude>
-								<!-- jqwik's lifecycle store is process-global and is corrupted when its
-									EngineTestKit tests reuse a JVM after other integration tests. -->
+								<!-- Executed by the dedicated jqwik step because it starts a nested jqwik
+									engine, not because it requires a separate fork. -->
 								<exclude>**/integration/JqwickTest.java</exclude>
 							</excludes>
 						</configuration>

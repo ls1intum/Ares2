@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.net.JarURLConnection;
 import java.net.URI;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -134,9 +135,8 @@ public class CustomCallgraphBuilder {
 			}
 			try {
 				pending.addAll(importer.importPath(entryFile.toPath()));
-			} catch (RuntimeException ignored) {
-				// The WALA scope builder reports an unusable original classpath later. A
-				// best-effort dependency expansion must not hide that diagnostic.
+			} catch (RuntimeException exception) {
+				throw new SecurityException("Could not import application classpath entry " + entry, exception); //$NON-NLS-1$
 			}
 		}
 
@@ -146,34 +146,65 @@ public class CustomCallgraphBuilder {
 				continue;
 			}
 			for (Dependency dependency : source.getDirectDependenciesFromSelf()) {
-				String targetName = dependency.getTargetClass().getName();
+				String targetName = normaliseDependencyClassName(dependency.getTargetClass().getName());
+				if (targetName == null) {
+					continue;
+				}
 				if (!isApplicationDependency(targetName) || visitedClasses.contains(targetName)) {
 					continue;
 				}
 				URL location = CustomCallgraphBuilder.class.getResource(convertTypeNameToClassName(targetName));
 				if (location == null
 						|| !("file".equals(location.getProtocol()) || "jar".equals(location.getProtocol()))) {
-					continue;
+					throw new SecurityException("Could not locate reachable application dependency " + targetName); //$NON-NLS-1$
 				}
 				Optional<String> classpathEntry = classpathEntryFor(location);
-				classpathEntry.ifPresent(entries::add);
+				if (classpathEntry.isEmpty()) {
+					throw new SecurityException("Could not derive a classpath entry for reachable dependency " //$NON-NLS-1$
+							+ targetName);
+				}
+				entries.add(classpathEntry.get());
 				try {
 					JavaClass resolved;
-					if ("jar".equals(location.getProtocol()) && classpathEntry.isPresent()) {
+					if ("jar".equals(location.getProtocol())) {
 						JavaClasses jarClasses = importedJars.computeIfAbsent(classpathEntry.get(),
-								ignored -> importer.importUrl(location));
+								ignored -> importJar(importer, classpathEntry.get()));
 						resolved = jarClasses.get(targetName);
 					} else {
 						resolved = importer.importUrl(location).get(targetName);
 					}
 					pending.addLast(resolved);
-				} catch (RuntimeException ignored) {
-					// WALA will surface a genuinely required but unresolvable dependency while
-					// constructing the graph. Continue collecting all other resolvable classes.
+				} catch (RuntimeException exception) {
+					throw new SecurityException("Could not resolve reachable application dependency " + targetName, //$NON-NLS-1$
+							exception);
 				}
 			}
 		}
 		return String.join(File.pathSeparator, entries);
+	}
+
+	private static String normaliseDependencyClassName(String className) {
+		int componentStart = 0;
+		while (componentStart < className.length() && className.charAt(componentStart) == '[') {
+			componentStart++;
+		}
+		if (componentStart == 0) {
+			return className;
+		}
+		if (componentStart >= className.length() || className.charAt(componentStart) != 'L'
+				|| !className.endsWith(";")) { //$NON-NLS-1$
+			return null;
+		}
+		return className.substring(componentStart + 1, className.length() - 1).replace('/', '.');
+	}
+
+	private static JavaClasses importJar(ClassFileImporter importer, String jarPath) {
+		try {
+			return importer.importUrl(Path.of(jarPath).toUri().toURL());
+		} catch (IOException exception) {
+			throw new SecurityException("Could not create a URL for application dependency JAR " + jarPath, //$NON-NLS-1$
+					exception);
+		}
 	}
 
 	private static boolean isApplicationDependency(String className) {
@@ -451,17 +482,9 @@ public class CustomCallgraphBuilder {
 			IMethod target = delegate.getCalleeTarget(caller, site, receiver);
 			if (target == null) {
 				// The delegate could not resolve the call. This happens for interface default
-				// methods such
-				// as java.util.Collection.parallelStream() invoked on a receiver that does not
-				// override them:
-				// WALA's receiver-based resolution returns null, so no CGNode is created and
-				// WalaRule never
-				// sees the forbidden JDK sink (ArchUnit, which matches the call site, does).
-				// Fall back to the
-				// statically declared target so the JDK sink is recorded as an opaque node,
-				// matching the call
-				// site the student actually wrote. Only JDK (primordial) targets are kept
-				// opaque below.
+				// methods such as java.util.Collection.parallelStream() invoked on a receiver
+				// that does not override them. Fall back to the statically declared target so
+				// the JDK sink is recorded as an opaque node when WALA can represent it.
 				target = classHierarchy.resolveMethod(site.getDeclaredTarget());
 				if (target == null) {
 					return null;

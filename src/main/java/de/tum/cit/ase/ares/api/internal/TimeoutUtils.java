@@ -18,6 +18,7 @@ import de.tum.cit.ase.ares.api.context.*;
 
 @API(status = Status.INTERNAL)
 public final class TimeoutUtils {
+	private static final long TERMINATION_GRACE_PERIOD_MILLIS = 1000;
 
 	private TimeoutUtils() {
 	}
@@ -51,9 +52,10 @@ public final class TimeoutUtils {
 
 	private static <T> T executeWithTimeout(Duration timeout, Callable<T> action, TestContext context)
 			throws Throwable { // NOSONAR
-		var executorService = Executors.newSingleThreadExecutor(new WhitelistedThreadFactory());
+		var threadFactory = new WhitelistedThreadFactory();
+		var executorService = Executors.newSingleThreadExecutor(threadFactory);
+		Future<T> future = executorService.submit(action);
 		try {
-			Future<T> future = executorService.submit(action);
 			return invokeChecked(() -> future.get(timeout.toMillis(), TimeUnit.MILLISECONDS));
 		} catch (ExecutionException ex) {
 			// should never happen, but you never know
@@ -62,9 +64,48 @@ public final class TimeoutUtils {
 			}
 			throw ex.getCause();
 		} catch (@SuppressWarnings("unused") TimeoutException ex) {
+			terminateTimedOutExecution(future, executorService);
 			throw generateTimeoutFailure(timeout, context);
 		} finally {
 			executorService.shutdownNow();
+		}
+	}
+
+	private static void terminateTimedOutExecution(Future<?> future, ExecutorService executorService) {
+		future.cancel(true);
+		executorService.shutdownNow();
+		/*
+		 * Wait for interruption-aware code to leave jqwik's property lifecycle before
+		 * its owning thread performs store cleanup. A worker that deliberately ignores
+		 * interruption remains daemonised: forcibly stopping it can interrupt JVM class
+		 * initialisation or release monitors inconsistently and would corrupt the
+		 * reused fork more severely than the timed-out test itself.
+		 */
+		awaitTermination(executorService, TERMINATION_GRACE_PERIOD_MILLIS);
+	}
+
+	private static boolean awaitTermination(ExecutorService executorService, long timeoutMillis) {
+		long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
+		boolean interrupted = false;
+		try {
+			while (!executorService.isTerminated()) {
+				long remainingNanos = deadline - System.nanoTime();
+				if (remainingNanos <= 0) {
+					return false;
+				}
+				try {
+					if (executorService.awaitTermination(remainingNanos, TimeUnit.NANOSECONDS)) {
+						return true;
+					}
+				} catch (@SuppressWarnings("unused") InterruptedException ex) {
+					interrupted = true;
+				}
+			}
+			return true;
+		} finally {
+			if (interrupted) {
+				Thread.currentThread().interrupt();
+			}
 		}
 	}
 
@@ -103,6 +144,7 @@ public final class TimeoutUtils {
 		@Override
 		public Thread newThread(Runnable r) {
 			var thread = new Thread(r, "ajts-to-" + TIMEOUT_THREAD_ID.getAndIncrement()); //$NON-NLS-1$
+			thread.setDaemon(true);
 			if (thread.getPriority() != Thread.NORM_PRIORITY) {
 				thread.setPriority(Thread.NORM_PRIORITY);
 			}

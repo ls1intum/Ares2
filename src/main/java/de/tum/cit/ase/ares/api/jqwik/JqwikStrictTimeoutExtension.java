@@ -33,6 +33,11 @@ public class JqwikStrictTimeoutExtension implements AroundPropertyHook {
 
 	@Override
 	public int aroundPropertyProximity() {
+		/*
+		 * Keep the timeout inside Ares's security, IO and reporting hooks. Their setup
+		 * and cleanup mutate engine-wide state and must remain on jqwik's owning
+		 * thread; only the actual property execution belongs on the timeout worker.
+		 */
 		return 40;
 	}
 
