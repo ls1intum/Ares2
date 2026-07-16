@@ -30,6 +30,7 @@ import de.tum.cit.ase.ares.api.internal.TimeoutUtils;
  */
 @API(status = Status.MAINTAINED)
 public class JqwikStrictTimeoutExtension implements AroundPropertyHook {
+	private static final Duration TERMINATION_GRACE_PERIOD = Duration.ofSeconds(1);
 
 	@Override
 	public int aroundPropertyProximity() {
@@ -49,6 +50,6 @@ public class JqwikStrictTimeoutExtension implements AroundPropertyHook {
 		return TimeoutUtils.performTimeoutExecution(
 				() -> CurrentDomainContext.runWithContext(domainContext,
 						() -> CurrentTestDescriptor.runWithDescriptor(desc, property::execute)),
-				JqwikContext.of(context));
+				JqwikContext.of(context), TERMINATION_GRACE_PERIOD);
 	}
 }

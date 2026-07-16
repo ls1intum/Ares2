@@ -18,7 +18,7 @@ import de.tum.cit.ase.ares.api.context.*;
 
 @API(status = Status.INTERNAL)
 public final class TimeoutUtils {
-	private static final long TERMINATION_GRACE_PERIOD_MILLIS = 1000;
+	private static final Duration DEFAULT_TERMINATION_GRACE_PERIOD = Duration.ofMillis(50);
 
 	private TimeoutUtils() {
 	}
@@ -29,11 +29,17 @@ public final class TimeoutUtils {
 	}
 
 	public static <T> T performTimeoutExecution(ThrowingSupplier<T> execution, TestContext context) throws Throwable {
+		return performTimeoutExecution(execution, context, DEFAULT_TERMINATION_GRACE_PERIOD);
+	}
+
+	public static <T> T performTimeoutExecution(ThrowingSupplier<T> execution, TestContext context,
+			Duration terminationGracePeriod) throws Throwable {
 		var timeout = findTimeout(context);
 		if (timeout.isEmpty()) {
 			return execution.get();
 		}
-		return executeWithTimeout(timeout.get(), () -> rethrowThrowableSafe(execution), context);
+		return executeWithTimeout(timeout.get(), () -> rethrowThrowableSafe(execution), context,
+				terminationGracePeriod);
 	}
 
 	private static <T> T rethrowThrowableSafe(ThrowingSupplier<T> execution) throws Exception { // NOSONAR
@@ -50,8 +56,8 @@ public final class TimeoutUtils {
 		}
 	}
 
-	private static <T> T executeWithTimeout(Duration timeout, Callable<T> action, TestContext context)
-			throws Throwable { // NOSONAR
+	private static <T> T executeWithTimeout(Duration timeout, Callable<T> action, TestContext context,
+			Duration terminationGracePeriod) throws Throwable { // NOSONAR
 		var threadFactory = new WhitelistedThreadFactory();
 		var executorService = Executors.newSingleThreadExecutor(threadFactory);
 		Future<T> future = executorService.submit(action);
@@ -64,24 +70,25 @@ public final class TimeoutUtils {
 			}
 			throw ex.getCause();
 		} catch (@SuppressWarnings("unused") TimeoutException ex) {
-			terminateTimedOutExecution(future, executorService);
+			terminateTimedOutExecution(future, executorService, terminationGracePeriod);
 			throw generateTimeoutFailure(timeout, context);
 		} finally {
 			executorService.shutdownNow();
 		}
 	}
 
-	private static void terminateTimedOutExecution(Future<?> future, ExecutorService executorService) {
+	private static void terminateTimedOutExecution(Future<?> future, ExecutorService executorService,
+			Duration terminationGracePeriod) {
 		future.cancel(true);
 		executorService.shutdownNow();
 		/*
-		 * Wait for interruption-aware code to leave jqwik's property lifecycle before
-		 * its owning thread performs store cleanup. A worker that deliberately ignores
-		 * interruption remains daemonised: forcibly stopping it can interrupt JVM class
-		 * initialisation or release monitors inconsistently and would corrupt the
-		 * reused fork more severely than the timed-out test itself.
+		 * Give interruption-aware code time to finish before the owning thread
+		 * continues. A worker that deliberately ignores interruption remains
+		 * daemonised: forcibly stopping it can interrupt JVM class initialisation or
+		 * release monitors inconsistently and would corrupt the reused fork more
+		 * severely than the timed-out test itself.
 		 */
-		awaitTermination(executorService, TERMINATION_GRACE_PERIOD_MILLIS);
+		awaitTermination(executorService, terminationGracePeriod.toMillis());
 	}
 
 	private static boolean awaitTermination(ExecutorService executorService, long timeoutMillis) {

@@ -36,6 +36,26 @@ class TimeoutUtilsTest {
 		assertThat(workerFinished).isTrue();
 	}
 
+	@Test
+	void interruptionIgnoringExecutionDoesNotDelayTimeoutByASecond() throws Exception {
+		AtomicBoolean releaseWorker = new AtomicBoolean();
+		TestContext context = contextFor("strictTimeoutTarget"); //$NON-NLS-1$
+		long startNanos = System.nanoTime();
+		try {
+			assertThrows(AssertionFailedError.class, () -> TimeoutUtils.performTimeoutExecution(() -> {
+				while (!releaseWorker.get()) {
+					Thread.onSpinWait();
+				}
+				return null;
+			}, context));
+		} finally {
+			releaseWorker.set(true);
+		}
+		long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+
+		assertThat(elapsedMillis).isLessThan(500L);
+	}
+
 	private static TestContext contextFor(String methodName) throws NoSuchMethodException {
 		Method method = TimeoutUtilsTest.class.getDeclaredMethod(methodName);
 		TestContext context = mock(TestContext.class);
