@@ -6,15 +6,15 @@ import java.util.Optional;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 
-import net.jqwik.api.lifecycle.PropertyLifecycleContext;
+import net.jqwik.api.lifecycle.*;
 
 import de.tum.cit.ase.ares.api.context.*;
 
 @API(status = Status.INTERNAL)
 public class JqwikContext extends TestContext {
-	private final PropertyLifecycleContext lifecycleContext;
+	private final MethodLifecycleContext lifecycleContext;
 
-	JqwikContext(PropertyLifecycleContext lifecycleContext) {
+	JqwikContext(MethodLifecycleContext lifecycleContext) {
 		this.lifecycleContext = lifecycleContext;
 	}
 
@@ -44,10 +44,17 @@ public class JqwikContext extends TestContext {
 	}
 
 	public PropertyLifecycleContext getPropertyLifecycleContext() {
-		return lifecycleContext;
+		if (lifecycleContext instanceof PropertyLifecycleContext propertyLifecycleContext) {
+			return propertyLifecycleContext;
+		}
+		throw new IllegalStateException("This context represents a jqwik try, not a property"); //$NON-NLS-1$
 	}
 
 	public static JqwikContext of(PropertyLifecycleContext lifecycleContext) {
+		return new JqwikContext(lifecycleContext);
+	}
+
+	public static JqwikContext of(TryLifecycleContext lifecycleContext) {
 		return new JqwikContext(lifecycleContext);
 	}
 
