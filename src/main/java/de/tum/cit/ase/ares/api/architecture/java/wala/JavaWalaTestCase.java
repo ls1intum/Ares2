@@ -17,6 +17,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -50,6 +52,12 @@ import de.tum.cit.ase.ares.api.util.FileTools;
  */
 public class JavaWalaTestCase extends JavaArchitectureTestCase {
 
+	/**
+	 * One shared source of randomness; a fresh SecureRandom per call reseeds
+	 * needlessly.
+	 */
+	private static final java.security.SecureRandom SECURE_RANDOM = new java.security.SecureRandom();
+
 	// <editor-fold desc="Disk-backed rule outcome cache">
 
 	/**
@@ -71,6 +79,12 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 
 	@Nonnull
 	private static final ConcurrentHashMap<String, CachedOutcome> RULE_OUTCOME_CACHE = new ConcurrentHashMap<>();
+
+	/**
+	 * In-flight evaluations, ensuring one call-graph rule evaluation per cache key.
+	 */
+	@Nonnull
+	private static final ConcurrentHashMap<String, FutureTask<CachedOutcome>> RULE_EVALUATIONS = new ConcurrentHashMap<>();
 
 	private static final String HMAC_ALGORITHM = "HmacSHA256";
 
@@ -98,6 +112,12 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	 */
 	@Nullable
 	private static final Path CACHE_FILE = CACHE_DIR == null ? null : CACHE_DIR.resolve("outcomes.v2");
+
+	/**
+	 * Content identity of Ares and both architecture engines used for cache keys.
+	 */
+	@Nonnull
+	private static final String IMPLEMENTATION_FINGERPRINT = implementationFingerprint();
 
 	static {
 		loadCacheFromDisk();
@@ -198,7 +218,7 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		Path secretFile = CACHE_DIR.resolve("secret");
 		try {
 			byte[] secret = new byte[32];
-			new java.security.SecureRandom().nextBytes(secret);
+			SECURE_RANDOM.nextBytes(secret);
 			try {
 				// Create atomically with 0600 so the secret never exists world-readable.
 				try {
@@ -324,7 +344,7 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	}
 
 	/**
-	 * Builds a stable cache key from the analysis classpath, the Ares-jar mtime,
+	 * Builds a stable cache key from the analysis classpath, compiled Ares content,
 	 * the rule name, and a SHA-256 over a STRUCTURAL fingerprint of the analysed
 	 * classes (each class's name plus the sorted full names of the methods it
 	 * calls) and the allowed packages. Hashing the call structure with full SHA-256
@@ -334,13 +354,7 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	 */
 	@Nonnull
 	private String cacheKey() {
-		long aresMtime = 0L;
-		try {
-			Path own = Paths.get(JavaWalaTestCase.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-			aresMtime = Files.getLastModifiedTime(own).toMillis();
-		} catch (Exception ignored) {
-			// Fall back to the structural fingerprint below.
-		}
+		JavaArchitectureTestCaseSupported supported = (JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported;
 		String classpath = Stream.of(System.getProperty("java.class.path", "").split(java.io.File.pathSeparator))
 				.filter(p -> p.contains("classes") || p.contains("build")).sorted()
 				.collect(Collectors.joining(java.io.File.pathSeparator));
@@ -355,6 +369,12 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		String bytecodeFingerprint = javaClasses.stream()
 				.map(javaClass -> javaClass.getFullName() + "#" + classBytecodeHash(javaClass)).sorted()
 				.collect(Collectors.joining(";"));
+		// The call graph also follows reachable application dependencies. Their paths
+		// alone are not identities: a JAR or class directory can be replaced in place,
+		// so hash the complete effective dependency content before consulting a cached
+		// verdict.
+		String dependencyFingerprint = supported == JavaArchitectureTestCaseSupported.PACKAGE_IMPORT ? ""
+				: CustomCallgraphBuilder.dependencyFingerprint(javaClasses);
 		String allowedPackagesFingerprint = allowedPackages.stream().map(PackagePermission::importTheFollowingPackage)
 				.sorted().collect(Collectors.joining(","));
 		// The allow-listed classes change which violations are exempt, so they must be
@@ -367,12 +387,11 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		// classes directory, so without this a cached PASS could survive a tightening
 		// of
 		// the rules.
-		String blocklistFingerprint = blocklistFingerprint(
-				(JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported);
-		return classpath + "|" + aresMtime + "|"
-				+ ((JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported).name() + "|"
+		String blocklistFingerprint = blocklistFingerprint(supported);
+		return classpath + "|" + IMPLEMENTATION_FINGERPRINT + "|" + supported.name() + "|"
 				+ sha256Hex(structuralFingerprint + "||" + bytecodeFingerprint + "||" + allowedPackagesFingerprint
-						+ "||" + allowedClassesFingerprint + "||" + blocklistFingerprint);
+						+ "||" + allowedClassesFingerprint + "||" + blocklistFingerprint + "||"
+						+ dependencyFingerprint);
 	}
 
 	/**
@@ -578,10 +597,11 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	/**
 	 * Executes the architecture test case.
 	 * <p>
-	 * Outcomes are cached on disk keyed by classpath + Ares-jar mtime + rule name,
-	 * so subsequent JVM forks (e.g. {@code testPermitted} after
-	 * {@code testUnprotected}) skip the expensive call-graph traversal when the
-	 * same rule was already evaluated for the same classpath.
+	 * Outcomes are cached on disk using content identities for the application,
+	 * reachable dependencies, analysis engines and rule inputs, so subsequent JVM
+	 * forks (e.g. {@code testPermitted} after {@code testUnprotected}) skip the
+	 * expensive call-graph traversal when the same rule was already evaluated for
+	 * the same classpath.
 	 */
 	@Override
 	public void executeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
@@ -614,16 +634,45 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 			}
 			return;
 		}
+		FutureTask<CachedOutcome> candidate = new FutureTask<>(() -> evaluateAndCache(key, architectureMode, aopMode));
+		FutureTask<CachedOutcome> evaluation = RULE_EVALUATIONS.putIfAbsent(key, candidate);
+		boolean ownsEvaluation = evaluation == null;
+		if (ownsEvaluation) {
+			evaluation = candidate;
+			evaluation.run();
+		}
+		try {
+			CachedOutcome outcome = evaluation.get();
+			if (outcome.violationMessage != null) {
+				throw new SecurityException(outcome.violationMessage);
+			}
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new SecurityException("Interrupted while awaiting WALA rule evaluation", e);
+		} catch (ExecutionException e) {
+			Throwable cause = e.getCause();
+			if (cause instanceof RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			if (cause instanceof Error error) {
+				throw error;
+			}
+			throw new SecurityException("WALA rule evaluation failed", cause);
+		} finally {
+			if (ownsEvaluation) {
+				RULE_EVALUATIONS.remove(key, candidate);
+			}
+		}
+	}
+
+	@Nonnull
+	private CachedOutcome evaluateAndCache(@Nonnull String key, @Nonnull String architectureMode,
+			@Nonnull String aopMode) {
 		Optional<SecurityException> result = runRuleAndCapture(architectureMode, aopMode);
-		// Store the violation MESSAGE (never a live exception object): a violation with
-		// a
-		// null message is recorded as an empty string so it still reads back as a
-		// violation, while a clean pass is null.
 		String message = result.map(e -> e.getMessage() == null ? "" : e.getMessage()).orElse(null);
-		RULE_OUTCOME_CACHE.put(key, new CachedOutcome(message));
-		result.ifPresent(e -> {
-			throw e;
-		});
+		CachedOutcome outcome = new CachedOutcome(message);
+		RULE_OUTCOME_CACHE.put(key, outcome);
+		return outcome;
 	}
 
 	/**
@@ -646,18 +695,23 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 			CallGraph cg = needsCallGraph ? callGraphSupplier.get() : null;
 			Set<ClassPermission> exemptClasses = getAllowedClasses();
 			switch (supported) {
-			case FILESYSTEM_INTERACTION -> JavaWalaTestCaseCollection.NO_CLASS_MUST_ACCESS_FILE_SYSTEM.check(cg,
+			case FILESYSTEM_INTERACTION -> checkWalaRule(JavaWalaTestCaseCollection.NO_CLASS_MUST_ACCESS_FILE_SYSTEM,
+					cg, exemptClasses);
+			case NETWORK_CONNECTION -> checkWalaRule(JavaWalaTestCaseCollection.NO_CLASS_MUST_ACCESS_NETWORK, cg,
 					exemptClasses);
-			case NETWORK_CONNECTION -> JavaWalaTestCaseCollection.NO_CLASS_MUST_ACCESS_NETWORK.check(cg, exemptClasses);
-			case COMMAND_EXECUTION -> JavaWalaTestCaseCollection.NO_CLASS_MUST_EXECUTE_COMMANDS.check(cg,
+			case COMMAND_EXECUTION -> checkWalaRule(JavaWalaTestCaseCollection.NO_CLASS_MUST_EXECUTE_COMMANDS, cg,
 					exemptClasses);
-			case THREAD_CREATION -> JavaWalaTestCaseCollection.NO_CLASS_MUST_CREATE_THREADS.check(cg, exemptClasses);
+			case THREAD_CREATION -> checkWalaRule(JavaWalaTestCaseCollection.NO_CLASS_MUST_CREATE_THREADS, cg,
+					exemptClasses);
 			case PACKAGE_IMPORT -> JavaWalaTestCaseCollection
 					.noClassMustImportForbiddenPackages(allowedPackages, exemptClasses).check(javaClasses);
-			case REFLECTION -> JavaWalaTestCaseCollection.NO_CLASS_MUST_USE_REFLECTION.check(cg, exemptClasses);
-			case TERMINATE_JVM -> JavaWalaTestCaseCollection.NO_CLASS_MUST_TERMINATE_JVM.check(cg, exemptClasses);
-			case SERIALIZATION -> JavaWalaTestCaseCollection.NO_CLASS_MUST_SERIALIZE.check(cg, exemptClasses);
-			case CLASS_LOADING -> JavaWalaTestCaseCollection.NO_CLASS_MUST_USE_CLASSLOADERS.check(cg, exemptClasses);
+			case REFLECTION -> checkWalaRule(JavaWalaTestCaseCollection.NO_CLASS_MUST_USE_REFLECTION, cg,
+					exemptClasses);
+			case TERMINATE_JVM -> checkWalaRule(JavaWalaTestCaseCollection.NO_CLASS_MUST_TERMINATE_JVM, cg,
+					exemptClasses);
+			case SERIALIZATION -> checkWalaRule(JavaWalaTestCaseCollection.NO_CLASS_MUST_SERIALIZE, cg, exemptClasses);
+			case CLASS_LOADING -> checkWalaRule(JavaWalaTestCaseCollection.NO_CLASS_MUST_USE_CLASSLOADERS, cg,
+					exemptClasses);
 			case NATIVE_CODE, AGENT_ATTACH, ENVIRONMENT_ACCESS, MODULE_SYSTEM, JNDI_INJECTION ->
 				// WALA's call-graph approach needs JDK methods inside the analysis scope to
 				// trace a path from student code to a forbidden API. For these categories the
@@ -689,6 +743,70 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 			// directly. Preserve and cache.
 			return Optional.of(sec);
 		}
+	}
+
+	/**
+	 * Hashes the complete Ares, WALA and ArchUnit code sources. A verdict depends
+	 * on all three implementations, so changing either analysis engine must
+	 * invalidate a PASS produced by an older engine. Directory modification times
+	 * are insufficient because recompilation overwrites existing class files
+	 * without necessarily changing the directory entry. If a code source cannot be
+	 * read, a process-local random value safely disables cross-process verdict
+	 * reuse.
+	 */
+	@Nonnull
+	private static String implementationFingerprint() {
+		try {
+			return implementationFingerprint(codeSourceOf(JavaWalaTestCase.class),
+					codeSourceOf(com.ibm.wala.ipa.callgraph.CallGraph.class),
+					codeSourceOf(com.tngtech.archunit.core.domain.JavaClasses.class));
+		} catch (Exception unreadableCodeSource) {
+			byte[] random = new byte[32];
+			SECURE_RANDOM.nextBytes(random);
+			return sha256Hex(random);
+		}
+	}
+
+	@Nonnull
+	private static Path codeSourceOf(@Nonnull Class<?> implementationClass) throws java.net.URISyntaxException {
+		return Paths.get(implementationClass.getProtectionDomain().getCodeSource().getLocation().toURI());
+	}
+
+	@Nonnull
+	static String implementationFingerprint(@Nonnull Path... codeSources) throws IOException {
+		StringBuilder combinedFingerprint = new StringBuilder();
+		for (int index = 0; index < codeSources.length; index++) {
+			combinedFingerprint.append(index).append('#').append(codeSourceFingerprint(codeSources[index])).append(';');
+		}
+		return sha256Hex(combinedFingerprint.toString());
+	}
+
+	@Nonnull
+	private static String codeSourceFingerprint(@Nonnull Path codeSource) throws IOException {
+		if (Files.isRegularFile(codeSource)) {
+			return sha256Hex(Files.readAllBytes(codeSource));
+		}
+		try (Stream<Path> compiledClasses = Files.walk(codeSource)) {
+			String contentIdentity = compiledClasses.filter(Files::isRegularFile)
+					.filter(path -> path.getFileName().toString().endsWith(".class")) //$NON-NLS-1$
+					.sorted().map(path -> codeSource.relativize(path) + "#" + hashFile(path)) //$NON-NLS-1$
+					.collect(Collectors.joining(";")); //$NON-NLS-1$
+			return sha256Hex(contentIdentity);
+		}
+	}
+
+	@Nonnull
+	private static String hashFile(@Nonnull Path path) {
+		try {
+			return sha256Hex(Files.readAllBytes(path));
+		} catch (IOException unreadableClass) {
+			throw new SecurityException("Could not fingerprint compiled Ares class " + path, unreadableClass); //$NON-NLS-1$
+		}
+	}
+
+	private void checkWalaRule(WalaRule rule, CallGraph callGraph, Set<ClassPermission> exemptClasses) {
+		rule.checkDirectAccesses(javaClasses, exemptClasses, callGraph.getClassHierarchy());
+		rule.check(callGraph, exemptClasses);
 	}
 	// </editor-fold>
 
@@ -741,7 +859,7 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		}
 
 		/**
-		 * Sets the Java classes to be analyzed by this architecture test case.
+		 * Sets the Java classes to be analysed by this architecture test case.
 		 *
 		 * @since 2.0.0
 		 * @author Sarp Sahinalp

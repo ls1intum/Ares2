@@ -4,7 +4,6 @@ import java.nio.file.Path;
 import java.util.List;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
@@ -40,7 +39,8 @@ public interface Writer {
 	 * @param javaArchitectureTestCases the list of architecture test cases; must
 	 *                                  not be null
 	 * @param javaAOPTestCases          the list of AOP test cases; must not be null
-	 * @param testFolderPath            the directory of the project; may be null
+	 * @param testFolderPath            the directory of the project; must not be
+	 *                                  null
 	 * @return a list of paths to the created files
 	 */
 	@Nonnull
@@ -49,5 +49,5 @@ public interface Writer {
 			@Nonnull List<String> testClasses, @Nonnull String packageName, @Nonnull String mainClassInPackageName,
 			@Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
 			@Nonnull List<JavaAOPTestCase> javaAOPTestCases, @Nonnull List<JavaPhobosTestCase> phobosTestCases,
-			@Nullable Path testFolderPath);
+			@Nonnull Path testFolderPath);
 }

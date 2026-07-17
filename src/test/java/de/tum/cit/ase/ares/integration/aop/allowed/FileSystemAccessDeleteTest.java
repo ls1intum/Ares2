@@ -39,6 +39,12 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 	}
 
 	@PublicTest
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
+	void test_pathToFileDelete_archunit_aspectj() {
+		assertNoAresSecurityException(FileDeleteMain::accessFileSystemViaPathToFileDelete);
+	}
+
+	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_DELETE, withinPath = FILE_DELETE_WITHIN_PATH)
 	void test_fileDelete_archunit_instrumentation() {
 		assertNoAresSecurityException(FileDeleteMain::accessFileSystemViaFileDelete);

@@ -9,15 +9,11 @@ import java.nio.file.Path;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 
-//REMOVED: Import of ArtemisSecurityManager
-
 /**
- * Allows to blacklist a {@link Path}, including all subpaths. The REMOVED: Link
- * to ArtemisSecurityManager will disallow any fileaccess for <b>non-whitelisted
- * callers</b> outside the set of whitelisted paths. This annotation is
- * {@linkplain Repeatable}, and can be placed additively on the test class and
- * test method.Different types can be set to gain more control over the mtaching
- * paths.<br>
+ * Adds a {@link Path}, including its subpaths, to the file-system deny-list for
+ * supervised code. This annotation is {@linkplain Repeatable}, and can be
+ * placed additively on the test class and test method. Different types can be
+ * set to gain more control over the matching paths.<br>
  * Use e.g. <code>@BlacklistPath("foo/")</code> to disallow access to all files
  * in the sub-directory <code>foo</code> of the execution directory.
  * <p>

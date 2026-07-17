@@ -8,7 +8,7 @@ import net.bytebuddy.asm.Advice;
  * based on the file system security policies defined within the application.
  * <p>
  * If an execution attempt violates these policies, a SecurityException is
- * thrown, preventing unauthorized file executions. The class interacts with the
+ * thrown, preventing unauthorised file executions. The class interacts with the
  * JavaInstrumentationAdviceFileSystemToolbox to perform these security checks.
  */
 public final class JavaInstrumentationExecutePathConstructorAdvice {

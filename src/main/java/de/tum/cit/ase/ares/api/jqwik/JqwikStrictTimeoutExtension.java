@@ -30,9 +30,15 @@ import de.tum.cit.ase.ares.api.internal.TimeoutUtils;
  */
 @API(status = Status.MAINTAINED)
 public class JqwikStrictTimeoutExtension implements AroundPropertyHook {
+	private static final Duration TERMINATION_GRACE_PERIOD = Duration.ofSeconds(1);
 
 	@Override
 	public int aroundPropertyProximity() {
+		/*
+		 * Keep the timeout inside Ares's security, IO and reporting hooks. Their setup
+		 * and cleanup mutate engine-wide state and must remain on jqwik's owning
+		 * thread; only the actual property execution belongs on the timeout worker.
+		 */
 		return 40;
 	}
 
@@ -44,6 +50,6 @@ public class JqwikStrictTimeoutExtension implements AroundPropertyHook {
 		return TimeoutUtils.performTimeoutExecution(
 				() -> CurrentDomainContext.runWithContext(domainContext,
 						() -> CurrentTestDescriptor.runWithDescriptor(desc, property::execute)),
-				JqwikContext.of(context));
+				JqwikContext.of(context), TERMINATION_GRACE_PERIOD);
 	}
 }

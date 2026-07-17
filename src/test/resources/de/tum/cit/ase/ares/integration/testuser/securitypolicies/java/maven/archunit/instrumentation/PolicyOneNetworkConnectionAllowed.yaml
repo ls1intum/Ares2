@@ -1,0 +1,21 @@
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION
+  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.cit.ase.ares.integration.aop.allowed.SystemAccessTest"
+    - "de.tum.cit.ase.ares.integration.aop.forbidden.SystemAccessTest"
+    - "de.tum.cit.ase.ares.integration.architecture.forbidden.SystemAccessTest"
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions: [ ]
+    regardingNetworkConnections:
+      - onTheHost: "127.0.0.1"
+        onThePort: 12345
+        openConnections: true
+        sendData: false
+        receiveData: false
+    regardingCommandExecutions: [ ]
+    regardingThreadCreations: [ ]
+    regardingPackageImports: [ ]
+    regardingTimeouts:
+      - timeout: 3000

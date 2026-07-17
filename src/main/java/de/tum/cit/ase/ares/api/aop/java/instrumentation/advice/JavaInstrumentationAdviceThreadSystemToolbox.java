@@ -1,7 +1,5 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox.*;
-
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
@@ -28,7 +26,7 @@ import javax.annotation.Nullable;
  * policies at runtime by checking thread system interactions (create) against
  * allowed classes and thread counts, call stack criteria, and variable
  * criteria. Uses reflection to interact with test case settings and
- * localization utilities. Designed to prevent unauthorized thread system
+ * localisation utilities. Designed to prevent unauthorised thread system
  * operations during Java application execution, especially in test and
  * instrumentation scenarios.
  * <p>
@@ -36,7 +34,7 @@ import javax.annotation.Nullable;
  * instrumentation advice, ensuring consistent enforcement of security policies.
  * Uses static utility methods and a private constructor to prevent
  * instantiation. Reflection is used to decouple the toolbox from direct
- * dependencies on settings and localization classes, supporting flexible and
+ * dependencies on settings and localisation classes, supporting flexible and
  * dynamic test setups.
  *
  * @since 2.0.0
@@ -54,6 +52,14 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	 */
 	@Nonnull
 	private static final String UNRESOLVED_THREAD_CLASS = "<unresolved-thread-class>";
+
+	/**
+	 * Prefix for synthetic allow-list entries representing operations which create
+	 * or use threads without exposing a task object to the intercepted method.
+	 */
+	@Nonnull
+	private static final String IMPLICIT_THREAD_OPERATION_PREFIX = "<implicit-thread-op:";
+
 	// </editor-fold>
 
 	// <editor-fold desc="Constructor">
@@ -152,6 +158,39 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 			return Boolean.FALSE;
 		});
 	}
+
+	@Nullable
+	private static String implicitThreadOperationToken(@Nullable String declaringTypeName,
+			@Nullable String methodName) {
+		if (methodName == null) {
+			return null;
+		}
+		switch (methodName) {
+		case "parallelStream":
+		case "parallel":
+			return IMPLICIT_THREAD_OPERATION_PREFIX + methodName + ">";
+		case "submit":
+		case "offer":
+			return "java.util.concurrent.SubmissionPublisher".equals(declaringTypeName)
+					? IMPLICIT_THREAD_OPERATION_PREFIX + "SubmissionPublisher." + methodName + ">"
+					: null;
+		default:
+			return null;
+		}
+	}
+
+	private static boolean isImmediateCallerWithinRestrictedPackage(@Nullable String restrictedPackage) {
+		if (restrictedPackage == null || restrictedPackage.isEmpty()) {
+			return false;
+		}
+		return java.lang.StackWalker.getInstance().walk(frames -> frames
+				.map(java.lang.StackWalker.StackFrame::getClassName)
+				.filter(className -> !className.startsWith("java.") && !className.startsWith("javax.")
+						&& !className.startsWith("jdk.") && !className.startsWith("sun.")
+						&& !className.startsWith("com.sun.") && !className.startsWith("de.tum.cit.ase.ares.api."))
+				.filter(className -> IGNORE_CALLSTACK.stream().noneMatch(className::startsWith)).findFirst()
+				.map(className -> className.startsWith(restrictedPackage)).orElse(Boolean.FALSE));
+	}
 	// </editor-fold>
 
 	// <editor-fold desc="Variable criteria methods">
@@ -201,7 +240,7 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	 * @return true if path is forbidden; false otherwise
 	 */
 	private static boolean checkIfThreadIsForbidden(@Nullable ThreadTarget target,
-			@Nullable String[] allowedThreadClasses, @Nullable int[] allowedThreadNumbers) {
+			@Nullable String[] allowedThreadClasses, @Nullable int[] allowedThreadNumbers, boolean decrementQuota) {
 		if (target == null || target.className() == null) {
 			return false;
 		}
@@ -210,20 +249,25 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 				|| allowedThreadNumbers.length == 0) {
 			return true;
 		}
+		boolean isImplicitOperation = actualClassname.startsWith(IMPLICIT_THREAD_OPERATION_PREFIX);
 		int starIndex = -1;
 		for (int i = 0; i < allowedThreadClasses.length; i++) {
 			@Nonnull
 			String allowedClassName = allowedThreadClasses[i];
 			if ("*".equals(allowedClassName)) {
-				starIndex = i;
+				if (!isImplicitOperation) {
+					starIndex = i;
+				}
 				continue;
 			}
-			if (threadClassMatches(actualClassname, allowedClassName)) {
-				return handleFoundClassIsForbidden(allowedThreadNumbers, i);
+			boolean matches = isImplicitOperation ? actualClassname.equals(allowedClassName)
+					: threadClassMatches(actualClassname, allowedClassName);
+			if (matches) {
+				return decrementQuota && handleFoundClassIsForbidden(allowedThreadNumbers, i);
 			}
 		}
 		if (starIndex != -1) {
-			return handleFoundClassIsForbidden(allowedThreadNumbers, starIndex);
+			return decrementQuota && handleFoundClassIsForbidden(allowedThreadNumbers, starIndex);
 		}
 		return true;
 	}
@@ -408,15 +452,16 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 
 	/**
 	 * Returns the class name of the Runnable task carried by a {@link Thread}, or
-	 * {@code null} when the thread has no task (an overridden {@code run()}) or the
-	 * task cannot be read. Lambda tasks resolve to {@code "Lambda-Expression"}.
-	 * Reading the task directly from the receiver makes the thread check
-	 * self-sufficient, so it does not depend on the FieldHolder attribute being
-	 * separately readable (that field read may be skipped under strong
-	 * encapsulation).
+	 * {@code null} when the thread has no task (an overridden {@code run()}). An
+	 * unreadable task fails closed. Lambda tasks resolve to
+	 * {@code "Lambda-Expression"}. Reading the task directly from the receiver
+	 * makes the thread check self-sufficient, so it does not depend on the
+	 * FieldHolder attribute being separately readable (that field read may be
+	 * skipped under strong encapsulation).
 	 *
 	 * @param thread the thread receiver to inspect
-	 * @return the task class name, or {@code null} if there is no readable task
+	 * @return the task class name, or {@code null} if there is no task
+	 * @throws SecurityException if the task cannot be read
 	 */
 	@Nullable
 	private static String threadTaskClassName(@Nonnull Thread thread) {
@@ -431,11 +476,12 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	/**
 	 * Reads the Runnable task object from a {@link Thread}, trying the modern
 	 * {@code holder.task} layout first and the legacy {@code target} field as a
-	 * fallback, each via reflection then Unsafe. Returns {@code null} if no task is
-	 * set or it cannot be read.
+	 * fallback, each via reflection then Unsafe. Returns {@code null} only if the
+	 * task field was read successfully and contains no task.
 	 *
 	 * @param thread the thread receiver to inspect
-	 * @return the task object, or {@code null}
+	 * @return the task object, or {@code null} if the task field is empty
+	 * @throws SecurityException if no supported layout can be read
 	 */
 	@Nullable
 	private static Object readThreadTask(@Nonnull Thread thread) {
@@ -454,8 +500,8 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		try {
 			Field targetField = Thread.class.getDeclaredField("target");
 			return readField(targetField, thread);
-		} catch (NoSuchFieldException ignored) {
-			return null;
+		} catch (NoSuchFieldException e) {
+			throw new SecurityException(localize("security.advice.thread.task.reflection.error", thread), e);
 		}
 	}
 
@@ -463,11 +509,13 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	 * Reads an object field via standard reflection, falling back to
 	 * {@code sun.misc.Unsafe} when strong encapsulation blocks reflective access,
 	 * so the overridden-run() detection still works on a locked-down runtime.
-	 * Returns {@code null} if the value is null or cannot be read by either means.
+	 * Returns {@code null} only when a successful read yields null. Failure of both
+	 * mechanisms is denied rather than being confused with an empty field.
 	 *
 	 * @param field the field to read
 	 * @param owner the instance to read it from
-	 * @return the field value, or {@code null}
+	 * @return the field value, or {@code null} if the field contains null
+	 * @throws SecurityException if neither access mechanism can read the field
 	 */
 	@Nullable
 	private static Object readField(@Nonnull Field field, @Nonnull Object owner) {
@@ -488,8 +536,8 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 			Method getObject = unsafeClass.getMethod("getObject", Object.class, long.class);
 			return getObject.invoke(unsafe, owner, offset);
 		} catch (ClassNotFoundException | NoSuchFieldException | NoSuchMethodException | IllegalAccessException
-				| InvocationTargetException | InaccessibleObjectException | NullPointerException ignored) {
-			return null;
+				| InvocationTargetException | InaccessibleObjectException | NullPointerException e) {
+			throw new SecurityException(localize("security.advice.thread.task.reflection.error", owner), e);
 		}
 	}
 
@@ -589,7 +637,7 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	 * @param parameters        optional method parameters
 	 * @param instance          the receiver object of the intercepted call; may be
 	 *                          null
-	 * @throws SecurityException if unauthorized access is detected
+	 * @throws SecurityException if unauthorised access is detected
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */
@@ -669,6 +717,7 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		boolean noAllowRuleConfigured = threadClassAllowedToBeCreated == null
 				|| threadClassAllowedToBeCreated.length == 0 || threadNumberAllowedToBeCreated == null
 				|| threadNumberAllowedToBeCreated.length == 0;
+		boolean decrementQuota = !"manipulate".equals(action);
 		// </editor-fold>
 		// <editor-fold desc="Check thread targets (quota counted once per distinct
 		// class)">
@@ -686,26 +735,44 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		// per-method ignore filtering applies here.
 		@Nonnull
 		Set<String> threadClassNames = new LinkedHashSet<>();
+		String recordedThreadClass = !decrementQuota && instance instanceof Thread
+				? JavaInstrumentationThreadSystemCallSite.getRecordedThreadClass((Thread) instance)
+				: null;
 		if (parameters != null) {
 			for (Object parameter : parameters) {
 				collectThreadClassNames(parameter, threadClassNames);
 			}
 		}
-		collectThreadClassNames(instance, threadClassNames);
+		if (recordedThreadClass != null) {
+			threadClassNames.add(recordedThreadClass);
+		} else {
+			collectThreadClassNames(instance, threadClassNames);
+		}
 		if (attributes != null) {
 			for (Object attribute : attributes) {
 				collectThreadClassNames(attribute, threadClassNames);
 			}
 		}
+		if (threadClassNames.isEmpty()) {
+			@Nullable
+			String implicitOperationToken = implicitThreadOperationToken(declaringTypeName, methodName);
+			if (implicitOperationToken != null && isImmediateCallerWithinRestrictedPackage(restrictedPackage)) {
+				threadClassNames.add(implicitOperationToken);
+			}
+		}
 		for (String threadClassName : threadClassNames) {
 			if (checkIfThreadIsForbidden(new ThreadTarget(threadClassName), threadClassAllowedToBeCreated,
-					threadNumberAllowedToBeCreated)) {
+					threadNumberAllowedToBeCreated, decrementQuota)) {
 				throw new SecurityException(localize("security.advice.illegal.thread.execution",
 						threadSystemMethodToCheck, action, threadClassName,
 						fullMethodSignature
 								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
 								+ " | " + buildDenialReason(noAllowRuleConfigured)));
 			}
+		}
+		if (decrementQuota && instance instanceof Thread) {
+			JavaInstrumentationThreadSystemCallSite.recordAllowedThread((Thread) instance,
+					variableToClassname(instance));
 		}
 		// </editor-fold>
 	}

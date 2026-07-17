@@ -1,7 +1,5 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox.*;
-
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -30,7 +28,7 @@ import javax.annotation.Nullable;
  * policies at runtime by checking network system interactions (connect, send,
  * receive) against allowed hosts and ports, call stack criteria, and variable
  * criteria. Uses reflection to interact with test case settings and
- * localization utilities. Designed to prevent unauthorized network system
+ * localisation utilities. Designed to prevent unauthorised network system
  * operations during Java application execution, especially in test and
  * instrumentation scenarios.
  * <p>
@@ -38,7 +36,7 @@ import javax.annotation.Nullable;
  * instrumentation advice, ensuring consistent enforcement of security policies.
  * Uses static utility methods and a private constructor to prevent
  * instantiation. Reflection is used to decouple the toolbox from direct
- * dependencies on settings and localization classes, supporting flexible and
+ * dependencies on settings and localisation classes, supporting flexible and
  * dynamic test setups. Network targets are resolved to a canonical
  * host-and-port pair before comparison, which avoids the multi-level traversal
  * required for file-path or thread-class checks.
@@ -372,6 +370,11 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	 * @param value the object to convert
 	 * @return the resolved network target, or {@code null}
 	 */
+	// JavaInstrumentationAdviceNetworkSystemToolboxTest calls this through
+	// getDeclaredMethod("toTarget", ..), so no compiler-visible caller exists and
+	// PMD reports it
+	// as unused. Removing it breaks that test.
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
 	@Nullable
 	private static NetworkTarget toTarget(@Nullable Object value) {
 		return variableToTarget(value);
@@ -388,6 +391,10 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	 * @param parameters the intercepted argument array
 	 * @return the resolved target, or {@code null} if no target can be derived
 	 */
+	// Reflectively exercised by JavaInstrumentationAdviceNetworkSystemToolboxTest,
+	// like
+	// toTarget above, so PMD cannot see a caller.
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
 	@Nullable
 	private static NetworkTarget parametersToTarget(@Nonnull Object[] parameters) {
 		return parametersToTarget(parameters, new BitSet(parameters.length));
@@ -588,13 +595,13 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	// <editor-fold desc="Violation analysis">
 
 	/**
-	 * Analyzes a variable to determine if it violates allowed network targets.
+	 * Analyses a variable to determine if it violates allowed network targets.
 	 * <p>
 	 * Description: Attempts to resolve the variable to a {@link NetworkTarget} via
 	 * {@link #variableToTarget}. Returns {@code true} if the resolved target is
 	 * forbidden according to the allowed hosts and ports whitelist.
 	 *
-	 * @param observedVariable the variable to analyze
+	 * @param observedVariable the variable to analyse
 	 * @param allowedHosts     whitelist of allowed hosts
 	 * @param allowedPorts     whitelist of allowed ports
 	 * @return true if a violation is found, false otherwise
@@ -709,17 +716,9 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	 *                                   inspection
 	 * @param declaringTypeName          fully qualified declaring type name
 	 * @param methodName                 method being intercepted
-	 * @param methodSignature            JVM method signature
 	 * @param attributes                 instance attributes (if any)
 	 * @param parameters                 intercepted method arguments
 	 * @param instance                   instance on which the method is invoked
-	 * @param restrictedPackage          package prefix under security scrutiny;
-	 *                                   reserved for structural symmetry with the
-	 *                                   file-system toolbox; currently unused
-	 * @param allowedClasses             classes allowed within the restricted
-	 *                                   package; reserved for structural symmetry
-	 *                                   with the file-system toolbox; currently
-	 *                                   unused
 	 * @param networkSystemMethodToCheck offending method discovered in the
 	 *                                   restricted call stack
 	 * @param studentCalledMethod        external method initiating the restricted
@@ -731,11 +730,9 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	 * @author Kevin Fischer
 	 */
 	private static void checkNetworkSystemInteractionForAction(@Nonnull String action,
-			@Nonnull String declaringTypeName, @Nonnull String methodName, @Nonnull String methodSignature,
-			@Nullable Object[] attributes, @Nullable Object[] parameters, @Nullable Object instance,
-			@Nullable String restrictedPackage, @Nullable String[] allowedClasses,
-			@Nonnull String networkSystemMethodToCheck, @Nullable String studentCalledMethod,
-			@Nonnull String fullMethodSignature) {
+			@Nonnull String declaringTypeName, @Nonnull String methodName, @Nullable Object[] attributes,
+			@Nullable Object[] parameters, @Nullable Object instance, @Nonnull String networkSystemMethodToCheck,
+			@Nullable String studentCalledMethod, @Nonnull String fullMethodSignature) {
 		// <editor-fold desc="Resolve allowed hosts and ports">
 		@Nullable
 		final String[] allowedHosts = switch (action) {
@@ -877,6 +874,13 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	private static void checkNetworkSystemInteractionImpl(@Nonnull String action, @Nonnull String declaringTypeName,
 			@Nonnull String methodName, @Nonnull String methodSignature, @Nullable Object[] attributes,
 			@Nullable Object[] parameters, @Nullable Object instance) {
+		// Byte Buddy resolves the bytecode of a class being transformed through
+		// ClassLoader.getResourceAsStream -> URL.openStream. This is trusted local
+		// class-resource loading, not a student network connection. Blocking it aborts
+		// the transformation and leaves the class unprotected.
+		if (isByteBuddyTransformationInProgress()) {
+			return;
+		}
 		// <editor-fold desc="Get information from settings">
 		@Nullable
 		final String aopMode = getValueFromSettings("aopMode");
@@ -908,9 +912,8 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 
 		List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action);
 		for (Map.Entry<String, Boolean> actionCheck : actionsToValidate) {
-			checkNetworkSystemInteractionForAction(actionCheck.getKey(), declaringTypeName, methodName, methodSignature,
-					attributes, parameters, instance, restrictedPackage, allowedClasses, networkSystemMethodToCheck,
-					studentCalledMethod, fullMethodSignature);
+			checkNetworkSystemInteractionForAction(actionCheck.getKey(), declaringTypeName, methodName, attributes,
+					parameters, instance, networkSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
 		}
 	}
 

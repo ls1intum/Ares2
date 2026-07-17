@@ -1,7 +1,6 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 
 //<editor-fold desc="imports">
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox.*;
 
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
@@ -22,7 +21,7 @@ import javax.annotation.Nullable;
  * policies at runtime by checking command system interactions (create) against
  * allowed classes and command counts, call stack criteria, and variable
  * criteria. Uses reflection to interact with test case settings and
- * localization utilities. Designed to prevent unauthorized command system
+ * localisation utilities. Designed to prevent unauthorised command system
  * operations during Java application execution, especially in test and
  * instrumentation scenarios.
  * <p>
@@ -185,11 +184,11 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 			// arbitrary argument. Substring ("contains") matching is deliberately NOT used:
 			// it would let a student append arbitrary content (allowed "echo hi" matching
 			// actual "echo hi; rm -rf ~"), which defeats argument pinning.
-			if (!allowed.isEmpty() && (actual.endsWith("/" + allowed) || actual.endsWith("\\" + allowed))) {
-				continue;
+			boolean matchesOnSeparatorBoundary = !allowed.isEmpty()
+					&& (actual.endsWith("/" + allowed) || actual.endsWith("\\" + allowed));
+			if (!matchesOnSeparatorBoundary) {
+				return false;
 			}
-			// No match
-			return false;
 		}
 		return true;
 	}
@@ -309,7 +308,7 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 	// <editor-fold desc="Violation analysis">
 
 	/**
-	 * Analyzes a variable to determine if it violates allowed commands.
+	 * Analyses a variable to determine if it violates allowed commands.
 	 * <p>
 	 * Description: Recursively checks if the variable or its elements (if an array
 	 * or List) are in violation of the allowed commands. Returns true if any
@@ -317,7 +316,7 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param observedVariable the variable to analyze
+	 * @param observedVariable the variable to analyse
 	 * @param allowedCommands  whitelist of allowed commands
 	 * @param allowedArguments the allowed arguments per command
 	 * @return true if a violation is found, false otherwise
@@ -663,7 +662,7 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 	 * @param parameters        optional method parameters
 	 * @param instance          the receiver object of the intercepted call; may be
 	 *                          null
-	 * @throws SecurityException if unauthorized access is detected
+	 * @throws SecurityException if unauthorised access is detected
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */
@@ -679,7 +678,7 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 		}
 		try {
 			checkCommandSystemInteractionImpl(action, declaringTypeName, methodName, methodSignature, attributes,
-					parameters, instance);
+					parameters);
 		} finally {
 			exitAdvice();
 		}
@@ -687,7 +686,7 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 
 	private static void checkCommandSystemInteractionImpl(@Nonnull String action, @Nonnull String declaringTypeName,
 			@Nonnull String methodName, @Nonnull String methodSignature, @Nullable Object[] attributes,
-			@Nullable Object[] parameters, @Nullable Object instance) {
+			@Nullable Object[] parameters) {
 		// <editor-fold desc="Get information from settings">
 		@Nullable
 		final String aopMode = getValueFromSettings("aopMode");

@@ -13,6 +13,18 @@ public final class Messages {
 
 	private static final Map<Locale, ResourceBundle> RESOURCE_BUNDLE_CACHE = Collections
 			.synchronizedMap(new LruCache<>(100));
+	private static final ThreadLocal<Boolean> LOADING_BUNDLE = ThreadLocal.withInitial(() -> Boolean.FALSE);
+	private static final ResourceBundle REENTRANT_FALLBACK = new ResourceBundle() {
+		@Override
+		protected Object handleGetObject(String key) {
+			return '!' + key + '!';
+		}
+
+		@Override
+		public Enumeration<String> getKeys() {
+			return Collections.emptyEnumeration();
+		}
+	};
 
 	private Messages() {
 	}
@@ -38,8 +50,24 @@ public final class Messages {
 	}
 
 	private static ResourceBundle getBundleForCurrentLocale() {
-		return RESOURCE_BUNDLE_CACHE.computeIfAbsent(Locale.getDefault(Category.DISPLAY),
-				Messages::loadBundleForLocale);
+		Locale locale = Locale.getDefault(Category.DISPLAY);
+		if (LOADING_BUNDLE.get()) {
+			return REENTRANT_FALLBACK;
+		}
+		synchronized (RESOURCE_BUNDLE_CACHE) {
+			ResourceBundle cached = RESOURCE_BUNDLE_CACHE.get(locale);
+			if (cached != null) {
+				return cached;
+			}
+			LOADING_BUNDLE.set(Boolean.TRUE);
+			try {
+				ResourceBundle loaded = loadBundleForLocale(locale);
+				RESOURCE_BUNDLE_CACHE.put(locale, loaded);
+				return loaded;
+			} finally {
+				LOADING_BUNDLE.remove();
+			}
+		}
 	}
 
 	private static ResourceBundle loadBundleForLocale(Locale locale) {
@@ -47,6 +75,6 @@ public final class Messages {
 	}
 
 	public static void init() {
-		// just for initialization
+		getBundleForCurrentLocale();
 	}
 }

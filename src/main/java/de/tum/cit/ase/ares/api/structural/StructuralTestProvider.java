@@ -6,6 +6,7 @@ import java.io.*;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -83,7 +84,14 @@ public abstract class StructuralTestProvider {
 	private static final String PACKAGE_PATH_SEPARATOR = "."; //$NON-NLS-1$
 	private static final Pattern PACKAGE_NAME_IN_GENERIC_TYPE = Pattern.compile("(?:[^\\[\\]<>?,\\s.]++\\.)++"); //$NON-NLS-1$
 
-	protected static JsonNode structureOracleJSON;
+	/**
+	 * Structural oracle owned by this provider instance.
+	 * <p>
+	 * Provider subclasses for different exercises may execute concurrently. Keeping
+	 * the oracle on the instance prevents one provider from replacing another
+	 * provider's expected structure while its dynamic tests are being generated.
+	 */
+	protected JsonNode structureOracleJSON;
 
 	protected StructuralTestProvider() {
 		// make constructor only protected
@@ -416,7 +424,8 @@ public abstract class StructuralTestProvider {
 			return null;
 		}
 		var result = new StringBuilder();
-		try (var bufferedReader = new BufferedReader(new InputStreamReader(structureOracleFileUrl.openStream()))) {
+		try (var bufferedReader = new BufferedReader(
+				new InputStreamReader(structureOracleFileUrl.openStream(), StandardCharsets.UTF_8))) {
 			var buffer = new char[8192];
 			int length;
 			while ((length = bufferedReader.read(buffer, 0, buffer.length)) != -1) {

@@ -392,7 +392,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 
 	// <editor-fold desc="Violation analysis">
 	/**
-	 * Analyzes a variable to determine if it violates allowed paths.
+	 * Analyses a variable to determine if it violates allowed paths.
 	 * <p>
 	 * Description: Recursively checks if the variable or its elements (if an array
 	 * or List) are in violation of the allowed paths. Returns true if any element
@@ -400,7 +400,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param observedVariable the variable to analyze
+	 * @param observedVariable the variable to analyse
 	 * @param allowedPaths     whitelist of allowed path strings; if null, all paths
 	 *                         are considered allowed
 	 * @return true if a violation is found, false otherwise
@@ -528,17 +528,17 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 
 	/**
 	 * Checks if the parameters contain an append=false boolean, indicating
-	 * overwrite behavior.
+	 * overwrite behaviour.
 	 * <p>
 	 * Description: For legacy I/O classes like FileWriter and FileOutputStream, the
-	 * append behavior is controlled by a boolean parameter. When this parameter is
+	 * append behaviour is controlled by a boolean parameter. When this parameter is
 	 * false, the file is truncated/overwritten rather than appended to, which
 	 * should be reported as "overwrite" instead of "create".
 	 * </p>
 	 *
 	 * @param declaringTypeName the fully qualified class name being invoked
 	 * @param parameters        the constructor/method parameters
-	 * @return true if append=false was found, indicating overwrite behavior
+	 * @return true if append=false was found, indicating overwrite behaviour
 	 * @since 2.0.0
 	 */
 	private static boolean hasAppendFalseParameter(@Nonnull String declaringTypeName, @Nullable Object[] parameters) {
@@ -1037,7 +1037,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	 *
 	 * @param action        the file system action being performed
 	 * @param thisJoinPoint the join point of the method being executed
-	 * @throws SecurityException if unauthorized access is detected
+	 * @throws SecurityException if unauthorised access is detected
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */

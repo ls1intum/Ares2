@@ -10,8 +10,11 @@ interchangeable engines:
   student and project classes, with `before()` advice attached to `call(...)`
   pointcuts.
 
-Both engines reuse the same matching logic, so for the operations they both
-see, their verdicts agree. The differences below are not bugs that can be fixed
+Both engines are intended to mirror the same policy decisions, but they do so
+through separate AspectJ and Byte Buddy implementations that read the same
+`JavaAOPTestCaseSettings` fields. For operations covered by both interception
+lists, their verdicts agree only while that duplicated logic is kept in sync.
+The differences below are not bugs that can be fixed
 in code; they are structural consequences of how each engine attaches to the
 program. They exist so that policy authors and reviewers understand that
 **AspectJ mode is strictly weaker than Instrumentation mode**, and so that
@@ -90,6 +93,47 @@ shapes:
   importantly raw NIO and multicast networking).
 
 Recommendation: prefer Instrumentation where the platform allows it. Where only
-AspectJ is available (for example a nested JVM where the agent is absent),
+AspectJ is available (e.g. environments where attaching a Java agent is not
+possible),
 document that raw NIO and reflective/library-mediated forbidden operations are
 not guaranteed to be blocked, and constrain the policy accordingly.
+
+## 6. The one inversion: inherited `final` `Object` methods on `Thread`
+
+The general ordering above (Instrumentation strictly stronger) inverts for the
+thread-monitor methods `Object.notify()`, `Object.notifyAll()` and the
+`Object.wait(...)` overloads when the receiver is a `Thread`. The architecture
+engines list `java.lang.Thread.notify()` (WALA and ArchUnit) and
+`java.lang.Object.wait(long)` (ArchUnit) as forbidden thread-manipulation
+methods, so a policy that forbids thread manipulation expects these to be blocked.
+
+- **Instrumentation cannot enforce them.** These methods are `final` and declared
+  by `java.lang.Object`; `Thread` neither declares nor can override them. Byte
+  Buddy rewrites the *declaring* type, and the thread matcher is
+  `named/hasSuperType(java.lang.Thread) and isDeclaredBy(that hierarchy)`, which
+  never includes `Object`. There is therefore no `Thread.notify()` method to
+  rewrite; the only reachable target is `Object.notify()` itself, which would
+  instrument every object in the JVM and is unacceptable.
+- **AspectJ can enforce them, caller-side.** `call(* java.lang.Object+.notify())
+  && target(java.lang.Thread+)` weaves the call site and the `target(Thread+)`
+  runtime guard confines advice execution to `Thread` receivers. (The narrower
+  `call(* java.lang.Thread+.notify())` does not weave: AspectJ resolves the
+  declaring type to `java.lang.Object`.) The advice treats a manipulation as a
+  *membership-only* check against the thread-creation allow-list: a thread whose
+  class may be created may also be notified, without consuming the creation quota.
+
+Consequence and current scope: AspectJ enforces `notify`/`notifyAll`/`wait` on
+`Thread` receivers at runtime. It records the effective task class of each admitted
+`Thread` in a weak identity map and revalidates that class against the active policy
+on every manipulation. This survives `Thread.exit()` clearing the task field without
+mistaking `Thread.currentThread()` or another unrelated pre-existing thread for an
+allowed receiver, and without retaining permission across policy changes.
+
+Byte Buddy cannot add method-entry advice to these inherited final methods by
+transforming `Thread`. The instrumentation agent instead rewrites application call
+sites for all five `Object` monitor overloads (`notify`, `notifyAll`, and the three
+`wait` forms) to wrappers which perform the same receiver-based policy check before
+invoking the original operation. The wrappers preserve ordinary `Object`-monitor
+behaviour: the thread policy runs only when the runtime receiver is a `Thread`.
+Instrumentation uses the same weak instance tracking and membership-only
+manipulation semantics as AspectJ, without consuming the creation quota.

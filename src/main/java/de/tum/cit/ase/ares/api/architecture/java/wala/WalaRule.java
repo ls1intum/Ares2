@@ -12,22 +12,25 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import com.ibm.wala.classLoader.IClass;
 import com.ibm.wala.classLoader.IMethod;
 import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
+import com.ibm.wala.ipa.cha.IClassHierarchy;
 import com.ibm.wala.shrike.shrikeCT.InvalidClassFileException;
+import com.ibm.wala.types.ClassLoaderReference;
+import com.ibm.wala.types.TypeName;
+import com.ibm.wala.types.TypeReference;
 import com.ibm.wala.util.collections.Iterator2Iterable;
+import com.tngtech.archunit.core.domain.JavaAccess;
+import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaClasses;
 
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 
 public class WalaRule {
-
-	private static final Logger LOG = LoggerFactory.getLogger(WalaRule.class);
 
 	final String ruleName;
 	final Set<String> forbiddenMethods;
@@ -63,6 +66,10 @@ public class WalaRule {
 	 * @param allowedClasses the classes exempt from the rule, must not be null
 	 */
 	public void check(CallGraph cg, Set<ClassPermission> allowedClasses) {
+		Set<CGNode> entryReachable = forwardReachableFromEntrypoints(cg);
+		if (entryReachable.isEmpty()) {
+			throw new SecurityException(Messages.localized("security.architecture.wala.entrypoints.empty", ruleName));
+		}
 		// Collect every forbidden sink in the call graph. Sorting by signature keeps
 		// the reported violation deterministic across JVM runs (WALA's node iteration
 		// order depends on per-JVM identity hashes).
@@ -76,15 +83,6 @@ public class WalaRule {
 			return;
 		}
 		sinks.sort(Comparator.comparing(n -> n.getMethod().getSignature()));
-		Set<CGNode> entryReachable = forwardReachableFromEntrypoints(cg);
-		if (entryReachable.isEmpty()) {
-			// Fail closed: forbidden sinks are present but the call graph has no entry
-			// points, so nothing is reachable and every violation would be silently
-			// missed. An empty entry set means the analysis was mis-scoped (e.g. the
-			// entry-point package prefix did not match the analysed classes), which must
-			// be surfaced rather than passed.
-			throw new SecurityException(Messages.localized("security.architecture.wala.entrypoints.empty", ruleName));
-		}
 
 		for (CGNode sink : sinks) {
 			if (!entryReachable.contains(sink)) {
@@ -95,6 +93,137 @@ public class WalaRule {
 			// violation among the explored approaches is never masked by an exempt one.
 			evaluateSink(cg, sink, allowedClasses, entryReachable);
 		}
+	}
+
+	/**
+	 * Checks direct bytecode accesses before the transitive WALA walk. WALA may
+	 * omit an interface call node when dispatch resolves to an internal JDK
+	 * implementation, particularly for woven calls such as
+	 * {@code Collection.parallelStream()}. ArchUnit's imported access model retains
+	 * the API target written in the bytecode, so this complementary pass prevents a
+	 * direct forbidden call from disappearing from the WALA result.
+	 *
+	 * @param javaClasses    imported classes under analysis
+	 * @param allowedClasses classes exempted by the policy
+	 */
+	public void checkDirectAccesses(JavaClasses javaClasses, Set<ClassPermission> allowedClasses) {
+		checkDirectAccesses(javaClasses, allowedClasses, null);
+	}
+
+	/**
+	 * Checks direct bytecode accesses using ArchUnit's imported graph first and the
+	 * already-built WALA hierarchy when ArchUnit deliberately left a dependency
+	 * unresolved. If neither graph can classify an inherited target, the check
+	 * fails closed.
+	 *
+	 * @param javaClasses    imported classes under analysis
+	 * @param allowedClasses classes exempted by the policy
+	 * @param classHierarchy WALA's static class hierarchy, or {@code null} when no
+	 *                       fallback is available
+	 */
+	public void checkDirectAccesses(JavaClasses javaClasses, Set<ClassPermission> allowedClasses,
+			IClassHierarchy classHierarchy) {
+		javaClasses.stream().flatMap(javaClass -> javaClass.getAccessesFromSelf().stream())
+				.sorted(Comparator.comparing(access -> access.getOrigin().getFullName() + "->" //$NON-NLS-1$
+						+ access.getTarget().getFullName()))
+				.filter(access -> !JavaArchitectureTestCase.isAllowedClass(access.getOriginOwner().getFullName(),
+						allowedClasses))
+				.filter(access -> isDirectlyForbidden(access, classHierarchy)).findFirst()
+				.ifPresent(this::throwDirectAccessViolation);
+	}
+
+	private boolean isDirectlyForbidden(JavaAccess<?> access, IClassHierarchy classHierarchy) {
+		Set<String> targets = new HashSet<>();
+		targets.add(access.getTarget().getFullName());
+		access.getTarget().resolveMember().ifPresent(member -> targets.add(member.getFullName()));
+		if (forbiddenMethods.stream().anyMatch(
+				forbidden -> targets.stream().anyMatch(target -> matchesForbiddenMethod(target, forbidden)))) {
+			return true;
+		}
+		return forbiddenMethods.stream()
+				.anyMatch(forbidden -> matchesInheritedTarget(access, forbidden, classHierarchy));
+	}
+
+	static boolean matchesInheritedTarget(JavaAccess<?> access, String forbidden) {
+		return matchesInheritedTarget(access, forbidden, null);
+	}
+
+	static boolean matchesInheritedTarget(JavaAccess<?> access, String forbidden, IClassHierarchy classHierarchy) {
+		String target = access.getTarget().getFullName();
+		int targetParenthesis = target.indexOf('(');
+		int forbiddenParenthesis = forbidden.indexOf('(');
+		if (targetParenthesis < 0 || forbiddenParenthesis < 0) {
+			return false;
+		}
+		int targetMethodSeparator = target.lastIndexOf('.', targetParenthesis);
+		int forbiddenMethodSeparator = forbidden.lastIndexOf('.', forbiddenParenthesis);
+		if (targetMethodSeparator < 0 || forbiddenMethodSeparator < 0) {
+			return false;
+		}
+		String forbiddenOwner = forbidden.substring(0, forbiddenMethodSeparator);
+		String forbiddenMethod = forbidden.substring(forbiddenMethodSeparator);
+		String targetMethod = target.substring(targetMethodSeparator);
+		if (forbiddenMethod.startsWith(".<init>") //$NON-NLS-1$
+				|| !matchesForbiddenMethod(forbiddenOwner + targetMethod, forbidden)) {
+			return false;
+		}
+		JavaClass targetOwner = access.getTargetOwner();
+		if (forbiddenOwner.equals(targetOwner.getFullName())) {
+			return true;
+		}
+		Set<JavaClass> assignableTypes;
+		try {
+			assignableTypes = targetOwner.getAllClassesSelfIsAssignableTo();
+		} catch (RuntimeException incompleteHierarchy) {
+			throw new SecurityException("Could not classify inherited target " + targetOwner.getFullName(), //$NON-NLS-1$
+					incompleteHierarchy);
+		}
+		if (assignableTypes.stream().map(JavaClass::getFullName).anyMatch(forbiddenOwner::equals)) {
+			return true;
+		}
+		if (targetOwner.isFullyImported() && assignableTypes.stream().allMatch(JavaClass::isFullyImported)) {
+			return false;
+		}
+		return matchesUsingWalaHierarchy(targetOwner.getFullName(), forbiddenOwner, classHierarchy);
+	}
+
+	private static boolean matchesUsingWalaHierarchy(String targetOwner, String forbiddenOwner,
+			IClassHierarchy classHierarchy) {
+		if (classHierarchy == null) {
+			throw new SecurityException("Incomplete hierarchy for inherited target " + targetOwner); //$NON-NLS-1$
+		}
+		try {
+			IClass targetClass = lookupClass(classHierarchy, targetOwner);
+			IClass forbiddenClass = lookupClass(classHierarchy, forbiddenOwner);
+			if (targetClass == null || forbiddenClass == null) {
+				throw new SecurityException("Incomplete hierarchy for inherited target " + targetOwner); //$NON-NLS-1$
+			}
+			return classHierarchy.isAssignableFrom(forbiddenClass, targetClass);
+		} catch (SecurityException exception) {
+			throw exception;
+		} catch (RuntimeException incompleteHierarchy) {
+			throw new SecurityException("Could not classify inherited target " + targetOwner, incompleteHierarchy); //$NON-NLS-1$
+		}
+	}
+
+	private static IClass lookupClass(IClassHierarchy classHierarchy, String className) {
+		TypeName typeName = TypeName.findOrCreate("L" + className.replace('.', '/')); //$NON-NLS-1$
+		for (ClassLoaderReference loader : List.of(ClassLoaderReference.Primordial, ClassLoaderReference.Extension,
+				ClassLoaderReference.Application)) {
+			IClass resolved = classHierarchy.lookupClass(TypeReference.findOrCreate(loader, typeName));
+			if (resolved != null) {
+				return resolved;
+			}
+		}
+		return null;
+	}
+
+	private void throwDirectAccessViolation(JavaAccess<?> access) {
+		String caller = access.getOrigin().getFullName();
+		String target = access.getTarget().getFullName();
+		String declaringClass = access.getTargetOwner().getSimpleName();
+		throw new AssertionError(Messages.localized("security.architecture.method.call.message", ruleName, caller, //$NON-NLS-1$
+				target, declaringClass, access.getLineNumber(), caller));
 	}
 
 	/** Returns {@code true} if the node's method matches a forbidden signature. */
@@ -178,9 +307,9 @@ public class WalaRule {
 	 * Bounds the number of distinct nearest-student approaches evaluated per sink
 	 * so a pathological call graph cannot cause an unbounded reverse walk. The
 	 * bound is a backstop only: each approach is evaluated as it is discovered and
-	 * a genuine violation throws immediately, so the bound can never silently drop
-	 * a violation that lies among the explored approaches. If the bound is reached
-	 * without a violation, the truncation is logged (never a silent pass).
+	 * a genuine violation throws immediately. Reaching the bound also fails closed,
+	 * because passing after truncating unexplored approaches would make the result
+	 * depend on traversal order.
 	 */
 	private static final int MAX_APPROACHES_PER_SINK = 64;
 
@@ -218,10 +347,8 @@ public class WalaRule {
 					evaluateApproach(cg, extended, allowedClasses, entryReachable);
 					evaluated++;
 					if (evaluated >= MAX_APPROACHES_PER_SINK) {
-						LOG.warn(
-								"WalaRule '{}': reached the {}-approach backstop for sink {} without a violation; remaining approaches are not examined",
-								ruleName, MAX_APPROACHES_PER_SINK, sink.getMethod().getSignature());
-						return;
+						throw new SecurityException(Messages.localized("security.architecture.wala.approaches.limit",
+								ruleName, MAX_APPROACHES_PER_SINK, sink.getMethod().getSignature()));
 					}
 				}
 			}

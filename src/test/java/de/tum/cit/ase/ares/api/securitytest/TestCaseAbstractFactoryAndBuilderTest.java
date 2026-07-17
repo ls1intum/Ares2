@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -107,6 +108,7 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 
 		@Override
 		public List<Path> writeTestCases(Path testFolderPath) {
+			Objects.requireNonNull(testFolderPath, "testFolderPath must not be null");
 			testCasePaths.add(Paths.get("test1.java"));
 			testCasePaths.add(Paths.get("test2.java"));
 			return testCasePaths;
@@ -290,14 +292,12 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 		}
 
 		@Test
-		@DisplayName("Should write test cases with null folder path")
-		void shouldWriteTestCasesWithNullFolderPath() {
-			// Act
-			List<Path> result = factory.writeTestCases(null);
-
-			// Assert
-			assertNotNull(result);
-			assertEquals(2, result.size());
+		@DisplayName("Should reject a null test folder path")
+		void shouldRejectNullTestFolderPath() {
+			NullPointerException failure = assertThrows(NullPointerException.class, () -> factory.writeTestCases(null));
+			assertEquals("testFolderPath must not be null", failure.getMessage());
+			verify(mockWriter, never()).writeTestCases(any(), any(), any(), any(), any(), any(), any(), any(), any(),
+					any(), any(), any());
 		}
 
 		@Test

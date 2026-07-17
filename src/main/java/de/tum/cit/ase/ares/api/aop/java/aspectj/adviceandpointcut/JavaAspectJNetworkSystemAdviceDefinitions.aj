@@ -532,13 +532,13 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 	// <editor-fold desc="Violation analysis">
 
 	/**
-	 * Analyzes a variable to determine if it violates allowed network targets.
+	 * Analyses a variable to determine if it violates allowed network targets.
 	 * <p>
 	 * Description: Attempts to resolve the variable to a {@link NetworkTarget} via
 	 * {@link #variableToTarget}. Returns {@code true} if the resolved target is
 	 * forbidden according to the allowed hosts and ports whitelist.
 	 *
-	 * @param observedVariable the variable to analyze
+	 * @param observedVariable the variable to analyse
 	 * @param allowedHosts     whitelist of allowed hosts
 	 * @param allowedPorts     whitelist of allowed ports
 	 * @return true if a violation is found, false otherwise
@@ -758,7 +758,7 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 	 *
 	 * @param action        the network system action being performed
 	 * @param thisJoinPoint the join point representing the method call
-	 * @throws SecurityException if unauthorized access is detected
+	 * @throws SecurityException if unauthorised access is detected
 	 * @since 2.0.0
 	 * @author Kevin Fischer
 	 */

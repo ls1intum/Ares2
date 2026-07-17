@@ -17,16 +17,4 @@ public class CreateThreadMain {
 		Thread thread = new Thread(r);
 		thread.start();
 	}
-
-	/**
-	 * Tests Thread.notify() method
-	 */
-	public static void notifyThread() {
-		IllegalThread illegalThread = new IllegalThread();
-		Thread thread = new Thread(illegalThread);
-		synchronized (illegalThread) {
-			thread.start();
-			illegalThread.notify();
-		}
-	}
 }

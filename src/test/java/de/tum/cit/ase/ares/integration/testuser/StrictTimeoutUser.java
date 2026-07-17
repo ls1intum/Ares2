@@ -19,8 +19,8 @@ public class StrictTimeoutUser {
 
 	@Test
 	void testClassFailLoop() {
-		while (true) {
-			// simple endless loop
+		while (!Thread.currentThread().isInterrupted()) {
+			Thread.onSpinWait();
 		}
 	}
 
@@ -37,8 +37,8 @@ public class StrictTimeoutUser {
 	@Test
 	@StrictTimeout(value = 300, unit = TimeUnit.MILLISECONDS)
 	void testMethodFailLoop() {
-		while (true) {
-			// simple endless loop
+		while (!Thread.currentThread().isInterrupted()) {
+			Thread.onSpinWait();
 		}
 	}
 

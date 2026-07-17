@@ -46,6 +46,11 @@ public final class InstrumentationSecurityProbe {
 				"<init>", "", new Object[0], new Object[] { task }, null);
 	}
 
+	public static void checkImplicitParallelStream() {
+		JavaInstrumentationAdviceThreadSystemToolbox.checkThreadSystemInteraction("create", "java.util.Collection",
+				"parallelStream", "()Ljava/util/stream/Stream;", new Object[0], new Object[0], null);
+	}
+
 	private static String stackCheckHelper() throws Exception {
 		// checkIfCallstackCriteriaIsViolated was hardened to package-private, so
 		// student

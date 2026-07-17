@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -13,6 +14,7 @@ import org.mockito.MockedStatic;
 
 import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
@@ -45,6 +47,48 @@ public class JavaExecuterTest {
 		mainClassInPackageName = "MainClass";
 		javaArchitectureTestCases = List.of(mock(JavaArchitectureTestCase.class), mock(JavaArchitectureTestCase.class));
 		javaAOPTestCases = List.of(mock(JavaAOPTestCase.class), mock(JavaAOPTestCase.class));
+	}
+
+	@Test
+	void instrumentationMonitorRegistrationOccursAfterAopSettingsAreApplied() {
+		try (MockedStatic<JavaAOPTestCase> mockedJavaAOPTestCase = mockStatic(JavaAOPTestCase.class);
+				MockedStatic<JavaInstrumentationAgent> mockedAgent = mockStatic(JavaInstrumentationAgent.class)) {
+			AtomicInteger appliedSettings = new AtomicInteger();
+			AtomicInteger executedAopCases = new AtomicInteger();
+			mockedJavaAOPTestCase.when(() -> JavaAOPTestCase.setJavaAdviceSettingValue(any(String.class), any(),
+					any(String.class), any(String.class))).thenAnswer(invocation -> {
+						appliedSettings.incrementAndGet();
+						return null;
+					});
+			javaAOPTestCases.forEach(testCase -> doAnswer(invocation -> {
+				executedAopCases.incrementAndGet();
+				return null;
+			}).when(testCase).executeAOPTestCase("ARCHUNIT", "INSTRUMENTATION"));
+			mockedAgent.when(() -> JavaInstrumentationAgent.registerThreadMonitorRestrictedPackage(packageName))
+					.thenAnswer(invocation -> {
+						assertEquals(7, appliedSettings.get());
+						assertEquals(javaAOPTestCases.size(), executedAopCases.get());
+						return null;
+					});
+
+			javaExecuter.executeTestCases(buildMode, architectureMode, AOPMode.INSTRUMENTATION, essentialPackages,
+					essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
+					javaAOPTestCases);
+
+			mockedAgent.verify(() -> JavaInstrumentationAgent.registerThreadMonitorRestrictedPackage(packageName));
+		}
+	}
+
+	@Test
+	void aspectJDoesNotRegisterInstrumentationMonitorTransformer() {
+		try (MockedStatic<JavaAOPTestCase> mockedJavaAOPTestCase = mockStatic(JavaAOPTestCase.class);
+				MockedStatic<JavaInstrumentationAgent> mockedAgent = mockStatic(JavaInstrumentationAgent.class)) {
+			javaExecuter.executeTestCases(buildMode, architectureMode, AOPMode.ASPECTJ, essentialPackages,
+					essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
+					javaAOPTestCases);
+
+			mockedAgent.verifyNoInteractions();
+		}
 	}
 
 	@Nested

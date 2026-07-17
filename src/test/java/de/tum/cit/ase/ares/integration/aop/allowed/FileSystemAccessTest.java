@@ -7,7 +7,6 @@ import java.nio.file.Paths;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.function.Executable;
 
@@ -38,7 +37,6 @@ import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.read.files
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.read.inputStreamReader.ReadInputStreamReaderMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.read.lineNumberReader.ReadLineNumberReaderMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.read.nioChannel.ReadNIOChannelMain;
-import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.read.objectInputStream.ReadObjectInputStreamMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.read.randomAccessFile.ReadRandomAccessFileMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.read.scanner.ReadScannerMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.read.thirdPartyPackage.ReadThirdPartyPackageMain;
@@ -357,37 +355,6 @@ class FileSystemAccessTest {
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/inputStreamReader")
 		void test_accessFileSystemViaInputStreamReaderMavenWalaInstrumentation() {
 			assertFileReadAllowedAndContentMatches(ReadInputStreamReaderMain::accessFileSystemViaInputStreamReader);
-		}
-		// </editor-fold>
-
-		// <editor-fold desc="accessFileSystemViaObjectInputStream
-		// (ObjectInputStream.readObject)">
-		@PublicTest
-		@Disabled("ObjectInputStream is covered by the serialisation rule, not the file-read allowance.")
-		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/objectInputStream")
-		void test_accessFileSystemViaObjectInputStreamMavenArchunitAspectJ() {
-			assertFileReadAllowedAndContentMatches(ReadObjectInputStreamMain::accessFileSystemViaObjectInputStream);
-		}
-
-		@PublicTest
-		@Disabled("ObjectInputStream is covered by the serialisation rule, not the file-read allowance.")
-		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/objectInputStream")
-		void test_accessFileSystemViaObjectInputStreamMavenArchunitInstrumentation() {
-			assertFileReadAllowedAndContentMatches(ReadObjectInputStreamMain::accessFileSystemViaObjectInputStream);
-		}
-
-		@PublicTest
-		@Disabled("ObjectInputStream is covered by the serialisation rule, not the file-read allowance.")
-		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/objectInputStream")
-		void test_accessFileSystemViaObjectInputStreamMavenWalaAspectJ() {
-			assertFileReadAllowedAndContentMatches(ReadObjectInputStreamMain::accessFileSystemViaObjectInputStream);
-		}
-
-		@PublicTest
-		@Disabled("ObjectInputStream is covered by the serialisation rule, not the file-read allowance.")
-		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/objectInputStream")
-		void test_accessFileSystemViaObjectInputStreamMavenWalaInstrumentation() {
-			assertFileReadAllowedAndContentMatches(ReadObjectInputStreamMain::accessFileSystemViaObjectInputStream);
 		}
 		// </editor-fold>
 

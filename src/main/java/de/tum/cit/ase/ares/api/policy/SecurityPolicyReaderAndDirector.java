@@ -7,7 +7,6 @@ import java.util.Objects;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.director.SecurityPolicyDirector;
 import de.tum.cit.ase.ares.api.policy.reader.SecurityPolicyReader;
 import de.tum.cit.ase.ares.api.securitytest.TestCaseAbstractFactoryAndBuilder;
@@ -99,13 +98,10 @@ public class SecurityPolicyReaderAndDirector {
 		if (securityPolicyFilePath != null && !securityPolicyFilePath.toString().isEmpty()) {
 			@Nonnull
 			Path nonNullPolicyPath = securityPolicyFilePath;
+			// selectSecurityPolicyReader either returns a reader or throws on an
+			// unsupported policy format, so there is no null case to handle here.
 			securityPolicyReader = SecurityPolicyReader.selectSecurityPolicyReader(nonNullPolicyPath);
-			if (securityPolicyReader != null) {
-				securityPolicy = securityPolicyReader.readSecurityPolicyFrom(nonNullPolicyPath);
-			} else {
-				throw new IllegalArgumentException(
-						Messages.localized("policy.reader.no.suitable.reader", nonNullPolicyPath)); //$NON-NLS-1$
-			}
+			securityPolicy = securityPolicyReader.readSecurityPolicyFrom(nonNullPolicyPath);
 		}
 		securityPolicyDirector = SecurityPolicyDirector.selectSecurityPolicyDirector(securityPolicy);
 		this.securityTestCaseFactoryAndBuilder = securityPolicyDirector.createTestCases(securityPolicy,
@@ -125,6 +121,7 @@ public class SecurityPolicyReaderAndDirector {
 	 */
 	@Nonnull
 	public List<Path> writeTestCases(Path testFolderPath) {
+		Objects.requireNonNull(testFolderPath, "testFolderPath must not be null");
 		// Fail closed, symmetrically with executeTestCases and
 		// writeTestCasesAndContinue:
 		// an out-of-order call (writeTestCases before createTestCases) must NOT
@@ -145,6 +142,7 @@ public class SecurityPolicyReaderAndDirector {
 	 */
 	@Nonnull
 	public SecurityPolicyReaderAndDirector writeTestCasesAndContinue(Path testFolderPath) {
+		Objects.requireNonNull(testFolderPath, "testFolderPath must not be null");
 		Objects.requireNonNull(this.securityTestCaseFactoryAndBuilder,
 				"securityTestCaseFactoryAndBuilder must not be null").writeTestCases(testFolderPath);
 		return this;

@@ -12,6 +12,7 @@ import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent;
 import de.tum.cit.ase.ares.api.aop.java.javaAOPTestCaseToolbox.JavaAOPAdviceSettingTriple;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 
@@ -61,6 +62,19 @@ class JavaAOPTestCaseTest {
 		f.setAccessible(true);
 
 		assertEquals("xyz", f.get(null));
+	}
+
+	@Test
+	void testAspectJSettingsDoNotRegisterInstrumentationPackage() throws Exception {
+		Field packagesField = JavaInstrumentationAgent.class.getDeclaredField("INSTRUMENTED_THREAD_MONITOR_PACKAGES");
+		packagesField.setAccessible(true);
+		@SuppressWarnings("unchecked")
+		Set<String> packages = (Set<String>) packagesField.get(null);
+		String uniquePackage = "example.aspectj.only." + System.nanoTime();
+
+		JavaAOPTestCase.setJavaAdviceSettingValue("restrictedPackage", uniquePackage, "WALA", "ASPECTJ");
+
+		assertFalse(packages.contains(uniquePackage));
 	}
 
 	@Test

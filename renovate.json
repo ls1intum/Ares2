@@ -9,21 +9,14 @@
         "net.jqwik:*"
       ],
       "allowedVersions": "<1.10.0",
-      "description": "Pinned to the newest 1.9.x. jqwik 1.10.x crashes Ares with ArrayIndexOutOfBoundsException in StoreRepository.streamAllStores under thread-spawning properties, and the 1.10.x line targets junit-platform 1.14 while Ares builds on junit-platform 6.x. Revisit once jqwik ships a JUnit 6 compatible release."
-    },
-    {
-      "matchPackageNames": [
-        "org.aspectj:*"
-      ],
-      "allowedVersions": "<=1.9.25.1",
-      "description": "Pinned at 1.9.25.1. The aspectjtools (ajc) Eclipse JDT compiler in this line regressed with an internal NullPointerException (SourceTypeBinding.resolveTypeFor) when weaving field-declaring anonymous classes; 1.9.25.1 is usable only because the affected tests were refactored. Do not let it drift further without re-verifying the weave."
+      "description": "Pinned to the newest 1.9.x (1.9.3). jqwik is a JUnit TestEngine, so it plugs into junit-platform through the TestEngine SPI rather than depending on a fixed JUnit release. Neither the 1.9 nor the 1.10 line is actually built for JUnit 6: jqwik 1.9.3 was compiled against junit-platform 1.11 and jqwik 1.10.x against junit-platform 1.14, both the old JUnit 5 platform line. Ares declares junit-jupiter and junit-platform-testkit directly at 6.x, and Maven nearest-wins mediation force-upgrades jqwik's transitive junit-platform up to 6.x on the classpath (there is no junit-platform node under net.jqwik in the dependency tree, proving the override). jqwik 1.9.3 tolerates that force-fit and the full suite is green; jqwik 1.10.x does not: it fails deterministically with ArrayIndexOutOfBoundsException in StoreRepository.streamAllStores when Ares runs thread-spawning properties (JqwickTest), and its move to junit-platform 1.14 while Ares builds on junit-platform 6.x likely contributes. Do not update until jqwik ships a release built for JUnit 6 (junit-platform 6.x), then re-run the full suite before lifting the pin."
     },
     {
       "matchPackageNames": [
         "net.bytebuddy:*"
       ],
       "allowedVersions": "!/-jdk5$/",
-      "description": "Exclude the -jdk5 (Java 5 bytecode) build variant. Renovate misreads the -jdk5 classifier as a newer version, but Ares targets Java 17/21 and must use the standard build."
+      "description": "Negated regex that rejects every version ending in -jdk5, covering both net.bytebuddy:byte-buddy and net.bytebuddy:byte-buddy-agent via the net.bytebuddy:* matcher. Byte Buddy ships a parallel Java-5-bytecode line as distinct Maven versions (e.g. 1.18.10-jdk5, and even 1.18.6-jdk6-jdk5), not as a classifier of the standard version. Because the -jdk5 suffix sorts above the plain release, Renovate would otherwise treat 1.18.10-jdk5 as an upgrade from 1.18.10 and silently swap the standard build for the legacy Java 5 one. Ares compiles to Java 17 and runs on Java 17/21, so it must stay on the standard (unsuffixed) build. This rule blocks only the -jdk5 line; ordinary bumps such as 1.18.x to 1.19.x still flow through."
     }
   ]
 }

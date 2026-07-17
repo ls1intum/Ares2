@@ -12,7 +12,6 @@ import org.slf4j.*;
 import de.tum.cit.ase.ares.api.context.TestContext;
 import de.tum.cit.ase.ares.api.context.TestType;
 import de.tum.cit.ase.ares.api.internal.sanitization.*;
-//REMOVED: Import of ArtemisSecurityManager
 
 /**
  * For handling and post processing Exceptions and Errors.
@@ -102,9 +101,6 @@ public final class ReportingUtils {
 	}
 
 	private static String transformMessage(ThrowableInfo info) {
-		if (!AssertionError.class.isAssignableFrom(info.getClass())) {
-			addStackframeInfoToMessage(info);
-		}
 		return info.getMessage();
 	}
 
@@ -112,10 +108,5 @@ public final class ReportingUtils {
 		var info = BlacklistedInvoker.invokeOrElse(error::toString, () -> error.getClass().toString());
 		LOG.error("Sanitization failed for {} with error {}", name, info); //$NON-NLS-1$
 		return new SecurityException(localized("sanitization.sanitization_failure", name, info)); //$NON-NLS-1$
-	}
-
-	private static void addStackframeInfoToMessage(ThrowableInfo info) {
-		StackTraceElement[] stackTrace = info.getStackTrace();
-		// REMOVED: Asking ArtemisSecurityManager for the first forbidden thread
 	}
 }

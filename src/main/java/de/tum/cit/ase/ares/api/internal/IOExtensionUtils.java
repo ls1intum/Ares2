@@ -14,19 +14,11 @@ import org.apiguardian.api.API.Status;
 import de.tum.cit.ase.ares.api.WithIOManager;
 import de.tum.cit.ase.ares.api.context.*;
 import de.tum.cit.ase.ares.api.io.*;
-//REMOVED: Import of ArtemisSecurityManager
 
 @API(status = Status.INTERNAL)
 public final class IOExtensionUtils {
 
 	private static final Class<IOTesterManager> DEFAULT_IO_MANAGER = IOTesterManager.class;
-
-	static {
-		/*
-		 * Initialize SecurityManager when we are still in the main thread
-		 */
-		// REMOVED: Installation of ArtemisSecurityManager;
-	}
 
 	// ConcurrentHashMap rather than HashMap: parallel JUnit test containers resolve
 	// their IO

@@ -17,7 +17,7 @@ import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.MethodDeclaration;
 
 /**
- * Stores all required information about a Java file to be analyzed
+ * Stores all required information about a Java file to be analysed
  */
 @API(status = Status.INTERNAL)
 public class JavaFile {

@@ -12,7 +12,7 @@ import org.apiguardian.api.API.Status;
 import org.junit.platform.commons.support.AnnotationSupport;
 
 /**
- * Static utility methods for analyzing {@link TestContext}s and finding
+ * Static utility methods for analysing {@link TestContext}s and finding
  * Annotations.
  *
  * @author Christian Femers

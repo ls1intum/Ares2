@@ -15,12 +15,15 @@ import org.junit.jupiter.api.extension.*;
 import org.junit.platform.commons.function.Try;
 
 import de.tum.cit.ase.ares.api.Policy;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
-//REMOVED: Import of ArtemisSecurityManager
 
 @API(status = Status.INTERNAL)
 public final class JupiterSecurityExtension
 		implements UnifiedInvocationInterceptor, BeforeTestExecutionCallback, AfterTestExecutionCallback {
+	private static final ExtensionContext.Namespace NAMESPACE = ExtensionContext.Namespace
+			.create(JupiterSecurityExtension.class);
+	private static final String POLICY_PREPARED_KEY = "policy-prepared";
 
 	// <editor-fold desc="Lifecycle Callbacks">
 
@@ -55,7 +58,6 @@ public final class JupiterSecurityExtension
 	public void beforeTestExecution(ExtensionContext extensionContext) throws Exception {
 		resetSettingsInStandardClassLoader();
 		resetSettingsInBootstrapClassLoader();
-
 		JupiterContext testContext = JupiterContext.of(extensionContext);
 		Optional<Policy> methodPolicy = findAnnotation(testContext.testMethod(), Policy.class);
 		Optional<Policy> classPolicy = findAnnotation(testContext.testClass(), Policy.class);
@@ -72,6 +74,7 @@ public final class JupiterSecurityExtension
 			SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policyPath).projectFolderPath(withinPath)
 					.build().createTestCases().executeTestCases();
 		}
+		extensionContext.getStore(NAMESPACE).put(POLICY_PREPARED_KEY, Boolean.TRUE);
 	}
 
 	/**
@@ -79,8 +82,13 @@ public final class JupiterSecurityExtension
 	 */
 	@Override
 	public void afterTestExecution(ExtensionContext extensionContext) throws Exception {
-		resetSettingsInStandardClassLoader();
-		resetSettingsInBootstrapClassLoader();
+		try {
+			JavaInstrumentationAgent.throwIfTransformationFailed();
+		} finally {
+			extensionContext.getStore(NAMESPACE).remove(POLICY_PREPARED_KEY);
+			resetSettingsInStandardClassLoader();
+			resetSettingsInBootstrapClassLoader();
+		}
 	}
 
 	// </editor-fold>
@@ -96,12 +104,8 @@ public final class JupiterSecurityExtension
 		boolean hasPolicyAnnotation = policyOpt.isPresent();
 		boolean isAresActivated = policyOpt.map(Policy::activated).orElse(true);
 
-		// ALWAYS reset settings first to ensure clean state for every test.
-		// This prevents settings from a previous test from affecting the current test.
-		// We have to reset both the settings classes in the runtime and the bootstrap
-		// class loader to be able to run multiple tests in the same JVM instance.
-		resetSettingsInStandardClassLoader();
-		resetSettingsInBootstrapClassLoader();
+		boolean policyAlreadyPrepared = Boolean.TRUE
+				.equals(extensionContext.getStore(NAMESPACE).get(POLICY_PREPARED_KEY, Boolean.class));
 
 		// Determine security enforcement:
 		// - @Policy(activated=true) → enforce with custom policy from file
@@ -110,7 +114,14 @@ public final class JupiterSecurityExtension
 		// Skip enforcement during constructor interception (no test method present
 		// yet).
 		boolean isTestMethodPresent = testContext.testMethod().isPresent();
-		if (isAresActivated && (hasPolicyAnnotation || isTestMethodPresent)) {
+		if (!policyAlreadyPrepared) {
+			// Invocation interception is the fallback for execution environments that do
+			// not invoke BeforeTestExecutionCallback. Normal Jupiter execution has already
+			// prepared the policy and must not build the same WALA graph twice.
+			resetSettingsInStandardClassLoader();
+			resetSettingsInBootstrapClassLoader();
+		}
+		if (!policyAlreadyPrepared && isAresActivated && (hasPolicyAnnotation || isTestMethodPresent)) {
 			Path policyPath = policyOpt.filter(p -> !p.value().isBlank())
 					.map(JupiterSecurityExtension::testAndGetPolicyValue).orElse(null);
 			Path withinPath = policyOpt.filter(p -> !p.withinPath().isBlank())
@@ -118,21 +129,26 @@ public final class JupiterSecurityExtension
 			SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policyPath).projectFolderPath(withinPath)
 					.build().createTestCases().executeTestCases();
 		}
-		// REMOVED: Installing of ArtemisSecurityManager
+		T result = null;
 		Throwable failure = null;
 		try {
-			return invocation.proceed();
+			result = invocation.proceed();
 		} catch (Throwable t) {
 			failure = t;
 		} finally {
+			Throwable transformationFailure = null;
 			try {
-				// REMOVED: Uninstallation of ArtemisSecurityManager
+				JavaInstrumentationAgent.throwIfTransformationFailed();
+			} catch (SecurityException e) {
+				transformationFailure = e;
+			}
+			try {
 				// ALWAYS reset settings AFTER the test to ensure clean state for subsequent
 				// tests, since security is now enforced by default.
 				resetSettingsInStandardClassLoader();
 				resetSettingsInBootstrapClassLoader();
 			} catch (Exception e) {
-				if (failure == null) {
+				if (failure == null && transformationFailure == null) {
 					// The test itself passed, so invocation.proceed() left a pending return on
 					// this method. Assigning to failure would let that return run and swallow
 					// this teardown failure, leaving the next test with un-reset security
@@ -140,10 +156,23 @@ public final class JupiterSecurityExtension
 					// return and propagates the teardown failure instead.
 					throw e;
 				}
-				failure.addSuppressed(e);
+				if (transformationFailure != null) {
+					transformationFailure.addSuppressed(e);
+				} else {
+					failure.addSuppressed(e);
+				}
+			}
+			if (transformationFailure != null) {
+				if (failure != null) {
+					transformationFailure.addSuppressed(failure);
+				}
+				throw transformationFailure;
 			}
 		}
-		throw failure;
+		if (failure != null) {
+			throw failure;
+		}
+		return result;
 	}
 
 	public static void resetSettings(Class<?> javaTestCaseSettingsClass) {
@@ -181,20 +210,27 @@ public final class JupiterSecurityExtension
 			// Use false to avoid class initialization
 			Class<?> settingsClass = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", false,
 					null);
-			Method resetMethod = settingsClass.getDeclaredMethod("reset");
-			resetMethod.setAccessible(true);
-			resetMethod.invoke(null);
-			resetMethod.setAccessible(false);
+			resetSettingsInClass(settingsClass);
 		} catch (ClassNotFoundException e) {
 			// Class not yet loaded in the bootstrap class loader: there is nothing to
-			// reset,
-			// which is the only benign reason this can fail.
+			// reset, which is the only benign reason this can fail.
+		}
+	}
+
+	static void resetSettingsInClass(Class<?> settingsClass) {
+		try {
+			resetSettingsWithMethod(settingsClass.getDeclaredMethod("reset"));
 		} catch (NoSuchMethodException e) {
 			// The class is present but its reset failed. Fail closed rather than let the
-			// next
-			// test inherit stale security settings, matching resetSettings for the standard
-			// class loader.
+			// next test inherit stale security settings, matching resetSettings for the
+			// standard class loader.
 			throw new SecurityException(localize("security.settings.reset.method.not.found"), e);
+		}
+	}
+
+	static void resetSettingsWithMethod(Method resetMethod) {
+		try {
+			resetMethod.invoke(null);
 		} catch (IllegalAccessException e) {
 			throw new SecurityException(localize("security.settings.reset.access.denied"), e);
 		} catch (InvocationTargetException e) {

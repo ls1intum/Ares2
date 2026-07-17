@@ -25,7 +25,7 @@ import com.tngtech.archunit.thirdparty.com.google.common.collect.Iterables;
  * An Archunit condition that checks if classes transitively access methods
  * matching a predicate.
  * <p>
- * Description: This class extends ArchCondition to analyze class dependencies
+ * Description: This class extends ArchCondition to analyse class dependencies
  * and detect methods that match specific criteria through transitive
  * dependencies. It tracks access paths to identify how classes are connected
  * through method calls.
@@ -134,7 +134,7 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
 	 *
 	 * @since 2.0.0
 	 * @author Sarp Sahinalp
-	 * @param clazz  The class to analyze
+	 * @param clazz  The class to analyse
 	 * @param events Collection for recording detected violations or satisfactions
 	 */
 	@Override
@@ -203,7 +203,7 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
 		 * @since 2.0.0
 		 * @author Sarp Sahinalp
 		 * @param accessInsideJavaClass The method accessInsideJavaClass whose target
-		 *                              class is being analyzed
+		 *                              class is being analysed
 		 * @return Set of method accesses originating from the target owner class
 		 */
 		private Set<JavaAccess<?>> getTransitiveAccessesFrom(JavaAccess<?> accessInsideJavaClass) {
@@ -251,20 +251,20 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
 				return true;
 			}
 			// If the access is not violating, it checks if the method has already been
-			// analyzed to avoid cycles
+			// analysed to avoid cycles
 			else {
 				AccessTarget calledMethod = access.getTarget();
 				String nameOfCalledMethod = calledMethod.getFullName();
 				namesOfAnalyzedMethods.add(nameOfCalledMethod);
-				// If the method has not been analyzed, it retrieves all direct accesses to
+				// If the method has not been analysed, it retrieves all direct accesses to
 				// other methods
 				for (JavaAccess<?> directAccess : getTransitiveAccessesFrom(access)) {
 					AccessTarget directAccessedMethod = directAccess.getTarget();
 					String nameOfDirectAccessedMethod = directAccessedMethod.getFullName();
-					// Checks if the direct access is not already analyzed and recursively searches
+					// Checks if the direct access is not already analysed and recursively searches
 					// for a path
 					if (
-					// Avoid cycles by checking if the method has already been analyzed
+					// Avoid cycles by checking if the method has already been analysed
 					!namesOfAnalyzedMethods.contains(nameOfDirectAccessedMethod)
 							// Goes deeper in the call graph
 							&& recursivelyFindPathFromViolatingMethodTo(directAccess, transitiveAccessPathBuilder,
@@ -289,7 +289,7 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
 		 *
 		 * @since 2.0.0
 		 * @author Sarp Sahinalp
-		 * @param access The starting access to analyze
+		 * @param access The starting access to analyse
 		 * @return A list of accesses forming a path to a matching method, or empty if
 		 *         none found
 		 */

@@ -33,6 +33,19 @@ public abstract class SystemAccessTest {
 	protected static final String TRIED_DE = "hat versucht,";
 	protected static final String BLOCKED_EN = "was blocked by Ares.";
 	protected static final String BLOCKED_DE = "wurde jedoch von Ares blockiert.";
+
+	/**
+	 * Reason attached to every subject-probe method in this package. A subject
+	 * probe is the {@code @Disabled @PublicTest @Policy(...)} method that performs
+	 * the forbidden operation with no assertion of its own. It is run indirectly by
+	 * its matching {@code *_test} method through
+	 * {@link org.junit.platform.testkit.engine.EngineTestKit} (with the
+	 * {@code DisabledCondition} deactivated), which asserts that the forbidden
+	 * operation is denied (expected security failure). The probe stays
+	 * {@code @Disabled} so the outer test engine never executes the raw forbidden
+	 * operation directly.
+	 */
+	protected static final String SUBJECT_PROBE_REASON = "Subject probe: run indirectly by the matching *_test method via EngineTestKit (with the DisabledCondition deactivated), which asserts the forbidden operation is denied (expected security failure). Kept @Disabled so the outer test engine never executes the raw forbidden operation directly.";
 	// </editor-fold>
 
 	// <editor-fold desc="Archunit AspectJ Policy Files">

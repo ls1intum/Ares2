@@ -23,9 +23,13 @@ import com.ibm.wala.classLoader.IMethod;
 import com.ibm.wala.core.util.strings.Atom;
 import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
+import com.ibm.wala.ipa.cha.IClassHierarchy;
 import com.ibm.wala.types.ClassLoaderReference;
 import com.ibm.wala.types.TypeName;
 import com.ibm.wala.types.TypeReference;
+import com.tngtech.archunit.core.domain.AccessTarget;
+import com.tngtech.archunit.core.domain.JavaAccess;
+import com.tngtech.archunit.core.domain.JavaClass;
 
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
@@ -508,6 +512,110 @@ class WalaRuleTest {
 			failedClosed = true;
 		}
 		assertThat(failedClosed).as("a forbidden sink with no entry points must fail closed, not silently pass")
+				.isTrue();
+	}
+
+	@Test
+	void emptyEntryPointsWithoutDiscoveredSinkStillFailClosed() {
+		CallGraph cg = mock(CallGraph.class);
+		when(cg.iterator()).thenAnswer(inv -> java.util.Collections.emptyIterator());
+		when(cg.getEntrypointNodes()).thenReturn(java.util.Collections.emptyList());
+
+		WalaRule rule = new WalaRule("Accesses file system", Set.of("java.io.RandomAccessFile.read"));
+		org.junit.jupiter.api.Assertions.assertThrows(SecurityException.class, () -> rule.check(cg));
+	}
+
+	@Test
+	void approachSafetyLimitFailsClosed() {
+		CGNode sink = jdkForbiddenNode("java.lang.Class.forName(Ljava/lang/String;)Ljava/lang/Class;", "Class");
+		List<CGNode> callers = new java.util.ArrayList<>();
+		Set<ClassPermission> allowedClasses = new java.util.HashSet<>();
+		for (int i = 0; i < 64; i++) {
+			String className = "anonymous.Allowed" + i;
+			callers.add(studentNodeInClass(className + ".help()V", "L" + className.replace('.', '/')));
+			allowedClasses.add(new ClassPermission(className));
+		}
+
+		CallGraph cg = mock(CallGraph.class);
+		List<CGNode> nodes = new java.util.ArrayList<>(callers);
+		nodes.add(sink);
+		when(cg.iterator()).thenAnswer(inv -> nodes.iterator());
+		when(cg.getEntrypointNodes()).thenReturn(callers);
+		when(cg.getSuccNodes(any())).thenAnswer(inv -> java.util.Collections.emptyIterator());
+		when(cg.getPredNodes(any())).thenAnswer(inv -> java.util.Collections.emptyIterator());
+		for (CGNode caller : callers) {
+			when(cg.getSuccNodes(caller)).thenAnswer(inv -> List.of(sink).iterator());
+		}
+		when(cg.getPredNodes(sink)).thenAnswer(inv -> callers.iterator());
+
+		WalaRule rule = new WalaRule("Manipulates class loading",
+				Set.of("java.lang.Class.forName(Ljava/lang/String;)"));
+		SecurityException exception = org.junit.jupiter.api.Assertions.assertThrows(SecurityException.class,
+				() -> rule.check(cg, allowedClasses));
+		assertThat(exception.getMessage()).contains("safety limit");
+	}
+
+	@Test
+	void inheritedTargetUsesOnlyImportedHierarchy() {
+		JavaAccess<?> access = mock(JavaAccess.class);
+		AccessTarget target = mock(AccessTarget.class);
+		JavaClass targetOwner = mock(JavaClass.class);
+		JavaClass collection = mock(JavaClass.class);
+		when(target.getFullName()).thenReturn("example.CustomList.parallelStream()");
+		Mockito.doReturn(target).when(access).getTarget();
+		when(access.getTargetOwner()).thenReturn(targetOwner);
+		when(targetOwner.getAllClassesSelfIsAssignableTo()).thenReturn(Set.of(targetOwner, collection));
+		when(targetOwner.isFullyImported()).thenReturn(true);
+		when(collection.isFullyImported()).thenReturn(true);
+		when(targetOwner.getFullName()).thenReturn("example.CustomList");
+		when(collection.getFullName()).thenReturn("java.util.Collection");
+
+		assertThat(WalaRule.matchesInheritedTarget(access, "java.util.Collection.parallelStream()")).isTrue();
+	}
+
+	@Test
+	void incompleteInheritedTargetHierarchyFailsClosed() {
+		JavaAccess<?> access = mock(JavaAccess.class);
+		AccessTarget target = mock(AccessTarget.class);
+		JavaClass targetOwner = mock(JavaClass.class);
+		when(target.getFullName()).thenReturn("unresolved.CustomList.parallelStream()");
+		Mockito.doReturn(target).when(access).getTarget();
+		when(access.getTargetOwner()).thenReturn(targetOwner);
+		when(targetOwner.getAllClassesSelfIsAssignableTo()).thenReturn(Set.of(targetOwner));
+		when(targetOwner.isFullyImported()).thenReturn(false);
+		when(targetOwner.getFullName()).thenReturn("unresolved.CustomList");
+
+		org.junit.jupiter.api.Assertions.assertThrows(SecurityException.class,
+				() -> WalaRule.matchesInheritedTarget(access, "java.util.Collection.parallelStream()"));
+	}
+
+	@Test
+	void incompleteArchUnitHierarchyUsesStaticWalaHierarchy() {
+		JavaAccess<?> access = mock(JavaAccess.class);
+		AccessTarget target = mock(AccessTarget.class);
+		JavaClass targetOwner = mock(JavaClass.class);
+		IClassHierarchy hierarchy = mock(IClassHierarchy.class);
+		IClass targetClass = mock(IClass.class);
+		IClass forbiddenClass = mock(IClass.class);
+		when(target.getFullName()).thenReturn("example.CustomList.parallelStream()");
+		Mockito.doReturn(target).when(access).getTarget();
+		when(access.getTargetOwner()).thenReturn(targetOwner);
+		when(targetOwner.getAllClassesSelfIsAssignableTo()).thenReturn(Set.of(targetOwner));
+		when(targetOwner.isFullyImported()).thenReturn(false);
+		when(targetOwner.getFullName()).thenReturn("example.CustomList");
+		when(hierarchy.lookupClass(any(TypeReference.class))).thenAnswer(invocation -> {
+			String typeName = invocation.getArgument(0, TypeReference.class).getName().toString();
+			if ("Lexample/CustomList".equals(typeName)) {
+				return targetClass;
+			}
+			if ("Ljava/util/Collection".equals(typeName)) {
+				return forbiddenClass;
+			}
+			return null;
+		});
+		when(hierarchy.isAssignableFrom(forbiddenClass, targetClass)).thenReturn(true);
+
+		assertThat(WalaRule.matchesInheritedTarget(access, "java.util.Collection.parallelStream()", hierarchy))
 				.isTrue();
 	}
 }

@@ -51,7 +51,7 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
             call(* java.lang.Thread$Builder$OfPlatform+.start(..)) ||
             call(* java.util.concurrent.SubmissionPublisher+.submit(..)) ||
             call(* java.util.concurrent.SubmissionPublisher+.offer(..))
-            );
+            ) && !within(de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationThreadSystemCallSite);
 
     pointcut threadCreateMethodsWithoutParameters(): (
             call(* java.lang.Thread+.start()) ||
@@ -59,4 +59,18 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
             call(* java.util.stream.Stream+.parallel()) ||
             call(* java.util.stream.BaseStream+.parallel())
             );
+
+    // Thread monitor manipulation (notify/notifyAll/wait). These are final methods declared by
+    // java.lang.Object, so call(* java.lang.Thread+.notify()) does not weave (AspectJ resolves the
+    // declaring type to java.lang.Object). call() on Object+ combined with a target(Thread+) runtime
+    // guard confines interception to Thread receivers. Instrumentation mirrors this by rewriting
+    // application call sites to JavaInstrumentationThreadSystemCallSite; exclude that wrapper here
+    // so an AspectJ policy does not check the same operation twice.
+    pointcut threadManipulateMethods(): (
+            (call(* java.lang.Object+.notify())        && target(java.lang.Thread+)) ||
+            (call(* java.lang.Object+.notifyAll())     && target(java.lang.Thread+)) ||
+            (call(* java.lang.Object+.wait())          && target(java.lang.Thread+)) ||
+            (call(* java.lang.Object+.wait(long))      && target(java.lang.Thread+)) ||
+            (call(* java.lang.Object+.wait(long, int)) && target(java.lang.Thread+))
+            ) && !within(de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationThreadSystemCallSite);
 }

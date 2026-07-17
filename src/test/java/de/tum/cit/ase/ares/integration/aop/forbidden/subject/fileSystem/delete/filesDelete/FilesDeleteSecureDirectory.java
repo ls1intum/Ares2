@@ -34,7 +34,7 @@ public final class FilesDeleteSecureDirectory {
 		Path subDir = Path.of(NOT_TRUSTED_FILE_DIR_CHILD_DIR);
 
 		if (secureDirectoryStream != null) {
-			secureDirectoryStream.deleteDirectory(subDir);
+			secureDirectoryStream.deleteDirectory(subDir.getFileName());
 		} else {
 			Files.delete(subDir);
 		}

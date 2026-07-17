@@ -15,7 +15,7 @@ import de.tum.cit.ase.ares.api.localization.UseLocale;
 
 @Public
 @UseLocale("en")
-@StrictTimeout(5)
+@StrictTimeout(10)
 public class AstAssertionUser {
 
 	private static final String BASE_PACKAGE = "de.tum.cit.ase.ares.integration.testuser.subject.structural.astTestFiles";

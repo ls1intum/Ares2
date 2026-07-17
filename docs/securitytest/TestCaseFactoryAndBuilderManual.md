@@ -2,7 +2,7 @@
 
 > **Audience:** IT-Education experts with no security background.
 > **Scope:** All classes inside `de.tum.cit.ase.ares.api.securitytest` — the abstract factory/builder, the Java-specific factory, and the `creator`, `essentialModel`, `executer`, `writer`, `projectScanner`, and `specific` sub-packages.
-> **Ares Version:** 2.0.1-Beta6
+> **Ares Version:** 2.0.1-Beta8
 
 **Related documentation:**
 - [Security Policy Manual](../policy/SecurityPolicyManual.md) — how to write a security policy YAML file
@@ -53,7 +53,7 @@
 ## 1 Prerequisites
 
 - **Java 17** or later
-- **Gradle 7+** or **Maven 3.8+** for building
+- **Gradle** or **Maven 3.8+** for building, with versions compatible with the AspectJ and test plugins used by the project
 - **JUnit 5** (Jupiter) for test execution
 - **Ares 2**
 
@@ -85,10 +85,10 @@ The package is structured around five sub-packages, each handling one step of th
 | Pattern | Where it is used | Why |
 |---|---|---|
 | **Abstract Factory + Builder** | `TestCaseAbstractFactoryAndBuilder` → `JavaTestCaseFactoryAndBuilder` | The factory must produce different kinds of test artefacts (architecture tests, AOP tests, Phobos tests) for different toolchain combinations (Maven/Gradle × ArchUnit/WALA × AspectJ/Instrumentation). The Abstract Factory hides the concrete toolchain behind a uniform interface, while the Builder allows step-by-step configuration of the many required parameters (modes, paths, collaborators, policy). |
-| **Template Method** | Constructor of `TestCaseAbstractFactoryAndBuilder` | The test-case creation lifecycle always follows the same steps: inject tools → resolve modes → load essential data → extract policy configuration → create test cases. The abstract base class fixes this sequence while letting the Java-specific subclass provide concrete implementations of `writeTestCases()` and `executeTestCases()`. |
+| **Template Method** | Constructor of `TestCaseAbstractFactoryAndBuilder` | The test-case creation lifecycle always follows the same steps: inject tools → resolve modes → load essential data → extract policy configuration → guard the supervised package → create test cases. The abstract base class fixes this sequence while letting the Java-specific subclass provide concrete implementations of `writeTestCases()` and `executeTestCases()`. |
 | **Strategy** | `Creator`, `Writer`, `Executer`, `ProjectScanner`, `EssentialDataReader` (all interfaces) | Each step of the pipeline (creating, writing, executing, scanning, reading) must be independently swappable for different programming languages or frameworks. Defining each step as an interface with a Java-specific implementation allows future language support (e.g., Python) without modifying the abstract factory. |
 | **Builder** | `JavaTestCaseFactoryAndBuilder.Builder`, `EssentialClasses.Builder`, `EssentialPackages.Builder` | The factory requires 12 parameters (5 collaborators, 2 essential-data paths, 3 modes, 1 policy, 1 project path). A builder with named setter methods prevents parameter-ordering mistakes, enforces mandatory fields via `Objects.requireNonNull` in `build()`, and makes the construction code self-documenting. |
-| **Caching (Memoisation)** | `JavaCreator.cacheResult(classPath, supplier)` | Building call graphs (WALA) and importing Java classes (ArchUnit) from compiled bytecode is computationally expensive. The `ConcurrentHashMap`-based cache ensures that these operations are performed at most once per classpath, even when the factory processes multiple test cases. |
+| **Caching (Memoisation)** | `JavaCreator.cacheResult(classPath, supplier)` | Building call graphs (WALA) and importing Java classes (ArchUnit) from compiled bytecode is computationally expensive. A `ConcurrentHashMap`-based cache — deliberately an **instance** field, since a `JavaCreator` lives for exactly one factory build — ensures that these operations are performed at most once per factory build, even when that build processes multiple test cases, without leaking one run's analysis to a later run in a long-lived JVM. |
 | **Immutable Value Objects (Java Records)** | `EssentialClasses`, `EssentialPackages` | The lists of essential packages and classes must not be accidentally modified after parsing — a mutated list could silently weaken security enforcement. Java Records guarantee immutability and provide automatic `equals()`, `hashCode()`, and `toString()`. |
 | **Annotation-Driven Configuration** | `@StudentCompiledClassesPath` + `PathLocationProvider` | The location of compiled student classes varies between Learning Management Systems. Rather than hard-coding paths, an annotation lets instructors declare the path on their test class, and ArchUnit's `LocationProvider` SPI reads it at runtime — fully decoupling the test framework from the deployment environment. |
 
@@ -99,6 +99,7 @@ The package is structured around five sub-packages, each handling one step of th
 ```
 securitytest/
 ├── TestCaseAbstractFactoryAndBuilder.java    ← abstract base (Template Method)
+├── ReservedPackageGuard.java                 ← rejects supervised packages under trusted prefixes
 └── java/
     ├── JavaTestCaseFactoryAndBuilder.java     ← concrete factory (Builder)
     ├── StudentCompiledClassesPath.java        ← annotation
@@ -148,7 +149,7 @@ The class holds five groups of attributes:
 | `essentialPackages` | `List<String>` | Aggregated list of all essential packages |
 | `essentialClasses` | `List<String>` | Aggregated list of all essential classes |
 
-**Policy-Derived Configuration** (extracted from `SecurityPolicy` or scanner fallback):
+**Policy-Derived Configuration** (pinned by the `SecurityPolicy`, or scanned when no policy is present):
 
 | Attribute | Type | Meaning |
 |---|---|---|
@@ -167,11 +168,11 @@ The class holds five groups of attributes:
 
 ### 4.2 Constructor — The Template Method
 
-The constructor executes a **fixed sequence** of five steps. This sequence is the same regardless of the programming language or toolchain:
+The constructor executes a **fixed sequence** of six steps. This sequence is the same regardless of the programming language or toolchain:
 
 ```
 Step 1 — Inject tools
-  ├── Preconditions.checkNotNull for all 5 collaborators
+  ├── Objects.requireNonNull for all 5 collaborators
 
 Step 2 — Resolve modes
   ├── buildMode         ← explicit value || projectScanner.scanForBuildMode()
@@ -184,36 +185,51 @@ Step 3 — Load essential data
   └── essentialClasses  ← essentialDataReader.readEssentialClassesFrom(path)
                            .getEssentialClasses()
 
-Step 4 — Extract configuration from SecurityPolicy (with scanner fallback)
-  ├── testClasses           ← policy.testClasses        || projectScanner.scanForTestClasses()
-  ├── packageName           ← policy.packageName        || projectScanner.scanForPackageName()
-  ├── mainClassInPackageName ← policy.mainClass         || projectScanner.scanForMainClassInPackage()
-  └── resourceAccesses      ← policy.resourceAccesses   || ResourceAccesses.createRestrictive()
+Step 4 — Extract configuration (fail-closed when a policy is present)
+  ├── Policy present:
+  │     ├── null SupervisedCode          → SecurityException
+  │     │                                  ("security.policy.supervised.code.required")
+  │     ├── packageName                  ← policy value; null/blank → SecurityException
+  │     │                                  ("security.policy.supervised.package.required")
+  │     ├── mainClassInPackageName       ← policy value || projectScanner
+  │     │                                  .scanForMainClassInPackage()  (only fallback)
+  │     ├── resourceAccesses             ← policy.resourceAccesses
+  │     └── testClasses                  ← ONLY policy.testClasses (never scanned)
+  └── No policy (legacy scan path):
+        ├── packageName                  ← projectScanner.scanForPackageName()
+        ├── mainClassInPackageName       ← projectScanner.scanForMainClassInPackage()
+        ├── resourceAccesses             ← ResourceAccesses.createRestrictive()
+        └── testClasses                  ← projectScanner.scanForTestClasses()
 
-Step 5 — Create test cases
+Step 5 — Guard the supervised package
+  └── ReservedPackageGuard.validatePackage(packageName)
+        → SecurityException if the package falls under a trusted
+          infrastructure prefix
+
+Step 6 — Create test cases
   └── creator.createTestCases(...)  ← fills architectureTestCases,
                                        aopTestCases, phobosTestCases
 ```
 
+Step 5 exists because the static analysers and the runtime AOP treat certain package prefixes (Ares internals, WALA's infrastructure prefixes) as **trusted** — a student submission declaring such a package would be trusted by name and bypass every check. `ReservedPackageGuard` therefore fails closed before any analysis or execution. The same guard is applied again later: `JavaCreator.createTestCases` validates the class names in the imported bytecode via `ReservedPackageGuard.validateClassNames(...)` (catching precompiled or generated classes that never appear in the scanned source), and `JavaProjectScanner.scanForPackageName()` filters reserved prefixes out of its candidates.
+
 ### 4.3 Policy vs. Scanner Fallback
 
-Every configuration value follows the same pattern:
+The constructor distinguishes **two modes**, depending on whether a `SecurityPolicy` was supplied:
 
-```java
-Optional.ofNullable(securityPolicy)
-    .map(SecurityPolicy::regardingTheSupervisedCode)
-    .map(SupervisedCode::theFollowingClassesAreTestClasses)
-    .orElseGet(projectScanner::scanForTestClasses);
-```
+**Mode 1 — Policy present (fail-closed):** A present policy must authoritatively determine the enforcement scope. Missing or blank values are **not** silently filled in by scanning the student-controlled project — the constructor refuses to run instead:
 
-| If the policy provides… | Then | Otherwise |
-|---|---|---|
-| `theFollowingClassesAreTestClasses` | Uses those class names | Scans `*.java` files for `@Test` / `@Property` annotations |
-| `theSupervisedCodeUsesTheFollowingPackage` | Uses that package name | Counts package declarations and picks the most frequent one |
-| `theMainClassInsideThisPackageIs` | Uses that class name | Searches for `public static void main(String[])` |
-| `theFollowingResourceAccessesArePermitted` | Uses those permissions | Creates a fully restrictive policy via `ResourceAccesses.createRestrictive()` |
+| Policy field | Behaviour |
+|---|---|
+| `regardingTheSupervisedCode` is `null` | `SecurityException` (`security.policy.supervised.code.required`) — no scanner fallback |
+| `theSupervisedCodeUsesTheFollowingPackage` is `null`/blank | `SecurityException` (`security.policy.supervised.package.required`) — no scanner fallback |
+| `theMainClassInsideThisPackageIs` is `null`/blank | Falls back to `projectScanner.scanForMainClassInPackage()` — the **only** remaining scanner fallback, safe because the main class is used only for code generation, not as an enforcement boundary |
+| `theFollowingClassesAreTestClasses` | Used as-is — test classes come **only** from the policy. Deriving the exempt set from the project would let a student add an `@Test` class to obtain a blanket exemption from every check |
+| `theFollowingResourceAccessesArePermitted` | Used as-is from the policy |
 
-This dual-source design allows Ares to work **without** a policy file — the scanner auto-detects everything. When a policy is present, it always takes precedence.
+**Mode 2 — No policy (legacy scan path):** Without a policy, the scanner auto-detects everything: `packageName` via `scanForPackageName()`, `mainClassInPackageName` via `scanForMainClassInPackage()`, `testClasses` via `scanForTestClasses()`, and `resourceAccesses` is set to the fully restrictive `ResourceAccesses.createRestrictive()`.
+
+This design allows Ares to work **without** a policy file, while a present policy pins the enforcement scope instead of merely taking precedence over the scanner.
 
 ### 4.4 Abstract Methods
 
@@ -297,10 +313,11 @@ The first five parameters (`creator`, `writer`, `executer`, `essentialDataReader
 Each invocation proceeds through two phases — extraction (reading class data from disk) and preparation (computing permissions) — before generating the final test-case objects:
 
 1. **Extraction (cached):**
-   - Computes the `classPath` from the `BuildMode` (Maven: `target/classes`, Gradle: `build/classes/java/main`).
+   - Computes the `classPath` via `BuildMode.getClasspath(projectPath, packageName)`. This is more than picking `target/classes` (Maven) vs `build/classes/java/main` (Gradle): the method also appends the package path to the build directory and interprets `withinPath`-style prefixes such as `classes/java/main/...` or `classes/...` by rewriting them onto the actual build directory.
+   - Validates the imported bytecode via `ReservedPackageGuard.validateClassNames(...)` — any compiled class declared under a trusted infrastructure prefix aborts test-case creation with a `SecurityException`.
    - Imports `JavaClasses` via the `ArchitectureMode` (ArchUnit's `ClassFileImporter`).
-   - Builds a `CallGraph` via the `ArchitectureMode` (null for ArchUnit, WALA's `CustomCallgraphBuilder` for WALA mode).
-   - All three results are cached in a `static ConcurrentHashMap` keyed by `projectPath_packageName_artifact`, so they are computed at most once per JVM run.
+   - Obtains the `CallGraph` as a **lazy `Supplier`** via the `ArchitectureMode` — it is never eagerly built here (null for ArchUnit, WALA's `CustomCallgraphBuilder` for WALA mode). Only the `classPath` and the `JavaClasses` are computed eagerly; the call graph is constructed on first use, and the disk-backed WALA outcome cache can short-circuit rule checks before the supplier is ever invoked.
+   - The results are memoised in an **instance-level** `ConcurrentHashMap` keyed by `projectPath_packageName_artifact`, so they are computed at most once per factory build (a `JavaCreator` lives for exactly one build — the cache is deliberately not static, so it cannot leak across runs in a long-lived JVM).
 
 2. **Preparation — computing allowed packages:**
    Four sources are merged into a single `Set<PackagePermission>`:
@@ -315,14 +332,17 @@ Each invocation proceeds through two phases — extraction (reading class data f
 3. **Preparation — computing allowed classes:**
    Two sources are merged: `essentialClasses` ∪ `testClasses`, each wrapped in a `ClassPermission`. These classes are exempt from all restrictions.
 
-4. **Variable test cases** (policy-dependent):
+4. **Priority test cases** (always-on, generated first):
+   - Before the variable cases, four architecture test cases are always generated via `JavaArchitectureTestCaseSupported.getPriority()`: `NATIVE_CODE`, `AGENT_ATTACH`, `ENVIRONMENT_ACCESS`, and `MODULE_SYSTEM`. These represent domain-specific checks whose APIs overlap with broader domains (e.g., FILESYSTEM, REFLECTION) — running them first ensures the more specific domain fires before the broader one.
+
+5. **Variable test cases** (policy-dependent):
    - For each `JavaAOPTestCaseSupported` value (`FILESYSTEM_INTERACTION`, `NETWORK_CONNECTION`, `COMMAND_EXECUTION`, `THREAD_CREATION`), creates a `JavaAOPTestCase`.
-   - The matching `ResourceAccesses` method is selected by enum ordinal (e.g., ordinal 0 → `regardingFileSystemInteractions()`).
+   - The matching `ResourceAccesses` method is selected by an exhaustive `switch` on the enum constant (e.g., `FILESYSTEM_INTERACTION` → `regardingFileSystemInteractions()`). Indexing by `ordinal()` was deliberately replaced: it would silently pair the wrong supplier with the aspect if the enum were ever reordered, whereas the switch turns a divergence into a compile error.
    - **Automatic escalation:** If the policy declares **no** permissions for a category (e.g., no file-system permissions at all), the creator adds a `JavaArchitectureTestCase` for the same category **in addition** to the AOP test case. This provides double protection: static analysis catches forbidden API imports at the bytecode level, and the AOP agent intercepts any calls that slip through. When permissions **do** exist, only the AOP test is created (static analysis would be too coarse to distinguish allowed from forbidden calls).
    - Phobos test cases are created similarly for `FILESYSTEM_INTERACTION`, `NETWORK_CONNECTION`, and `TIMEOUT`.
 
-5. **Fixed test cases** (always-on):
-   - Certain architecture test cases are always generated regardless of the policy (e.g., `TERMINATE_JVM`). These are retrieved via `JavaArchitectureTestCaseSupported.TERMINATE_JVM.getStatic()`.
+6. **Fixed test cases** (always-on, generated last):
+   - Six architecture test cases are always generated regardless of the policy: `PACKAGE_IMPORT`, `TERMINATE_JVM`, `REFLECTION`, `SERIALIZATION`, `CLASS_LOADING`, and `JNDI_INJECTION`. These are retrieved via `JavaArchitectureTestCaseSupported.getStatic()` (invoked on the arbitrarily chosen constant `TERMINATE_JVM`, since the method cannot be called on the interface).
 
 ---
 
@@ -341,10 +361,10 @@ Both are isomorphic Java Records with seven sub-lists:
 | `essentialWala*` | `de.tum.cit.ase.ares.api.architecture.java.wala` | *(empty)* |
 | `essentialAspectJ*` | `de.tum.cit.ase.ares.api.aop.java.aspectj` | `org.aspectj`, `org.java.aspectj` |
 | `essentialInstrumentation*` | `de.tum.cit.ase.ares.api.aop.java.instrumentation` | `de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut` |
-| `essentialAres*` | 19 Ares classes (Creator, Writer, Executer, PolicyReader, etc.) | *(empty)* |
+| `essentialAres*` | 18 Ares classes (Creator, Writer, Executer, PolicyReader, etc.) | *(empty)* |
 | `essentialJUnit*` | `de.tum.cit.ase.ares.api.jupiter` | *(empty)* |
 
-Each record provides a `getEssentialClasses()` / `getEssentialPackages()` method that concatenates all seven sub-lists into a single flat `List<String>` using `Streams.concat()`.
+Each record provides a `getEssentialClasses()` / `getEssentialPackages()` method that concatenates all seven sub-lists into a single flat `List<String>` using `Stream.of(...).flatMap(...)` from `java.util.stream`.
 
 Both records include a **Builder** with explicit `Objects.requireNonNull` checks on all seven fields.
 
@@ -355,7 +375,7 @@ Both records include a **Builder** with explicit `Objects.requireNonNull` checks
 | **Role** | Defines the strategy for reading essential-data YAML files into `EssentialClasses` and `EssentialPackages` records. |
 | **Pattern** | Strategy Pattern. Different implementations can read different file formats. |
 | **Key methods** | `readEssentialClassesFrom(Path)` → `EssentialClasses` and `readEssentialPackagesFrom(Path)` → `EssentialPackages`. |
-| **Error handling** | Provides a `default` method `throwReaderErrorMessage(identifier, parameter, exception)` that wraps the error in a `SecurityException` with a localised message via `Messages.localized(...)`. |
+| **Error handling** | Provides a `default` method `readerError(identifier, parameter, exception)` that **returns** (rather than throws) a `SecurityException` with a localised message via `Messages.localized(...)` — callers `throw` it explicitly, which keeps the `@Nonnull` read methods free of an unreachable `return null`. |
 
 ### 7.3 `EssentialDataYAMLReader`
 
@@ -397,7 +417,7 @@ Both records include a **Builder** with explicit `Objects.requireNonNull` checks
 |---|---|---|
 | **Architecture files** | `createJavaArchitectureFiles()` | ArchUnit/WALA test source files. Uses the `ArchitectureMode` to determine which template files to copy and how to format them. Includes both file-system-based (FS) and non-file-system-based (non-FS) files. |
 | **AOP files** | `createJavaAOPFiles()` | AspectJ aspects or ByteBuddy Instrumentation configuration files. Uses the `AOPMode` to select the appropriate templates. |
-| **Localisation files** | `createLocalisationFiles()` | Copies `messages*.properties` files into the project's `src/test/resources` directory, enabling localised error messages during test execution. |
+| **Localisation files** | `createLocalisationFiles()` | Copies `messages*.properties` files into a `resources` directory derived from the test folder path: the trailing two segments of `testFolderPath` are stripped and `resources` is appended (e.g. `src/test/java` → `src/resources`), and the files land under `<resources>/ares/api/localization/`. This enables localised error messages during test execution. |
 | **Phobos files** | `createPhobosFiles()` | Phobos framework configuration files for file-system, network, and timeout test cases. |
 
 **Template mechanism (Three-Parted Pattern):**
@@ -465,8 +485,8 @@ Defines five scanning methods that auto-detect project metadata:
 | Method | Returns | What it discovers |
 |---|---|---|
 | `scanForBuildMode()` | `BuildMode` | Whether the project uses Maven (`pom.xml`) or Gradle (`build.gradle`) |
-| `scanForTestClasses()` | `String[]` | Fully qualified names of all classes containing `@Test` or `@Property` annotations |
-| `scanForPackageName()` | `String` | The most frequently used package declaration across all `.java` files |
+| `scanForTestClasses()` | `String[]` | Fully qualified names of all classes in the **test source directory** containing `@Test` or `@Property` annotations, or extending JUnit 3's `TestCase` |
+| `scanForPackageName()` | `String` | The most frequently used non-reserved package declaration across all `.java` files |
 | `scanForMainClassInPackage()` | `String` | The class containing `public static void main(String[])` |
 | `scanForTestPath()` | `Path` | The file system path to the test source directory |
 
@@ -484,7 +504,7 @@ Defines five scanning methods that auto-detect project metadata:
 | `CLASS_PATTERN` | `public [final\|abstract\|strictfp] class ClassName` | `extractClassName()` |
 | `PACKAGE_PATTERN` | `package com.example.foo;` | `extractPackageName()` |
 | `MAIN_METHOD_PATTERN` | `public static void main(String[] args)` (including varargs) | `extractMainClass()` |
-| `TEST_ANNOTATION_PATTERN` | `@Test` or `@Property` | `extractTestClass()` |
+| `TEST_ANNOTATION_PATTERN` | `@Test` or `@Property` | `extractTestClass()` (which additionally treats classes containing `extends TestCase` as test classes) |
 
 **Scanning pipeline:**
 
@@ -495,7 +515,9 @@ ProjectSourcesFinder.findProjectSourcesPath()
       → extractor.apply(content)
 ```
 
-**`scanForPackageName()` algorithm:** Counts the frequency of every `package` declaration across all files → returns the most common one. This heuristic works because in a typical student project, the main source package appears in the majority of files.
+**`scanForPackageName()` algorithm:** First filters out reserved infrastructure prefixes (via `ReservedPackageGuard.reservedPrefixOf(...)`) so a student cannot flood the project with files in a trusted namespace to make it the derived enforcement scope → counts the frequency of every remaining `package` declaration across all files → returns the most common one. This heuristic works because in a typical student project, the main source package appears in the majority of files.
+
+**`scanForTestClasses()` algorithm:** Scans only the **test source directory** (see `scanForTestPath()`) and returns every class whose file contains a `@Test` / `@Property` annotation or `extends TestCase`.
 
 **`scanForMainClassInPackage()` algorithm:** Collects all classes with a `main` method → prefers a class named `Main` or `Application` → otherwise returns the first match → defaults to `"Main"`.
 
@@ -563,8 +585,9 @@ The following diagram shows the end-to-end flow from a `SecurityPolicy` object t
            │                               │  EssentialDataReader, ProjectScanner
            │ Step 2: Resolve modes         │  BuildMode, ArchitectureMode, AOPMode
            │ Step 3: Load essential data   │  ← EssentialDataYAMLReader reads YAML
-           │ Step 4: Extract config        │  ← from Policy or Scanner fallback
-           │ Step 5: Create test cases     │  ← JavaCreator generates tests
+           │ Step 4: Extract config        │  ← from Policy (fail-closed) or Scanner
+           │ Step 5: Guard package         │  ← ReservedPackageGuard.validatePackage()
+           │ Step 6: Create test cases     │  ← JavaCreator generates tests
            └───────────┬───────────────────┘
                        │
         ┌──────────────┼──────────────┐
@@ -634,15 +657,16 @@ class SecurityTest {
 1. The `SecurityPolicyJavaDirector` calls `JavaTestCaseFactoryAndBuilder.builder()` with all 12 parameters.
 2. The `TestCaseAbstractFactoryAndBuilder` constructor begins:
    - **Mode Resolution:** `BuildMode.GRADLE`, `ArchitectureMode.WALA`, `AOPMode.INSTRUMENTATION`.
-   - **Essential Data:** `EssentialDataYAMLReader` reads `EssentialPackages.yaml` (→ `java`, `org.aspectj`, etc.) and `EssentialClasses.yaml` (→ 19 Ares classes).
+   - **Essential Data:** `EssentialDataYAMLReader` reads `EssentialPackages.yaml` (→ `java`, `org.aspectj`, etc.) and `EssentialClasses.yaml` (→ 18 Ares classes).
    - **Policy Extraction:** `packageName = "com.student"`, `mainClass = "Main"`, `testClasses = ["com.student.test.SecurityTest"]`, `resourceAccesses` = all empty (fully restrictive).
 3. `JavaCreator.createTestCases()` runs:
    - Computes the classpath: `build/classes/java/main`.
    - Imports `JavaClasses` and builds a WALA `CallGraph` (cached).
    - Computes allowed packages: `{java, org.aspectj, com.student, com.student.test}`.
+   - **Priority test cases:** `NATIVE_CODE`, `AGENT_ATTACH`, `ENVIRONMENT_ACCESS`, and `MODULE_SYSTEM` architecture tests (always-on, generated first).
    - **Variable test cases:** Since all resource-access lists are empty, for each category (FS, Network, Command, Thread) both an `ArchitectureTestCase` **and** an `AOPTestCase` are created (automatic escalation).
-   - **Fixed test cases:** `TERMINATE_JVM` architecture test (always-on).
-4. `JavaWriter.writeTestCases()` serialises ArchUnit test files, Instrumentation configuration, localisation properties, and Phobos configs into `src/test/java/com/student/`.
+   - **Fixed test cases:** `PACKAGE_IMPORT`, `TERMINATE_JVM`, `REFLECTION`, `SERIALIZATION`, `CLASS_LOADING`, and `JNDI_INJECTION` architecture tests (always-on).
+4. `JavaWriter.writeTestCases()` serialises ArchUnit test files, Instrumentation configuration, and Phobos configs into `src/test/java/com/student/`, and localisation properties into `src/resources/ares/api/localization/`.
 5. `JavaExecuter.executeTestCases()`:
    - Configures the ByteBuddy agent with `restrictedPackage = "com.student"` and `allowedListedClasses`.
    - Runs the WALA-based architecture tests → if `com.student.Main` calls `java.io.File` anywhere in the call graph, the test fails.
@@ -655,11 +679,11 @@ class SecurityTest {
 | Problem | Possible Cause | Solution |
 |---------|---------------|----------|
 | `NullPointerException` in `JavaTestCaseFactoryAndBuilder.build()` | A mandatory builder parameter (creator, writer, executer, essentialDataReader, projectScanner, or an essential-data path) was not set | Ensure all 7 mandatory parameters are set before calling `build()` |
-| `SecurityException` mentioning "essential classes path must not be null" | The path to `EssentialClasses.yaml` was not provided | Verify that the director or builder sets `essentialClassesPath` and `essentialPackagesPath` |
+| `NullPointerException` with message "essentialClassesPath must not be null" | The path to `EssentialClasses.yaml` was not provided | Verify that the director or builder sets `essentialClassesPath` and `essentialPackagesPath` |
 | `SecurityException` from `EssentialDataYAMLReader` — "read failed" or "data bind failed" | The `EssentialClasses.yaml` or `EssentialPackages.yaml` file is malformed or missing | Check that the YAML files exist at the expected classpath location and have the correct schema (7 list fields each) |
 | Architecture tests pass but runtime enforcement is missing | The Java agent JAR is not loaded via `-javaagent` | See [How to Make a Project an Ares Project](../HowToMakeAProjectAnAresProject.md) for agent setup |
 | Scanner detects the wrong package name | The most-frequent-package heuristic picks a utility package instead of the student's main package | Specify `theSupervisedCodeUsesTheFollowingPackage` explicitly in the security policy YAML |
-| Scanner finds no test classes | Java source files do not contain `@Test` or `@Property` annotations, or files are not under the project sources path | Specify `theFollowingClassesAreTestClasses` explicitly in the security policy YAML |
+| Scanner finds no test classes | Java source files do not contain `@Test` or `@Property` annotations (or `extends TestCase`), or files are not under the test source directory | Specify `theFollowingClassesAreTestClasses` explicitly in the security policy YAML (note: with a policy present, test classes come **only** from the policy — the scanner is not consulted) |
 | `SecurityException` from `PathLocationProvider` — "can only be used on classes annotated with…" | The test class using `PathLocationProvider` is missing the `@StudentCompiledClassesPath` annotation | Add `@StudentCompiledClassesPath("build/classes/java/main")` to the test class |
 | Call-graph analysis is slow | WALA call-graph construction is computationally expensive for large projects | Switch to `ArchitectureMode.ARCHUNIT` (rule-based, faster but less precise), or ensure the cache is not invalidated between runs |
 
@@ -670,7 +694,7 @@ class SecurityTest {
 | Term | Meaning |
 |------|---------|
 | **Abstract Factory** | A design pattern that provides an interface for creating families of related objects (here: architecture tests and AOP tests) without specifying their concrete classes. |
-| **Template Method** | A design pattern where an abstract class defines the skeleton of an algorithm in a method, deferring some steps to subclasses. Here, the constructor of `TestCaseAbstractFactoryAndBuilder` fixes the 5-step initialisation sequence. |
+| **Template Method** | A design pattern where an abstract class defines the skeleton of an algorithm in a method, deferring some steps to subclasses. Here, the constructor of `TestCaseAbstractFactoryAndBuilder` fixes the 6-step initialisation sequence. |
 | **Strategy Pattern** | A design pattern that defines a family of interchangeable algorithms. Here: `Creator`, `Writer`, `Executer`, `ProjectScanner`, and `EssentialDataReader` are all strategy interfaces with swappable implementations. |
 | **AOP (Aspect-Oriented Programming)** | A technique for intercepting method calls at defined points ("pointcuts") without modifying the original code. Ares uses AOP to block forbidden I/O operations at runtime. |
 | **ArchUnit** | A Java library for checking architecture rules on compiled bytecode (e.g., "no class in package X may call class Y"). |

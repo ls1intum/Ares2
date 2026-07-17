@@ -7,8 +7,13 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.List;
+import java.lang.ref.Reference;
+import java.lang.ref.ReferenceQueue;
+import java.lang.ref.WeakReference;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -39,7 +44,50 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	 */
 	@Nonnull
 	private static final String UNRESOLVED_THREAD_CLASS = "<unresolved-thread-class>";
+
+	/**
+	 * Weak identity map from admitted Thread receivers to their effective task class.
+	 * The recorded class survives Thread.exit() clearing the task field and is
+	 * revalidated against every active policy rather than preserving stale permission.
+	 */
+	private static final ReferenceQueue<Thread> ALLOWED_THREAD_CLASSES_QUEUE = new ReferenceQueue<>();
+	private static final Map<WeakReference<Thread>, String> ALLOWED_THREAD_CLASSES = new HashMap<>();
 	// </editor-fold>
+
+	private static String getRecordedThreadClass(Thread thread) {
+		synchronized (ALLOWED_THREAD_CLASSES) {
+			removeClearedThreadEntries();
+			for (Map.Entry<WeakReference<Thread>, String> entry : ALLOWED_THREAD_CLASSES.entrySet()) {
+				if (entry.getKey().get() == thread) {
+					return entry.getValue();
+				}
+			}
+			return null;
+		}
+	}
+
+	private static void recordAllowedThread(Thread thread, String threadClassName) {
+		if (threadClassName == null) {
+			return;
+		}
+		synchronized (ALLOWED_THREAD_CLASSES) {
+			removeClearedThreadEntries();
+			Iterator<WeakReference<Thread>> iterator = ALLOWED_THREAD_CLASSES.keySet().iterator();
+			while (iterator.hasNext()) {
+				if (iterator.next().get() == thread) {
+					iterator.remove();
+				}
+			}
+			ALLOWED_THREAD_CLASSES.put(new WeakReference<>(thread, ALLOWED_THREAD_CLASSES_QUEUE), threadClassName);
+		}
+	}
+
+	private static void removeClearedThreadEntries() {
+		Reference<? extends Thread> clearedReference;
+		while ((clearedReference = ALLOWED_THREAD_CLASSES_QUEUE.poll()) != null) {
+			ALLOWED_THREAD_CLASSES.remove(clearedReference);
+		}
+	}
 
 	// <editor-fold desc="Thread system methods">
 
@@ -127,7 +175,7 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	 * Returns the per-operation sentinel token for an implicit thread operation
 	 * intercepted with no resolvable thread-task class
 	 * ({@code Collection.parallelStream}, {@code BaseStream.parallel},
-	 * {@code Thread.sleep}, {@code SubmissionPublisher.submit/offer}), or
+	 * {@code SubmissionPublisher.submit/offer}), or
 	 * {@code null} if the intercepted method is not such an operation.
 	 *
 	 * @param declaringTypeName the declaring type of the intercepted method
@@ -239,9 +287,14 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	 * @param actualClassname      the class name of the thread being requested
 	 * @param allowedThreadClasses the thread classes that are allowed to be created
 	 * @param allowedThreadNumbers the number of threads allowed to be created
+	 * @param decrementQuota       {@code true} to consume the per-class creation quota
+	 *                             on a match (creation); {@code false} to check
+	 *                             membership only without decrementing (manipulation
+	 *                             such as notify/wait, which is not a creation and so
+	 *                             must not exhaust the creation quota)
 	 * @return true if path is forbidden; false otherwise
 	 */
-	private static boolean checkIfThreadIsForbidden(@Nullable ThreadTarget target, @Nullable String[] allowedThreadClasses, @Nullable int[] allowedThreadNumbers) {
+	private static boolean checkIfThreadIsForbidden(@Nullable ThreadTarget target, @Nullable String[] allowedThreadClasses, @Nullable int[] allowedThreadNumbers, boolean decrementQuota) {
 		if (target == null || target.className() == null) {
 			return false;
 		}
@@ -249,7 +302,7 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 		if (allowedThreadClasses == null || allowedThreadClasses.length == 0 || allowedThreadNumbers == null || allowedThreadNumbers.length == 0) {
 			return true;
 		}
-		// Implicit thread operations (parallelStream/parallel/Thread.sleep/SubmissionPublisher.submit) are
+		// Implicit thread operations (parallelStream/parallel/SubmissionPublisher.submit) are
 		// represented by a sentinel token. The "*" wildcard never covers them and class-hierarchy matching
 		// does not apply; only an exact sentinel entry in the allow-list permits one, so a broad "*" cannot
 		// silently allow them.
@@ -267,11 +320,15 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 			boolean matches = isImplicitOperation ? actualClassname.equals(allowedClassName)
 					: threadClassMatches(actualClassname, allowedClassName);
 			if (matches) {
-				return handleFoundClassIsForbidden(allowedThreadNumbers, i);
+				// Manipulation (decrementQuota == false) only requires the thread class to be a
+				// member of the allow-list; it must not consume the creation quota, otherwise a
+				// notify/wait after an allowed start() would be wrongly denied once the quota is
+				// exhausted.
+				return decrementQuota ? handleFoundClassIsForbidden(allowedThreadNumbers, i) : false;
 			}
 		}
 		if (starIndex != -1) {
-			return handleFoundClassIsForbidden(allowedThreadNumbers, starIndex);
+			return decrementQuota ? handleFoundClassIsForbidden(allowedThreadNumbers, starIndex) : false;
 		}
 		return true;
 	}
@@ -446,15 +503,17 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 
 	/**
 	 * Returns the class name of the Runnable task carried by a {@link Thread}, or
-	 * {@code null} when the thread has no task (an overridden {@code run()}) or the
-	 * task cannot be read. Lambda tasks resolve to {@code "Lambda-Expression"}.
+	 * {@code null} when the thread has no task (an overridden {@code run()}). An
+	 * unreadable task fails closed. Lambda tasks resolve to
+	 * {@code "Lambda-Expression"}.
 	 * Reading the task directly from the receiver makes the thread check
 	 * self-sufficient, so it does not depend on the FieldHolder attribute being
 	 * separately readable (that field read may be skipped under strong
 	 * encapsulation).
 	 *
 	 * @param thread the thread receiver to inspect
-	 * @return the task class name, or {@code null} if there is no readable task
+	 * @return the task class name, or {@code null} if there is no task
+	 * @throws SecurityException if the task cannot be read
 	 */
 	@Nullable
 	private static String threadTaskClassName(@Nonnull Thread thread) {
@@ -469,11 +528,12 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	/**
 	 * Reads the Runnable task object from a {@link Thread}, trying the modern
 	 * {@code holder.task} layout first and the legacy {@code target} field as a
-	 * fallback, each via reflection then Unsafe. Returns {@code null} if no task is
-	 * set or it cannot be read.
+	 * fallback, each via reflection then Unsafe. Returns {@code null} only if the
+	 * task field was read successfully and contains no task.
 	 *
 	 * @param thread the thread receiver to inspect
-	 * @return the task object, or {@code null}
+	 * @return the task object, or {@code null} if the task field is empty
+	 * @throws SecurityException if no supported layout can be read
 	 */
 	@Nullable
 	private static Object readThreadTask(@Nonnull Thread thread) {
@@ -492,8 +552,8 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 		try {
 			Field targetField = Thread.class.getDeclaredField("target");
 			return readField(targetField, thread);
-		} catch (NoSuchFieldException ignored) {
-			return null;
+		} catch (NoSuchFieldException e) {
+			throw new SecurityException(localize("security.advice.transform.path.exception.detail", thread), e);
 		}
 	}
 
@@ -501,11 +561,13 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	 * Reads an object field via standard reflection, falling back to
 	 * {@code sun.misc.Unsafe} when strong encapsulation blocks reflective access, so
 	 * the overridden-run() detection still works on a locked-down runtime. Returns
-	 * {@code null} if the value is null or cannot be read by either means.
+	 * {@code null} only when a successful read yields null. Failure of both
+	 * mechanisms is denied rather than being confused with an empty field.
 	 *
 	 * @param field the field to read
 	 * @param owner the instance to read it from
-	 * @return the field value, or {@code null}
+	 * @return the field value, or {@code null} if the field contains null
+	 * @throws SecurityException if neither access mechanism can read the field
 	 */
 	@Nullable
 	private static Object readField(@Nonnull Field field, @Nonnull Object owner) {
@@ -526,8 +588,8 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 			Method getObject = unsafeClass.getMethod("getObject", Object.class, long.class);
 			return getObject.invoke(unsafe, owner, offset);
 		} catch (ClassNotFoundException | NoSuchFieldException | NoSuchMethodException | IllegalAccessException
-				| InvocationTargetException | InaccessibleObjectException | NullPointerException ignored) {
-			return null;
+				| InvocationTargetException | InaccessibleObjectException | NullPointerException e) {
+			throw new SecurityException(localize("security.advice.transform.path.exception.detail", owner), e);
 		}
 	}
 
@@ -616,12 +678,17 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	 *
 	 * @param action the thread system action being performed
 	 * @param thisJoinPoint the join point representing the method call
+	 * @param decrementQuota whether a matched allowed class consumes the creation
+	 *                       quota ({@code true} for creation) or is checked for
+	 *                       membership only without decrementing ({@code false} for
+	 *                       manipulation such as notify/wait, which is not a creation)
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */
 	public void checkThreadSystemInteraction(
 			@Nonnull String action,
-			@Nonnull JoinPoint thisJoinPoint
+			@Nonnull JoinPoint thisJoinPoint,
+			boolean decrementQuota
 	) {
 		// Re-entrancy guard: the advice body's own file-system and stack-walk work is
 		// woven and re-enters this advice on the same thread, causing unbounded
@@ -631,7 +698,7 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 			return;
 		}
 		try {
-			checkThreadSystemInteractionImpl(action, thisJoinPoint);
+			checkThreadSystemInteractionImpl(action, thisJoinPoint, decrementQuota);
 		} finally {
 			exitAdvice();
 		}
@@ -639,7 +706,8 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 
 	private void checkThreadSystemInteractionImpl(
 			@Nonnull String action,
-			@Nonnull JoinPoint thisJoinPoint
+			@Nonnull JoinPoint thisJoinPoint,
+			boolean decrementQuota
 	) {
 		// <editor-fold desc="Get information from settings">
 		@Nullable
@@ -730,18 +798,25 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 		// per-method ignore filtering applies here.
 		@Nonnull
 		Set<String> threadClassNames = new LinkedHashSet<>();
+		String recordedThreadClass = !decrementQuota && instance instanceof Thread
+				? getRecordedThreadClass((Thread) instance)
+				: null;
 		if (parameters != null) {
 			for (Object parameter : parameters) {
 				collectThreadClassNames(parameter, threadClassNames);
 			}
 		}
-		collectThreadClassNames(instance, threadClassNames);
+		if (recordedThreadClass != null) {
+			threadClassNames.add(recordedThreadClass);
+		} else {
+			collectThreadClassNames(instance, threadClassNames);
+		}
 		if (attributes != null) {
 			for (Object attribute : attributes) {
 				collectThreadClassNames(attribute, threadClassNames);
 			}
 		}
-		// An implicit thread operation (parallelStream/parallel/Thread.sleep/SubmissionPublisher.submit/
+		// An implicit thread operation (parallelStream/parallel/SubmissionPublisher.submit/
 		// offer) carries no thread-task class, so the resolution above found nothing. Represent it by a
 		// per-operation sentinel so the existing allow-list/quota check governs it, but only when the
 		// student invoked it directly (the first non-infrastructure caller is restricted-package code), so
@@ -755,12 +830,16 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 			}
 		}
 		for (String threadClassName : threadClassNames) {
-			if (checkIfThreadIsForbidden(new ThreadTarget(threadClassName), allowedThreadClasses, allowedThreadNumbers)) {
+			if (checkIfThreadIsForbidden(new ThreadTarget(threadClassName), allowedThreadClasses, allowedThreadNumbers, decrementQuota)) {
 				throw new SecurityException(localize(
 						"security.advice.illegal.thread.execution", systemMethodToCheck, action, threadClassName,
 						fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
 								+ " | " + buildDenialReason(noAllowRuleConfigured)));
 			}
+		}
+		if (decrementQuota && instance instanceof Thread) {
+			String resolvedThreadClass = variableToClassname(instance);
+			recordAllowedThread((Thread) instance, resolvedThreadClass);
 		}
 		// </editor-fold>
 	}
@@ -771,7 +850,15 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	before():
 			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemPointcutDefinitions.threadCreateMethodsWithParameters() ||
 					de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemPointcutDefinitions.threadCreateMethodsWithoutParameters() {
-		checkThreadSystemInteraction("create", thisJoinPoint);
+		checkThreadSystemInteraction("create", thisJoinPoint, true);
+	}
+
+	// Thread manipulation (notify/notifyAll/wait on a Thread receiver): membership-only
+	// check, so it does not consume the creation quota. Instrumentation implements the
+	// same semantics through application call-site substitution.
+	before():
+			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemPointcutDefinitions.threadManipulateMethods() {
+		checkThreadSystemInteraction("manipulate", thisJoinPoint, false);
 	}
 
 }

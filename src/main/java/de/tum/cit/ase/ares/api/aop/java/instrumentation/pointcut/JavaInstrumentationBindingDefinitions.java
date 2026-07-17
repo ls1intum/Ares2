@@ -7,16 +7,11 @@ import java.util.Map;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
-import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.DynamicType;
-import net.bytebuddy.dynamic.loading.ClassInjector;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.utility.JavaModule;
 
-import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceThreadSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationConnectNetworkConstructorAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationConnectNetworkMethodAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationCreatePathConstructorAdvice;
@@ -45,7 +40,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentati
  * overwriting, executing, or deleting files. These bindings enable
  * security-related advice to be applied to monitor and control file operations
  * at runtime. The advice ensures that file system interactions adhere to the
- * established security policies, preventing unauthorized or malicious file
+ * established security policies, preventing unauthorised or malicious file
  * operations.
  */
 public final class JavaInstrumentationBindingDefinitions {
@@ -115,7 +110,7 @@ public final class JavaInstrumentationBindingDefinitions {
 	 * pointcuts, and advice. The binding connects the bytecode modification process
 	 * to the specific methods defined by the pointcuts and applies the provided
 	 * advice. This ensures that security policies are enforced on methods
-	 * interacting with the file system, preventing unauthorized actions such as
+	 * interacting with the file system, preventing unauthorised actions such as
 	 * file manipulation or access.
 	 *
 	 * @param builder         The builder used to create the binding.
@@ -167,36 +162,6 @@ public final class JavaInstrumentationBindingDefinitions {
 		}
 	}
 
-	/**
-	 * This method loads the toolbox classes into the bootstrap loader using the
-	 * provided class loader. It ensures that the required classes for the
-	 * instrumentation (such as the advice and test case settings) are available in
-	 * the runtime environment. This process is essential for enforcing the
-	 * necessary security checks during file system operations, ensuring that all
-	 * file interactions comply with the security policies defined in the advice.
-	 *
-	 * @param classLoader The class loader responsible for loading the toolbox
-	 *                    classes.
-	 * @throws SecurityException If the toolbox classes could not be loaded into the
-	 *                           bootstrap loader, potentially affecting the
-	 *                           integrity of the security checks.
-	 */
-	private static void loadToolbox(ClassLoader classLoader) {
-		try {
-			// new
-			ClassInjector.UsingUnsafe.ofBootLoader()
-					// .UsingUnsafe(classLoader)
-					.inject(Map.of(new TypeDescription.ForLoadedType(JavaInstrumentationAdviceFileSystemToolbox.class),
-							ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceFileSystemToolbox.class),
-							new TypeDescription.ForLoadedType(JavaInstrumentationAdviceThreadSystemToolbox.class),
-							ClassFileLocator.ForClassLoader.read(JavaInstrumentationAdviceThreadSystemToolbox.class),
-							new TypeDescription.ForLoadedType(JavaAOPTestCaseSettings.class),
-							ClassFileLocator.ForClassLoader.read(JavaAOPTestCaseSettings.class)));
-		} catch (Exception e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-					"security.instrumentation.binding.bootstrap.loader.failure", String.valueOf(e.getMessage())), e);
-		}
-	}
 	// </editor-fold>
 
 	// <editor-fold desc="Read Path">
@@ -205,7 +170,7 @@ public final class JavaInstrumentationBindingDefinitions {
 	 * instrumentation advice for file read operations defined in the corresponding
 	 * pointcuts, ensuring that security-related advice is applied when methods that
 	 * read files are invoked. This helps to enforce security policies related to
-	 * file read operations, preventing unauthorized access to files.
+	 * file read operations, preventing unauthorised access to files.
 	 *
 	 * @param builder          The builder used to create the binding.
 	 * @param typeDescription  The description of the class whose methods are being
@@ -252,7 +217,7 @@ public final class JavaInstrumentationBindingDefinitions {
 	 * This method creates a binding for the overwrite path pointcut. It applies the
 	 * instrumentation advice for file overwrite operations defined in the
 	 * corresponding pointcuts, ensuring that security-related advice is applied
-	 * when methods that overwrite files are invoked. This ensures that unauthorized
+	 * when methods that overwrite files are invoked. This ensures that unauthorised
 	 * or potentially harmful file overwriting actions are detected and prevented.
 	 *
 	 * @param builder          The builder used to create the binding.
@@ -301,7 +266,7 @@ public final class JavaInstrumentationBindingDefinitions {
 	 * instrumentation advice for file execution operations defined in the
 	 * corresponding pointcuts, ensuring that security-related advice is applied
 	 * when methods that execute files are invoked. This helps to prevent
-	 * unauthorized file executions that could compromise the system's integrity.
+	 * unauthorised file executions that could compromise the system's integrity.
 	 *
 	 * @param builder          The builder used to create the binding.
 	 * @param typeDescription  The description of the class whose methods are being
@@ -349,7 +314,7 @@ public final class JavaInstrumentationBindingDefinitions {
 	 * instrumentation advice for file deletion operations defined in the
 	 * corresponding pointcuts, ensuring that security-related advice is applied
 	 * when methods that delete files are invoked. This safeguards against
-	 * unauthorized or harmful file deletion operations.
+	 * unauthorised or harmful file deletion operations.
 	 *
 	 * @param builder          The builder used to create the binding.
 	 * @param typeDescription  The description of the class whose methods are being
@@ -394,10 +359,10 @@ public final class JavaInstrumentationBindingDefinitions {
 	// <editor-fold desc="Create Thread">
 	/**
 	 * This method creates a binding for the create thread pointcut. It applies the
-	 * instrumentation advice for file deletion operations defined in the
+	 * instrumentation advice for thread creation operations defined in the
 	 * corresponding pointcuts, ensuring that security-related advice is applied
 	 * when methods that create threads are invoked. This safeguards against
-	 * unauthorized or harmful file deletion operations.
+	 * unauthorised or harmful thread creation operations.
 	 *
 	 * @param builder          The builder used to create the binding.
 	 * @param typeDescription  The description of the class whose methods are being
@@ -407,10 +372,10 @@ public final class JavaInstrumentationBindingDefinitions {
 	 *                         reasons).
 	 * @param protectionDomain The protection domain being ignored (for
 	 *                         compatibility reasons).
-	 * @return The builder with the binding applied for file deletion operations.
+	 * @return The builder with the binding applied for thread creation operations.
 	 * @throws SecurityException If the binding could not be created for the create
 	 *                           thread, preventing the enforcement of security
-	 *                           policies for file deletion operations.
+	 *                           policies for thread creation operations.
 	 */
 	public static DynamicType.Builder<?> createCreateThreadMethodBinding(DynamicType.Builder<?> builder,
 			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
@@ -445,7 +410,7 @@ public final class JavaInstrumentationBindingDefinitions {
 	 * the instrumentation advice for command execution operations defined in the
 	 * corresponding pointcuts, ensuring that security-related advice is applied
 	 * when methods that execute commands are invoked. This safeguards against
-	 * unauthorized or harmful command execution operations.
+	 * unauthorised or harmful command execution operations.
 	 *
 	 * @param builder          The builder used to create the binding.
 	 * @param typeDescription  The description of the class whose methods are being

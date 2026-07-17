@@ -291,7 +291,7 @@ public abstract class TestCaseAbstractFactoryAndBuilder {
 	 *         files.
 	 */
 	@Nonnull
-	public abstract List<Path> writeTestCases(@Nullable Path testFolderPath);
+	public abstract List<Path> writeTestCases(@Nonnull Path testFolderPath);
 
 	/**
 	 * Executes the generated security test cases.

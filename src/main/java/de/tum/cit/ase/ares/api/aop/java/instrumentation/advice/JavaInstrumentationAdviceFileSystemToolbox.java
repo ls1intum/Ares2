@@ -1,7 +1,5 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox.*;
-
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Array;
@@ -33,7 +31,7 @@ import javax.annotation.Nullable;
  * at runtime by checking file system interactions (read, create, overwrite,
  * execute, delete) against allowed paths, call stack criteria, and variable
  * criteria. Uses reflection to interact with test case settings and
- * localization utilities. Designed to prevent unauthorized file system
+ * localisation utilities. Designed to prevent unauthorised file system
  * operations during Java application execution, especially in test and
  * instrumentation scenarios.
  * <p>
@@ -113,9 +111,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			// socket/stream is not a path. File/String-named PrintStreams still validate
 			// their path at index 0.
 			Map.entry("java.io.PrintStream.<init>", IgnoreValues.allExcept(0)));
-
-	private static final EnumSet<StandardOpenOption> CREATE_OPTIONS = EnumSet.of(StandardOpenOption.CREATE,
-			StandardOpenOption.CREATE_NEW);
 
 	/**
 	 * Internal Ares files that should be excluded from file system interception.
@@ -418,7 +413,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 
 	// <editor-fold desc="Violation analysis">
 	/**
-	 * Analyzes a variable to determine if it violates allowed paths.
+	 * Analyses a variable to determine if it violates allowed paths.
 	 * <p>
 	 * Description: Recursively checks if the variable or its elements (if an array
 	 * or List) are in violation of the allowed paths. Returns true if any element
@@ -426,7 +421,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param observedVariable the variable to analyze
+	 * @param observedVariable the variable to analyse
 	 * @param allowedPaths     whitelist of allowed path strings; if null, all paths
 	 *                         are considered allowed
 	 * @return true if a violation is found, false otherwise
@@ -560,17 +555,17 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 
 	/**
 	 * Checks if the parameters contain an append=false boolean, indicating
-	 * overwrite behavior.
+	 * overwrite behaviour.
 	 * <p>
 	 * Description: For legacy I/O classes like FileWriter and FileOutputStream, the
-	 * append behavior is controlled by a boolean parameter. When this parameter is
+	 * append behaviour is controlled by a boolean parameter. When this parameter is
 	 * false, the file is truncated/overwritten rather than appended to, which
 	 * should be reported as "overwrite" instead of "create".
 	 * </p>
 	 *
 	 * @param declaringTypeName the fully qualified class name being invoked
 	 * @param parameters        the constructor/method parameters
-	 * @return true if append=false was found, indicating overwrite behavior
+	 * @return true if append=false was found, indicating overwrite behaviour
 	 * @since 2.0.0
 	 */
 	private static boolean hasAppendFalseParameter(@Nonnull String declaringTypeName, @Nullable Object[] parameters) {
@@ -627,15 +622,13 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * </ul>
 	 * </p>
 	 *
-	 * @param parameters    the constructor parameters (File/String, mode)
-	 * @param defaultAction the action from the pointcut context (unused, mode
-	 *                      parameter takes priority)
+	 * @param parameters the constructor parameters (File/String, mode)
 	 * @return the effective action based on the mode, or null if no mode string
 	 *         found
 	 * @since 2.0.0
 	 */
 	@Nullable
-	private static String getRandomAccessFileModeAction(@Nullable Object[] parameters, @Nonnull String defaultAction) {
+	private static String getRandomAccessFileModeAction(@Nullable Object[] parameters) {
 		if (parameters == null || parameters.length < 2) {
 			return null;
 		}
@@ -825,7 +818,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			}
 			// Check for RandomAccessFile mode string first
 			if ("java.io.RandomAccessFile".equals(declaringTypeName)) {
-				String modeAction = getRandomAccessFileModeAction(parameters, defaultAction);
+				String modeAction = getRandomAccessFileModeAction(parameters);
 				if (modeAction != null) {
 					// RandomAccessFile write modes can create files that don't exist yet,
 					// so always check the path even when the file is absent.
@@ -1193,8 +1186,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 */
 	private static void checkFileSystemInteractionForAction(@Nonnull String action,
 			boolean allowNonExistingPathsToBeConsidered, @Nonnull String declaringTypeName, @Nonnull String methodName,
-			@Nonnull String methodSignature, @Nullable Object[] attributes, @Nullable Object[] parameters,
-			@Nullable Object instance, @Nullable String restrictedPackage, @Nullable String[] allowedClasses,
+			@Nullable Object[] attributes, @Nullable Object[] parameters, @Nullable Object instance,
 			@Nonnull String fileSystemMethodToCheck, @Nullable String studentCalledMethod,
 			@Nonnull String fullMethodSignature) {
 		// <editor-fold desc="Resolve allowed paths">
@@ -1375,7 +1367,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			// When the JVM loads a class (e.g., via Class.forName), it reads the .class
 			// file
 			// from the filesystem. This is not a security concern as it's part of normal
-			// class loading behavior, not arbitrary file access by student code.
+			// class loading behaviour, not arbitrary file access by student code.
 			if (pathIllegallyInteractedThroughAttribute.endsWith(".class") && (isClassLoadingInProgress()
 					|| (studentCalledMethod != null && (studentCalledMethod.startsWith("java.lang.Class.forName")
 							|| studentCalledMethod.startsWith("java.lang.ClassLoader")
@@ -1440,7 +1432,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * @param methodSignature   the method signature descriptor
 	 * @param attributes        optional method attributes
 	 * @param parameters        optional method parameters
-	 * @throws SecurityException if unauthorized access is detected
+	 * @throws SecurityException if unauthorised access is detected
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */
@@ -1492,9 +1484,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 					parameters);
 			for (Map.Entry<String, Boolean> actionCheck : actionsToValidate) {
 				checkFileSystemInteractionForAction(actionCheck.getKey(), Boolean.TRUE.equals(actionCheck.getValue()),
-						declaringTypeName, methodName, methodSignature, attributes, parameters, instance,
-						restrictedPackage, allowedClasses, fileSystemMethodToCheck, studentCalledMethod,
-						fullMethodSignature);
+						declaringTypeName, methodName, attributes, parameters, instance, fileSystemMethodToCheck,
+						studentCalledMethod, fullMethodSignature);
 			}
 		} finally {
 			exitAdvice();

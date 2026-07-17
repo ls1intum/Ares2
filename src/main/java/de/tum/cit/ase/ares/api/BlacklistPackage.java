@@ -8,12 +8,8 @@ import java.lang.annotation.*;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 
-//REMOVED: Import of ArtemisSecurityManager
-
 /**
- * Allows to blacklist a package, possibly including all subpackages. The
- * REMOVED: Link to ArtemisSecurityManager will disallow any access for
- * <b>non-whitelisted callers</b> outside the set of whitelisted packages. This
+ * Adds a package, possibly including all subpackages, to the deny-list. This
  * annotation is {@linkplain Repeatable}, and can be placed additively on the
  * test class and test method.
  * <p>
@@ -31,7 +27,7 @@ import org.apiguardian.api.API.Status;
  * packages can be used, apart from java.lang.reflect, and internal packages of
  * Ares.
  * <p>
- * <b>This annotation will be overpowered any {@link WhitelistPackage}
+ * <b>This annotation is overridden by any {@link WhitelistPackage}
  * annotations.</b>
  *
  * @author Christian Femers

@@ -3,7 +3,7 @@ package de.tum.cit.ase.ares.api.io;
 import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 
 import java.io.*;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.apiguardian.api.API;
@@ -26,11 +26,18 @@ public final class IOTester {
 
 	static final String LINE_SEPARATOR = "\n"; //$NON-NLS-1$
 
-	static {
-		checkEncoding();
-	}
-
 	private static IOTester instance;
+
+	/**
+	 * Monitors guarding the installation state. They are private on purpose: an
+	 * IOTester is handed to a test method as a parameter, so student code holds a
+	 * reference to the instance and can reach the class, and synchronising on
+	 * {@code this} or on {@code IOTester.class} would let it take the very monitor
+	 * that install, uninstall and reset need. Holding that monitor would stall the
+	 * capture of the system streams. A lock that no one outside this class can name
+	 * cannot be taken by student code.
+	 */
+	private static final Object INSTALLATION_LOCK = new Object();
 
 	private final InputStream oldIn;
 	private final PrintStream oldOut;
@@ -68,37 +75,51 @@ public final class IOTester {
 		err = new TestOutStream(errTester, mirrorOutput ? oldErr : null, maxChars);
 	}
 
-	public synchronized void install() {
-		// check permission already here, we need to be allowed to set system IO
-		// REMOVED: Getting the system's SecurityManager
-		// if this is a problem, make sure to install the security manager after
-		// IOTester
+	public void install() {
+		synchronized (INSTALLATION_LOCK) {
+			if (instance != this) {
+				throw new IllegalStateException(localized("io_tester.not_current_instance")); //$NON-NLS-1$
+			}
+			if (isInstalled) {
+				throw new IllegalStateException(localized("io_tester.already_installed")); //$NON-NLS-1$
+			}
+			// check permission already here, we need to be allowed to set system IO
+			// set test streams
+			System.setIn(in);
+			System.setOut(new PrintStream(out, true, StandardCharsets.UTF_8));
+			System.setErr(new PrintStream(err, true, StandardCharsets.UTF_8));
 
-		// set test streams
-		System.setIn(in);
-		System.setOut(new PrintStream(out, true));
-		System.setErr(new PrintStream(err, true));
-
-		isInstalled = true;
+			isInstalled = true;
+		}
 	}
 
-	public synchronized void uninstall() {
-		// set original streams
-		System.setIn(oldIn);
-		System.setOut(oldOut);
-		System.setErr(oldErr);
+	public void uninstall() {
+		synchronized (INSTALLATION_LOCK) {
+			if (instance != this || !isInstalled) {
+				throw new IllegalStateException(localized("io_tester.not_current_instance")); //$NON-NLS-1$
+			}
+			// set original streams
+			System.setIn(oldIn);
+			System.setOut(oldOut);
+			System.setErr(oldErr);
 
-		isInstalled = false;
+			isInstalled = false;
+		}
 	}
 
-	public synchronized void reset() {
-		inTester.resetInput();
-		outTester.resetOutput();
-		errTester.resetOutput();
+	public void reset() {
+		synchronized (INSTALLATION_LOCK) {
+			if (instance != this || !isInstalled) {
+				throw new IllegalStateException(localized("io_tester.not_current_instance")); //$NON-NLS-1$
+			}
+			inTester.resetInput();
+			outTester.resetOutput();
+			errTester.resetOutput();
 
-		in.resetInternalState();
-		out.resetInternalState();
-		err.resetInternalState();
+			in.resetInternalState();
+			out.resetInternalState();
+			err.resetInternalState();
+		}
 	}
 
 	public IOTester provideInputLines(String... givenInputLines) {
@@ -207,33 +228,30 @@ public final class IOTester {
 		return getErrTester();
 	}
 
-	public static synchronized boolean isInstalled() {
-		return instance != null && instance.isInstalled;
-	}
-
-	public static synchronized IOTester installNew(boolean mirrorOutput, long maxChars) {
-		if (isInstalled()) {
-			throw new IllegalStateException(localized("io_tester.already_installed")); //$NON-NLS-1$
+	public static boolean isInstalled() {
+		synchronized (INSTALLATION_LOCK) {
+			return instance != null && instance.isInstalled;
 		}
-		instance = new IOTester(mirrorOutput, maxChars);
-		instance.install();
-		return instance;
 	}
 
-	public static synchronized void uninstallCurrent() {
-		if (!isInstalled()) {
-			throw new IllegalStateException(localized("io_tester.not_installed")); //$NON-NLS-1$
+	public static IOTester installNew(boolean mirrorOutput, long maxChars) {
+		synchronized (INSTALLATION_LOCK) {
+			if (isInstalled()) {
+				throw new IllegalStateException(localized("io_tester.already_installed")); //$NON-NLS-1$
+			}
+			instance = new IOTester(mirrorOutput, maxChars);
+			instance.install();
+			return instance;
 		}
-		instance.uninstall();
-		instance = null;
 	}
 
-	private static void checkEncoding() {
-		Charset cs = Charset.defaultCharset();
-		if (!"UTF-8".equals(cs.name())) { //$NON-NLS-1$
-			String message = localized("io_tester.default_not_utf8", cs); //$NON-NLS-1$
-			System.err.println(message); // this is more noticeable in maven build log
-			throw new IllegalStateException(message);
+	public static void uninstallCurrent() {
+		synchronized (INSTALLATION_LOCK) {
+			if (!isInstalled()) {
+				throw new IllegalStateException(localized("io_tester.not_installed")); //$NON-NLS-1$
+			}
+			instance.uninstall();
+			instance = null;
 		}
 	}
 }

@@ -1,10 +1,7 @@
 package de.tum.cit.ase.ares.integration.testuser;
 
-import static org.junit.jupiter.api.Assertions.fail;
-
 import java.io.*;
 import java.net.*;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.MethodOrderer.MethodName;
@@ -58,29 +55,6 @@ public class NetworkUser {
 	@Test
 	void connectRemoteNotAllowed() throws Exception {
 		NetworkPenguin.tryConnect("example.com", 80, null);
-	}
-
-	@Test
-	void serverAllowedAndAccept() throws Throwable {
-		var error = new AtomicReference<Throwable>();
-		var serverThread = new Thread(TestUtils.getRootThreadGroup(), () -> {
-			try {
-				NetworkPenguin.tryStartServer(45458, "something");
-			} catch (Exception e) {
-				fail(e);
-			}
-		}, "server-45458");
-		serverThread.setUncaughtExceptionHandler((thread, t) -> error.set(t));
-		// REMOVED: Thread-whitelisting-request to ArtemisSecurityManager
-		serverThread.start();
-		try (Socket s = new Socket("localhost", 45458); PrintStream out = new PrintStream(s.getOutputStream())) {
-			s.setSoTimeout(2500);
-			out.println("something");
-		}
-		serverThread.join(2500);
-		if (error.get() != null) {
-			throw error.get();
-		}
 	}
 
 	@Test

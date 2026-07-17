@@ -4,10 +4,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
@@ -51,13 +51,14 @@ public class JavaWriter implements Writer {
 	 * @param mainClassInPackageName    the name of the main class; must not be null
 	 * @param javaArchitectureTestCases the list of architecture test cases; must
 	 *                                  not be null
-	 * @param testFolderPath            the directory of the project; may be null
+	 * @param testFolderPath            the directory of the project; must not be
+	 *                                  null
 	 * @return a list of paths to the created files
 	 */
 	@Nonnull
 	private List<Path> createJavaArchitectureFiles(@Nonnull ArchitectureMode architectureMode,
 			@Nonnull String packageName, @Nonnull String mainClassInPackageName,
-			@Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases, @Nullable Path testFolderPath) {
+			@Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases, @Nonnull Path testFolderPath) {
 		return Stream
 				.concat(Stream.concat(
 						FileTools
@@ -92,13 +93,13 @@ public class JavaWriter implements Writer {
 	 *                               class; must not be null
 	 * @param mainClassInPackageName the name of the main class; must not be null
 	 * @param javaAOPTestCases       the list of AOP test cases; must not be null
-	 * @param testFolderPath         the directory of the project; may be null
+	 * @param testFolderPath         the directory of the project; must not be null
 	 * @return a list of paths to the created files
 	 */
 	@Nonnull
 	private List<Path> createJavaAOPFiles(@Nonnull AOPMode aopMode, @Nonnull List<String> essentialClasses,
 			@Nonnull List<String> testClasses, @Nonnull String packageName, @Nonnull String mainClassInPackageName,
-			@Nonnull List<JavaAOPTestCase> javaAOPTestCases, @Nullable Path testFolderPath) {
+			@Nonnull List<JavaAOPTestCase> javaAOPTestCases, @Nonnull Path testFolderPath) {
 		@Nonnull
 		ArrayList<String> allowedClasses = Stream.concat(essentialClasses.stream(), testClasses.stream())
 				.collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
@@ -124,11 +125,7 @@ public class JavaWriter implements Writer {
 	}
 
 	@Nonnull
-	private List<Path> createLocalisationFiles(@Nullable Path testFolderPath) {
-		if (testFolderPath == null || testFolderPath.toString().isBlank()) {
-			return List.of();
-		}
-
+	private List<Path> createLocalisationFiles(@Nonnull Path testFolderPath) {
 		int nameCount = testFolderPath.getNameCount();
 		Path resourcesFolderPath;
 		if (testFolderPath.toString().isEmpty() || nameCount < 3) {
@@ -148,10 +145,7 @@ public class JavaWriter implements Writer {
 
 	@Nonnull
 	private List<Path> createPhobosFiles(@Nonnull String packageName,
-			@Nonnull List<JavaPhobosTestCase> javaPhobosTestCases, @Nullable Path testFolderPath) {
-		if (testFolderPath == null || testFolderPath.toString().isBlank()) {
-			return List.of();
-		}
+			@Nonnull List<JavaPhobosTestCase> javaPhobosTestCases, @Nonnull Path testFolderPath) {
 		List<Path> copyTargets = Phobos.targetsToCopyTo(testFolderPath).stream()
 				.map(JavaWriter::confineToWorkingDirectory).toList();
 		Path editTarget = confineToWorkingDirectory(Phobos.targetToCopyTo(testFolderPath));
@@ -250,7 +244,8 @@ public class JavaWriter implements Writer {
 	 * @param javaAOPTestCases          the list of AOP test cases; must not be null
 	 * @param javaPhobosTestCases       the list of Phobos test cases; must not be
 	 *                                  null
-	 * @param testFolderPath            the directory of the project; may be null
+	 * @param testFolderPath            the directory of the project; must not be
+	 *                                  null
 	 * @return a list of paths to the created files
 	 */
 	@Nonnull
@@ -259,14 +254,15 @@ public class JavaWriter implements Writer {
 			@Nonnull List<String> testClasses, @Nonnull String packageName, @Nonnull String mainClassInPackageName,
 			@Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
 			@Nonnull List<JavaAOPTestCase> javaAOPTestCases, @Nonnull List<JavaPhobosTestCase> javaPhobosTestCases,
-			@Nullable Path testFolderPath) {
+			@Nonnull Path testFolderPath) {
+		Path validatedTestFolderPath = Objects.requireNonNull(testFolderPath, "testFolderPath must not be null");
 		return Stream
 				.of(createJavaArchitectureFiles(architectureMode, packageName, mainClassInPackageName,
-						javaArchitectureTestCases, testFolderPath).stream(),
+						javaArchitectureTestCases, validatedTestFolderPath).stream(),
 						createJavaAOPFiles(aopMode, essentialClasses, testClasses, packageName, mainClassInPackageName,
-								javaAOPTestCases, testFolderPath).stream(),
-						createLocalisationFiles(testFolderPath).stream(),
-						createPhobosFiles(packageName, javaPhobosTestCases, testFolderPath).stream())
+								javaAOPTestCases, validatedTestFolderPath).stream(),
+						createLocalisationFiles(validatedTestFolderPath).stream(),
+						createPhobosFiles(packageName, javaPhobosTestCases, validatedTestFolderPath).stream())
 				.flatMap(s -> s).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
 	}
 	// </editor-fold>

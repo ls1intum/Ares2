@@ -138,10 +138,7 @@ class DenialReasonAccessTest extends SystemAccessTest {
 	}
 	// </editor-fold>
 
-	// <editor-fold desc="Network System - NOT_PERMITTED (AspectJ only)">
-	// The instrumentation path does not intercept java.net.Socket connections, so
-	// network denial-reason coverage is limited to the AspectJ variants here and to
-	// the toolbox-level test for the instrumentation logic.
+	// <editor-fold desc="Network System - NOT_PERMITTED">
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_NETWORK_CONNECTION_ALLOWED, withinPath = NETWORK_SOCKET_WITHIN_PATH)
 	void test_networkNotPermittedMavenArchunitAspectJ() {
@@ -151,8 +148,24 @@ class DenialReasonAccessTest extends SystemAccessTest {
 	}
 
 	@PublicTest
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_NETWORK_CONNECTION_ALLOWED, withinPath = NETWORK_SOCKET_WITHIN_PATH)
+	void test_networkNotPermittedMavenArchunitInstrumentation() {
+		SecurityException exception = assertAresSecurityExceptionNetwork(SocketConnectMain::connectViaSocket,
+				SocketConnectMain.class);
+		assertDenialReason(exception.getMessage(), DenialReason.NOT_PERMITTED);
+	}
+
+	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_NETWORK_CONNECTION_ALLOWED, withinPath = NETWORK_SOCKET_WITHIN_PATH)
 	void test_networkNotPermittedMavenWalaAspectJ() {
+		SecurityException exception = assertAresSecurityExceptionNetwork(SocketConnectMain::connectViaSocket,
+				SocketConnectMain.class);
+		assertDenialReason(exception.getMessage(), DenialReason.NOT_PERMITTED);
+	}
+
+	@PublicTest
+	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_NETWORK_CONNECTION_ALLOWED, withinPath = NETWORK_SOCKET_WITHIN_PATH)
+	void test_networkNotPermittedMavenWalaInstrumentation() {
 		SecurityException exception = assertAresSecurityExceptionNetwork(SocketConnectMain::connectViaSocket,
 				SocketConnectMain.class);
 		assertDenialReason(exception.getMessage(), DenialReason.NOT_PERMITTED);

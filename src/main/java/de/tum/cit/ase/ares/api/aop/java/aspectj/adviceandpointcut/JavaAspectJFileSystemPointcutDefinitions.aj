@@ -188,7 +188,7 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
     // Methods like Files.readString() and Files.readAllLines() internally call
     // newByteChannel() with default READ-only options.
     // Note: Files.write and Files.writeString are NOT included here because they default to
-    // TRUNCATE_EXISTING behavior. When called with CREATE or CREATE_NEW options, the
+    // TRUNCATE_EXISTING behaviour. When called with CREATE or CREATE_NEW options, the
     // deriveActionChecks method will detect these options and properly classify as "create".
     pointcut filesCreateMethods():
             (call(* java.nio.file.Files+.createDirectory(..)) ||
@@ -206,7 +206,9 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
     pointcut filesDeleteMethods():
             (call(* java.nio.file.Files+.delete(..)) ||
                     call(* java.nio.file.Files+.deleteIfExists(..)) ||
-                    call(* java.nio.file.Files+.move(..)));
+                    call(* java.nio.file.Files+.move(..)) ||
+                    call(* java.nio.file.SecureDirectoryStream+.deleteFile(..)) ||
+                    call(* java.nio.file.SecureDirectoryStream+.deleteDirectory(..)));
 
     pointcut fileSystemReadMethods(): if(false);
 

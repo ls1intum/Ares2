@@ -153,6 +153,8 @@ java.nio.file.attribute.UserDefinedFileAttributeView.write(Ljava/lang/String;Lja
 java.nio.file.spi.FileSystemProvider.copy(Ljava/nio/file/Path;Ljava/nio/file/Path;[Ljava/nio/file/CopyOption;)
 java.nio.file.spi.FileSystemProvider.createDirectory(Ljava/nio/file/Path;[Ljava/nio/file/attribute/FileAttribute;)
 java.nio.file.spi.FileSystemProvider.delete(Ljava/nio/file/Path;)
+java.nio.file.SecureDirectoryStream.deleteFile(Ljava/nio/file/Path;)
+java.nio.file.SecureDirectoryStream.deleteDirectory(Ljava/nio/file/Path;)
 java.nio.file.spi.FileSystemProvider.move(Ljava/nio/file/Path;Ljava/nio/file/Path;[Ljava/nio/file/CopyOption;)
 java.nio.file.spi.FileSystemProvider.newDirectoryStream(Ljava/nio/file/Path;Ljava/nio/file/DirectoryStream$Filter;)
 java.nio.file.spi.FileSystemProvider.setAttribute(Ljava/nio/file/Path;Ljava/lang/String;Ljava/lang/Object;[Ljava/nio/file/LinkOption;)

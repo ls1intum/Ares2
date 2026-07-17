@@ -11,7 +11,7 @@ import net.bytebuddy.asm.Advice;
  * on the network system security policies defined within the application.
  * <p>
  * If an execution attempt violates these policies, a SecurityException is
- * thrown, preventing unauthorized network send operations. The class interacts
+ * thrown, preventing unauthorised network send operations. The class interacts
  * with the JavaInstrumentationAdviceNetworkSystemToolbox to perform these
  * security checks.
  */

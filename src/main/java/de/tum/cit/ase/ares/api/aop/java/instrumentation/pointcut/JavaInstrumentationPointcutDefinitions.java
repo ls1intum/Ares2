@@ -193,14 +193,15 @@ public final class JavaInstrumentationPointcutDefinitions {
 			Map<String, List<String>> methodsMap) {
 		ElementMatcher.Junction<TypeDescription> hierarchyMatcher = ElementMatchers.none();
 		List<MethodPointcutSpec> constructorSpecs = new ArrayList<>();
-		for (String key : methodsMap.keySet()) {
+		for (Map.Entry<String, List<String>> entry : methodsMap.entrySet()) {
+			String key = entry.getKey();
 			ElementMatcher.Junction<TypeDescription> keyMatcher = ElementMatchers.named(key);
 			ElementMatcher.Junction<TypeDescription> subTypeMatcher = ElementMatchers.hasSuperType(keyMatcher);
 			ElementMatcher.Junction<TypeDescription> typeMatcher = keyMatcher.or(subTypeMatcher);
 
 			if (typeMatcher.matches(typeDescription)) {
 				hierarchyMatcher = hierarchyMatcher.or(typeMatcher);
-				List<String> names = methodsMap.get(key);
+				List<String> names = entry.getValue();
 				if (names != null) {
 					for (String name : names) {
 						MethodPointcutSpec spec = MethodPointcutSpec.parse(name);
@@ -498,6 +499,7 @@ public final class JavaInstrumentationPointcutDefinitions {
 			// java.nio
 			Map.entry("java.nio.file.Files", List.of("delete", "deleteIfExists", "move")),
 			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("delete")),
+			Map.entry("java.nio.file.SecureDirectoryStream", List.of("deleteFile", "deleteDirectory")),
 			Map.entry("org.apache.commons.io.FileUtils", List.of("forceDelete")));
 	// </editor-fold>
 
@@ -505,9 +507,9 @@ public final class JavaInstrumentationPointcutDefinitions {
 	/**
 	 * Methods that can create new files or directories (including links). Note:
 	 * Files.write and Files.writeString are NOT included here because they default
-	 * to TRUNCATE_EXISTING behavior. When called with CREATE or CREATE_NEW options,
-	 * the deriveActionChecks method will detect these options and properly classify
-	 * as "create".
+	 * to TRUNCATE_EXISTING behaviour. When called with CREATE or CREATE_NEW
+	 * options, the deriveActionChecks method will detect these options and properly
+	 * classify as "create".
 	 */
 	public static final Map<String, List<String>> METHODS_WHICH_CAN_CREATE_FILES = Map.ofEntries(
 			Map.entry("java.io.File", List.of("createNewFile", "createTempFile", "mkdir", "mkdirs")),
@@ -566,7 +568,8 @@ public final class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.util.concurrent.Executors$DelegatedExecutorService",
 					List.of("submit", "invokeAll", "invokeAny")),
 			Map.entry("java.util.concurrent.Executors$DefaultThreadFactory", List.of("newThread")),
-			Map.entry("java.util.concurrent.ExecutorCompletionService", List.of("submit")));
+			Map.entry("java.util.concurrent.ExecutorCompletionService", List.of("submit")),
+			Map.entry("java.util.concurrent.SubmissionPublisher", List.of("submit", "offer")));
 	// </editor-fold>
 
 	// <editor-fold desc="Execute command">

@@ -75,6 +75,11 @@ class WalaPathClassificationTest {
 	}
 
 	@Test
+	void applicationLoadedJavaxLibraryIsNotMistakenForPlatformCode() {
+		assertThat(WalaPathClassification.isInfraFrame(applicationNode("Ljavax/activation/FileDataSource;"))).isFalse();
+	}
+
+	@Test
 	void applicationArrayOfStudentClassIsNotInfra() {
 		CGNode node = mockNode(ClassLoaderReference.Application,
 				ref(ClassLoaderReference.Application, "[Lanonymous/Student;"));

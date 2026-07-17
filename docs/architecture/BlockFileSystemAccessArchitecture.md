@@ -10,7 +10,7 @@
    - [1.3 Which Architecture Modes / Implementations Are There?](#13-which-architecture-modes--implementations-are-there)
    - [1.4 What Are The Internal Configuration Settings?](#14-what-are-the-internal-configuration-settings)
    - [1.5 When Is File Access Generally Blocked?](#15-when-is-file-access-generally-blocked)
-2. [Ares 2 Architecture File System Access Control: Ares Monitors FileSystem Methods](#2-ares-2-architecture-file-system-access-control-ares-monitors-filesystem-methods)
+2. [Ares 2 Architecture File System Access Control: Ares Monitors FileSystem Methods](#2-ares-2-architecture-file-system-access-control-ares-monitors-file system-methods)
    - [2.1 Which Operations Does Ares 2 Architecture File System Access Control Monitor?](#21-which-operations-does-ares-2-architecture-file-system-access-control-monitor)
    - [2.2 What Are The Monitored READ Operations?](#22-what-are-the-monitored-read-operations)
    - [2.3 What Are The Monitored WRITE/OVERWRITE Operations?](#23-what-are-the-monitored-writeoverwrite-operations)
@@ -39,14 +39,14 @@
 This document explains how Ares 2 decides whether student code may access the file system through static code analysis. It checks:
 - The code structure for file system method calls
 - Which methods are reachable from student code
-- Whether the accessed classes are in allowed packages
+- Whether the calling classes are on the allow-list of exempt classes (`allowedClasses`)
 
 ---
 
 ## Summary for Programming Instructors (TL;DR)
 
 **What does Architecture Testing do?**
-- ✅ Analyzes **compiled bytecode** to detect forbidden file system operations
+- ✅ Analyses **compiled bytecode** to detect forbidden file system operations
 - ✅ Works **before code execution** - catches violations during testing phase
 - ✅ Provides **two analysis modes**: Fast (ArchUnit) and Precise (WALA)
 - ✅ Detects **transitive calls** - finds violations even through helper methods
@@ -71,12 +71,12 @@ This document explains how Ares 2 decides whether student code may access the fi
 | Aspect | Architecture (ArchUnit/WALA) | AOP (Byte Buddy/AspectJ) |
 |--------|------------------------------|---------------------------|
 | **Analysis Time** | Before execution (static) | During execution (runtime) |
-| **Detection** | Analyzes code structure | Intercepts method calls |
+| **Detection** | Analyses code structure | Intercepts method calls |
 | **Granularity** | Binary (allowed/forbidden) | Path-based permissions |
 | **Performance Impact** | Analysis overhead only | Runtime overhead on every call |
 | **False Positives** | Possible (unreachable code) | None (only executed code checked) |
 | **Coverage** | All code paths | Only executed paths |
-| **Configuration** | Package-level permissions | Path-level permissions |
+| **Configuration** | Class-level exemptions (`allowedClasses`); package permissions apply to the import rule only | Path-level permissions |
 | **Use Case** | Pre-submission validation | Runtime security enforcement |
 | **Error Timing** | Test phase | Production execution |
 
@@ -97,7 +97,7 @@ Diagram note: the rendered PNG is not committed in this repository snapshot. The
 <a id="12-what-is-architecture-testing"></a>
 ## 1.2 What Is Architecture Testing?
 
-Architecture Testing is a technique that validates code follows specific structural rules by analyzing compiled bytecode **before** execution. Think of it like a building inspector reviewing building plans before construction to ensure doors don't open into forbidden areas - the code doesn't run, but the structure gets checked automatically.
+Architecture Testing is a technique that validates code follows specific structural rules by analysing compiled bytecode **before** execution. Think of it like a building inspector reviewing building plans before construction to ensure doors don't open into forbidden areas - the code doesn't run, but the structure gets checked automatically.
 
 **Concrete Example:**
 
@@ -108,7 +108,7 @@ public void readFile(String path) {
 }
 ```
 
-**With Architecture Testing:** Ares automatically analyzes bytecode and detects ALL file system method calls, no execution required.
+**With Architecture Testing:** Ares automatically analyses bytecode and detects ALL file system method calls, no execution required.
 ```java
 public void readFile(String path) {
     Files.readString(Path.of(path));  // Detected at compile/test time! ArchUnit/WALA finds this.
@@ -117,19 +117,19 @@ public void readFile(String path) {
 
 **Key Difference from AOP:**
 - **AOP (Runtime)**: Monitors method calls during program execution and blocks forbidden operations in real-time
-- **Architecture (Static)**: Analyzes compiled bytecode before execution to detect potential security violations in the code structure
+- **Architecture (Static)**: Analyses compiled bytecode before execution to detect potential security violations in the code structure
 
 ---
 
 <a id="13-which-architecture-modes--implementations-are-there"></a>
 ## 1.3 Which Architecture Modes / Implementations Are There?
 
-Ares automatically detects file system operations by analyzing compiled bytecode using one of two Architecture implementations:
+Ares automatically detects file system operations by analysing compiled bytecode using one of two Architecture implementations:
 
 - **ArchUnit (Static Analysis)**: Pure static analysis using the ArchUnit framework. Fast analysis without call graph construction.
-- **WALA (Call Graph Analysis)**: Static analysis with dynamic modeling using IBM WALA framework. Precise call path detection with false positive filtering.
+- **WALA (Call Graph Analysis)**: Static analysis with dynamic modelling using IBM WALA framework. Precise call path detection with false positive filtering.
 
-Both implementations analyze the **code structure** to find forbidden method calls, but differ in precision and performance:
+Both implementations analyse the **code structure** to find forbidden method calls, but differ in precision and performance:
 
 | Aspect | ArchUnit | WALA |
 |--------|----------|------|
@@ -148,14 +148,17 @@ Instructors define architecture policies, and Ares 2 translates them into the fo
 | Setting | Type | Description | Example |
 |---------|------|-------------|---------|
 | **architectureMode** | `String` | The used analysis framework | `"ARCHUNIT"` or `"WALA"` |
-| **restrictedPackage** | `String` | The package containing the student code (the code to be analyzed) | `"de.student."` |
-| **allowedPackages** | `PackagePermission[]` | Packages allowed to be imported/used | `[new PackagePermission("java.io")]` |
+| **theSupervisedCodeUsesTheFollowingPackage** | `String` | The base package of the supervised (student) code, taken from the security policy. WALA mode uses it (together with a package prefix derived from the analysed classpath) to narrow the entry-point set; ArchUnit mode applies its rules to everything it imports | `"de.student"` |
+| **allowedClasses** | `ClassPermission[]` | Classes exempt from the architecture rules (essential/test infrastructure). This is the exemption mechanism for the file-system rule | `[new ClassPermission("de.student.Helper")]` |
+| **allowedPackages** | `PackagePermission[]` | Packages allowed to be imported; feeds ONLY the `PACKAGE_IMPORT` rule, not the file-system rule | `[new PackagePermission("java.io")]` |
 | **classPath** | `String` | Path to compiled student code | `"target/classes"` |
 
 **Architecture-Specific Configuration:**
 - No path-based permissions (no `pathsAllowedToBeRead`, etc.) - Architecture testing detects ANY file system access attempt
 - No AOP mode selection - Uses `architectureMode` instead
-- Package-level permissions instead of path-level permissions
+- Class-level exemptions (`allowedClasses`) instead of path-level permissions; `restrictedPackage` is an AOP setting and does not configure the architecture pipeline
+
+**Note on scope per mode:** ArchUnit mode imports the whole analysed classpath (excluding Ares' own `de.tum.cit.ase.ares.api` classes) and applies the rules to every imported class. WALA mode narrows the analysis to entry points whose declaring class matches the package prefix derived from the analysed classpath (`CustomCallgraphBuilder.derivePackagePrefix`).
 
 ---
 
@@ -167,7 +170,7 @@ Instructors define architecture policies, and Ares 2 translates them into the fo
 1. **Architecture Mode Enabled**: `architectureMode` is set to `"ARCHUNIT"` or `"WALA"`
 2. **Student Code Contains File System Calls**: Analysis detects method calls to file system APIs
 3. **Calls Are Reachable**: The forbidden methods can be reached from student code (directly or transitively)
-4. **Not in Allowed Packages**: The accessed classes are not in the `allowedPackages` list
+4. **Not an Allow-Listed Class**: The calling class is not exempt via the `allowedClasses` list (`ClassPermission`); the `allowedPackages` list only affects the separate package-import rule
 
 **Access is ALLOWED 🟢 if ANY of the aforementioned conditions do not apply**
 
@@ -181,9 +184,9 @@ Instructors define architecture policies, and Ares 2 translates them into the fo
 - 🟢 No violations found → Code passes architecture analysis
 
 In summary, Ares trusts code when: 
-- It is located outside of the `restrictedPackage`
-- It accesses classes that are in the `allowedPackages` list
-- It is listed as Ares internal code
+- Its class is on the `allowedClasses` allow-list (`ClassPermission`)
+- It is infrastructure rather than student code (JDK, Ares internal code, test frameworks); in WALA mode this classification is done per call-graph frame, in ArchUnit mode Ares' own `de.tum.cit.ase.ares.api` classes are excluded from the import
+- In WALA mode only: its class lies outside the package prefix derived for the entry points
 
 **Security Assumptions:** 
 - Student code is compiled and available as `.class` files
@@ -192,25 +195,25 @@ In summary, Ares trusts code when:
 
 ---
 
-<a id="2-ares-2-architecture-file-system-access-control-ares-monitors-filesystem-methods"></a>
+<a id="2-ares-2-architecture-file-system-access-control-ares-monitors-file system-methods"></a>
 # 2. Ares 2 Architecture File System Access Control: Ares Monitors FileSystem Methods
 
 <a id="21-which-operations-does-ares-2-architecture-file-system-access-control-monitor"></a>
 ## 2.1 Which Operations Does Ares 2 Architecture File System Access Control Monitor?
 
-Ares classifies file system interactions into five action types. These labels determine which method patterns are checked during static analysis.
+For documentation purposes, this chapter groups the monitored file system interactions into five action types. These labels are a documentation-level organisation only: at analysis time each mode reads ONE flat methods file and feeds it into ONE rule ("Accesses file system", the `NO_CLASS_MUST_ACCESS_FILE_SYSTEM` rule / the corresponding `WalaRule`), without any READ/WRITE/CREATE/DELETE/EXECUTE distinction.
 
 - **READ**: Accessing file contents or metadata without modifying them (streams, read APIs, attribute queries).
 - **OVERWRITE**: Writing or mutating existing content/attributes (write/append/truncate, metadata setters).
 - **CREATE**: Creating new files, directories, or links (create* APIs, file system creation/open).
 - **DELETE**: Removing files or scheduling deletion/trash operations.
-- **EXECUTE**: In Ares, 'Execute' is a broad category covering execution of binaries, opening files in external applications, and complex file manipulations like moving/copying (for example, `Desktop.open(...)` or process-related operations).
+- **EXECUTE**: In this documentation grouping, "execute" covers file-system entries that cause execution-like behaviour, such as `System.load(...)`, `System.loadLibrary(...)`, and Desktop launches (`Desktop.open(...)`, `Desktop.browse(...)`). Process-spawning APIs are documented under the Command System.
 
 Some APIs can appear under multiple actions because they imply more than one permission (for example, `copy`/`move` or methods that create and write simultaneously).
 
 ---
 
-Both ArchUnit and WALA modes monitor the same set of file system methods, loaded from template files:
+ArchUnit and WALA modes monitor largely overlapping, but not identical, sets of file system methods, loaded from separate template files. The formats differ (ArchUnit uses source-form signatures like `java.io.FileWriter.<init>(java.io.File)`, WALA uses JVM-descriptor form like `java.io.FileWriter.<init>(Ljava/io/File;)`), and a few entries exist only in the ArchUnit list (for example `java.io.BufferedInputStream.<init>` and `java.io.InputStream.read`):
 
 **Template Locations:**
 - **ArchUnit**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/archunit/methods/file-system-access-methods.txt`
@@ -234,7 +237,7 @@ Read APIs listed below access file contents or metadata without modifying them.
 | Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
 | --- | --- | --- | --- | --- |
 | java.io.FileInputStream | `<new>` | ✅ | ✅ | ✅ |
-| java.io.BufferedInputStream | `<new>` | ✅ | ✅ | ✅ |
+| java.io.BufferedInputStream | `<new>` | ✅ | ❌ (only in the ArchUnit list) | ✅ |
 | java.io.RandomAccessFile | `<new>` | ✅ | ✅ | ✅ |
 | java.nio.channels.AsynchronousFileChannel | read | ✅ | ✅ | ❌ (triggers Thread security) |
 | java.nio.channels.AsynchronousFileChannel | open | ✅ | ✅ | ❌ (triggers Thread security) |
@@ -250,6 +253,7 @@ Read APIs listed below access file contents or metadata without modifying them.
 | Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
 | --- | --- | --- | --- | --- |
 | java.io.Reader | `<new>` | ✅ | ✅ | ✅ |
+| java.io.FileReader | `<new>` | ✅ | ✅ | ❌ |
 | java.nio.file.Files | newBufferedReader | ✅ | ✅ | ✅ |
 | java.nio.file.Files | readString | ✅ | ✅ | ✅ |
 | java.nio.file.Files | lines | ✅ | ✅ | ✅ |
@@ -258,9 +262,10 @@ Read APIs listed below access file contents or metadata without modifying them.
 
 **Reads only specifically formatted files fully**
 
+> **Note:** `java.io.DataInputStream.<new>` is in NEITHER methods file. Detection of data-stream reads happens via the `java.io.DataInput.read*` interface methods listed below; the WALA false-positives file even excludes `java.io.DataInputStream` explicitly to suppress JDK-internal usage.
+
 | Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
 | --- | --- | --- | --- | --- |
-| java.io.DataInputStream | `<new>` | ✅ | ✅ | ❌ |
 | java.io.DataInput | read | ✅ | ✅ | ❌ |
 | java.io.DataInput | readBoolean | ✅ | ✅ | ❌ |
 | java.io.DataInput | readByte | ✅ | ✅ | ❌ |
@@ -318,7 +323,7 @@ Read APIs listed below access file contents or metadata without modifying them.
 | Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
 | --- | --- | --- | --- | --- |
 | java.io.RandomAccessFile | read | ✅ | ✅ | ❌ |
-| java.io.InputStream | read | ✅ | ✅ | ❌ |
+| java.io.InputStream | read | ✅ | ❌ (only in the ArchUnit list) | ❌ |
 | java.io.Reader | read | ✅ | ✅ | ❌ |
 | java.nio.channels.SeekableByteChannel | read | ✅ | ✅ | ❌ |
 
@@ -378,9 +383,10 @@ Write APIs listed below modify existing content or attributes.
 
 **Writes only specifically formatted files fully**
 
+> **Note:** `java.io.DataOutputStream.<new>` is in NEITHER methods file. Detection of data-stream writes happens via the `java.io.DataOutput.write*` interface methods listed below; the WALA false-positives file even excludes `java.io.DataOutputStream` explicitly to suppress JDK-internal usage.
+
 | Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
 | --- | --- | --- | --- | --- |
-| java.io.DataOutputStream | `<new>` | ✅ | ✅ | ❌ |
 | java.io.DataOutput | writeBoolean | ✅ | ✅ | ❌ |
 | java.io.DataOutput | writeByte | ✅ | ✅ | ❌ |
 | java.io.DataOutput | writeBytes | ✅ | ✅ | ❌ |
@@ -516,6 +522,8 @@ Delete APIs listed below can remove files and empty directories.
 | java.io.File | delete | ✅ | ✅ | ✅ |
 | java.nio.file.Files | delete | ✅ | ✅ | ✅ |
 | java.nio.file.Files | deleteIfExists | ✅ | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | delete | ✅ | ✅ | ❌ |
+| org.apache.commons.io.FileUtils | forceDelete | ✅ | ✅ | ❌ |
 | java.awt.Desktop | moveToTrash | ✅ | ✅ | ❌ |
 | java.io.File | deleteOnExit | ✅ | ✅ | ✅ |
 
@@ -526,6 +534,8 @@ Delete APIs listed below can remove files and empty directories.
 | java.io.File | delete | ✅ | ✅ | ✅ |
 | java.nio.file.Files | delete | ✅ | ✅ | ✅ |
 | java.nio.file.Files | deleteIfExists | ✅ | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | delete | ✅ | ✅ | ❌ |
+| org.apache.commons.io.FileUtils | forceDelete | ✅ | ✅ | ❌ |
 | java.awt.Desktop | moveToTrash | ✅ | ✅ | ❌ |
 | java.io.File | deleteOnExit | ✅ | ✅ | ✅ |
 
@@ -541,22 +551,20 @@ Delete APIs listed below can remove files and empty directories.
 <a id="26-what-are-the-monitored-execute-operations"></a>
 ## 2.6 What Are The Monitored EXECUTE Operations?
 
-**What does "Execute" mean?** File system actions that trigger execution-like behavior such as launching processes or opening files with their default programs (e.g., `Runtime.exec(...)` or `ProcessBuilder.start(...)`).
+**What does "Execute" mean?** File-system entries that trigger execution-like behaviour such as loading a native library or asking the desktop environment to open/browse/print a file or URI. Command-spawning APIs such as `Runtime.exec(...)`, `ProcessBuilder.start()`, and `ProcessBuilder.startPipeline()` are part of the Command System architecture rule, not this file-system rule.
 
 **Security Component:** Execute operation monitor
 
 **Monitored APIs:**
 
-Execute APIs listed below trigger execution-like behavior on files.
+Execute APIs listed below trigger execution-like behaviour on files.
 
 **Executes the file on the console (command line execution)**
 
-> **Note:** `ProcessBuilder.start()`, `ProcessBuilder.startPipeline()`, and `Runtime.exec()` are handled by the **Command System** rather than the File System in architecture testing, as they execute commands rather than individual files. The File System detection for execute only covers library loading (`load`/`loadLibrary`).
+> **Note:** `ProcessBuilder.start()`, `ProcessBuilder.startPipeline()`, and `Runtime.exec()` are handled by the **Command System** rather than the File System in architecture testing, as they execute commands rather than individual files. The File System detection for execute only covers library loading via `java.lang.System.load`/`loadLibrary`. The `java.lang.Runtime.load`/`loadLibrary` counterparts are NOT in the file-system methods lists; they are covered by the separate **NATIVE_CODE** rule (`native-code-access-methods.txt`) and the **COMMAND_EXECUTION** rule (`command-execution-methods.txt`).
 
 | Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
 | --- | --- | --- | --- | --- |
-| java.lang.Runtime | load | ✅ | ✅ | ❌ |
-| java.lang.Runtime | loadLibrary | ✅ | ✅ | ❌ |
 | java.lang.System | load | ✅ | ✅ | ❌ |
 | java.lang.System | loadLibrary | ✅ | ✅ | ❌ |
 
@@ -602,7 +610,7 @@ public class StudentSolution {
 
 **ArchUnit Mode:**
 1. `ClassFileImporter` loads `StudentSolution.class`
-2. Analyzes that `readSecretFile()` method calls `Files.readString()`
+2. Analyses that `readSecretFile()` method calls `Files.readString()`
 3. Checks if `Files.readString()` is in the forbidden methods list
 4. Reports violation: "StudentSolution.readSecretFile transitively accesses Files.readString"
 
@@ -633,25 +641,27 @@ During architecture analysis, Ares collects information about the code structure
 
 **Step 1: Import Compiled Classes**
 
+At runtime, `ArchitectureMode.getJavaClasses(classPath)` imports the analysed classpath directly:
+
 ```java
+// ArchitectureMode.getJavaClasses (runtime importer)
 JavaClasses javaClasses = new ClassFileImporter()
-    .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
-    .withImportOption(location -> {
-        String path = location.toString().replace("\\", "/");
-        return !path.contains("/ares/api/");  // Exclude Ares internal classes
-    })
-    .importPackages("de.student");  // Import student package
+    .withImportOption(
+        location -> !location.toString().replace("\\", "/").contains("/de/tum/cit/ase/ares/api/"))
+    .importPath(classPath);
 ```
 
+A separate variant exists for the generated-template path (`JavaArchunitTestCase.javaClassesAsCode()`), which emits `ClassFileImporter` code using `ImportOption.Predefined.DO_NOT_INCLUDE_TESTS` and `importPackages(...)`. The runtime importer above uses neither; it imports the given path and only excludes Ares' own framework classes.
+
 **What happens:**
-1. ClassFileImporter scans the classpath for `.class` files
+1. ClassFileImporter scans the given class path for `.class` files
 2. Loads class metadata (methods, fields, dependencies)
-3. Excludes test classes and Ares internal classes
-4. Creates `JavaClasses` object containing all analyzed classes
+3. Excludes Ares internal classes (`/de/tum/cit/ase/ares/api/`)
+4. Creates `JavaClasses` object containing all analysed classes
 
 **Analysis Process:**
 1. **Import Classes**: Load `.class` files using `ClassFileImporter`
-2. **Analyze Dependencies**: Build class dependency graph
+2. **Analyse Dependencies**: Build class dependency graph
 3. **Check Access Patterns**: Detect direct and transitive method calls
 4. **Report Violations**: Throw `AssertionError` with call chain details
 
@@ -675,55 +685,54 @@ JavaClasses javaClasses = new ClassFileImporter()
 
 **Step 1: Create Analysis Scope**
 
-```java
-// Read exclusions file (to ignore JDK internals)
-File exclusionsFile = FileTools.readFile(
-    FileTools.resolveFileOnSourceDirectory("templates", "architecture", "java", "exclusions.txt")
-);
+`CustomCallgraphBuilder` first filters the analysed classpath: every entry whose normalised path contains one of the `CLASSPATH_EXCLUDE_SUBSTRINGS` (test build outputs, JUnit/Mockito/AssertJ, JaCoCo, Gradle test infrastructure, static-analysis tooling, Ares itself, the WALA and AspectJ runtimes) is dropped (`filterClassPath`, `CustomCallgraphBuilder.java`). The remaining entries are used as-is; the runtime `java.class.path` is NOT appended.
 
-// Create analysis scope
+```java
+// CustomCallgraphBuilder.CachedAnalysis.build (simplified)
 AnalysisScope scope = Java9AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(
-    classPath + File.pathSeparator + System.getProperty("java.class.path"),
-    exclusionsFile
-);
+    filteredClassPath,
+    FileTools.readFile(FileTools.resolveFileOnSourceDirectory(
+        "templates", "architecture", "java", "exclusions.txt")));
 
 // Build class hierarchy
 ClassHierarchy classHierarchy = ClassHierarchyFactory.make(scope);
 ```
 
-**Exclusions File Example:**
+**Exclusions File (real excerpt):**
 ```
-# Exclude JDK internals to improve performance
-sun/.*
-com/sun/.*
-jdk/internal/.*
+# The following are excluded from the classpath to make the analysis faster, as they are not relevant for the analysis.*
+jdk/.*
+sun/security/.*
+sun/reflect/.*
+sun/util/.*
+java/util/Arrays.*
+java/util/Collections.*
+org/junit.*
+org/mockito.*
+com/tngtech.*
+com/ibm/wala.*
 ```
+
+The full file (166 lines) also excludes many further `java/util/*` classes, `java/time/*`, `java/text/*`, `java/math/*` and additional test-library patterns.
 
 **Step 2: Define Entry Points**
 
-```java
-// Find all methods in student code as potential entry points
-List<DefaultEntrypoint> entryPoints = new ArrayList<>();
+`ReachabilityChecker.getEntryPointsFromStudentSubmission(classPath, classHierarchy)` adds ALL declared methods of every class loaded by the Application class loader as entry points (there is no exclusion of `main` or any other method):
 
-for (IClass iClass : classHierarchy) {
-    if (iClass.getClassLoader().getReference().equals(ClassLoaderReference.Application)) {
-        for (IMethod method : iClass.getDeclaredMethods()) {
-            if (!method.getName().toString().equals("main")) {
-                entryPoints.add(new DefaultEntrypoint(method.getReference(), classHierarchy));
-            }
-        }
-    }
-}
+```java
+// ReachabilityChecker.getEntryPointsFromStudentSubmission (simplified)
+List<DefaultEntrypoint> entryPoints = StreamSupport
+    .stream(createClassHierarchy(classPath).spliterator(), false)
+    .filter(iClass -> iClass.getClassLoader().getReference().equals(ClassLoaderReference.Application))
+    .flatMap(iClass -> iClass.getDeclaredMethods().stream())
+    .map(IMethod::getReference)
+    .map(methodReference -> new DefaultEntrypoint(methodReference, applicationClassHierarchy))
+    .collect(Collectors.toCollection(ArrayList::new));
 ```
 
-**Entry Point Selection:**
+**Entry Point Narrowing:**
 
-Entry points are methods where analysis should start. WALA uses all methods in student code (except `main`) as entry points to ensure comprehensive coverage.
-
-**Why exclude `main`?**
-- In test scenarios, tests invoke student methods directly
-- `main` is typically not the actual entry point for student code
-- Including `main` may introduce unnecessary analysis paths
+Instead of excluding individual methods, `CustomCallgraphBuilder.buildCallGraph` narrows the entry-point set by package: `derivePackagePrefix(classPathToAnalyze)` converts a build-output package directory (e.g. `target/classes/de/student`) into a WALA type-name prefix (e.g. `Lde/student/`), and only entry points whose declaring class matches that prefix are kept. This keeps each architecture rule focused on the code under test instead of every class sharing the wider analysis scope.
 
 **Entry Point Representation:**
 ```java
@@ -736,17 +745,21 @@ DefaultEntrypoint(
 **Step 3: Build Call Graph**
 
 ```java
-// Configure analysis options
-AnalysisOptions options = new AnalysisOptions();
-options.setEntrypoints(entryPoints);
+// Configure analysis options (scope + entry points passed to the constructor)
+AnalysisOptions options = new AnalysisOptions(scope, customEntryPoints);
 
-// Create call graph builder (0-CFA algorithm)
-CallGraphBuilder<?> builder = Util.makeZeroCFABuilder(
+// Create call graph builder (0-1-CFA algorithm)
+CallGraphBuilder<?> builder = Util.makeZeroOneCFABuilder(
     Language.JAVA,
     options,
     new AnalysisCacheImpl(),
     classHierarchy
 );
+
+// Treat JDK methods as opaque: the call edge from student code into the JDK is
+// still recorded (so forbidden-call checks keep working), but WALA does not
+// descend into JDK bytecode.
+options.setSelector(new JdkOpaqueMethodTargetSelector(options.getMethodTargetSelector(), classHierarchy));
 
 // Build call graph
 CallGraph callGraph = builder.makeCallGraph(options, null);
@@ -768,17 +781,17 @@ CallGraph:
 **Analysis Process:**
 1. **Create Analysis Scope**: Define which classes to include/exclude
 2. **Build Class Hierarchy**: Resolve all type relationships
-3. **Construct Call Graph**: Map all possible method call relationships
-4. **Find Entry Points**: Identify starting methods in student code
-5. **Reachability Analysis**: Use DFS to find paths to forbidden methods
-6. **Filter False Positives**: Remove JDK helper paths (e.g., internal thread creation)
+3. **Find Entry Points**: Identify starting methods in student code
+4. **Construct Call Graph**: Map all possible method call relationships
+5. **Reachability Analysis**: Forward BFS from the entry points, then a per-sink reverse walk (`WalaRule.check`)
+6. **Filter False Positives**: Classify each path with `WalaPathClassification` and suppress transitive-JDK false positives
 
 **Strengths:**
 - ✅ Very precise call path detection
 - ✅ Understands complex call patterns (lambdas, method references, reflection)
 - ✅ Can filter out JDK internal calls (false positive reduction)
 - ✅ Provides exact call paths with line numbers
-- ✅ Models runtime behavior more accurately
+- ✅ Models runtime behaviour more accurately
 
 **Limitations:**
 - ⚠️ Slower analysis (call graph construction is expensive)
@@ -798,12 +811,15 @@ CallGraph:
 
 **How it works:**
 ```java
-// Define rule
-ArchRule rule = noClasses()
+// Define rule (the rule name is the localised message for the key
+// security.architecture.file.system.access, i.e. "Accesses file system")
+ArchRule rule = ArchRuleDefinition.noClasses()
+    .that(isNotAllowedClass(allowedClasses))  // exempt allow-listed classes
     .should(new TransitivelyAccessesMethodsCondition(
-        javaAccess -> forbiddenMethods.contains(javaAccess.getTarget().getFullName())
+        javaAccess -> forbiddenMethods.stream()
+            .anyMatch(method -> javaAccess.getTarget().getFullName().startsWith(method))
     ))
-    .as("No class should access file system");
+    .as(ruleName);
 
 // Execute rule
 rule.check(javaClasses);  // Throws AssertionError if violated
@@ -812,31 +828,31 @@ rule.check(javaClasses);  // Throws AssertionError if violated
 **Step 2: Create Architecture Rule**
 
 ```java
-// Load forbidden methods from template file
-Set<String> forbiddenMethods = FileTools.readMethodsFile(
-    FileTools.readFile(FileHandlerConstants.ARCHUNIT_FILESYSTEM_METHODS)
-);
+// JavaArchunitTestCaseCollection.createNoClassShouldHaveMethodRule (simplified)
+return ArchRuleDefinition.noClasses().that(isNotAllowedClass(allowedClasses))
+    .should(new TransitivelyAccessesMethodsCondition(new DescribedPredicate<>(ruleName) {
+        private Set<String> forbiddenMethods;
 
-// Create custom condition that checks method access
-DescribedPredicate<JavaAccess<?>> checkForbiddenAccess = 
-    new DescribedPredicate<>("accesses forbidden file system method") {
         @Override
         public boolean test(JavaAccess<?> javaAccess) {
-            return forbiddenMethods.stream()
+            if (forbiddenMethods == null) {
+                // Lazily load the methods file and convert Java-style array notation
+                // (e.g. "byte[]") into ArchUnit's JNI-style notation (e.g. "[B")
+                forbiddenMethods = FileTools.readMethodsFile(FileTools.readFile(methodsFilePath)).stream()
+                    .map(JavaArchunitTestCaseCollection::convertArrayNotation)
+                    .collect(Collectors.toSet());
+            }
+            return forbiddenMethods.stream().filter(method -> !method.isEmpty())
                 .anyMatch(method -> javaAccess.getTarget().getFullName().startsWith(method));
         }
-    };
-
-// Create rule that no class should access forbidden methods
-ArchRule rule = ArchRuleDefinition.noClasses()
-    .should(new TransitivelyAccessesMethodsCondition(checkForbiddenAccess))
-    .as("No class should access file system");
+    })).as(ruleName);
 ```
 
 **Rule Components:**
-- **DescribedPredicate**: Tests if a method access is forbidden
+- **DescribedPredicate**: Tests if a method access is forbidden; matching uses `startsWith` on the target's full name after `convertArrayNotation`
+- **isNotAllowedClass**: `.that(...)` predicate excluding allow-listed classes (`ClassPermission`) from the rule
 - **TransitivelyAccessesMethodsCondition**: Finds transitive access paths
-- **ArchRule**: Complete rule that can be checked against JavaClasses
+- **ArchRule**: Complete rule that can be checked against JavaClasses; named via `.as(ruleName)` with the localised "Accesses file system"
 
 **Step 3: Run Architecture Test**
 
@@ -851,16 +867,17 @@ try {
 
 **When violation is found:**
 ```
-Architecture Violation [Priority: MEDIUM] - Rule 'No class should access file system' was violated (1 times):
-Method <de.student.StudentCode.readFile()> transitively accesses method <java.nio.file.Files.readString(Ljava/nio/file/Path;)Ljava/lang/String;> by 
-  [de.student.StudentCode.readFile() -> de.student.Helper.loadFile() -> java.nio.file.Files.readString()]
+Architecture Violation [Priority: MEDIUM] - Rule 'Accesses file system' was violated (1 times):
+Method <de.student.StudentCode.readFile()> transitively accesses <java.nio.file.Files.readString(java.nio.file.Path)> by [de.student.StudentCode.readFile()->de.student.Helper.loadFile()] in (StudentCode.java:12)
 ```
 
-**Error is converted to:**
+**Error is converted to** (via `JavaArchitectureTestCase.parseErrorMessage`, using the `security.archunit.violation.error` message format `%s tried to illegally %s via %s (called by %s)`):
 ```java
 throw new SecurityException(
     "Ares Security Error (Reason: Student-Code; Stage: Execution): " +
-    "Illegal file system access: StudentCode.readFile transitively calls Files.readString"
+    "de.student.StudentCode.readFile() tried to illegally access the file system " +
+    "via java.nio.file.Files.readString(java.nio.file.Path) " +
+    "(called by de.student.StudentCode) but was blocked by Ares."
 );
 ```
 
@@ -880,14 +897,13 @@ class Helper {
 }
 
 // ArchUnit detects: StudentCode → Helper.processFile → Files.readString
-// Reports: "StudentCode transitively accesses Files.readString by [StudentCode.readFile→Helper.processFile]"
+// Reports: "... transitively accesses <java.nio.file.Files.readString(...)> by [StudentCode.readFile()->Helper.processFile()]"
 ```
 
 **Violation Example:**
 ```
-Architecture Violation [Priority: MEDIUM] - Rule 'No class should access file system' was violated (1 times):
-Method <de.student.StudentCode.exploit()> transitively accesses method <java.io.FileInputStream.<init>(Ljava/lang/String;)V> by 
-  [de.student.StudentCode.exploit() -> de.student.Helper.readFile() -> java.io.FileInputStream.<init>()]
+Architecture Violation [Priority: MEDIUM] - Rule 'Accesses file system' was violated (1 times):
+Method <de.student.StudentCode.exploit()> transitively accesses <java.io.FileInputStream.<init>(java.lang.String)> by [de.student.StudentCode.exploit()->de.student.Helper.readFile()] in (StudentCode.java:42)
 ```
 
 **Best For:**
@@ -901,20 +917,23 @@ Method <de.student.StudentCode.exploit()> transitively accesses method <java.io.
 ## 5.2 WALA Mode: Call Graph Analysis
 
 **How it works:**
+
+Production validation runs through `WalaRule.check(CallGraph, Set<ClassPermission>)` (`WalaRule.java`). The older forward-DFS API (`ReachabilityChecker.findReachableMethods` with `CustomDFSPathFinder`) is legacy: its global visited-set meant each forbidden sink was reported on exactly one path, so an allow-listed or false-positive caller discovered first could mask a genuine violation by a different caller of the same sink (see the `WalaRule.check` Javadoc).
+
 ```java
 // Build call graph
 CallGraph cg = new CustomCallgraphBuilder(classPath).buildCallGraph(classPath);
 
-// Find reachable forbidden methods
-List<CGNode> path = ReachabilityChecker.findReachableMethods(
-    cg, 
-    cg.getEntrypointNodes().iterator(),
-    node -> forbiddenMethods.contains(node.getMethod().getSignature())
-);
-
-if (path != null) {
-    throw new AssertionError("Forbidden method reachable: " + path);
-}
+// WalaRule.check (simplified):
+// 1. Collect every forbidden sink in the call graph (signature match against
+//    the methods file, sorted for deterministic reporting).
+// 2. Forward BFS from the entry points -> set of entry-reachable nodes
+//    (fails closed with a SecurityException if the entry set is empty).
+// 3. For each entry-reachable sink: reverse-walk through infrastructure
+//    frames only, and evaluate each distinct nearest-student approach.
+// 4. Each approach is classified with WalaPathClassification; a genuine,
+//    non-exempt violation throws an AssertionError immediately.
+new WalaRule(ruleName, forbiddenMethods).check(cg, allowedClasses);
 ```
 
 **Example Violation Detection:**
@@ -933,14 +952,13 @@ class StudentCode {
 
 // WALA detects: 
 // StudentCode.processData → Lambda$1.run → StudentCode.readConfig → FileInputStream.<init>
-// Reports: Method call at StudentCode.java:12 reaches forbidden FileInputStream.<init>
+// Reports the nearest student caller, the forbidden sink, its source line and the entry point
 ```
 
-**Violation Example:**
+**Violation Example** (message format from `messages.properties`, key `security.architecture.method.call.message`: `'%s'\n Method <%s> calls method <%s> in (%s.java:%d) accesses <%s>`; signatures are converted from WALA's JVM-descriptor form to source form, and the line number comes from `getSourcePosition`):
 ```
-Forbidden method 'java.io.FileInputStream.<init>(Ljava/lang/String;)V' is reachable from 'de.student.StudentCode.exploit()V' 
-in class 'de.student.StudentCode' at line 42
-Called by test method: 'org.example.TestClass.testExploit()V'
+'Accesses file system'
+ Method <de.student.StudentCode.readConfig()> calls method <java.io.FileInputStream.<init>(java.lang.String)> in (FileInputStream.java:42) accesses <de.student.StudentCode.processData()>
 ```
 
 **Best For:**
@@ -962,19 +980,22 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
     @Override
     public void check(JavaClass clazz, ConditionEvents events) {
         // Get all method accesses from this class
-        for (JavaAccess<?> access : clazz.getAccessesFromSelf()) {
+        for (JavaAccess<?> accessInsideClass : clazz.getAccessesFromSelf()) {
             // Find transitive path to forbidden method
-            List<JavaAccess<?>> path = findPathToViolatingMethod(access);
+            List<JavaAccess<?>> path = transitiveAccessPath.findPathFromViolatingMethodTo(accessInsideClass);
             
             if (!path.isEmpty()) {
                 // Report violation with complete call chain
-                events.add(createViolationEvent(access, path));
+                // (a SimpleConditionEvent.satisfied event carrying the path description)
+                events.add(newTransitiveAccessPathFoundEvent(accessInsideClass, path));
             }
         }
     }
     
-    private List<JavaAccess<?>> findPathToViolatingMethod(JavaAccess<?> access) {
-        // Use DFS to find path from current access to forbidden method
+    // Inner class TransitiveAccessPath:
+    List<JavaAccess<?>> findPathFromViolatingMethodTo(JavaAccess<?> access) {
+        // Recursive DFS (recursivelyFindPathFromViolatingMethodTo) from the
+        // current access to a forbidden method, tracking visited methods.
         // Returns: [access1 -> access2 -> ... -> forbiddenAccess]
     }
 }
@@ -998,71 +1019,41 @@ Result: Path found = [StudentCode.main → Helper.processData → Files.readStri
 
 **Step 4: Find Paths to Forbidden Methods**
 
+Production reachability analysis lives in `WalaRule.check`:
+
 ```java
 // Load forbidden methods
 Set<String> forbiddenMethods = FileTools.readMethodsFile(
     FileTools.readFile(FileHandlerConstants.WALA_FILESYSTEM_METHODS)
 );
 
-// Find reachable forbidden methods
-List<CGNode> path = ReachabilityChecker.findReachableMethods(
-    callGraph,
-    callGraph.getEntrypointNodes().iterator(),
-    node -> forbiddenMethods.stream()
-        .anyMatch(sig -> node.getMethod().getSignature().startsWith(sig))
-);
+// WalaRule.check(cg, allowedClasses), simplified:
+// 1. Sinks: every CGNode whose signature matches a forbidden method
+//    (startsWith / equals after return-type stripping and descriptor formatting)
+List<CGNode> sinks = /* collect + sort by signature for determinism */;
 
-if (path != null && !path.isEmpty()) {
-    // Extract source position
-    IMethod.SourcePosition sourcePos = path.get(path.size() - 1)
-        .getMethod()
-        .getSourcePosition(0);
-    
-    throw new AssertionError(String.format(
-        "Forbidden method '%s' reachable from '%s' at line %d",
-        path.get(path.size() - 1).getMethod().getSignature(),
-        path.get(0).getMethod().getSignature(),
-        sourcePos.getFirstLine()
-    ));
-}
+// 2. Forward BFS over successor edges from cg.getEntrypointNodes()
+Set<CGNode> entryReachable = forwardReachableFromEntrypoints(cg);
+// Fails closed: sinks present but no entry points -> SecurityException
+
+// 3. Per sink (if entry-reachable): reverse walk over predecessor edges
+//    through infrastructure frames only; every distinct nearest-student
+//    approach [studentFrame, ...infra..., sink] is evaluated immediately
+//    (bounded by a 64-approaches-per-sink backstop that is logged, never
+//    a silent pass).
+evaluateSink(cg, sink, allowedClasses, entryReachable);
+
+// 4. evaluatePath classifies the reconstructed entry->...->sink path with
+//    WalaPathClassification (nearestStudentFrame, isFalsePositiveTransitivePath),
+//    applies the allowedClasses exemption, and returns the AssertionError to
+//    throw for a genuine violation (source line via getSourcePosition).
 ```
 
-**DFS Path Finding Algorithm:**
+**Legacy DFS Path Finding (`ReachabilityChecker` / `CustomDFSPathFinder`):**
 
-```java
-public class CustomDFSPathFinder {
-    List<CGNode> find() {
-        Set<CGNode> visited = new HashSet<>();
-        Stack<CGNode> currentPath = new Stack<>();
-        
-        for (CGNode entryPoint : entryPoints) {
-            List<CGNode> result = dfs(entryPoint, visited, currentPath);
-            if (result != null) return result;
-        }
-        return null;
-    }
-    
-    List<CGNode> dfs(CGNode node, Set<CGNode> visited, Stack<CGNode> path) {
-        if (visited.contains(node)) return null;
-        visited.add(node);
-        path.push(node);
-        
-        // Check if this node is a target
-        if (isTargetNode(node)) {
-            return new ArrayList<>(path);  // Found path!
-        }
-        
-        // Recursively check successors
-        for (CGNode successor : callGraph.getSuccNodes(node)) {
-            List<CGNode> result = dfs(successor, visited, path);
-            if (result != null) return result;
-        }
-        
-        path.pop();
-        return null;
-    }
-}
-```
+The older API `ReachabilityChecker.findReachableMethods(callGraph, startNodes, targetNodeFilter)` delegates to `CustomDFSPathFinder`, which is an ITERATIVE depth-first search, not a recursive one: it keeps the current path on a `Deque<CGNode>` stack, tracks each node's unvisited successors in a `pendingChildren` map, iterates successors in signature-sorted order (`sortedSuccessors`, for run-to-run determinism), and skips children whose signature starts with an entry of the false-positives methods file (`FileHandlerConstants.FALSE_POSITIVES_FILE_SYSTEM_INTERACTIONS`, loaded lazily). `find()` returns the first root-to-target path or `null`.
+
+This component is legacy for rule checking: because `pendingChildren` marks nodes globally, each sink is reported on at most one path, which is exactly the masking problem `WalaRule.check` was written to eliminate.
 
 **Example Reachability Detection:**
 
@@ -1081,95 +1072,77 @@ Path: [StudentCode.processData, Helper.loadConfig, FileInputStream.<init>]
 <a id="55-false-positive-filtering-wala"></a>
 ## 5.5 False Positive Filtering (WALA)
 
-**Challenge:** JDK classes legitimately use file system operations internally (e.g., `Files.list()` creates threads internally for directory traversal).
+**Challenge:** Permitted JDK and framework APIs can internally reach forbidden methods (for example, wrapping a stream in a `BufferedReader` routes through JDK internals). Reporting such paths would blame students for JDK implementation details.
 
-**Solution:** Filter out paths that only go through JDK helper classes.
+**Solution:** Classify each call-graph path with `WalaPathClassification` (`WalaPathClassification.java`).
+
+Two prefix lists drive the classification:
 
 ```java
-private static final List<String> JDK_THREAD_HELPERS = List.of(
-    "Lsun/nio/fs/", "sun/nio/fs/",
-    "Lsun/nio/ch/", "sun/nio/ch/",
-    "Ljava/nio/file/Files", "java/nio/file/Files",
-    "Ljava/lang/ClassLoader", "java/lang/ClassLoader"
-);
+// Package prefixes that belong to infrastructure and must not be attributed
+// as student code (mirrors the exclusions in AspectJ's studentScope() pointcut)
+public static final List<String> INFRA_PREFIXES = List.of("java.", "javax.", "sun.", "jdk.", "com.sun.",
+    "de.tum.cit.ase.ares.api.", "net.bytebuddy.", "org.aspectj.", "com.ibm.wala.", "com.tngtech.archunit.",
+    "anonymous.toolclasses.", "metatest.");
 
-private static final List<String> ALLOWED_HELPER_APIS = List.of(
-    "java.lang.ClassLoader.getSystemClassLoader",
-    "java.io.File.getName",
-    "java.io.File.<init>"
-);
-
-// Check if path should be ignored
-boolean isHelperPath(List<CGNode> path) {
-    CGNode forbidden = path.get(path.size() - 1);
-    
-    // Is the forbidden API actually an allowed helper API?
-    boolean helperApi = ALLOWED_HELPER_APIS.stream()
-        .anyMatch(sig -> forbidden.getMethod().getSignature().startsWith(sig));
-    
-    // Does the path contain JDK helper classes?
-    boolean helperSeen = path.stream().anyMatch(node -> {
-        String cls = node.getMethod().getDeclaringClass().getName().toString();
-        return JDK_THREAD_HELPERS.stream().anyMatch(cls::startsWith);
-    });
-    
-    // Ignore if it's a helper API called through helper classes
-    return helperApi && helperSeen;
-}
+// Subset that genuinely indicates a transitive false positive; the project
+// test-helper packages (anonymous.toolclasses., metatest.) are deliberately
+// omitted so violations routed through such helpers are still reported
+static final List<String> TRANSITIVE_FALSE_POSITIVE_PREFIXES = List.of("java.", "javax.", "sun.", "jdk.",
+    "com.sun.", "de.tum.cit.ase.ares.", "net.bytebuddy.", "org.aspectj.", "com.ibm.wala.",
+    "com.tngtech.archunit.");
 ```
+
+`WalaRule.evaluatePath` uses two classification steps:
+
+1. **`nearestStudentFrame(path)`**: scans from the sink back towards the entry point and returns the index of the first frame that is NOT infrastructure (not in `INFRA_PREFIXES` and not loaded by a JDK/primordial class loader). If the whole path is infrastructure, the path is dropped. The violation is attributed to this nearest student frame, not to an intermediate JDK method.
+2. **`isFalsePositiveTransitivePath(path, studentIdx)`**: returns true when every frame strictly between the student frame and the forbidden sink is a transitive-false-positive frame. Such paths (student called a permitted JDK/framework API whose internals reach the forbidden method) are suppressed. Direct violations, where the student frame is immediately adjacent to the sink, are never suppressed.
+
+In addition, the (legacy) `CustomDFSPathFinder` consumes an excluded-methods file (`wala/false-positives/false-positives-file.txt`, e.g. `java.io.BufferedReader`, `java.io.DataInputStream`, `java.io.DataOutputStream`, `sun.nio.cs.StreamEncoder`) and skips those methods during traversal.
 
 **Example Filtering:**
 
-**Path 1 (Ignored):**
+**Path 1 (Suppressed as transitive-JDK false positive):**
 ```
-StudentCode.listFiles()
+StudentCode.readData()          (nearest student frame)
   ↓
-Files.list()  (JDK helper)
+java.io.BufferedReader.<init>() (infrastructure, prefix "java.")
   ↓
-UnixDirectoryStream.<init>()  (internal JDK class)
+sun.nio.cs.StreamDecoder...     (infrastructure, prefix "sun.")
   ↓
-FileInputStream.<init>()  (allowed helper API)
+FileInputStream.<init>()        (forbidden sink)
 
-Result: IGNORED (legitimate JDK internal use)
+Result: SUPPRESSED (every intermediate frame is transitive infrastructure)
 ```
 
 **Path 2 (Detected):**
 ```
-StudentCode.readSecret()
+StudentCode.readSecret()  (nearest student frame, adjacent to the sink)
   ↓
-FileInputStream.<init>()  (forbidden, no helpers in path)
+FileInputStream.<init>()  (forbidden sink)
 
-Result: VIOLATION (direct file access by student)
+Result: VIOLATION (direct call, never suppressed)
 ```
 
 **Special WALA Features:**
 
-**JDK Helper Filtering:**
-WALA mode includes intelligent filtering of JDK-internal helper classes that legitimately use file/thread operations:
-```java
-private static final List<String> JDK_THREAD_HELPERS = List.of(
-    "sun/nio/fs/", "sun/nio/ch/", "java/nio/file/Files",
-    "java/lang/ClassLoader", "jdk/internal/loader/NativeLibraries"
-);
-
-// Ignores paths like: StudentCode → Files.list → UnixDirectoryStream (internal helper)
-// Detects real violations: StudentCode → Files.readString → (no internal helper)
-```
+**Infrastructure-Aware Attribution:**
+Because `nearestStudentFrame` scans from the sink backwards, the reported caller is always the student method closest to the forbidden call, even when the actual invocation happens several JDK frames deeper. Paths routed through project test helpers (`anonymous.toolclasses.`, `metatest.`) are NOT treated as false positives: those helpers exist to exercise forbidden APIs, so suppressing them would silently disable detection.
 
 <a id="6-ares-2-architecture-file-system-access-control-operation-type-classification"></a>
 # 6. Ares 2 Architecture File System Access Control: Operation Type Classification
 
-This section explains how architecture testing classifies operations differently from AOP-based runtime analysis. Understanding these differences is essential for correctly interpreting analysis results.
+This section explains how the documentation groups file-system methods differently from AOP-based runtime analysis. Understanding this distinction is essential for correctly interpreting analysis results.
 
 **Key Difference from AOP:**
 
-Unlike AOP which can analyze runtime parameters (like `StandardOpenOption` values), architecture testing classifies operations based on **method signatures** in the forbidden methods list. This means:
+Unlike AOP, which can analyse runtime parameters (like `StandardOpenOption` values), architecture testing does **not** derive an action at runtime. Each architecture backend loads one flat file-system methods list and checks one binary rule: the supervised code must not access any method in that list unless the relevant class is exempt. The READ/WRITE/CREATE/DELETE/EXECUTE labels in this document are therefore explanatory groupings only. This means:
 
 - **No parameter inspection**: Cannot distinguish `Files.newByteChannel(path, READ)` from `Files.newByteChannel(path, WRITE)` at analysis time
-- **Method-level classification**: Each method is pre-classified as READ, WRITE, CREATE, DELETE, or EXECUTE based on its typical usage
-- **Conservative approach**: Methods that could perform multiple operations are often classified under the most restrictive category
+- **No action-specific permissions**: Path permissions such as "read this folder" are not consulted by architecture tests; the architecture rule is allow/deny at the method-access level
+- **Conservative documentation grouping**: Methods that could perform multiple operations may appear in more than one explanatory group, but the implementation still reads one flat forbidden-method list
 
-**Classification Strategy:**
+**Documentation Grouping Examples:**
 
 | Method Pattern | Classified As | Reason |
 |----------------|---------------|--------|
@@ -1178,7 +1151,7 @@ Unlike AOP which can analyze runtime parameters (like `StandardOpenOption` value
 | `Files.createFile`, `Files.createDirectory` | CREATE | Primary purpose is creation |
 | `Files.delete`, `Files.deleteIfExists` | DELETE | Primary purpose is deletion |
 | `Desktop.open`, `Desktop.edit` | EXECUTE | Launches external programs |
-| `Files.newByteChannel`, `FileChannel.open` | Multiple | Listed under multiple categories |
+| `Files.newByteChannel`, `FileChannel.open` | Broad file access | Listed in the flat file-system methods file; AOP later derives the exact runtime action from open options |
 
 **Consequence:** Architecture testing may flag more violations than AOP because it cannot distinguish read-only from write access when the same method is used for both.
 

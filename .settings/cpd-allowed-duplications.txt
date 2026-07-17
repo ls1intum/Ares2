@@ -1,0 +1,11 @@
+# Exact, reviewed legacy duplication groups. CPD still reports these groups, but
+# cpd-check treats only these complete file sets as the accepted baseline. Any new
+# group or any change to a group's participating files fails the build.
+de.tum.cit.ase.ares.api.aop.AOPMode.java,de.tum.cit.ase.ares.api.architecture.ArchitectureMode.java
+de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationConnectNetworkMethodAdvice.java,de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReceiveNetworkMethodAdvice.java,de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationSendNetworkMethodAdvice.java
+de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationConnectNetworkMethodAdvice.java,de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationCreatePathMethodAdvice.java,de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationCreateThreadMethodAdvice.java,de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationDeletePathMethodAdvice.java,de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationExecuteCommandMethodAdvice.java,de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathMethodAdvice.java,de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathMethodAdvice.java,de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathMethodAdvice.java,de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReceiveNetworkMethodAdvice.java,de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationSendNetworkMethodAdvice.java
+de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox.java
+de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension.java
+de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchunitTestCase.java,de.tum.cit.ase.ares.api.architecture.java.wala.JavaWalaTestCase.java
+de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceNetworkSystemToolbox.java,de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceThreadSystemToolbox.java
+de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceCommandSystemToolbox.java
