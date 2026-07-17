@@ -112,41 +112,30 @@ public class JqwickUser {
 	@StrictTimeout(value = 500, unit = TimeUnit.MILLISECONDS)
 	void provokeTimeoutEndlessLoop(@ForAll @Positive int x) {
 		int y = 0;
-		while (x != 0 || y > 0)
+		while (!Thread.currentThread().isInterrupted()) {
 			y += x;
+		}
 	}
 
 	@Public
 	@Example
 	@StrictTimeout(value = 200, unit = TimeUnit.MILLISECONDS)
-	void provokeTimeoutSleepExample(@SuppressWarnings("unused") @ForAll @Positive int x) {
-		try {
-			Thread.sleep(300);
-		} catch (@SuppressWarnings("unused") InterruptedException e) {
-			// do nothing
-		}
+	void provokeTimeoutSleepExample(@SuppressWarnings("unused") @ForAll @Positive int x) throws InterruptedException {
+		Thread.sleep(300);
 	}
 
 	@Public
 	@Property
 	@StrictTimeout(value = 200, unit = TimeUnit.MILLISECONDS)
-	void provokeTimeoutSleepProperty(@SuppressWarnings("unused") @ForAll @Positive int x) {
-		try {
-			Thread.sleep(300);
-		} catch (@SuppressWarnings("unused") InterruptedException e) {
-			// do nothing
-		}
+	void provokeTimeoutSleepProperty(@SuppressWarnings("unused") @ForAll @Positive int x) throws InterruptedException {
+		Thread.sleep(300);
 	}
 
 	@Public
 	@Property(tries = 1)
 	@StrictTimeout(value = 200, unit = TimeUnit.MILLISECONDS)
-	void provokeTimeoutSleepTries(@SuppressWarnings("unused") @ForAll @Positive int x) {
-		try {
-			Thread.sleep(300);
-		} catch (@SuppressWarnings("unused") InterruptedException e) {
-			// do nothing
-		}
+	void provokeTimeoutSleepTries(@SuppressWarnings("unused") @ForAll @Positive int x) throws InterruptedException {
+		Thread.sleep(300);
 	}
 
 	@Hidden
