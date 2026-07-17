@@ -121,21 +121,30 @@ public class JqwickUser {
 	@Example
 	@StrictTimeout(value = 200, unit = TimeUnit.MILLISECONDS)
 	void provokeTimeoutSleepExample(@SuppressWarnings("unused") @ForAll @Positive int x) throws InterruptedException {
-		Thread.sleep(300);
+		sleepUntilInterrupted();
 	}
 
 	@Public
 	@Property
 	@StrictTimeout(value = 200, unit = TimeUnit.MILLISECONDS)
 	void provokeTimeoutSleepProperty(@SuppressWarnings("unused") @ForAll @Positive int x) throws InterruptedException {
-		Thread.sleep(300);
+		sleepUntilInterrupted();
 	}
 
 	@Public
 	@Property(tries = 1)
 	@StrictTimeout(value = 200, unit = TimeUnit.MILLISECONDS)
 	void provokeTimeoutSleepTries(@SuppressWarnings("unused") @ForAll @Positive int x) throws InterruptedException {
-		Thread.sleep(300);
+		sleepUntilInterrupted();
+	}
+
+	private void sleepUntilInterrupted() throws InterruptedException {
+		try {
+			Thread.sleep(300);
+		} catch (InterruptedException exception) {
+			Thread.currentThread().interrupt();
+			throw exception;
+		}
 	}
 
 	@Hidden
