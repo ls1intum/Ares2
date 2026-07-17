@@ -62,7 +62,7 @@
 		<!-- 4. AST: 4.1 JavaParser -->
 		<java-parser-version>3.28.2</java-parser-version>
 		<!-- 5. Formats: YAML and XML (JSON handled via Jackson) -->
-		<yaml-version>2.22.0</yaml-version>
+		<yaml-version>2.22.1</yaml-version>
 		<!-- 6. Large Tooling Libraries -->
 		<commons-io-version>2.22.0</commons-io-version>
 		<!-- 7. Small Tooling Libraries -->
