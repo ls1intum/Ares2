@@ -68,7 +68,7 @@
 		<!-- 7. Small Tooling Libraries -->
 		<jgrapht-core-version>1.5.3</jgrapht-core-version>
 		<!-- 8. Logging  -->
-		<logback-version>1.5.34</logback-version>
+		<logback-version>1.5.38</logback-version>
 		<!-- 8. API  -->
 		<apiguardian-api-version>1.1.2</apiguardian-api-version>
 		<!-- Others -->
