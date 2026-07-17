@@ -7,6 +7,7 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.IntConsumer;
 
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
@@ -19,6 +20,7 @@ import de.tum.cit.ase.ares.api.context.*;
 @API(status = Status.INTERNAL)
 public final class TimeoutUtils {
 	private static final Duration DEFAULT_TERMINATION_GRACE_PERIOD = Duration.ofMillis(50);
+	private static final int UNRESPONSIVE_TIMEOUT_EXIT_CODE = 124;
 
 	private TimeoutUtils() {
 	}
@@ -34,12 +36,18 @@ public final class TimeoutUtils {
 
 	public static <T> T performTimeoutExecution(ThrowingSupplier<T> execution, TestContext context,
 			Duration terminationGracePeriod) throws Throwable {
+		return performTimeoutExecution(execution, context, terminationGracePeriod,
+				exitCode -> Runtime.getRuntime().halt(exitCode));
+	}
+
+	static <T> T performTimeoutExecution(ThrowingSupplier<T> execution, TestContext context,
+			Duration terminationGracePeriod, IntConsumer fatalProcessTerminator) throws Throwable {
 		var timeout = findTimeout(context);
 		if (timeout.isEmpty()) {
 			return execution.get();
 		}
-		return executeWithTimeout(timeout.get(), () -> rethrowThrowableSafe(execution), context,
-				terminationGracePeriod);
+		return executeWithTimeout(timeout.get(), () -> rethrowThrowableSafe(execution), context, terminationGracePeriod,
+				fatalProcessTerminator);
 	}
 
 	private static <T> T rethrowThrowableSafe(ThrowingSupplier<T> execution) throws Exception { // NOSONAR
@@ -57,7 +65,7 @@ public final class TimeoutUtils {
 	}
 
 	private static <T> T executeWithTimeout(Duration timeout, Callable<T> action, TestContext context,
-			Duration terminationGracePeriod) throws Throwable { // NOSONAR
+			Duration terminationGracePeriod, IntConsumer fatalProcessTerminator) throws Throwable { // NOSONAR
 		var threadFactory = new WhitelistedThreadFactory();
 		var executorService = Executors.newSingleThreadExecutor(threadFactory);
 		Future<T> future = executorService.submit(action);
@@ -70,7 +78,7 @@ public final class TimeoutUtils {
 			}
 			throw ex.getCause();
 		} catch (@SuppressWarnings("unused") TimeoutException ex) {
-			terminateTimedOutExecution(future, executorService, terminationGracePeriod);
+			terminateTimedOutExecution(future, executorService, terminationGracePeriod, fatalProcessTerminator);
 			throw generateTimeoutFailure(timeout, context);
 		} finally {
 			executorService.shutdownNow();
@@ -78,17 +86,21 @@ public final class TimeoutUtils {
 	}
 
 	private static void terminateTimedOutExecution(Future<?> future, ExecutorService executorService,
-			Duration terminationGracePeriod) {
+			Duration terminationGracePeriod, IntConsumer fatalProcessTerminator) {
 		future.cancel(true);
 		executorService.shutdownNow();
 		/*
 		 * Give interruption-aware code time to finish before the owning thread
-		 * continues. A worker that deliberately ignores interruption remains
-		 * daemonised: forcibly stopping it can interrupt JVM class initialisation or
-		 * release monitors inconsistently and would corrupt the reused fork more
-		 * severely than the timed-out test itself.
+		 * continues. If it ignores interruption, the fork is already contaminated:
+		 * returning would let untrusted code outlive its security, IO and reporting
+		 * lifecycle and affect later tests in a reused JVM. Thread.stop() cannot repair
+		 * that safely or reliably, so fail closed by terminating the complete worker
+		 * process and let Maven, Gradle or the IDE report the crashed test fork.
 		 */
-		awaitTermination(executorService, terminationGracePeriod.toMillis());
+		if (!awaitTermination(executorService, terminationGracePeriod.toMillis())) {
+			fatalProcessTerminator.accept(UNRESPONSIVE_TIMEOUT_EXIT_CODE);
+			throw new AssertionError("Fatal process terminator returned without terminating the test worker"); //$NON-NLS-1$
+		}
 	}
 
 	private static boolean awaitTermination(ExecutorService executorService, long timeoutMillis) {

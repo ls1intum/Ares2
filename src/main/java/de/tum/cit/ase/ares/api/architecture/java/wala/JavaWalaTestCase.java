@@ -346,6 +346,7 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	 */
 	@Nonnull
 	private String cacheKey() {
+		JavaArchitectureTestCaseSupported supported = (JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported;
 		String classpath = Stream.of(System.getProperty("java.class.path", "").split(java.io.File.pathSeparator))
 				.filter(p -> p.contains("classes") || p.contains("build")).sorted()
 				.collect(Collectors.joining(java.io.File.pathSeparator));
@@ -360,6 +361,12 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		String bytecodeFingerprint = javaClasses.stream()
 				.map(javaClass -> javaClass.getFullName() + "#" + classBytecodeHash(javaClass)).sorted()
 				.collect(Collectors.joining(";"));
+		// The call graph also follows reachable application dependencies. Their paths
+		// alone are not identities: a JAR or class directory can be replaced in place,
+		// so hash the complete effective dependency content before consulting a cached
+		// verdict.
+		String dependencyFingerprint = supported == JavaArchitectureTestCaseSupported.PACKAGE_IMPORT ? ""
+				: CustomCallgraphBuilder.dependencyFingerprint(javaClasses);
 		String allowedPackagesFingerprint = allowedPackages.stream().map(PackagePermission::importTheFollowingPackage)
 				.sorted().collect(Collectors.joining(","));
 		// The allow-listed classes change which violations are exempt, so they must be
@@ -372,12 +379,11 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		// classes directory, so without this a cached PASS could survive a tightening
 		// of
 		// the rules.
-		String blocklistFingerprint = blocklistFingerprint(
-				(JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported);
-		return classpath + "|" + IMPLEMENTATION_FINGERPRINT + "|"
-				+ ((JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported).name() + "|"
+		String blocklistFingerprint = blocklistFingerprint(supported);
+		return classpath + "|" + IMPLEMENTATION_FINGERPRINT + "|" + supported.name() + "|"
 				+ sha256Hex(structuralFingerprint + "||" + bytecodeFingerprint + "||" + allowedPackagesFingerprint
-						+ "||" + allowedClassesFingerprint + "||" + blocklistFingerprint);
+						+ "||" + allowedClassesFingerprint + "||" + blocklistFingerprint + "||"
+						+ dependencyFingerprint);
 	}
 
 	/**
@@ -583,10 +589,11 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	/**
 	 * Executes the architecture test case.
 	 * <p>
-	 * Outcomes are cached on disk keyed by classpath + Ares-jar mtime + rule name,
-	 * so subsequent JVM forks (e.g. {@code testPermitted} after
-	 * {@code testUnprotected}) skip the expensive call-graph traversal when the
-	 * same rule was already evaluated for the same classpath.
+	 * Outcomes are cached on disk using content identities for the application,
+	 * reachable dependencies, analysis engines and rule inputs, so subsequent JVM
+	 * forks (e.g. {@code testPermitted} after {@code testUnprotected}) skip the
+	 * expensive call-graph traversal when the same rule was already evaluated for
+	 * the same classpath.
 	 */
 	@Override
 	public void executeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {

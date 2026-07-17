@@ -4,6 +4,7 @@ import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URI;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Optional;
@@ -15,6 +16,7 @@ import javax.activation.FileDataSource;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import com.ibm.wala.ipa.cha.ClassHierarchy;
 import com.tngtech.archunit.core.domain.JavaClass;
@@ -26,6 +28,9 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 public class CustomCallgraphBuilderTest {
 	private static final String FIXTURE_CLASSPATH = "target/test-classes/de/tum/cit/ase/ares/api/architecture/java/wala/fixture";
 	private static final String PARALLEL_STREAM_FIXTURE_CLASSPATH = "target/test-classes/de/tum/cit/ase/ares/integration/wala/fixture";
+
+	@TempDir
+	Path temporaryDirectory;
 
 	@Test
 	void testConvertTypeNameToClassName_Valid() throws Exception {
@@ -196,6 +201,66 @@ public class CustomCallgraphBuilderTest {
 
 		Assertions.assertTrue(
 				Arrays.asList(expandedClassPath.split(Pattern.quote(File.pathSeparator))).contains(activationJar));
+	}
+
+	@Test
+	void testFilterClassPathTrustsExactOriginsRatherThanFilenameFragments() throws Exception {
+		Path fakeJunit = Files.writeString(temporaryDirectory.resolve("junit-backdoor.jar"), "student bytecode");
+		Path fakeAres = Files.writeString(temporaryDirectory.resolve("ares-escape.jar"), "student bytecode");
+		Path actualAres = Path
+				.of(CustomCallgraphBuilder.class.getProtectionDomain().getCodeSource().getLocation().toURI())
+				.toRealPath();
+		Method method = CustomCallgraphBuilder.class.getDeclaredMethod("filterClassPath", String.class);
+		method.setAccessible(true);
+
+		String filtered = (String) method.invoke(null,
+				String.join(File.pathSeparator, fakeJunit.toString(), fakeAres.toString(), actualAres.toString()));
+		Set<String> entries = Set.of(filtered.split(Pattern.quote(File.pathSeparator)));
+
+		Assertions.assertTrue(entries.contains(fakeJunit.toString()));
+		Assertions.assertTrue(entries.contains(fakeAres.toString()));
+		Assertions.assertFalse(entries.contains(actualAres.toString()));
+	}
+
+	@Test
+	void testExplodedFrameworkClassIsTrustedOnlyWithinItsCanonicalCodeSource() throws Exception {
+		URI classUri = CustomCallgraphBuilder.class
+				.getResource("/de/tum/cit/ase/ares/api/architecture/java/wala/CustomCallgraphBuilder.class").toURI();
+		Path packageDirectory = Path.of(classUri).getParent();
+		Method method = CustomCallgraphBuilder.class.getDeclaredMethod("isTrustedFrameworkLocation", java.net.URL.class,
+				String.class);
+		method.setAccessible(true);
+
+		boolean trusted = (boolean) method.invoke(null, classUri.toURL(), packageDirectory.toString());
+
+		Assertions.assertTrue(trusted);
+	}
+
+	@Test
+	void testAnalysisEntryFingerprintChangesWhenJarOrDirectoryContentChanges() throws Exception {
+		Path dependencyJar = Files.writeString(temporaryDirectory.resolve("dependency.jar"), "first jar content");
+		Path dependencyDirectory = Files.createDirectory(temporaryDirectory.resolve("classes"));
+		Path dependencyClass = Files.writeString(dependencyDirectory.resolve("Dependency.class"),
+				"first class content");
+		Set<String> entries = Set.of(dependencyJar.toString(), dependencyDirectory.toString());
+		String original = CustomCallgraphBuilder.fingerprintAnalysisEntries(entries);
+
+		Files.writeString(dependencyJar, "second jar content");
+		String changedJar = CustomCallgraphBuilder.fingerprintAnalysisEntries(entries);
+		Files.writeString(dependencyClass, "second class content");
+		String changedDirectory = CustomCallgraphBuilder.fingerprintAnalysisEntries(entries);
+
+		Assertions.assertNotEquals(original, changedJar);
+		Assertions.assertNotEquals(changedJar, changedDirectory);
+	}
+
+	@Test
+	void testDependencyFingerprintIncludesReachableThirdPartyEntries() {
+		JavaClasses fixtureClasses = new ClassFileImporter().importPath(Path.of(FIXTURE_CLASSPATH));
+		String dependencyFingerprint = CustomCallgraphBuilder.dependencyFingerprint(fixtureClasses);
+		String noDependenciesFingerprint = CustomCallgraphBuilder.fingerprintAnalysisEntries(Set.of());
+
+		Assertions.assertNotEquals(noDependenciesFingerprint, dependencyFingerprint);
 	}
 
 	@Test

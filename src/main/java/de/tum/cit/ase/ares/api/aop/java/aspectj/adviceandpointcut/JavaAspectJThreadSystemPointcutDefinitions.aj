@@ -58,7 +58,7 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
             call(* java.util.Collection+.parallelStream()) ||
             call(* java.util.stream.Stream+.parallel()) ||
             call(* java.util.stream.BaseStream+.parallel())
-            ) && !within(de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationThreadSystemCallSite);
+            );
 
     // Thread monitor manipulation (notify/notifyAll/wait). These are final methods declared by
     // java.lang.Object, so call(* java.lang.Thread+.notify()) does not weave (AspectJ resolves the

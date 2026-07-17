@@ -5,7 +5,10 @@ import java.io.IOException;
 import java.net.JarURLConnection;
 import java.net.URI;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,6 +23,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.ibm.wala.classLoader.CallSiteReference;
 import com.ibm.wala.classLoader.IClass;
@@ -66,29 +70,21 @@ import de.tum.cit.ase.ares.api.util.FileTools;
  */
 public class CustomCallgraphBuilder {
 
-	/** Substrings that disqualify a classpath entry from the analysis scope. */
-	private static final List<String> CLASSPATH_EXCLUDE_SUBSTRINGS = List.of(
-			// JUnit and supporting test-platform libraries
-			"/junit-", "/junit5-", "/junit-jupiter", "/junit-platform", "/junit-vintage", "/opentest4j",
-			"/apiguardian-api", "/junit-pioneer",
-			// Mocking and test-double libraries
-			"/mockito-", "/byte-buddy-agent", "/objenesis",
-			// Assertion and property-based testing libraries
-			"/assertj-", "/hamcrest", "/jqwik-",
-			// Code coverage instrumentation
-			"/jacoco", "/org.jacoco",
-			// Gradle test-runner infrastructure
-			"/gradle-worker", "/gradle-test-kit", "/test-kit",
-			// Static analysis, linting and bug-finding tools
-			"/spotbugs", "/spotbugsAnnotations", "/checkstyle", "/pmd-", "/spoon-",
-			// Auxiliary parsing and graph libraries pulled in by analysis tooling
-			"/javaparser-", "/jgrapht-", "/info.debatty",
-			// Ares itself must never appear in its own analysis scope
-			"/ares-", "/ares.jar",
-			// WALA runtime, used to perform the analysis, must not be analysed
-			"/com.ibm.wala", "/wala-",
-			// AspectJ runtime and tooling, used by Ares' AOP layer
-			"/aspectjweaver", "/aspectjrt", "/aspectjtools");
+	/**
+	 * Canonical code-source locations of the concrete framework artefacts loaded by
+	 * Ares. Trust is an origin decision: filenames and directory fragments are
+	 * entirely student-controlled and must never remove an entry from WALA's scope.
+	 */
+	private static final Set<Path> TRUSTED_FRAMEWORK_CODE_SOURCES = trustedFrameworkCodeSources(
+			CustomCallgraphBuilder.class, CallGraph.class, JavaClasses.class, org.apiguardian.api.API.class,
+			org.aspectj.lang.JoinPoint.class, org.assertj.core.api.Assertions.class, org.hamcrest.Matcher.class,
+			org.junit.Test.class, org.junit.jupiter.api.Test.class, org.junit.jupiter.params.ParameterizedTest.class,
+			org.junit.jupiter.engine.JupiterTestEngine.class, org.junit.platform.commons.JUnitException.class,
+			org.junit.platform.engine.TestDescriptor.class, org.junit.platform.launcher.Launcher.class,
+			org.junit.platform.testkit.engine.EngineTestKit.class, org.mockito.Mockito.class,
+			org.opentest4j.AssertionFailedError.class, net.bytebuddy.ByteBuddy.class,
+			net.bytebuddy.agent.ByteBuddyAgent.class, net.jqwik.api.Property.class,
+			net.jqwik.engine.JqwikTestEngine.class);
 
 	private final ClassFileImporter classFileImporter;
 	private final AnalysisScope scope;
@@ -124,8 +120,6 @@ public class CustomCallgraphBuilder {
 		LinkedHashSet<String> entries = Arrays.stream(classPath.split(File.pathSeparator))
 				.filter(entry -> !entry.isBlank()).collect(Collectors.toCollection(LinkedHashSet::new));
 		Deque<JavaClass> pending = new ArrayDeque<>();
-		Set<String> visitedClasses = new HashSet<>();
-		Map<String, JavaClasses> importedJars = new HashMap<>();
 		ClassFileImporter importer = new ClassFileImporter();
 
 		for (String entry : entries) {
@@ -140,6 +134,27 @@ public class CustomCallgraphBuilder {
 			}
 		}
 
+		addReachableDependencies(entries, pending, importer);
+		return String.join(File.pathSeparator, entries);
+	}
+
+	/**
+	 * Hashes every non-platform, non-framework bytecode location reachable from the
+	 * imported application classes. This is the same dependency expansion used for
+	 * the WALA scope and therefore invalidates cached verdicts when a reachable JAR
+	 * or class directory is replaced at the same path.
+	 */
+	static String dependencyFingerprint(JavaClasses applicationClasses) {
+		LinkedHashSet<String> entries = new LinkedHashSet<>();
+		Deque<JavaClass> pending = new ArrayDeque<>(applicationClasses);
+		addReachableDependencies(entries, pending, new ClassFileImporter());
+		return fingerprintAnalysisEntries(entries);
+	}
+
+	private static void addReachableDependencies(LinkedHashSet<String> entries, Deque<JavaClass> pending,
+			ClassFileImporter importer) {
+		Set<String> visitedClasses = new HashSet<>();
+		Map<String, JavaClasses> importedJars = new HashMap<>();
 		while (!pending.isEmpty()) {
 			JavaClass source = pending.removeFirst();
 			if (!visitedClasses.add(source.getName())) {
@@ -173,7 +188,7 @@ public class CustomCallgraphBuilder {
 					throw new SecurityException("Could not derive a classpath entry for reachable dependency " //$NON-NLS-1$
 							+ targetName);
 				}
-				if (isTrustedFrameworkLocation(targetName, location, classpathEntry.get())) {
+				if (isTrustedFrameworkLocation(location, classpathEntry.get())) {
 					visitedClasses.add(targetName);
 					continue;
 				}
@@ -194,7 +209,6 @@ public class CustomCallgraphBuilder {
 				}
 			}
 		}
-		return String.join(File.pathSeparator, entries);
 	}
 
 	private static String normaliseDependencyClassName(String className) {
@@ -221,20 +235,102 @@ public class CustomCallgraphBuilder {
 		}
 	}
 
-	private static boolean isTrustedFrameworkLocation(String className, URL location, String classpathEntry) {
-		String normalizedEntry = classpathEntry.replace(File.separatorChar, '/');
-		if (CLASSPATH_EXCLUDE_SUBSTRINGS.stream().anyMatch(normalizedEntry::contains)) {
+	private static boolean isTrustedFrameworkLocation(String classpathEntry) {
+		try {
+			return TRUSTED_FRAMEWORK_CODE_SOURCES.contains(Path.of(classpathEntry).toRealPath());
+		} catch (IOException | RuntimeException unavailableLocation) {
+			return false;
+		}
+	}
+
+	private static boolean isTrustedFrameworkLocation(URL classResource, String classpathEntry) {
+		if (isTrustedFrameworkLocation(classpathEntry)) {
 			return true;
 		}
-		if (!className.startsWith("de.tum.cit.ase.ares.api.")) {
+		if (!"file".equals(classResource.getProtocol())) { //$NON-NLS-1$
 			return false;
 		}
 		try {
-			String aresCodeSource = CustomCallgraphBuilder.class.getProtectionDomain().getCodeSource().getLocation()
-					.toExternalForm();
-			return location.toExternalForm().startsWith(aresCodeSource);
-		} catch (RuntimeException unavailableCodeSource) {
+			Path classFile = Path.of(classResource.toURI()).toRealPath();
+			return TRUSTED_FRAMEWORK_CODE_SOURCES.stream().filter(Files::isDirectory).anyMatch(classFile::startsWith);
+		} catch (IOException | java.net.URISyntaxException | RuntimeException unavailableLocation) {
 			return false;
+		}
+	}
+
+	private static Set<Path> trustedFrameworkCodeSources(Class<?>... frameworkClasses) {
+		LinkedHashSet<Path> locations = new LinkedHashSet<>();
+		for (Class<?> frameworkClass : frameworkClasses) {
+			try {
+				var codeSource = frameworkClass.getProtectionDomain().getCodeSource();
+				if (codeSource != null && codeSource.getLocation() != null) {
+					locations.add(Path.of(codeSource.getLocation().toURI()).toRealPath());
+				}
+			} catch (IOException | java.net.URISyntaxException | RuntimeException unavailableLocation) {
+				// If an origin cannot be proven, do not trust it and leave it in the scope.
+			}
+		}
+		return Set.copyOf(locations);
+	}
+
+	static String fingerprintAnalysisEntries(Set<String> classpathEntries) {
+		try {
+			String contentIdentity = classpathEntries.stream().map(CustomCallgraphBuilder::canonicalAnalysisEntry)
+					.sorted().map(CustomCallgraphBuilder::analysisEntryFingerprint).collect(Collectors.joining(";")); //$NON-NLS-1$
+			return sha256Hex(contentIdentity.getBytes(StandardCharsets.UTF_8));
+		} catch (RuntimeException unreadableEntry) {
+			if (unreadableEntry.getCause() instanceof IOException ioException) {
+				throw new SecurityException("Could not fingerprint a WALA analysis dependency", ioException); //$NON-NLS-1$
+			}
+			throw unreadableEntry;
+		}
+	}
+
+	private static Path canonicalAnalysisEntry(String classpathEntry) {
+		try {
+			return Path.of(classpathEntry).toRealPath();
+		} catch (IOException unreadableEntry) {
+			throw new java.io.UncheckedIOException(unreadableEntry);
+		}
+	}
+
+	private static String analysisEntryFingerprint(Path entry) {
+		try {
+			if (Files.isRegularFile(entry)) {
+				return "file#" + entry + "#" + sha256Hex(Files.readAllBytes(entry)); //$NON-NLS-1$ //$NON-NLS-2$
+			}
+			if (!Files.isDirectory(entry)) {
+				throw new IOException("Analysis entry is neither a file nor a directory: " + entry); //$NON-NLS-1$
+			}
+			try (Stream<Path> files = Files.walk(entry)) {
+				String directoryIdentity = files.filter(Files::isRegularFile).sorted()
+						.map(path -> entry.relativize(path) + "#" + hashAnalysisFile(path)) //$NON-NLS-1$
+						.collect(Collectors.joining(";")); //$NON-NLS-1$
+				return "directory#" + entry + "#" + sha256Hex(directoryIdentity.getBytes(StandardCharsets.UTF_8)); //$NON-NLS-1$ //$NON-NLS-2$
+			}
+		} catch (IOException unreadableEntry) {
+			throw new java.io.UncheckedIOException(unreadableEntry);
+		}
+	}
+
+	private static String hashAnalysisFile(Path path) {
+		try {
+			return sha256Hex(Files.readAllBytes(path));
+		} catch (IOException unreadableFile) {
+			throw new java.io.UncheckedIOException(unreadableFile);
+		}
+	}
+
+	private static String sha256Hex(byte[] value) {
+		try {
+			byte[] digest = MessageDigest.getInstance("SHA-256").digest(value); //$NON-NLS-1$
+			StringBuilder hex = new StringBuilder(digest.length * 2);
+			for (byte element : digest) {
+				hex.append(Character.forDigit((element >> 4) & 0xF, 16)).append(Character.forDigit(element & 0xF, 16));
+			}
+			return hex.toString();
+		} catch (java.security.NoSuchAlgorithmException unavailableAlgorithm) {
+			throw new SecurityException("SHA-256 is unavailable", unavailableAlgorithm); //$NON-NLS-1$
 		}
 	}
 
@@ -265,10 +361,9 @@ public class CustomCallgraphBuilder {
 	 */
 	private static String filterClassPath(String classPath) {
 		String[] entries = classPath.split(File.pathSeparator);
-		LinkedHashSet<String> kept = Arrays.stream(entries).filter(entry -> !entry.isBlank()).filter(entry -> {
-			String normalized = entry.replace(File.separatorChar, '/');
-			return CLASSPATH_EXCLUDE_SUBSTRINGS.stream().noneMatch(normalized::contains);
-		}).collect(Collectors.toCollection(LinkedHashSet::new));
+		LinkedHashSet<String> kept = Arrays.stream(entries).filter(entry -> !entry.isBlank())
+				.filter(entry -> !isTrustedFrameworkLocation(entry))
+				.collect(Collectors.toCollection(LinkedHashSet::new));
 
 		// Ares' BuildMode.getClasspath narrows the analysis classpath to a single
 		// package subdirectory (e.g. build/classes/java/main/anonymous/foo/bar) so

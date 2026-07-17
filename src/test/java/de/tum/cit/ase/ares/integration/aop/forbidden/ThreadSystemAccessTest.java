@@ -79,6 +79,34 @@ class ThreadSystemAccessTest extends SystemAccessTest {
 	public void test_startThreadMavenWalaInstrumentation() {
 		assertAresSecurityExceptionThread(CreateThreadMain::startThread, CreateThreadMain.class);
 	}
+
+	@PublicTest
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
+	public void test_directCallSiteStartMavenArchunitAspectJ() {
+		assertAresSecurityExceptionThread(CreateThreadMain::startThreadThroughInstrumentationCallSite,
+				CreateThreadMain.class);
+	}
+
+	@PublicTest
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
+	public void test_directCallSiteStartMavenArchunitInstrumentation() {
+		assertAresSecurityExceptionThread(CreateThreadMain::startThreadThroughInstrumentationCallSite,
+				CreateThreadMain.class);
+	}
+
+	@PublicTest
+	@Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
+	public void test_directCallSiteStartMavenWalaAspectJ() {
+		assertAresSecurityExceptionThread(CreateThreadMain::startThreadThroughInstrumentationCallSite,
+				CreateThreadMain.class);
+	}
+
+	@PublicTest
+	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = THREAD_WITHIN_PATH)
+	public void test_directCallSiteStartMavenWalaInstrumentation() {
+		assertAresSecurityExceptionThread(CreateThreadMain::startThreadThroughInstrumentationCallSite,
+				CreateThreadMain.class);
+	}
 	// </editor-fold>
 
 	// <editor-fold desc="accessThreadSystemViaSubmitCallable">
