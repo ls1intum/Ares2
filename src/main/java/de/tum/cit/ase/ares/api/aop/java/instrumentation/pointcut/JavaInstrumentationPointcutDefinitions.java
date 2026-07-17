@@ -568,7 +568,8 @@ public final class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.util.concurrent.Executors$DelegatedExecutorService",
 					List.of("submit", "invokeAll", "invokeAny")),
 			Map.entry("java.util.concurrent.Executors$DefaultThreadFactory", List.of("newThread")),
-			Map.entry("java.util.concurrent.ExecutorCompletionService", List.of("submit")));
+			Map.entry("java.util.concurrent.ExecutorCompletionService", List.of("submit")),
+			Map.entry("java.util.concurrent.SubmissionPublisher", List.of("submit", "offer")));
 	// </editor-fold>
 
 	// <editor-fold desc="Execute command">

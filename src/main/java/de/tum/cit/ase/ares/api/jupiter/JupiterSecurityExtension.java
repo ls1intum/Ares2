@@ -15,7 +15,6 @@ import org.junit.jupiter.api.extension.*;
 import org.junit.platform.commons.function.Try;
 
 import de.tum.cit.ase.ares.api.Policy;
-import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 
@@ -59,8 +58,6 @@ public final class JupiterSecurityExtension
 	public void beforeTestExecution(ExtensionContext extensionContext) throws Exception {
 		resetSettingsInStandardClassLoader();
 		resetSettingsInBootstrapClassLoader();
-		JavaInstrumentationAgent.beginTransformationSession();
-
 		JupiterContext testContext = JupiterContext.of(extensionContext);
 		Optional<Policy> methodPolicy = findAnnotation(testContext.testMethod(), Policy.class);
 		Optional<Policy> classPolicy = findAnnotation(testContext.testClass(), Policy.class);
@@ -86,9 +83,7 @@ public final class JupiterSecurityExtension
 	@Override
 	public void afterTestExecution(ExtensionContext extensionContext) throws Exception {
 		try {
-			if (JavaAOPTestCaseSettings.isInstrumentationMode()) {
-				JavaInstrumentationAgent.throwIfTransformationFailed();
-			}
+			JavaInstrumentationAgent.throwIfTransformationFailed();
 		} finally {
 			extensionContext.getStore(NAMESPACE).remove(POLICY_PREPARED_KEY);
 			resetSettingsInStandardClassLoader();
@@ -125,7 +120,6 @@ public final class JupiterSecurityExtension
 			// prepared the policy and must not build the same WALA graph twice.
 			resetSettingsInStandardClassLoader();
 			resetSettingsInBootstrapClassLoader();
-			JavaInstrumentationAgent.beginTransformationSession();
 		}
 		if (!policyAlreadyPrepared && isAresActivated && (hasPolicyAnnotation || isTestMethodPresent)) {
 			Path policyPath = policyOpt.filter(p -> !p.value().isBlank())
@@ -135,7 +129,6 @@ public final class JupiterSecurityExtension
 			SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policyPath).projectFolderPath(withinPath)
 					.build().createTestCases().executeTestCases();
 		}
-		boolean instrumentationMode = JavaAOPTestCaseSettings.isInstrumentationMode();
 		T result = null;
 		Throwable failure = null;
 		try {
@@ -144,12 +137,10 @@ public final class JupiterSecurityExtension
 			failure = t;
 		} finally {
 			Throwable transformationFailure = null;
-			if (instrumentationMode) {
-				try {
-					JavaInstrumentationAgent.throwIfTransformationFailed();
-				} catch (SecurityException e) {
-					transformationFailure = e;
-				}
+			try {
+				JavaInstrumentationAgent.throwIfTransformationFailed();
+			} catch (SecurityException e) {
+				transformationFailure = e;
 			}
 			try {
 				// ALWAYS reset settings AFTER the test to ensure clean state for subsequent

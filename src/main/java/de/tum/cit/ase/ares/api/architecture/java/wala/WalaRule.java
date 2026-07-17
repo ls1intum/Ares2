@@ -12,9 +12,6 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.ibm.wala.classLoader.IClass;
 import com.ibm.wala.classLoader.IMethod;
 import com.ibm.wala.ipa.callgraph.CGNode;
@@ -34,8 +31,6 @@ import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 
 public class WalaRule {
-
-	private static final Logger LOG = LoggerFactory.getLogger(WalaRule.class);
 
 	final String ruleName;
 	final Set<String> forbiddenMethods;
@@ -71,6 +66,10 @@ public class WalaRule {
 	 * @param allowedClasses the classes exempt from the rule, must not be null
 	 */
 	public void check(CallGraph cg, Set<ClassPermission> allowedClasses) {
+		Set<CGNode> entryReachable = forwardReachableFromEntrypoints(cg);
+		if (entryReachable.isEmpty()) {
+			throw new SecurityException(Messages.localized("security.architecture.wala.entrypoints.empty", ruleName));
+		}
 		// Collect every forbidden sink in the call graph. Sorting by signature keeps
 		// the reported violation deterministic across JVM runs (WALA's node iteration
 		// order depends on per-JVM identity hashes).
@@ -84,15 +83,6 @@ public class WalaRule {
 			return;
 		}
 		sinks.sort(Comparator.comparing(n -> n.getMethod().getSignature()));
-		Set<CGNode> entryReachable = forwardReachableFromEntrypoints(cg);
-		if (entryReachable.isEmpty()) {
-			// Fail closed: forbidden sinks are present but the call graph has no entry
-			// points, so nothing is reachable and every violation would be silently
-			// missed. An empty entry set means the analysis was mis-scoped (e.g. the
-			// entry-point package prefix did not match the analysed classes), which must
-			// be surfaced rather than passed.
-			throw new SecurityException(Messages.localized("security.architecture.wala.entrypoints.empty", ruleName));
-		}
 
 		for (CGNode sink : sinks) {
 			if (!entryReachable.contains(sink)) {
@@ -317,9 +307,9 @@ public class WalaRule {
 	 * Bounds the number of distinct nearest-student approaches evaluated per sink
 	 * so a pathological call graph cannot cause an unbounded reverse walk. The
 	 * bound is a backstop only: each approach is evaluated as it is discovered and
-	 * a genuine violation throws immediately, so the bound can never silently drop
-	 * a violation that lies among the explored approaches. If the bound is reached
-	 * without a violation, the truncation is logged (never a silent pass).
+	 * a genuine violation throws immediately. Reaching the bound also fails closed,
+	 * because passing after truncating unexplored approaches would make the result
+	 * depend on traversal order.
 	 */
 	private static final int MAX_APPROACHES_PER_SINK = 64;
 
@@ -357,10 +347,8 @@ public class WalaRule {
 					evaluateApproach(cg, extended, allowedClasses, entryReachable);
 					evaluated++;
 					if (evaluated >= MAX_APPROACHES_PER_SINK) {
-						LOG.warn(
-								"WalaRule '{}': reached the {}-approach backstop for sink {} without a violation; remaining approaches are not examined",
-								ruleName, MAX_APPROACHES_PER_SINK, sink.getMethod().getSignature());
-						return;
+						throw new SecurityException(Messages.localized("security.architecture.wala.approaches.limit",
+								ruleName, MAX_APPROACHES_PER_SINK, sink.getMethod().getSignature()));
 					}
 				}
 			}

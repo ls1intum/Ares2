@@ -30,7 +30,7 @@ class JavaInstrumentationAgentBootstrapTest {
 	}
 
 	@Test
-	void newTransformationSessionDoesNotInheritPreviousFailure() throws Exception {
+	void reportedTransformationFailureIsConsumedAfterItIsSurfaced() throws Exception {
 		java.lang.reflect.Field listenerField = JavaInstrumentationAgent.class
 				.getDeclaredField("TRANSFORMATION_FAILURE_LISTENER");
 		listenerField.setAccessible(true);
@@ -39,7 +39,6 @@ class JavaInstrumentationAgentBootstrapTest {
 				new IllegalStateException("deliberate test failure"));
 
 		assertThrows(SecurityException.class, JavaInstrumentationAgent::throwIfTransformationFailed);
-		JavaInstrumentationAgent.beginTransformationSession();
 		assertDoesNotThrow(JavaInstrumentationAgent::throwIfTransformationFailed);
 	}
 }

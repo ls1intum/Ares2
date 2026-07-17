@@ -516,6 +516,46 @@ class WalaRuleTest {
 	}
 
 	@Test
+	void emptyEntryPointsWithoutDiscoveredSinkStillFailClosed() {
+		CallGraph cg = mock(CallGraph.class);
+		when(cg.iterator()).thenAnswer(inv -> java.util.Collections.emptyIterator());
+		when(cg.getEntrypointNodes()).thenReturn(java.util.Collections.emptyList());
+
+		WalaRule rule = new WalaRule("Accesses file system", Set.of("java.io.RandomAccessFile.read"));
+		org.junit.jupiter.api.Assertions.assertThrows(SecurityException.class, () -> rule.check(cg));
+	}
+
+	@Test
+	void approachSafetyLimitFailsClosed() {
+		CGNode sink = jdkForbiddenNode("java.lang.Class.forName(Ljava/lang/String;)Ljava/lang/Class;", "Class");
+		List<CGNode> callers = new java.util.ArrayList<>();
+		Set<ClassPermission> allowedClasses = new java.util.HashSet<>();
+		for (int i = 0; i < 64; i++) {
+			String className = "anonymous.Allowed" + i;
+			callers.add(studentNodeInClass(className + ".help()V", "L" + className.replace('.', '/')));
+			allowedClasses.add(new ClassPermission(className));
+		}
+
+		CallGraph cg = mock(CallGraph.class);
+		List<CGNode> nodes = new java.util.ArrayList<>(callers);
+		nodes.add(sink);
+		when(cg.iterator()).thenAnswer(inv -> nodes.iterator());
+		when(cg.getEntrypointNodes()).thenReturn(callers);
+		when(cg.getSuccNodes(any())).thenAnswer(inv -> java.util.Collections.emptyIterator());
+		when(cg.getPredNodes(any())).thenAnswer(inv -> java.util.Collections.emptyIterator());
+		for (CGNode caller : callers) {
+			when(cg.getSuccNodes(caller)).thenAnswer(inv -> List.of(sink).iterator());
+		}
+		when(cg.getPredNodes(sink)).thenAnswer(inv -> callers.iterator());
+
+		WalaRule rule = new WalaRule("Manipulates class loading",
+				Set.of("java.lang.Class.forName(Ljava/lang/String;)"));
+		SecurityException exception = org.junit.jupiter.api.Assertions.assertThrows(SecurityException.class,
+				() -> rule.check(cg, allowedClasses));
+		assertThat(exception.getMessage()).contains("safety limit");
+	}
+
+	@Test
 	void inheritedTargetUsesOnlyImportedHierarchy() {
 		JavaAccess<?> access = mock(JavaAccess.class);
 		AccessTarget target = mock(AccessTarget.class);

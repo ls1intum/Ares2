@@ -175,7 +175,7 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	 * Returns the per-operation sentinel token for an implicit thread operation
 	 * intercepted with no resolvable thread-task class
 	 * ({@code Collection.parallelStream}, {@code BaseStream.parallel},
-	 * {@code Thread.sleep}, {@code SubmissionPublisher.submit/offer}), or
+	 * {@code SubmissionPublisher.submit/offer}), or
 	 * {@code null} if the intercepted method is not such an operation.
 	 *
 	 * @param declaringTypeName the declaring type of the intercepted method
@@ -302,7 +302,7 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 		if (allowedThreadClasses == null || allowedThreadClasses.length == 0 || allowedThreadNumbers == null || allowedThreadNumbers.length == 0) {
 			return true;
 		}
-		// Implicit thread operations (parallelStream/parallel/Thread.sleep/SubmissionPublisher.submit) are
+		// Implicit thread operations (parallelStream/parallel/SubmissionPublisher.submit) are
 		// represented by a sentinel token. The "*" wildcard never covers them and class-hierarchy matching
 		// does not apply; only an exact sentinel entry in the allow-list permits one, so a broad "*" cannot
 		// silently allow them.
@@ -816,7 +816,7 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 				collectThreadClassNames(attribute, threadClassNames);
 			}
 		}
-		// An implicit thread operation (parallelStream/parallel/Thread.sleep/SubmissionPublisher.submit/
+		// An implicit thread operation (parallelStream/parallel/SubmissionPublisher.submit/
 		// offer) carries no thread-task class, so the resolution above found nothing. Represent it by a
 		// per-operation sentinel so the existing allow-list/quota check governs it, but only when the
 		// student invoked it directly (the first non-infrastructure caller is restricted-package code), so

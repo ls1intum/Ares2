@@ -162,22 +162,13 @@ public final class JavaInstrumentationAgent {
 	 * @throws SecurityException if any installed Ares transformer has failed
 	 */
 	public static void throwIfTransformationFailed() {
-		TransformationFailure failure = TRANSFORMATION_FAILURE.get();
+		TransformationFailure failure = TRANSFORMATION_FAILURE.getAndSet(null);
 		if (failure != null) {
 			throw new SecurityException(
 					JavaInstrumentationAdviceAbstractToolbox
 							.localize("security.instrumentation.agent.transformation.error", failure.typeName()),
 					failure.cause());
 		}
-	}
-
-	/**
-	 * Starts a new test-scoped transformation session. A failure is reported at the
-	 * end of the test in which it occurred; it must not poison every later test in
-	 * a reused JVM after that failure has already been surfaced.
-	 */
-	public static void beginTransformationSession() {
-		TRANSFORMATION_FAILURE.set(null);
 	}
 
 	/**
@@ -380,7 +371,6 @@ public final class JavaInstrumentationAgent {
 			ClassInjector.UsingUnsafe.Factory unsafeFactory) {
 		try {
 			Method notifyMethod = JavaInstrumentationThreadSystemCallSite.class.getMethod("notify", Object.class);
-			Method startMethod = JavaInstrumentationThreadSystemCallSite.class.getMethod("start", Thread.class);
 			Method notifyAllMethod = JavaInstrumentationThreadSystemCallSite.class.getMethod("notifyAll", Object.class);
 			Method waitMethod = JavaInstrumentationThreadSystemCallSite.class.getMethod("wait", Object.class);
 			Method timedWaitMethod = JavaInstrumentationThreadSystemCallSite.class.getMethod("wait", Object.class,
@@ -399,7 +389,6 @@ public final class JavaInstrumentationAgent {
 							.stream().anyMatch(prefix -> typeDescription.getName().startsWith(prefix)),
 							ElementMatchers.not(ElementMatchers.isBootstrapClassLoader()))
 					.transform((builder, typeDescription, classLoader, javaModule, protectionDomain) -> builder
-							.visit(threadStartSubstitution(startMethod))
 							.visit(monitorSubstitution("notify", 0, notifyMethod))
 							.visit(monitorSubstitution("notifyAll", 0, notifyAllMethod))
 							.visit(monitorSubstitution("wait", 0, waitMethod))
@@ -417,12 +406,6 @@ public final class JavaInstrumentationAgent {
 		net.bytebuddy.matcher.ElementMatcher.Junction<MethodDescription> matcher = ElementMatchers
 				.isDeclaredBy(Object.class).and(ElementMatchers.named(methodName))
 				.and(ElementMatchers.takesArguments(argumentCount));
-		return MemberSubstitution.relaxed().method(matcher).replaceWith(replacement).on(ElementMatchers.any());
-	}
-
-	private static net.bytebuddy.asm.AsmVisitorWrapper.ForDeclaredMethods threadStartSubstitution(Method replacement) {
-		net.bytebuddy.matcher.ElementMatcher.Junction<MethodDescription> matcher = ElementMatchers
-				.isDeclaredBy(Thread.class).and(ElementMatchers.named("start")).and(ElementMatchers.takesArguments(0));
 		return MemberSubstitution.relaxed().method(matcher).replaceWith(replacement).on(ElementMatchers.any());
 	}
 

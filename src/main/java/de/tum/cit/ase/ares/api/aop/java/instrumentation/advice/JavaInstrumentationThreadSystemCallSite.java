@@ -27,11 +27,6 @@ public final class JavaInstrumentationThreadSystemCallSite {
 		receiver.notify();
 	}
 
-	public static void start(Thread receiver) {
-		JavaInstrumentationAdviceThreadSystemToolbox.recordThreadClassBeforeStart(receiver);
-		receiver.start();
-	}
-
 	public static void notifyAll(Object receiver) {
 		checkMonitorInteraction(receiver, "notifyAll", "()V", new Object[0]);
 		receiver.notifyAll();

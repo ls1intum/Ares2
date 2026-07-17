@@ -9,7 +9,6 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentati
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceNetworkSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceThreadSystemToolbox;
-import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationThreadSystemCallSite;
 
 public final class InstrumentationSecurityProbe {
 
@@ -47,8 +46,9 @@ public final class InstrumentationSecurityProbe {
 				"<init>", "", new Object[0], new Object[] { task }, null);
 	}
 
-	public static void startThreadThroughPublicCallSite(Thread thread) {
-		JavaInstrumentationThreadSystemCallSite.start(thread);
+	public static void checkImplicitParallelStream() {
+		JavaInstrumentationAdviceThreadSystemToolbox.checkThreadSystemInteraction("create", "java.util.Collection",
+				"parallelStream", "()Ljava/util/stream/Stream;", new Object[0], new Object[0], null);
 	}
 
 	private static String stackCheckHelper() throws Exception {

@@ -17,6 +17,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -77,6 +79,12 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 
 	@Nonnull
 	private static final ConcurrentHashMap<String, CachedOutcome> RULE_OUTCOME_CACHE = new ConcurrentHashMap<>();
+
+	/**
+	 * In-flight evaluations, ensuring one call-graph rule evaluation per cache key.
+	 */
+	@Nonnull
+	private static final ConcurrentHashMap<String, FutureTask<CachedOutcome>> RULE_EVALUATIONS = new ConcurrentHashMap<>();
 
 	private static final String HMAC_ALGORITHM = "HmacSHA256";
 
@@ -626,16 +634,45 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 			}
 			return;
 		}
+		FutureTask<CachedOutcome> candidate = new FutureTask<>(() -> evaluateAndCache(key, architectureMode, aopMode));
+		FutureTask<CachedOutcome> evaluation = RULE_EVALUATIONS.putIfAbsent(key, candidate);
+		boolean ownsEvaluation = evaluation == null;
+		if (ownsEvaluation) {
+			evaluation = candidate;
+			evaluation.run();
+		}
+		try {
+			CachedOutcome outcome = evaluation.get();
+			if (outcome.violationMessage != null) {
+				throw new SecurityException(outcome.violationMessage);
+			}
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new SecurityException("Interrupted while awaiting WALA rule evaluation", e);
+		} catch (ExecutionException e) {
+			Throwable cause = e.getCause();
+			if (cause instanceof RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			if (cause instanceof Error error) {
+				throw error;
+			}
+			throw new SecurityException("WALA rule evaluation failed", cause);
+		} finally {
+			if (ownsEvaluation) {
+				RULE_EVALUATIONS.remove(key, candidate);
+			}
+		}
+	}
+
+	@Nonnull
+	private CachedOutcome evaluateAndCache(@Nonnull String key, @Nonnull String architectureMode,
+			@Nonnull String aopMode) {
 		Optional<SecurityException> result = runRuleAndCapture(architectureMode, aopMode);
-		// Store the violation MESSAGE (never a live exception object): a violation with
-		// a
-		// null message is recorded as an empty string so it still reads back as a
-		// violation, while a clean pass is null.
 		String message = result.map(e -> e.getMessage() == null ? "" : e.getMessage()).orElse(null);
-		RULE_OUTCOME_CACHE.put(key, new CachedOutcome(message));
-		result.ifPresent(e -> {
-			throw e;
-		});
+		CachedOutcome outcome = new CachedOutcome(message);
+		RULE_OUTCOME_CACHE.put(key, outcome);
+		return outcome;
 	}
 
 	/**

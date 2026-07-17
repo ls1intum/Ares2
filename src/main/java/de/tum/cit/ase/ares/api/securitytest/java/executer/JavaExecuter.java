@@ -9,6 +9,7 @@ import javax.annotation.Nullable;
 
 import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
@@ -93,6 +94,12 @@ public class JavaExecuter implements Executer {
 				.executeArchitectureTestCase(architectureModeString, aopModeString));
 		javaAOPTestCases
 				.forEach(javaTestCase -> javaTestCase.executeAOPTestCase(architectureModeString, aopModeString));
+		if (aopMode == AOPMode.INSTRUMENTATION) {
+			// Object's final monitor methods require application call-site rewriting.
+			// Activate that transformer only after the complete policy is installed, so
+			// retransformed classes can never observe a partially configured policy.
+			JavaInstrumentationAgent.registerThreadMonitorRestrictedPackage(packageName);
+		}
 	}
 	// </editor-fold>
 }

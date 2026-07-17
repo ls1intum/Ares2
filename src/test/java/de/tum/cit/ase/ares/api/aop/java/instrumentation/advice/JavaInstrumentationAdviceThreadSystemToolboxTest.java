@@ -61,12 +61,6 @@ class JavaInstrumentationAdviceThreadSystemToolboxTest {
 		JavaAOPTestCase.setJavaAdviceSettingValue("allowedListedClasses", new String[0], "ARCH", "INSTRUMENTATION");
 	}
 
-	private static void configureAspectJMode() {
-		JavaAOPTestCase.setJavaAdviceSettingValue("aopMode", "ASPECTJ", "ARCH", "ASPECTJ");
-		JavaAOPTestCase.setJavaAdviceSettingValue("restrictedPackage", "example.student", "ARCH", "ASPECTJ");
-		JavaAOPTestCase.setJavaAdviceSettingValue("allowedListedClasses", new String[0], "ARCH", "ASPECTJ");
-	}
-
 	@Test
 	void recordedThreadClassesUseIdentityRatherThanStudentEquality() {
 		Thread admittedThread = new Thread();
@@ -135,43 +129,17 @@ class JavaInstrumentationAdviceThreadSystemToolboxTest {
 	}
 
 	@Test
-	void publicThreadStartCallSiteCannotBypassCreationPolicy() throws Exception {
+	void wildcardDoesNotPermitImplicitParallelStream() throws Exception {
 		try {
 			resetSettings();
 			configureInstrumentationMode();
-			JavaAOPTestCase.setJavaAdviceSettingValue("threadClassAllowedToBeCreated", new String[0], "ARCH",
+			JavaAOPTestCase.setJavaAdviceSettingValue("threadClassAllowedToBeCreated", new String[] { "*" }, "ARCH",
 					"INSTRUMENTATION");
-			JavaAOPTestCase.setJavaAdviceSettingValue("threadNumberAllowedToBeCreated", new int[0], "ARCH",
+			JavaAOPTestCase.setJavaAdviceSettingValue("threadNumberAllowedToBeCreated", new int[] { 1 }, "ARCH",
 					"INSTRUMENTATION");
 
-			Thread thread = new Thread(() -> {
-			});
-			assertThrows(SecurityException.class,
-					() -> InstrumentationSecurityProbe.startThreadThroughPublicCallSite(thread));
-			assertEquals(Thread.State.NEW, thread.getState());
+			assertThrows(SecurityException.class, InstrumentationSecurityProbe::checkImplicitParallelStream);
 		} finally {
-			resetSettings();
-		}
-	}
-
-	@Test
-	void publicThreadStartCallSiteCannotBypassAspectJPolicy() throws Exception {
-		Thread thread = new Thread(() -> {
-		});
-		try {
-			resetSettings();
-			configureAspectJMode();
-			JavaAOPTestCase.setJavaAdviceSettingValue("threadClassAllowedToBeCreated", new String[0], "ARCH",
-					"ASPECTJ");
-			JavaAOPTestCase.setJavaAdviceSettingValue("threadNumberAllowedToBeCreated", new int[0], "ARCH", "ASPECTJ");
-
-			assertThrows(SecurityException.class,
-					() -> InstrumentationSecurityProbe.startThreadThroughPublicCallSite(thread));
-			assertEquals(Thread.State.NEW, thread.getState());
-		} finally {
-			if (thread.getState() != Thread.State.NEW) {
-				thread.join(5_000L);
-			}
 			resetSettings();
 		}
 	}

@@ -53,6 +53,13 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	@Nonnull
 	private static final String UNRESOLVED_THREAD_CLASS = "<unresolved-thread-class>";
 
+	/**
+	 * Prefix for synthetic allow-list entries representing operations which create
+	 * or use threads without exposing a task object to the intercepted method.
+	 */
+	@Nonnull
+	private static final String IMPLICIT_THREAD_OPERATION_PREFIX = "<implicit-thread-op:";
+
 	// </editor-fold>
 
 	// <editor-fold desc="Constructor">
@@ -151,6 +158,39 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 			return Boolean.FALSE;
 		});
 	}
+
+	@Nullable
+	private static String implicitThreadOperationToken(@Nullable String declaringTypeName,
+			@Nullable String methodName) {
+		if (methodName == null) {
+			return null;
+		}
+		switch (methodName) {
+		case "parallelStream":
+		case "parallel":
+			return IMPLICIT_THREAD_OPERATION_PREFIX + methodName + ">";
+		case "submit":
+		case "offer":
+			return "java.util.concurrent.SubmissionPublisher".equals(declaringTypeName)
+					? IMPLICIT_THREAD_OPERATION_PREFIX + "SubmissionPublisher." + methodName + ">"
+					: null;
+		default:
+			return null;
+		}
+	}
+
+	private static boolean isImmediateCallerWithinRestrictedPackage(@Nullable String restrictedPackage) {
+		if (restrictedPackage == null || restrictedPackage.isEmpty()) {
+			return false;
+		}
+		return java.lang.StackWalker.getInstance().walk(frames -> frames
+				.map(java.lang.StackWalker.StackFrame::getClassName)
+				.filter(className -> !className.startsWith("java.") && !className.startsWith("javax.")
+						&& !className.startsWith("jdk.") && !className.startsWith("sun.")
+						&& !className.startsWith("com.sun.") && !className.startsWith("de.tum.cit.ase.ares.api."))
+				.filter(className -> IGNORE_CALLSTACK.stream().noneMatch(className::startsWith)).findFirst()
+				.map(className -> className.startsWith(restrictedPackage)).orElse(Boolean.FALSE));
+	}
 	// </editor-fold>
 
 	// <editor-fold desc="Variable criteria methods">
@@ -209,15 +249,20 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 				|| allowedThreadNumbers.length == 0) {
 			return true;
 		}
+		boolean isImplicitOperation = actualClassname.startsWith(IMPLICIT_THREAD_OPERATION_PREFIX);
 		int starIndex = -1;
 		for (int i = 0; i < allowedThreadClasses.length; i++) {
 			@Nonnull
 			String allowedClassName = allowedThreadClasses[i];
 			if ("*".equals(allowedClassName)) {
-				starIndex = i;
+				if (!isImplicitOperation) {
+					starIndex = i;
+				}
 				continue;
 			}
-			if (threadClassMatches(actualClassname, allowedClassName)) {
+			boolean matches = isImplicitOperation ? actualClassname.equals(allowedClassName)
+					: threadClassMatches(actualClassname, allowedClassName);
+			if (matches) {
 				return decrementQuota && handleFoundClassIsForbidden(allowedThreadNumbers, i);
 			}
 		}
@@ -614,17 +659,6 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		}
 	}
 
-	static void recordThreadClassBeforeStart(@Nonnull Thread thread) {
-		if (!enterAdvice()) {
-			return;
-		}
-		try {
-			JavaInstrumentationThreadSystemCallSite.recordAllowedThread(thread, variableToClassname(thread));
-		} finally {
-			exitAdvice();
-		}
-	}
-
 	private static void checkThreadSystemInteractionImpl(@Nonnull String action, @Nonnull String declaringTypeName,
 			@Nonnull String methodName, @Nonnull String methodSignature, @Nullable Object[] attributes,
 			@Nullable Object[] parameters, @Nullable Object instance) {
@@ -717,6 +751,13 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		if (attributes != null) {
 			for (Object attribute : attributes) {
 				collectThreadClassNames(attribute, threadClassNames);
+			}
+		}
+		if (threadClassNames.isEmpty()) {
+			@Nullable
+			String implicitOperationToken = implicitThreadOperationToken(declaringTypeName, methodName);
+			if (implicitOperationToken != null && isImmediateCallerWithinRestrictedPackage(restrictedPackage)) {
+				threadClassNames.add(implicitOperationToken);
 			}
 		}
 		for (String threadClassName : threadClassNames) {
