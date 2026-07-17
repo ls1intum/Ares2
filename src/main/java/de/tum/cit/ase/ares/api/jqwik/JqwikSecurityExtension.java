@@ -15,6 +15,7 @@ import org.apiguardian.api.API.Status;
 import net.jqwik.api.lifecycle.*;
 
 import de.tum.cit.ase.ares.api.Policy;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 
 /**
@@ -57,25 +58,42 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
 					.build().createTestCases().executeTestCases();
 		}
 		PropertyExecutionResult result;
-		Throwable error = null;
+		SecurityException transformationFailure = null;
+		Exception resetFailure = null;
 		try {
 			result = property.execute();
 		} finally {
+			try {
+				JavaInstrumentationAgent.throwIfTransformationFailed();
+			} catch (SecurityException e) {
+				transformationFailure = e;
+			}
 			try {
 				// ALWAYS reset settings AFTER the test to ensure clean state.
 				resetSettingsInStandardClassLoader();
 				resetSettingsInBootstrapClassLoader();
 			} catch (Exception e) {
-				error = e;
+				resetFailure = e;
 			}
 		}
-		// Fix for issue #1, add as suppressed exception
-		if (error != null) {
+		return mergeLifecycleFailures(result, transformationFailure, resetFailure);
+	}
+
+	static PropertyExecutionResult mergeLifecycleFailures(PropertyExecutionResult result,
+			SecurityException transformationFailure, Exception resetFailure) {
+		if (transformationFailure != null) {
+			if (resetFailure != null) {
+				transformationFailure.addSuppressed(resetFailure);
+			}
+			result.throwable().ifPresent(transformationFailure::addSuppressed);
+			return result.mapToFailed(transformationFailure);
+		}
+		if (resetFailure != null) {
 			Optional<Throwable> propExecError = result.throwable();
 			if (propExecError.isPresent()) {
-				propExecError.get().addSuppressed(error);
+				propExecError.get().addSuppressed(resetFailure);
 			} else {
-				result = result.mapToFailed(error);
+				return result.mapToFailed(resetFailure);
 			}
 		}
 		return result;
