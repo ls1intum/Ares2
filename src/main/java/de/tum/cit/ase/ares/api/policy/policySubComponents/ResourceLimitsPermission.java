@@ -29,7 +29,7 @@ public record ResourceLimitsPermission(long timeout) {
 	 * @since 2.0.0
 	 */
 	public ResourceLimitsPermission {
-		if (timeout < 0) {
+		if (timeout <= 0) {
 			throw new IllegalArgumentException(Messages.localized("policy.permission.timeout.negative"));
 		}
 	}

@@ -1,7 +1,6 @@
 package de.tum.cit.ase.ares.api.securitytest.java.executer;
 
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
@@ -83,17 +82,23 @@ public class JavaExecuter implements Executer {
 		String architectureModeString = architectureMode.toString();
 		@Nonnull
 		String aopModeString = aopMode.toString();
-		Map.ofEntries(Map.entry("buildMode", buildModeString), Map.entry("architectureMode", architectureModeString),
-				Map.entry("aopMode", aopModeString),
-				Map.entry("allowedListedPackages", essentialPackages.toArray(String[]::new)),
-				Map.entry("allowedListedClasses",
-						Stream.concat(essentialClasses.stream(), testClasses.stream()).toArray(String[]::new)),
-				Map.entry("restrictedPackage", packageName), Map.entry("mainClass", mainClassInPackageName))
-				.forEach((key, value) -> setJavaAdviceSettingValue(key, value, architectureMode, aopMode));
+		// Install allow-lists and descriptive settings before restrictedPackage. The
+		// latter activates call-stack enforcement, so publishing it last prevents an
+		// instrumented class-loading operation from observing a partially armed policy.
+		setJavaAdviceSettingValue("allowedListedPackages", essentialPackages.toArray(String[]::new), architectureMode,
+				aopMode);
+		setJavaAdviceSettingValue("allowedListedClasses",
+				Stream.concat(essentialClasses.stream(), testClasses.stream()).toArray(String[]::new), architectureMode,
+				aopMode);
+		setJavaAdviceSettingValue("buildMode", buildModeString, architectureMode, aopMode);
+		setJavaAdviceSettingValue("architectureMode", architectureModeString, architectureMode, aopMode);
+		setJavaAdviceSettingValue("aopMode", aopModeString, architectureMode, aopMode);
+		setJavaAdviceSettingValue("mainClass", mainClassInPackageName, architectureMode, aopMode);
 		javaArchitectureTestCases.forEach(javaArchitectureTestCase -> javaArchitectureTestCase
 				.executeArchitectureTestCase(architectureModeString, aopModeString));
 		javaAOPTestCases
 				.forEach(javaTestCase -> javaTestCase.executeAOPTestCase(architectureModeString, aopModeString));
+		setJavaAdviceSettingValue("restrictedPackage", packageName, architectureMode, aopMode);
 		if (aopMode == AOPMode.INSTRUMENTATION) {
 			// Object's final monitor methods require application call-site rewriting.
 			// Activate that transformer only after the complete policy is installed, so

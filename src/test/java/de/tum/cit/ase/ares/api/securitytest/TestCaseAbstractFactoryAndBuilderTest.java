@@ -87,8 +87,7 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 		when(mockSecurityPolicy.regardingTheSupervisedCode()).thenReturn(mockSupervisedCode);
 		when(mockSupervisedCode.theSupervisedCodeUsesTheFollowingPackage()).thenReturn("com.example");
 		when(mockSupervisedCode.theMainClassInsideThisPackageIs()).thenReturn("Main");
-		when(mockSupervisedCode.theFollowingClassesAreTestClasses())
-				.thenReturn(new String[] { "TestClass1", "TestClass2" });
+		when(mockSupervisedCode.theFollowingClassesAreTestClasses()).thenReturn(List.of("TestClass1", "TestClass2"));
 		when(mockSupervisedCode.theFollowingResourceAccessesArePermitted()).thenReturn(mockResourceAccesses);
 	}
 
@@ -172,7 +171,7 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 		void shouldUseSecurityPolicyWhenProvided() {
 			// Arrange
 			when(mockSecurityPolicy.regardingTheSupervisedCode()).thenReturn(mockSupervisedCode);
-			when(mockSupervisedCode.theFollowingClassesAreTestClasses()).thenReturn(new String[] { "PolicyTest" });
+			when(mockSupervisedCode.theFollowingClassesAreTestClasses()).thenReturn(List.of("PolicyTest"));
 			when(mockSupervisedCode.theSupervisedCodeUsesTheFollowingPackage()).thenReturn("com.policy");
 			when(mockSupervisedCode.theMainClassInsideThisPackageIs()).thenReturn("PolicyMain");
 			when(mockSupervisedCode.theFollowingResourceAccessesArePermitted()).thenReturn(mockResourceAccesses);
@@ -392,8 +391,7 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 		@Test
 		@DisplayName("Exempt classes come only from the policy, never from a project scan (C2)")
 		void exemptClassesComeFromPolicyNotScan() {
-			when(mockSupervisedCode.theFollowingClassesAreTestClasses())
-					.thenReturn(new String[] { "PolicyDeclaredTest" });
+			when(mockSupervisedCode.theFollowingClassesAreTestClasses()).thenReturn(List.of("PolicyDeclaredTest"));
 			new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter, mockEssentialDataReader,
 					mockProjectScanner, essentialPackagesPath, essentialClassesPath, BuildMode.MAVEN,
 					ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, mockSecurityPolicy, projectPath);

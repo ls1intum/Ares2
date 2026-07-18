@@ -7,9 +7,10 @@ regardingTheSupervisedCode:
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions:
       - onThisPathAndAllPathsBelow: "pom.xml"
-        readAllFiles: true
-        overwriteAllFiles: true
-        executeAllFiles: true
+		readAllFiles: true
+		overwriteAllFiles: true
+		createAllFiles: true
+		executeAllFiles: true
         deleteAllFiles: true
     regardingNetworkConnections:
       - onTheHost: "www.example.com"

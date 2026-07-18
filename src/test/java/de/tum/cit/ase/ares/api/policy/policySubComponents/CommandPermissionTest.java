@@ -35,10 +35,9 @@ class CommandPermissionTest {
 	}
 
 	@Test
-	void mappingFormWithoutArgumentsYieldsEmptyList() throws Exception {
-		CommandPermission permission = yamlMapper.readValue("executeTheCommand: git\n", CommandPermission.class);
-		assertThat(permission.executeTheCommand()).isEqualTo("git");
-		assertThat(permission.withTheseArguments()).isEmpty();
+	void mappingFormWithoutArgumentsIsRejected() {
+		assertThatThrownBy(() -> yamlMapper.readValue("executeTheCommand: git\n", CommandPermission.class))
+				.hasRootCauseInstanceOf(IllegalArgumentException.class);
 	}
 
 	@Test

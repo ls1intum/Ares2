@@ -2,7 +2,7 @@
 
 > **Audience:** IT-Education experts with no security background.
 > **Scope:** The `build.gradle` and `pom.xml` files.
-> **Ares Version:** 2.0.1-Beta8
+> **Ares Version:** 2.0.1-Beta9
 
 > **Note:** This guide is a **setup guide**. It covers adding the Ares dependency, attaching the agent, and configuring the build tool so that Ares can run. For writing security policies that control what student code can do, see the [Security Policy Manual](policy/SecurityPolicyManual.md).
 
@@ -106,10 +106,10 @@ Add the Ares library to both the agent configuration and test implementation, as
 
 ```gradle
 dependencies {
-    aresAgent "de.tum.cit.ase:ares:2.0.1-Beta8:agent"
+    aresAgent "de.tum.cit.ase:ares:2.0.1-Beta9:agent"
     aresAgent "org.aspectj:aspectjrt:1.9.25.1"
-    testImplementation "de.tum.cit.ase:ares:2.0.1-Beta8"
-    aspect "de.tum.cit.ase:ares:2.0.1-Beta8"
+    testImplementation "de.tum.cit.ase:ares:2.0.1-Beta9"
+    aspect "de.tum.cit.ase:ares:2.0.1-Beta9"
     implementation "org.aspectj:aspectjrt:1.9.25.1"
 }
 ```
@@ -117,7 +117,7 @@ dependencies {
 > **Tip (Gradle version catalog):** If your project uses a Gradle version catalog file (for example `gradle/<versions-catalog>.toml`), you can declare the version centrally:
 > ```toml
 > [versions]
-> ares = "2.0.1-Beta8"
+> ares = "2.0.1-Beta9"
 > aspectjrt = "1.9.25.1"
 > [libraries]
 > ares = { module = "de.tum.cit.ase:ares", version.ref = "ares" }
@@ -222,7 +222,7 @@ Include Ares in your test dependencies, as well as the AspectJ runtime library:
 <dependency>
     <groupId>de.tum.cit.ase</groupId>
     <artifactId>ares</artifactId>
-    <version>2.0.1-Beta8</version>
+    <version>2.0.1-Beta9</version>
     <scope>test</scope>
 </dependency>
 <dependency>
@@ -250,7 +250,7 @@ Configure the Surefire test plugin to load the agent during test execution:
     <artifactId>maven-surefire-plugin</artifactId>
     <configuration>
         <argLine>
-            -javaagent:${settings.localRepository}/de/tum/cit/ase/ares/2.0.1-Beta8/ares-2.0.1-Beta8-agent.jar
+            -javaagent:${settings.localRepository}/de/tum/cit/ase/ares/2.0.1-Beta9/ares-2.0.1-Beta9-agent.jar
             -Xbootclasspath/a:${settings.localRepository}/org/aspectj/aspectjrt/1.9.25.1/aspectjrt-1.9.25.1.jar
             --add-exports java.base/java.lang=ALL-UNNAMED
             --add-exports java.base/jdk.internal.misc=ALL-UNNAMED
@@ -288,7 +288,7 @@ Configure the Surefire test plugin to load the agent during test execution:
 > **Tip (avoid hardcoded version):** Define a Maven property so the version appears in one place only:
 > ```xml
 > <properties>
->     <ares.version>2.0.1-Beta8</ares.version>
+>     <ares.version>2.0.1-Beta9</ares.version>
 > </properties>
 > ```
 > Then use `${ares.version}` in both the dependency and the `<argLine>`:

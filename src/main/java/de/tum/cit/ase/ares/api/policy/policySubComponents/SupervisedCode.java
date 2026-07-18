@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
+import java.util.List;
 import java.util.Objects;
 
 import javax.annotation.Nonnull;
@@ -29,9 +30,10 @@ import javax.annotation.Nullable;
  * @param theMainClassInsideThisPackageIs                    the main class
  *                                                           name; may be null
  *                                                           if not applicable.
- * @param theFollowingClassesAreTestClasses                  an array of test
- *                                                           class names; must
- *                                                           not be null.
+ * @param theFollowingClassesAreTestClasses                  the immutable list
+ *                                                           of test class
+ *                                                           names; must not be
+ *                                                           null.
  * @param theFollowingResourceAccessesArePermitted           the permitted
  *                                                           resource accesses;
  *                                                           must not be null.
@@ -39,7 +41,7 @@ import javax.annotation.Nullable;
 public record SupervisedCode(
 		@Nonnull ProgrammingLanguageConfiguration theFollowingProgrammingLanguageConfigurationIsUsed,
 		@Nullable String theSupervisedCodeUsesTheFollowingPackage, @Nullable String theMainClassInsideThisPackageIs,
-		@Nonnull String[] theFollowingClassesAreTestClasses,
+		@Nonnull List<String> theFollowingClassesAreTestClasses,
 		@Nonnull ResourceAccesses theFollowingResourceAccessesArePermitted) {
 
 	/**
@@ -51,12 +53,7 @@ public record SupervisedCode(
 	public SupervisedCode {
 		Objects.requireNonNull(theFollowingProgrammingLanguageConfigurationIsUsed,
 				"ProgrammingLanguageConfiguration must not be null");
-		Objects.requireNonNull(theFollowingClassesAreTestClasses, "Test classes array must not be null");
-		// Validate the elements, not just the array reference: a null or blank
-		// test-class
-		// name is malformed policy input and must be rejected at the source rather than
-		// surfacing later as an opaque NPE/IllegalArgumentException during test-case
-		// creation.
+		Objects.requireNonNull(theFollowingClassesAreTestClasses, "Test classes list must not be null");
 		for (String testClass : theFollowingClassesAreTestClasses) {
 			Objects.requireNonNull(testClass, "Test class entries must not be null");
 			if (testClass.isBlank()) {
@@ -64,24 +61,7 @@ public record SupervisedCode(
 			}
 		}
 		Objects.requireNonNull(theFollowingResourceAccessesArePermitted, "ResourceAccesses must not be null");
-		// Defensive copy so a caller cannot mutate the test-class array after
-		// construction (the array is security-relevant: it drives the exempt-class
-		// set).
-		theFollowingClassesAreTestClasses = theFollowingClassesAreTestClasses.clone();
-	}
-
-	/**
-	 * Returns a copy of the test-class names, so the caller cannot mutate the
-	 * record's internal array through the accessor.
-	 *
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 * @return a defensive copy of the test-class names
-	 */
-	@Nonnull
-	@Override
-	public String[] theFollowingClassesAreTestClasses() {
-		return theFollowingClassesAreTestClasses.clone();
+		theFollowingClassesAreTestClasses = List.copyOf(theFollowingClassesAreTestClasses);
 	}
 
 	/**
@@ -100,7 +80,7 @@ public record SupervisedCode(
 						Objects.requireNonNull(theFollowingProgrammingLanguageConfigurationIsUsed,
 								"theFollowingProgrammingLanguageConfigurationIsUsed must not be null"))
 				.theSupervisedCodeUsesTheFollowingPackage(null).theMainClassInsideThisPackageIs(null)
-				.theFollowingClassesAreTestClasses(new String[0])
+				.theFollowingClassesAreTestClasses(List.of())
 				.theFollowingResourceAccessesArePermitted(ResourceAccesses.createRestrictive()).build();
 	}
 
@@ -158,7 +138,7 @@ public record SupervisedCode(
 		 * @since 2.0.0
 		 */
 		@Nullable
-		private String[] theFollowingClassesAreTestClasses = new String[0];
+		private List<String> theFollowingClassesAreTestClasses = List.of();
 
 		/**
 		 * Constructs a new Builder instance.
@@ -219,11 +199,11 @@ public record SupervisedCode(
 		 *
 		 * @since 2.0.0
 		 * @author Markus Paulsen
-		 * @param theFollowingClassesAreTestClasses an array of test class names.
+		 * @param theFollowingClassesAreTestClasses the test class names.
 		 * @return the updated Builder.
 		 */
 		@Nonnull
-		public Builder theFollowingClassesAreTestClasses(@Nonnull String[] theFollowingClassesAreTestClasses) {
+		public Builder theFollowingClassesAreTestClasses(@Nonnull List<String> theFollowingClassesAreTestClasses) {
 			this.theFollowingClassesAreTestClasses = Objects.requireNonNull(theFollowingClassesAreTestClasses,
 					"theFollowingClassesAreTestClasses must not be null");
 			return this;

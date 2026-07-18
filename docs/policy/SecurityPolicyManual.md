@@ -2,7 +2,7 @@
 
 > **Audience:** IT-Education experts with no security background.
 > **Scope:** All classes inside `SecurityPolicy.java`, and the `policySubComponents` package.
-> **Ares Version:** 2.0.1-Beta8
+> **Ares Version:** 2.0.1-Beta9
 
 **Related documentation:**
 - [How to Make a Project an Ares Project](../HowToMakeAProjectAnAresProject.md), project setup (build.gradle / pom.xml)
@@ -66,6 +66,14 @@ When you teach programming exercises, you need to prevent students from performi
 Ares 2 automates this by letting you write a simple **security policy** (a YAML configuration file) that declares exactly which operations are allowed and which are forbidden. The system then automatically generates and runs security tests that enforce your policy, catching violations before they cause damage.
 
 This manual covers how to write these policies.
+
+> **Static/runtime boundary:** Static ArchUnit or WALA rules deny an entire
+> operation domain only when that domain has no allowance. Once a policy grants
+> any file, network, command or thread permission, argument-sensitive enforcement
+> belongs to AspectJ or instrumentation. A narrow allowance therefore removes the
+> domain-wide static deny rule, while every non-matching runtime operation remains
+> forbidden. The reviewed interception inventory is maintained in
+> [EnforcementModel.md](EnforcementModel.md).
 
 ---
 
@@ -159,7 +167,7 @@ The `@Policy` annotation has three parameters:
 
 > **Note:** Both `JupiterSecurityExtension` and `JqwikSecurityExtension` evaluate `activated`. Setting `@Policy(activated = false)` is the only way to disable enforcement for a supervised test.
 
-> **Important:** The `@Policy` annotation can be placed on the **test method** or on the **test class**. A class-level annotation applies to all test methods in the class; a method-level annotation takes precedence over a class-level one (they are not merged).
+> **Important:** The `@Policy` annotation can be placed on the **test method** or on the **test class**. A class-level annotation applies to all test methods in that class and its nested test classes. Resolution proceeds from the method through the innermost test class to its enclosing classes, so the nearest annotation takes precedence (policies are not merged).
 
 **`withinPath` mapping, project structure to bytecode path:**
 
@@ -199,7 +207,7 @@ When you run the tests, Ares 2 will automatically enforce the security policy. I
 Ares 2's behaviour depends on whether test supervision is active (via `@Test`, `@PublicTest`, or `@HiddenTest`) and whether a `@Policy` annotation is present:
 
 - **Without supervision** (no test annotation present, no policy annotation present): Student code runs freely with no restrictions.
-- **With supervision but no policy** (test annotation present, no policy annotation present): Ares 2 enforces a **default most-restricted configuration**. It falls back to Maven, ArchUnit, and AspectJ as build, analysis, and enforcement modes, derives the supervised scope by scanning the project, and denies every resource access (via `ResourceAccesses.createRestrictive()`) with a single restrictive timeout of 10,000 ms. Static ArchUnit rules are executed immediately; runtime interception in this mode relies on AspectJ weaving, so code that is not AspectJ-woven is covered by the static checks only. The only opt-out is an explicit `@Policy(activated = false)`.
+- **With supervision but no policy** (test annotation present, no policy annotation present): Ares 2 enforces a **default most-restricted configuration**. It detects Maven or Gradle from the project root, uses ArchUnit and AspectJ as the analysis and enforcement modes, derives the supervised scope by scanning the project, and denies every resource access (via `ResourceAccesses.createRestrictive()`) with a single restrictive timeout of 10,000 ms. Static ArchUnit rules are executed immediately; runtime interception in this mode relies on AspectJ weaving, so code that is not AspectJ-woven is covered by the static checks only. The only opt-out is an explicit `@Policy(activated = false)`.
 - **With supervision and a policy** (test annotation present, policy annotation present): Ares 2 enforces only the permissions explicitly listed in the policy file. Everything else is forbidden.
 
 When you define a security policy file, you start with maximum security (everything forbidden) and selectively allow only what the exercise absolutely requires. Specifying an explicit `@Policy` annotation with a restrictive policy object (for example, `theFollowingResourceAccessesArePermitted` containing six empty lists) enforces default-deny for policy-controlled resources. This is equivalent in strictness to supervision without a policy; the difference is that an explicit `@Policy` lets you choose the configuration (build tool, analysis framework, enforcement mechanism) and selectively grant permissions.
@@ -681,7 +689,7 @@ SecurityPolicy policy = SecurityPolicy.builder()
                 ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION)
             .theSupervisedCodeUsesTheFollowingPackage("de.tum.cit.aet")
             .theMainClassInsideThisPackageIs("Main")
-            .theFollowingClassesAreTestClasses(new String[]{})
+            .theFollowingClassesAreTestClasses(List.of())
             .theFollowingResourceAccessesArePermitted(
                 ResourceAccesses.builder()
                     .regardingFileSystemInteractions(List.of(

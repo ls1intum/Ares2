@@ -11,6 +11,7 @@ import javax.annotation.Nonnull;
 import com.opencsv.exceptions.CsvException;
 
 import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaCSVFileLoader;
+import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaFileLoader;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.phobos.java.JavaPhobosTestCaseSupported;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
@@ -34,6 +35,7 @@ import de.tum.cit.ase.ares.api.util.FileTools;
  * @author Ajayvir Singh
  */
 public final class Phobos {
+	private static JavaFileLoader fileLoader = new JavaCSVFileLoader();
 
 	private Phobos() {
 		throw new SecurityException(Messages.localized("security.general.utility.initialization", "Phobos"));
@@ -61,7 +63,7 @@ public final class Phobos {
 	 */
 	public static List<List<String>> getCopyConfigurationEntries() {
 		try {
-			return (new JavaCSVFileLoader()).loadPhobosCopyData();
+			return fileLoader.loadPhobosCopyData();
 		} catch (IOException | CsvException e) {
 			throw new RuntimeException("Failed to load Phobos copy configuration from CSV.", e);
 		}
@@ -76,10 +78,14 @@ public final class Phobos {
 	 */
 	public static List<List<String>> getEditConfigurationEntries() {
 		try {
-			return (new JavaCSVFileLoader()).loadPhobosEditData();
+			return fileLoader.loadPhobosEditData();
 		} catch (IOException | CsvException e) {
 			throw new RuntimeException("Failed to load Phobos edit configuration from CSV.", e);
 		}
+	}
+
+	public static void setFileLoader(JavaFileLoader loader) {
+		fileLoader = java.util.Objects.requireNonNull(loader, "loader must not be null");
 	}
 
 	/**
@@ -106,7 +112,7 @@ public final class Phobos {
 	 * @return a list of string arrays containing file values
 	 */
 	public static List<String[]> fileValues(@Nonnull String packageName) {
-		return List.of();
+		return java.util.Collections.singletonList(fileValue(packageName));
 	}
 
 	/**

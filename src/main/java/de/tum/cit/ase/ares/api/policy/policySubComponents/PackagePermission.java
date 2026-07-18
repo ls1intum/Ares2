@@ -36,16 +36,15 @@ public record PackagePermission(@Nonnull String importTheFollowingPackage) {
 	}
 
 	/**
-	 * Creates a restrictive package permission.
+	 * Allows importing a package.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param importTheFollowingPackage the package name for which import is
-	 *                                  restricted.
+	 * @param importTheFollowingPackage the package name to allow.
 	 * @return a new PackagePermission instance.
 	 */
 	@Nonnull
-	public static PackagePermission createRestrictive(@Nonnull String importTheFollowingPackage) {
+	public static PackagePermission allowPackage(@Nonnull String importTheFollowingPackage) {
 		return builder()
 				.importTheFollowingPackage(
 						Objects.requireNonNull(importTheFollowingPackage, "importTheFollowingPackage must not be null"))

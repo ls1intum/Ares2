@@ -80,7 +80,7 @@ class DeadlineAdditionsTest {
 
 	@TestTest
 	void test_testHiddenActive() {
-		tests.assertThatEvents().haveExactly(1, finishedSuccessfully(testHiddenActive));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testHiddenActive, AnnotationFormatError.class));
 	}
 
 	@TestTest
@@ -100,17 +100,17 @@ class DeadlineAdditionsTest {
 
 	@TestTest
 	void test_testHiddenInactive() {
-		tests.assertThatEvents().haveExactly(1, finishedSuccessfully(testHiddenInactive));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testHiddenInactive, AnnotationFormatError.class));
 	}
 
 	@TestTest
 	void test_testHiddenNormal() {
-		tests.assertThatEvents().haveExactly(1, finishedSuccessfully(testHiddenNormal));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testHiddenNormal, AnnotationFormatError.class));
 	}
 
 	@TestTest
 	void test_testPublicActive() {
-		tests.assertThatEvents().haveExactly(1, finishedSuccessfully(testPublicActive));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testPublicActive, AnnotationFormatError.class));
 	}
 
 	@TestTest

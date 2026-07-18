@@ -14,6 +14,7 @@ import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
 import de.tum.cit.ase.ares.api.localization.Localisation;
 import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.Phobos;
@@ -36,6 +37,27 @@ import de.tum.cit.ase.ares.api.util.FileTools;
  * @version 2.0.0
  */
 public class JavaWriter implements Writer {
+	@Nonnull
+	private final Path projectRoot;
+	private final BuildToolConfiguration buildConfiguration;
+
+	public JavaWriter() {
+		this(Path.of(""));
+	}
+
+	public JavaWriter(@Nonnull Path projectRoot) {
+		this.buildConfiguration = null;
+		this.projectRoot = BuildToolConfiguration
+				.canonicalise(Objects.requireNonNull(projectRoot, "projectRoot must not be null"));
+		if (!java.nio.file.Files.isDirectory(this.projectRoot)) {
+			throw new IllegalArgumentException("projectRoot must be a directory: " + projectRoot);
+		}
+	}
+
+	public JavaWriter(@Nonnull BuildToolConfiguration buildConfiguration) {
+		this.buildConfiguration = Objects.requireNonNull(buildConfiguration, "buildConfiguration must not be null");
+		this.projectRoot = buildConfiguration.projectRoot();
+	}
 
 	// <editor-fold desc="Helper methods">
 
@@ -75,7 +97,7 @@ public class JavaWriter implements Writer {
 						Stream.of(FileTools.createThreePartedFormatStringFile(architectureMode.threePartedFileHeader(),
 								architectureMode.threePartedFileBody(javaArchitectureTestCases),
 								architectureMode.threePartedFileFooter(),
-								confineToWorkingDirectory(architectureMode.targetToCopyTo(
+								confineToProject(architectureMode.targetToCopyTo(
 										FileTools.resolveOnPath(testFolderPath, packageName.split("\\.")))),
 								architectureMode.formatValues(packageName))))
 				.collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
@@ -97,11 +119,13 @@ public class JavaWriter implements Writer {
 	 * @return a list of paths to the created files
 	 */
 	@Nonnull
-	private List<Path> createJavaAOPFiles(@Nonnull AOPMode aopMode, @Nonnull List<String> essentialClasses,
-			@Nonnull List<String> testClasses, @Nonnull String packageName, @Nonnull String mainClassInPackageName,
-			@Nonnull List<JavaAOPTestCase> javaAOPTestCases, @Nonnull Path testFolderPath) {
+	private List<Path> createJavaAOPFiles(@Nonnull AOPMode aopMode, @Nonnull List<String> essentialPackages,
+			@Nonnull List<String> essentialClasses, @Nonnull List<String> testClasses, @Nonnull String packageName,
+			@Nonnull String mainClassInPackageName, @Nonnull List<JavaAOPTestCase> javaAOPTestCases,
+			@Nonnull Path testFolderPath) {
 		@Nonnull
-		ArrayList<String> allowedClasses = Stream.concat(essentialClasses.stream(), testClasses.stream())
+		ArrayList<String> allowedClasses = Stream
+				.concat(Stream.concat(essentialPackages.stream(), essentialClasses.stream()), testClasses.stream())
 				.collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
 		return Stream.concat(
 				Stream.concat(
@@ -118,7 +142,7 @@ public class JavaWriter implements Writer {
 				Stream.of(FileTools.createThreePartedFormatStringFile(aopMode.threePartedFileHeader(),
 						aopMode.threePartedFileBody(aopMode.toString(), packageName, allowedClasses, javaAOPTestCases),
 						aopMode.threePartedFileFooter(),
-						confineToWorkingDirectory(aopMode
+						confineToProject(aopMode
 								.targetToCopyTo(FileTools.resolveOnPath(testFolderPath, packageName.split("\\.")))),
 						aopMode.formatValues(packageName))))
 				.collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
@@ -146,9 +170,8 @@ public class JavaWriter implements Writer {
 	@Nonnull
 	private List<Path> createPhobosFiles(@Nonnull String packageName,
 			@Nonnull List<JavaPhobosTestCase> javaPhobosTestCases, @Nonnull Path testFolderPath) {
-		List<Path> copyTargets = Phobos.targetsToCopyTo(testFolderPath).stream()
-				.map(JavaWriter::confineToWorkingDirectory).toList();
-		Path editTarget = confineToWorkingDirectory(Phobos.targetToCopyTo(testFolderPath));
+		List<Path> copyTargets = Phobos.targetsToCopyTo(testFolderPath).stream().map(this::confineToProject).toList();
+		Path editTarget = confineToProject(Phobos.targetToCopyTo(testFolderPath));
 		return Stream
 				.concat(FileTools.copyFiles(Phobos.filesToCopy(), copyTargets).stream(),
 						Stream.of(FileTools.createThreePartedFormatStringFile(Phobos.threePartedFileHeader(),
@@ -157,65 +180,20 @@ public class JavaWriter implements Writer {
 				.collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
 	}
 
-	/**
-	 * Confines a relative target path to the working directory.
-	 * <p>
-	 * The Phobos targets climb three levels above a {@code src/test/java}-style
-	 * test folder. For shallower folders (e.g. the project root in precompile mode)
-	 * that climb would escape the project, so escaping {@code ..} segments of
-	 * relative targets are dropped after normalisation.
-	 * </p>
-	 *
-	 * @param targetPath the resolved target path; must not be null
-	 * @return the normalised target path without escaping {@code ..} segments
-	 */
-	/**
-	 * Confines every target in a list to the working directory (see
-	 * {@link #confineToWorkingDirectory}), so a crafted package string containing
-	 * {@code ..} segments cannot redirect generated files outside the project. A
-	 * normal in-project target is returned unchanged.
-	 *
-	 * @param targets the resolved target paths; must not be null
-	 * @return the confined target paths
-	 */
 	@Nonnull
-	private static List<Path> confineTargets(@Nonnull List<Path> targets) {
-		return targets.stream().map(JavaWriter::confineToWorkingDirectory).toList();
+	private List<Path> confineTargets(@Nonnull List<Path> targets) {
+		return targets.stream().map(this::confineToProject).toList();
 	}
 
 	@Nonnull
-	private static Path confineToWorkingDirectory(@Nonnull Path targetPath) {
-		Path normalised = targetPath.normalize();
-		if (normalised.isAbsolute()) {
-			Path workingDirectory = Path.of("").toAbsolutePath().normalize();
-			if (normalised.startsWith(workingDirectory)) {
-				return normalised;
-			}
-			// An absolute target that escapes the working directory is re-anchored
-			// inside it: relativise against the working directory and drop the escaping
-			// ".." segments, mirroring the relative-path handling below.
-			return stripLeadingParentSegments(workingDirectory.relativize(normalised));
+	Path confineToProject(@Nonnull Path targetPath) {
+		Path requested = Objects.requireNonNull(targetPath, "targetPath must not be null");
+		Path resolved = requested.isAbsolute() ? requested : projectRoot.resolve(requested);
+		Path canonical = BuildToolConfiguration.canonicalise(resolved);
+		if (!canonical.startsWith(projectRoot)) {
+			throw new SecurityException("Writer target escapes authorised project root: " + targetPath);
 		}
-		return stripLeadingParentSegments(normalised);
-	}
-
-	/**
-	 * Drops any leading {@code ".."} segments from a relative path so it cannot
-	 * escape the working directory.
-	 *
-	 * @param path the relative path to confine; must not be null
-	 * @return the path with leading {@code ".."} segments removed
-	 */
-	@Nonnull
-	private static Path stripLeadingParentSegments(@Nonnull Path path) {
-		int firstRealName = 0;
-		while (firstRealName < path.getNameCount() && path.getName(firstRealName).toString().equals("..")) {
-			firstRealName++;
-		}
-		if (firstRealName == 0) {
-			return path;
-		}
-		return firstRealName == path.getNameCount() ? Path.of("") : path.subpath(firstRealName, path.getNameCount());
+		return canonical;
 	}
 
 	// </editor-fold>
@@ -255,12 +233,23 @@ public class JavaWriter implements Writer {
 			@Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
 			@Nonnull List<JavaAOPTestCase> javaAOPTestCases, @Nonnull List<JavaPhobosTestCase> javaPhobosTestCases,
 			@Nonnull Path testFolderPath) {
-		Path validatedTestFolderPath = Objects.requireNonNull(testFolderPath, "testFolderPath must not be null");
+		Objects.requireNonNull(buildMode, "buildMode must not be null");
+		if (buildConfiguration != null && buildMode != buildConfiguration.buildMode()) {
+			throw new IllegalStateException("Writer build mode does not match the discovered build configuration");
+		}
+		boolean descriptorPresent = java.util.Arrays.stream(buildMode.fileName()).map(projectRoot::resolve)
+				.anyMatch(java.nio.file.Files::isRegularFile);
+		if (!descriptorPresent) {
+			throw new IllegalStateException(
+					"Selected " + buildMode + " layout has no build descriptor in " + projectRoot);
+		}
+		Path validatedTestFolderPath = confineToProject(
+				Objects.requireNonNull(testFolderPath, "testFolderPath must not be null"));
 		return Stream
 				.of(createJavaArchitectureFiles(architectureMode, packageName, mainClassInPackageName,
 						javaArchitectureTestCases, validatedTestFolderPath).stream(),
-						createJavaAOPFiles(aopMode, essentialClasses, testClasses, packageName, mainClassInPackageName,
-								javaAOPTestCases, validatedTestFolderPath).stream(),
+						createJavaAOPFiles(aopMode, essentialPackages, essentialClasses, testClasses, packageName,
+								mainClassInPackageName, javaAOPTestCases, validatedTestFolderPath).stream(),
 						createLocalisationFiles(validatedTestFolderPath).stream(),
 						createPhobosFiles(packageName, javaPhobosTestCases, validatedTestFolderPath).stream())
 				.flatMap(s -> s).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);

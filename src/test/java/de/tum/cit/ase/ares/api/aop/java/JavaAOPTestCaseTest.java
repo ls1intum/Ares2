@@ -138,7 +138,7 @@ class JavaAOPTestCaseTest {
 	}
 
 	@Test
-	void testWriteAOPTestCaseReturnsEmpty() {
+	void testWriteAOPTestCaseSerialisesConfiguration() {
 		Supplier<List<?>> supplier = Collections::emptyList;
 		Set<ClassPermission> allowed = Set.of();
 
@@ -146,7 +146,10 @@ class JavaAOPTestCaseTest {
 				.javaAOPTestCaseSupported(JavaAOPTestCaseSupported.COMMAND_EXECUTION).resourceAccessSupplier(supplier)
 				.allowedClasses(allowed).build();
 
-		assertEquals("", tc.writeAOPTestCase("arch", "mode"));
+		String serialised = tc.writeAOPTestCase("arch", "mode");
+		assertTrue(serialised.contains("aopMode = \"mode\""));
+		assertTrue(serialised.contains("restrictedPackage = \"arch\""));
+		assertTrue(serialised.contains("commandsAllowedToBeExecuted"));
 	}
 
 	@Test

@@ -66,6 +66,7 @@ public final class WalaPathClassification {
 	public static final List<String> RESERVED_PACKAGE_PREFIXES = List.of("java.", "javax.", "sun.", "jdk.", "com.sun.",
 			"de.tum.cit.ase.ares.api.", "net.bytebuddy.", "org.aspectj.", "com.ibm.wala.", "com.tngtech.archunit.",
 			"anonymous.toolclasses.", "metatest.");
+	public static final String RESERVED_PACKAGE_PREFIX_VERSION = "1";
 
 	/**
 	 * Application-loaded subset of {@link #INFRA_PREFIXES} that genuinely indicates

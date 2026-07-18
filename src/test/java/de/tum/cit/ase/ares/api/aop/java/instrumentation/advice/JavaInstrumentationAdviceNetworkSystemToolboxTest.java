@@ -159,7 +159,7 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 		portMatches.setAccessible(true);
 
 		boolean hostAllowed = (boolean) hostMatches.invoke(null, "api.example.org", "example.org");
-		boolean portAllowed = (boolean) portMatches.invoke(null, 8443, -1);
+		boolean portAllowed = (boolean) portMatches.invoke(null, 8443, 0);
 
 		assertTrue(hostAllowed);
 		assertTrue(portAllowed);

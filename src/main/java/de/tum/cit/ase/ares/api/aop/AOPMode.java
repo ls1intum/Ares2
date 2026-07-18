@@ -17,6 +17,7 @@ import com.opencsv.exceptions.CsvException;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSupported;
 import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaCSVFileLoader;
+import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaFileLoader;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.CommandPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.NetworkPermission;
@@ -53,10 +54,16 @@ public enum AOPMode {
 	 */
 	ASPECTJ;
 
+	private static JavaFileLoader fileLoader = new JavaCSVFileLoader();
+
+	public static void setFileLoader(JavaFileLoader loader) {
+		fileLoader = java.util.Objects.requireNonNull(loader, "loader must not be null");
+	}
+
 	// <editor-fold desc="Load configuration">
 	public List<List<String>> getCopyFSConfigurationEntries() {
 		try {
-			List<List<String>> entries = (new JavaCSVFileLoader()).loadCopyData(this, true);
+			List<List<String>> entries = fileLoader.loadCopyData(this, true);
 			validateConfigurationRows(entries, 3, "copy.fs", false);
 			return entries;
 		} catch (IOException | CsvException e) {
@@ -66,7 +73,7 @@ public enum AOPMode {
 
 	public List<List<String>> getCopyNonFSConfigurationEntries() {
 		try {
-			List<List<String>> entries = (new JavaCSVFileLoader()).loadCopyData(this, false);
+			List<List<String>> entries = fileLoader.loadCopyData(this, false);
 			validateConfigurationRows(entries, 3, "copy.nonfs", false);
 			return entries;
 		} catch (IOException | CsvException e) {
@@ -76,7 +83,7 @@ public enum AOPMode {
 
 	public List<List<String>> getEditConfigurationEntries() {
 		try {
-			List<List<String>> entries = (new JavaCSVFileLoader()).loadEditData(this);
+			List<List<String>> entries = fileLoader.loadEditData(this);
 			// Edit entries are also consumed positionally via .get(0) on the whole list by
 			// the single-file methods, so the list must be non-empty as well.
 			validateConfigurationRows(entries, 3, "edit", true);

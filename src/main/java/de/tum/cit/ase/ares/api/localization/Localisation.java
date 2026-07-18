@@ -9,9 +9,11 @@ import javax.annotation.Nonnull;
 import com.opencsv.exceptions.CsvException;
 
 import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaCSVFileLoader;
+import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaFileLoader;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
 public final class Localisation {
+	private static JavaFileLoader fileLoader = new JavaCSVFileLoader();
 
 	private Localisation() {
 		throw new SecurityException(Messages.localized("security.general.utility.initialization", "Localisation"));
@@ -24,10 +26,14 @@ public final class Localisation {
 
 	public static List<List<String>> getCopyConfigurationEntries() {
 		try {
-			return (new JavaCSVFileLoader()).loadLocalisationCopyData();
+			return fileLoader.loadLocalisationCopyData();
 		} catch (IOException | CsvException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	public static void setFileLoader(JavaFileLoader loader) {
+		fileLoader = java.util.Objects.requireNonNull(loader, "loader must not be null");
 	}
 
 	public static List<Path> targetsToCopyTo(@Nonnull Path targetPath) {

@@ -29,6 +29,12 @@
 
 This document describes how Ares 2 prevents unauthorised command execution in student code using **static code analysis** techniques via Architecture Testing frameworks.
 
+Static analysis cannot compare runtime command arguments with a policy entry. It
+supplies a domain-wide deny rule only when no command allowance exists. With any
+command allowance, AspectJ or instrumentation is authoritative for permitting the
+exact allowance and rejecting non-matching commands and arguments; see
+`docs/policy/EnforcementModel.md`.
+
 **Key Difference from AOP Approach:**
 - **AOP (Runtime)**: Monitors command execution during program execution and blocks forbidden commands in real-time
 - **Architecture (Static)**: Analyses compiled bytecode before execution to detect potential command execution violations in the code structure
@@ -877,7 +883,7 @@ java.lang.ProcessBuilder.startPipeline
     <dependency>
         <groupId>de.tum.cit.ase</groupId>
         <artifactId>ares</artifactId>
-        <version>2.0.1-Beta8</version>
+        <version>2.0.1-Beta9</version>
     </dependency>
 </dependencies>
 ```

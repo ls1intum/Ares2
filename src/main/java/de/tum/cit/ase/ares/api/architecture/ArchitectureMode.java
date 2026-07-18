@@ -14,6 +14,7 @@ import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 
 import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaCSVFileLoader;
+import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaFileLoader;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchunitTestCase;
@@ -50,10 +51,16 @@ public enum ArchitectureMode {
 	 */
 	WALA;
 
+	private static JavaFileLoader fileLoader = new JavaCSVFileLoader();
+
+	public static void setFileLoader(JavaFileLoader loader) {
+		fileLoader = java.util.Objects.requireNonNull(loader, "loader must not be null");
+	}
+
 	// <editor-fold desc="Load configuration">
 	public List<List<String>> getCopyFSConfigurationEntries() {
 		try {
-			return (new JavaCSVFileLoader()).loadCopyData(this, true);
+			return fileLoader.loadCopyData(this, true);
 		} catch (IOException | CsvException e) {
 			throw new RuntimeException(e);
 		}
@@ -61,7 +68,7 @@ public enum ArchitectureMode {
 
 	public List<List<String>> getCopyNonFSConfigurationEntries() {
 		try {
-			return (new JavaCSVFileLoader()).loadCopyData(this, false);
+			return fileLoader.loadCopyData(this, false);
 		} catch (IOException | CsvException e) {
 			throw new RuntimeException(e);
 		}
@@ -69,7 +76,7 @@ public enum ArchitectureMode {
 
 	public List<List<String>> getEditConfigurationEntries() {
 		try {
-			return (new JavaCSVFileLoader()).loadEditData(this);
+			return fileLoader.loadEditData(this);
 		} catch (IOException | CsvException e) {
 			throw new RuntimeException(e);
 		}

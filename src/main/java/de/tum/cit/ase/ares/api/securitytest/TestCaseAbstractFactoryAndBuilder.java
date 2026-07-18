@@ -255,7 +255,7 @@ public abstract class TestCaseAbstractFactoryAndBuilder {
 			// exempt set from the student-controlled project, where a student could add an
 			// @Test class to obtain a blanket exemption from every architecture/runtime
 			// check.
-			this.testClasses = new ArrayList<>(Arrays.asList(supervisedCode.theFollowingClassesAreTestClasses()));
+			this.testClasses = new ArrayList<>(supervisedCode.theFollowingClassesAreTestClasses());
 		} else {
 			// Legacy no-policy path: derive scope and exemptions from the project scan.
 			this.packageName = projectScanner.scanForPackageName();
@@ -278,6 +278,36 @@ public abstract class TestCaseAbstractFactoryAndBuilder {
 		// </editor-fold>
 	}
 	// </editor-fold>
+
+	/** Returns the resolved build mode used by this factory. */
+	@Nonnull
+	public final BuildMode buildMode() {
+		return buildMode;
+	}
+
+	/** Returns the resolved static-analysis mode used by this factory. */
+	@Nonnull
+	public final ArchitectureMode architectureMode() {
+		return architectureMode;
+	}
+
+	/** Returns the resolved runtime-interception mode used by this factory. */
+	@Nonnull
+	public final AOPMode aopMode() {
+		return aopMode;
+	}
+
+	/** Returns the immutable policy permissions propagated into generated cases. */
+	@Nonnull
+	public final ResourceAccesses resourceAccesses() {
+		return resourceAccesses;
+	}
+
+	/** Returns the immutable test-class exemption list. */
+	@Nonnull
+	public final List<String> testClasses() {
+		return List.copyOf(testClasses);
+	}
 	// <editor-fold desc="Abstract Methods">
 
 	/**

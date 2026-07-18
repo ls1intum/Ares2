@@ -51,15 +51,15 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
 	}
 
 	/**
-	 * Creates a restrictive command permission with empty arguments.
+	 * Allows the exact command without arguments.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param executeTheCommand the command to restrict.
+	 * @param executeTheCommand the command to allow.
 	 * @return a new CommandPermission instance with empty arguments.
 	 */
 	@Nonnull
-	public static CommandPermission createRestrictive(@Nonnull String executeTheCommand) {
+	public static CommandPermission allowWithoutArguments(@Nonnull String executeTheCommand) {
 		return builder()
 				.executeTheCommand(Objects.requireNonNull(executeTheCommand, "executeTheCommand must not be null"))
 				.withTheseArguments(new ArrayList<>()).build();
@@ -90,19 +90,27 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
 			throw new IllegalArgumentException(Messages.localized("policy.permission.command.blank"));
 		}
 		if (node.isTextual()) {
-			return createRestrictive(node.asText());
+			return allowWithoutArguments(node.asText());
 		}
 		if (node.isObject()) {
+			if (node.size() != 2 || !node.has("executeTheCommand") || !node.has("withTheseArguments")) {
+				throw new IllegalArgumentException(
+						"Command permission must contain exactly executeTheCommand and withTheseArguments");
+			}
 			JsonNode commandNode = node.get("executeTheCommand");
-			if (commandNode == null || !commandNode.isTextual()) {
+			if (commandNode == null || !commandNode.isTextual() || commandNode.textValue().isBlank()) {
 				throw new IllegalArgumentException(Messages.localized("policy.permission.command.blank"));
 			}
 			List<String> arguments = new ArrayList<>();
 			JsonNode argumentsNode = node.get("withTheseArguments");
-			if (argumentsNode != null && argumentsNode.isArray()) {
-				for (JsonNode argument : argumentsNode) {
-					arguments.add(argument.asText());
+			if (argumentsNode == null || !argumentsNode.isArray()) {
+				throw new IllegalArgumentException("withTheseArguments must be an array of strings");
+			}
+			for (JsonNode argument : argumentsNode) {
+				if (!argument.isTextual()) {
+					throw new IllegalArgumentException("withTheseArguments must contain only strings");
 				}
+				arguments.add(argument.textValue());
 			}
 			return builder().executeTheCommand(commandNode.asText()).withTheseArguments(arguments).build();
 		}
@@ -120,7 +128,7 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
 	 */
 	@Nonnull
 	public static CommandPermission fromString(String command) {
-		return createRestrictive(command);
+		return allowWithoutArguments(command);
 	}
 
 	/**

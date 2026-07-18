@@ -2,6 +2,7 @@ package de.tum.cit.ase.ares.api.aop.java.javaAOPModeData;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 import com.opencsv.exceptions.CsvException;
@@ -146,7 +147,16 @@ public class JavaCSVFileLoader implements JavaFileLoader {
 	 */
 	@Override
 	public List<List<String>> loadCopyData(ArchitectureMode mode, boolean fs) throws IOException, CsvException {
-		return FileTools.readCSVFile(getCopyPaths(mode, fs));
+		List<List<String>> specific = FileTools.readCSVFile(getCopyPaths(mode, fs));
+		if (mode != ArchitectureMode.WALA || fs) {
+			return specific;
+		}
+		List<List<String>> common = FileTools.readCSVFile(FileTools.readFile(
+				FileTools.resolveFileOnSourceDirectory("configuration", "copyFiles", "java", "WalaCopyFiles.csv")));
+		LinkedHashMap<String, List<String>> byTarget = new LinkedHashMap<>();
+		common.forEach(entry -> byTarget.put(entry.get(2), entry));
+		specific.forEach(entry -> byTarget.putIfAbsent(entry.get(2), entry));
+		return List.copyOf(byTarget.values());
 	}
 
 	/**

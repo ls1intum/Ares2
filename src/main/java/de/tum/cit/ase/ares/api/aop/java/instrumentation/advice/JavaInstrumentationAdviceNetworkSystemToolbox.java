@@ -196,7 +196,7 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	 * @author Kevin Fischer
 	 */
 	private static boolean portMatches(int actualPort, int allowedPort) {
-		if (allowedPort == -1) {
+		if (allowedPort == 0) {
 			return true;
 		}
 		return actualPort == allowedPort;
