@@ -30,7 +30,7 @@
 		<!-- 2. Architecture: 2.1 Archunit -->
 		<archunit-version>1.4.2</archunit-version>
 		<!-- 2. Architecture: 2.2 Wala -->
-		<wala-version>1.7.2</wala-version>
+		<wala-version>1.8.0</wala-version>
 		<!-- Test fixture: genuine third-party JAR in the javax.* namespace -->
 		<javax-activation-version>1.2.0</javax-activation-version>
 		<!-- 3. AOP: 3.1 AspectJ -->
