@@ -45,7 +45,7 @@
 			${user.home}${file.separator}.m2${file.separator}repository${file.separator}org${file.separator}aspectj${file.separator}aspectjrt${file.separator}${aspectj-version}${file.separator}aspectjrt-${aspectj-version}.jar
 		</aspectj-path>
 		<!-- 3. AOP: 3.2 Byte Buddy -->
-		<byte-buddy-version>1.18.10</byte-buddy-version>
+		<byte-buddy-version>1.18.11</byte-buddy-version>
 		<byte-buddy-path>
 			${project.build.directory}${file.separator}${project.artifactId}-${project.version}-agent.jar
 		</byte-buddy-path>
