@@ -138,6 +138,13 @@ public class JqwickUser {
 		sleepUntilInterrupted();
 	}
 
+	@Public
+	@Property(tries = 5)
+	@StrictTimeout(value = 250, unit = TimeUnit.MILLISECONDS)
+	void strictTimeoutAppliesPerTry(@SuppressWarnings("unused") @ForAll int x) throws InterruptedException {
+		Thread.sleep(100);
+	}
+
 	private void sleepUntilInterrupted() throws InterruptedException {
 		try {
 			Thread.sleep(300);

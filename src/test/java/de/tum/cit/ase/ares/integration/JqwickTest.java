@@ -36,6 +36,7 @@ class JqwickTest {
 	private final String provokeTimeoutSleepExample = "provokeTimeoutSleepExample";
 	private final String provokeTimeoutSleepProperty = "provokeTimeoutSleepProperty";
 	private final String provokeTimeoutSleepTries = "provokeTimeoutSleepTries";
+	private final String strictTimeoutAppliesPerTry = "strictTimeoutAppliesPerTry";
 	private final String testHiddenIncomplete = "testHiddenIncomplete";
 	private final String testLocaleDe = "testLocaleDe";
 	private final String testPublicIncomplete = "testPublicIncomplete";
@@ -123,6 +124,11 @@ class JqwickTest {
 	@TestTest
 	void test_provokeTimeoutSleepTries() {
 		tests.assertThatEvents().haveExactly(1, testFailedWith(provokeTimeoutSleepTries, AssertionFailedError.class));
+	}
+
+	@TestTest
+	void test_strictTimeoutAppliesPerTry() {
+		tests.assertThatEvents().haveExactly(1, finishedSuccessfully(strictTimeoutAppliesPerTry));
 	}
 
 	@TestTest
