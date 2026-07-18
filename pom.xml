@@ -12,8 +12,8 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<!-- 1. Testing: 1.1 JUnit -->
-		<junit-jupiter-version>6.1.0</junit-jupiter-version>
-		<junit-platform-version>6.1.0</junit-platform-version>
+		<junit-jupiter-version>6.1.2</junit-jupiter-version>
+		<junit-platform-version>6.1.2</junit-platform-version>
 		<!-- 1. Testing: 1.2 jqwik -->
 		<!-- Pinned to 1.9.3 (newest 1.9.x): the jqwik 1.10.x engine is not stable under
 			Ares here. Running the full suite, its lifecycle store hits a concurrent
