@@ -151,6 +151,22 @@ public final class WalaPathClassification {
 	 * boot/extension/synthetic classes or any package in {@link #INFRA_PREFIXES}.
 	 */
 	static boolean isInfraFrame(CGNode node) {
+		return hasInfrastructureOrigin(node, INFRA_PREFIXES);
+	}
+
+	/**
+	 * Returns {@code true} when the given CGNode counts as transitive
+	 * infrastructure for the purpose of {@link #isFalsePositiveTransitivePath}
+	 * only. Project test helpers ({@code anonymous.toolclasses.} /
+	 * {@code metatest.}) explicitly do NOT count here, so a student call that
+	 * routes through such a helper into a forbidden JDK API is reported as a real
+	 * violation.
+	 */
+	static boolean isTransitiveFalsePositiveFrame(CGNode node) {
+		return hasInfrastructureOrigin(node, TRANSITIVE_FALSE_POSITIVE_PREFIXES);
+	}
+
+	private static boolean hasInfrastructureOrigin(CGNode node, List<String> applicationPrefixes) {
 		try {
 			if (node == null || node.getMethod() == null) {
 				throw unclassifiableNode("missing call-graph node or method", null);
@@ -169,40 +185,7 @@ public final class WalaPathClassification {
 				return true;
 			}
 			String pkg = packageNameOf(cls);
-			return INFRA_PREFIXES.stream().anyMatch(pkg::startsWith);
-		} catch (SecurityException failClosed) {
-			throw failClosed;
-		} catch (RuntimeException | UnimplementedError unclassifiable) {
-			throw unclassifiableNode("WALA could not classify the declaring class", unclassifiable);
-		}
-	}
-
-	/**
-	 * Returns {@code true} when the given CGNode counts as transitive
-	 * infrastructure for the purpose of {@link #isFalsePositiveTransitivePath}
-	 * only. Project test helpers ({@code anonymous.toolclasses.} /
-	 * {@code metatest.}) explicitly do NOT count here, so a student call that
-	 * routes through such a helper into a forbidden JDK API is reported as a real
-	 * violation.
-	 */
-	static boolean isTransitiveFalsePositiveFrame(CGNode node) {
-		try {
-			if (node == null || node.getMethod() == null) {
-				throw unclassifiableNode("missing call-graph node or method", null);
-			}
-			IClass cls = node.getMethod().getDeclaringClass();
-			if (cls == null) {
-				throw unclassifiableNode("missing declaring class", null);
-			}
-			if (cls.getClassLoader() == null || cls.getClassLoader().getReference() == null) {
-				throw unclassifiableNode("missing class-loader identity", null);
-			}
-			ClassLoaderReference loader = cls.getClassLoader().getReference();
-			if (loader.equals(ClassLoaderReference.Primordial) || loader.equals(ClassLoaderReference.Extension)) {
-				return true;
-			}
-			String pkg = packageNameOf(cls);
-			return TRANSITIVE_FALSE_POSITIVE_PREFIXES.stream().anyMatch(pkg::startsWith);
+			return applicationPrefixes.stream().anyMatch(pkg::startsWith);
 		} catch (SecurityException failClosed) {
 			throw failClosed;
 		} catch (RuntimeException | UnimplementedError unclassifiable) {
