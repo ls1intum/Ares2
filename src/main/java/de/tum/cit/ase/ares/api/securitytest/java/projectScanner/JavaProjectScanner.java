@@ -3,377 +3,240 @@ package de.tum.cit.ase.ares.api.securitytest.java.projectScanner;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+
+import com.github.javaparser.JavaParser;
+import com.github.javaparser.ParseProblemException;
+import com.github.javaparser.ParserConfiguration;
+import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.body.AnnotationDeclaration;
+import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.TypeDeclaration;
+import com.github.javaparser.ast.expr.AnnotationExpr;
+import com.github.javaparser.ast.type.ArrayType;
 
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
 import de.tum.cit.ase.ares.api.securitytest.ReservedPackageGuard;
 import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 
-/**
- * Utility class for scanning Java source files.
- * <p>
- * Description: This class scans Java source files to extract metadata such as
- * test classes, package names and main classes. It is designed to facilitate
- * automated configuration and test setup within Java projects.
- * </p>
- * <p>
- * Design Rationale: The class utilises stream processing and regular expression
- * matching to efficiently analyse source files, ensuring flexibility in
- * recognising diverse code patterns.
- * </p>
- *
- * @since 2.0.0
- * @author Markus Paulsen
- * @version 2.0.0
- */
+/** JavaParser-backed, deterministic Java project scanner. */
 public class JavaProjectScanner implements ProjectScanner {
+	private static final Set<String> TEST_ANNOTATIONS = Set.of("Test", "org.junit.Test", "ParameterizedTest",
+			"RepeatedTest", "TestFactory", "TestTemplate", "Property", "Example");
+	private final BuildToolConfiguration buildConfiguration;
+	private final JavaParser parser = new JavaParser(
+			new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17));
 
-	// <editor-fold desc="Fixed Regex Patterns (defined by Java)">
-	/**
-	 * Regex pattern to match public class declarations in Java files.
-	 */
-	@Nonnull
-	private static final Pattern CLASS_PATTERN = Objects.requireNonNull(
-			Pattern.compile(
-					"\\bpublic\\s+(?:final\\s+|abstract\\s+|strictfp\\s+)*class\\s+([A-Za-z_$][A-Za-z0-9_$]*)\\b"),
-			"CLASS_PATTERN must not be null");
+	public JavaProjectScanner() {
+		this.buildConfiguration = null;
+	}
 
-	/**
-	 * Regex pattern to match package declarations in Java files.
-	 */
-	@Nonnull
-	private static final Pattern PACKAGE_PATTERN = Objects.requireNonNull(
-			Pattern.compile("\\bpackage\\s+([A-Za-z_$][A-Za-z0-9_$]*(?:\\.[A-Za-z_$][A-Za-z0-9_$]*)*)\\s*;"),
-			"PACKAGE_PATTERN must not be null");
+	public JavaProjectScanner(BuildToolConfiguration buildConfiguration) {
+		this.buildConfiguration = Objects.requireNonNull(buildConfiguration, "buildConfiguration must not be null");
+	}
 
-	/**
-	 * Regex pattern to detect the main method in Java files.
-	 */
-	@Nonnull
-	private static final Pattern MAIN_METHOD_PATTERN = Objects.requireNonNull(Pattern.compile(
-			"\\bpublic\\s+static\\s+void\\s+main\\s*\\(\\s*String\\s*(?:\\[\\s*]|\\.\\.\\.)\\s*[A-Za-z_$][A-Za-z0-9_$]*\\s*\\)"),
-			"MAIN_METHOD_PATTERN must not be null");
-
-	/**
-	 * Regex pattern to identify test annotations in Java files.
-	 */
-	@Nonnull
-	private static final Pattern TEST_ANNOTATION_PATTERN = Objects
-			.requireNonNull(Pattern.compile("@(?:Test|Property)\\b"), "TEST_ANNOTATION_PATTERN must not be null");
-	// </editor-fold>
-
-	// <editor-fold desc="Variable Regex Patterns (defined by project)">
-
-	/**
-	 * Default package name used if none is found. {@code protected} so subclasses
-	 * (e.g. the TUM-specific scanner) can override the default that
-	 * {@link #scanForPackageName()} falls back to.
-	 */
 	@Nonnull
 	protected String getDefaultPackage() {
 		return "";
 	}
 
-	/**
-	 * Default main class name used if no main class is detected. {@code protected}
-	 * so subclasses can override the default that
-	 * {@link #scanForMainClassInPackage()} falls back to.
-	 */
 	@Nonnull
 	protected String getDefaultMainClass() {
 		return "Main";
 	}
 
-	/**
-	 * Regex pattern to identify test annotations.
-	 */
-	@Nonnull
-	private static Pattern getTestAnnotationPattern() {
-		return TEST_ANNOTATION_PATTERN;
-	}
-	// </editor-fold>
-
-	// <editor-fold desc="Helper methods">
-
-	/**
-	 * Retrieves all Java file paths from the project sources.
-	 *
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 * @return a list of paths to Java files
-	 */
-	@Nonnull
-	private List<Path> getJavaFiles() {
-		return ProjectSourcesFinder.findProjectSourcesPath().map(sourcePath -> {
-			try (Stream<Path> stream = Files.find(sourcePath, Integer.MAX_VALUE, this::fileIsJavaFile)) {
-				return stream.collect(Collectors.toList());
-			} catch (IOException e) {
-				return Collections.<Path>emptyList();
-			}
-		}).orElse(Collections.emptyList());
+	private List<Path> productionRoots() {
+		if (buildConfiguration != null) {
+			return buildConfiguration.productionSourceRoots();
+		}
+		return ProjectSourcesFinder.findProjectSourcesPath().map(List::of).orElse(List.of());
 	}
 
-	/**
-	 * Retrieves all Java file paths from the test sources directory.
-	 *
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 * @return a list of paths to Java test files
-	 */
-	@Nonnull
-	private List<Path> getTestJavaFiles() {
-		Path testPath = findTestSourcePath();
-		if (testPath != null && Files.exists(testPath)) {
-			try (Stream<Path> stream = Files.find(testPath, Integer.MAX_VALUE, this::fileIsJavaFile)) {
-				return stream.collect(Collectors.toList());
-			} catch (IOException e) {
-				return Collections.emptyList();
+	private List<Path> testRoots() {
+		if (buildConfiguration != null) {
+			return buildConfiguration.testSourceRoots();
+		}
+		boolean maven = ProjectSourcesFinder.isMavenProject();
+		boolean gradle = ProjectSourcesFinder.isGradleProject();
+		Path conventional = Path.of("src", "test", "java");
+		if ((maven || gradle) && Files.isDirectory(conventional)) {
+			return List.of(conventional);
+		}
+		if (gradle) {
+			Path artemis = Path.of("test");
+			if (Files.isDirectory(artemis)) {
+				return List.of(artemis);
 			}
 		}
-		return Collections.emptyList();
+		return List.of();
 	}
 
-	/**
-	 * Finds the test source directory by inspecting the build configuration file at
-	 * the project root.
-	 *
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 * @return the path to the test source directory, or null if not found
-	 */
-	@Nullable
-	private Path findTestSourcePath() {
-		if (ProjectSourcesFinder.isGradleProject()) {
-			try {
-				String content = Files.readString(Path.of(ProjectSourcesFinder.getBuildGradlePath()));
-				if (content.contains("srcDir 'test'")) {
-					Path testPath = Path.of("test");
-					if (Files.exists(testPath)) {
-						return testPath;
-					}
-				}
-			} catch (IOException e) {
-				// fall through to default
+	private List<Path> javaFiles(List<Path> roots) {
+		List<Path> files = new ArrayList<>();
+		for (Path root : roots) {
+			if (!Files.isDirectory(root) || !Files.isReadable(root)) {
+				throw new IllegalStateException("Unreadable Java source root: " + root);
 			}
-			Path defaultPath = Path.of("src/test/java");
-			if (Files.exists(defaultPath)) {
-				return defaultPath;
+			try (Stream<Path> stream = Files.walk(root)) {
+				stream.filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".java")).sorted()
+						.forEach(files::add);
+			} catch (IOException exception) {
+				throw new IllegalStateException("Cannot scan Java source root: " + root, exception);
 			}
 		}
-		if (ProjectSourcesFinder.isMavenProject()) {
-			Path defaultPath = Path.of("src/test/java");
-			if (Files.exists(defaultPath)) {
-				return defaultPath;
+		return List.copyOf(files);
+	}
+
+	private CompilationUnit parse(Path file) {
+		try {
+			var result = parser.parse(file);
+			if (!result.isSuccessful()) {
+				throw new ParseProblemException(result.getProblems());
 			}
+			return result.getResult().orElseThrow(() -> new ParseProblemException(result.getProblems()));
+		} catch (IOException | ParseProblemException exception) {
+			throw new IllegalStateException("Cannot parse Java source file: " + file, exception);
 		}
-		return null;
 	}
 
-	/**
-	 * Checks if the given file is a Java source file.
-	 *
-	 * @param path       the path of the file to check
-	 * @param attributes the file's basic attributes
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 * @return true if the file is a regular Java file, false otherwise
-	 */
-	private boolean fileIsJavaFile(@Nonnull Path path, @Nonnull BasicFileAttributes attributes) {
-		return Objects.requireNonNull(attributes, "attributes must not be null").isRegularFile()
-				&& Objects.requireNonNull(path, "path must not be null").toString().endsWith(".java");
+	private String packageName(CompilationUnit unit) {
+		return unit.getPackageDeclaration().map(declaration -> declaration.getNameAsString()).orElse("");
 	}
 
-	/**
-	 * Scans Java files and processes them using the provided extractor function.
-	 *
-	 * @param extractor function to extract data from file content
-	 * @param <T>       the type of the extracted data
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 * @return a stream of extracted values
-	 */
-	@Nonnull
-	private <T> Stream<T> scanJavaFiles(Function<String, T> extractor) {
-		return getJavaFiles().stream().flatMap(file -> {
-			try {
-				String content = Files.readString(file);
-				T result = extractor.apply(content);
-				return result != null ? Stream.of(result) : Stream.empty();
-			} catch (IOException e) {
-				return Stream.empty();
-			}
-		});
-	}
-
-	// <editor-fold desc="Extract methods">
-
-	/**
-	 * Extracts the class name from the given file content.
-	 *
-	 * @param content the content of a Java file
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 * @return the class name if found, otherwise null
-	 */
-	@Nullable
-	private String extractClassName(String content) {
-		Matcher classMatcher = CLASS_PATTERN.matcher(content);
-		return classMatcher.find() ? classMatcher.group(1) : null;
-	}
-
-	/**
-	 * Extracts the package name from the given file content.
-	 *
-	 * @param content the content of a Java file
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 * @return the package name if found, otherwise null
-	 */
-	@Nullable
-	private String extractPackageName(String content) {
-		Matcher packageMatcher = PACKAGE_PATTERN.matcher(content);
-		return packageMatcher.find() ? packageMatcher.group(1) : null;
-	}
-
-	/**
-	 * Extracts the main class from the file content if a main method is present.
-	 *
-	 * @param content the content of a Java file
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 * @return the class name containing the main method, or null if not present
-	 */
-	@Nullable
-	private String extractMainClass(String content) {
-		if (MAIN_METHOD_PATTERN.matcher(content).find()) {
-			return extractClassName(content);
-		}
-		return null;
-	}
-
-	/**
-	 * Extracts test class information from the file content.
-	 *
-	 * @param content the content of a Java file
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 * @return the fully qualified name of the test class if the file is a test
-	 *         class, otherwise null
-	 */
-	@Nullable
-	private String extractTestClass(String content) {
-		boolean isTest = getTestAnnotationPattern().matcher(content).find() || content.contains("extends TestCase");
-
-		if (isTest) {
-			String packageName = extractPackageName(content);
-			String className = extractClassName(content);
-			if (packageName != null && className != null) {
-				return packageName + "." + className;
-			}
-		}
-		return null;
-	}
-	// </editor-fold>
-	// </editor-fold>
-
-	// <editor-fold desc="Scan methods">
-
-	/**
-	 * Determines the build mode of the Java project.
-	 *
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 * @return the JavaBuildMode for the project
-	 */
 	@Override
 	@Nonnull
 	public BuildMode scanForBuildMode() {
+		if (buildConfiguration != null) {
+			return buildConfiguration.buildMode();
+		}
 		return ProjectSourcesFinder.isGradleProject() ? BuildMode.GRADLE : BuildMode.MAVEN;
 	}
 
-	/**
-	 * Scans the project for test classes.
-	 *
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 * @return an array of fully qualified class names identified as test classes
-	 */
 	@Override
 	@Nonnull
 	public String[] scanForTestClasses() {
-		return getTestJavaFiles().stream().flatMap(file -> {
-			try {
-				String content = Files.readString(file);
-				String result = extractTestClass(content);
-				return result != null ? Stream.of(result) : Stream.empty();
-			} catch (IOException e) {
-				return Stream.empty();
+		List<CompilationUnit> units = javaFiles(testRoots()).stream().map(this::parse).toList();
+		Set<String> recognisedAnnotations = new HashSet<>(TEST_ANNOTATIONS);
+		boolean changed;
+		do {
+			changed = false;
+			for (CompilationUnit unit : units) {
+				for (AnnotationDeclaration declaration : unit.findAll(AnnotationDeclaration.class)) {
+					if (hasRecognisedAnnotation(declaration.getAnnotations(), recognisedAnnotations)) {
+						changed |= recognisedAnnotations.add(declaration.getNameAsString());
+					}
+				}
 			}
-		}).toArray(String[]::new);
+		} while (changed);
+		Set<String> classes = new HashSet<>();
+		for (CompilationUnit unit : units) {
+			String packageName = packageName(unit);
+			for (TypeDeclaration<?> type : unit.findAll(TypeDeclaration.class)) {
+				if (type.isAnnotationDeclaration()) {
+					continue;
+				}
+				boolean junitThree = type.isClassOrInterfaceDeclaration() && type.asClassOrInterfaceDeclaration()
+						.getExtendedTypes().stream().anyMatch(parent -> parent.getNameAsString().equals("TestCase"));
+				boolean annotatedTest = hasRecognisedAnnotation(type.getAnnotations(), recognisedAnnotations)
+						|| type.getMethods().stream().anyMatch(
+								method -> hasRecognisedAnnotation(method.getAnnotations(), recognisedAnnotations));
+				if (junitThree || annotatedTest) {
+					classes.add(qualifiedTypeName(packageName, type));
+				}
+			}
+		}
+		return classes.stream().sorted().toArray(String[]::new);
 	}
 
-	/**
-	 * Determines the most commonly used package name in the project.
-	 *
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 * @return the most frequent package name or a default if none is found
-	 */
+	private boolean hasRecognisedAnnotation(List<AnnotationExpr> annotations, Set<String> recognised) {
+		return annotations.stream().map(annotation -> annotation.getNameAsString())
+				.anyMatch(name -> recognised.contains(name) || recognised.contains(simpleName(name)));
+	}
+
+	private String simpleName(String name) {
+		int separator = name.lastIndexOf('.');
+		return separator < 0 ? name : name.substring(separator + 1);
+	}
+
+	private String qualifiedTypeName(String packageName, TypeDeclaration<?> type) {
+		List<String> names = new ArrayList<>();
+		TypeDeclaration<?> current = type;
+		names.add(current.getNameAsString());
+		while (current.getParentNode().orElse(null) instanceof TypeDeclaration<?> parent) {
+			current = parent;
+			names.add(0, current.getNameAsString());
+		}
+		String nestedName = String.join(".", names);
+		return packageName.isEmpty() ? nestedName : packageName + "." + nestedName;
+	}
+
 	@Override
 	@Nonnull
 	public String scanForPackageName() {
-		// Exclude reserved infrastructure packages from the candidates so a student
-		// cannot flood the project with files in a trusted namespace to make it the
-		// derived enforcement scope. A genuinely reserved-only project still fails
-		// closed later via the ReservedPackageGuard in the factory.
-		Map<String, Long> packageCounts = scanJavaFiles(this::extractPackageName).filter(Objects::nonNull)
-				.filter(packageName -> ReservedPackageGuard.reservedPrefixOf(packageName) == null)
-				.collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
-		return packageCounts.entrySet().stream().max(Map.Entry.comparingByValue()).map(Map.Entry::getKey)
-				.orElse(getDefaultPackage());
+		Map<String, Long> counts = new HashMap<>();
+		for (Path file : javaFiles(productionRoots())) {
+			String name = packageName(parse(file));
+			if (!name.isBlank() && ReservedPackageGuard.reservedPrefixOf(name) == null) {
+				counts.merge(name, 1L, Long::sum);
+			}
+		}
+		return counts.entrySet().stream()
+				.sorted(Map.Entry.<String, Long>comparingByValue(Comparator.reverseOrder())
+						.thenComparing(Map.Entry::getKey))
+				.map(Map.Entry::getKey).findFirst().orElse(getDefaultPackage());
 	}
 
-	/**
-	 * Identifies the main class within the project.
-	 *
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 * @return the name of the class containing the main method or a default value
-	 *         if none is found
-	 */
 	@Override
 	@Nonnull
 	public String scanForMainClassInPackage() {
-		List<String> mainClasses = scanJavaFiles(this::extractMainClass).filter(Objects::nonNull).toList();
-		return mainClasses.stream().filter(name -> "Main".equals(name) || "Application".equals(name)).findFirst()
-				.orElse(!mainClasses.isEmpty() ? mainClasses.get(0) : getDefaultMainClass());
+		List<String> names = new ArrayList<>();
+		for (Path file : javaFiles(productionRoots())) {
+			CompilationUnit unit = parse(file);
+			for (MethodDeclaration method : unit.findAll(MethodDeclaration.class)) {
+				if (isMainMethod(method)) {
+					method.findAncestor(TypeDeclaration.class).ifPresent(type -> names.add(type.getNameAsString()));
+				}
+			}
+		}
+		return names.stream().distinct()
+				.sorted(Comparator.comparing((String name) -> !"Main".equals(name))
+						.thenComparing(name -> !"Application".equals(name)).thenComparing(String::compareTo))
+				.findFirst().orElse(getDefaultMainClass());
 	}
 
-	/**
-	 * Scans for the test directory within the project structure.
-	 *
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 * @return the path to the test directory as a string, or a default path if not
-	 *         found
-	 */
+	private boolean isMainMethod(MethodDeclaration method) {
+		if (!"main".equals(method.getNameAsString()) || !method.isPublic() || !method.isStatic()
+				|| !method.getType().isVoidType() || method.getParameters().size() != 1) {
+			return false;
+		}
+		var parameter = method.getParameter(0);
+		if (parameter.isVarArgs()) {
+			return "String".equals(parameter.getType().asString())
+					|| "java.lang.String".equals(parameter.getType().asString());
+		}
+		if (!(parameter.getType() instanceof ArrayType arrayType)) {
+			return false;
+		}
+		String component = arrayType.getComponentType().asString();
+		return "String".equals(component) || "java.lang.String".equals(component);
+	}
+
 	@Override
 	@Nonnull
 	public Path scanForTestPath() {
-		Path testPath = findTestSourcePath();
-		return testPath != null ? testPath : Path.of("src/test/java");
+		return testRoots().stream().findFirst().orElse(Path.of(DEFAULT_TEST_PATH));
 	}
-	// </editor-fold>
+
+	private static final String DEFAULT_TEST_PATH = "src/test/java";
 }

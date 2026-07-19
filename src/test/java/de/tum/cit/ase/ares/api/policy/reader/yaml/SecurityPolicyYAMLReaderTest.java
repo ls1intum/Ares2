@@ -5,7 +5,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.EnumSet;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -114,11 +116,9 @@ public class SecurityPolicyYAMLReaderTest {
 
 		@Test
 		@DisplayName("Should throw SecurityException when file does not exist")
-		void shouldThrowSecurityExceptionWhenFileDoesNotExist() {
-			// Arrange
-			Path nonExistentPath = Paths.get("non/existent/policy.yaml");
-
-			// Act & Assert
+		void shouldThrowSecurityExceptionWhenFileDoesNotExist(@TempDir Path tempDir) {
+			Path nonExistentPath = tempDir.resolve("guaranteed-absent-policy.yaml");
+			assertFalse(Files.exists(nonExistentPath));
 			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(nonExistentPath));
 		}
 
@@ -153,7 +153,7 @@ public class SecurityPolicyYAMLReaderTest {
 					policy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed());
 			assertEquals("com.example", policy.regardingTheSupervisedCode().theSupervisedCodeUsesTheFollowingPackage());
 			assertEquals("Main", policy.regardingTheSupervisedCode().theMainClassInsideThisPackageIs());
-			assertArrayEquals(new String[] { "TestClass1", "TestClass2" },
+			assertEquals(List.of("TestClass1", "TestClass2"),
 					policy.regardingTheSupervisedCode().theFollowingClassesAreTestClasses());
 		}
 
@@ -191,12 +191,7 @@ public class SecurityPolicyYAMLReaderTest {
 		void shouldThrowSecurityExceptionWhenYAMLIsMalformed(@TempDir Path tempDir) throws IOException {
 			// Arrange
 			Path malformedFile = tempDir.resolve("malformed.yaml");
-			String malformedYaml = """
-					regardingTheSupervisedCode:
-					  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
-					  # This is malformed YAML - missing value
-					  theFollowingResourceAccessesArePermitted:
-					""";
+			String malformedYaml = "regardingTheSupervisedCode: [unterminated\n";
 			Files.writeString(malformedFile, malformedYaml);
 
 			// Act & Assert
@@ -222,16 +217,35 @@ public class SecurityPolicyYAMLReaderTest {
 		@Test
 		@DisplayName("Should throw SecurityException when file is not readable")
 		void shouldThrowSecurityExceptionWhenFileIsNotReadable(@TempDir Path tempDir) throws IOException {
-			// Arrange
 			Path unreadableFile = tempDir.resolve("unreadable.yaml");
-			Files.writeString(unreadableFile, "test content");
-			unreadableFile.toFile().setReadable(false);
+			Files.writeString(unreadableFile, minimalPolicy());
+			try {
+				Files.setPosixFilePermissions(unreadableFile, EnumSet.noneOf(PosixFilePermission.class));
+				org.junit.jupiter.api.Assumptions.assumeFalse(Files.isReadable(unreadableFile),
+						"The platform or current user cannot enforce an unreadable fixture");
+				SecurityException failure = assertThrows(SecurityException.class,
+						() -> reader.readSecurityPolicyFrom(unreadableFile));
+				assertNotNull(failure.getCause());
+			} catch (UnsupportedOperationException exception) {
+				org.junit.jupiter.api.Assumptions.abort("POSIX permissions are unavailable");
+			} finally {
+				try {
+					Files.setPosixFilePermissions(unreadableFile,
+							EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
+				} catch (UnsupportedOperationException ignored) {
+					unreadableFile.toFile().setReadable(true);
+				}
+			}
+		}
 
-			// Act & Assert
-			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(unreadableFile));
-
-			// Clean up
-			unreadableFile.toFile().setReadable(true);
+		@Test
+		void literalNullRootUsesTheDocumentedSecurityException(@TempDir Path tempDir) throws IOException {
+			Path nullPolicy = tempDir.resolve("null.yaml");
+			Files.writeString(nullPolicy, "null\n");
+			SecurityException failure = assertThrows(SecurityException.class,
+					() -> reader.readSecurityPolicyFrom(nullPolicy));
+			assertTrue(failure.getMessage().contains(nullPolicy.toString()));
+			assertNotNull(failure.getCause());
 		}
 
 		@Test
@@ -345,5 +359,20 @@ public class SecurityPolicyYAMLReaderTest {
 			// Act & Assert
 			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(commentsOnlyFile));
 		}
+	}
+
+	private static String minimalPolicy() {
+		return """
+				regardingTheSupervisedCode:
+				  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+				  theFollowingClassesAreTestClasses: []
+				  theFollowingResourceAccessesArePermitted:
+				    regardingFileSystemInteractions: []
+				    regardingNetworkConnections: []
+				    regardingCommandExecutions: []
+				    regardingThreadCreations: []
+				    regardingPackageImports: []
+				    regardingTimeouts: []
+				""";
 	}
 }

@@ -1,0 +1,30 @@
+<!-- Ares reserved-package build boundary, version 1. Insert this plugin under build/plugins. -->
+<plugin>
+  <groupId>org.apache.maven.plugins</groupId>
+  <artifactId>maven-antrun-plugin</artifactId>
+  <version>3.2.0</version>
+  <executions>
+    <execution>
+      <id>verify-ares-reserved-packages-v1</id>
+      <phase>process-classes</phase>
+      <goals><goal>run</goal></goals>
+      <configuration>
+        <target>
+          <resourcecount property="ares.reserved.package.count">
+            <fileset dir="${project.build.outputDirectory}">
+              <include name="java/**"/><include name="javax/**"/><include name="sun/**"/>
+              <include name="jdk/**"/><include name="com/sun/**"/>
+              <include name="de/tum/cit/ase/ares/api/**"/><include name="net/bytebuddy/**"/>
+              <include name="org/aspectj/**"/><include name="com/ibm/wala/**"/>
+              <include name="com/tngtech/archunit/**"/><include name="anonymous/toolclasses/**"/>
+              <include name="metatest/**"/>
+            </fileset>
+          </resourcecount>
+          <fail message="Ares reserved-package validation v1 rejected student output. No bypass flag is supported.">
+            <condition><not><equals arg1="${ares.reserved.package.count}" arg2="0"/></not></condition>
+          </fail>
+        </target>
+      </configuration>
+    </execution>
+  </executions>
+</plugin>

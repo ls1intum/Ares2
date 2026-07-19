@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.policy.reader;
 
 import java.nio.file.Path;
+import java.util.Locale;
 import java.util.Objects;
 
 import javax.annotation.Nonnull;
@@ -71,9 +72,18 @@ public abstract class SecurityPolicyReader {
 
 	// <editor-fold desc="Static methods">
 	public static SecurityPolicyReader selectSecurityPolicyReader(Path securityPolicyFilePath) {
+		return selectSecurityPolicyReader(securityPolicyFilePath, Path.of("").toAbsolutePath());
+	}
+
+	public static SecurityPolicyReader selectSecurityPolicyReader(Path securityPolicyFilePath, Path projectRootPath) {
 		Objects.requireNonNull(securityPolicyFilePath, "securityPolicyFilePath must not be null");
+		Path absolutePolicy = securityPolicyFilePath.toAbsolutePath().normalize();
+		Path effectiveRoot = projectRootPath == null
+				? Objects.requireNonNullElse(absolutePolicy.getParent(), absolutePolicy)
+				: projectRootPath;
 		return switch (getFileExtension(securityPolicyFilePath)) {
-		case "yaml", "yml" -> SecurityPolicyYAMLReader.yamlBuilder().yamlMapper(new YAMLMapper()).build();
+		case "yaml", "yml" -> SecurityPolicyYAMLReader.yamlBuilder().yamlMapper(new YAMLMapper())
+				.projectRootPath(effectiveRoot).build();
 		default -> throw new IllegalArgumentException(
 				Messages.localized("policy.reader.unsupported.format", getFileExtension(securityPolicyFilePath)));
 		};
@@ -94,7 +104,7 @@ public abstract class SecurityPolicyReader {
 		}
 		String name = fileName.toString();
 		int lastDotIndex = name.lastIndexOf('.');
-		return (lastDotIndex == -1) ? "" : name.substring(lastDotIndex + 1);
+		return (lastDotIndex == -1) ? "" : name.substring(lastDotIndex + 1).toLowerCase(Locale.ROOT);
 	}
 	// </editor-fold>
 }

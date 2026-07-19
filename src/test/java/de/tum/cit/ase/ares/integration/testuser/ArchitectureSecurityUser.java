@@ -141,18 +141,12 @@ public class ArchitectureSecurityUser {
 
 	// <editor-fold desc="Third Party Package Access Rules">
 
-	/**
-	 * Archunit does not support third party package access rules, as it is too slow
-	 * in that case
-	 */
-	// @PublicTest
-	// @Policy(value =
-	// "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyEverythingForbidden.yaml",
-	// withinPath =
-	// "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/thirdPartyAccess")
-	// void testArchunitThirdPartyPackageAccess() {
-	// // do nothing
-	// }
+	@PublicTest
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/thirdPartyAccess")
+	void testArchunitThirdPartyPackageAccess() {
+		// Static analysis runs before the body and inspects the compiled Commons IO
+		// dependency call in ThirdPartyAccessPenguin.
+	}
 
 	@PublicTest
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyEverythingForbidden.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/architectureTests/thirdPartyAccess")

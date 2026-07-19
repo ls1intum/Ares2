@@ -1,8 +1,10 @@
 package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
@@ -16,7 +18,7 @@ class SupervisedCodeTest {
 		assertNotNull(supervisedCode);
 		assertNull(supervisedCode.theSupervisedCodeUsesTheFollowingPackage());
 		assertNull(supervisedCode.theMainClassInsideThisPackageIs());
-		assertArrayEquals(new String[0], supervisedCode.theFollowingClassesAreTestClasses());
+		assertEquals(List.of(), supervisedCode.theFollowingClassesAreTestClasses());
 		assertNotNull(supervisedCode.theFollowingResourceAccessesArePermitted());
 	}
 
@@ -26,7 +28,7 @@ class SupervisedCodeTest {
 				.theFollowingProgrammingLanguageConfigurationIsUsed(
 						ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION)
 				.theSupervisedCodeUsesTheFollowingPackage(null).theMainClassInsideThisPackageIs(null)
-				.theFollowingClassesAreTestClasses(new String[0])
+				.theFollowingClassesAreTestClasses(List.of())
 				.theFollowingResourceAccessesArePermitted(ResourceAccesses.createRestrictive()).build();
 
 		assertNotNull(supervisedCode);

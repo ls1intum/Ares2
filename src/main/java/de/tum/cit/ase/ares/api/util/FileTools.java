@@ -30,6 +30,10 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.opencsv.CSVParser;
@@ -266,17 +270,75 @@ public final class FileTools {
 	 */
 	@Nonnull
 	public static <T> T readYamlFile(@Nonnull File sourceFile, @Nonnull Class<T> valueType) throws IOException {
+		ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+		Path sourcePath = Objects.requireNonNull(sourceFile, "sourceFile must not be null").toPath().toAbsolutePath()
+				.normalize();
+		Path projectRoot = Objects.requireNonNull(sourcePath.getParent(), "sourceFile must have a parent directory");
+		return readYamlFile(sourceFile, valueType, mapper, projectRoot);
+	}
+
+	/**
+	 * Reads exactly one YAML document with the supplied mapper and expands
+	 * placeholders only after parsing.
+	 *
+	 * @param sourceFile   the YAML file
+	 * @param valueType    the target type
+	 * @param objectMapper the caller-supplied mapper
+	 * @param projectRoot  the explicit project root for placeholder expansion
+	 * @param <T>          the target type
+	 * @return the bound value
+	 * @throws IOException if parsing or binding fails
+	 */
+	@Nonnull
+	public static <T> T readYamlFile(@Nonnull File sourceFile, @Nonnull Class<T> valueType,
+			@Nonnull ObjectMapper objectMapper, @Nonnull Path projectRoot) throws IOException {
 		File protectedPath = Objects.requireNonNull(sourceFile, "sourceFile must not be null");
 		Class<T> protectedValueType = Objects.requireNonNull(valueType, "valueType must not be null");
-		String rawContent;
-		try (InputStream in = createInputStream(protectedPath.toPath())) {
-			rawContent = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+		ObjectMapper protectedMapper = Objects.requireNonNull(objectMapper, "objectMapper must not be null");
+		JsonNode root = readYamlTree(protectedPath, protectedMapper, projectRoot);
+		T result = protectedMapper.treeToValue(root, protectedValueType);
+		if (result == null) {
+			throw JsonMappingException.fromUnexpectedIOE(new IOException(
+					"YAML file " + protectedPath + " deserialized to null for type " + protectedValueType.getName()));
 		}
-		String resolvedContent = YamlPlaceholderResolver.expand(rawContent);
-		try (InputStream in = new java.io.ByteArrayInputStream(resolvedContent.getBytes(StandardCharsets.UTF_8))) {
-			T result = new ObjectMapper(new YAMLFactory()).readValue(in, protectedValueType);
-			return Objects.requireNonNull(result, () -> "YAML file " + protectedPath + " deserialized to null "
-					+ "for type " + protectedValueType.getName());
+		return result;
+	}
+
+	/**
+	 * Reads exactly one YAML document into a tree and safely expands textual
+	 * placeholders.
+	 *
+	 * @param sourceFile   the YAML file
+	 * @param objectMapper the caller-supplied mapper
+	 * @param projectRoot  the explicit project root
+	 * @return the expanded YAML tree
+	 * @throws IOException if parsing fails
+	 */
+	@Nonnull
+	public static JsonNode readYamlTree(@Nonnull File sourceFile, @Nonnull ObjectMapper objectMapper,
+			@Nonnull Path projectRoot) throws IOException {
+		File protectedPath = Objects.requireNonNull(sourceFile, "sourceFile must not be null");
+		ObjectMapper protectedMapper = Objects.requireNonNull(objectMapper, "objectMapper must not be null");
+		JsonNode root = readSingleYamlTree(protectedPath, protectedMapper);
+		return YamlPlaceholderResolver.expandScalars(root,
+				Objects.requireNonNull(projectRoot, "projectRoot must not be null"));
+	}
+
+	@Nonnull
+	private static JsonNode readSingleYamlTree(@Nonnull File sourceFile, @Nonnull ObjectMapper objectMapper)
+			throws IOException {
+		try (InputStream inputStream = createInputStream(sourceFile.toPath());
+				JsonParser parser = objectMapper.getFactory().createParser(inputStream)) {
+			JsonNode root = objectMapper.readTree(parser);
+			if (root == null || root.isNull()) {
+				throw JsonMappingException.from(parser, "A security policy YAML document must have a non-null root");
+			}
+			JsonToken trailingToken = parser.nextToken();
+			if (trailingToken != null) {
+				throw JsonMappingException.from(parser,
+						"A security policy file must contain exactly one YAML document");
+			}
+			return root;
 		}
 	}
 

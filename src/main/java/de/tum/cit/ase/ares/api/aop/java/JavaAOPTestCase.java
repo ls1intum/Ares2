@@ -7,6 +7,7 @@ import java.lang.reflect.InaccessibleObjectException;
 import java.util.IllegalFormatException;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -249,9 +250,8 @@ public class JavaAOPTestCase extends AOPTestCase {
 	/**
 	 * Generates the content for the AOP security test case.
 	 * <p>
-	 * This method provides an empty implementation for now but will be overridden
-	 * in future configurations to generate aspect configuration files based on the
-	 * provided security policies.
+	 * Serialises this case's permission domain into the Java advice-settings source
+	 * consumed by AspectJ and instrumentation.
 	 * </p>
 	 *
 	 * @return a string representing the content of the aspect configuration.
@@ -259,7 +259,22 @@ public class JavaAOPTestCase extends AOPTestCase {
 	@Override
 	@Nonnull
 	public String writeAOPTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
-		return "";
+		Objects.requireNonNull(architectureMode, "architectureMode must not be null");
+		List<?> permissions = resourceAccessSupplier.get();
+		List<FilePermission> files = List.of();
+		List<NetworkPermission> networks = List.of();
+		List<CommandPermission> commands = List.of();
+		List<ThreadPermission> threads = List.of();
+		switch ((JavaAOPTestCaseSupported) aopTestCaseSupported) {
+		case FILESYSTEM_INTERACTION -> files = permissions.stream().map(FilePermission.class::cast).toList();
+		case NETWORK_CONNECTION -> networks = permissions.stream().map(NetworkPermission.class::cast).toList();
+		case COMMAND_EXECUTION -> commands = permissions.stream().map(CommandPermission.class::cast).toList();
+		case THREAD_CREATION -> threads = permissions.stream().map(ThreadPermission.class::cast).toList();
+		default -> throw new IllegalStateException("Unsupported Java AOP test case: " + aopTestCaseSupported);
+		}
+		return writeAOPTestCaseFile(aopMode, architectureMode,
+				allowedClasses.stream().map(ClassPermission::className).sorted().toList(), files, networks, commands,
+				threads);
 	}
 	// </editor-fold>
 

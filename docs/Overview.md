@@ -127,7 +127,7 @@ This package contains **internal infrastructure classes** not intended for publi
 | Class | Purpose |
 |---|---|
 | `BlacklistedInvoker` | Executes privileged lambdas/callables whose stack frames appear on the blacklist |
-| `ConfigurationUtils` | Generates `AresSecurityConfiguration` instances from test-context annotations |
+| `ConfigurationUtils` | Resolves retained non-policy annotations for output and exception reporting |
 | `TestGuardUtils` | Pre- and post-test guard logic |
 | `TimeoutUtils` | Timeout computation and strict-timeout enforcement |
 | `IOExtensionUtils` | I/O extension helper logic |
@@ -270,22 +270,18 @@ SecurityPolicy
 
 ---
 
-## `security`: Runtime Security Configuration
+## `security`: Runtime Security Support
 
-This package manages the **annotation-driven runtime security configuration**, which co-exists alongside the newer policy-based system.
+This package contains supporting runtime constants and diagnostics. Security permissions are configured exclusively through `@Policy` and its YAML document.
 
 | Class | Purpose |
 |---|---|
-| `AresSecurityConfiguration` | Immutable configuration object holding whitelisted/blacklisted classes, paths, packages, ports, and thread counts |
-| `AresSecurityConfigurationBuilder` | Builds the configuration from `TestContext` annotations with automatic Maven/Gradle detection |
 | `SecurityConstants` | Static whitelist/blacklist sets for stack-frame analysis (Java standard library, JUnit, Ares internals, etc.) |
 | `AresSystemProperties` | System properties consumed by Ares |
 | `FixSystemErrAppender` | Logback appender writing to the original `System.err` so logging does not collide with `IOTester` |
 | `ConfigurationException` | Thrown on configuration errors |
 
-`AresSecurityConfigurationBuilder` reads annotations such as `@WhitelistPath`, `@BlacklistPath`, `@AllowThreads`, and `@AllowLocalPort` from the test context and assembles an immutable `AresSecurityConfiguration`.
-
-**Key design patterns:** Builder, Immutable Object.
+The removed annotation API and its policy replacements are listed in `policy/EnforcementModel.md`.
 
 ---
 
@@ -335,17 +331,14 @@ This package provides a **cross-cutting collection of utility classes** used thr
 | Class | Purpose |
 |---|---|
 | `FileTools` | File read/write/copy, YAML parsing, JAR extraction, path resolution |
-| `PathRule` | Glob-based file-path matching rule with `PathType` and `PathActionLevel` |
-| `PackageRule` | Regex-based package matching rule with `RuleType` (WHITELIST/BLACKLIST) |
 | `ProjectSourcesFinder` | Detects Maven/Gradle projects and extracts source directories from build files |
 | `DependencyManager` | Dependency resolution utilities |
 | `LruCache` | Simple LRU cache (extends `LinkedHashMap`) |
 | `ClassMemberAccessor` | Reflective member discovery across class hierarchies |
 | `ReflectionTestUtils` | Assertion helpers for structural tests |
-| `RuleType` | Enum: `WHITELIST`, `BLACKLIST` |
 | `DelayedFilter` | Predicate-based delayed filtering |
 | `StringSimilarity` | Vendored string-similarity metrics (Levenshtein, Damerau, Jaro-Winkler) |
-| `YamlPlaceholderResolver` | Resolves a fixed set of placeholders (e.g. `${PROJECT_ROOT}`) in YAML content before parsing |
+| `YamlPlaceholderResolver` | Resolves a fixed set of placeholders (e.g. `${PROJECT_ROOT}`) as scalar values after YAML parsing |
 | `IgnorantUnmodifiableList` | List wrapper that silently ignores mutating operations |
 | `UnexpectedExceptionError` | Specialised `Error` for wrapping unexpected exceptions |
 

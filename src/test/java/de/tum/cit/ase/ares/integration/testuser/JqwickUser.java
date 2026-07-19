@@ -19,7 +19,6 @@ import de.tum.cit.ase.ares.api.localization.UseLocale;
 @Hidden
 @UseLocale("de")
 @SuppressWarnings("static-method")
-@Deadline("2200-01-01 16:00")
 // Replaces the former inert @TrustedThreads(ALL_THREADS) and the two @WhitelistPath rules with the
 // equivalent active @Policy, scanned against the benign HelloWorld subject.
 @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyJqwickUser.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
@@ -39,6 +38,7 @@ public class JqwickUser {
 	}
 
 	@Example
+	@Deadline("2200-01-01 16:00")
 	void exampleHiddenNormal() {
 		// nothing
 	}
@@ -72,6 +72,7 @@ public class JqwickUser {
 
 	@Hidden
 	@Property
+	@Deadline("2200-01-01 16:00")
 	boolean propertyHiddenNormal(@ForAll @Positive int x) {
 		return x != 0;
 	}

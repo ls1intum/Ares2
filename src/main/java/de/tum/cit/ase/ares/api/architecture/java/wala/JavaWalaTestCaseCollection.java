@@ -8,10 +8,10 @@ import java.util.Set;
 import com.tngtech.archunit.lang.ArchRule;
 
 import de.tum.cit.ase.ares.api.architecture.java.FileHandlerConstants;
+import de.tum.cit.ase.ares.api.architecture.java.ForbiddenMethodMatcher;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchunitTestCaseCollection;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
-import de.tum.cit.ase.ares.api.util.FileTools;
 
 //</editor-fold>
 
@@ -36,7 +36,7 @@ public final class JavaWalaTestCaseCollection {
 	 * Creates a rule that checks if a class has a forbidden method.
 	 */
 	private static WalaRule createNoClassShouldHaveMethodRule(String ruleName, Path methodsFilePath) {
-		return new WalaRule(ruleName, FileTools.readMethodsFile(FileTools.readFile(methodsFilePath)));
+		return new WalaRule(ruleName, ForbiddenMethodMatcher.effectiveMethods(methodsFilePath));
 	}
 
 	// </editor-fold>

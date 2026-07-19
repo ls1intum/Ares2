@@ -1,5 +1,7 @@
 package de.tum.cit.ase.ares.integration.precompile;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 import org.junit.jupiter.api.Test;
@@ -22,14 +24,14 @@ public class PrecompileTest {
 	 * inside {@code tempDir}, which {@link TempDir} removes afterwards.
 	 */
 	@Test
-	void testPrecompileJavaMavenArchunitInstrumentation(@TempDir Path tempDir) {
-		Path writeTarget = tempDir.resolve("project").resolve("src").resolve("test");
-		// Scope the precompile scan to a benign student-like subtree. An empty
-		// projectFolderPath scans all of target/classes, which contains Ares's own
-		// reserved de.tum.cit.ase.ares.api.internal classes and trips the
-		// ReservedPackageGuard; a real submission never bundles Ares framework classes.
-		Path projectFolderPath = Path.of("test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld");
-		SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(Path.of(""))
-				.projectFolderPath(projectFolderPath).build().createTestCases().writeTestCases(writeTarget);
+	void testPrecompileJavaMavenArchunitInstrumentation(@TempDir Path tempDir) throws IOException {
+		Path projectFolderPath = Files.createDirectory(tempDir.resolve("project"));
+		Files.writeString(projectFolderPath.resolve("pom.xml"), "<project/>");
+		Files.createDirectories(projectFolderPath.resolve("src/main/java"));
+		Files.createDirectories(projectFolderPath.resolve("src/test/java"));
+		Files.createDirectories(projectFolderPath.resolve("target/classes"));
+		Path writeTarget = projectFolderPath.resolve("src/test/java");
+		SecurityPolicyReaderAndDirector.builder().projectFolderPath(projectFolderPath).build().createTestCases()
+				.writeTestCases(writeTarget);
 	}
 }

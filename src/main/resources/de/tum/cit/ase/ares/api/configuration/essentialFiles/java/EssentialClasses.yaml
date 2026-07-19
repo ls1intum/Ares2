@@ -17,10 +17,9 @@ essentialAresClasses:
   - de.tum.cit.ase.ares.api.policy.reader.yaml.SecurityPolicyYAMLReader
   - de.tum.cit.ase.ares.api.policy.director.java.SecurityPolicyJavaDirector
   - de.tum.cit.ase.ares.api.securitytest.java.creator.JavaCreator
-  - de.tum.cit.ase.ares.api.securitytest.java.creator.JavaWriter
+  - de.tum.cit.ase.ares.api.securitytest.java.writer.JavaWriter
   - de.tum.cit.ase.ares.api.securitytest.java.executer.JavaExecuter
   - de.tum.cit.ase.ares.api.securitytest.java.projectScanner.JavaProjectScanner
-  - de.tum.cit.ase.ares.api.securitytest.java.JavaSecurityTestCaseFactoryAndBuilder
   - de.tum.cit.ase.ares.api.securitytest.java.essentialModel.yaml.EssentialDataYAMLReader
   - de.tum.cit.ase.ares.api.securitytest.java.JavaTestCaseFactoryAndBuilder
   - de.tum.cit.ase.ares.api.securitytest.TestCaseAbstractFactoryAndBuilder
