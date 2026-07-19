@@ -628,5 +628,4 @@ public class WalaRule {
 	static String formatJvmSignature(String walaSignature) {
 		return ForbiddenMethodMatcher.canonicalise(walaSignature);
 	}
-
 }

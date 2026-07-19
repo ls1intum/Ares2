@@ -92,6 +92,11 @@ public class CustomCallgraphBuilder {
 	private String analysedClassPath;
 	private CallGraph callGraph;
 
+	/**
+	 * Creates a call-graph builder for an application classpath.
+	 *
+	 * @param classPath the classpath to analyse
+	 */
 	public CustomCallgraphBuilder(String classPath) {
 		this.classFileImporter = new ClassFileImporter();
 		String filteredClassPath = filterClassPath(classPath);
@@ -557,6 +562,9 @@ public class CustomCallgraphBuilder {
 	 * Builds the call graph for the given classpath. Repeated calls on this builder
 	 * for the same path return its session-local graph; a builder cannot be reused
 	 * for a different analysis target.
+	 *
+	 * @param classPathToAnalyze the classpath to analyse
+	 * @return the constructed or cached call graph
 	 */
 	public synchronized CallGraph buildCallGraph(String classPathToAnalyze) {
 		String filteredClassPathToAnalyse = filterClassPath(classPathToAnalyze);

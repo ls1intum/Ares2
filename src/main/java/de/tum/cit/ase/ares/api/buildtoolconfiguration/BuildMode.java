@@ -36,6 +36,11 @@ public enum BuildMode {
 
 	private static final Logger LOG = LoggerFactory.getLogger(BuildMode.class);
 
+	/**
+	 * Returns the supported build-descriptor filenames.
+	 *
+	 * @return the descriptor filenames for this build mode
+	 */
 	public String[] fileName() {
 		return switch (this) {
 		case MAVEN -> new String[] { "pom.xml" };
@@ -44,6 +49,11 @@ public enum BuildMode {
 	}
 
 	// <editor-fold desc="Other methods">
+	/**
+	 * Returns the production bytecode directory.
+	 *
+	 * @return the build-tool-relative production directory
+	 */
 	public String getBuildDirectory() {
 		return switch (this) {
 		case MAVEN -> "target/classes";
@@ -51,6 +61,11 @@ public enum BuildMode {
 		};
 	}
 
+	/**
+	 * Returns the test bytecode directory.
+	 *
+	 * @return the build-tool-relative test directory
+	 */
 	public String getTestBuildDirectory() {
 		return switch (this) {
 		case MAVEN -> "target/test-classes";

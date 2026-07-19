@@ -18,6 +18,16 @@ public record BuildToolConfiguration(BuildMode buildMode, Path projectRoot, List
 
 	private static final Logger LOG = LoggerFactory.getLogger(BuildToolConfiguration.class);
 
+	/**
+	 * Validates and canonicalises a discovered build configuration.
+	 *
+	 * @param buildMode             the selected build tool
+	 * @param projectRoot           the project root
+	 * @param productionSourceRoots the production source roots
+	 * @param testSourceRoots       the test source roots
+	 * @param productionOutputRoot  the production bytecode root
+	 * @param testOutputRoot        the test bytecode root
+	 */
 	public BuildToolConfiguration {
 		buildMode = Objects.requireNonNull(buildMode, "buildMode must not be null");
 		projectRoot = canonicalise(Objects.requireNonNull(projectRoot, "projectRoot must not be null"));
@@ -29,6 +39,10 @@ public record BuildToolConfiguration(BuildMode buildMode, Path projectRoot, List
 
 	/**
 	 * Resolves instructor-controlled bytecode scope against this build's outputs.
+	 *
+	 * @param withinPath  the optional bytecode-relative scope
+	 * @param packageName the fallback package name
+	 * @return the resolved classpath
 	 */
 	public String classpath(Path withinPath, String packageName) {
 		Path base = productionOutputRoot;
@@ -73,6 +87,9 @@ public record BuildToolConfiguration(BuildMode buildMode, Path projectRoot, List
 
 	/**
 	 * Canonicalises the nearest existing ancestor and safely appends missing names.
+	 *
+	 * @param path the path to canonicalise
+	 * @return the canonical path
 	 */
 	public static Path canonicalise(Path path) {
 		Path absolute = path.toAbsolutePath().normalize();

@@ -36,6 +36,8 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
+	 * @param executeTheCommand  the non-blank command to allow
+	 * @param withTheseArguments the non-null argument list
 	 */
 	public CommandPermission {
 		Objects.requireNonNull(executeTheCommand, "executeTheCommand must not be null");
