@@ -13,6 +13,7 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.lang.ArchRule;
 
 import de.tum.cit.ase.ares.api.localization.Messages;
@@ -41,6 +42,14 @@ public class JavaArchunitTestCaseCollectionTest {
 		ArchRule rule = JavaArchunitTestCaseCollection.noClassMustImportForbiddenPackages(allowedPackages);
 		String expectedDescription = Messages.localized("security.architecture.package.import");
 		assertEquals(expectedDescription, rule.getDescription());
+	}
+
+	@Test
+	void packageWildcardAllowsEveryImportedPackage() {
+		ArchRule rule = JavaArchunitTestCaseCollection
+				.noClassMustImportForbiddenPackages(Set.of(new PackagePermission("*")));
+		assertDoesNotThrow(
+				() -> rule.check(new ClassFileImporter().importClasses(JavaArchunitTestCaseCollectionTest.class)));
 	}
 
 	@Test

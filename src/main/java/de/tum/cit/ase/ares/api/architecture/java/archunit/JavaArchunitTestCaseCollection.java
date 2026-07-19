@@ -217,6 +217,9 @@ public final class JavaArchunitTestCaseCollection {
 						String packageName = javaClass.getPackageName();
 						return allowedPackages.stream().noneMatch(allowedPackage -> {
 							String allowed = allowedPackage.importTheFollowingPackage();
+							if ("*".equals(allowed)) {
+								return true;
+							}
 							// Trailing-dot tolerant, boundary-aware match: a bare startsWith would
 							// let allowed "com.foo" also cover the unrelated package "com.foobar".
 							String normalizedAllowed = allowed.endsWith(".")

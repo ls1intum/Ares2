@@ -119,7 +119,7 @@ class SecurityPolicyStrictSchemaTest {
 	}
 
 	static Stream<String> everyRequiredField() {
-		return Stream.of("/regardingTheSupervisedCode",
+		return Stream.of("/thisPolicyFileCompliesToThePolicyVersion", "/regardingTheSupervisedCode",
 				"/regardingTheSupervisedCode/theFollowingProgrammingLanguageConfigurationIsUsed",
 				"/regardingTheSupervisedCode/theFollowingClassesAreTestClasses",
 				"/regardingTheSupervisedCode/theFollowingResourceAccessesArePermitted",
@@ -238,14 +238,14 @@ class SecurityPolicyStrictSchemaTest {
 					@Override
 					public ProgrammingLanguageConfiguration deserialize(JsonParser parser,
 							DeserializationContext context) throws IOException {
-						assertEquals("CUSTOM", parser.getText());
-						return ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ;
+						assertEquals("JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ", parser.getText());
+						return ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_WALA_AND_INSTRUMENTATION;
 					}
 				});
 		mapper.registerModule(module);
-		Path file = write(validYaml().replace("JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ", "CUSTOM"));
+		Path file = write(validYaml());
 		SecurityPolicy policy = new SecurityPolicyYAMLReader(mapper, tempDirectory).readSecurityPolicyFrom(file);
-		assertEquals(ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ,
+		assertEquals(ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_WALA_AND_INSTRUMENTATION,
 				policy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed());
 	}
 
@@ -263,14 +263,33 @@ class SecurityPolicyStrictSchemaTest {
 	}
 
 	@Test
-	void expandsRepeatedPlaceholdersAndLeavesUnknownTokensAsScalarText() throws IOException {
+	void rejectsUnknownPathPlaceholders() throws IOException {
 		Path file = write(validYaml().replace("/tmp/data", "${PROJECT_ROOT}/${PROJECT_ROOT}/${UNKNOWN}"));
-		SecurityPolicy policy = new SecurityPolicyYAMLReader(new YAMLMapper(), tempDirectory)
-				.readSecurityPolicyFrom(file);
-		String path = policy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted()
-				.regardingFileSystemInteractions().get(0).onThisPathAndAllPathsBelow();
-		assertEquals(tempDirectory.toAbsolutePath().normalize() + "/" + tempDirectory.toAbsolutePath().normalize()
-				+ "/${UNKNOWN}", path);
+		assertThrows(SecurityException.class,
+				() -> new SecurityPolicyYAMLReader(new YAMLMapper(), tempDirectory).readSecurityPolicyFrom(file));
+	}
+
+	static Stream<Arguments> invalidPolicyValues() {
+		return Stream.of(
+				Arguments.of("thisPolicyFileCompliesToThePolicyVersion: 1",
+						"thisPolicyFileCompliesToThePolicyVersion: 2"),
+				Arguments.of("JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ", "JAVA_MAVEN_ARCHUNIT_ASPECTJ"),
+				Arguments.of("theSupervisedCodeUsesTheFollowingPackage: com.example",
+						"theSupervisedCodeUsesTheFollowingPackage: com.class"),
+				Arguments.of("theMainClassInsideThisPackageIs: Main",
+						"theMainClassInsideThisPackageIs: com.example.Main"),
+				Arguments.of("theFollowingClassesAreTestClasses: [com.example.MainTest]",
+						"theFollowingClassesAreTestClasses: [com.example.]"),
+				Arguments.of("onThisPathAndAllPathsBelow: /tmp/data", "onThisPathAndAllPathsBelow: '${UNKNOWN}/data'"),
+				Arguments.of("onTheHost: localhost", "onTheHost: 256.1.1.1"),
+				Arguments.of("ofThisClass: java.lang.Thread", "ofThisClass: java.lang."),
+				Arguments.of("importTheFollowingPackage: java.util", "importTheFollowingPackage: java.*"));
+	}
+
+	@ParameterizedTest
+	@MethodSource("invalidPolicyValues")
+	void rejectsValuesThatDoNotMatchTheirPolicyRegex(String original, String replacement) {
+		assertThrows(SecurityException.class, () -> read(validYaml().replace(original, replacement)));
 	}
 
 	@Test
@@ -305,6 +324,7 @@ class SecurityPolicyStrictSchemaTest {
 
 	private static String validYaml() {
 		return """
+				thisPolicyFileCompliesToThePolicyVersion: 1
 				regardingTheSupervisedCode:
 				  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
 				  theSupervisedCodeUsesTheFollowingPackage: com.example

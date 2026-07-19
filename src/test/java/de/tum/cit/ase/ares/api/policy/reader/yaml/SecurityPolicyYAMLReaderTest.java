@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -108,6 +109,16 @@ public class SecurityPolicyYAMLReaderTest {
 	class ReadSecurityPolicyFromTests {
 
 		@Test
+		void shouldReadEveryCheckedInSecurityPolicy() throws IOException {
+			Path examplePolicy = Path.of("src/main/resources/ExampleConfiguration.yaml");
+			Path testPolicies = Path.of("src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies");
+			try (Stream<Path> files = Stream.concat(Stream.of(examplePolicy), Files.walk(testPolicies))) {
+				files.filter(Files::isRegularFile).filter(path -> path.getFileName().toString().endsWith(".yaml"))
+						.forEach(path -> assertDoesNotThrow(() -> reader.readSecurityPolicyFrom(path), path::toString));
+			}
+		}
+
+		@Test
 		@DisplayName("Should throw NullPointerException when path is null")
 		void shouldThrowNullPointerExceptionWhenPathIsNull() {
 			// Act & Assert
@@ -128,6 +139,7 @@ public class SecurityPolicyYAMLReaderTest {
 			// Arrange
 			Path policyFile = tempDir.resolve("security-policy.yaml");
 			String yamlContent = """
+					thisPolicyFileCompliesToThePolicyVersion: 1
 					regardingTheSupervisedCode:
 					  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
 					  theSupervisedCodeUsesTheFollowingPackage: "com.example"
@@ -163,6 +175,7 @@ public class SecurityPolicyYAMLReaderTest {
 			// Arrange
 			Path policyFile = tempDir.resolve("minimal-policy.yaml");
 			String yamlContent = """
+					thisPolicyFileCompliesToThePolicyVersion: 1
 					regardingTheSupervisedCode:
 					  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
 					  theFollowingClassesAreTestClasses: []
@@ -255,6 +268,7 @@ public class SecurityPolicyYAMLReaderTest {
 				// Arrange
 				Path policyFile = tempDir.resolve("policy-" + config.name() + ".yaml");
 				String yamlContent = String.format("""
+						thisPolicyFileCompliesToThePolicyVersion: 1
 						regardingTheSupervisedCode:
 						  theFollowingProgrammingLanguageConfigurationIsUsed: %s
 						  theFollowingClassesAreTestClasses: []
@@ -289,6 +303,7 @@ public class SecurityPolicyYAMLReaderTest {
 			// Arrange
 			Path policyFile = tempDir.resolve("integration-test.yaml");
 			String yamlContent = """
+					thisPolicyFileCompliesToThePolicyVersion: 1
 					regardingTheSupervisedCode:
 					  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
 					  theFollowingClassesAreTestClasses: []
@@ -321,6 +336,7 @@ public class SecurityPolicyYAMLReaderTest {
 			// Arrange
 			Path incompleteFile = tempDir.resolve("incomplete.yaml");
 			String incompleteYaml = """
+					thisPolicyFileCompliesToThePolicyVersion: 1
 					regardingTheSupervisedCode:
 					  # Missing required fields
 					  theSupervisedCodeUsesTheFollowingPackage: "com.example"
@@ -363,6 +379,7 @@ public class SecurityPolicyYAMLReaderTest {
 
 	private static String minimalPolicy() {
 		return """
+				thisPolicyFileCompliesToThePolicyVersion: 1
 				regardingTheSupervisedCode:
 				  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
 				  theFollowingClassesAreTestClasses: []

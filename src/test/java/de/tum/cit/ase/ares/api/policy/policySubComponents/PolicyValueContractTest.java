@@ -17,6 +17,15 @@ import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 
 class PolicyValueContractTest {
 	@Test
+	void requiresExactlyTheCurrentPolicyVersion() {
+		SecurityPolicy policy = SecurityPolicy
+				.createRestrictive(ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ);
+		assertEquals(SecurityPolicy.CURRENT_POLICY_VERSION, policy.thisPolicyFileCompliesToThePolicyVersion());
+		assertThrows(IllegalArgumentException.class, () -> new SecurityPolicy(0, policy.regardingTheSupervisedCode()));
+		assertThrows(IllegalArgumentException.class, () -> new SecurityPolicy(2, policy.regardingTheSupervisedCode()));
+	}
+
+	@Test
 	void validatesNamesNumericBoundariesAndRestrictiveFactories() {
 		assertThrows(NullPointerException.class, () -> new ClassPermission(null));
 		assertThrows(IllegalArgumentException.class, () -> new ClassPermission(" "));
@@ -133,7 +142,8 @@ class PolicyValueContractTest {
 		map.put(second, "second");
 		assertEquals(1, map.size());
 		assertTrue(first.toString().contains("example.PolicyTest"));
-		assertEquals(new SecurityPolicy(first), new SecurityPolicy(second));
+		assertEquals(new SecurityPolicy(SecurityPolicy.CURRENT_POLICY_VERSION, first),
+				new SecurityPolicy(SecurityPolicy.CURRENT_POLICY_VERSION, second));
 		assertThrows(NullPointerException.class, () -> supervisedCode(java.util.Arrays.asList((String) null)));
 		assertThrows(IllegalArgumentException.class, () -> supervisedCode(List.of(" ")));
 	}

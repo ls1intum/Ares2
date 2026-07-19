@@ -53,12 +53,19 @@ public record SupervisedCode(
 	public SupervisedCode {
 		Objects.requireNonNull(theFollowingProgrammingLanguageConfigurationIsUsed,
 				"ProgrammingLanguageConfiguration must not be null");
+		if (theSupervisedCodeUsesTheFollowingPackage != null) {
+			PolicyValueValidator.requireMatch("theSupervisedCodeUsesTheFollowingPackage",
+					theSupervisedCodeUsesTheFollowingPackage, PolicyValueValidator.JAVA_PACKAGE_PATTERN);
+		}
+		if (theMainClassInsideThisPackageIs != null) {
+			PolicyValueValidator.requireMatch("theMainClassInsideThisPackageIs", theMainClassInsideThisPackageIs,
+					PolicyValueValidator.JAVA_CLASS_NAME_PATTERN);
+		}
 		Objects.requireNonNull(theFollowingClassesAreTestClasses, "Test classes list must not be null");
 		for (String testClass : theFollowingClassesAreTestClasses) {
 			Objects.requireNonNull(testClass, "Test class entries must not be null");
-			if (testClass.isBlank()) {
-				throw new IllegalArgumentException("Test class entries must not be blank");
-			}
+			PolicyValueValidator.requireMatch("theFollowingClassesAreTestClasses entry", testClass,
+					PolicyValueValidator.JAVA_CLASS_PATH_PATTERN);
 		}
 		Objects.requireNonNull(theFollowingResourceAccessesArePermitted, "ResourceAccesses must not be null");
 		theFollowingClassesAreTestClasses = List.copyOf(theFollowingClassesAreTestClasses);
