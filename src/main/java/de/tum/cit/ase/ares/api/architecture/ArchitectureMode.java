@@ -1,9 +1,18 @@
 package de.tum.cit.ase.ares.api.architecture;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
+import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -22,6 +31,7 @@ import de.tum.cit.ase.ares.api.architecture.java.wala.CustomCallgraphBuilder;
 import de.tum.cit.ase.ares.api.architecture.java.wala.JavaWalaTestCase;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.util.FileTools;
+import de.tum.cit.ase.ares.api.util.LruCache;
 
 /**
  * Enum representing the architecture modes for Java security test cases.
@@ -54,6 +64,9 @@ public enum ArchitectureMode {
 
 	private static JavaFileLoader fileLoader = new JavaCSVFileLoader();
 	private static final int MAX_CONFIGURATION_COUNT = 100;
+	private static final int MAX_JAVA_CLASSES_CACHE_ENTRIES = 256;
+	private static final Map<String, FutureTask<JavaClasses>> JAVA_CLASSES_CACHE = LruCache
+			.synchronizedCache(MAX_JAVA_CLASSES_CACHE_ENTRIES);
 
 	/**
 	 * Replaces the configuration loader used by every architecture mode.
@@ -352,6 +365,30 @@ public enum ArchitectureMode {
 	 */
 	@Nonnull
 	public JavaClasses getJavaClasses(String classPath) {
+		Path analysisPath = Path.of(classPath).toAbsolutePath().normalize();
+		while (true) {
+			String fingerprintBeforeImport = analysisInputFingerprint(analysisPath);
+			String cacheKey = analysisPath + "\0" + fingerprintBeforeImport;
+			FutureTask<JavaClasses> importTask;
+			synchronized (JAVA_CLASSES_CACHE) {
+				importTask = JAVA_CLASSES_CACHE.computeIfAbsent(cacheKey,
+						unusedKey -> new FutureTask<>(() -> importJavaClasses(analysisPath)));
+			}
+			importTask.run();
+			JavaClasses importedClasses = awaitJavaClasses(importTask, analysisPath);
+			if (fingerprintBeforeImport.equals(analysisInputFingerprint(analysisPath))) {
+				return importedClasses;
+			}
+			// Compilation changed the analysis input while it was being imported. Never
+			// publish that mixed snapshot under either fingerprint; retry from a stable
+			// bytecode state instead.
+			synchronized (JAVA_CLASSES_CACHE) {
+				JAVA_CLASSES_CACHE.remove(cacheKey, importTask);
+			}
+		}
+	}
+
+	private static JavaClasses importJavaClasses(Path analysisPath) {
 		// Exclude Ares' own framework classes from analysis: the architecture rules
 		// must only inspect the student/project code, never Ares' trusted advice (which
 		// legitimately calls e.g. System.getProperty), otherwise the rules flag the
@@ -359,7 +396,64 @@ public enum ArchitectureMode {
 		return new ClassFileImporter()
 				.withImportOption(
 						location -> !location.toString().replace("\\", "/").contains("/de/tum/cit/ase/ares/api/"))
-				.importPath(classPath);
+				.importPath(analysisPath);
+	}
+
+	private static JavaClasses awaitJavaClasses(FutureTask<JavaClasses> importTask, Path analysisPath) {
+		try {
+			return importTask.get();
+		} catch (InterruptedException interrupted) {
+			Thread.currentThread().interrupt();
+			throw new SecurityException(
+					Messages.localized("security.architecture.mode.analysis.input.failure", analysisPath), interrupted);
+		} catch (ExecutionException importFailure) {
+			Throwable cause = importFailure.getCause();
+			if (cause instanceof RuntimeException runtimeCause) {
+				throw runtimeCause;
+			}
+			if (cause instanceof Error errorCause) {
+				throw errorCause;
+			}
+			throw new SecurityException(
+					Messages.localized("security.architecture.mode.analysis.input.failure", analysisPath), cause);
+		}
+	}
+
+	private static String analysisInputFingerprint(Path analysisPath) {
+		if (Files.notExists(analysisPath)) {
+			return "missing";
+		}
+		try {
+			MessageDigest digest = MessageDigest.getInstance("SHA-256");
+			if (Files.isRegularFile(analysisPath)) {
+				updateAnalysisInputDigest(digest, analysisPath.getFileName(), analysisPath);
+			} else {
+				try (Stream<Path> files = Files.walk(analysisPath)) {
+					for (Path file : files.filter(Files::isRegularFile).filter(ArchitectureMode::isArchitectureInput)
+							.sorted().toList()) {
+						updateAnalysisInputDigest(digest, analysisPath.relativize(file), file);
+					}
+				}
+			}
+			return HexFormat.of().formatHex(digest.digest());
+		} catch (IOException | NoSuchAlgorithmException fingerprintFailure) {
+			throw new SecurityException(
+					Messages.localized("security.architecture.mode.analysis.input.failure", analysisPath),
+					fingerprintFailure);
+		}
+	}
+
+	private static boolean isArchitectureInput(Path file) {
+		String fileName = file.getFileName().toString();
+		return fileName.endsWith(".class") || fileName.endsWith(".jar");
+	}
+
+	private static void updateAnalysisInputDigest(MessageDigest digest, Path relativePath, Path file)
+			throws IOException {
+		digest.update(relativePath.toString().replace('\\', '/').getBytes(StandardCharsets.UTF_8));
+		digest.update((byte) 0);
+		digest.update(Files.readAllBytes(file));
+		digest.update((byte) 0);
 	}
 
 	/**

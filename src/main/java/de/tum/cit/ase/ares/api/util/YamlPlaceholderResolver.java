@@ -11,6 +11,8 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 
+import de.tum.cit.ase.ares.api.localization.Messages;
+
 /**
  * Resolves a fixed set of placeholders inside textual scalars after YAML
  * parsing.
@@ -38,8 +40,8 @@ public final class YamlPlaceholderResolver {
 			"${user.home}", "user.home", "${java.io.tmpdir}", "java.io.tmpdir");
 
 	private YamlPlaceholderResolver() {
-		throw new UnsupportedOperationException(
-				"YamlPlaceholderResolver is a utility class and cannot be instantiated");
+		throw new SecurityException(
+				Messages.localized("security.general.utility.initialization", "YamlPlaceholderResolver"));
 	}
 
 	/**
