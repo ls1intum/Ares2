@@ -141,7 +141,7 @@ public abstract class SecurityPolicyDirector {
 	@Nonnull
 	public TestCaseAbstractFactoryAndBuilder createTestCases(@Nullable SecurityPolicy securityPolicy,
 			@Nullable Path projectRootPath, @Nonnull Path withinPath) {
-		return createTestCases(securityPolicy, withinPath);
+		return createTestCases(securityPolicy, projectRootPath);
 	}
 	// </editor-fold>
 

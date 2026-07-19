@@ -31,7 +31,7 @@ public class PrecompileTest {
 		Files.createDirectories(projectFolderPath.resolve("src/test/java"));
 		Files.createDirectories(projectFolderPath.resolve("target/classes"));
 		Path writeTarget = projectFolderPath.resolve("src/test/java");
-		SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(Path.of(""))
-				.projectFolderPath(projectFolderPath).build().createTestCases().writeTestCases(writeTarget);
+		SecurityPolicyReaderAndDirector.builder().projectFolderPath(projectFolderPath).build().createTestCases()
+				.writeTestCases(writeTarget);
 	}
 }

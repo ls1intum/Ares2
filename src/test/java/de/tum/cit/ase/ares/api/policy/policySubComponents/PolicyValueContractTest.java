@@ -12,6 +12,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 
 class PolicyValueContractTest {
@@ -28,7 +29,9 @@ class PolicyValueContractTest {
 		assertEquals(0, new ThreadPermission(0, "java.lang.Thread").createTheFollowingNumberOfThreads());
 		assertEquals(Integer.MAX_VALUE,
 				new ThreadPermission(Integer.MAX_VALUE, "java.lang.Thread").createTheFollowingNumberOfThreads());
-		assertThrows(IllegalArgumentException.class, () -> new ResourceLimitsPermission(0));
+		IllegalArgumentException zeroTimeout = assertThrows(IllegalArgumentException.class,
+				() -> new ResourceLimitsPermission(0));
+		assertEquals(Messages.localized("policy.permission.timeout.positive"), zeroTimeout.getMessage());
 		assertThrows(IllegalArgumentException.class, () -> new ResourceLimitsPermission(-1));
 		assertEquals(Long.MAX_VALUE, new ResourceLimitsPermission(Long.MAX_VALUE).timeout());
 

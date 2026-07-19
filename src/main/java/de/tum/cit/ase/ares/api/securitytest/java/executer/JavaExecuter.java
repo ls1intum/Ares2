@@ -94,6 +94,12 @@ public class JavaExecuter implements Executer {
 		setJavaAdviceSettingValue("architectureMode", architectureModeString, architectureMode, aopMode);
 		setJavaAdviceSettingValue("aopMode", aopModeString, architectureMode, aopMode);
 		setJavaAdviceSettingValue("mainClass", mainClassInPackageName, architectureMode, aopMode);
+		// These calls prepare enforcement: architecture cases statically inspect the
+		// bytecode and AOP cases publish the remaining domain allow-lists. Neither call
+		// executes supervised code. Keep runtime interception disarmed until both have
+		// completed, otherwise the analyser can block its own resource loading while
+		// the
+		// policy is still only partially installed.
 		javaArchitectureTestCases.forEach(javaArchitectureTestCase -> javaArchitectureTestCase
 				.executeArchitectureTestCase(architectureModeString, aopModeString));
 		javaAOPTestCases

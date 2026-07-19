@@ -96,8 +96,7 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
 		}
 		if (node.isObject()) {
 			if (node.size() != 2 || !node.has("executeTheCommand") || !node.has("withTheseArguments")) {
-				throw new IllegalArgumentException(
-						"Command permission must contain exactly executeTheCommand and withTheseArguments");
+				throw new IllegalArgumentException(Messages.localized("policy.permission.command.mapping.fields"));
 			}
 			JsonNode commandNode = node.get("executeTheCommand");
 			if (commandNode == null || !commandNode.isTextual() || commandNode.textValue().isBlank()) {
@@ -106,11 +105,12 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
 			List<String> arguments = new ArrayList<>();
 			JsonNode argumentsNode = node.get("withTheseArguments");
 			if (argumentsNode == null || !argumentsNode.isArray()) {
-				throw new IllegalArgumentException("withTheseArguments must be an array of strings");
+				throw new IllegalArgumentException(Messages.localized("policy.permission.command.arguments.array"));
 			}
 			for (JsonNode argument : argumentsNode) {
 				if (!argument.isTextual()) {
-					throw new IllegalArgumentException("withTheseArguments must contain only strings");
+					throw new IllegalArgumentException(
+							Messages.localized("policy.permission.command.arguments.strings"));
 				}
 				arguments.add(argument.textValue());
 			}

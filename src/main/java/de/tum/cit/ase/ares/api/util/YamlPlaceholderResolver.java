@@ -12,7 +12,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 
 /**
- * Resolves a fixed set of placeholders inside YAML content before parsing.
+ * Resolves a fixed set of placeholders inside textual scalars after YAML
+ * parsing.
  * <p>
  * Description: Provides string-level expansion of four well-defined
  * placeholders ({@code ${PROJECT_ROOT}}, {@code ${java.home}},
@@ -42,9 +43,9 @@ public final class YamlPlaceholderResolver {
 	}
 
 	/**
-	 * Expand the three supported placeholders in the supplied YAML content.
+	 * Expands the four supported placeholders in the supplied scalar content.
 	 *
-	 * @param content the raw YAML content; may contain placeholder tokens.
+	 * @param content the scalar content; may contain placeholder tokens.
 	 * @return the content with every supported placeholder replaced by the
 	 *         corresponding system property value. When a system property is unset,
 	 *         the placeholder is replaced with the empty string. Unknown
