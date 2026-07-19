@@ -94,9 +94,9 @@ final class SecurityPolicySchemaValidator {
 				}
 				continue;
 			}
-			requireObject(command, "command permission", COMMAND_FIELDS, COMMAND_FIELDS);
-			requireText(command, "executeTheCommand", "command permission");
-			requireTextArray(command.get("withTheseArguments"), "command permission.withTheseArguments");
+			requireObject(command, "regardingCommandExecutions entry", COMMAND_FIELDS, COMMAND_FIELDS);
+			requireText(command, "executeTheCommand", "regardingCommandExecutions entry");
+			requireTextArray(command.get("withTheseArguments"), "regardingCommandExecutions entry.withTheseArguments");
 		}
 	}
 

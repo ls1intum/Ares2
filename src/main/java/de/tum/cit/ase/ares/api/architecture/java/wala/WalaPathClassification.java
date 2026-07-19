@@ -105,12 +105,8 @@ public final class WalaPathClassification {
 	 */
 	static OptionalInt nearestStudentFrame(List<CGNode> path) {
 		for (int i = path.size() - 1; i >= 0; i--) {
-			try {
-				if (!isInfraFrame(path.get(i))) {
-					return OptionalInt.of(i);
-				}
-			} catch (RuntimeException | UnimplementedError ignored) {
-				// skip malformed / synthetic frame
+			if (!isInfraFrame(path.get(i))) {
+				return OptionalInt.of(i);
 			}
 		}
 		return OptionalInt.empty();
@@ -156,9 +152,15 @@ public final class WalaPathClassification {
 	 */
 	static boolean isInfraFrame(CGNode node) {
 		try {
+			if (node == null || node.getMethod() == null) {
+				throw unclassifiableNode("missing call-graph node or method", null);
+			}
 			IClass cls = node.getMethod().getDeclaringClass();
 			if (cls == null) {
-				return true;
+				throw unclassifiableNode("missing declaring class", null);
+			}
+			if (cls.getClassLoader() == null || cls.getClassLoader().getReference() == null) {
+				throw unclassifiableNode("missing class-loader identity", null);
 			}
 			ClassLoaderReference loader = cls.getClassLoader().getReference();
 			if (loader.equals(ClassLoaderReference.Primordial) || loader.equals(ClassLoaderReference.Extension)) {
@@ -168,8 +170,10 @@ public final class WalaPathClassification {
 			}
 			String pkg = packageNameOf(cls);
 			return INFRA_PREFIXES.stream().anyMatch(pkg::startsWith);
-		} catch (RuntimeException | UnimplementedError ignored) {
-			return true; // malformed frame treated as infrastructure
+		} catch (SecurityException failClosed) {
+			throw failClosed;
+		} catch (RuntimeException | UnimplementedError unclassifiable) {
+			throw unclassifiableNode("WALA could not classify the declaring class", unclassifiable);
 		}
 	}
 
@@ -183,9 +187,15 @@ public final class WalaPathClassification {
 	 */
 	static boolean isTransitiveFalsePositiveFrame(CGNode node) {
 		try {
+			if (node == null || node.getMethod() == null) {
+				throw unclassifiableNode("missing call-graph node or method", null);
+			}
 			IClass cls = node.getMethod().getDeclaringClass();
 			if (cls == null) {
-				return true;
+				throw unclassifiableNode("missing declaring class", null);
+			}
+			if (cls.getClassLoader() == null || cls.getClassLoader().getReference() == null) {
+				throw unclassifiableNode("missing class-loader identity", null);
 			}
 			ClassLoaderReference loader = cls.getClassLoader().getReference();
 			if (loader.equals(ClassLoaderReference.Primordial) || loader.equals(ClassLoaderReference.Extension)) {
@@ -193,9 +203,16 @@ public final class WalaPathClassification {
 			}
 			String pkg = packageNameOf(cls);
 			return TRANSITIVE_FALSE_POSITIVE_PREFIXES.stream().anyMatch(pkg::startsWith);
-		} catch (RuntimeException | UnimplementedError ignored) {
-			return true;
+		} catch (SecurityException failClosed) {
+			throw failClosed;
+		} catch (RuntimeException | UnimplementedError unclassifiable) {
+			throw unclassifiableNode("WALA could not classify the declaring class", unclassifiable);
 		}
+	}
+
+	private static SecurityException unclassifiableNode(String reason, Throwable cause) {
+		String message = Messages.localized("security.architecture.wala.unclassifiable.node", reason);
+		return cause == null ? new SecurityException(message) : new SecurityException(message, cause);
 	}
 	// </editor-fold>
 

@@ -83,6 +83,26 @@ class PolicyValueContractTest {
 		assertThrows(NullPointerException.class,
 				() -> new ResourceAccesses(java.util.Arrays.asList((FilePermission) null), List.of(), List.of(),
 						List.of(), List.of(), List.of()));
+		assertThrows(NullPointerException.class,
+				() -> new ResourceAccesses(List.of(), null, List.of(), List.of(), List.of(), List.of()));
+		assertThrows(NullPointerException.class,
+				() -> new ResourceAccesses(List.of(), List.of(), null, List.of(), List.of(), List.of()));
+		assertThrows(NullPointerException.class,
+				() -> new ResourceAccesses(List.of(), List.of(), List.of(), null, List.of(), List.of()));
+		assertThrows(NullPointerException.class,
+				() -> new ResourceAccesses(List.of(), List.of(), List.of(), List.of(), null, List.of()));
+		assertThrows(NullPointerException.class,
+				() -> new ResourceAccesses(List.of(), List.of(), List.of(), List.of(), List.of(), null));
+		assertThrows(NullPointerException.class, () -> new ResourceAccesses(List.of(),
+				java.util.Arrays.asList((NetworkPermission) null), List.of(), List.of(), List.of(), List.of()));
+		assertThrows(NullPointerException.class, () -> new ResourceAccesses(List.of(), List.of(),
+				java.util.Arrays.asList((CommandPermission) null), List.of(), List.of(), List.of()));
+		assertThrows(NullPointerException.class, () -> new ResourceAccesses(List.of(), List.of(), List.of(),
+				java.util.Arrays.asList((ThreadPermission) null), List.of(), List.of()));
+		assertThrows(NullPointerException.class, () -> new ResourceAccesses(List.of(), List.of(), List.of(), List.of(),
+				java.util.Arrays.asList((PackagePermission) null), List.of()));
+		assertThrows(NullPointerException.class, () -> new ResourceAccesses(List.of(), List.of(), List.of(), List.of(),
+				List.of(), java.util.Arrays.asList((ResourceLimitsPermission) null)));
 	}
 
 	@Test

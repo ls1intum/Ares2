@@ -7,10 +7,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
-import java.util.Base64;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -86,7 +84,7 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	@Nonnull
 	private static final ConcurrentHashMap<String, FutureTask<CachedOutcome>> RULE_EVALUATIONS = new ConcurrentHashMap<>();
 
-	private static final String HMAC_ALGORITHM = "HmacSHA256";
+	static final String CACHE_SCHEMA_VERSION = "3";
 
 	/**
 	 * Per-user private cache directory (POSIX 0700) under the system temp dir, so a
@@ -111,13 +109,19 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	 * the directory could not be created.
 	 */
 	@Nullable
-	private static final Path CACHE_FILE = CACHE_DIR == null ? null : CACHE_DIR.resolve("outcomes.v2");
+	private static final Path CACHE_FILE = CACHE_DIR == null ? null : CACHE_DIR.resolve("outcomes.v3");
+
+	@Nullable
+	private static final Path CACHE_LOCK_FILE = CACHE_DIR == null ? null : CACHE_DIR.resolve("outcomes.v3.lock");
 
 	/**
 	 * Content identity of Ares and both architecture engines used for cache keys.
 	 */
 	@Nonnull
 	private static final String IMPLEMENTATION_FINGERPRINT = implementationFingerprint();
+
+	@Nonnull
+	private static final String CLASSPATH_FINGERPRINT = classpathFingerprint(System.getProperty("java.class.path", ""));
 
 	static {
 		loadCacheFromDisk();
@@ -244,100 +248,25 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		}
 	}
 
-	@Nullable
-	private static byte[] hmac(@Nonnull byte[] data) {
-		if (CACHE_SECRET == null) {
-			return null;
-		}
-		try {
-			javax.crypto.Mac mac = javax.crypto.Mac.getInstance(HMAC_ALGORITHM);
-			mac.init(new javax.crypto.spec.SecretKeySpec(CACHE_SECRET, HMAC_ALGORITHM));
-			return mac.doFinal(data);
-		} catch (java.security.GeneralSecurityException ignored) {
-			return null;
-		}
-	}
-
 	private static void loadCacheFromDisk() {
-		try {
-			if (CACHE_FILE == null || CACHE_SECRET == null || !Files.isRegularFile(CACHE_FILE)) {
-				return;
-			}
-			String content = new String(Files.readAllBytes(CACHE_FILE), StandardCharsets.UTF_8);
-			int newline = content.indexOf('\n');
-			if (newline < 0) {
-				return;
-			}
-			String macLine = content.substring(0, newline);
-			String body = content.substring(newline + 1);
-			byte[] expected = hmac(body.getBytes(StandardCharsets.UTF_8));
-			if (expected == null) {
-				return;
-			}
-			// Constant-time compare; on any mismatch (tampering, corruption, or a different
-			// secret) ignore the cache and recompute from scratch - fail closed.
-			String expectedMacLine = Base64.getEncoder().encodeToString(expected);
-			if (!MessageDigest.isEqual(macLine.getBytes(StandardCharsets.UTF_8),
-					expectedMacLine.getBytes(StandardCharsets.UTF_8))) {
-				return;
-			}
-			parseCacheBody(body);
-		} catch (Exception ignored) {
-			// Best-effort: any failure leaves an empty in-memory cache. Must never escape
-			// the
-			// static initialiser, or the class would be poisoned for the whole JVM.
+		if (CACHE_FILE == null || CACHE_SECRET == null) {
+			return;
 		}
-	}
-
-	private static void parseCacheBody(@Nonnull String body) {
-		for (String line : body.split("\n")) {
-			if (line.isEmpty()) {
-				continue;
-			}
-			String[] parts = line.split("\t", 3);
-			if (parts.length < 2) {
-				continue;
-			}
-			try {
-				String key = new String(Base64.getDecoder().decode(parts[0]), StandardCharsets.UTF_8);
-				boolean violated = "1".equals(parts[1]);
-				String message = violated ? (parts.length == 3 && !parts[2].isEmpty()
-						? new String(Base64.getDecoder().decode(parts[2]), StandardCharsets.UTF_8)
-						: "") : null;
-				RULE_OUTCOME_CACHE.put(key, new CachedOutcome(message));
-			} catch (IllegalArgumentException ignored) {
-				// Skip a malformed line rather than failing the whole load.
-			}
-		}
+		WalaOutcomeCacheStore.load(CACHE_FILE, CACHE_SECRET)
+				.forEach((key, message) -> RULE_OUTCOME_CACHE.put(key, new CachedOutcome(message.orElse(null))));
 	}
 
 	private static void saveCacheToDisk() {
-		if (RULE_OUTCOME_CACHE.isEmpty() || CACHE_FILE == null || CACHE_DIR == null || CACHE_SECRET == null) {
+		if (RULE_OUTCOME_CACHE.isEmpty() || CACHE_FILE == null || CACHE_LOCK_FILE == null || CACHE_DIR == null
+				|| CACHE_SECRET == null) {
 			return;
 		}
 		try {
-			StringBuilder body = new StringBuilder();
-			for (Map.Entry<String, CachedOutcome> entry : RULE_OUTCOME_CACHE.entrySet()) {
-				String message = entry.getValue().violationMessage;
-				body.append(Base64.getEncoder().encodeToString(entry.getKey().getBytes(StandardCharsets.UTF_8)))
-						.append('\t').append(message == null ? '0' : '1').append('\t')
-						.append(message == null ? ""
-								: Base64.getEncoder().encodeToString(message.getBytes(StandardCharsets.UTF_8)))
-						.append('\n');
-			}
-			byte[] mac = hmac(body.toString().getBytes(StandardCharsets.UTF_8));
-			if (mac == null) {
-				return;
-			}
-			String fileText = Base64.getEncoder().encodeToString(mac) + "\n" + body;
-			Path tmp = Files.createTempFile(CACHE_DIR, "outcomes", ".tmp");
-			restrictToOwner(tmp, false);
-			Files.writeString(tmp, fileText);
-			try {
-				Files.move(tmp, CACHE_FILE, StandardCopyOption.ATOMIC_MOVE);
-			} catch (java.nio.file.AtomicMoveNotSupportedException atomicUnsupported) {
-				Files.move(tmp, CACHE_FILE, StandardCopyOption.REPLACE_EXISTING);
-			}
+			Map<String, Optional<String>> updates = RULE_OUTCOME_CACHE.entrySet().stream().collect(Collectors
+					.toMap(Map.Entry::getKey, entry -> Optional.ofNullable(entry.getValue().violationMessage)));
+			WalaOutcomeCacheStore.mergeAndSave(CACHE_FILE, CACHE_LOCK_FILE, CACHE_SECRET, updates);
+			restrictToOwner(CACHE_FILE, false);
+			restrictToOwner(CACHE_LOCK_FILE, false);
 		} catch (Exception ignored) {
 			// Failure to persist is non-fatal: the next run rebuilds the cache.
 		}
@@ -355,9 +284,7 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	@Nonnull
 	private String cacheKey() {
 		JavaArchitectureTestCaseSupported supported = (JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported;
-		String classpath = Stream.of(System.getProperty("java.class.path", "").split(java.io.File.pathSeparator))
-				.filter(p -> p.contains("classes") || p.contains("build")).sorted()
-				.collect(Collectors.joining(java.io.File.pathSeparator));
+		String environmentFingerprint = environmentFingerprint();
 		String structuralFingerprint = javaClasses.stream()
 				.map(javaClass -> javaClass.getFullName() + "#" + javaClass.getAccessesFromSelf().stream()
 						.map(access -> access.getTarget().getFullName()).sorted().collect(Collectors.joining(",")))
@@ -388,10 +315,31 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		// of
 		// the rules.
 		String blocklistFingerprint = blocklistFingerprint(supported);
-		return classpath + "|" + IMPLEMENTATION_FINGERPRINT + "|" + supported.name() + "|"
+		return CACHE_SCHEMA_VERSION + "|" + environmentFingerprint + "|" + IMPLEMENTATION_FINGERPRINT + "|"
+				+ supported.name() + "|"
 				+ sha256Hex(structuralFingerprint + "||" + bytecodeFingerprint + "||" + allowedPackagesFingerprint
 						+ "||" + allowedClassesFingerprint + "||" + blocklistFingerprint + "||"
 						+ dependencyFingerprint);
+	}
+
+	@Nonnull
+	static String environmentFingerprint() {
+		String runtimeIdentity = String.join("|", System.getProperty("java.vendor", ""),
+				System.getProperty("java.version", ""), System.getProperty("java.runtime.version", ""),
+				System.getProperty("java.vm.name", ""), System.getProperty("java.vm.version", ""),
+				System.getProperty("os.name", ""), System.getProperty("os.arch", ""),
+				java.util.Locale.getDefault().toLanguageTag(),
+				java.util.Locale.getDefault(java.util.Locale.Category.DISPLAY).toLanguageTag(),
+				java.util.Locale.getDefault(java.util.Locale.Category.FORMAT).toLanguageTag());
+		return sha256Hex(CACHE_SCHEMA_VERSION + "|" + runtimeIdentity + "|" + CLASSPATH_FINGERPRINT);
+	}
+
+	@Nonnull
+	static String classpathFingerprint(@Nonnull String classpath) {
+		Set<String> entries = Stream.of(classpath.split(java.util.regex.Pattern.quote(java.io.File.pathSeparator)))
+				.filter(entry -> !entry.isBlank()).filter(entry -> Files.exists(Path.of(entry)))
+				.collect(Collectors.toCollection(java.util.LinkedHashSet::new));
+		return CustomCallgraphBuilder.fingerprintAnalysisEntries(entries);
 	}
 
 	/**
@@ -414,7 +362,9 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		};
 		StringBuilder content = new StringBuilder();
 		if (methodsFile != null) {
-			content.append(readFileQuietly(methodsFile));
+			content.append(de.tum.cit.ase.ares.api.architecture.java.ForbiddenMethodMatcher.POLICY_SCHEMA_VERSION)
+					.append("|").append(de.tum.cit.ase.ares.api.architecture.java.ForbiddenMethodMatcher
+							.effectiveMethods(methodsFile).stream().sorted().collect(Collectors.joining("\n")));
 		}
 		content.append("||").append(readFileQuietly(FileHandlerConstants.FALSE_POSITIVES_FILE_SYSTEM_INTERACTIONS));
 		return sha256Hex(content.toString());

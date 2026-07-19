@@ -20,7 +20,9 @@ import org.junit.jupiter.params.provider.MethodSource;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
@@ -114,6 +116,117 @@ class SecurityPolicyStrictSchemaTest {
 		SecurityException failure = assertThrows(SecurityException.class,
 				() -> read(validYaml().replace(original, replacement)));
 		assertTrue(failure.getMessage().contains("policy") || failure.getCause().getMessage().contains(rejectedField));
+	}
+
+	static Stream<String> everyRequiredField() {
+		return Stream.of("/regardingTheSupervisedCode",
+				"/regardingTheSupervisedCode/theFollowingProgrammingLanguageConfigurationIsUsed",
+				"/regardingTheSupervisedCode/theFollowingClassesAreTestClasses",
+				"/regardingTheSupervisedCode/theFollowingResourceAccessesArePermitted",
+				"/regardingTheSupervisedCode/theFollowingResourceAccessesArePermitted/regardingFileSystemInteractions",
+				"/regardingTheSupervisedCode/theFollowingResourceAccessesArePermitted/regardingNetworkConnections",
+				"/regardingTheSupervisedCode/theFollowingResourceAccessesArePermitted/regardingCommandExecutions",
+				"/regardingTheSupervisedCode/theFollowingResourceAccessesArePermitted/regardingThreadCreations",
+				"/regardingTheSupervisedCode/theFollowingResourceAccessesArePermitted/regardingPackageImports",
+				"/regardingTheSupervisedCode/theFollowingResourceAccessesArePermitted/regardingTimeouts",
+				"/regardingTheSupervisedCode/theFollowingResourceAccessesArePermitted/regardingFileSystemInteractions/0/onThisPathAndAllPathsBelow",
+				"/regardingTheSupervisedCode/theFollowingResourceAccessesArePermitted/regardingFileSystemInteractions/0/readAllFiles",
+				"/regardingTheSupervisedCode/theFollowingResourceAccessesArePermitted/regardingFileSystemInteractions/0/overwriteAllFiles",
+				"/regardingTheSupervisedCode/theFollowingResourceAccessesArePermitted/regardingFileSystemInteractions/0/createAllFiles",
+				"/regardingTheSupervisedCode/theFollowingResourceAccessesArePermitted/regardingFileSystemInteractions/0/executeAllFiles",
+				"/regardingTheSupervisedCode/theFollowingResourceAccessesArePermitted/regardingFileSystemInteractions/0/deleteAllFiles",
+				"/regardingTheSupervisedCode/theFollowingResourceAccessesArePermitted/regardingNetworkConnections/0/onTheHost",
+				"/regardingTheSupervisedCode/theFollowingResourceAccessesArePermitted/regardingNetworkConnections/0/onThePort",
+				"/regardingTheSupervisedCode/theFollowingResourceAccessesArePermitted/regardingNetworkConnections/0/openConnections",
+				"/regardingTheSupervisedCode/theFollowingResourceAccessesArePermitted/regardingNetworkConnections/0/sendData",
+				"/regardingTheSupervisedCode/theFollowingResourceAccessesArePermitted/regardingNetworkConnections/0/receiveData",
+				"/regardingTheSupervisedCode/theFollowingResourceAccessesArePermitted/regardingCommandExecutions/0/executeTheCommand",
+				"/regardingTheSupervisedCode/theFollowingResourceAccessesArePermitted/regardingCommandExecutions/0/withTheseArguments",
+				"/regardingTheSupervisedCode/theFollowingResourceAccessesArePermitted/regardingThreadCreations/0/createTheFollowingNumberOfThreads",
+				"/regardingTheSupervisedCode/theFollowingResourceAccessesArePermitted/regardingThreadCreations/0/ofThisClass",
+				"/regardingTheSupervisedCode/theFollowingResourceAccessesArePermitted/regardingPackageImports/0/importTheFollowingPackage",
+				"/regardingTheSupervisedCode/theFollowingResourceAccessesArePermitted/regardingTimeouts/0/timeout");
+	}
+
+	@ParameterizedTest
+	@MethodSource("everyRequiredField")
+	void rejectsOmissionAndExplicitNullForEveryRequiredField(String pointer) throws IOException {
+		for (boolean explicitNull : List.of(false, true)) {
+			ObjectNode root = (ObjectNode) new YAMLMapper().readTree(validYaml());
+			int separator = pointer.lastIndexOf('/');
+			String parentPointer = separator == 0 ? "" : pointer.substring(0, separator);
+			String field = pointer.substring(separator + 1);
+			ObjectNode parent = (ObjectNode) root.at(parentPointer);
+			if (explicitNull) {
+				parent.putNull(field);
+			} else {
+				parent.remove(field);
+			}
+			assertRejectedField(new YAMLMapper().writeValueAsString(root), field);
+		}
+	}
+
+	static Stream<String> everyStrictScalarField() {
+		return everyRequiredField()
+				.filter(pointer -> !pointer.endsWith("regardingTheSupervisedCode")
+						&& !pointer.endsWith("theFollowingResourceAccessesArePermitted")
+						&& !pointer.contains("regardingFileSystemInteractions") || pointer.matches(".*/0/.*"))
+				.filter(pointer -> !pointer.endsWith("theFollowingClassesAreTestClasses"))
+				.filter(pointer -> !pointer.matches(
+						".*/regarding(FileSystemInteractions|NetworkConnections|CommandExecutions|ThreadCreations|PackageImports|Timeouts)$"))
+				.filter(pointer -> !pointer.endsWith("withTheseArguments"));
+	}
+
+	@ParameterizedTest
+	@MethodSource("everyStrictScalarField")
+	void rejectsWrongTypeForEveryRequiredScalar(String pointer) throws IOException {
+		ObjectNode root = (ObjectNode) new YAMLMapper().readTree(validYaml());
+		int separator = pointer.lastIndexOf('/');
+		String field = pointer.substring(separator + 1);
+		ObjectNode parent = (ObjectNode) root.at(pointer.substring(0, separator));
+		JsonNode current = parent.get(field);
+		if (current.isBoolean() || current.isIntegralNumber()) {
+			parent.put(field, current.asText());
+		} else {
+			parent.put(field, 1);
+		}
+		assertRejectedField(new YAMLMapper().writeValueAsString(root), field);
+	}
+
+	@Test
+	void rejectsWrongContainersAndNullElementsForEveryCollection() throws IOException {
+		List<String> collections = List.of("theFollowingClassesAreTestClasses", "regardingFileSystemInteractions",
+				"regardingNetworkConnections", "regardingCommandExecutions", "regardingThreadCreations",
+				"regardingPackageImports", "regardingTimeouts", "withTheseArguments");
+		for (String field : collections) {
+			String pointer = pointerFor(field);
+			ObjectNode wrongContainer = (ObjectNode) new YAMLMapper().readTree(validYaml());
+			int separator = pointer.lastIndexOf('/');
+			((ObjectNode) wrongContainer.at(pointer.substring(0, separator))).put(field, "not-an-array");
+			assertRejectedField(new YAMLMapper().writeValueAsString(wrongContainer), field);
+
+			ObjectNode nullElement = (ObjectNode) new YAMLMapper().readTree(validYaml());
+			((com.fasterxml.jackson.databind.node.ArrayNode) nullElement.at(pointer)).removeAll().addNull();
+			assertRejectedField(new YAMLMapper().writeValueAsString(nullElement), field);
+		}
+	}
+
+	private static String pointerFor(String field) {
+		String resources = "/regardingTheSupervisedCode/theFollowingResourceAccessesArePermitted/";
+		return switch (field) {
+		case "theFollowingClassesAreTestClasses" -> "/regardingTheSupervisedCode/" + field;
+		case "withTheseArguments" -> resources + "regardingCommandExecutions/0/" + field;
+		default -> resources + field;
+		};
+	}
+
+	private void assertRejectedField(String yaml, String field) throws IOException {
+		SecurityException failure = assertThrows(SecurityException.class, () -> read(yaml));
+		StringBuilder messages = new StringBuilder();
+		for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+			messages.append(cause.getMessage()).append(' ');
+		}
+		assertTrue(messages.toString().contains(field), () -> "Expected rejected field " + field + " in " + messages);
 	}
 
 	@Test

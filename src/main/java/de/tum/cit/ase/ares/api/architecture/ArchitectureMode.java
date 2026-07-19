@@ -20,6 +20,7 @@ import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupport
 import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchunitTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.wala.CustomCallgraphBuilder;
 import de.tum.cit.ase.ares.api.architecture.java.wala.JavaWalaTestCase;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
 /**
@@ -52,6 +53,7 @@ public enum ArchitectureMode {
 	WALA;
 
 	private static JavaFileLoader fileLoader = new JavaCSVFileLoader();
+	private static final int MAX_CONFIGURATION_COUNT = 100;
 
 	public static void setFileLoader(JavaFileLoader loader) {
 		fileLoader = java.util.Objects.requireNonNull(loader, "loader must not be null");
@@ -60,25 +62,75 @@ public enum ArchitectureMode {
 	// <editor-fold desc="Load configuration">
 	public List<List<String>> getCopyFSConfigurationEntries() {
 		try {
-			return fileLoader.loadCopyData(this, true);
+			List<List<String>> entries = fileLoader.loadCopyData(this, true);
+			validateConfigurationRows(entries, "copy.fs", false);
+			return entries;
 		} catch (IOException | CsvException e) {
-			throw new RuntimeException(e);
+			throw new SecurityException(
+					Messages.localized("security.architecture.mode.configuration.load.failure", "copy.fs", name()), e);
 		}
 	}
 
 	public List<List<String>> getCopyNonFSConfigurationEntries() {
 		try {
-			return fileLoader.loadCopyData(this, false);
+			List<List<String>> entries = fileLoader.loadCopyData(this, false);
+			validateConfigurationRows(entries, "copy.nonfs", false);
+			return entries;
 		} catch (IOException | CsvException e) {
-			throw new RuntimeException(e);
+			throw new SecurityException(
+					Messages.localized("security.architecture.mode.configuration.load.failure", "copy.nonfs", name()),
+					e);
 		}
 	}
 
 	public List<List<String>> getEditConfigurationEntries() {
 		try {
-			return fileLoader.loadEditData(this);
+			List<List<String>> entries = fileLoader.loadEditData(this);
+			validateConfigurationRows(entries, "edit", true);
+			return entries;
 		} catch (IOException | CsvException e) {
-			throw new RuntimeException(e);
+			throw new SecurityException(
+					Messages.localized("security.architecture.mode.configuration.load.failure", "edit", name()), e);
+		}
+	}
+
+	private void validateConfigurationRows(@Nonnull List<List<String>> entries, @Nonnull String context,
+			boolean requireNonEmpty) {
+		if (entries == null || requireNonEmpty && entries.isEmpty()) {
+			throw new SecurityException(
+					Messages.localized("security.architecture.mode.configuration.empty", context, name()));
+		}
+		boolean validateCountColumn = context.startsWith("copy");
+		for (int row = 0; row < entries.size(); row++) {
+			List<String> entry = entries.get(row);
+			if (entry == null || entry.size() < 3) {
+				throw new SecurityException(Messages.localized("security.architecture.mode.configuration.malformed.row",
+						context, row, name(), entry == null ? 0 : entry.size()));
+			}
+			for (int column = 0; column < 3; column++) {
+				String cell = entry.get(column);
+				if (cell == null || cell.isBlank()) {
+					throw new SecurityException(Messages.localized(
+							"security.architecture.mode.configuration.blank.cell", context, row, column, name()));
+				}
+			}
+			if (validateCountColumn) {
+				validateConfigurationCount(entry.get(1).trim(), context, row);
+			}
+		}
+	}
+
+	private void validateConfigurationCount(@Nonnull String countCell, @Nonnull String context, int row) {
+		int count;
+		try {
+			count = Integer.parseInt(countCell);
+		} catch (NumberFormatException notAnInteger) {
+			throw new SecurityException(Messages.localized("security.architecture.mode.configuration.invalid.count",
+					context, row, name(), countCell), notAnInteger);
+		}
+		if (count < 0 || count > MAX_CONFIGURATION_COUNT) {
+			throw new SecurityException(Messages.localized("security.architecture.mode.configuration.invalid.count",
+					context, row, name(), countCell));
 		}
 	}
 	// </editor-fold>

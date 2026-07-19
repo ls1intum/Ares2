@@ -153,10 +153,12 @@ public final class ThreadPenguin extends Thread {
 
 	public static void executorServiceSlide11() {
 		ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
-		Runnable sendNotification = () -> System.out.println("Notification sent at " + System.currentTimeMillis());
-		scheduler.scheduleAtFixedRate(sendNotification, 0, 5, TimeUnit.SECONDS);
-		// Schedule shutdown after 20 seconds for demonstration
-		scheduler.schedule(() -> scheduler.shutdown(), 20, TimeUnit.SECONDS);
+		try {
+			Runnable sendNotification = () -> System.out.println("Notification sent at " + System.currentTimeMillis());
+			scheduler.scheduleAtFixedRate(sendNotification, 0, 5, TimeUnit.SECONDS);
+		} finally {
+			scheduler.shutdownNow();
+		}
 	}
 
 	public static void executorServiceFuture1() throws ExecutionException, InterruptedException {

@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.architecture.java.wala;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URI;
@@ -201,6 +202,71 @@ public class CustomCallgraphBuilderTest {
 
 		Assertions.assertTrue(
 				Arrays.asList(expandedClassPath.split(Pattern.quote(File.pathSeparator))).contains(activationJar));
+	}
+
+	@Test
+	void testExplodedSiblingDependencyUsesTheCompleteClassOutputRoot() throws Exception {
+		Method method = CustomCallgraphBuilder.class.getDeclaredMethod("classpathEntryFor", java.net.URL.class,
+				String.class);
+		method.setAccessible(true);
+		String siblingName = "anonymous.sibling.SiblingFileHelper";
+		java.net.URL siblingClass = CustomCallgraphBuilder.class
+				.getResource("/" + siblingName.replace('.', '/') + ".class");
+		@SuppressWarnings("unchecked")
+		Optional<String> root = (Optional<String>) method.invoke(null, siblingClass, siblingName);
+
+		Assertions.assertTrue(root.isPresent());
+		Assertions.assertEquals(Path.of("target", "test-classes").toRealPath(),
+				Path.of(root.orElseThrow()).toRealPath());
+	}
+
+	@Test
+	void testSiblingPackageCannotHideLibraryMediatedForbiddenCall() {
+		CustomCallgraphBuilder builder = new CustomCallgraphBuilder(FIXTURE_CLASSPATH);
+
+		Assertions.assertThrows(AssertionError.class,
+				() -> new WalaRule("Accesses file system", Set.of("java.nio.file.Files.readString"))
+						.check(builder.buildCallGraph(FIXTURE_CLASSPATH)));
+	}
+
+	@Test
+	void testSeparateMavenModuleOutputCannotHideForbiddenCall() throws IOException {
+		Path reactor = Files.createDirectory(temporaryDirectory.resolve("reactor"));
+		Files.writeString(reactor.resolve("pom.xml"), "<project/>");
+		Path helperModule = Files.createDirectories(reactor.resolve("helper"));
+		Path appModule = Files.createDirectories(reactor.resolve("app"));
+		Files.writeString(helperModule.resolve("pom.xml"), "<project/>");
+		Files.writeString(appModule.resolve("pom.xml"), "<project/>");
+		Path helperOutput = Files.createDirectories(helperModule.resolve(Path.of("target", "classes")));
+		Path appOutput = Files.createDirectories(appModule.resolve(Path.of("target", "classes")));
+		Path helperSource = Files.writeString(helperModule.resolve("Helper.java"), """
+				package external.module;
+				public final class Helper {
+				  public static String read(java.nio.file.Path path) throws java.io.IOException {
+				    return java.nio.file.Files.readString(path);
+				  }
+				}
+				""");
+		Path appSource = Files.writeString(appModule.resolve("Entry.java"), """
+				package student.entry;
+				public final class Entry {
+				  public static String read(java.nio.file.Path path) throws java.io.IOException {
+				    return external.module.Helper.read(path);
+				  }
+				}
+				""");
+		javax.tools.JavaCompiler compiler = javax.tools.ToolProvider.getSystemJavaCompiler();
+		Assertions.assertNotNull(compiler, "The module-scope conformance test requires a JDK");
+		Assertions.assertEquals(0,
+				compiler.run(null, null, null, "-d", helperOutput.toString(), helperSource.toString()));
+		Assertions.assertEquals(0, compiler.run(null, null, null, "-classpath", helperOutput.toString(), "-d",
+				appOutput.toString(), appSource.toString()));
+		String narrowAppPackage = appOutput.resolve(Path.of("student", "entry")).toString();
+
+		CustomCallgraphBuilder builder = new CustomCallgraphBuilder(narrowAppPackage);
+		Assertions.assertThrows(AssertionError.class,
+				() -> new WalaRule("Accesses file system", Set.of("java.nio.file.Files.readString"))
+						.check(builder.buildCallGraph(narrowAppPackage)));
 	}
 
 	@Test

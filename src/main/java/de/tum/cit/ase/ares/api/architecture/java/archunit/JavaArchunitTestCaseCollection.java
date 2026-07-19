@@ -3,7 +3,6 @@ package de.tum.cit.ase.ares.api.architecture.java.archunit;
 //<editor-fold desc="Imports">
 import java.nio.file.Path;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaAccess;
@@ -12,12 +11,12 @@ import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition;
 
 import de.tum.cit.ase.ares.api.architecture.java.FileHandlerConstants;
+import de.tum.cit.ase.ares.api.architecture.java.ForbiddenMethodMatcher;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
-import de.tum.cit.ase.ares.api.util.FileTools;
 //</editor-fold>
 
 /**
@@ -82,12 +81,11 @@ public final class JavaArchunitTestCaseCollection {
 					@Override
 					public boolean test(JavaAccess<?> javaAccess) {
 						if (forbiddenMethods == null) {
-							forbiddenMethods = FileTools.readMethodsFile(FileTools.readFile(methodsFilePath)).stream()
-									.map(JavaArchunitTestCaseCollection::convertArrayNotation)
-									.collect(Collectors.toSet());
+							forbiddenMethods = ForbiddenMethodMatcher.effectiveMethods(methodsFilePath);
 						}
 						return forbiddenMethods.stream().filter(method -> !method.isEmpty())
-								.anyMatch(method -> javaAccess.getTarget().getFullName().startsWith(method));
+								.anyMatch(method -> ForbiddenMethodMatcher
+										.matches(convertArrayNotation(javaAccess.getTarget().getFullName()), method));
 					}
 				})).as(ruleName);
 	}

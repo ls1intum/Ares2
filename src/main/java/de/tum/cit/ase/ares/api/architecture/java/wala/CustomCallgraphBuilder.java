@@ -119,6 +119,7 @@ public class CustomCallgraphBuilder {
 	private static String expandClassPathWithReachableDependencies(String classPath) {
 		LinkedHashSet<String> entries = Arrays.stream(classPath.split(File.pathSeparator))
 				.filter(entry -> !entry.isBlank()).collect(Collectors.toCollection(LinkedHashSet::new));
+		Set<Path> projectClassRoots = discoverProjectClassRoots(entries);
 		Deque<JavaClass> pending = new ArrayDeque<>();
 		ClassFileImporter importer = new ClassFileImporter();
 
@@ -134,7 +135,7 @@ public class CustomCallgraphBuilder {
 			}
 		}
 
-		addReachableDependencies(entries, pending, importer);
+		addReachableDependencies(entries, pending, importer, projectClassRoots);
 		return String.join(File.pathSeparator, entries);
 	}
 
@@ -147,12 +148,12 @@ public class CustomCallgraphBuilder {
 	static String dependencyFingerprint(JavaClasses applicationClasses) {
 		LinkedHashSet<String> entries = new LinkedHashSet<>();
 		Deque<JavaClass> pending = new ArrayDeque<>(applicationClasses);
-		addReachableDependencies(entries, pending, new ClassFileImporter());
+		addReachableDependencies(entries, pending, new ClassFileImporter(), Set.of());
 		return fingerprintAnalysisEntries(entries);
 	}
 
 	private static void addReachableDependencies(LinkedHashSet<String> entries, Deque<JavaClass> pending,
-			ClassFileImporter importer) {
+			ClassFileImporter importer, Set<Path> projectClassRoots) {
 		Set<String> visitedClasses = new HashSet<>();
 		Map<String, JavaClasses> importedJars = new HashMap<>();
 		while (!pending.isEmpty()) {
@@ -168,7 +169,7 @@ public class CustomCallgraphBuilder {
 				if (visitedClasses.contains(targetName)) {
 					continue;
 				}
-				URL location = CustomCallgraphBuilder.class.getResource(convertTypeNameToClassName(targetName));
+				URL location = locateClass(targetName, projectClassRoots);
 				if (location == null) {
 					throw new SecurityException("Could not locate reachable application dependency " + targetName); //$NON-NLS-1$
 				}
@@ -183,7 +184,7 @@ public class CustomCallgraphBuilder {
 					throw new SecurityException("Unsupported location for reachable application dependency " //$NON-NLS-1$
 							+ targetName + ": " + location); //$NON-NLS-1$
 				}
-				Optional<String> classpathEntry = classpathEntryFor(location);
+				Optional<String> classpathEntry = classpathEntryFor(location, targetName);
 				if (classpathEntry.isEmpty()) {
 					throw new SecurityException("Could not derive a classpath entry for reachable dependency " //$NON-NLS-1$
 							+ targetName);
@@ -209,6 +210,86 @@ public class CustomCallgraphBuilder {
 				}
 			}
 		}
+	}
+
+	private static URL locateClass(String targetName, Set<Path> projectClassRoots) {
+		URL runtimeLocation = CustomCallgraphBuilder.class.getResource(convertTypeNameToClassName(targetName));
+		if (runtimeLocation != null) {
+			return runtimeLocation;
+		}
+		Path relativeClass = Path.of(targetName.replace('.', File.separatorChar) + ".class"); //$NON-NLS-1$
+		for (Path classRoot : projectClassRoots) {
+			Path candidate = classRoot.resolve(relativeClass);
+			if (Files.isRegularFile(candidate)) {
+				try {
+					return candidate.toUri().toURL();
+				} catch (IOException malformedUrl) {
+					throw new SecurityException("Could not address reachable project class " + targetName, //$NON-NLS-1$
+							malformedUrl);
+				}
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Discovers conventional Maven and Gradle class-output roots in the current
+	 * reactor/project. Roots are resolution candidates only: they enter WALA's
+	 * scope when a class is actually reachable from the supervised package.
+	 */
+	private static Set<Path> discoverProjectClassRoots(Set<String> classpathEntries) {
+		LinkedHashSet<Path> roots = new LinkedHashSet<>();
+		for (String entry : classpathEntries) {
+			Path supplied = Path.of(entry).toAbsolutePath().normalize();
+			Path outputRoot = outputRootOf(supplied);
+			if (outputRoot == null) {
+				continue;
+			}
+			roots.add(outputRoot);
+			Path projectRoot = containingProjectRoot(outputRoot);
+			try (Stream<Path> candidates = Files.walk(projectRoot, 8)) {
+				candidates.filter(Files::isDirectory).filter(CustomCallgraphBuilder::isConventionalClassRoot)
+						.map(Path::toAbsolutePath).map(Path::normalize).forEach(roots::add);
+			} catch (IOException unreadableProject) {
+				throw new SecurityException("Could not discover project class-output roots below " + projectRoot, //$NON-NLS-1$
+						unreadableProject);
+			}
+		}
+		return Set.copyOf(roots);
+	}
+
+	private static Path containingProjectRoot(Path outputRoot) {
+		Path candidate = outputRoot;
+		while (candidate.getParent() != null && !isProjectDirectory(candidate)) {
+			candidate = candidate.getParent();
+		}
+		while (candidate.getParent() != null && isProjectDirectory(candidate.getParent())) {
+			candidate = candidate.getParent();
+		}
+		return candidate;
+	}
+
+	private static boolean isProjectDirectory(Path path) {
+		return Files.isRegularFile(path.resolve("pom.xml")) || Files.isRegularFile(path.resolve("settings.gradle"))
+				|| Files.isRegularFile(path.resolve("settings.gradle.kts"));
+	}
+
+	private static Path outputRootOf(Path path) {
+		String normalized = path.toString().replace(File.separatorChar, '/');
+		for (String marker : List.of("/target/test-classes", "/target/classes", "/build/classes/java/main",
+				"/build/classes/java/test")) {
+			int index = normalized.indexOf(marker);
+			if (index >= 0) {
+				return Path.of(normalized.substring(0, index + marker.length()));
+			}
+		}
+		return null;
+	}
+
+	private static boolean isConventionalClassRoot(Path path) {
+		String normalized = path.toString().replace(File.separatorChar, '/');
+		return normalized.endsWith("/target/classes") || normalized.endsWith("/target/test-classes")
+				|| normalized.endsWith("/build/classes/java/main") || normalized.endsWith("/build/classes/java/test");
 	}
 
 	private static String normaliseDependencyClassName(String className) {
@@ -334,12 +415,19 @@ public class CustomCallgraphBuilder {
 		}
 	}
 
-	private static Optional<String> classpathEntryFor(URL location) {
+	private static Optional<String> classpathEntryFor(URL location, String targetClassName) {
 		try {
 			if ("file".equals(location.getProtocol())) {
-				File classFile = new File(location.toURI());
-				File packageDirectory = classFile.getParentFile();
-				return packageDirectory == null ? Optional.empty() : Optional.of(packageDirectory.getPath());
+				Path classFile = Path.of(location.toURI()).toRealPath();
+				Path relativeClassFile = Path.of(targetClassName.replace('.', File.separatorChar) + ".class"); //$NON-NLS-1$
+				Path classpathRoot = classFile;
+				for (int segment = 0; segment < relativeClassFile.getNameCount(); segment++) {
+					classpathRoot = classpathRoot.getParent();
+					if (classpathRoot == null) {
+						return Optional.empty();
+					}
+				}
+				return Optional.of(classpathRoot.toString());
 			}
 			if ("jar".equals(location.getProtocol())) {
 				JarURLConnection connection = (JarURLConnection) location.openConnection();

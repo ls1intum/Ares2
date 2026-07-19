@@ -26,6 +26,7 @@ import com.tngtech.archunit.core.domain.JavaAccess;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 
+import de.tum.cit.ase.ares.api.architecture.java.ForbiddenMethodMatcher;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
@@ -189,14 +190,26 @@ public class WalaRule {
 
 	private static boolean matchesUsingWalaHierarchy(String targetOwner, String forbiddenOwner,
 			IClassHierarchy classHierarchy) {
+		Optional<Boolean> runtimeMatch = matchesUsingRuntimeHierarchy(targetOwner, forbiddenOwner);
+		if (runtimeMatch.isPresent()) {
+			return runtimeMatch.get();
+		}
 		if (classHierarchy == null) {
-			throw new SecurityException("Incomplete hierarchy for inherited target " + targetOwner); //$NON-NLS-1$
+			throw new SecurityException(
+					"Incomplete hierarchy for inherited target " + targetOwner + " against " + forbiddenOwner); //$NON-NLS-1$ //$NON-NLS-2$
 		}
 		try {
 			IClass targetClass = lookupClass(classHierarchy, targetOwner);
 			IClass forbiddenClass = lookupClass(classHierarchy, forbiddenOwner);
-			if (targetClass == null || forbiddenClass == null) {
-				throw new SecurityException("Incomplete hierarchy for inherited target " + targetOwner); //$NON-NLS-1$
+			if (targetClass == null) {
+				throw new SecurityException(
+						"Incomplete hierarchy for inherited target " + targetOwner + " against " + forbiddenOwner); //$NON-NLS-1$ //$NON-NLS-2$
+			}
+			if (forbiddenClass == null) {
+				// Versioned blocklists intentionally contain APIs from several supported JDKs.
+				// A declaring class absent from the active JDK cannot be the supertype of a
+				// resolved target and is therefore inapplicable, not an analysis failure.
+				return false;
 			}
 			return classHierarchy.isAssignableFrom(forbiddenClass, targetClass);
 		} catch (SecurityException exception) {
@@ -204,6 +217,50 @@ public class WalaRule {
 		} catch (RuntimeException incompleteHierarchy) {
 			throw new SecurityException("Could not classify inherited target " + targetOwner, incompleteHierarchy); //$NON-NLS-1$
 		}
+	}
+
+	private static Optional<Boolean> matchesUsingRuntimeHierarchy(String targetOwner, String forbiddenOwner) {
+		Optional<Class<?>> targetClass = loadRuntimeClass(targetOwner);
+		if (targetClass.isEmpty()) {
+			return Optional.empty();
+		}
+		Optional<Class<?>> forbiddenClass = loadRuntimeClass(forbiddenOwner);
+		if (forbiddenClass.isPresent()) {
+			return Optional.of(forbiddenClass.get().isAssignableFrom(targetClass.get()));
+		}
+		return Optional.of(hasNamedSupertype(targetClass.get(), forbiddenOwner));
+	}
+
+	private static Optional<Class<?>> loadRuntimeClass(String className) {
+		try {
+			return Optional.of(Class.forName(className, false, ClassLoader.getSystemClassLoader()));
+		} catch (ClassNotFoundException unavailableToRuntime) {
+			return Optional.empty();
+		} catch (LinkageError invalidRuntimeType) {
+			throw new SecurityException("Could not load runtime type while classifying inherited target " + className, //$NON-NLS-1$
+					invalidRuntimeType);
+		}
+	}
+
+	private static boolean hasNamedSupertype(Class<?> targetClass, String forbiddenOwner) {
+		Deque<Class<?>> pending = new ArrayDeque<>();
+		Set<Class<?>> visited = new HashSet<>();
+		pending.add(targetClass);
+		while (!pending.isEmpty()) {
+			Class<?> current = pending.removeFirst();
+			if (!visited.add(current)) {
+				continue;
+			}
+			if (forbiddenOwner.equals(current.getName())) {
+				return true;
+			}
+			Class<?> superclass = current.getSuperclass();
+			if (superclass != null) {
+				pending.addLast(superclass);
+			}
+			pending.addAll(List.of(current.getInterfaces()));
+		}
+		return false;
 	}
 
 	private static IClass lookupClass(IClassHierarchy classHierarchy, String className) {
@@ -229,6 +286,13 @@ public class WalaRule {
 	/** Returns {@code true} if the node's method matches a forbidden signature. */
 	private boolean isForbidden(CGNode node) {
 		String signature = node.getMethod().getSignature();
+		if (signature != null && signature.startsWith("java.lang.invoke.LambdaMetafactory.") //$NON-NLS-1$
+				&& signature.indexOf('$', "java.lang.invoke.LambdaMetafactory.".length()) >= 0) { //$NON-NLS-1$
+			// WALA materialises ordinary Java lambda bootstrap linkage as synthetic
+			// LambdaMetafactory.call$... nodes. These are compiler plumbing, not an
+			// explicit reflective call by supervised code.
+			return false;
+		}
 		return forbiddenMethods.stream().anyMatch(m -> matchesForbiddenMethod(signature, m));
 	}
 
@@ -545,22 +609,7 @@ public class WalaRule {
 	}
 
 	private static boolean matchesForbiddenMethod(String actualSignature, String forbiddenSignature) {
-		if (actualSignature == null || forbiddenSignature == null) {
-			return false;
-		}
-		if (actualSignature.startsWith(forbiddenSignature)) {
-			return true;
-		}
-		String actualWithoutReturnType = stripReturnType(actualSignature);
-		String forbiddenWithoutReturnType = stripReturnType(forbiddenSignature);
-		if (actualWithoutReturnType.equals(forbiddenWithoutReturnType)) {
-			return true;
-		}
-		String actualFormatted = formatJvmSignature(actualWithoutReturnType);
-		String forbiddenFormatted = formatJvmSignature(forbiddenWithoutReturnType);
-		// startsWith already covers the exact-match case, since a string always starts
-		// with itself.
-		return actualFormatted.startsWith(forbiddenFormatted);
+		return ForbiddenMethodMatcher.matches(actualSignature, forbiddenSignature);
 	}
 
 	private static String stripReturnType(String signature) {
@@ -585,29 +634,7 @@ public class WalaRule {
 	 * found, so callers can pass any signature without first checking the format.
 	 */
 	static String formatJvmSignature(String walaSignature) {
-		if (walaSignature == null) {
-			return null;
-		}
-		int parenIdx = walaSignature.indexOf('(');
-		if (parenIdx < 0) {
-			return walaSignature;
-		}
-		int closeParenIdx = walaSignature.indexOf(')', parenIdx + 1);
-		if (closeParenIdx < 0) {
-			return walaSignature;
-		}
-		String classMethod = walaSignature.substring(0, parenIdx);
-		String paramsDescriptor = walaSignature.substring(parenIdx + 1, closeParenIdx);
-		List<String> params = parseParamDescriptors(paramsDescriptor);
-		StringBuilder rendered = new StringBuilder(classMethod).append('(');
-		for (int i = 0; i < params.size(); i++) {
-			if (i > 0) {
-				rendered.append(", ");
-			}
-			rendered.append(params.get(i));
-		}
-		rendered.append(')');
-		return rendered.toString();
+		return ForbiddenMethodMatcher.canonicalise(walaSignature);
 	}
 
 	/**

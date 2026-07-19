@@ -18,6 +18,8 @@ regardingTheSupervisedCode:
       - createTheFollowingNumberOfThreads: 100
         ofThisClass: "java.util.concurrent.CompletableFuture$AsyncSupply"
       - createTheFollowingNumberOfThreads: 100
+        ofThisClass: "java.util.concurrent.CompletableFuture$UniApply"
+      - createTheFollowingNumberOfThreads: 100
         ofThisClass: "java.util.concurrent.ForkJoinWorkerThread"
       - createTheFollowingNumberOfThreads: 100
         ofThisClass: "java.util.concurrent.ThreadPoolExecutor$Worker"

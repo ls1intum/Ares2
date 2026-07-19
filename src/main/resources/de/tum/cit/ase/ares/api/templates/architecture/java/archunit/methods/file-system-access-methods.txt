@@ -281,3 +281,4 @@ javax.xml.transform.Transformer.transform(javax.xml.transform.Source, javax.xml.
 java.util.zip.ZipOutputStream.<init>(Ljava/io/OutputStream;Z)
 java.nio.file.Files.delete(Ljava/nio/file/Path)
 java.io.FileReader.<init>
+java.nio.file.Files

@@ -75,9 +75,9 @@
 		<spotless.version>3.7.0</spotless.version>
 		<!-- if JaCoCo is not executed -->
 		<argLine></argLine>
-		<!-- Analysis, instrumentation and timeout-worker state is scoped for safe reuse
-			in one test JVM. CI may still override this property for diagnostics. -->
-		<surefire-reuse-forks>true</surefire-reuse-forks>
+		<!-- Isolate test classes so WALA state and test-created threads cannot accumulate
+			in one long-lived JVM. The signed outcome cache preserves cross-fork reuse. -->
+		<surefire-reuse-forks>false</surefire-reuse-forks>
 		<!-- full certificate fingerprint: 23E62BB282A473EE4DDA2F8763EFD39363D21A8D -->
 		<gpg.key.id>23E62BB282A473EE4DDA2F8763EFD39363D21A8D</gpg.key.id>
 	</properties>
@@ -460,9 +460,9 @@
 				<version>3.5.6</version>
 				<configuration>
 					<forkCount>1</forkCount>
-					<!-- Reuse one fork by default. Each WALA policy now owns its mutable scope,
-						hierarchy, analysis cache, entry points and call graph; instrumentation uses
-						one dynamic package transformer and test-scoped failure reporting. -->
+					<!-- Use a fresh fork for every test class. WALA's mutable scope and graph,
+						instrumentation state and non-daemon threads therefore cannot accumulate
+						across the complete suite. -->
 					<reuseForks>${surefire-reuse-forks}</reuseForks>
 					<!-- Kill (and report) a hung forked JVM rather than letting CI run until
 						the runner dies. 2400s sits above a legitimate full-suite run yet below
@@ -1044,6 +1044,12 @@
 		<!-- For code coverage using JaCoCo -->
 		<profile>
 			<id>coverage</id>
+			<properties>
+				<!-- Each test class receives a fresh JVM under coverage. JaCoCo appends each
+					fork's execution data, avoiding the long-lived >5 GB process and preserving
+					the complete aggregate report. -->
+				<surefire-reuse-forks>false</surefire-reuse-forks>
+			</properties>
 			<build>
 				<plugins>
 					<plugin>
@@ -1057,6 +1063,7 @@
 									<goal>prepare-agent</goal>
 								</goals>
 								<configuration>
+									<append>true</append>
 									<inclBootstrapClasses>true</inclBootstrapClasses>
 									<includes>
 										<include>de.tum.cit.ase.ares.*</include>

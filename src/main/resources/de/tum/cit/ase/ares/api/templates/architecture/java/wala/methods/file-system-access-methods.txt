@@ -274,3 +274,4 @@ javax.xml.parsers.SAXParser.parse(Ljava/io/InputStream;Lorg/xml/sax/helpers/Defa
 javax.xml.parsers.SAXParser.parse(Ljava/io/InputStream;Lorg/xml/sax/HandlerBase;)
 javax.xml.transform.Transformer.transform(Ljavax/xml/transform/Source;Ljavax/xml/transform/Result;)
 java.io.FileReader.<init>
+java.nio.file.Files
