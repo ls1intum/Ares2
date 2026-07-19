@@ -11,6 +11,7 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.LinkOption;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -648,6 +649,159 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		}
 		return null;
 	}
+
+	// <editor-fold desc="Copy/transfer per-parameter role special case (I-114)">
+
+	/**
+	 * Special-cases {@code java.nio.file.Files.copy} and
+	 * {@code FileChannel.transferTo}/{@code transferFrom}, which the generic
+	 * {@link #deriveActionChecks} path would otherwise validate as ONE uniform
+	 * action applied to the whole parameters array. That would let a policy
+	 * granting only {@code pathsAllowedToBeOverwritten} authorise reading the
+	 * SOURCE side too, since {@code copy}'s source path was checked against the
+	 * OVERWRITE allow-list instead of READ (I-114/TD-063) — a real
+	 * privilege-escalation path, not just a misclassification.
+	 * <p>
+	 * Each of these methods is registered in both
+	 * {@code METHODS_WHICH_CAN_READ_FILES} and
+	 * {@code METHODS_WHICH_CAN_OVERWRITE_FILES}, so this advice fires once per
+	 * action; this method independently checks only the parameter/receiver relevant
+	 * to the currently-firing action, and reports {@code true} once it has fully
+	 * handled the call (the caller must not additionally run the generic path).
+	 * <p>
+	 * A destination that is itself a channel (not a {@link Path}/{@link File}) is
+	 * not resolvable to a checkable path with the existing machinery (the same
+	 * limitation the generic "receiver instance" check already has for any
+	 * channel-typed value) — that side is intentionally left unchecked here, since
+	 * a channel obtained via {@code FileChannel.open(path, ...)} was already
+	 * subject to a create/overwrite check at the point it was opened.
+	 *
+	 * @return {@code true} if the call was one of the special-cased methods and has
+	 *         been fully handled (the generic path must be skipped)
+	 */
+	private static boolean checkCopyOrTransferSpecialCase(@Nonnull String action, @Nonnull String declaringTypeName,
+			@Nonnull String methodName, @Nullable Object[] parameters, @Nullable Object instance,
+			@Nonnull String fileSystemMethodToCheck, @Nullable String studentCalledMethod,
+			@Nonnull String fullMethodSignature) {
+		if ("java.nio.file.Files".equals(declaringTypeName) && "copy".equals(methodName)) {
+			if ("read".equals(action)) {
+				// source (index 0). The other overloads' index-0 argument (InputStream) is
+				// not Path-shaped and resolves to no target, so this is a safe no-op for them.
+				checkSinglePathRole("read", "pathsAllowedToBeRead", isolateParameter(parameters, 0), false,
+						fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
+			} else if ("overwrite".equals(action)) {
+				// destination (index 1): create or overwrite depending on REPLACE_EXISTING.
+				boolean replaceExisting = hasReplaceExisting(parameters);
+				String resolvedAction = replaceExisting ? "overwrite" : "create";
+				String settingKey = replaceExisting ? "pathsAllowedToBeOverwritten" : "pathsAllowedToBeCreated";
+				checkSinglePathRole(resolvedAction, settingKey, isolateParameter(parameters, 1), true,
+						fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
+			}
+			return true;
+		}
+		if ("java.nio.channels.FileChannel".equals(declaringTypeName) && "transferTo".equals(methodName)) {
+			if ("read".equals(action)) {
+				// receiver (the channel being read FROM); the target argument (index 2) is
+				// itself a channel and is not checked here — see class-level Javadoc above.
+				checkSinglePathRole("read", "pathsAllowedToBeRead",
+						instance == null ? new Object[0] : new Object[] { instance }, false, fileSystemMethodToCheck,
+						studentCalledMethod, fullMethodSignature);
+			}
+			return true;
+		}
+		if ("java.nio.channels.FileChannel".equals(declaringTypeName) && "transferFrom".equals(methodName)) {
+			if ("overwrite".equals(action)) {
+				// receiver (the channel being written TO); the src argument (index 0) is
+				// itself a channel and is not checked here — see class-level Javadoc above.
+				checkSinglePathRole("overwrite", "pathsAllowedToBeOverwritten",
+						instance == null ? new Object[0] : new Object[] { instance }, false, fileSystemMethodToCheck,
+						studentCalledMethod, fullMethodSignature);
+			}
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Checks a single isolated parameter/receiver candidate array against one
+	 * specific allow-list, throwing {@code SecurityException} on violation. Applies
+	 * only the internal-path-suffix exemption (Ares's own framework files) — the
+	 * class-loading/system-JAR exemptions the generic path applies are not relevant
+	 * to a student-initiated file copy/transfer.
+	 */
+	private static void checkSinglePathRole(@Nonnull String actionLabel, @Nonnull String allowedPathsSettingKey,
+			@Nonnull Object[] candidates, boolean allowNonExistingPaths, @Nonnull String fileSystemMethodToCheck,
+			@Nullable String studentCalledMethod, @Nonnull String fullMethodSignature) {
+		if (candidates.length == 0) {
+			return;
+		}
+		@Nullable
+		String[] allowedPaths = getValueFromSettings(allowedPathsSettingKey);
+		boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
+		@Nullable
+		String violation = checkIfVariableCriteriaIsViolated(candidates, allowedPaths, IgnoreValues.NONE,
+				allowNonExistingPaths);
+		if (violation == null) {
+			return;
+		}
+		if (INTERNAL_PATH_SUFFIXES.stream().anyMatch(violation::endsWith)) {
+			return;
+		}
+		throw new SecurityException(
+				localize("security.advice.illegal.file.execution", fileSystemMethodToCheck, actionLabel, violation,
+						fullMethodSignature
+								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+								+ " | " + buildDenialReason(noAllowRuleConfigured)));
+	}
+
+	/**
+	 * Returns {@code true} if {@code parameters} contains
+	 * {@link StandardCopyOption#REPLACE_EXISTING}, scanning into varargs arrays the
+	 * same way {@link #collectStandardOpenOptions} does for
+	 * {@link StandardOpenOption}.
+	 */
+	private static boolean hasReplaceExisting(@Nullable Object[] parameters) {
+		if (parameters == null) {
+			return false;
+		}
+		for (Object parameter : parameters) {
+			if (containsReplaceExisting(parameter)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static boolean containsReplaceExisting(@Nullable Object candidate) {
+		if (candidate == null) {
+			return false;
+		}
+		if (candidate == StandardCopyOption.REPLACE_EXISTING) {
+			return true;
+		}
+		if (candidate.getClass().isArray()) {
+			int length = Array.getLength(candidate);
+			for (int i = 0; i < length; i++) {
+				if (containsReplaceExisting(Array.get(candidate, i))) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Isolates a single parameter into its own one-element array so
+	 * {@link #checkIfVariableCriteriaIsViolated} validates only that argument, or
+	 * an empty array if {@code index} is out of bounds (e.g. an overload that
+	 * doesn't have a parameter at that position).
+	 */
+	@Nonnull
+	private static Object[] isolateParameter(@Nullable Object[] parameters, int index) {
+		return (parameters != null && parameters.length > index) ? new Object[] { parameters[index] } : new Object[0];
+	}
+
+	// </editor-fold>
 
 	/**
 	 * Derives the list of file-system actions that need to be validated for a given
@@ -1480,6 +1634,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
 			// </editor-fold>
 
+			if (checkCopyOrTransferSpecialCase(action, declaringTypeName, methodName, parameters, instance,
+					fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature)) {
+				return;
+			}
 			List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action, declaringTypeName,
 					parameters);
 			for (Map.Entry<String, Boolean> actionCheck : actionsToValidate) {

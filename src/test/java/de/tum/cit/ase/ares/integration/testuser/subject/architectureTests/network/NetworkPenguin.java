@@ -1,5 +1,7 @@
 package de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.network;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.io.IOException;
 import java.net.*;
 import java.util.Scanner;
@@ -25,7 +27,7 @@ public final class NetworkPenguin {
 		try (Socket s = socketSupplier.call(); Scanner in = new Scanner(s.getInputStream())) {
 			if (expectLine != null) {
 				s.setSoTimeout(200);
-				// assertEquals(expectLine, in.nextLine());
+				assertThat(in.nextLine()).isEqualTo(expectLine);
 			}
 		}
 	}

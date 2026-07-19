@@ -514,7 +514,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 					if (allowedClasses != null) {
 						for (@Nonnull
 						String allowedClass : allowedClasses) {
-							if (className.startsWith(allowedClass)) {
+							if (className.equals(allowedClass) || className.startsWith(allowedClass + "$")) {
 								allowed = true;
 								break;
 							}
@@ -537,7 +537,11 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 			return false;
 		}
 		for (String prefix : prefixes) {
-			if (prefix != null && className.startsWith(prefix)) {
+			// '.'-boundary match: an allowed package "com.foo" must not also match the
+			// unrelated sibling package "com.foobar" (I-105). Mirrors the '$'-boundary
+			// used for the allowed-class comparison above and the exact-or-'$'-boundary
+			// JavaArchitectureTestCase.isAllowedClass already uses on the static side.
+			if (prefix != null && (className.equals(prefix) || className.startsWith(prefix + "."))) {
 				return true;
 			}
 		}

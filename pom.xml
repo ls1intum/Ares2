@@ -65,6 +65,7 @@
 		<yaml-version>2.22.1</yaml-version>
 		<!-- 6. Large Tooling Libraries -->
 		<commons-io-version>2.22.0</commons-io-version>
+		<jaxb-api-version>2.3.1</jaxb-api-version>
 		<!-- 7. Small Tooling Libraries -->
 		<jgrapht-core-version>1.5.3</jgrapht-core-version>
 		<!-- 8. Logging  -->
@@ -268,6 +269,21 @@
 			<version>${commons-io-version}</version>
 			<scope>provided</scope>
 		</dependency>
+		<!-- javax.xml.bind (JAXB) is NOT used by Ares itself; it is only a
+			security-interception target so the AspectJ pointcut
+			(JavaAspectJFileSystemPointcutDefinitions.aj) can reference
+			javax.xml.bind.Marshaller/Unmarshaller (I-086/TD-030 - the JDK removed JAXB
+			as a standard module from Java 11 onwards, so these pointcuts otherwise
+			reference types absent from the compile/weave classpath entirely and are
+			unverifiable). Scoped 'provided' for the same reason as commons-io above:
+			keep the interception resolvable without leaking into consumers' transitive
+			footprint. -->
+		<dependency>
+			<groupId>javax.xml.bind</groupId>
+			<artifactId>jaxb-api</artifactId>
+			<version>${jaxb-api-version}</version>
+			<scope>provided</scope>
+		</dependency>
 		<!-- 7. Small Tooling Libraries -->
 		<dependency>
 			<groupId>com.opencsv</groupId>
@@ -317,6 +333,16 @@
 				</includes>
 			</resource>
 			<resource>
+				<!-- I-062: shipping .java/.aj source from src/main/java as a resource looks
+					like incidental packaging bloat at a glance, but it is a genuine, traced
+					runtime dependency, not incidental: AspectJAJCopyFiles.csv (also under
+					src/main/java, see the '**/*.csv' include below) lists these exact source
+					files as copy 'Source' entries, consumed at runtime by JavaCSVFileLoader
+					via FileTools.resolveFileOnSourceDirectory - the code-generation flow that
+					assembles a consuming project's woven security test case reads these
+					shipped .aj/.java files back out of this jar. Narrowing this resource's
+					includes without also changing that CSV-driven flow would silently break
+					AOP test-case generation for consumers; do not narrow it in isolation. -->
 				<directory>src/main/java</directory>
 				<includes>
 					<include>**/*.java</include>
@@ -991,6 +1017,12 @@
 							<reuseForks>true</reuseForks>
 							<includes>
 								<include>**/api/**/*Test.java</include>
+								<!-- I-111/TD-060: testutilities/** hosts plain unit tests (e.g.
+									NonDaemonThreadLeakExtensionTest, PublicTestNamingConventionTest)
+									that need no woven AOP/architecture-mode setup, but sit outside
+									api/** and integration/**, so no profile ran them before this
+									include was added. -->
+								<include>**/testutilities/**/*Test.java</include>
 							</includes>
 							<excludes>
 								<exclude>**/api/architecture/**/*Test.java</exclude>

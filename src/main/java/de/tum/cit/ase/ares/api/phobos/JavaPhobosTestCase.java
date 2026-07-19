@@ -173,7 +173,7 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 
 		Set<String> allowed = new LinkedHashSet<>();
 
-		for (String verb : List.of("connect", "send")) { // add "receive" if/when needed
+		for (String verb : List.of("connect", "send", "receive")) {
 			List<String> hosts = net.getPermittedNetworkHosts(verb);
 			List<Integer> ports = net.getPermittedNetworkPorts(verb);
 

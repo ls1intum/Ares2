@@ -309,6 +309,39 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 	// <editor-fold desc="Violation analysis">
 
 	/**
+	 * Extracts each pipeline member's <em>current</em> command list from a
+	 * {@code ProcessBuilder.startPipeline(List&lt;ProcessBuilder&gt;)} argument.
+	 * <p>
+	 * Description: Reads {@link ProcessBuilder#command()} fresh for every element,
+	 * not a constructor-time snapshot, so a command mutated after construction but
+	 * before {@code startPipeline} is invoked is still caught. Guards each element
+	 * with {@link #requireTrustedRuntimeType(Object)} before invoking the
+	 * overridable {@code command()} accessor on it.
+	 *
+	 * @param pipeline the {@code List<ProcessBuilder>} argument observed at the
+	 *                 join point
+	 * @return the current command list of every builder in the pipeline, or
+	 *         {@code null} if any element is not a {@code ProcessBuilder} (fail
+	 *         closed)
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 */
+	@Nullable
+	private static List<List<String>> extractPipelineCommands(@Nonnull List<?> pipeline) {
+		requireTrustedRuntimeType(pipeline);
+		List<List<String>> commands = new java.util.ArrayList<>();
+		for (Object element : pipeline) {
+			if (!(element instanceof ProcessBuilder)) {
+				return null;
+			}
+			ProcessBuilder builder = (ProcessBuilder) element;
+			requireTrustedRuntimeType(builder);
+			commands.add(builder.command());
+		}
+		return commands;
+	}
+
+	/**
 	 * Analyses a variable to determine if it violates allowed commands.
 	 * <p>
 	 * Description: Recursively checks if the variable or its elements (if an array
@@ -328,6 +361,23 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 			return false;
 		} else if (observedVariable instanceof List<?>) {
 			List<?> list = (List<?>) observedVariable;
+			// ProcessBuilder.startPipeline(List<ProcessBuilder>): each element is an
+			// independent command, re-read live (see extractPipelineCommands), not a flat
+			// (command, arg, arg, ...) sequence like the other List<?> shapes below.
+			if (list.stream().anyMatch(o -> o instanceof ProcessBuilder)) {
+				List<List<String>> pipelineCommands = extractPipelineCommands(list);
+				if (pipelineCommands == null) {
+					// Fail closed: a pipeline element that isn't a ProcessBuilder cannot be
+					// proven safe.
+					return true;
+				}
+				for (List<String> command : pipelineCommands) {
+					if (analyseViolation(command, allowedCommands, allowedArguments)) {
+						return true;
+					}
+				}
+				return false;
+			}
 			// Recurse only when elements are themselves nested Lists/arrays (i.e. multiple
 			// commands). A flat List<String> is a single (command, arg, arg, ...) sequence
 			// and must be handed to variableToCommand whole; otherwise individual args that
@@ -373,6 +423,21 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 			return null;
 		} else if (observedVariable instanceof List<?>) {
 			List<?> list = (List<?>) observedVariable;
+			// Mirror analyseViolation's pipeline branch exactly, so a violation it reports
+			// is always resolvable to a display string here.
+			if (list.stream().anyMatch(o -> o instanceof ProcessBuilder)) {
+				List<List<String>> pipelineCommands = extractPipelineCommands(list);
+				if (pipelineCommands == null) {
+					return localize("security.advice.command.pipeline.element.invalid");
+				}
+				for (List<String> command : pipelineCommands) {
+					String violationPath = extractViolationPath(command, allowedCommands, allowedArguments);
+					if (violationPath != null) {
+						return violationPath;
+					}
+				}
+				return null;
+			}
 			// Mirror the recursion guard from analyseViolation: only descend into nested
 			// Lists/arrays so flat List<String> command sequences are matched as a whole.
 			if (list.stream().anyMatch(o -> o instanceof List<?> || (o != null && o.getClass().isArray()))) {
@@ -410,6 +475,19 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 			return null;
 		} else if (observedVariable instanceof List<?>) {
 			List<?> list = (List<?>) observedVariable;
+			if (list.stream().anyMatch(o -> o instanceof ProcessBuilder)) {
+				List<List<String>> pipelineCommands = extractPipelineCommands(list);
+				if (pipelineCommands == null) {
+					return localize("security.advice.command.pipeline.element.invalid");
+				}
+				for (List<String> command : pipelineCommands) {
+					String violationPath = extractExecutablePathViolation(command, pathsAllowedToExecute);
+					if (violationPath != null) {
+						return violationPath;
+					}
+				}
+				return null;
+			}
 			if (list.stream().anyMatch(o -> o instanceof List<?> || (o != null && o.getClass().isArray()))) {
 				for (Object element : list) {
 					String violationPath = extractExecutablePathViolation(element, pathsAllowedToExecute);

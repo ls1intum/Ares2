@@ -140,6 +140,7 @@ java.nio.file.Files.find(java.nio.file.Path, int, java.util.function.BiPredicate
 java.nio.file.Files.lines(java.nio.file.Path)
 java.nio.file.Files.lines(java.nio.file.Path, java.nio.charset.Charset)
 java.nio.file.Files.list(java.nio.file.Path)
+java.nio.file.Files.mismatch(java.nio.file.Path, java.nio.file.Path)
 java.nio.file.Files.move(java.nio.file.Path, java.nio.file.Path, java.nio.file.CopyOption[])
 java.nio.file.Files.newBufferedReader(java.nio.file.Path)
 java.nio.file.Files.newBufferedReader(java.nio.file.Path, java.nio.charset.Charset)

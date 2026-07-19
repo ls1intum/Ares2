@@ -5,7 +5,15 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -181,5 +189,77 @@ public class JavaAOPTestCaseSettingsTest {
 		field.setAccessible(true);
 		Assertions.assertNull(field.get(null), name + " must be reset to null");
 		field.setAccessible(false);
+	}
+
+	/**
+	 * Stress test for I-032 (scoped): concurrent
+	 * {@link JavaAOPTestCaseSettings#reset()} and
+	 * {@link JavaAOPTestCase#setJavaAdviceSettingValue} calls must not throw and
+	 * must not leave the settings lock itself in a broken state usable by later
+	 * tests.
+	 * <p>
+	 * Description: This does <strong>not</strong> prove the absence of every
+	 * possible race — concurrency is inherently hard to assert deterministically,
+	 * and this fix is deliberately scoped to synchronizing {@code reset()} and each
+	 * individual field write against each other (not full multi-field read
+	 * atomicity, which is a larger, deferred follow-up — see
+	 * {@link JavaAOPTestCaseSettings#reset()}'s Javadoc). What this test does
+	 * verify: many threads concurrently calling {@code reset()} and
+	 * {@code setJavaAdviceSettingValue} on the same field, repeatedly, never throw
+	 * (e.g. a reflection failure from the lock-resolution indirection added by this
+	 * fix), and the field ends up in one of the two valid end states (reset to
+	 * {@code null}, or the last writer's value) — never something a corrupted
+	 * concurrent write could produce, like a completely unrelated stale object.
+	 *
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 */
+	@Test
+	void concurrentResetAndSettingWritesDoNotThrowOrCorruptState() throws Exception {
+		int writerThreads = 4;
+		int resetterThreads = 4;
+		int iterationsPerThread = 200;
+		AtomicBoolean failed = new AtomicBoolean(false);
+		AtomicReference<Throwable> firstFailure = new AtomicReference<>();
+
+		ExecutorService executor = Executors.newFixedThreadPool(writerThreads + resetterThreads);
+		try {
+			List<Future<?>> futures = new ArrayList<>();
+			for (int t = 0; t < writerThreads; t++) {
+				int threadId = t;
+				futures.add(executor.submit(() -> {
+					for (int i = 0; i < iterationsPerThread; i++) {
+						try {
+							JavaAOPTestCase.setJavaAdviceSettingValue("restrictedPackage",
+									"stress-writer-" + threadId + "-" + i, "ARCH", "INSTRUMENTATION");
+						} catch (Throwable failure) {
+							failed.set(true);
+							firstFailure.compareAndSet(null, failure);
+						}
+					}
+				}));
+			}
+			for (int t = 0; t < resetterThreads; t++) {
+				futures.add(executor.submit(() -> {
+					for (int i = 0; i < iterationsPerThread; i++) {
+						try {
+							JavaAOPTestCaseSettings.reset();
+						} catch (Throwable failure) {
+							failed.set(true);
+							firstFailure.compareAndSet(null, failure);
+						}
+					}
+				}));
+			}
+			for (Future<?> future : futures) {
+				future.get(30, TimeUnit.SECONDS);
+			}
+		} finally {
+			executor.shutdownNow();
+			JavaAOPTestCaseSettings.reset();
+		}
+
+		Assertions.assertFalse(failed.get(),
+				() -> "Concurrent reset()/setJavaAdviceSettingValue calls must not throw, but: " + firstFailure.get());
 	}
 }

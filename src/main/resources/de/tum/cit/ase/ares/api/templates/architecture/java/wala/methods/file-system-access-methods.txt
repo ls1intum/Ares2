@@ -119,6 +119,7 @@ java.nio.file.Files.find(Ljava/nio/file/Path;ILjava/util/function/BiPredicate;[L
 java.nio.file.Files.lines(Ljava/nio/file/Path;)
 java.nio.file.Files.lines(Ljava/nio/file/Path;Ljava/nio/charset/Charset;)
 java.nio.file.Files.list(Ljava/nio/file/Path;)
+java.nio.file.Files.mismatch(Ljava/nio/file/Path;Ljava/nio/file/Path;)
 java.nio.file.Files.move(Ljava/nio/file/Path;Ljava/nio/file/Path;[Ljava/nio/file/CopyOption;)
 java.nio.file.Files.newBufferedReader(Ljava/nio/file/Path;)
 java.nio.file.Files.newBufferedReader(Ljava/nio/file/Path;Ljava/nio/charset/Charset;)

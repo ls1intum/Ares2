@@ -36,4 +36,15 @@ class JavaPhobosTestCaseTest {
 				.resourceAccessSupplier(() -> List.of(new ResourceLimitsPermission(1234))).build();
 		assertTrue(timeout.writePhobosTestCase().contains("timeout=1234"));
 	}
+
+	@Test
+	void receiveOnlyNetworkPermissionIsIncludedInTheGeneratedAllowlist() {
+		// TD-013: collectAllowHostsAndPorts previously only unioned "connect" and
+		// "send" permissions, silently dropping a host permitted only to receive from.
+		JavaPhobosTestCase network = JavaPhobosTestCase.builder()
+				.javaPhobosTestCaseSupported(JavaPhobosTestCaseSupported.NETWORK_CONNECTION).resourceAccessSupplier(
+						() -> List.of(new NetworkPermission("receive-only.example", 443, false, false, true)))
+				.build();
+		assertTrue(network.writePhobosTestCase().contains("allow receive-only.example:443\n"));
+	}
 }

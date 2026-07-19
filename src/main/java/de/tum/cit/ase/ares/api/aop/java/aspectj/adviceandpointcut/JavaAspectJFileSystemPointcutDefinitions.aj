@@ -127,6 +127,11 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
                     call(* java.lang.ClassLoader+.getResourceAsStream(..)) ||
                     call(* java.nio.file.Files+.find(..)) ||
                     call(* java.nio.file.Files+.list(..)) ||
+                    call(* java.nio.file.Files+.mismatch(..)) ||
+                    // Also registered in filesWriteMethods() below: copy's source path must be
+                    // checked as READ, not OVERWRITE (I-114/TD-063) - the advice's
+                    // checkCopyOrTransferSpecialCase splits each firing to the correct parameter.
+                    call(* java.nio.file.Files+.copy(..)) ||
                     call(* java.nio.file.Files+.walk(..)) ||
                     call(* java.nio.file.Files+.walkFileTree(..)) ||
                     call(* java.nio.file.Files+.lines(..)) ||
@@ -168,8 +173,9 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
     // the semantic classification based on the options. Methods like Files.readString() and
     // Files.readAllLines() internally call newByteChannel() with default READ-only options.
     // Note: Files.move is included here AND in filesDeleteMethods because it both
-    // writes to the destination and deletes the source. Files.copy is only in
-    // filesWriteMethods because it does not delete the source.
+    // writes to the destination and deletes the source. Files.copy does not delete the
+    // source, but IS also registered in filesReadMethods above: its source path must be
+    // checked as READ, not OVERWRITE (I-114/TD-063) - see checkCopyOrTransferSpecialCase.
     pointcut filesWriteMethods():
             (call(* java.nio.file.Files+.write(..)) ||
                     call(* java.nio.file.Files+.writeString(..)) ||
@@ -218,11 +224,15 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
 
     pointcut fileChannelExecuteMethods(): if(false);
 
+    // Note: FileChannel.transferTo is also registered in fileChannelWriteMethods below:
+    // the receiver (the channel being read FROM) must be checked as READ - see
+    // checkCopyOrTransferSpecialCase, which splits each firing to the correct side.
     pointcut fileChannelReadMethods():
             (call(* java.nio.channels.AsynchronousFileChannel+.open(..)) ||
                     call(* java.nio.channels.AsynchronousFileChannel+.read(..)) ||
                     call(* java.nio.channels.FileChannel+.map(..)) ||
                     call(* java.nio.channels.FileChannel+.open(..)) ||
+                    call(* java.nio.channels.FileChannel+.transferTo(..)) ||
                     call(* java.nio.channels.SeekableByteChannel+.read(..)));
 
     // Note: FileChannel.open and AsynchronousFileChannel.open are intentionally NOT included here.
@@ -238,12 +248,19 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
     // Note: FileChannel.map is intentionally NOT included here. It's in fileChannelReadMethods,
     // and the actual operation is determined by the MapMode parameter. MapMode.READ_ONLY does
     // not modify the file. The deriveActionChecks() method handles semantic classification.
+    // Note: FileChannel.transferFrom was previously not intercepted by either backend at
+    // all (I-114/TD-063). Its receiver (the channel being written TO) is checked as
+    // OVERWRITE here; unlike transferTo it is not also registered in
+    // fileChannelReadMethods, since its src argument is itself a channel and is not
+    // resolvable to a checkable path with the existing machinery - see
+    // checkCopyOrTransferSpecialCase's class-level Javadoc.
     pointcut fileChannelWriteMethods():
             (call(* java.nio.channels.AsynchronousFileChannel+.write(..)) ||
                     call(* java.nio.channels.AsynchronousFileChannel+.truncate(..)) ||
                     call(* java.nio.channels.FileChannel+.write(..)) ||
                     call(* java.nio.channels.FileChannel+.truncate(..)) ||
-                    call(* java.nio.channels.FileChannel+.transferTo(..)));
+                    call(* java.nio.channels.FileChannel+.transferTo(..)) ||
+                    call(* java.nio.channels.FileChannel+.transferFrom(..)));
 
 
     pointcut writerMethods(): (call(java.io.Writer+.new(..)));

@@ -180,29 +180,48 @@ public final class JavaAOPTestCaseSettings {
 	 * This ensures that AOP advices from previous tests do not affect subsequent
 	 * tests running in the same JVM instance.
 	 * </p>
+	 * <p>
+	 * Design Rationale (I-032, scoped): synchronizes on {@link #SETTINGS_LOCK} so
+	 * this whole-set reset cannot interleave, field by field, with a concurrent
+	 * {@link de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase#setJavaAdviceSettingValue}
+	 * call (which synchronizes on the same lock — see that class). This closes the
+	 * race between concurrent <em>writers</em> (two security-test-case setup/reset
+	 * sequences interleaving on the same JVM). It deliberately does
+	 * <strong>not</strong> attempt the full fix the audit describes (a single
+	 * immutable policy object behind one atomically-swapped reference): that would
+	 * also require every <em>reader</em> — the settings-reading prelude of all
+	 * eight {@code check*InteractionImpl} methods across both AOP backends — to
+	 * synchronize on the same lock for its whole multi-field read sequence, a much
+	 * larger change this session cannot safely verify without running the full
+	 * test/architecture matrix. See the audit write-up for the full reasoning; this
+	 * is the "scope the first commit to the swap mechanism" fallback it explicitly
+	 * permits.
+	 * </p>
 	 */
 	public static void reset() {
-		JavaAOPTestCaseSettings.buildMode = null;
-		JavaAOPTestCaseSettings.architectureMode = null;
-		JavaAOPTestCaseSettings.aopMode = null;
-		JavaAOPTestCaseSettings.restrictedPackage = null;
-		JavaAOPTestCaseSettings.mainClass = null;
-		JavaAOPTestCaseSettings.allowedListedPackages = null;
-		JavaAOPTestCaseSettings.allowedListedClasses = null;
-		JavaAOPTestCaseSettings.pathsAllowedToBeRead = null;
-		JavaAOPTestCaseSettings.pathsAllowedToBeOverwritten = null;
-		JavaAOPTestCaseSettings.pathsAllowedToBeCreated = null;
-		JavaAOPTestCaseSettings.pathsAllowedToBeExecuted = null;
-		JavaAOPTestCaseSettings.pathsAllowedToBeDeleted = null;
-		JavaAOPTestCaseSettings.hostsAllowedToBeConnectedTo = null;
-		JavaAOPTestCaseSettings.portsAllowedToBeConnectedTo = null;
-		JavaAOPTestCaseSettings.hostsAllowedToBeSentTo = null;
-		JavaAOPTestCaseSettings.portsAllowedToBeSentTo = null;
-		JavaAOPTestCaseSettings.hostsAllowedToBeReceivedFrom = null;
-		JavaAOPTestCaseSettings.portsAllowedToBeReceivedFrom = null;
-		JavaAOPTestCaseSettings.commandsAllowedToBeExecuted = null;
-		JavaAOPTestCaseSettings.argumentsAllowedToBePassed = null;
-		JavaAOPTestCaseSettings.threadClassAllowedToBeCreated = null;
-		JavaAOPTestCaseSettings.threadNumberAllowedToBeCreated = null;
+		synchronized (SETTINGS_LOCK) {
+			JavaAOPTestCaseSettings.buildMode = null;
+			JavaAOPTestCaseSettings.architectureMode = null;
+			JavaAOPTestCaseSettings.aopMode = null;
+			JavaAOPTestCaseSettings.restrictedPackage = null;
+			JavaAOPTestCaseSettings.mainClass = null;
+			JavaAOPTestCaseSettings.allowedListedPackages = null;
+			JavaAOPTestCaseSettings.allowedListedClasses = null;
+			JavaAOPTestCaseSettings.pathsAllowedToBeRead = null;
+			JavaAOPTestCaseSettings.pathsAllowedToBeOverwritten = null;
+			JavaAOPTestCaseSettings.pathsAllowedToBeCreated = null;
+			JavaAOPTestCaseSettings.pathsAllowedToBeExecuted = null;
+			JavaAOPTestCaseSettings.pathsAllowedToBeDeleted = null;
+			JavaAOPTestCaseSettings.hostsAllowedToBeConnectedTo = null;
+			JavaAOPTestCaseSettings.portsAllowedToBeConnectedTo = null;
+			JavaAOPTestCaseSettings.hostsAllowedToBeSentTo = null;
+			JavaAOPTestCaseSettings.portsAllowedToBeSentTo = null;
+			JavaAOPTestCaseSettings.hostsAllowedToBeReceivedFrom = null;
+			JavaAOPTestCaseSettings.portsAllowedToBeReceivedFrom = null;
+			JavaAOPTestCaseSettings.commandsAllowedToBeExecuted = null;
+			JavaAOPTestCaseSettings.argumentsAllowedToBePassed = null;
+			JavaAOPTestCaseSettings.threadClassAllowedToBeCreated = null;
+			JavaAOPTestCaseSettings.threadNumberAllowedToBeCreated = null;
+		}
 	}
 }
