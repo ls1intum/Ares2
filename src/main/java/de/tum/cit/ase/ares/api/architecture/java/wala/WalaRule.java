@@ -612,14 +612,6 @@ public class WalaRule {
 		return ForbiddenMethodMatcher.matches(actualSignature, forbiddenSignature);
 	}
 
-	private static String stripReturnType(String signature) {
-		int closeParenIdx = signature.indexOf(')');
-		if (closeParenIdx < 0) {
-			return signature;
-		}
-		return signature.substring(0, closeParenIdx + 1);
-	}
-
 	/**
 	 * Convert a WALA {@link IMethod#getSignature()} string from JVM-descriptor form
 	 * to the source-code form that ArchUnit produces.
@@ -637,73 +629,4 @@ public class WalaRule {
 		return ForbiddenMethodMatcher.canonicalise(walaSignature);
 	}
 
-	/**
-	 * Parse a JVM parameter-descriptor sequence into a list of source-form types.
-	 * <p>
-	 * Examples:
-	 * <ul>
-	 * <li>{@code "Ljava/lang/String;Ljava/io/File;"} →
-	 * {@code [java.lang.String, java.io.File]}</li>
-	 * <li>{@code "[I"} → {@code [int[]]}</li>
-	 * <li>{@code "[[Ljava/lang/String;"} → {@code [java.lang.String[][]]}</li>
-	 * </ul>
-	 * <p>
-	 * Malformed descriptors stop the parse early; whatever has been parsed so far
-	 * is returned to keep the surrounding error message useful.
-	 */
-	private static List<String> parseParamDescriptors(String descriptor) {
-		List<String> params = new ArrayList<>();
-		int i = 0;
-		while (i < descriptor.length()) {
-			int dimensions = 0;
-			while (i < descriptor.length() && descriptor.charAt(i) == '[') {
-				dimensions++;
-				i++;
-			}
-			if (i >= descriptor.length()) {
-				break;
-			}
-			char c = descriptor.charAt(i);
-			String typeName;
-			if (c == 'L') {
-				int semicolonIdx = descriptor.indexOf(';', i + 1);
-				if (semicolonIdx < 0) {
-					break;
-				}
-				typeName = descriptor.substring(i + 1, semicolonIdx).replace('/', '.');
-				i = semicolonIdx + 1;
-			} else {
-				typeName = primitiveDescriptorToName(c);
-				i++;
-			}
-			StringBuilder rendered = new StringBuilder(typeName);
-			for (int d = 0; d < dimensions; d++) {
-				rendered.append("[]");
-			}
-			params.add(rendered.toString());
-		}
-		return params;
-	}
-
-	/**
-	 * Map a single primitive JVM-descriptor character to its source-form Java name.
-	 * <p>
-	 * {@code V} (void) is included for completeness, even though it never appears
-	 * inside a parameter list. Unknown characters are echoed back so future JVM
-	 * spec extensions do not silently corrupt the message.
-	 */
-	private static String primitiveDescriptorToName(char descriptorChar) {
-		return switch (descriptorChar) {
-		case 'B' -> "byte";
-		case 'C' -> "char";
-		case 'D' -> "double";
-		case 'F' -> "float";
-		case 'I' -> "int";
-		case 'J' -> "long";
-		case 'S' -> "short";
-		case 'Z' -> "boolean";
-		case 'V' -> "void";
-		default -> String.valueOf(descriptorChar);
-		};
-	}
 }
