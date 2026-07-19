@@ -426,7 +426,8 @@ public enum ArchitectureMode {
 		try {
 			MessageDigest digest = MessageDigest.getInstance("SHA-256");
 			if (Files.isRegularFile(analysisPath)) {
-				updateAnalysisInputDigest(digest, analysisPath.getFileName(), analysisPath);
+				Path fileName = analysisPath.getFileName();
+				updateAnalysisInputDigest(digest, fileName == null ? analysisPath : fileName, analysisPath);
 			} else {
 				try (Stream<Path> files = Files.walk(analysisPath)) {
 					for (Path file : files.filter(Files::isRegularFile).filter(ArchitectureMode::isArchitectureInput)
@@ -444,7 +445,11 @@ public enum ArchitectureMode {
 	}
 
 	private static boolean isArchitectureInput(Path file) {
-		String fileName = file.getFileName().toString();
+		Path fileNamePath = file.getFileName();
+		if (fileNamePath == null) {
+			return false;
+		}
+		String fileName = fileNamePath.toString();
 		return fileName.endsWith(".class") || fileName.endsWith(".jar");
 	}
 
