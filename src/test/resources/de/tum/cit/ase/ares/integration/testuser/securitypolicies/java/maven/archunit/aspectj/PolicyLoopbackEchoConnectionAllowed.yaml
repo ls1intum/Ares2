@@ -5,7 +5,7 @@ regardingTheSupervisedCode:
   theMainClassInsideThisPackageIs: "Main"
   theFollowingClassesAreTestClasses:
     - "de.tum.cit.ase.ares.integration.testuser.NetworkUser"
-    - "de.tum.cit.ase.ares.testutilitiesTestUserExtension"
+    - "de.tum.cit.ase.ares.testutilities.TestUserExtension"
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions: [ ]
     regardingNetworkConnections:

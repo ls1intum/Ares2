@@ -5,6 +5,8 @@ import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import de.tum.cit.ase.ares.api.localization.Messages;
+
 /** Regular expressions and helpers for validating security-policy values. */
 public final class PolicyValueValidator {
 
@@ -30,36 +32,80 @@ public final class PolicyValueValidator {
 			+ DNS_LABEL + ")*\\.?";
 	private static final String RECOGNISED_PLACEHOLDER = "\\$\\{(?:PROJECT_ROOT|java\\.home|user\\.home|java\\.io\\.tmpdir)\\}";
 
+	/** Matches the complete supported programming-language configuration format. */
 	public static final Pattern PROGRAMMING_LANGUAGE_CONFIGURATION_PATTERN = Pattern
 			.compile("^JAVA_USING_(?:MAVEN|GRADLE)_(?:ARCHUNIT|WALA)_AND_(?:ASPECTJ|INSTRUMENTATION)$");
+
+	/** Matches a dot-separated Java package name. */
 	public static final Pattern JAVA_PACKAGE_PATTERN = Pattern.compile("^" + JAVA_QUALIFIED_IDENTIFIER + "$");
+
+	/** Matches a single Java type name. */
 	public static final Pattern JAVA_CLASS_NAME_PATTERN = Pattern.compile("^" + JAVA_TYPE_IDENTIFIER + "$");
+
+	/** Matches a fully qualified Java class name. */
 	public static final Pattern JAVA_CLASS_PATH_PATTERN = Pattern.compile("^" + JAVA_CLASS_PATH + "$");
+
+	/**
+	 * Matches a supported file path, recognised placeholder expression, or
+	 * wildcard.
+	 */
 	public static final Pattern FILE_PATH_PATTERN = Pattern.compile(
 			"^(?:\\*|(?=.+$)(?=.*\\S)(?:(?:" + RECOGNISED_PLACEHOLDER + ")|(?!\\$\\{)[^*\\x00])+)$", Pattern.DOTALL);
+
+	/** Matches a DNS name, IP address, localhost, or host wildcard. */
 	public static final Pattern HOST_PATTERN = Pattern
 			.compile("^(?:\\*|localhost|" + IPV4_ADDRESS + "|" + IPV6_ADDRESS + "|" + DNS_NAME + ")$");
+
+	/** Matches a Java class path or one of the supported special thread tokens. */
 	public static final Pattern THREAD_CLASS_PATTERN = Pattern.compile("^(?:" + JAVA_CLASS_PATH
 			+ "|\\*|Lambda-Expression|<implicit-thread-op:(?:parallelStream|parallel|Thread\\.sleep|SubmissionPublisher\\.(?:submit|offer))>)$");
 
 	private PolicyValueValidator() {
-		throw new UnsupportedOperationException("PolicyValueValidator is a utility class");
+		throw new SecurityException(
+				Messages.localized("security.general.utility.initialization", "PolicyValueValidator"));
 	}
 
+	/**
+	 * Tests whether a nullable value fully matches a validation pattern.
+	 *
+	 * @param value   the value to test; may be {@code null}
+	 * @param pattern the validation pattern
+	 * @return {@code true} when the value is non-null and fully matches the pattern
+	 */
 	public static boolean matches(@Nullable String value, @Nonnull Pattern pattern) {
 		return value != null && pattern.matcher(value).matches();
 	}
 
+	/**
+	 * Tests whether a value is a Java package name or the package wildcard.
+	 *
+	 * @param value the package import value; may be {@code null}
+	 * @return {@code true} when the value is a valid package import
+	 */
 	public static boolean matchesPackageImport(@Nullable String value) {
 		return "*".equals(value) || matches(value, JAVA_PACKAGE_PATTERN);
 	}
 
+	/**
+	 * Requires a nullable value to fully match a validation pattern.
+	 *
+	 * @param field   the policy-field name used in the failure message
+	 * @param value   the value to validate; may be {@code null}
+	 * @param pattern the required validation pattern
+	 * @throws IllegalArgumentException if the value does not match the pattern
+	 */
 	public static void requireMatch(@Nonnull String field, @Nullable String value, @Nonnull Pattern pattern) {
 		if (!matches(value, pattern)) {
 			throw new IllegalArgumentException(field + " does not match " + pattern.pattern());
 		}
 	}
 
+	/**
+	 * Requires a value to be a Java package name or the package wildcard.
+	 *
+	 * @param value the package import value; may be {@code null}
+	 * @throws IllegalArgumentException if the value is not a valid package import
+	 */
 	public static void requirePackageImport(@Nullable String value) {
 		if (!matchesPackageImport(value)) {
 			throw new IllegalArgumentException(

@@ -37,6 +37,7 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.SupervisedCode;
 public record SecurityPolicy(int thisPolicyFileCompliesToThePolicyVersion,
 		@Nonnull SupervisedCode regardingTheSupervisedCode) {
 
+	/** The policy-format version supported by this Ares release. */
 	public static final int CURRENT_POLICY_VERSION = 1;
 
 	/**
@@ -105,6 +106,15 @@ public record SecurityPolicy(int thisPolicyFileCompliesToThePolicyVersion,
 		@Nullable
 		private SupervisedCode regardingTheSupervisedCode;
 
+		/**
+		 * Sets the policy-format version declared by the policy file.
+		 *
+		 * @param thisPolicyFileCompliesToThePolicyVersion the declared policy-format
+		 *                                                 version
+		 * @return this builder
+		 * @since 2.0.0
+		 * @author Markus Paulsen
+		 */
 		@Nonnull
 		public Builder thisPolicyFileCompliesToThePolicyVersion(int thisPolicyFileCompliesToThePolicyVersion) {
 			this.thisPolicyFileCompliesToThePolicyVersion = thisPolicyFileCompliesToThePolicyVersion;
