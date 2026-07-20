@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.StrictTimeout;
 import de.tum.cit.ase.ares.api.jupiter.Public;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
@@ -23,6 +24,7 @@ public class MavenConfigurationUser {
 	private static final String POM_XML_PATH = "src/test/java/de/tum/cit/ase/ares/integration/testuser/subject/example/build/tools/pom.xml";
 
 	@PublicTest
+	@Policy(withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
 	void testGetPomXmlPath() {
 		try {
 			File copiedFile = Files.createTempFile("pom", ".xml").toFile();

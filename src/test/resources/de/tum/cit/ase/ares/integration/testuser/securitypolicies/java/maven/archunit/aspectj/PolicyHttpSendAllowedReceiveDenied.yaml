@@ -17,6 +17,8 @@ regardingTheSupervisedCode:
         receiveData: false
     regardingCommandExecutions: []
     regardingThreadCreations: []
-    regardingPackageImports: []
+    regardingPackageImports:
+      - importTheFollowingPackage: "javax.net.ssl"
+      - importTheFollowingPackage: "de.tum.cit.ase.ares.api.aop.java.instrumentation.advice"
     regardingTimeouts:
       - timeout: 3000

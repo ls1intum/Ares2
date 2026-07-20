@@ -5,7 +5,6 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.time.Duration;
 
 public class HttpClientSendMain {
 
@@ -19,15 +18,14 @@ public class HttpClientSendMain {
 	 * to SEND to but not to RECEIVE from.
 	 * <p>
 	 * In the variants under test the advice should intercept {@code send} before
-	 * the real connection is attempted (the request targets a non-routable
-	 * TEST-NET-3, RFC 5737 host), reproducing I-068: {@code send} both transmits
-	 * the request AND returns the response body, so a policy granting only SEND
-	 * must still block the call because RECEIVE was never independently checked
-	 * before this fix. The short connect timeout is a last-resort guard in case the
-	 * advice is not applied.
+	 * the deterministic test client reaches its method body. The request targets a
+	 * non-routable TEST-NET-3, RFC 5737 host, reproducing I-068: {@code send} both
+	 * transmits the request AND returns the response body, so a policy granting
+	 * only SEND must still block the call because RECEIVE was never independently
+	 * checked before this fix.
 	 */
 	public static HttpResponse<Void> sendToSendOnlyAllowedHost() throws IOException, InterruptedException {
-		HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofMillis(50)).build();
+		HttpClient client = new TestHttpClient();
 		HttpRequest request = HttpRequest.newBuilder(URI.create("http://203.0.113.1:80/")).GET().build();
 		return client.send(request, HttpResponse.BodyHandlers.discarding());
 	}

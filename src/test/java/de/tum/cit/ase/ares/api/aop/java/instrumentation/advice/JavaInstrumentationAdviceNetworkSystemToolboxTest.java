@@ -20,6 +20,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.net.UnixDomainSocketAddress;
 import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
@@ -318,6 +319,21 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 		Method toDisplayString = target.getClass().getDeclaredMethod("toDisplayString");
 		toDisplayString.setAccessible(true);
 		assertEquals("/tmp/ares-audit.sock:-1", toDisplayString.invoke(target));
+	}
+
+	@Test
+	void toTarget_resolvesHttpRequestLoadedByThePlatformClassLoader() throws Exception {
+		Method toTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("toTarget",
+				Object.class);
+		toTarget.setAccessible(true);
+
+		HttpRequest request = HttpRequest.newBuilder(URI.create("https://example.org/path")).build();
+		Object target = toTarget.invoke(null, request);
+		assertNotNull(target);
+
+		Method toDisplayString = target.getClass().getDeclaredMethod("toDisplayString");
+		toDisplayString.setAccessible(true);
+		assertEquals("example.org:443", toDisplayString.invoke(target));
 	}
 
 	@Test

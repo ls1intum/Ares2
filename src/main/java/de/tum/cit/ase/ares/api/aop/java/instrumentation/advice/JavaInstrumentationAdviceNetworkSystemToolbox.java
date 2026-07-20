@@ -271,7 +271,8 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		// HttpRequest is in the java.net.http module which may not be visible from
 		// the bootstrap class-loader. Use reflection to avoid a hard dependency.
 		try {
-			Class<?> httpRequestClass = Class.forName("java.net.http.HttpRequest", false, null);
+			Class<?> httpRequestClass = Class.forName("java.net.http.HttpRequest", false,
+					ClassLoader.getPlatformClassLoader());
 			if (httpRequestClass.isInstance(value)) {
 				requireTrustedRuntimeType(value);
 				Object uri = httpRequestClass.getMethod("uri").invoke(value);
