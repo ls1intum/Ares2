@@ -9,13 +9,10 @@ import java.io.File;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileAlreadyExistsException;
-import java.nio.file.FileSystemAlreadyExistsException;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
@@ -111,42 +108,13 @@ public final class FileTools {
 			URL url = Class.forName("de.tum.cit.ase.ares.api.util.FileTools").getProtectionDomain().getCodeSource()
 					.getLocation();
 
-			Path codeSource = Path.of(url.toURI()).toAbsolutePath().normalize();
-			Path resourceRoot = resolveCodeSourceRoot(codeSource);
+			Path classesDir = Path.of(url.toURI()).toAbsolutePath().normalize();
 			String[] packageParts = "de.tum.cit.ase".split("\\.");
 			String[] furtherPathParts = { "ares", "api" };
-			return resolveOnPath(resourceRoot,
+			return resolveOnPath(classesDir,
 					Stream.concat(Arrays.stream(packageParts), Arrays.stream(furtherPathParts)).toArray(String[]::new));
 		} catch (ClassNotFoundException | URISyntaxException e) {
 			throw new SecurityException(e.getMessage());
-		}
-	}
-
-	/**
-	 * Resolves the root that bundled resources are addressed against.
-	 * <p>
-	 * When Ares runs from exploded classes the code source is a directory and can
-	 * be used directly. When Ares runs as a packaged jar the code source is the jar
-	 * <em>file</em>; resolving package segments onto it would produce a path such as
-	 * {@code /.../ares.jar/de/tum/...}, which treats the archive as a directory and
-	 * can never be read. In that case the archive is opened as a zip file system and
-	 * its root is returned, so bundled resources resolve inside the jar.
-	 * </p>
-	 *
-	 * @param codeSource the location this class was loaded from.
-	 * @return the directory or jar root to resolve bundled resources against.
-	 * @throws SecurityException if the archive cannot be opened.
-	 */
-	private static Path resolveCodeSourceRoot(@Nonnull Path codeSource) {
-		if (!Files.isRegularFile(codeSource)) {
-			return codeSource;
-		}
-		try {
-			return FileSystems.newFileSystem(codeSource, (ClassLoader) null).getPath("/");
-		} catch (FileSystemAlreadyExistsException alreadyOpen) {
-			return FileSystems.getFileSystem(URI.create("jar:" + codeSource.toUri())).getPath("/");
-		} catch (IOException unreadableArchive) {
-			throw new SecurityException(localize("security.file-tools.read.content.failure"), unreadableArchive);
 		}
 	}
 
