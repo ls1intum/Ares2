@@ -1,8 +1,11 @@
 package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.SocketAddress;
 import java.net.UnixDomainSocketAddress;
@@ -34,7 +37,7 @@ class JavaAspectJNetworkSystemAdviceDefinitionsTest {
 	}
 
 	@Test
-	void variableToTarget_failsClosedForUnrecognisedSocketAddressInsteadOfReturningNull() throws Exception {
+	void variableToTarget_failsClosedForUntrustedSocketAddress() throws Exception {
 		Method variableToTarget = JavaAspectJNetworkSystemAdviceDefinitions.class.getDeclaredMethod("variableToTarget",
 				Object.class);
 		variableToTarget.setAccessible(true);
@@ -45,7 +48,8 @@ class JavaAspectJNetworkSystemAdviceDefinitionsTest {
 				return "no-colon-here";
 			}
 		};
-		Object target = variableToTarget.invoke(null, unparseable);
-		assertNotNull(target);
+		InvocationTargetException exception = assertThrows(InvocationTargetException.class,
+				() -> variableToTarget.invoke(null, unparseable));
+		assertInstanceOf(SecurityException.class, exception.getCause());
 	}
 }

@@ -110,8 +110,8 @@ public class JavaAOPModeTest {
 		try (MockedStatic<FileTools> toolsMock = Mockito.mockStatic(FileTools.class)) {
 			toolsMock.when(() -> FileTools.resolveFileOnSourceDirectory("hdr", "pkg")).thenReturn(DUMMY_PATH);
 			toolsMock.when(() -> FileTools.resolveFileOnSourceDirectory("ftr", "pkg")).thenReturn(DUMMY_PATH);
-			toolsMock.when(() -> FileTools.resolveFileOnTargetDirectory(ArgumentMatchers.any(Path.class), "unused"))
-					.thenReturn(DUMMY_PATH);
+			toolsMock.when(() -> FileTools.resolveFileOnTargetDirectory(ArgumentMatchers.any(Path.class),
+					ArgumentMatchers.eq("unused"))).thenReturn(DUMMY_PATH);
 
 			Path header = AOPMode.INSTRUMENTATION.threePartedFileHeader();
 			Assertions.assertSame(DUMMY_PATH, header);
