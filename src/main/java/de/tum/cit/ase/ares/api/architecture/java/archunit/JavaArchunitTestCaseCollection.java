@@ -3,6 +3,7 @@ package de.tum.cit.ase.ares.api.architecture.java.archunit;
 //<editor-fold desc="Imports">
 import java.nio.file.Path;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaAccess;
@@ -76,16 +77,23 @@ public final class JavaArchunitTestCaseCollection {
 			Set<ClassPermission> allowedClasses) {
 		return ArchRuleDefinition.noClasses().that(isNotAllowedClass(allowedClasses))
 				.should(new TransitivelyAccessesMethodsCondition(new DescribedPredicate<>(ruleName) {
-					private Set<String> forbiddenMethods;
+					private Set<String> exactForbiddenMethods;
+
+					private Set<String> forbiddenMethodPrefixes;
 
 					@Override
 					public boolean test(JavaAccess<?> javaAccess) {
-						if (forbiddenMethods == null) {
-							forbiddenMethods = ForbiddenMethodMatcher.effectiveMethods(methodsFilePath);
+						if (exactForbiddenMethods == null) {
+							Set<String> forbiddenMethods = ForbiddenMethodMatcher.effectiveMethods(methodsFilePath);
+							exactForbiddenMethods = forbiddenMethods.stream().filter(method -> method.indexOf('(') >= 0)
+									.collect(Collectors.toUnmodifiableSet());
+							forbiddenMethodPrefixes = forbiddenMethods.stream()
+									.filter(method -> method.indexOf('(') < 0).collect(Collectors.toUnmodifiableSet());
 						}
-						return forbiddenMethods.stream().filter(method -> !method.isEmpty())
-								.anyMatch(method -> ForbiddenMethodMatcher
-										.matches(convertArrayNotation(javaAccess.getTarget().getFullName()), method));
+						String accessedMethod = ForbiddenMethodMatcher
+								.canonicalise(convertArrayNotation(javaAccess.getTarget().getFullName()));
+						return exactForbiddenMethods.contains(accessedMethod) || forbiddenMethodPrefixes.stream()
+								.anyMatch(method -> ForbiddenMethodMatcher.matches(accessedMethod, method));
 					}
 				})).as(ruleName);
 	}
