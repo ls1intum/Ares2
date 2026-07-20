@@ -671,6 +671,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				String settingKey = replaceExisting ? "pathsAllowedToBeOverwritten" : "pathsAllowedToBeCreated";
 				checkSinglePathRole(resolvedAction, settingKey, isolateParameter(parameters, 1), true,
 						systemMethodToCheck, studentCalledMethod, fullMethodSignature);
+			} else {
+				throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
 			}
 			return true;
 		}
@@ -681,6 +683,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				checkSinglePathRole("read", "pathsAllowedToBeRead",
 						instance == null ? new Object[0] : new Object[] { instance }, false, systemMethodToCheck,
 						studentCalledMethod, fullMethodSignature);
+			} else {
+				throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
 			}
 			return true;
 		}
@@ -691,6 +695,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				checkSinglePathRole("overwrite", "pathsAllowedToBeOverwritten",
 						instance == null ? new Object[0] : new Object[] { instance }, false, systemMethodToCheck,
 						studentCalledMethod, fullMethodSignature);
+			} else {
+				throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
 			}
 			return true;
 		}

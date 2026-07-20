@@ -26,7 +26,7 @@ public class HttpClientSendMain {
 	 * before this fix. The short connect timeout is a last-resort guard in case the
 	 * advice is not applied.
 	 */
-	public static HttpResponse<String> sendToSendOnlyAllowedHost() throws IOException, InterruptedException {
+	public static HttpResponse<Void> sendToSendOnlyAllowedHost() throws IOException, InterruptedException {
 		HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofMillis(50)).build();
 		HttpRequest request = HttpRequest.newBuilder(URI.create("http://203.0.113.1:80/")).GET().build();
 		return client.send(request, HttpResponse.BodyHandlers.discarding());

@@ -11,7 +11,6 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.UnixDomainSocketAddress;
-import java.net.http.HttpClient;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SocketChannel;
 import java.util.BitSet;
@@ -719,8 +718,16 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	 */
 	private static List<Map.Entry<String, Boolean>> deriveActionChecks(@Nonnull String defaultAction,
 			@Nonnull String methodName, @Nullable Object instance) {
-		if (instance instanceof HttpClient && ("send".equals(methodName) || "sendAsync".equals(methodName))) {
-			return List.of(Map.entry("send", false), Map.entry("receive", false));
+		if (instance != null && ("send".equals(methodName) || "sendAsync".equals(methodName))) {
+			try {
+				Class<?> httpClientClass = Class.forName("java.net.http.HttpClient", false,
+						ClassLoader.getPlatformClassLoader());
+				if (httpClientClass.isInstance(instance)) {
+					return List.of(Map.entry("send", false), Map.entry("receive", false));
+				}
+			} catch (ClassNotFoundException ignored) {
+				// java.net.http module is not available.
+			}
 		}
 		if (instance instanceof URL && "openStream".equals(methodName)) {
 			return List.of(Map.entry("connect", false), Map.entry("receive", false));
@@ -903,6 +910,17 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		} finally {
 			exitAdvice();
 		}
+	}
+
+	/**
+	 * Performs a network check from another instrumentation toolbox that already
+	 * owns the shared advice re-entrancy guard.
+	 */
+	static void checkNetworkSystemInteractionWithinAdvice(@Nonnull String action, @Nonnull String declaringTypeName,
+			@Nonnull String methodName, @Nonnull String methodSignature, @Nullable Object[] attributes,
+			@Nullable Object[] parameters, @Nullable Object instance) {
+		checkNetworkSystemInteractionImpl(action, declaringTypeName, methodName, methodSignature, attributes,
+				parameters, instance);
 	}
 
 	private static void checkNetworkSystemInteractionImpl(@Nonnull String action, @Nonnull String declaringTypeName,

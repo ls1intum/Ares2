@@ -130,7 +130,7 @@
 		reach the *other* copy's lock reflectively so a write on one classloader's copy and
 		reset() on the other cannot interleave. That cross-classloader coordination is only
 		possible if the accessor is public, which is exactly the pattern this bug flags when
-		reset() also synchronizes on the same field internally. Narrowing the accessor's
+		reset() also synchronises on the same field internally. Narrowing the accessor's
 		visibility would defeat the fix it exists to support.
 	-->
 	<Match>

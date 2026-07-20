@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.FileDescriptor;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -320,7 +321,7 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 	}
 
 	@Test
-	void toTarget_failsClosedForUnrecognisedSocketAddressInsteadOfReturningNull() throws Exception {
+	void toTarget_failsClosedForUntrustedSocketAddressWithoutInvokingIt() throws Exception {
 		// I-110: before the fix, an unparseable SocketAddress (no colon in its
 		// toString()) returned null here, which analyseViolation's target != null
 		// short-circuit then treated as "not forbidden" - a fail-open. Any future
@@ -336,8 +337,9 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 				return "no-colon-here";
 			}
 		};
-		Object target = toTarget.invoke(null, unparseable);
-		assertNotNull(target);
+		InvocationTargetException exception = assertThrows(InvocationTargetException.class,
+				() -> toTarget.invoke(null, unparseable));
+		assertTrue(exception.getCause() instanceof SecurityException);
 	}
 
 	@Test

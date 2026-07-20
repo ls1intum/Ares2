@@ -200,16 +200,15 @@ public class JavaAOPTestCaseSettingsTest {
 	 * <p>
 	 * Description: This does <strong>not</strong> prove the absence of every
 	 * possible race — concurrency is inherently hard to assert deterministically,
-	 * and this fix is deliberately scoped to synchronizing {@code reset()} and each
+	 * and this fix is deliberately scoped to synchronising {@code reset()} and each
 	 * individual field write against each other (not full multi-field read
 	 * atomicity, which is a larger, deferred follow-up — see
 	 * {@link JavaAOPTestCaseSettings#reset()}'s Javadoc). What this test does
 	 * verify: many threads concurrently calling {@code reset()} and
 	 * {@code setJavaAdviceSettingValue} on the same field, repeatedly, never throw
 	 * (e.g. a reflection failure from the lock-resolution indirection added by this
-	 * fix), and the field ends up in one of the two valid end states (reset to
-	 * {@code null}, or the last writer's value) — never something a corrupted
-	 * concurrent write could produce, like a completely unrelated stale object.
+	 * fix). The test deliberately makes no claim about which concurrent writer
+	 * wins.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen

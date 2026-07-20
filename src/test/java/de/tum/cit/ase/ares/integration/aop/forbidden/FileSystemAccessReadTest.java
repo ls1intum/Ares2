@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.integration.aop.forbidden;
 
-import org.junit.jupiter.api.Assertions;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
@@ -711,41 +712,31 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_FILES_COPY_SOURCE_OVERWRITE_ONLY, withinPath = COPY_WITHIN_PATH)
 	void test_accessFileSystemViaFilesCopyMavenArchunitAspectJ() {
-		SecurityException exception = assertAresSecurityExceptionRead(FilesCopyMain::accessFileSystemViaFilesCopy,
-				FilesCopyMain.class);
-		Assertions.assertTrue(exception.getMessage().contains("read"),
-				() -> "Expected the denial to name the 'read' action specifically, but was:\n"
-						+ exception.getMessage());
+		assertFilesCopySourceReadDenied();
 	}
 
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_FILES_COPY_SOURCE_OVERWRITE_ONLY, withinPath = COPY_WITHIN_PATH)
 	void test_accessFileSystemViaFilesCopyMavenArchunitInstrumentation() {
-		SecurityException exception = assertAresSecurityExceptionRead(FilesCopyMain::accessFileSystemViaFilesCopy,
-				FilesCopyMain.class);
-		Assertions.assertTrue(exception.getMessage().contains("read"),
-				() -> "Expected the denial to name the 'read' action specifically, but was:\n"
-						+ exception.getMessage());
+		assertFilesCopySourceReadDenied();
 	}
 
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_FILES_COPY_SOURCE_OVERWRITE_ONLY, withinPath = COPY_WITHIN_PATH)
 	void test_accessFileSystemViaFilesCopyMavenWalaAspectJ() {
-		SecurityException exception = assertAresSecurityExceptionRead(FilesCopyMain::accessFileSystemViaFilesCopy,
-				FilesCopyMain.class);
-		Assertions.assertTrue(exception.getMessage().contains("read"),
-				() -> "Expected the denial to name the 'read' action specifically, but was:\n"
-						+ exception.getMessage());
+		assertFilesCopySourceReadDenied();
 	}
 
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_FILES_COPY_SOURCE_OVERWRITE_ONLY, withinPath = COPY_WITHIN_PATH)
 	void test_accessFileSystemViaFilesCopyMavenWalaInstrumentation() {
-		SecurityException exception = assertAresSecurityExceptionRead(FilesCopyMain::accessFileSystemViaFilesCopy,
-				FilesCopyMain.class);
-		Assertions.assertTrue(exception.getMessage().contains("read"),
-				() -> "Expected the denial to name the 'read' action specifically, but was:\n"
-						+ exception.getMessage());
+		assertFilesCopySourceReadDenied();
+	}
+
+	private void assertFilesCopySourceReadDenied() {
+		Path expectedPath = Paths.get("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration", "aop",
+				"forbidden", "subject", "fileSystem", "read", "copy", "copySource.txt");
+		assertAresSecurityExceptionRead(FilesCopyMain::accessFileSystemViaFilesCopy, FilesCopyMain.class, expectedPath);
 	}
 	// </editor-fold>
 

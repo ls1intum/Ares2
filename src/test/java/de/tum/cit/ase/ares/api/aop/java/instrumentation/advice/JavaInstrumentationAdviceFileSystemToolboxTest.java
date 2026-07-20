@@ -8,6 +8,7 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -100,6 +101,14 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 				.get("org.apache.commons.io.FileUtils").contains("forceDelete"));
 		assertTrue(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_DELETE_FILES
 				.get("java.nio.file.spi.FileSystemProvider").contains("delete"));
+		assertTrue(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_READ_FILES.get("java.nio.file.Files")
+				.containsAll(List.of("copy", "mismatch")));
+		assertTrue(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_OVERWRITE_FILES.get("java.nio.file.Files")
+				.contains("copy"));
+		assertTrue(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_READ_FILES
+				.get("java.nio.channels.FileChannel").contains("transferTo"));
+		assertTrue(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_OVERWRITE_FILES
+				.get("java.nio.channels.FileChannel").containsAll(List.of("transferTo", "transferFrom")));
 	}
 
 	@Test

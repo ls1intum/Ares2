@@ -14,9 +14,9 @@ regardingTheSupervisedCode:
         executeAllFiles: false
         deleteAllFiles: false
         onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/copy"
-    regardingNetworkConnections: [ ]
-    regardingCommandExecutions: [ ]
-    regardingThreadCreations: [ ]
-    regardingPackageImports: [ ]
+    regardingNetworkConnections: []
+    regardingCommandExecutions: []
+    regardingThreadCreations: []
+    regardingPackageImports: []
     regardingTimeouts:
       - timeout: 3000

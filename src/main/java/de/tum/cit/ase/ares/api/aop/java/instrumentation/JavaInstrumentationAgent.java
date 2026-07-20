@@ -82,6 +82,13 @@ public final class JavaInstrumentationAgent {
 		// the moment the JDK retransforms java.io.* during agent install.
 		java.lang.StackWalker walker = java.lang.StackWalker.getInstance();
 		walker.walk(stream -> stream.limit(1L).count());
+		// File-policy checks call Files.exists/toRealPath. Load the platform's file
+		// provider exception classes before those JDK methods are instrumented,
+		// avoiding
+		// a cold-start ClassCircularityError inside the first security check.
+		java.nio.file.Files.exists(java.nio.file.Path.of("."));
+		preloadPlatformClass("sun.nio.fs.UnixException");
+		preloadPlatformClass("sun.nio.fs.WindowsException");
 
 		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_READ_FILES,
 				JavaInstrumentationBindingDefinitions::createReadPathMethodBinding);
@@ -137,6 +144,14 @@ public final class JavaInstrumentationAgent {
 				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_RECEIVE_FROM_NETWORK,
 				JavaInstrumentationBindingDefinitions::createReceiveNetworkConstructorBinding);
 		installThreadCallSiteBuilder(inst, unsafeFactory);
+	}
+
+	private static void preloadPlatformClass(String className) {
+		try {
+			Class.forName(className, false, null);
+		} catch (ClassNotFoundException ignored) {
+			// The class belongs to a different operating system's file provider.
+		}
 	}
 
 	/**

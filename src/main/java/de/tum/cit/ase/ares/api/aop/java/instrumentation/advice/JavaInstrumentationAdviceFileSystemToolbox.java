@@ -3,9 +3,13 @@ package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Array;
+import java.lang.reflect.Field;
+import java.lang.reflect.InaccessibleObjectException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.channels.FileChannel;
+import java.nio.channels.SocketChannel;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.LinkOption;
@@ -384,12 +388,33 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				// File is not final; a student subclass could run code in toURI().
 				requireTrustedRuntimeType(variableValue);
 				return Path.of(((File) variableValue).toURI()).normalize().toAbsolutePath();
+			} else if (variableValue instanceof FileChannel fileChannel) {
+				requireTrustedRuntimeType(variableValue);
+				return fileChannelPath(fileChannel);
 			} else {
 				return null;
 			}
 		} catch (InvalidPathException | URISyntaxException ignored) {
 			return null;
 		}
+	}
+
+	@Nullable
+	private static Path fileChannelPath(@Nonnull FileChannel fileChannel) {
+		Class<?> currentType = fileChannel.getClass();
+		while (currentType != null) {
+			try {
+				Field pathField = currentType.getDeclaredField("path");
+				pathField.setAccessible(true);
+				Object path = pathField.get(fileChannel);
+				return path instanceof String ? Path.of((String) path).normalize().toAbsolutePath() : null;
+			} catch (NoSuchFieldException missing) {
+				currentType = currentType.getSuperclass();
+			} catch (IllegalAccessException | InaccessibleObjectException inaccessible) {
+				return null;
+			}
+		}
+		return null;
 	}
 
 	/**
@@ -706,6 +731,13 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				checkSinglePathRole("read", "pathsAllowedToBeRead",
 						instance == null ? new Object[0] : new Object[] { instance }, false, fileSystemMethodToCheck,
 						studentCalledMethod, fullMethodSignature);
+				Object target = parameterAt(parameters, 2);
+				if (target instanceof SocketChannel) {
+					JavaInstrumentationAdviceNetworkSystemToolbox.checkNetworkSystemInteractionWithinAdvice("send",
+							declaringTypeName, methodName, fullMethodSignature, null, null, target);
+				}
+			} else {
+				throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
 			}
 			return true;
 		}
@@ -716,10 +748,22 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				checkSinglePathRole("overwrite", "pathsAllowedToBeOverwritten",
 						instance == null ? new Object[0] : new Object[] { instance }, false, fileSystemMethodToCheck,
 						studentCalledMethod, fullMethodSignature);
+				Object source = parameterAt(parameters, 0);
+				if (source instanceof SocketChannel) {
+					JavaInstrumentationAdviceNetworkSystemToolbox.checkNetworkSystemInteractionWithinAdvice("receive",
+							declaringTypeName, methodName, fullMethodSignature, null, null, source);
+				}
+			} else {
+				throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
 			}
 			return true;
 		}
 		return false;
+	}
+
+	@Nullable
+	private static Object parameterAt(@Nullable Object[] parameters, int index) {
+		return parameters == null || index < 0 || index >= parameters.length ? null : parameters[index];
 	}
 
 	/**

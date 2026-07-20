@@ -219,8 +219,11 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 			return null;
 		} else if (variableValue instanceof String[] && ((String[]) variableValue).length != 0) {
 			parts = (String[]) variableValue;
-		} else if (variableValue instanceof List<?>
-				&& ((List<?>) variableValue).stream().allMatch(o -> o instanceof String)) {
+		} else if (variableValue instanceof List<?>) {
+			requireTrustedRuntimeType(variableValue);
+			if (!((List<?>) variableValue).stream().allMatch(o -> o instanceof String)) {
+				return null;
+			}
 			@SuppressWarnings("unchecked")
 			List<String> stringList = (List<String>) variableValue;
 			parts = stringList.toArray(new String[0]);
@@ -360,6 +363,7 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 		if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
 			return false;
 		} else if (observedVariable instanceof List<?>) {
+			requireTrustedRuntimeType(observedVariable);
 			List<?> list = (List<?>) observedVariable;
 			// ProcessBuilder.startPipeline(List<ProcessBuilder>): each element is an
 			// independent command, re-read live (see extractPipelineCommands), not a flat
@@ -422,6 +426,7 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 		if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
 			return null;
 		} else if (observedVariable instanceof List<?>) {
+			requireTrustedRuntimeType(observedVariable);
 			List<?> list = (List<?>) observedVariable;
 			// Mirror analyseViolation's pipeline branch exactly, so a violation it reports
 			// is always resolvable to a display string here.
@@ -474,6 +479,7 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 		if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
 			return null;
 		} else if (observedVariable instanceof List<?>) {
+			requireTrustedRuntimeType(observedVariable);
 			List<?> list = (List<?>) observedVariable;
 			if (list.stream().anyMatch(o -> o instanceof ProcessBuilder)) {
 				List<List<String>> pipelineCommands = extractPipelineCommands(list);

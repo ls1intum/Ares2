@@ -3,6 +3,8 @@ package de.tum.cit.ase.ares.testutilities;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -80,9 +82,9 @@ class PublicTestNamingConventionTest {
 		StringBuilder builder = new StringBuilder();
 		for (Path path : paths) {
 			try {
-				builder.append(Files.readString(path));
+				builder.append(Files.readString(path, StandardCharsets.UTF_8));
 			} catch (IOException unreadable) {
-				// A file that can't even be read as text contributes nothing to search.
+				throw new UncheckedIOException("Could not read Java source file: " + path, unreadable);
 			}
 		}
 		return builder.toString();
@@ -90,12 +92,10 @@ class PublicTestNamingConventionTest {
 
 	private static boolean usesPublicTestAnnotation(Path path) {
 		try {
-			String content = Files.readString(path);
+			String content = Files.readString(path, StandardCharsets.UTF_8);
 			return content.contains("@PublicTest");
 		} catch (IOException unreadable) {
-			// A file that can't even be read as text is not a Java source file we can
-			// meaningfully check; skip it rather than failing the whole scan.
-			return false;
+			throw new UncheckedIOException("Could not read Java source file: " + path, unreadable);
 		}
 	}
 }

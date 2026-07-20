@@ -242,7 +242,7 @@ public class JavaAOPTestCase extends AOPTestCase {
 		}
 		Field field = adviceSettingsClass.getDeclaredField(adviceSetting);
 		field.setAccessible(true);
-		// I-032 (scoped): synchronize each individual field write on the same lock
+		// I-032 (scoped): synchronise each individual field write on the same lock
 		// JavaAOPTestCaseSettings.reset() now uses, so a reset() cannot interleave
 		// with a concurrent settings write. This is a bootstrap-classloader-safe way
 		// to reach the lock: JavaAOPTestCaseSettings.getSettingsLock() is called on
@@ -259,7 +259,7 @@ public class JavaAOPTestCase extends AOPTestCase {
 			}
 		} catch (NoSuchMethodException | InvocationTargetException reflectionFailure) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-					.localize("security.creation.advice.no.such.field.exception", adviceSetting), reflectionFailure);
+					.localize("security.creation.advice.settings.lock.exception", adviceSetting), reflectionFailure);
 		} finally {
 			field.setAccessible(false);
 		}
