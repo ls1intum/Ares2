@@ -1167,7 +1167,7 @@ tasks.register('buildInstrumentationAgent', Jar) {
     description 'Builds a proper Java agent from the Ares JAR with correct manifest'
     archiveFileName = 'ares-agent.jar'
     destinationDirectory = layout.buildDirectory.dir("agents")
-    from zipTree(layout.buildDirectory.file("agents/ares-2.1.0.jar").get().asFile)
+    from zipTree(configurations.aresAgent.filter { it.name.startsWith('ares-') }.singleFile)
     manifest {
         attributes(
                 'Manifest-Version': '1.0',
