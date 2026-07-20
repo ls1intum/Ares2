@@ -68,15 +68,17 @@ class PolicyValueValidatorTest {
 	}
 
 	@ParameterizedTest
-	@ValueSource(strings = { "*", "/var/lib/ares", "src/main/java", "../relative/path", "C:\\Users\\Ares",
-			"C:/Users/Ares", "\\\\server\\share\\file", "${PROJECT_ROOT}/target", "${java.home}/bin",
-			"${user.home}/.ares", "${java.io.tmpdir}/ares" })
+	@ValueSource(strings = { "*", "/var/lib/ares", "src/main/java", "relative/path", "archive..bak", "path/.../file",
+			"path/..suffix", "C:\\Users\\Ares", "C:/Users/Ares", "\\\\server\\share\\file", "${PROJECT_ROOT}/target",
+			"${java.home}/bin", "${user.home}/.ares", "${java.io.tmpdir}/ares" })
 	void acceptsSupportedPathsAndPlaceholders(String value) {
 		assertTrue(PolicyValueValidator.matches(value, PolicyValueValidator.FILE_PATH_PATTERN));
 	}
 
 	@ParameterizedTest
-	@ValueSource(strings = { "", " ", "${UNKNOWN}/target", "/tmp/*", "src/*/java" })
+	@ValueSource(strings = { "", " ", "${UNKNOWN}/target", "/tmp/*", "src/*/java", "..", "../relative/path",
+			"..\\relative\\path", "path/../file", "path\\..\\file", "path/..", "path\\..", "/../etc", "C:\\..\\Windows",
+			"${PROJECT_ROOT}/../outside" })
 	void rejectsInvalidPathsAndEmbeddedWildcards(String value) {
 		assertFalse(PolicyValueValidator.matches(value, PolicyValueValidator.FILE_PATH_PATTERN));
 	}

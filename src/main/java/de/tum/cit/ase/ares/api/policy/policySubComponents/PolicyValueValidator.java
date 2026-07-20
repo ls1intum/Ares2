@@ -49,8 +49,9 @@ public final class PolicyValueValidator {
 	 * Matches a supported file path, recognised placeholder expression, or
 	 * wildcard.
 	 */
-	public static final Pattern FILE_PATH_PATTERN = Pattern.compile(
-			"^(?:\\*|(?=.+$)(?=.*\\S)(?:(?:" + RECOGNISED_PLACEHOLDER + ")|(?!\\$\\{)[^*\\x00])+)$", Pattern.DOTALL);
+	public static final Pattern FILE_PATH_PATTERN = Pattern
+			.compile("^(?:\\*|(?=.+$)(?=.*\\S)(?!(?:.*[\\\\/])?\\.\\.(?:[\\\\/]|$))(?:(?:" + RECOGNISED_PLACEHOLDER
+					+ ")|(?!\\$\\{)[^*\\x00])+)$", Pattern.DOTALL);
 
 	/** Matches a DNS name, IP address, localhost, or host wildcard. */
 	public static final Pattern HOST_PATTERN = Pattern

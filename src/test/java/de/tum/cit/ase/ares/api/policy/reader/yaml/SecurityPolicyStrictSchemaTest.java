@@ -281,6 +281,7 @@ class SecurityPolicyStrictSchemaTest {
 				Arguments.of("theFollowingClassesAreTestClasses: [com.example.MainTest]",
 						"theFollowingClassesAreTestClasses: [com.example.]"),
 				Arguments.of("onThisPathAndAllPathsBelow: /tmp/data", "onThisPathAndAllPathsBelow: '${UNKNOWN}/data'"),
+				Arguments.of("onThisPathAndAllPathsBelow: /tmp/data", "onThisPathAndAllPathsBelow: '../tmp/data'"),
 				Arguments.of("onTheHost: localhost", "onTheHost: 256.1.1.1"),
 				Arguments.of("ofThisClass: java.lang.Thread", "ofThisClass: java.lang."),
 				Arguments.of("importTheFollowingPackage: java.util", "importTheFollowingPackage: java.*"));

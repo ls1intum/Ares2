@@ -30,6 +30,8 @@ class PolicyValueContractTest {
 		assertThrows(NullPointerException.class, () -> new ClassPermission(null));
 		assertThrows(IllegalArgumentException.class, () -> new ClassPermission(" "));
 		assertThrows(IllegalArgumentException.class, () -> new FilePermission(" ", false, false, false, false, false));
+		assertThrows(IllegalArgumentException.class,
+				() -> new FilePermission("../outside", false, false, false, false, false));
 		assertThrows(IllegalArgumentException.class, () -> new NetworkPermission("host", -1, false, false, false));
 		assertEquals(0, new NetworkPermission("host", 0, true, true, true).onThePort());
 		assertEquals(65535, new NetworkPermission("host", 65535, true, true, true).onThePort());
