@@ -883,7 +883,7 @@ java.lang.ProcessBuilder.startPipeline
     <dependency>
         <groupId>de.tum.cit.ase</groupId>
         <artifactId>ares</artifactId>
-        <version>2.0.1-Beta9</version>
+        <version>2.1.0</version>
     </dependency>
 </dependencies>
 ```
