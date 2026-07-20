@@ -18,6 +18,24 @@ import example.student.InstrumentationSecurityProbe;
 
 class JavaInstrumentationAdviceCommandSystemToolboxTest {
 
+	@Test
+	void wildcardCommandAndArgumentsMatchAnyRuntimeValues() throws Exception {
+		Method commandMatches = JavaInstrumentationAdviceCommandSystemToolbox.class.getDeclaredMethod("commandMatches",
+				String.class, String.class);
+		commandMatches.setAccessible(true);
+		Method argumentsMatch = JavaInstrumentationAdviceCommandSystemToolbox.class.getDeclaredMethod("argumentsMatch",
+				String[].class, String[].class);
+		argumentsMatch.setAccessible(true);
+
+		assertTrue((boolean) commandMatches.invoke(null, "java", "*"));
+		assertTrue((boolean) argumentsMatch.invoke(null, (Object) new String[] { "*" },
+				(Object) new String[] { "--version", "--help" }));
+		assertTrue((boolean) argumentsMatch.invoke(null, (Object) new String[] { "run", "*" },
+				(Object) new String[] { "run", "anything" }));
+		assertFalse((boolean) argumentsMatch.invoke(null, (Object) new String[] { "run", "*" },
+				(Object) new String[] { "run", "anything", "else" }));
+	}
+
 	/**
 	 * Loads the localization bundle while still unrestricted, so that building a
 	 * denial message under INSTRUMENTATION mode hits the cached bundle instead of

@@ -65,6 +65,7 @@ class SecurityPolicyPipelineIntegrationTest {
 		String configuration = mode == BuildMode.MAVEN ? "JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ"
 				: "JAVA_USING_GRADLE_ARCHUNIT_AND_ASPECTJ";
 		return """
+				thisPolicyFileCompliesToThePolicyVersion: 1
 				regardingTheSupervisedCode:
 				  theFollowingProgrammingLanguageConfigurationIsUsed: %s
 				  theSupervisedCodeUsesTheFollowingPackage: com.example

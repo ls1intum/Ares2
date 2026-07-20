@@ -75,7 +75,7 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 	 * @param target       the resolved network target to evaluate; may be null
 	 * @param allowedHosts parallel array of allowed hostname patterns; the wildcard
 	 *                     {@code "*"} matches any host
-	 * @param allowedPorts parallel array of allowed port numbers; {@code -1}
+	 * @param allowedPorts parallel array of allowed port numbers; {@code 0}
 	 *                     matches any port
 	 * @return {@code true} if the target is forbidden; {@code false} if it is
 	 *         explicitly allowed
@@ -147,12 +147,12 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 	/**
 	 * Checks whether an actual port number matches an allowed port.
 	 * <p>
-	 * Description: A value of {@code -1} for {@code allowedPort} acts as a wildcard
+	 * Description: A value of {@code 0} for {@code allowedPort} acts as a wildcard
 	 * that permits any port number. Otherwise performs an exact integer equality
 	 * check.
 	 *
 	 * @param actualPort  the port resolved from the intercepted call
-	 * @param allowedPort the port from the security policy; {@code -1} means any
+	 * @param allowedPort the port from the security policy; {@code 0} means any
 	 *                    port is permitted
 	 * @return {@code true} if the actual port is permitted by the policy
 	 * @since 2.0.0
