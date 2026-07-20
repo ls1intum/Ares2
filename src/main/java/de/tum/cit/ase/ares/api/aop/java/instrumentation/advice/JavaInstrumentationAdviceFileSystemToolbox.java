@@ -9,7 +9,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.channels.FileChannel;
-import java.nio.channels.SocketChannel;
+import java.nio.channels.NetworkChannel;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.LinkOption;
@@ -737,7 +737,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 						instance == null ? new Object[0] : new Object[] { instance }, false, fileSystemMethodToCheck,
 						studentCalledMethod, fullMethodSignature);
 				Object target = parameterAt(parameters, 2);
-				if (target instanceof SocketChannel) {
+				if (target instanceof NetworkChannel) {
 					JavaInstrumentationAdviceNetworkSystemToolbox.checkNetworkSystemInteractionWithinAdvice("send",
 							declaringTypeName, methodName, fullMethodSignature, null, null, target);
 				}
@@ -754,7 +754,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 						instance == null ? new Object[0] : new Object[] { instance }, false, fileSystemMethodToCheck,
 						studentCalledMethod, fullMethodSignature);
 				Object source = parameterAt(parameters, 0);
-				if (source instanceof SocketChannel) {
+				if (source instanceof NetworkChannel) {
 					JavaInstrumentationAdviceNetworkSystemToolbox.checkNetworkSystemInteractionWithinAdvice("receive",
 							declaringTypeName, methodName, fullMethodSignature, null, null, source);
 				}

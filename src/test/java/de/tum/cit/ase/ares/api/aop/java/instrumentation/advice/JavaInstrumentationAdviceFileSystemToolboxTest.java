@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import java.lang.reflect.Method;
+import java.net.InetSocketAddress;
+import java.nio.channels.DatagramChannel;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -374,6 +376,64 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 				assertTrue(exception.getMessage().contains("overwrite"),
 						() -> "Expected the denial to name the 'overwrite' action, but was:\n"
 								+ exception.getMessage());
+			}
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
+	void checkFileSystemInteraction_fileChannelTransferToDatagramChannelChecksNetworkSend(@TempDir Path tempDir)
+			throws Exception {
+		try {
+			resetSettings();
+			Path source = tempDir.resolve("source.txt");
+			Files.writeString(source, "content");
+
+			try (FileChannel sourceChannel = FileChannel.open(source, StandardOpenOption.READ);
+					DatagramChannel targetChannel = DatagramChannel.open()) {
+				targetChannel.connect(new InetSocketAddress("203.0.113.1", 80));
+				configureInstrumentationMode();
+				JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[] { source.toString() },
+						"ARCH", "INSTRUMENTATION");
+				JavaAOPTestCase.setJavaAdviceSettingValue("hostsAllowedToBeSentTo", new String[0], "ARCH",
+						"INSTRUMENTATION");
+				JavaAOPTestCase.setJavaAdviceSettingValue("portsAllowedToBeSentTo", new int[0], "ARCH",
+						"INSTRUMENTATION");
+
+				SecurityException exception = assertThrows(SecurityException.class, () -> InstrumentationSecurityProbe
+						.checkFileChannelTransferToReadLeg(sourceChannel, 0, 10, targetChannel));
+				assertTrue(exception.getMessage().contains("send"),
+						() -> "Expected the denial to name the 'send' action, but was:\n" + exception.getMessage());
+			}
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
+	void checkFileSystemInteraction_fileChannelTransferFromDatagramChannelChecksNetworkReceive(@TempDir Path tempDir)
+			throws Exception {
+		try {
+			resetSettings();
+			Path destination = tempDir.resolve("destination.txt");
+			Files.createFile(destination);
+
+			try (FileChannel destinationChannel = FileChannel.open(destination, StandardOpenOption.WRITE);
+					DatagramChannel sourceChannel = DatagramChannel.open()) {
+				sourceChannel.connect(new InetSocketAddress("203.0.113.1", 80));
+				configureInstrumentationMode();
+				JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeOverwritten",
+						new String[] { destination.toString() }, "ARCH", "INSTRUMENTATION");
+				JavaAOPTestCase.setJavaAdviceSettingValue("hostsAllowedToBeReceivedFrom", new String[0], "ARCH",
+						"INSTRUMENTATION");
+				JavaAOPTestCase.setJavaAdviceSettingValue("portsAllowedToBeReceivedFrom", new int[0], "ARCH",
+						"INSTRUMENTATION");
+
+				SecurityException exception = assertThrows(SecurityException.class, () -> InstrumentationSecurityProbe
+						.checkFileChannelTransferFromOverwriteLeg(destinationChannel, sourceChannel, 0, 10));
+				assertTrue(exception.getMessage().contains("receive"),
+						() -> "Expected the denial to name the 'receive' action, but was:\n" + exception.getMessage());
 			}
 		} finally {
 			resetSettings();
