@@ -366,10 +366,20 @@ public final class JavaInstrumentationPointcutDefinitions {
 							"readUTF")),
 			Map.entry("java.io.File", List.of("normalizedList", "list", "listFiles", "listRoots")),
 			// java.nio
+			// Note: "copy" is also registered in METHODS_WHICH_CAN_OVERWRITE_FILES below:
+			// the
+			// source path must be checked as READ, not OVERWRITE (I-114/TD-063) - the
+			// advice's
+			// checkCopyOrTransferSpecialCase splits each firing to the correct parameter.
 			Map.entry("java.nio.file.Files",
-					List.of("find", "lines", "list", "newBufferedReader", "newByteChannel", "newDirectoryStream",
-							"newInputStream", "readAllBytes", "readAllLines", "readString", "walk", "walkFileTree")),
-			Map.entry("java.nio.channels.FileChannel", List.of("map", "open")),
+					List.of("copy", "find", "lines", "list", "mismatch", "newBufferedReader", "newByteChannel",
+							"newDirectoryStream", "newInputStream", "readAllBytes", "readAllLines", "readString",
+							"walk", "walkFileTree")),
+			// Note: "transferTo" is also registered in METHODS_WHICH_CAN_OVERWRITE_FILES
+			// below:
+			// the receiver (the channel being read FROM) must be checked as READ - see
+			// checkCopyOrTransferSpecialCase.
+			Map.entry("java.nio.channels.FileChannel", List.of("map", "open", "transferTo")),
 			Map.entry("java.nio.channels.AsynchronousFileChannel", List.of("open", "read")),
 			Map.entry("java.nio.channels.SeekableByteChannel", List.of("read")),
 			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("newDirectoryStream")),
@@ -447,7 +457,16 @@ public final class JavaInstrumentationPointcutDefinitions {
 			// Note: "map" is intentionally NOT included here - it's in
 			// METHODS_WHICH_CAN_READ_FILES.
 			// The actual operation is determined by MapMode via deriveActionChecks().
-			Map.entry("java.nio.channels.FileChannel", List.of("truncate", "write", "transferTo")),
+			// Note: FileChannel.transferFrom was previously not intercepted by either
+			// backend
+			// at all (I-114/TD-063). Its receiver (the channel being written TO) is checked
+			// as
+			// OVERWRITE; unlike transferTo it is not also registered in
+			// METHODS_WHICH_CAN_READ_FILES, since its src argument is itself a channel and
+			// is
+			// not resolvable to a checkable path with the existing machinery - see
+			// checkCopyOrTransferSpecialCase's class-level Javadoc.
+			Map.entry("java.nio.channels.FileChannel", List.of("truncate", "write", "transferTo", "transferFrom")),
 			Map.entry("java.nio.channels.AsynchronousFileChannel", List.of("truncate", "write")),
 			// Note: newByteChannel is intentionally NOT included here - it's in
 			// METHODS_WHICH_CAN_READ_FILES.
@@ -581,7 +600,7 @@ public final class JavaInstrumentationPointcutDefinitions {
 	public static final Map<String, List<String>> METHODS_WHICH_CAN_EXECUTE_COMMANDS = Map.ofEntries(
 			// java.lang
 			Map.entry("java.lang.Runtime", List.of("exec")),
-			Map.entry("java.lang.ProcessBuilder", List.of("start", "<init>")));
+			Map.entry("java.lang.ProcessBuilder", List.of("start", "startPipeline", "<init>")));
 	// </editor-fold>
 
 	// <editor-fold desc="Network connect">

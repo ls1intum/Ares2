@@ -10,6 +10,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.net.UnixDomainSocketAddress;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SocketChannel;
 import java.util.BitSet;
@@ -211,11 +212,14 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	 * <p>
 	 * Description: Inspects the runtime type of {@code value} and delegates to the
 	 * appropriate extraction logic. Handles {@link InetSocketAddress},
-	 * {@link SocketAddress}, {@code java.net.http.HttpRequest}, {@link URI},
-	 * {@link URL}, {@link URLConnection}, {@link Socket}, {@link DatagramSocket},
-	 * {@link SocketChannel}, {@link DatagramChannel}, and {@link String} values.
-	 * Returns {@code null} when the value is {@code null} or of an unrecognised
-	 * type.
+	 * {@link UnixDomainSocketAddress}, {@link SocketAddress},
+	 * {@code java.net.http.HttpRequest}, {@link URI}, {@link URL},
+	 * {@link URLConnection}, {@link Socket}, {@link DatagramSocket},
+	 * {@link SocketChannel}, {@link DatagramChannel}, and {@link String} values. A
+	 * recognised {@link SocketAddress} that cannot be resolved to a specific
+	 * host:port (any future address-family shape) still produces a target
+	 * (fail-closed, I-110) rather than {@code null}; only a value of an entirely
+	 * unrecognised type returns {@code null}.
 	 *
 	 * @param value the object to convert; may be null
 	 * @return a {@link NetworkTarget} describing the endpoint, or {@code null} if
@@ -240,6 +244,10 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 			}
 			return new NetworkTarget(host, inetSocketAddress.getPort());
 		}
+		if (value instanceof UnixDomainSocketAddress unixDomainSocketAddress) {
+			requireTrustedRuntimeType(value);
+			return new NetworkTarget(unixDomainSocketAddress.getPath().toString(), -1);
+		}
 		if (value instanceof SocketAddress socketAddress) {
 			requireTrustedRuntimeType(value);
 			String socketAddressAsString = socketAddress.toString();
@@ -250,15 +258,21 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 					int port = Integer.parseInt(socketAddressAsString.substring(delimiter + 1));
 					return new NetworkTarget(host, port);
 				} catch (NumberFormatException ignored) {
-					return null;
+					// Fall through to the unparsed-string backstop below.
 				}
 			}
-			return null;
+			// Fail closed (I-110): an unrecognised SocketAddress subtype (e.g. any future
+			// address family), or one whose toString() doesn't parse as host:port, must
+			// still produce a target so the allow-list can reject it - matching the
+			// established out-of-range-port pattern in portSuffixToTarget. Returning null
+			// here would fail open by skipping the check entirely for this operation.
+			return new NetworkTarget(socketAddressAsString, -1);
 		}
 		// HttpRequest is in the java.net.http module which may not be visible from
 		// the bootstrap class-loader. Use reflection to avoid a hard dependency.
 		try {
-			Class<?> httpRequestClass = Class.forName("java.net.http.HttpRequest", false, null);
+			Class<?> httpRequestClass = Class.forName("java.net.http.HttpRequest", false,
+					ClassLoader.getPlatformClassLoader());
 			if (httpRequestClass.isInstance(value)) {
 				requireTrustedRuntimeType(value);
 				Object uri = httpRequestClass.getMethod("uri").invoke(value);
@@ -684,19 +698,47 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	 * Derives the list of network actions that need to be validated for a given
 	 * invocation.
 	 * <p>
-	 * Description: Currently returns a singleton list containing the original
-	 * action because network operations (connect, send, receive) do not decompose
-	 * into sub-actions the way file-system operations can. The method exists to
-	 * maintain structural symmetry with the file-system toolbox and to provide a
-	 * natural extension point should future network actions require derivation.
+	 * Description: Most network operations perform exactly one action (connect,
+	 * send, or receive), so this returns a singleton list containing the pointcut's
+	 * default action. Four composite JDK methods each genuinely perform two
+	 * distinct actions in one call and are checked against both, independently:
+	 * {@code HttpClient.send}/{@code sendAsync} (send+receive — the response body
+	 * is available synchronously), {@code URL.openStream} (connect+receive),
+	 * {@code URLConnection.getOutputStream} (connect+send), and
+	 * {@code URLConnection.getInputStream} (connect+receive). Without this, a
+	 * SEND-allowed/RECEIVE-denied policy would still let {@code HttpClient.send}
+	 * return a full response, since only the SEND action was ever checked (I-068).
 	 *
 	 * @param defaultAction the network action associated with the pointcut
 	 *                      configuration (e.g., {@code connect})
+	 * @param methodName    the name of the method invoked
+	 * @param instance      the receiver object of the intercepted call; may be null
 	 * @return ordered list of action/allow-non-existing pairs to validate
 	 * @since 2.0.0
 	 * @author Kevin Fischer
 	 */
-	private static List<Map.Entry<String, Boolean>> deriveActionChecks(@Nonnull String defaultAction) {
+	private static List<Map.Entry<String, Boolean>> deriveActionChecks(@Nonnull String defaultAction,
+			@Nonnull String methodName, @Nullable Object instance) {
+		if (instance != null && ("send".equals(methodName) || "sendAsync".equals(methodName))) {
+			try {
+				Class<?> httpClientClass = Class.forName("java.net.http.HttpClient", false,
+						ClassLoader.getPlatformClassLoader());
+				if (httpClientClass.isInstance(instance)) {
+					return List.of(Map.entry("send", false), Map.entry("receive", false));
+				}
+			} catch (ClassNotFoundException ignored) {
+				// java.net.http module is not available.
+			}
+		}
+		if (instance instanceof URL && "openStream".equals(methodName)) {
+			return List.of(Map.entry("connect", false), Map.entry("receive", false));
+		}
+		if (instance instanceof URLConnection && "getOutputStream".equals(methodName)) {
+			return List.of(Map.entry("connect", false), Map.entry("send", false));
+		}
+		if (instance instanceof URLConnection && "getInputStream".equals(methodName)) {
+			return List.of(Map.entry("connect", false), Map.entry("receive", false));
+		}
 		return Collections.singletonList(Map.entry(defaultAction, false));
 	}
 
@@ -871,6 +913,17 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		}
 	}
 
+	/**
+	 * Performs a network check from another instrumentation toolbox that already
+	 * owns the shared advice re-entrancy guard.
+	 */
+	static void checkNetworkSystemInteractionWithinAdvice(@Nonnull String action, @Nonnull String declaringTypeName,
+			@Nonnull String methodName, @Nonnull String methodSignature, @Nullable Object[] attributes,
+			@Nullable Object[] parameters, @Nullable Object instance) {
+		checkNetworkSystemInteractionImpl(action, declaringTypeName, methodName, methodSignature, attributes,
+				parameters, instance);
+	}
+
 	private static void checkNetworkSystemInteractionImpl(@Nonnull String action, @Nonnull String declaringTypeName,
 			@Nonnull String methodName, @Nonnull String methodSignature, @Nullable Object[] attributes,
 			@Nullable Object[] parameters, @Nullable Object instance) {
@@ -910,7 +963,7 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
 		// </editor-fold>
 
-		List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action);
+		List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action, methodName, instance);
 		for (Map.Entry<String, Boolean> actionCheck : actionsToValidate) {
 			checkNetworkSystemInteractionForAction(actionCheck.getKey(), declaringTypeName, methodName, attributes,
 					parameters, instance, networkSystemMethodToCheck, studentCalledMethod, fullMethodSignature);

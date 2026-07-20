@@ -9,10 +9,12 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.net.UnixDomainSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SocketChannel;
@@ -172,11 +174,13 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 	 * <p>
 	 * Description: Inspects the runtime type of {@code value} and delegates to the
 	 * appropriate extraction logic. Handles {@link InetSocketAddress},
-	 * {@link SocketAddress}, {@link HttpRequest}, {@link URI}, {@link URL},
-	 * {@link URLConnection}, {@link Socket}, {@link DatagramSocket},
-	 * {@link SocketChannel}, {@link DatagramChannel}, and {@link String} values.
-	 * Returns {@code null} when the value is {@code null} or of an unrecognised
-	 * type.
+	 * {@link UnixDomainSocketAddress}, {@link SocketAddress}, {@link HttpRequest},
+	 * {@link URI}, {@link URL}, {@link URLConnection}, {@link Socket},
+	 * {@link DatagramSocket}, {@link SocketChannel}, {@link DatagramChannel}, and
+	 * {@link String} values. A recognised {@link SocketAddress} that cannot be
+	 * resolved to a specific host:port (any future address-family shape) still
+	 * produces a target (fail-closed, I-110) rather than {@code null}; only a
+	 * value of an entirely unrecognised type returns {@code null}.
 	 *
 	 * @param value the object to convert; may be null
 	 * @return a {@link NetworkTarget} describing the endpoint, or {@code null}
@@ -200,6 +204,10 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 			}
 			return new NetworkTarget(host, inetSocketAddress.getPort());
 		}
+		if (value instanceof UnixDomainSocketAddress unixDomainSocketAddress) {
+			requireTrustedRuntimeType(value);
+			return new NetworkTarget(unixDomainSocketAddress.getPath().toString(), -1);
+		}
 		if (value instanceof SocketAddress socketAddress) {
 			requireTrustedRuntimeType(value);
 			String socketAddressAsString = socketAddress.toString();
@@ -210,10 +218,15 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 					int port = Integer.parseInt(socketAddressAsString.substring(delimiter + 1));
 					return new NetworkTarget(host, port);
 				} catch (NumberFormatException ignored) {
-					return null;
+					// Fall through to the unparsed-string backstop below.
 				}
 			}
-			return null;
+			// Fail closed (I-110): an unrecognised SocketAddress subtype (e.g. any future
+			// address family), or one whose toString() doesn't parse as host:port, must
+			// still produce a target so the allow-list can reject it - matching the
+			// established out-of-range-port pattern elsewhere in this file. Returning null
+			// here would fail open by skipping the check entirely for this operation.
+			return new NetworkTarget(socketAddressAsString, -1);
 		}
 		if (value instanceof HttpRequest httpRequest) {
 			requireTrustedRuntimeType(value);
@@ -616,6 +629,51 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 
 	// </editor-fold>
 
+	// <editor-fold desc="Action derivation">
+
+	/**
+	 * Derives the list of network actions that need to be validated for a given
+	 * invocation.
+	 * <p>
+	 * Description: Most network operations perform exactly one action (connect,
+	 * send, or receive), so this returns a singleton list containing the pointcut's
+	 * default action. Four composite JDK methods each genuinely perform two
+	 * distinct actions in one call and are checked against both, independently:
+	 * {@code HttpClient.send}/{@code sendAsync} (send+receive — the response body
+	 * is available synchronously), {@code URL.openStream} (connect+receive),
+	 * {@code URLConnection.getOutputStream} (connect+send), and
+	 * {@code URLConnection.getInputStream} (connect+receive). Without this, a
+	 * SEND-allowed/RECEIVE-denied policy would still let {@code HttpClient.send}
+	 * return a full response, since only the SEND action was ever checked (I-068).
+	 *
+	 * @param defaultAction the network action associated with the pointcut
+	 *                      configuration (e.g., {@code connect})
+	 * @param methodName    the name of the method invoked
+	 * @param instance      the receiver object of the intercepted call; may be
+	 *                      null
+	 * @return ordered list of action/allow-non-existing pairs to validate
+	 * @since 2.0.0
+	 * @author Kevin Fischer
+	 */
+	private static List<Map.Entry<String, Boolean>> deriveActionChecks(@Nonnull String defaultAction,
+			@Nonnull String methodName, @Nullable Object instance) {
+		if (instance instanceof HttpClient && ("send".equals(methodName) || "sendAsync".equals(methodName))) {
+			return List.of(Map.entry("send", false), Map.entry("receive", false));
+		}
+		if (instance instanceof URL && "openStream".equals(methodName)) {
+			return List.of(Map.entry("connect", false), Map.entry("receive", false));
+		}
+		if (instance instanceof URLConnection && "getOutputStream".equals(methodName)) {
+			return List.of(Map.entry("connect", false), Map.entry("send", false));
+		}
+		if (instance instanceof URLConnection && "getInputStream".equals(methodName)) {
+			return List.of(Map.entry("connect", false), Map.entry("receive", false));
+		}
+		return Collections.singletonList(Map.entry(defaultAction, false));
+	}
+
+	// </editor-fold>
+
 	// <editor-fold desc="Check methods">
 
 	/**
@@ -848,7 +906,7 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 		String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
 		// </editor-fold>
 		// <editor-fold desc="Check actions">
-		List<Map.Entry<String, Boolean>> actionsToValidate = Collections.singletonList(Map.entry(action, false));
+		List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action, methodName, instance);
 		for (Map.Entry<String, Boolean> actionCheck : actionsToValidate) {
 			checkNetworkSystemInteractionForAction(actionCheck.getKey(),
 					fullMethodSignature, declaringTypeName, methodName, parameters, attributes, instance,

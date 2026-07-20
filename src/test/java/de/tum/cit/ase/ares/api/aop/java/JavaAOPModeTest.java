@@ -1,10 +1,13 @@
 package de.tum.cit.ase.ares.api.aop.java;
 
+import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Supplier;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 import org.mockito.ArgumentMatchers;
@@ -12,10 +15,12 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import de.tum.cit.ase.ares.api.aop.AOPMode;
+import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaFileLoader;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.CommandPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.NetworkPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ThreadPermission;
+import de.tum.cit.ase.ares.api.util.FileTools;
 
 public class JavaAOPModeTest {
 
@@ -30,77 +35,111 @@ public class JavaAOPModeTest {
 
 	public static final String BODY_RESULT = "SECURITY_BODY";
 
-	/*
-	 * @Test public void testGetConfigurations() {
-	 * MockedConstruction<JavaCSVFileLoader> loaderMock = Mockito.mockConstruction(
-	 * JavaCSVFileLoader.class, (mock, ctx) -> {
-	 * Mockito.when(mock.loadCopyData(ArgumentMatchers.any())).thenReturn(
-	 * COPY_ENTRIES);
-	 * Mockito.when(mock.loadEditData(ArgumentMatchers.any())).thenReturn(
-	 * EDIT_ENTRIES); } ); try (loaderMock) { List<List<String>> copyEntries =
-	 * AOPMode.INSTRUMENTATION.getCopyConfigurationEntries();
-	 * Assertions.assertSame(COPY_ENTRIES, copyEntries); List<List<String>>
-	 * editEntries = AOPMode.ASPECTJ.getEditConfigurationEntries();
-	 * Assertions.assertSame(EDIT_ENTRIES, editEntries); } }
-	 * @Test public void testFilesAndTargetsToCopy() {
-	 * MockedConstruction<JavaCSVFileLoader> loaderMock = Mockito.mockConstruction(
-	 * JavaCSVFileLoader.class, (mock, ctx) -> {
-	 * Mockito.when(mock.loadCopyData(ArgumentMatchers.any())).thenReturn(
-	 * COPY_ENTRIES);
-	 * Mockito.when(mock.loadEditData(ArgumentMatchers.any())).thenReturn(
-	 * EDIT_ENTRIES); } ); MockedStatic<FileTools> toolsMock =
-	 * Mockito.mockStatic(FileTools.class); toolsMock.when(() ->
-	 * FileTools.resolveOnPackage(ArgumentMatchers.any(String[].class))).thenReturn(
-	 * DUMMY_PATH); try (loaderMock; toolsMock) { // first: filesToCopy List<Path>
-	 * files = AOPMode.ASPECTJ.filesToCopy();
-	 * Assertions.assertEquals(COPY_ENTRIES.size(), files.size());
-	 * files.forEach(file -> Assertions.assertSame(DUMMY_PATH, file));
-	 * toolsMock.verify(() ->
-	 * FileTools.resolveOnPackage(ArgumentMatchers.any(String[].class)),
-	 * Mockito.times(COPY_ENTRIES.size())); // then: targetsToCopyTo List<Path>
-	 * targets = AOPMode.INSTRUMENTATION.targetsToCopyTo(Path.of("."), "pkg");
-	 * Assertions.assertEquals(COPY_ENTRIES.size(), targets.size());
-	 * targets.forEach(target -> Assertions.assertSame(DUMMY_PATH, target));
-	 * toolsMock.verify(() ->
-	 * FileTools.resolveOnPackage(ArgumentMatchers.any(String[].class)),
-	 * Mockito.times(COPY_ENTRIES.size())); } }
-	 * @Test public void testHeaderFooterAndSingleTarget() {
-	 * MockedConstruction<JavaCSVFileLoader> loaderMock = Mockito.mockConstruction(
-	 * JavaCSVFileLoader.class, (mock, ctx) -> {
-	 * Mockito.when(mock.loadCopyData(ArgumentMatchers.any())).thenReturn(
-	 * COPY_ENTRIES);
-	 * Mockito.when(mock.loadEditData(ArgumentMatchers.any())).thenReturn(
-	 * EDIT_ENTRIES); } ); MockedStatic<FileTools> toolsMock =
-	 * Mockito.mockStatic(FileTools.class); toolsMock.when(() ->
-	 * FileTools.resolveOnPackage(new String[]{"hdr",
-	 * "pkg"})).thenReturn(DUMMY_PATH); toolsMock.when(() ->
-	 * FileTools.resolveOnPackage(new String[]{"ftr",
-	 * "pkg"})).thenReturn(DUMMY_PATH); try (loaderMock; toolsMock) { Path header =
-	 * AOPMode.INSTRUMENTATION.threePartedFileHeader();
-	 * Assertions.assertSame(DUMMY_PATH, header); Path footer =
-	 * AOPMode.ASPECTJ.threePartedFileFooter(); Assertions.assertSame(DUMMY_PATH,
-	 * footer); Path singleTarget =
-	 * AOPMode.INSTRUMENTATION.targetToCopyTo(Path.of("."), "pkg");
-	 * Assertions.assertSame(DUMMY_PATH, singleTarget); toolsMock.verify(() ->
-	 * FileTools.resolveOnPackage(new String[]{"hdr", "pkg"})); toolsMock.verify(()
-	 * -> FileTools.resolveOnPackage(new String[]{"ftr", "pkg"})); } }
-	 * @Test public void testFormatValuesMethods() {
-	 * MockedConstruction<JavaCSVFileLoader> loaderMock = Mockito.mockConstruction(
-	 * JavaCSVFileLoader.class, (mock, ctx) -> {
-	 * Mockito.when(mock.loadCopyData(ArgumentMatchers.any())).thenReturn(
-	 * COPY_ENTRIES);
-	 * Mockito.when(mock.loadEditData(ArgumentMatchers.any())).thenReturn(
-	 * EDIT_ENTRIES); } ); MockedStatic<FileTools> toolsMock =
-	 * Mockito.mockStatic(FileTools.class); toolsMock.when(() ->
-	 * FileTools.generatePackageNameArray(ArgumentMatchers.anyString(),
-	 * ArgumentMatchers.anyInt())).thenReturn(GENERATED_ARRAY); try (loaderMock;
-	 * toolsMock) { String[] singleValue = AOPMode.ASPECTJ.formatValues("com.test");
-	 * Assertions.assertArrayEquals(GENERATED_ARRAY, singleValue); List<String[]>
-	 * multiValues = AOPMode.INSTRUMENTATION.formatValues("com.test", "Main");
-	 * multiValues.forEach(arr -> Assertions.assertArrayEquals(GENERATED_ARRAY,
-	 * arr)); toolsMock.verify(() -> FileTools.generatePackageNameArray("com.test",
-	 * 1), Mockito.times(2)); } }
+	/**
+	 * The real {@link JavaFileLoader} in place before each test, restored
+	 * afterwards so mocking it in one test cannot leak into another test sharing
+	 * the same Surefire fork (see {@code reuseForks} in {@code pom.xml}).
 	 */
+	private JavaFileLoader originalFileLoader;
+
+	@BeforeEach
+	public void captureOriginalFileLoader() throws Exception {
+		Field fileLoaderField = AOPMode.class.getDeclaredField("fileLoader");
+		fileLoaderField.setAccessible(true);
+		originalFileLoader = (JavaFileLoader) fileLoaderField.get(null);
+		fileLoaderField.setAccessible(false);
+	}
+
+	@AfterEach
+	public void restoreOriginalFileLoader() {
+		AOPMode.setFileLoader(originalFileLoader);
+	}
+
+	@Test
+	public void testGetConfigurationEntries() throws Exception {
+		JavaFileLoader loaderMock = Mockito.mock(JavaFileLoader.class);
+		Mockito.when(loaderMock.loadCopyData(ArgumentMatchers.any(AOPMode.class), ArgumentMatchers.eq(true)))
+				.thenReturn(COPY_ENTRIES);
+		Mockito.when(loaderMock.loadCopyData(ArgumentMatchers.any(AOPMode.class), ArgumentMatchers.eq(false)))
+				.thenReturn(COPY_ENTRIES);
+		Mockito.when(loaderMock.loadEditData(ArgumentMatchers.any(AOPMode.class))).thenReturn(EDIT_ENTRIES);
+		AOPMode.setFileLoader(loaderMock);
+
+		List<List<String>> fsCopyEntries = AOPMode.INSTRUMENTATION.getCopyFSConfigurationEntries();
+		Assertions.assertSame(COPY_ENTRIES, fsCopyEntries);
+		List<List<String>> nonFsCopyEntries = AOPMode.INSTRUMENTATION.getCopyNonFSConfigurationEntries();
+		Assertions.assertSame(COPY_ENTRIES, nonFsCopyEntries);
+		List<List<String>> editEntries = AOPMode.ASPECTJ.getEditConfigurationEntries();
+		Assertions.assertSame(EDIT_ENTRIES, editEntries);
+	}
+
+	@Test
+	public void testFilesAndTargetsToCopy() throws Exception {
+		JavaFileLoader loaderMock = Mockito.mock(JavaFileLoader.class);
+		Mockito.when(loaderMock.loadCopyData(ArgumentMatchers.any(AOPMode.class), ArgumentMatchers.anyBoolean()))
+				.thenReturn(COPY_ENTRIES);
+		AOPMode.setFileLoader(loaderMock);
+
+		try (MockedStatic<FileTools> toolsMock = Mockito.mockStatic(FileTools.class)) {
+			toolsMock.when(() -> FileTools.resolveFileOnSourceDirectory(ArgumentMatchers.any(String[].class)))
+					.thenReturn(DUMMY_PATH);
+			toolsMock.when(() -> FileTools.resolveFileOnTargetDirectory(ArgumentMatchers.any(Path.class),
+					ArgumentMatchers.any(String[].class))).thenReturn(DUMMY_PATH);
+
+			List<Path> files = AOPMode.ASPECTJ.fsFilesToCopy();
+			Assertions.assertEquals(COPY_ENTRIES.size(), files.size());
+			files.forEach(file -> Assertions.assertSame(DUMMY_PATH, file));
+
+			List<Path> targets = AOPMode.INSTRUMENTATION.fsTargetsToCopyTo(Path.of("."));
+			Assertions.assertEquals(COPY_ENTRIES.size(), targets.size());
+			targets.forEach(target -> Assertions.assertSame(DUMMY_PATH, target));
+
+			toolsMock.verify(() -> FileTools.resolveFileOnSourceDirectory(ArgumentMatchers.any(String[].class)),
+					Mockito.times(COPY_ENTRIES.size()));
+			toolsMock.verify(() -> FileTools.resolveFileOnTargetDirectory(ArgumentMatchers.any(Path.class),
+					ArgumentMatchers.any(String[].class)), Mockito.times(COPY_ENTRIES.size()));
+		}
+	}
+
+	@Test
+	public void testHeaderFooterAndSingleTarget() throws Exception {
+		JavaFileLoader loaderMock = Mockito.mock(JavaFileLoader.class);
+		Mockito.when(loaderMock.loadEditData(ArgumentMatchers.any(AOPMode.class))).thenReturn(EDIT_ENTRIES);
+		AOPMode.setFileLoader(loaderMock);
+
+		try (MockedStatic<FileTools> toolsMock = Mockito.mockStatic(FileTools.class)) {
+			toolsMock.when(() -> FileTools.resolveFileOnSourceDirectory("hdr", "pkg")).thenReturn(DUMMY_PATH);
+			toolsMock.when(() -> FileTools.resolveFileOnSourceDirectory("ftr", "pkg")).thenReturn(DUMMY_PATH);
+			toolsMock.when(() -> FileTools.resolveFileOnTargetDirectory(ArgumentMatchers.any(Path.class),
+					ArgumentMatchers.eq("unused"))).thenReturn(DUMMY_PATH);
+
+			Path header = AOPMode.INSTRUMENTATION.threePartedFileHeader();
+			Assertions.assertSame(DUMMY_PATH, header);
+			Path footer = AOPMode.ASPECTJ.threePartedFileFooter();
+			Assertions.assertSame(DUMMY_PATH, footer);
+			Path singleTarget = AOPMode.INSTRUMENTATION.targetToCopyTo(Path.of("."));
+			Assertions.assertSame(DUMMY_PATH, singleTarget);
+
+			toolsMock.verify(() -> FileTools.resolveFileOnSourceDirectory("hdr", "pkg"));
+			toolsMock.verify(() -> FileTools.resolveFileOnSourceDirectory("ftr", "pkg"));
+		}
+	}
+
+	@Test
+	public void testFormatValuesMethods() {
+		try (MockedStatic<FileTools> toolsMock = Mockito.mockStatic(FileTools.class)) {
+			toolsMock.when(
+					() -> FileTools.generatePackageNameArray(ArgumentMatchers.anyString(), ArgumentMatchers.anyInt()))
+					.thenReturn(GENERATED_ARRAY);
+
+			String[] aspectJValue = AOPMode.ASPECTJ.formatValues("com.test");
+			Assertions.assertArrayEquals(GENERATED_ARRAY, aspectJValue);
+			String[] instrumentationValue = AOPMode.INSTRUMENTATION.formatValues("com.test");
+			Assertions.assertArrayEquals(GENERATED_ARRAY, instrumentationValue);
+
+			toolsMock.verify(() -> FileTools.generatePackageNameArray("com.test", 1), Mockito.times(2));
+		}
+	}
 
 	@Test
 	public void testThreePartedFileBodyAndExtractPermissions() {

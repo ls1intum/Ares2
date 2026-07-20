@@ -1,5 +1,8 @@
 package de.tum.cit.ase.ares.integration.aop.forbidden;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.byteStream.DataInputStream;
@@ -14,8 +17,10 @@ import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.cha
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.characterReader.FilesNewBufferedReader;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.characterReader.InputStreamReader;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.characterReader.Reader;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.copy.FilesCopyMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.lineTokenReader.FilesLines;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.lineTokenReader.ScannerReader;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.mismatch.FilesMismatchMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.wholeFileConvenience.FilesReadAllBytes;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.wholeFileConvenience.FilesReadAllLines;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.wholeFileConvenience.FilesReadString;
@@ -25,6 +30,8 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 	private static final String CHARACTER_READER_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/characterReader";
 	private static final String LINE_TOKEN_READER_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/lineTokenReader";
 	private static final String WHOLE_FILE_CONVENIENCE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/wholeFileConvenience";
+	private static final String MISMATCH_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/mismatch";
+	private static final String COPY_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/copy";
 
 	// <editor-fold desc="FileInputStream Tests">
 
@@ -671,6 +678,65 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 	void test_accessFileSystemViaFilesNewByteChannelMavenWalaInstrumentation() {
 		assertAresSecurityExceptionRead(FilesNewByteChannel::accessFileSystemViaFilesNewByteChannel,
 				FilesNewByteChannel.class);
+	}
+	// </editor-fold>
+
+	// <editor-fold desc="accessFileSystemViaFilesMismatch">
+	@PublicTest
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = MISMATCH_WITHIN_PATH)
+	void test_accessFileSystemViaFilesMismatchMavenArchunitAspectJ() {
+		assertAresSecurityExceptionRead(FilesMismatchMain::accessFileSystemViaFilesMismatch, FilesMismatchMain.class);
+	}
+
+	@PublicTest
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = MISMATCH_WITHIN_PATH)
+	void test_accessFileSystemViaFilesMismatchMavenArchunitInstrumentation() {
+		assertAresSecurityExceptionRead(FilesMismatchMain::accessFileSystemViaFilesMismatch, FilesMismatchMain.class);
+	}
+
+	@PublicTest
+	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = MISMATCH_WITHIN_PATH)
+	void test_accessFileSystemViaFilesMismatchMavenWalaAspectJ() {
+		assertAresSecurityExceptionRead(FilesMismatchMain::accessFileSystemViaFilesMismatch, FilesMismatchMain.class);
+	}
+
+	@PublicTest
+	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = MISMATCH_WITHIN_PATH)
+	void test_accessFileSystemViaFilesMismatchMavenWalaInstrumentation() {
+		assertAresSecurityExceptionRead(FilesMismatchMain::accessFileSystemViaFilesMismatch, FilesMismatchMain.class);
+	}
+	// </editor-fold>
+
+	// <editor-fold desc="accessFileSystemViaFilesCopy (I-114: OVERWRITE grant must
+	// not satisfy READ)">
+	@PublicTest
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_FILES_COPY_SOURCE_OVERWRITE_ONLY, withinPath = COPY_WITHIN_PATH)
+	void test_accessFileSystemViaFilesCopyMavenArchunitAspectJ() {
+		assertFilesCopySourceReadDenied();
+	}
+
+	@PublicTest
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_FILES_COPY_SOURCE_OVERWRITE_ONLY, withinPath = COPY_WITHIN_PATH)
+	void test_accessFileSystemViaFilesCopyMavenArchunitInstrumentation() {
+		assertFilesCopySourceReadDenied();
+	}
+
+	@PublicTest
+	@Policy(value = WALA_ASPECTJ_POLICY_FILES_COPY_SOURCE_OVERWRITE_ONLY, withinPath = COPY_WITHIN_PATH)
+	void test_accessFileSystemViaFilesCopyMavenWalaAspectJ() {
+		assertFilesCopySourceReadDenied();
+	}
+
+	@PublicTest
+	@Policy(value = WALA_INSTRUMENTATION_POLICY_FILES_COPY_SOURCE_OVERWRITE_ONLY, withinPath = COPY_WITHIN_PATH)
+	void test_accessFileSystemViaFilesCopyMavenWalaInstrumentation() {
+		assertFilesCopySourceReadDenied();
+	}
+
+	private void assertFilesCopySourceReadDenied() {
+		Path expectedPath = Paths.get("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration", "aop",
+				"forbidden", "subject", "fileSystem", "read", "copy", "copySource.txt");
+		assertAresSecurityExceptionRead(FilesCopyMain::accessFileSystemViaFilesCopy, FilesCopyMain.class, expectedPath);
 	}
 	// </editor-fold>
 

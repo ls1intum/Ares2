@@ -8,13 +8,22 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.FileDescriptor;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.net.URI;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.UnixDomainSocketAddress;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
 import java.util.BitSet;
+import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -296,5 +305,108 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 		Object target = parametersToTarget.invoke(null, (Object) new Object[0], consumed);
 		assertNull(target);
 		assertTrue(consumed.isEmpty());
+	}
+
+	@Test
+	void toTarget_resolvesUnixDomainSocketAddressAsPathWithNoPort() throws Exception {
+		Method toTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("toTarget",
+				Object.class);
+		toTarget.setAccessible(true);
+
+		Object target = toTarget.invoke(null, UnixDomainSocketAddress.of("/tmp/ares-audit.sock"));
+		assertNotNull(target);
+
+		Method toDisplayString = target.getClass().getDeclaredMethod("toDisplayString");
+		toDisplayString.setAccessible(true);
+		assertEquals("/tmp/ares-audit.sock:-1", toDisplayString.invoke(target));
+	}
+
+	@Test
+	void toTarget_resolvesHttpRequestLoadedByThePlatformClassLoader() throws Exception {
+		Method toTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("toTarget",
+				Object.class);
+		toTarget.setAccessible(true);
+
+		HttpRequest request = HttpRequest.newBuilder(URI.create("https://example.org/path")).build();
+		Object target = toTarget.invoke(null, request);
+		assertNotNull(target);
+
+		Method toDisplayString = target.getClass().getDeclaredMethod("toDisplayString");
+		toDisplayString.setAccessible(true);
+		assertEquals("example.org:443", toDisplayString.invoke(target));
+	}
+
+	@Test
+	void toTarget_failsClosedForUntrustedSocketAddressWithoutInvokingIt() throws Exception {
+		// I-110: before the fix, an unparseable SocketAddress (no colon in its
+		// toString()) returned null here, which analyseViolation's target != null
+		// short-circuit then treated as "not forbidden" - a fail-open. Any future
+		// address-family shape must still produce a target so the allow-list can deny
+		// it.
+		Method toTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("toTarget",
+				Object.class);
+		toTarget.setAccessible(true);
+
+		SocketAddress unparseable = new SocketAddress() {
+			@Override
+			public String toString() {
+				return "no-colon-here";
+			}
+		};
+		InvocationTargetException exception = assertThrows(InvocationTargetException.class,
+				() -> toTarget.invoke(null, unparseable));
+		assertTrue(exception.getCause() instanceof SecurityException);
+	}
+
+	@Test
+	void checkNetworkSystemInteraction_deniesUnixDomainSocketConnectUnderNonEmptyPolicy() throws Exception {
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			JavaAOPTestCase.setJavaAdviceSettingValue("hostsAllowedToBeConnectedTo", new String[] { "example.com" },
+					"ARCH", "INSTRUMENTATION");
+			JavaAOPTestCase.setJavaAdviceSettingValue("portsAllowedToBeConnectedTo", new int[] { 443 }, "ARCH",
+					"INSTRUMENTATION");
+
+			SecurityException exception = assertThrows(SecurityException.class, () -> InstrumentationSecurityProbe
+					.checkNetworkConnectAddress(UnixDomainSocketAddress.of("/tmp/ares-audit.sock")));
+			assertTrue(exception.getMessage().contains("ares-audit.sock"),
+					() -> "Expected the Unix domain socket path in the message, but was:\n" + exception.getMessage());
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
+	void deriveActionChecks_checksBothRealActionsForTheFourCompositeNetworkMethods() throws Exception {
+		Method deriveActionChecks = JavaInstrumentationAdviceNetworkSystemToolbox.class
+				.getDeclaredMethod("deriveActionChecks", String.class, String.class, Object.class);
+		deriveActionChecks.setAccessible(true);
+
+		HttpClient httpClient = HttpClient.newHttpClient();
+		assertActionNames(deriveActionChecks, "send", "send", httpClient, "send", "receive");
+		assertActionNames(deriveActionChecks, "send", "sendAsync", httpClient, "send", "receive");
+
+		URL url = URI.create("http://example.org").toURL();
+		assertActionNames(deriveActionChecks, "connect", "openStream", url, "connect", "receive");
+
+		URLConnection connection = url.openConnection();
+		assertActionNames(deriveActionChecks, "send", "getOutputStream", connection, "connect", "send");
+		assertActionNames(deriveActionChecks, "receive", "getInputStream", connection, "connect", "receive");
+
+		// A method/instance combination outside the four composite cases still checks
+		// only its single default action.
+		try (Socket socket = new Socket()) {
+			assertActionNames(deriveActionChecks, "connect", "connect", socket, "connect");
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private static void assertActionNames(Method deriveActionChecks, String defaultAction, String methodName,
+			Object instance, String... expectedActions) throws Exception {
+		List<Map.Entry<String, Boolean>> actionsToValidate = (List<Map.Entry<String, Boolean>>) deriveActionChecks
+				.invoke(null, defaultAction, methodName, instance);
+		List<String> actualActions = actionsToValidate.stream().map(Map.Entry::getKey).toList();
+		assertEquals(List.of(expectedActions), actualActions);
 	}
 }

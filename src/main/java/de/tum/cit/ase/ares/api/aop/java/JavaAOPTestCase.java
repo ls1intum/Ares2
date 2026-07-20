@@ -4,6 +4,8 @@ package de.tum.cit.ase.ares.api.aop.java;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.IllegalFormatException;
 import java.util.List;
 import java.util.Map;
@@ -240,8 +242,27 @@ public class JavaAOPTestCase extends AOPTestCase {
 		}
 		Field field = adviceSettingsClass.getDeclaredField(adviceSetting);
 		field.setAccessible(true);
-		field.set(null, value);
-		field.setAccessible(false);
+		// I-032 (scoped): synchronise each individual field write on the same lock
+		// JavaAOPTestCaseSettings.reset() now uses, so a reset() cannot interleave
+		// with a concurrent settings write. This is a bootstrap-classloader-safe way
+		// to reach the lock: JavaAOPTestCaseSettings.getSettingsLock() is called on
+		// the SAME resolved class (whichever loader owns it), not the caller's own
+		// static import, so this still works when this write targets the bootstrap
+		// loader's copy from application code. See JavaAOPTestCaseSettings.reset()'s
+		// Javadoc for why this does not by itself make a multi-field settings batch
+		// atomic from a reader's perspective (a larger, deferred follow-up).
+		try {
+			Method getSettingsLock = adviceSettingsClass.getDeclaredMethod("getSettingsLock");
+			Object lock = getSettingsLock.invoke(null);
+			synchronized (lock) {
+				field.set(null, value);
+			}
+		} catch (NoSuchMethodException | InvocationTargetException reflectionFailure) {
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.creation.advice.settings.lock.exception", adviceSetting), reflectionFailure);
+		} finally {
+			field.setAccessible(false);
+		}
 	}
 	// </editor-fold>
 
