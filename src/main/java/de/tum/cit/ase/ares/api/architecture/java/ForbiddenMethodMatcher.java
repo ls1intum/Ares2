@@ -118,10 +118,10 @@ public final class ForbiddenMethodMatcher {
 		String archunit = separator + "archunit" + separator;
 		String wala = separator + "wala" + separator;
 		if (value.contains(archunit)) {
-			return Path.of(value.replace(archunit, wala));
+			return path.getFileSystem().getPath(value.replace(archunit, wala));
 		}
 		if (value.contains(wala)) {
-			return Path.of(value.replace(wala, archunit));
+			return path.getFileSystem().getPath(value.replace(wala, archunit));
 		}
 		return path;
 	}
