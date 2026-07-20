@@ -2,7 +2,7 @@
 
 > **Audience:** IT-Education experts with no security background.
 > **Scope:** All classes inside `SecurityPolicyReaderAndDirector.java`, the `reader` and `director` packages.
-> **Ares Version:** 2.0.1-Beta9
+> **Ares Version:** 2.1.0
 
 **Related documentation:**
 - [Security Policy Manual](SecurityPolicyManual.md), how to write a security policy YAML file
