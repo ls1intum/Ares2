@@ -3,6 +3,7 @@ package de.tum.cit.ase.ares.api.policy.reader.yaml;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nonnull;
 
@@ -11,11 +12,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.PolicyValueValidator;
 
 /** Validates the security-policy YAML tree before Jackson record binding. */
 final class SecurityPolicySchemaValidator {
 
-	private static final Set<String> ROOT_FIELDS = Set.of("regardingTheSupervisedCode");
+	private static final Set<String> ROOT_FIELDS = Set.of("thisPolicyFileCompliesToThePolicyVersion",
+			"regardingTheSupervisedCode");
 	private static final Set<String> SUPERVISED_CODE_FIELDS = Set.of(
 			"theFollowingProgrammingLanguageConfigurationIsUsed", "theSupervisedCodeUsesTheFollowingPackage",
 			"theMainClassInsideThisPackageIs", "theFollowingClassesAreTestClasses",
@@ -38,16 +41,28 @@ final class SecurityPolicySchemaValidator {
 
 	static void validate(@Nonnull JsonNode root) throws MismatchedInputException {
 		requireObject(root, "$", ROOT_FIELDS, ROOT_FIELDS);
+		requireIntegral(root, "thisPolicyFileCompliesToThePolicyVersion", "$");
+		if (!root.get("thisPolicyFileCompliesToThePolicyVersion").canConvertToInt() || root
+				.get("thisPolicyFileCompliesToThePolicyVersion").intValue() != SecurityPolicy.CURRENT_POLICY_VERSION) {
+			fail("$.thisPolicyFileCompliesToThePolicyVersion must be exactly " + SecurityPolicy.CURRENT_POLICY_VERSION);
+		}
 		JsonNode supervisedCode = root.get("regardingTheSupervisedCode");
 		requireObject(supervisedCode, "$.regardingTheSupervisedCode", SUPERVISED_CODE_FIELDS,
 				Set.of("theFollowingProgrammingLanguageConfigurationIsUsed", "theFollowingClassesAreTestClasses",
 						"theFollowingResourceAccessesArePermitted"));
 		requireText(supervisedCode, "theFollowingProgrammingLanguageConfigurationIsUsed",
 				"$.regardingTheSupervisedCode");
+		requirePattern(supervisedCode, "theFollowingProgrammingLanguageConfigurationIsUsed",
+				"$.regardingTheSupervisedCode", PolicyValueValidator.PROGRAMMING_LANGUAGE_CONFIGURATION_PATTERN);
 		requireOptionalText(supervisedCode, "theSupervisedCodeUsesTheFollowingPackage", "$.regardingTheSupervisedCode");
 		requireOptionalText(supervisedCode, "theMainClassInsideThisPackageIs", "$.regardingTheSupervisedCode");
+		requireOptionalPattern(supervisedCode, "theSupervisedCodeUsesTheFollowingPackage",
+				"$.regardingTheSupervisedCode", PolicyValueValidator.JAVA_PACKAGE_PATTERN);
+		requireOptionalPattern(supervisedCode, "theMainClassInsideThisPackageIs", "$.regardingTheSupervisedCode",
+				PolicyValueValidator.JAVA_CLASS_NAME_PATTERN);
 		requireTextArray(supervisedCode.get("theFollowingClassesAreTestClasses"),
-				"$.regardingTheSupervisedCode.theFollowingClassesAreTestClasses");
+				"$.regardingTheSupervisedCode.theFollowingClassesAreTestClasses",
+				PolicyValueValidator.JAVA_CLASS_PATH_PATTERN);
 
 		JsonNode resources = supervisedCode.get("theFollowingResourceAccessesArePermitted");
 		requireObject(resources, "$.regardingTheSupervisedCode.theFollowingResourceAccessesArePermitted",
@@ -56,12 +71,15 @@ final class SecurityPolicySchemaValidator {
 				FILE_FIELDS, FILE_FIELDS);
 		for (JsonNode permission : resources.get("regardingFileSystemInteractions")) {
 			requireText(permission, "onThisPathAndAllPathsBelow", "file permission");
+			requirePattern(permission, "onThisPathAndAllPathsBelow", "file permission",
+					PolicyValueValidator.FILE_PATH_PATTERN);
 			requireBooleans(permission, FILE_FIELDS, Set.of("onThisPathAndAllPathsBelow"), "file permission");
 		}
 		validateObjectArray(resources.get("regardingNetworkConnections"), "regardingNetworkConnections", NETWORK_FIELDS,
 				NETWORK_FIELDS);
 		for (JsonNode permission : resources.get("regardingNetworkConnections")) {
 			requireText(permission, "onTheHost", "network permission");
+			requirePattern(permission, "onTheHost", "network permission", PolicyValueValidator.HOST_PATTERN);
 			requireIntegral(permission, "onThePort", "network permission");
 			requireBooleans(permission, NETWORK_FIELDS, Set.of("onTheHost", "onThePort"), "network permission");
 		}
@@ -71,11 +89,16 @@ final class SecurityPolicySchemaValidator {
 		for (JsonNode permission : resources.get("regardingThreadCreations")) {
 			requireIntegral(permission, "createTheFollowingNumberOfThreads", "thread permission");
 			requireText(permission, "ofThisClass", "thread permission");
+			requirePattern(permission, "ofThisClass", "thread permission", PolicyValueValidator.THREAD_CLASS_PATTERN);
 		}
 		validateObjectArray(resources.get("regardingPackageImports"), "regardingPackageImports", PACKAGE_FIELDS,
 				PACKAGE_FIELDS);
 		for (JsonNode permission : resources.get("regardingPackageImports")) {
 			requireText(permission, "importTheFollowingPackage", "package permission");
+			if (!PolicyValueValidator.matchesPackageImport(permission.get("importTheFollowingPackage").textValue())) {
+				fail("package permission.importTheFollowingPackage must match "
+						+ PolicyValueValidator.JAVA_PACKAGE_PATTERN.pattern() + " or *");
+			}
 		}
 		validateObjectArray(resources.get("regardingTimeouts"), "regardingTimeouts", TIMEOUT_FIELDS, TIMEOUT_FIELDS);
 		for (JsonNode permission : resources.get("regardingTimeouts")) {
@@ -167,6 +190,10 @@ final class SecurityPolicySchemaValidator {
 	}
 
 	private static void requireTextArray(JsonNode node, String path) throws MismatchedInputException {
+		requireTextArray(node, path, null);
+	}
+
+	private static void requireTextArray(JsonNode node, String path, Pattern pattern) throws MismatchedInputException {
 		if (node == null || !node.isArray()) {
 			fail(path + " must be an array of strings");
 		}
@@ -174,6 +201,24 @@ final class SecurityPolicySchemaValidator {
 			if (!element.isTextual() || element.textValue().isBlank()) {
 				fail(path + " must contain only non-blank strings");
 			}
+			if (pattern != null && !PolicyValueValidator.matches(element.textValue(), pattern)) {
+				fail(path + " entries must match " + pattern.pattern());
+			}
+		}
+	}
+
+	private static void requirePattern(JsonNode parent, String field, String path, Pattern pattern)
+			throws MismatchedInputException {
+		if (!PolicyValueValidator.matches(parent.get(field).textValue(), pattern)) {
+			fail(path + "." + field + " must match " + pattern.pattern());
+		}
+	}
+
+	private static void requireOptionalPattern(JsonNode parent, String field, String path, Pattern pattern)
+			throws MismatchedInputException {
+		JsonNode node = parent.get(field);
+		if (node != null && !node.isNull() && !PolicyValueValidator.matches(node.textValue(), pattern)) {
+			fail(path + "." + field + " must match " + pattern.pattern() + " or be null");
 		}
 	}
 

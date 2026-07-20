@@ -21,6 +21,22 @@ import example.student.InstrumentationSecurityProbe;
 
 class JavaInstrumentationAdviceFileSystemToolboxTest {
 
+	@Test
+	void pathWildcardAllowsEveryPath(@TempDir Path tempDir) throws Exception {
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			Path file = tempDir.resolve("anywhere.txt");
+			Files.writeString(file, "allowed by wildcard");
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[] { "*" }, "ARCH",
+					"INSTRUMENTATION");
+
+			assertDoesNotThrow(() -> InstrumentationSecurityProbe.checkFileUrlOpenStream(file.toUri().toURL()));
+		} finally {
+			resetSettings();
+		}
+	}
+
 	/**
 	 * Loads the localization bundle while still unrestricted, so that building a
 	 * denial message under INSTRUMENTATION mode hits the cached bundle instead of

@@ -23,10 +23,12 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  *
  * @since 2.0.0
  * @author Markus Paulsen
- * @param executeTheCommand  the command that is permitted to be executed; must
- *                           not be null.
- * @param withTheseArguments the predefined arguments for the command; must not
- *                           be null.
+ * @param executeTheCommand  the command that is permitted to be executed, or
+ *                           {@code *} for every command; must not be null.
+ * @param withTheseArguments the predefined arguments for the command. A sole
+ *                           {@code *} permits every argument list; within a
+ *                           longer list it permits any one argument at that
+ *                           position. Must not be null.
  */
 @SuppressWarnings("unused")
 public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List<String> withTheseArguments) {

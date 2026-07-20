@@ -139,7 +139,7 @@ public class JavaCreatorTest {
 			when(architectureMode.getJavaClasses(classpath)).thenReturn(javaClasses);
 			when(architectureMode.getCallGraph(classpath)).thenReturn(callGraph);
 			when(resourceAccesses.regardingPackageImports())
-					.thenReturn(List.of(new PackagePermission("allowed.package")));
+					.thenReturn(List.of(new PackagePermission("allowed.example")));
 
 			// Act
 			assertDoesNotThrow(() -> javaCreator.createTestCases(buildMode, architectureMode, aopMode,

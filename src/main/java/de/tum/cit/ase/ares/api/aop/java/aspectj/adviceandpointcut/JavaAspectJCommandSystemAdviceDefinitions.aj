@@ -130,7 +130,8 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 	 * Checks whether an actual command name matches an allowed command name.
 	 * <p>
 	 * Description: Returns {@code false} if either value is null. Otherwise
-	 * performs an exact string equality check.
+	 * performs an exact string equality check, except that {@code *} permits every
+	 * command.
 	 *
 	 * @param actualCommand  the command name from the intercepted call; may be null
 	 * @param allowedCommand the command name from the security policy; may be null
@@ -142,7 +143,7 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 		if (actualCommand == null || allowedCommand == null) {
 			return false;
 		}
-		return allowedCommand.equals(actualCommand);
+		return "*".equals(allowedCommand) || allowedCommand.equals(actualCommand);
 	}
 
 	/**
@@ -154,7 +155,8 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 	 * path-separator boundary, so a relative path in the policy matches an absolute
 	 * path at runtime. Substring ("contains") matching is intentionally NOT used: it
 	 * would let a student append arbitrary content to an allowed argument and defeat
-	 * argument pinning.
+	 * argument pinning. A sole {@code *} permits every argument list; otherwise
+	 * {@code *} permits any one argument at its declared position.
 	 *
 	 * @param allowedArguments the allowed arguments from policy
 	 * @param actualArguments  the actual arguments from the command
@@ -163,6 +165,9 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 	 * @author Markus Paulsen
 	 */
 	private static boolean argumentsMatch(@Nullable String[] allowedArguments, @Nullable String[] actualArguments) {
+		if (allowedArguments != null && allowedArguments.length == 1 && "*".equals(allowedArguments[0])) {
+			return true;
+		}
 		if (allowedArguments == null && actualArguments == null) {
 			return true;
 		}
@@ -177,6 +182,9 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 			String allowed = allowedArguments[i];
 			@Nonnull
 			String actual = actualArguments[i];
+			if ("*".equals(allowed)) {
+				continue;
+			}
 			// Exact match
 			if (allowed.equals(actual)) {
 				continue;

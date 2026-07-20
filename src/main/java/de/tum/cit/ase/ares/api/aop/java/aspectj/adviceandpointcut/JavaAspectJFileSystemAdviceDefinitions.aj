@@ -186,6 +186,11 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		if (allowedPathsAsStrings == null || allowedPathsAsStrings.length == 0) {
 			return true;
 		}
+		for (String allowedPath : allowedPathsAsStrings) {
+			if ("*".equals(allowedPath)) {
+				return false;
+			}
+		}
 
 		// SECURITY: Resolve symlinks FIRST to get the canonical path before any checks.
 		// This prevents TOCTOU attacks where symlinks could be manipulated between
