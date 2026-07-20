@@ -115,6 +115,7 @@ dependencies {
 ```
 
 > **Tip (Gradle version catalog):** If your project uses a Gradle version catalog file (for example `gradle/<versions-catalog>.toml`), you can declare the version centrally:
+>
 > ```toml
 > [versions]
 > ares = "2.1.0"
@@ -123,6 +124,7 @@ dependencies {
 > ares = { module = "de.tum.cit.ase:ares", version.ref = "ares" }
 > aspectjrt = { module = "org.aspectj:aspectjrt", version.ref = "aspectjrt" }
 > ```
+>
 > Then reference `libs.ares` and `libs.aspectjrt` in `build.gradle`. Note that Gradle version catalogs do not natively support Maven classifiers, so the `aresAgent` dependency with the `:agent` classifier must remain as a direct dependency string in `build.gradle`.
 
 **Explanation:**
