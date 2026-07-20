@@ -2,6 +2,7 @@ package de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.netwo
 
 import java.io.IOException;
 import java.net.*;
+import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
 
 public final class NetworkPenguin {
@@ -10,7 +11,7 @@ public final class NetworkPenguin {
 	}
 
 	public static void tryConnect(String host, int port, String expectLine) throws Exception {
-		try (Socket s = new Socket(host, port); Scanner in = new Scanner(s.getInputStream())) {
+		try (Socket s = new Socket(host, port); Scanner in = new Scanner(s.getInputStream(), StandardCharsets.UTF_8)) {
 			if (expectLine != null) {
 				s.setSoTimeout(200);
 				String actualLine = in.nextLine();
