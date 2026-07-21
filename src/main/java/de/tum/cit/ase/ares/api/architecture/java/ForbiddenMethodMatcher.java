@@ -13,6 +13,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import de.tum.cit.ase.ares.api.localization.Messages;
+import de.tum.cit.ase.ares.api.util.FileTools;
 
 /**
  * Loads and matches the shared ArchUnit/WALA forbidden-method policy.
@@ -88,28 +89,36 @@ public final class ForbiddenMethodMatcher {
 
 	@Nonnull
 	private static Set<String> loadValidated(@Nonnull Path path) {
+		List<String> lines;
 		try {
-			List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
-			LinkedHashSet<String> rawEntries = new LinkedHashSet<>();
-			LinkedHashSet<String> canonicalEntries = new LinkedHashSet<>();
-			for (int lineNumber = 1; lineNumber <= lines.size(); lineNumber++) {
-				String entry = lines.get(lineNumber - 1).strip();
-				if (entry.isEmpty() || entry.startsWith("#")) {
-					continue;
-				}
-				if (!isStructurallyValid(entry)) {
-					throw invalidEntry(path, lineNumber, entry);
-				}
-				if (!rawEntries.add(entry)) {
-					throw new SecurityException(Messages.localized("security.architecture.blocklist.duplicate.entry",
-							path, lineNumber, entry));
-				}
-				canonicalEntries.add(canonicalise(entry));
-			}
-			return canonicalEntries;
-		} catch (IOException unreadable) {
+			lines = Files.readAllLines(FileTools.readFile(path).toPath(), StandardCharsets.UTF_8);
+		} catch (IOException | SecurityException unreadable) {
+			// FileTools.readFile wraps jar-entry read failures in a SecurityException, so
+			// both it
+			// and the plain IOException are caught here to keep the localized read-failure
+			// message.
+			// Entry validation runs outside this block so its own malformed/duplicate entry
+			// SecurityExceptions keep their specific localized messages instead of being
+			// masked.
 			throw new SecurityException(Messages.localized("security.file-tools.read.content.failure"), unreadable);
 		}
+		LinkedHashSet<String> rawEntries = new LinkedHashSet<>();
+		LinkedHashSet<String> canonicalEntries = new LinkedHashSet<>();
+		for (int lineNumber = 1; lineNumber <= lines.size(); lineNumber++) {
+			String entry = lines.get(lineNumber - 1).strip();
+			if (entry.isEmpty() || entry.startsWith("#")) {
+				continue;
+			}
+			if (!isStructurallyValid(entry)) {
+				throw invalidEntry(path, lineNumber, entry);
+			}
+			if (!rawEntries.add(entry)) {
+				throw new SecurityException(
+						Messages.localized("security.architecture.blocklist.duplicate.entry", path, lineNumber, entry));
+			}
+			canonicalEntries.add(canonicalise(entry));
+		}
+		return canonicalEntries;
 	}
 
 	private static Path counterpartOf(Path path) {
@@ -118,10 +127,10 @@ public final class ForbiddenMethodMatcher {
 		String archunit = separator + "archunit" + separator;
 		String wala = separator + "wala" + separator;
 		if (value.contains(archunit)) {
-			return Path.of(value.replace(archunit, wala));
+			return path.getFileSystem().getPath(value.replace(archunit, wala));
 		}
 		if (value.contains(wala)) {
-			return Path.of(value.replace(wala, archunit));
+			return path.getFileSystem().getPath(value.replace(wala, archunit));
 		}
 		return path;
 	}
