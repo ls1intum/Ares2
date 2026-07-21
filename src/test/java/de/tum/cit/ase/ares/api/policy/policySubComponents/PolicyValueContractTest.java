@@ -12,6 +12,14 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.IntNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.NullNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
+
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 
@@ -156,6 +164,103 @@ class PolicyValueContractTest {
 				new SecurityPolicy(SecurityPolicy.MAXIMUM_POLICY_VERSION, second));
 		assertThrows(NullPointerException.class, () -> supervisedCode(java.util.Arrays.asList((String) null)));
 		assertThrows(IllegalArgumentException.class, () -> supervisedCode(List.of(" ")));
+	}
+
+	@Test
+	void classPermissionIsConstructableThroughItsBuilder() {
+		// The builder is public API that nothing inside Ares uses: production code
+		// constructs the record directly. Exercise it here so the published surface
+		// carries the same guarantees as the constructor it delegates to.
+		ClassPermission built = ClassPermission.builder().className("com.example.Trusted").build();
+		assertEquals("com.example.Trusted", built.className());
+		assertEquals(new ClassPermission("com.example.Trusted"), built);
+		assertThrows(NullPointerException.class, () -> ClassPermission.builder().className(null));
+		assertThrows(NullPointerException.class, () -> ClassPermission.builder().build());
+		assertThrows(IllegalArgumentException.class, () -> ClassPermission.builder().className(" ").build());
+	}
+
+	@Test
+	void commandPermissionAcceptsBothPolicyFormsAndRejectsEveryOtherShape() {
+		assertEquals(List.of(), CommandPermission.fromString("java").withTheseArguments());
+		assertEquals("java", CommandPermission.fromString("java").executeTheCommand());
+
+		// The record's own guard, reached only by constructing it directly: every
+		// factory rejects a blank command before it gets this far.
+		assertThrows(NullPointerException.class, () -> new CommandPermission(null, List.of()));
+		assertThrows(IllegalArgumentException.class, () -> new CommandPermission(" ", List.of()));
+		assertThrows(NullPointerException.class, () -> new CommandPermission("git", null));
+		assertThrows(NullPointerException.class,
+				() -> new CommandPermission("git", java.util.Arrays.asList((String) null)));
+
+		// Scalar form: a bare command, which carries no argument constraint.
+		CommandPermission scalar = CommandPermission.fromJson(new TextNode("git"));
+		assertEquals("git", scalar.executeTheCommand());
+		assertEquals(List.of(), scalar.withTheseArguments());
+
+		// Mapping form: command plus its declared arguments.
+		CommandPermission mapping = CommandPermission.fromJson(commandNode("git", argumentArray("status")));
+		assertEquals("git", mapping.executeTheCommand());
+		assertEquals(List.of("status"), mapping.withTheseArguments());
+		assertEquals(List.of(), CommandPermission.fromJson(commandNode("git", argumentArray())).withTheseArguments());
+
+		// Absent value, in both the Java and the JSON sense.
+		assertThrows(IllegalArgumentException.class, () -> CommandPermission.fromJson(null));
+		assertThrows(IllegalArgumentException.class, () -> CommandPermission.fromJson(NullNode.getInstance()));
+
+		// Neither a scalar nor a mapping.
+		assertThrows(IllegalArgumentException.class, () -> CommandPermission.fromJson(new IntNode(1)));
+		assertThrows(IllegalArgumentException.class,
+				() -> CommandPermission.fromJson(new ArrayNode(JsonNodeFactory.instance)));
+
+		// Mapping with the wrong set of fields: too few, too many, and the right count
+		// under the wrong names.
+		ObjectNode tooFew = JsonNodeFactory.instance.objectNode();
+		tooFew.set("executeTheCommand", new TextNode("git"));
+		assertThrows(IllegalArgumentException.class, () -> CommandPermission.fromJson(tooFew));
+		ObjectNode tooMany = commandNode("git", argumentArray("status"));
+		tooMany.set("somethingElse", new TextNode("x"));
+		assertThrows(IllegalArgumentException.class, () -> CommandPermission.fromJson(tooMany));
+		ObjectNode wrongNames = JsonNodeFactory.instance.objectNode();
+		wrongNames.set("executeTheCommand", new TextNode("git"));
+		wrongNames.set("withTheseArgument", argumentArray("status"));
+		assertThrows(IllegalArgumentException.class, () -> CommandPermission.fromJson(wrongNames));
+		ObjectNode noCommandKey = JsonNodeFactory.instance.objectNode();
+		noCommandKey.set("executeTheCommands", new TextNode("git"));
+		noCommandKey.set("withTheseArguments", argumentArray("status"));
+		assertThrows(IllegalArgumentException.class, () -> CommandPermission.fromJson(noCommandKey));
+
+		// Mapping whose command is present but unusable.
+		assertThrows(IllegalArgumentException.class,
+				() -> CommandPermission.fromJson(commandNode(new IntNode(1), argumentArray())));
+		assertThrows(IllegalArgumentException.class,
+				() -> CommandPermission.fromJson(commandNode(new TextNode(" "), argumentArray())));
+
+		// Mapping whose arguments are not an array of strings.
+		assertThrows(IllegalArgumentException.class,
+				() -> CommandPermission.fromJson(commandNode("git", new TextNode("status"))));
+		ArrayNode nonTextualArguments = new ArrayNode(JsonNodeFactory.instance);
+		nonTextualArguments.add(1);
+		assertThrows(IllegalArgumentException.class,
+				() -> CommandPermission.fromJson(commandNode("git", nonTextualArguments)));
+	}
+
+	private static ObjectNode commandNode(String command, JsonNode arguments) {
+		return commandNode(new TextNode(command), arguments);
+	}
+
+	private static ObjectNode commandNode(JsonNode command, JsonNode arguments) {
+		ObjectNode node = JsonNodeFactory.instance.objectNode();
+		node.set("executeTheCommand", command);
+		node.set("withTheseArguments", arguments);
+		return node;
+	}
+
+	private static ArrayNode argumentArray(String... arguments) {
+		ArrayNode node = new ArrayNode(JsonNodeFactory.instance);
+		for (String argument : arguments) {
+			node.add(argument);
+		}
+		return node;
 	}
 
 	private SupervisedCode supervisedCode(List<String> testClasses) {

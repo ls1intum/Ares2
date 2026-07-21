@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nonnull;
@@ -88,16 +89,36 @@ public final class PolicyValueValidator {
 	}
 
 	/**
+	 * Maps each pattern to the message describing, in words, what it accepts.
+	 * <p>
+	 * A failure message used to quote the pattern source instead. For the host and
+	 * path patterns that meant several hundred characters of alternation, which
+	 * tells a policy author what the expression is but not what to write. Keyed by
+	 * identity because the values are the constants declared above, and every
+	 * pattern that reaches {@link #requireMatch} is one of them.
+	 */
+	private static final Map<Pattern, String> EXPECTATION_KEYS = Map.of(PROGRAMMING_LANGUAGE_CONFIGURATION_PATTERN,
+			"policy.value.programming.language.configuration", JAVA_PACKAGE_PATTERN, "policy.value.java.package",
+			JAVA_CLASS_NAME_PATTERN, "policy.value.java.class.name", JAVA_CLASS_PATH_PATTERN,
+			"policy.value.java.class.path", FILE_PATH_PATTERN, "policy.value.file.path", HOST_PATTERN,
+			"policy.value.host", THREAD_CLASS_PATTERN, "policy.value.thread.class");
+
+	/**
 	 * Requires a nullable value to fully match a validation pattern.
 	 *
 	 * @param field   the policy-field name used in the failure message
 	 * @param value   the value to validate; may be {@code null}
 	 * @param pattern the required validation pattern
-	 * @throws IllegalArgumentException if the value does not match the pattern
+	 * @throws IllegalArgumentException if the value does not match the pattern. The
+	 *                                  message states what the field accepts, and
+	 *                                  quotes the offending value.
 	 */
 	public static void requireMatch(@Nonnull String field, @Nullable String value, @Nonnull Pattern pattern) {
 		if (!matches(value, pattern)) {
-			throw new IllegalArgumentException(field + " does not match " + pattern.pattern());
+			String expectationKey = EXPECTATION_KEYS.get(pattern);
+			throw new IllegalArgumentException(expectationKey == null
+					? Messages.localized("policy.value.pattern", field, String.valueOf(value), pattern.pattern())
+					: Messages.localized(expectationKey, field, String.valueOf(value)));
 		}
 	}
 
@@ -109,8 +130,8 @@ public final class PolicyValueValidator {
 	 */
 	public static void requirePackageImport(@Nullable String value) {
 		if (!matchesPackageImport(value)) {
-			throw new IllegalArgumentException(
-					"importTheFollowingPackage does not match " + JAVA_PACKAGE_PATTERN.pattern() + " or *");
+			throw new IllegalArgumentException(Messages.localized("policy.value.package.import",
+					"importTheFollowingPackage", String.valueOf(value)));
 		}
 	}
 }

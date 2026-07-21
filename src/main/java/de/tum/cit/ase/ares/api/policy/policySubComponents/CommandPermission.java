@@ -123,13 +123,16 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
 			if (node.size() != 2 || !node.has("executeTheCommand") || !node.has("withTheseArguments")) {
 				throw new IllegalArgumentException(Messages.localized("policy.permission.command.mapping.fields"));
 			}
+			// Neither node can be null: the field-presence check above has already
+			// established that both keys exist, and Jackson yields a NullNode rather than
+			// a Java null for a key present with an empty value.
 			JsonNode commandNode = node.get("executeTheCommand");
-			if (commandNode == null || !commandNode.isTextual() || commandNode.textValue().isBlank()) {
+			if (!commandNode.isTextual() || commandNode.textValue().isBlank()) {
 				throw new IllegalArgumentException(Messages.localized("policy.permission.command.blank"));
 			}
 			List<String> arguments = new ArrayList<>();
 			JsonNode argumentsNode = node.get("withTheseArguments");
-			if (argumentsNode == null || !argumentsNode.isArray()) {
+			if (!argumentsNode.isArray()) {
 				throw new IllegalArgumentException(Messages.localized("policy.permission.command.arguments.array"));
 			}
 			for (JsonNode argument : argumentsNode) {
