@@ -62,6 +62,17 @@ public record SecurityPolicy(int thisPolicyFileCompliesToThePolicyVersion,
 	 */
 	public static final int MAXIMUM_POLICY_VERSION = 1;
 
+	/*
+	 * Guards against an edit that leaves the two ends of the supported range
+	 * inconsistent. Such a range would reject every policy version, so the cause is
+	 * stated here rather than inferred from a suite that fails everywhere at once.
+	 */
+	static {
+		if (MINIMUM_POLICY_VERSION > MAXIMUM_POLICY_VERSION) {
+			throw new ExceptionInInitializerError("MINIMUM_POLICY_VERSION must not exceed MAXIMUM_POLICY_VERSION");
+		}
+	}
+
 	/**
 	 * Constructs a SecurityPolicy instance with a validated policy-format version
 	 * and validated supervised code.

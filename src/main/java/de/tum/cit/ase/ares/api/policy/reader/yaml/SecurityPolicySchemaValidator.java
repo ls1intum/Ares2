@@ -43,10 +43,15 @@ final class SecurityPolicySchemaValidator {
 		requireObject(root, "$", ROOT_FIELDS, ROOT_FIELDS);
 		requireIntegral(root, "thisPolicyFileCompliesToThePolicyVersion", "$");
 		JsonNode policyVersion = root.get("thisPolicyFileCompliesToThePolicyVersion");
-		if (!policyVersion.canConvertToInt() || policyVersion.intValue() < SecurityPolicy.MINIMUM_POLICY_VERSION
-				|| policyVersion.intValue() > SecurityPolicy.MAXIMUM_POLICY_VERSION) {
+		if (!policyVersion.canConvertToInt()) {
+			fail("$.thisPolicyFileCompliesToThePolicyVersion must fit into an int");
+		}
+		int declaredPolicyVersion = policyVersion.intValue();
+		if (declaredPolicyVersion < SecurityPolicy.MINIMUM_POLICY_VERSION
+				|| declaredPolicyVersion > SecurityPolicy.MAXIMUM_POLICY_VERSION) {
 			fail("$.thisPolicyFileCompliesToThePolicyVersion must be between " + SecurityPolicy.MINIMUM_POLICY_VERSION
-					+ " and " + SecurityPolicy.MAXIMUM_POLICY_VERSION + " (inclusive)");
+					+ " and " + SecurityPolicy.MAXIMUM_POLICY_VERSION + " (inclusive), but was "
+					+ declaredPolicyVersion);
 		}
 		JsonNode supervisedCode = root.get("regardingTheSupervisedCode");
 		requireObject(supervisedCode, "$.regardingTheSupervisedCode", SUPERVISED_CODE_FIELDS,
