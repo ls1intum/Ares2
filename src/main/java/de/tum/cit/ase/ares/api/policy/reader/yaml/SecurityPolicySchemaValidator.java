@@ -42,9 +42,11 @@ final class SecurityPolicySchemaValidator {
 	static void validate(@Nonnull JsonNode root) throws MismatchedInputException {
 		requireObject(root, "$", ROOT_FIELDS, ROOT_FIELDS);
 		requireIntegral(root, "thisPolicyFileCompliesToThePolicyVersion", "$");
-		if (!root.get("thisPolicyFileCompliesToThePolicyVersion").canConvertToInt() || root
-				.get("thisPolicyFileCompliesToThePolicyVersion").intValue() != SecurityPolicy.CURRENT_POLICY_VERSION) {
-			fail("$.thisPolicyFileCompliesToThePolicyVersion must be exactly " + SecurityPolicy.CURRENT_POLICY_VERSION);
+		JsonNode policyVersion = root.get("thisPolicyFileCompliesToThePolicyVersion");
+		if (!policyVersion.canConvertToInt() || policyVersion.intValue() < SecurityPolicy.MINIMUM_POLICY_VERSION
+				|| policyVersion.intValue() > SecurityPolicy.MAXIMUM_POLICY_VERSION) {
+			fail("$.thisPolicyFileCompliesToThePolicyVersion must be between " + SecurityPolicy.MINIMUM_POLICY_VERSION
+					+ " and " + SecurityPolicy.MAXIMUM_POLICY_VERSION + " (inclusive)");
 		}
 		JsonNode supervisedCode = root.get("regardingTheSupervisedCode");
 		requireObject(supervisedCode, "$.regardingTheSupervisedCode", SUPERVISED_CODE_FIELDS,

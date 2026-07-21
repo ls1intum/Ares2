@@ -17,12 +17,20 @@ import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 
 class PolicyValueContractTest {
 	@Test
-	void requiresExactlyTheCurrentPolicyVersion() {
+	void requiresASupportedPolicyVersion() {
 		SecurityPolicy policy = SecurityPolicy
 				.createRestrictive(ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ);
-		assertEquals(SecurityPolicy.CURRENT_POLICY_VERSION, policy.thisPolicyFileCompliesToThePolicyVersion());
-		assertThrows(IllegalArgumentException.class, () -> new SecurityPolicy(0, policy.regardingTheSupervisedCode()));
-		assertThrows(IllegalArgumentException.class, () -> new SecurityPolicy(2, policy.regardingTheSupervisedCode()));
+		assertEquals(SecurityPolicy.MAXIMUM_POLICY_VERSION, policy.thisPolicyFileCompliesToThePolicyVersion());
+		assertThrows(IllegalArgumentException.class, () -> new SecurityPolicy(SecurityPolicy.MINIMUM_POLICY_VERSION - 1,
+				policy.regardingTheSupervisedCode()));
+		assertThrows(IllegalArgumentException.class, () -> new SecurityPolicy(SecurityPolicy.MAXIMUM_POLICY_VERSION + 1,
+				policy.regardingTheSupervisedCode()));
+		assertThrows(IllegalArgumentException.class, () -> SecurityPolicy.builder()
+				.thisPolicyFileCompliesToThePolicyVersion(SecurityPolicy.MAXIMUM_POLICY_VERSION + 1));
+		SecurityPolicy explicitVersion = SecurityPolicy.builder()
+				.thisPolicyFileCompliesToThePolicyVersion(SecurityPolicy.MINIMUM_POLICY_VERSION)
+				.regardingTheSupervisedCode(policy.regardingTheSupervisedCode()).build();
+		assertEquals(SecurityPolicy.MINIMUM_POLICY_VERSION, explicitVersion.thisPolicyFileCompliesToThePolicyVersion());
 	}
 
 	@Test
@@ -144,8 +152,8 @@ class PolicyValueContractTest {
 		map.put(second, "second");
 		assertEquals(1, map.size());
 		assertTrue(first.toString().contains("example.PolicyTest"));
-		assertEquals(new SecurityPolicy(SecurityPolicy.CURRENT_POLICY_VERSION, first),
-				new SecurityPolicy(SecurityPolicy.CURRENT_POLICY_VERSION, second));
+		assertEquals(new SecurityPolicy(SecurityPolicy.MAXIMUM_POLICY_VERSION, first),
+				new SecurityPolicy(SecurityPolicy.MAXIMUM_POLICY_VERSION, second));
 		assertThrows(NullPointerException.class, () -> supervisedCode(java.util.Arrays.asList((String) null)));
 		assertThrows(IllegalArgumentException.class, () -> supervisedCode(List.of(" ")));
 	}
