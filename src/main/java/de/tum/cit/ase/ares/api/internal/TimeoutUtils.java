@@ -30,8 +30,14 @@ public final class TimeoutUtils {
 		return strictTimeout.map(st -> Duration.of(st.value(), st.unit().toChronoUnit()));
 	}
 
+	static Optional<Duration> findTerminationGracePeriod(TestContext context) {
+		var strictTimeout = TestContextUtils.findAnnotationIn(context, StrictTimeout.class);
+		return strictTimeout.map(st -> Duration.of(st.terminationGrace(), st.terminationGraceUnit().toChronoUnit()));
+	}
+
 	public static <T> T performTimeoutExecution(ThrowingSupplier<T> execution, TestContext context) throws Throwable {
-		return performTimeoutExecution(execution, context, DEFAULT_TERMINATION_GRACE_PERIOD);
+		Duration terminationGracePeriod = findTerminationGracePeriod(context).orElse(DEFAULT_TERMINATION_GRACE_PERIOD);
+		return performTimeoutExecution(execution, context, terminationGracePeriod);
 	}
 
 	public static <T> T performTimeoutExecution(ThrowingSupplier<T> execution, TestContext context,
