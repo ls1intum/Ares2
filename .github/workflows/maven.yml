@@ -247,9 +247,8 @@ jobs:
     name: Coverage Report
     needs: [ unit-tests, tests, core-integration-tests ]
     # A failed slice still produced usable execution data, and the report is more useful
-    # then, not less, so this waits for the test jobs rather than requiring them to pass.
-    if: ${{ !cancelled() }}
-    runs-on: ubuntu-24.04
+    # than, not less, so this waits for the test jobs rather than requiring them to pass.
+    if: ${{ always() && !cancelled() }}
     timeout-minutes: 20
     permissions:
       contents: read
