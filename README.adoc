@@ -27,7 +27,7 @@ endif::env-github[]
 
 
 Ares 2 is a framework for easy and secure remote execution of student submissions on the interactive learning platform.
-It is the second Java-based implementation of the Secure COder Remote Execution (SCORE) framework and the first one supporting Java 17 and later versions.
+It is the second Java-based implementation of the Secure COder Remote Execution (SCORE) framework and the first one supporting Java 25 and later versions.
 
 Its main features are:
 
@@ -93,7 +93,7 @@ in production._
 
 === Setup
 
-Assume you have a Java 17 Maven project, and the inside of `pom.xml`
+Assume you have a Java 25 Maven project, and the inside of `pom.xml`
 looks like this:
 
 [source,xml]
