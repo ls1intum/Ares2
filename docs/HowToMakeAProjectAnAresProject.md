@@ -15,7 +15,7 @@
 ## Table of Contents
 
 1. [Prerequisites](#1-prerequisites)
-2. [Purpose: What Problem Does This Solve?](#2-purpose--what-problem-does-this-solve)
+2. [Purpose: What Problem Does This Solve?](#2-purpose-what-problem-does-this-solve)
 3. [Add Ares dependencies and agent setup](#3-add-ares-dependencies-and-agent-setup)
    - [3.1 Gradle (recommended)](#31-gradle-recommended)
      - [3.1.1 Configure repository lookup](#311-configure-repository-lookup)
@@ -29,9 +29,16 @@
      - [3.2.3 Attach agent via maven-surefire-plugin](#323-attach-agent-via-maven-surefire-plugin)
      - [3.2.4 Configure AspectJ compile-time weaving](#324-configure-aspectj-compile-time-weaving)
 4. [Verify your setup](#4-verify-your-setup)
-5. [Next steps](#5-next-steps)
-6. [Troubleshooting](#6-troubleshooting)
-7. [Glossary](#7-glossary)
+   - [4.1 Step 1: Confirm Ares is on the classpath](#41-step-1-confirm-ares-is-on-the-classpath)
+   - [4.2 Step 2: Prove that enforcement actually happens](#42-step-2-prove-that-enforcement-actually-happens)
+5. [Upgrading from Ares 1 to Ares 2.1.0](#5-upgrading-from-ares-1-to-ares-210)
+   - [5.1 Replace the dependency](#51-replace-the-dependency)
+   - [5.2 Rename the package](#52-rename-the-package)
+   - [5.3 Map the annotations](#53-map-the-annotations)
+   - [5.4 Add `@Policy` to every test class](#54-add-policy-to-every-test-class)
+6. [Next steps](#6-next-steps)
+7. [Troubleshooting](#7-troubleshooting)
+8. [Glossary](#8-glossary)
 
 ---
 
@@ -252,6 +259,7 @@ Configure the Surefire test plugin to load the agent during test execution:
     <artifactId>maven-surefire-plugin</artifactId>
     <configuration>
         <argLine>
+            @{argLine}
             -javaagent:${settings.localRepository}/de/tum/cit/ase/ares/2.1.0/ares-2.1.0-agent.jar
             -Xbootclasspath/a:${settings.localRepository}/org/aspectj/aspectjrt/1.9.25.1/aspectjrt-1.9.25.1.jar
             --add-exports java.base/java.lang=ALL-UNNAMED
@@ -278,6 +286,7 @@ Configure the Surefire test plugin to load the agent during test execution:
 
 **Explanation:**
 - `argLine`: JVM arguments passed to every test execution
+- `@{argLine}`: Preserves JVM arguments that other plugins contribute late in the build, most importantly the JaCoCo agent injected by `jacoco:prepare-agent`. Surefire's `argLine` is a single value, so a `<argLine>` that omits `@{argLine}` **replaces** those contributions instead of adding to them, and the other agent is dropped silently, with no warning and a still-green build. Verified with Surefire 3.5.2 and JaCoCo 0.8.12: without `@{argLine}` the JaCoCo agent was absent from the test JVM; with it, both agents were present. Ares's own `pom.xml` uses `@{argLine}` for this reason. Keep it as the first entry even if you do not use JaCoCo today, so that adding a coverage or profiling plugin later does not silently disable it
 - `-javaagent:${settings.localRepository}/...`: Path to the **agent** JAR (note the `-agent` suffix) in the local Maven repository (Maven resolves `${settings.localRepository}` to `~/.m2/repository`). When updating the Ares version, update both the `<version>` in the dependency and the version in this path.
 - `-Xbootclasspath/a:...`: Appends the AspectJ **runtime** JAR (`aspectjrt`) to the bootstrap classpath so that woven bytecode can resolve AspectJ runtime types at the bootstrap class-loader level. `aspectjrt` is a separate Maven artefact (`org.aspectj:aspectjrt`), so its repository path follows the standard Maven layout. You may need to adjust the version (`1.9.25.1`) if a newer AspectJ version is required.
 - **JVM Module Access Flags** (same as Gradle, see [Section 3.1.4](#314-attach-agent-to-test-execution) for the full per-flag explanation):
@@ -357,7 +366,11 @@ Your build must run the AspectJ compiler (`ajc`) to weave the Ares security aspe
 
 ## 4. Verify your setup
 
-Create a minimal test to confirm Ares is working. This test does **not** require a `SecurityPolicy.yaml` file. A passing run confirms that the Ares classes are available on the test classpath and that the test JVM starts with the configured arguments; it does **not** prove that the agent performed any instrumentation. Note that the test is not enforcement-free either: without a `@Policy` annotation, Ares's JUnit extension still applies its default, most restrictive security policy to the test:
+Verification has two steps, and **only the second one proves anything about security**.
+
+### 4.1 Step 1: Confirm Ares is on the classpath
+
+This test does **not** require a `SecurityPolicy.yaml` file:
 
 ```java
 import de.tum.cit.ase.ares.api.jupiter.Public;
@@ -370,22 +383,135 @@ public class AresSetupVerificationTest {
     @Public
     @Test
     void aresSetupIsAvailable() {
-        // If this test compiles and runs without errors, the Ares classes are on the
-        // test classpath and the default security policy could be applied.
+        // If this test compiles and runs, the Ares classes are on the test classpath
+        // and the test JVM started with the configured arguments.
         assertDoesNotThrow(() -> {});
     }
 }
 ```
 
-Run `./gradlew test` (or `mvn test`). If the test passes, the Ares dependency and JVM arguments are correctly set up. To verify that the agent and the weaving actually enforce restrictions, write a test whose code performs a forbidden operation (e.g., writing a file outside the allowed paths) and check that it fails with an Ares security error.
+Run `./gradlew test` (or `mvn test`). A pass confirms the dependency and the JVM arguments resolve. It confirms **nothing else**.
 
-> **Note:** To verify full policy enforcement, also create a `SecurityPolicy.yaml` and add `@Policy` to your test (see [Next steps](#5-next-steps)).
+> **Warning: a test without `@Policy` is not protected.**
+> A test class that has no `@Policy` annotation (directly, or inherited from a meta-annotation) runs with **no security enforcement at all**. Ares does not fall back to a restrictive default for such tests. Verified against Ares 2.1.0: in a test class shaped exactly like `AresSetupVerificationTest` above, student code called `Files.readString(Path.of("build.gradle"))` and read the file's full 4233 bytes without being blocked.
+>
+> Enforcement is opt-in per test class. See [Section 4.2](#42-step-2-prove-that-enforcement-actually-happens) and [Section 6](#6-next-steps).
+
+### 4.2 Step 2: Prove that enforcement actually happens
+
+This is the step that verifies security. Add a class in the supervised package that performs a forbidden operation, and a test **carrying `@Policy`** that calls it:
+
+```java
+// In the supervised (student) package, e.g. src/main/java/com/example/AresProbe.java
+package com.example;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+public class AresProbe {
+    public static String readSecret() throws Exception {
+        return Files.readString(Path.of("build.gradle"));
+    }
+}
+```
+
+```java
+// In the test sources
+import de.tum.cit.ase.ares.api.Policy;
+import de.tum.cit.ase.ares.api.jupiter.PublicTest;
+
+import static org.junit.jupiter.api.Assertions.fail;
+
+@Policy(value = "src/test/resources/SecurityPolicy.yaml", withinPath = "classes/java/main/com/example")
+class AresEnforcementTest {
+
+    @PublicTest
+    void forbiddenFileReadMustBeBlocked() {
+        try {
+            AresProbe.readSecret();
+            fail("Ares did not block the forbidden file read: enforcement is NOT active.");
+        } catch (SecurityException expected) {
+            // Ares blocked the call, the setup enforces the policy.
+        } catch (Exception e) {
+            fail("Unexpected non-security exception: " + e);
+        }
+    }
+}
+```
+
+With a policy whose `regardingFileSystemInteractions` list is empty, this must terminate with a `java.lang.SecurityException` mentioning the offending call. If the test instead reports that nothing was blocked, enforcement is not active: re-check `@Policy`, `withinPath`, and the agent arguments before trusting the setup.
+
+Remove the probe class once the setup is confirmed.
+
+> **Note:** Creating the `SecurityPolicy.yaml` used above is covered in the [Security Policy Manual](policy/SecurityPolicyManual.md); see also [Next steps](#6-next-steps).
 
 > **What happens without the agent?** If the `-javaagent` flag is missing, Ares's **static analysis** (ArchUnit/WALA architecture tests) still works, and **AspectJ enforcement** also still works, because the aspects are woven into the bytecode at compile time. Only the **ByteBuddy instrumentation** enforcement path is inactive, since it relies on the agent to transform classes at load time. If you use an `INSTRUMENTATION` configuration, students could then bypass security restrictions at runtime, so always ensure the agent is loaded.
 
 ---
 
-## 5. Next steps
+## 5. Upgrading from Ares 1 to Ares 2.1.0
+
+Skip this section for a new project. It applies when your project currently uses Ares 1 (`de.tum.in.ase:artemis-java-test-sandbox`) and you are moving it onto Ares 2.1.0.
+
+The build changes in [Section 3](#3-add-ares-dependencies-and-agent-setup) are **not sufficient on their own**: the test sources must be migrated too, because Ares 1 expressed its security rules as annotations, whereas Ares 2 expresses them in a `SecurityPolicy.yaml` file.
+
+### 5.1 Replace the dependency
+
+Remove the Ares 1 dependency and add the Ares 2 dependencies from [Section 3](#3-add-ares-dependencies-and-agent-setup):
+
+```diff
+- testImplementation 'de.tum.in.ase:artemis-java-test-sandbox:1.15.0'
++ testImplementation "de.tum.cit.ase:ares:2.1.0"
+```
+
+### 5.2 Rename the package
+
+Every Ares 1 import moves from `de.tum.in.test.api` to `de.tum.cit.ase.ares.api`:
+
+```diff
+- import de.tum.in.test.api.jupiter.Public;
++ import de.tum.cit.ase.ares.api.jupiter.Public;
+```
+
+### 5.3 Map the annotations
+
+| Ares 1 (current) | Ares 2.1.0 (target) | Notes |
+|---|---|---|
+| `@Public`, `@PublicTest`, `@Hidden`, `@HiddenTest` | unchanged, new package | `de.tum.cit.ase.ares.api.jupiter` |
+| `@StrictTimeout`, `@MirrorOutput`, `@Deadline`, `@ExtendedDeadline` | unchanged, new package | `de.tum.cit.ase.ares.api` |
+| `structural.*TestProvider`, `util.ReflectionTestUtils`, `io.IOTester` | unchanged, new package | API-compatible |
+| `@WhitelistPath` | **removed** | Express as `regardingFileSystemInteractions` entries in the policy file |
+| `@BlacklistPath` | **removed** | Ares 2 is default-deny, so anything not permitted is already denied |
+| `@WhitelistClass` | **removed** | Express as `theFollowingClassesAreTestClasses` in the policy file |
+| `PathType` (`GLOB`, `STARTS_WITH`) | **removed** | Policy paths use `onThisPathAndAllPathsBelow` |
+
+Delete the removed annotations and their imports, then write the equivalent `SecurityPolicy.yaml` as described in the [Security Policy Manual](policy/SecurityPolicyManual.md).
+
+### 5.4 Add `@Policy` to every test class
+
+This step is easy to miss and fails silently. In Ares 1, a test was protected by virtue of the sandbox being installed. In Ares 2, **a test class with no `@Policy` runs unprotected** (see the warning in [Section 4.1](#41-step-1-confirm-ares-is-on-the-classpath)).
+
+Annotate every test class, and remember that `@Policy` is inherited through **meta-annotations**: if your exercise defines a marker annotation that its test classes carry, putting `@Policy` on that marker covers all of them.
+
+```java
+@Policy(value = "test/de/tum/cit/aet/SecurityPolicy.yaml", withinPath = "classes/java/main/de/tum/cit/aet")
+@Public
+@StrictTimeout(3)
+@Retention(RUNTIME)
+@Target({TYPE, ANNOTATION_TYPE})
+public @interface E01 {
+}
+```
+
+After migrating, audit for stragglers, since these are the classes that will run without enforcement:
+
+```bash
+grep -rL "@Policy" src/test/java --include="*Test.java"
+```
+
+---
+
+## 6. Next steps
 
 1. **Create a security policy and annotate tests:** Follow the [Security Policy Manual](policy/SecurityPolicyManual.md), which explains how to write `SecurityPolicy.yaml` files and apply the `@Policy` annotation to your tests.
 2. **Choose the right configuration:** Select one of the 8 `ProgrammingLanguageConfiguration` values matching your build tool, architecture analysis, and runtime enforcement:
@@ -408,19 +534,22 @@ Run `./gradlew test` (or `mvn test`). If the test passes, the Ares dependency an
 
 ---
 
-## 6. Troubleshooting
+## 7. Troubleshooting
 
 | Problem | Possible Cause | Solution |
 |---------|---------------|----------|
 | `ClassNotFoundException: de.tum.cit.ase.ares.api.Policy` | Ares not on the test classpath | Verify `testImplementation` dependency is present |
 | `Failed to find premain agent` or agent-related errors | Agent JAR not found or wrong classifier | Ensure the `aresAgent` dependency uses the `:agent` classifier (Gradle) or the `-agent.jar` suffix (Maven) |
 | Tests pass but student code is not restricted | `-javaagent` JVM argument missing | Check that `jvmArgs` / `<argLine>` includes the `-javaagent:...` path |
+| Tests pass but student code is not restricted | Test class has no `@Policy` | The most common cause. A test class without `@Policy` (direct or meta-annotated) runs with **no** enforcement; Ares does not apply a restrictive default. Find them with `grep -rL "@Policy" src/test/java --include="*Test.java"`. See [Section 4.1](#41-step-1-confirm-ares-is-on-the-classpath) |
+| Enforcement silently inactive for some tests only | `withinPath` points at a directory that does not exist | A `withinPath` that does not match the compiled student package resolves to an empty directory, so nothing is analysed and no error is raised. Confirm the path exists under `build/classes/java/main` (Gradle) or `target/classes` (Maven) after a build |
+| Coverage report empty after adding Ares (Maven) | `<argLine>` overwrote the JaCoCo agent | Put `@{argLine}` first inside `<argLine>`, see [Section 3.2.3](#323-attach-agent-via-maven-surefire-plugin) |
 | `InaccessibleObjectException` at runtime | Missing `--add-opens` / `--add-exports` flags | Ensure the complete list of JVM module access flags from [Section 3.1.4](#314-attach-agent-to-test-execution) / [Section 3.2.3](#323-attach-agent-via-maven-surefire-plugin) is present |
 | Policy seems to have no effect | Wrong `withinPath` | Gradle: `classes/java/main/<package/path>`, Maven: `classes/<package/path>` |
 
 ---
 
-## 7. Glossary
+## 8. Glossary
 
 | Term | Meaning |
 |------|----------|
