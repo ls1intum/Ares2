@@ -246,9 +246,13 @@ jobs:
   coverage-report:
     name: Coverage Report
     needs: [ unit-tests, tests, core-integration-tests ]
-    # A failed slice still produced usable execution data, and the report is more useful
-    # than, not less, so this waits for the test jobs rather than requiring them to pass.
-    if: ${{ always() && !cancelled() }}
+    # A failed slice still produced usable execution data, and the report is more useful in
+    # that case, not less, so this waits for the test jobs rather than requiring them to pass.
+    # `cancelled()` is a status check function, so naming it already suppresses the implicit
+    # `success()` on `needs`, and the job still runs after a failed slice. `always()` would
+    # be redundant here and GitHub discourages it.
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
       contents: read
