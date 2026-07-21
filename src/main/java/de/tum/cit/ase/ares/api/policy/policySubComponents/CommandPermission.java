@@ -20,6 +20,13 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  * <p>
  * Design Rationale: Explicitly defining command execution permissions helps
  * prevent unauthorised or harmful commands.
+ * <p>
+ * This record used to override {@code toString()} to return the command alone.
+ * That was a remnant of serialising it as a bare string through
+ * {@code @JsonValue}, which silently dropped the arguments from a written
+ * policy. The record now serialises through its components, and its string form
+ * is the one a record generates, so a permission no longer prints as though it
+ * carried no argument constraint.
  *
  * @since 2.0.0
  * @author Markus Paulsen
@@ -35,11 +42,19 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
 
 	/**
 	 * Constructs a CommandPermission instance.
+	 * <p>
+	 * The argument list is copied defensively, so a later change to the list the
+	 * caller passed in cannot widen which arguments this permission allows.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param executeTheCommand  the non-blank command to allow
-	 * @param withTheseArguments the non-null argument list
+	 * @param executeTheCommand  the command to allow; must be neither null nor
+	 *                           blank.
+	 * @param withTheseArguments the arguments the command may be given; must not be
+	 *                           null.
+	 * @throws NullPointerException     if the command, the argument list or one of
+	 *                                  its entries is null.
+	 * @throws IllegalArgumentException if the command is blank.
 	 */
 	public CommandPermission {
 		Objects.requireNonNull(executeTheCommand, "executeTheCommand must not be null");
@@ -59,8 +74,11 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param executeTheCommand the command to allow.
+	 * @param executeTheCommand the command to allow; must be neither null nor
+	 *                          blank.
 	 * @return a new CommandPermission instance with empty arguments.
+	 * @throws NullPointerException     if the command is null.
+	 * @throws IllegalArgumentException if the command is blank.
 	 */
 	@Nonnull
 	public static CommandPermission allowWithoutArguments(@Nonnull String executeTheCommand) {
@@ -86,6 +104,11 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
 	 * @author Markus Paulsen
 	 * @param node the JSON/YAML node (a string scalar or an object)
 	 * @return a new CommandPermission instance
+	 * @throws IllegalArgumentException if the node is null, is neither a string nor
+	 *                                  an object, is an object without exactly the
+	 *                                  two expected fields, carries a blank
+	 *                                  command, or carries arguments that are not
+	 *                                  an array of strings.
 	 */
 	@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
 	@Nonnull
@@ -127,27 +150,14 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param command the command string
+	 * @param command the command string; must be neither null nor blank.
 	 * @return a new CommandPermission instance with empty arguments
+	 * @throws NullPointerException     if the command is null.
+	 * @throws IllegalArgumentException if the command is blank.
 	 */
 	@Nonnull
 	public static CommandPermission fromString(String command) {
 		return allowWithoutArguments(command);
-	}
-
-	/**
-	 * Returns a human-readable representation. No longer annotated with
-	 * {@code @JsonValue}: serialising to only the command silently dropped the
-	 * arguments, so the record now serialises through its components.
-	 *
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 * @return the command string
-	 */
-	@Override
-	@Nonnull
-	public String toString() {
-		return executeTheCommand;
 	}
 
 	/**
@@ -176,12 +186,15 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
 	public static class Builder {
 
 		/**
-		 * The command to execute.
+		 * The command to execute. Has no default, so {@link #build()} rejects a builder
+		 * on which it was never set.
 		 */
 		@Nullable
 		private String executeTheCommand;
 		/**
-		 * The list of arguments for the command.
+		 * The arguments the command may be given. Has no default, so {@link #build()}
+		 * rejects a builder on which it was never set; pass an empty list to permit the
+		 * command without arguments.
 		 */
 		@Nullable
 		private List<String> withTheseArguments;
@@ -191,8 +204,10 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
 		 *
 		 * @since 2.0.0
 		 * @author Markus Paulsen
-		 * @param executeTheCommand the command to execute.
+		 * @param executeTheCommand the command to execute; must not be null, and is
+		 *                          checked for blankness by {@link #build()}.
 		 * @return the updated Builder.
+		 * @throws NullPointerException if the command is null.
 		 */
 		@Nonnull
 		public Builder executeTheCommand(@Nonnull String executeTheCommand) {
@@ -205,8 +220,11 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
 		 *
 		 * @since 2.0.0
 		 * @author Markus Paulsen
-		 * @param withTheseArguments the list of arguments.
+		 * @param withTheseArguments the list of arguments; must not be null. It is
+		 *                           copied, so later changes to the list passed in do
+		 *                           not affect this builder.
 		 * @return the updated Builder.
+		 * @throws NullPointerException if the list is null.
 		 */
 		@Nonnull
 		public Builder withTheseArguments(@Nonnull List<String> withTheseArguments) {
@@ -221,6 +239,9 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
 		 * @since 2.0.0
 		 * @author Markus Paulsen
 		 * @return a new CommandPermission instance.
+		 * @throws NullPointerException     if the command or the argument list was
+		 *                                  never set.
+		 * @throws IllegalArgumentException if the command is blank.
 		 */
 		@Nonnull
 		public CommandPermission build() {
