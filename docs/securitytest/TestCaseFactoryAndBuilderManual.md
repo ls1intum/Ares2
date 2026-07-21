@@ -2,7 +2,7 @@
 
 > **Audience:** IT-Education experts with no security background.
 > **Scope:** All classes inside `de.tum.cit.ase.ares.api.securitytest` — the abstract factory/builder, the Java-specific factory, and the `creator`, `essentialModel`, `executer`, `writer`, `projectScanner`, and `specific` sub-packages.
-> **Ares Version:** 2.0.1-Beta8
+> **Ares Version:** 2.1.0
 
 **Related documentation:**
 - [Security Policy Manual](../policy/SecurityPolicyManual.md) — how to write a security policy YAML file
@@ -359,7 +359,7 @@ Both are isomorphic Java Records with seven sub-lists:
 | `essentialJava*` | *(empty)* | `java` |
 | `essentialArchunit*` | `de.tum.cit.ase.ares.api.architecture.java.archunit` | *(empty)* |
 | `essentialWala*` | `de.tum.cit.ase.ares.api.architecture.java.wala` | *(empty)* |
-| `essentialAspectJ*` | `de.tum.cit.ase.ares.api.aop.java.aspectj` | `org.aspectj`, `org.java.aspectj` |
+| `essentialAspectJ*` | `de.tum.cit.ase.ares.api.aop.java.aspectj` | `org.aspectj` |
 | `essentialInstrumentation*` | `de.tum.cit.ase.ares.api.aop.java.instrumentation` | `de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut` |
 | `essentialAres*` | 18 Ares classes (Creator, Writer, Executer, PolicyReader, etc.) | *(empty)* |
 | `essentialJUnit*` | `de.tum.cit.ase.ares.api.jupiter` | *(empty)* |
@@ -556,6 +556,7 @@ This package contains a single class: `PathLocationProvider`.
 
 ```java
 @Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
 public @interface StudentCompiledClassesPath {
     @Nonnull String value();  // file system path to compiled classes
 }

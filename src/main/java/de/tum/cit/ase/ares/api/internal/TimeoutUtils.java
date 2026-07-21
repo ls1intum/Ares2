@@ -85,17 +85,20 @@ public final class TimeoutUtils {
 		}
 	}
 
-	private static void terminateTimedOutExecution(Future<?> future, ExecutorService executorService,
+	static void terminateTimedOutExecution(Future<?> future, ExecutorService executorService,
 			Duration terminationGracePeriod, IntConsumer fatalProcessTerminator) {
+		executorService.shutdown();
 		future.cancel(true);
-		executorService.shutdownNow();
 		/*
-		 * Give interruption-aware code time to finish before the owning thread
-		 * continues. If it ignores interruption, the fork is already contaminated:
-		 * returning would let untrusted code outlive its security, IO and reporting
-		 * lifecycle and affect later tests in a reused JVM. Thread.stop() cannot repair
-		 * that safely or reliably, so fail closed by terminating the complete worker
-		 * process and let Maven, Gradle or the IDE report the crashed test fork.
+		 * Future.cancel(true) delivers the single interruption that asks the timed-out
+		 * execution to stop. Calling shutdownNow() here would interrupt the worker a
+		 * second time; that interruption can race with interruption-aware code leaving
+		 * its body. Give it time to finish before the owning thread continues. If it
+		 * ignores interruption, the fork is already contaminated: returning would let
+		 * untrusted code outlive its security, IO and reporting lifecycle and affect
+		 * later tests in a reused JVM. Thread.stop() cannot repair that safely or
+		 * reliably, so fail closed by terminating the complete worker process and let
+		 * Maven, Gradle or the IDE report the crashed test fork.
 		 */
 		if (!awaitTermination(executorService, terminationGracePeriod.toMillis())) {
 			fatalProcessTerminator.accept(UNRESPONSIVE_TIMEOUT_EXIT_CODE);

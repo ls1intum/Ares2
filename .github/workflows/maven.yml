@@ -90,7 +90,7 @@ jobs:
 
       - name: Upload analysis reports
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: static-analysis-reports
           path: |
@@ -140,22 +140,18 @@ jobs:
             method-suffixes: '*MavenArchunitAspectJ+*_archunit_aspectj'
             architecture-method-suffixes: '*MavenArchunitAspectJ_test'
             reuse-forks: 'true'
-            run-core-tests: true
           - name: ArchUnit + instrumentation
             method-suffixes: '*MavenArchunitInstrumentation+*_archunit_instrumentation'
             architecture-method-suffixes: '*MavenArchunitInstrumentation_test'
             reuse-forks: 'true'
-            run-core-tests: false
           - name: WALA + AspectJ
             method-suffixes: '*MavenWalaAspectJ+*_wala_aspectj'
             architecture-method-suffixes: '*MavenWalaAspectJ_test'
             reuse-forks: 'true'
-            run-core-tests: false
           - name: WALA + instrumentation
             method-suffixes: '*MavenWalaInstrumentation+*_wala_instrumentation'
             architecture-method-suffixes: '*MavenWalaInstrumentation_test'
             reuse-forks: 'true'
-            run-core-tests: false
     permissions:
       contents: read
     steps:
@@ -171,15 +167,6 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      # Non-matrix integration tests run once and remain separate from unit tests.
-      - name: Core integration tests
-        if: ${{ matrix.run-core-tests }}
-        run: mvn test -Pintegration-core-tests -f pom.xml
-
-      - name: jqwik integration tests
-        if: ${{ matrix.run-core-tests }}
-        run: mvn test -f pom.xml -Dtest=de.tum.cit.ase.ares.integration.JqwickTest
-
       # Method-level selection starts only the classes belonging to this mode. All
       # mode combinations reuse one fork; WALA state remains policy-scoped.
       - name: Test mode combination
@@ -187,3 +174,29 @@ jobs:
           mvn test -f pom.xml
           -Dtest='de.tum.cit.ase.ares.integration.aop.allowed.*Test#${{ matrix.method-suffixes }},de.tum.cit.ase.ares.integration.aop.allowed.FileSystemAccessTest$*#${{ matrix.method-suffixes }},de.tum.cit.ase.ares.integration.aop.forbidden.*Test#${{ matrix.method-suffixes }},de.tum.cit.ase.ares.integration.architecture.forbidden.*Test#${{ matrix.architecture-method-suffixes }}'
           -Dsurefire-reuse-forks=${{ matrix.reuse-forks }}
+
+  core-integration-tests:
+    name: Core Integration Tests
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Core integration tests
+        run: mvn test -Pintegration-core-tests -f pom.xml
+
+      - name: jqwik integration tests
+        run: mvn test -f pom.xml -Dtest=de.tum.cit.ase.ares.integration.JqwickTest

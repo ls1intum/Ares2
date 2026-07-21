@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.jqwik;
 
 import java.time.Duration;
+import java.util.List;
 
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
@@ -29,27 +30,28 @@ import de.tum.cit.ase.ares.api.internal.TimeoutUtils;
  * @author Christian Femers
  */
 @API(status = Status.MAINTAINED)
-public class JqwikStrictTimeoutExtension implements AroundPropertyHook {
+public class JqwikStrictTimeoutExtension implements AroundTryHook {
 	private static final Duration TERMINATION_GRACE_PERIOD = Duration.ofSeconds(1);
 
 	@Override
-	public int aroundPropertyProximity() {
+	public int aroundTryProximity() {
 		/*
-		 * Keep the timeout inside Ares's security, IO and reporting hooks. Their setup
-		 * and cleanup mutate engine-wide state and must remain on jqwik's owning
-		 * thread; only the actual property execution belongs on the timeout worker.
+		 * Keep the timeout inside jqwik's try lifecycle and Ares's security, IO and
+		 * reporting hooks. Their setup and cleanup mutate engine-wide state and must
+		 * remain on jqwik's owning thread; only one invocation of the property method
+		 * belongs on the timeout worker.
 		 */
 		return 40;
 	}
 
 	@Override
-	public PropertyExecutionResult aroundProperty(PropertyLifecycleContext context, PropertyExecutor property)
+	public TryExecutionResult aroundTry(TryLifecycleContext context, TryExecutor aTry, List<Object> parameters)
 			throws Throwable {
 		DomainContext domainContext = CurrentDomainContext.get();
 		TestDescriptor desc = CurrentTestDescriptor.get();
 		return TimeoutUtils.performTimeoutExecution(
 				() -> CurrentDomainContext.runWithContext(domainContext,
-						() -> CurrentTestDescriptor.runWithDescriptor(desc, property::execute)),
+						() -> CurrentTestDescriptor.runWithDescriptor(desc, () -> aTry.execute(parameters))),
 				JqwikContext.of(context), TERMINATION_GRACE_PERIOD);
 	}
 }

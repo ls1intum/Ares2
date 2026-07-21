@@ -19,7 +19,6 @@ import de.tum.cit.ase.ares.api.localization.UseLocale;
 @Hidden
 @UseLocale("de")
 @SuppressWarnings("static-method")
-@Deadline("2200-01-01 16:00")
 // Replaces the former inert @TrustedThreads(ALL_THREADS) and the two @WhitelistPath rules with the
 // equivalent active @Policy, scanned against the benign HelloWorld subject.
 @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyJqwickUser.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
@@ -39,6 +38,7 @@ public class JqwickUser {
 	}
 
 	@Example
+	@Deadline("2200-01-01 16:00")
 	void exampleHiddenNormal() {
 		// nothing
 	}
@@ -72,6 +72,7 @@ public class JqwickUser {
 
 	@Hidden
 	@Property
+	@Deadline("2200-01-01 16:00")
 	boolean propertyHiddenNormal(@ForAll @Positive int x) {
 		return x != 0;
 	}
@@ -136,6 +137,13 @@ public class JqwickUser {
 	@StrictTimeout(value = 200, unit = TimeUnit.MILLISECONDS)
 	void provokeTimeoutSleepTries(@SuppressWarnings("unused") @ForAll @Positive int x) throws InterruptedException {
 		sleepUntilInterrupted();
+	}
+
+	@Public
+	@Property(tries = 5)
+	@StrictTimeout(value = 250, unit = TimeUnit.MILLISECONDS)
+	void strictTimeoutAppliesPerTry(@SuppressWarnings("unused") @ForAll int x) throws InterruptedException {
+		Thread.sleep(100);
 	}
 
 	private void sleepUntilInterrupted() throws InterruptedException {

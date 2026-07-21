@@ -1,11 +1,21 @@
 package de.tum.cit.ase.ares.api.util;
 
+import java.nio.file.Path;
 import java.util.Map;
+import java.util.Objects;
 
 import javax.annotation.Nonnull;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
+
+import de.tum.cit.ase.ares.api.localization.Messages;
+
 /**
- * Resolves a fixed set of placeholders inside YAML content before parsing.
+ * Resolves a fixed set of placeholders inside textual scalars after YAML
+ * parsing.
  * <p>
  * Description: Provides string-level expansion of four well-defined
  * placeholders ({@code ${PROJECT_ROOT}}, {@code ${java.home}},
@@ -26,18 +36,18 @@ import javax.annotation.Nonnull;
 public final class YamlPlaceholderResolver {
 
 	@Nonnull
-	private static final Map<String, String> PLACEHOLDER_PROPERTIES = Map.of("${PROJECT_ROOT}", "user.dir",
-			"${java.home}", "java.home", "${user.home}", "user.home", "${java.io.tmpdir}", "java.io.tmpdir");
+	private static final Map<String, String> PLACEHOLDER_PROPERTIES = Map.of("${java.home}", "java.home",
+			"${user.home}", "user.home", "${java.io.tmpdir}", "java.io.tmpdir");
 
 	private YamlPlaceholderResolver() {
-		throw new UnsupportedOperationException(
-				"YamlPlaceholderResolver is a utility class and cannot be instantiated");
+		throw new SecurityException(
+				Messages.localized("security.general.utility.initialization", "YamlPlaceholderResolver"));
 	}
 
 	/**
-	 * Expand the three supported placeholders in the supplied YAML content.
+	 * Expands the four supported placeholders in the supplied scalar content.
 	 *
-	 * @param content the raw YAML content; may contain placeholder tokens.
+	 * @param content the scalar content; may contain placeholder tokens.
 	 * @return the content with every supported placeholder replaced by the
 	 *         corresponding system property value. When a system property is unset,
 	 *         the placeholder is replaced with the empty string. Unknown
@@ -45,7 +55,21 @@ public final class YamlPlaceholderResolver {
 	 */
 	@Nonnull
 	public static String expand(@Nonnull String content) {
-		String expanded = content;
+		return expand(content, Path.of(System.getProperty("user.dir", "")));
+	}
+
+	/**
+	 * Expands placeholders in one already-parsed scalar value.
+	 *
+	 * @param content     the scalar content
+	 * @param projectRoot the explicit project root used for {@code PROJECT_ROOT}
+	 * @return the expanded scalar content
+	 */
+	@Nonnull
+	public static String expand(@Nonnull String content, @Nonnull Path projectRoot) {
+		String expanded = Objects.requireNonNull(content, "content must not be null");
+		expanded = expanded.replace("${PROJECT_ROOT}", Objects
+				.requireNonNull(projectRoot, "projectRoot must not be null").toAbsolutePath().normalize().toString());
 		for (Map.Entry<String, String> entry : PLACEHOLDER_PROPERTIES.entrySet()) {
 			String token = entry.getKey();
 			if (!expanded.contains(token)) {
@@ -55,5 +79,37 @@ public final class YamlPlaceholderResolver {
 			expanded = expanded.replace(token, value);
 		}
 		return expanded;
+	}
+
+	/**
+	 * Expands placeholders only inside textual nodes of a parsed YAML tree. YAML is
+	 * parsed before substitution so replacement text can never create keys,
+	 * comments, aliases or additional documents.
+	 *
+	 * @param node        the YAML tree to update
+	 * @param projectRoot the explicit project root
+	 * @return the same tree with textual scalar values expanded
+	 */
+	@Nonnull
+	public static JsonNode expandScalars(@Nonnull JsonNode node, @Nonnull Path projectRoot) {
+		Objects.requireNonNull(node, "node must not be null");
+		Objects.requireNonNull(projectRoot, "projectRoot must not be null");
+		if (node.isObject()) {
+			ObjectNode objectNode = (ObjectNode) node;
+			objectNode.properties()
+					.forEach(entry -> objectNode.set(entry.getKey(), expandScalars(entry.getValue(), projectRoot)));
+			return objectNode;
+		}
+		if (node.isArray()) {
+			ArrayNode arrayNode = (ArrayNode) node;
+			for (int index = 0; index < arrayNode.size(); index++) {
+				arrayNode.set(index, expandScalars(arrayNode.get(index), projectRoot));
+			}
+			return arrayNode;
+		}
+		if (node.isTextual()) {
+			return TextNode.valueOf(expand(node.textValue(), projectRoot));
+		}
+		return node;
 	}
 }

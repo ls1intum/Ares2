@@ -34,6 +34,11 @@
 
 This document describes how Ares 2 prevents unauthorised thread creation in student code using **static code analysis** techniques via Architecture Testing frameworks.
 
+Static analysis cannot enforce a runtime class-and-count quota. It supplies a
+domain-wide deny rule only when no thread allowance exists. With any thread
+allowance, AspectJ or instrumentation is authoritative for matching the permitted
+class and quota and rejecting other creation; see `docs/policy/EnforcementModel.md`.
+
 **Key Difference from AOP Approach:**
 - **AOP (Runtime)**: Monitors thread creation during program execution and enforces thread quotas in real-time
 - **Architecture (Static)**: Analyses compiled bytecode before execution to detect potential thread creation violations in the code structure
@@ -1106,7 +1111,7 @@ java.util.Collection.parallelStream()
     <dependency>
         <groupId>de.tum.cit.ase</groupId>
         <artifactId>ares</artifactId>
-        <version>2.0.1-Beta8</version>
+        <version>2.1.0</version>
     </dependency>
 </dependencies>
 ```

@@ -433,7 +433,8 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 		// directly above it so the companion findFirstMethodOutsideOfRestrictedPackage
 		// call that immediately follows can read from the thread-local cache instead
 		// of walking the stack a second time.
-		String[] inspection = inspectCallstackOnce(restrictedPackage, allowedClasses);
+		String[] allowedPackages = getValueFromSettings("allowedListedPackages");
+		String[] inspection = inspectCallstackOnce(restrictedPackage, allowedPackages, allowedClasses);
 		if (inspection != null) {
 			CALLSTACK_INSPECTION_CACHE.set(inspection);
 		} else {
@@ -457,7 +458,7 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 	 * per-interception stack-walk cost on hot paths.
 	 */
 	@Nullable
-	private static String[] inspectCallstackOnce(String restrictedPackage, String[] allowedClasses) {
+	private static String[] inspectCallstackOnce(String restrictedPackage, String[] allowedPackages, String[] allowedClasses) {
 		// Normalise a null settings-derived allow-list to empty so the per-frame
 		// allowed-class check below cannot throw an NPE before the security decision.
 		@Nonnull
@@ -493,10 +494,10 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 				}
 				// First restricted, non-allowed frame is the violation.
 				if (violation == null && inRestricted) {
-					boolean allowed = false;
+					boolean allowed = startsWithAny(className, allowedPackages);
 						for (@Nonnull
 						String allowedClass : safeAllowedClasses) {
-							if (className.startsWith(allowedClass)) {
+							if (className.equals(allowedClass) || className.startsWith(allowedClass + "$")) {
 								allowed = true;
 								break;
 							}
@@ -511,6 +512,22 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 			}
 			return violation == null ? null : new String[] { violation, callerAbove };
 		});
+	}
+
+	private static boolean startsWithAny(String className, String[] prefixes) {
+		if (prefixes == null) {
+			return false;
+		}
+		for (String prefix : prefixes) {
+			// '.'-boundary match: an allowed package "com.foo" must not also match the
+			// unrelated sibling package "com.foobar" (I-105). Mirrors the '$'-boundary
+			// used for the allowed-class comparison above and the exact-or-'$'-boundary
+			// JavaArchitectureTestCase.isAllowedClass already uses on the static side.
+			if (prefix != null && (className.equals(prefix) || className.startsWith(prefix + "."))) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**

@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
+import de.tum.cit.ase.ares.api.localization.Messages;
+
 /**
  * Verifies that {@link CommandPermission} deserialises from both supported YAML
  * forms: a bare command string and the mapping form carrying arguments. The
@@ -35,10 +37,23 @@ class CommandPermissionTest {
 	}
 
 	@Test
-	void mappingFormWithoutArgumentsYieldsEmptyList() throws Exception {
-		CommandPermission permission = yamlMapper.readValue("executeTheCommand: git\n", CommandPermission.class);
-		assertThat(permission.executeTheCommand()).isEqualTo("git");
-		assertThat(permission.withTheseArguments()).isEmpty();
+	void mappingFormWithoutArgumentsIsRejected() {
+		assertThatThrownBy(() -> yamlMapper.readValue("executeTheCommand: git\n", CommandPermission.class))
+				.hasRootCauseMessage(Messages.localized("policy.permission.command.mapping.fields"));
+	}
+
+	@Test
+	void mappingArgumentsMustBeAnArray() {
+		String yaml = "executeTheCommand: git\nwithTheseArguments: status\n";
+		assertThatThrownBy(() -> yamlMapper.readValue(yaml, CommandPermission.class))
+				.hasRootCauseMessage(Messages.localized("policy.permission.command.arguments.array"));
+	}
+
+	@Test
+	void mappingArgumentsMustContainOnlyStrings() {
+		String yaml = "executeTheCommand: git\nwithTheseArguments: [1]\n";
+		assertThatThrownBy(() -> yamlMapper.readValue(yaml, CommandPermission.class))
+				.hasRootCauseMessage(Messages.localized("policy.permission.command.arguments.strings"));
 	}
 
 	@Test

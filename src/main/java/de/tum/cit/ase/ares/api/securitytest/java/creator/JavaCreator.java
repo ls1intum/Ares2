@@ -26,6 +26,7 @@ import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
 import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.PhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.java.JavaPhobosTestCaseSupported;
@@ -52,6 +53,16 @@ import de.tum.cit.ase.ares.api.securitytest.ReservedPackageGuard;
  * @version 2.0.0
  */
 public class JavaCreator implements Creator {
+	private final BuildToolConfiguration buildConfiguration;
+
+	public JavaCreator() {
+		this.buildConfiguration = null;
+	}
+
+	public JavaCreator(@Nonnull BuildToolConfiguration buildConfiguration) {
+		this.buildConfiguration = java.util.Objects.requireNonNull(buildConfiguration,
+				"buildConfiguration must not be null");
+	}
 
 	// Within-run memoisation of the resolved classpath, imported JavaClasses and
 	// call
@@ -464,7 +475,8 @@ public class JavaCreator implements Creator {
 		// <editor-fold desc="Extraction">
 		@Nonnull
 		String classPath = cacheResult(projectPath + "_" + packageName + "_classPath",
-				() -> buildMode.getClasspath(projectPath, packageName)).get();
+				() -> buildConfiguration == null ? buildMode.getClasspath(projectPath, packageName)
+						: buildConfiguration.classpath(projectPath, packageName)).get();
 		// Reserved-package guard (#2, point iii): import the supervised classpath
 		// WITHOUT the framework exclusion that getJavaClasses applies, and reject any
 		// compiled class whose declared package is a trusted infrastructure prefix.

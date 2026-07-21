@@ -213,6 +213,15 @@ class WalaRuleTest {
 				new WalaRule("Accesses file system", Set.of("java.io.RandomAccessFile.read")));
 	}
 
+	@Test
+	void compilerGeneratedLambdaMetafactoryNodeIsNotReportedAsReflection() {
+		CGNode student = studentNode("anonymous.Student.lambda()V");
+		CGNode bootstrap = jdkForbiddenNode(
+				"java.lang.invoke.LambdaMetafactory.call$anonymous$Student$0()Ljava/lang/Runnable;",
+				"LambdaMetafactory");
+		runAndExpectNoError(List.of(student, bootstrap), new WalaRule("Uses reflection", Set.of("java.lang.invoke")));
+	}
+
 	// ----------------------------------------------------------------
 	// Test 2: student-rooted shallow path reports student caller
 	// ----------------------------------------------------------------
@@ -587,6 +596,23 @@ class WalaRuleTest {
 
 		org.junit.jupiter.api.Assertions.assertThrows(SecurityException.class,
 				() -> WalaRule.matchesInheritedTarget(access, "java.util.Collection.parallelStream()"));
+	}
+
+	@Test
+	void loadableUnrelatedRuntimeTypesDoNotRequireWalaHierarchy() {
+		JavaAccess<?> access = mock(JavaAccess.class);
+		AccessTarget target = mock(AccessTarget.class);
+		JavaClass targetOwner = mock(JavaClass.class);
+		when(target.getFullName()).thenReturn("java.util.Scanner.close()");
+		Mockito.doReturn(target).when(access).getTarget();
+		when(access.getTargetOwner()).thenReturn(targetOwner);
+		when(targetOwner.getAllClassesSelfIsAssignableTo()).thenReturn(Set.of(targetOwner));
+		when(targetOwner.isFullyImported()).thenReturn(false);
+		when(targetOwner.getFullName()).thenReturn("java.util.Scanner");
+
+		assertThat(WalaRule.matchesInheritedTarget(access, "java.net.DatagramSocket.close()")).isFalse();
+		assertThat(WalaRule.matchesInheritedTarget(access, "sun.net.httpserver.DelegatingHttpExchange.close()"))
+				.isFalse();
 	}
 
 	@Test

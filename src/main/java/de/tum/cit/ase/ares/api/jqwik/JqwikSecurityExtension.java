@@ -4,7 +4,6 @@ import static de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension.resetSett
 import static de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension.resetSettingsInStandardClassLoader;
 import static de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension.testAndGetPolicyValue;
 import static de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension.testAndGetPolicyWithinPath;
-import static org.junit.platform.commons.support.AnnotationSupport.findAnnotation;
 
 import java.nio.file.Path;
 import java.util.Optional;
@@ -16,6 +15,7 @@ import net.jqwik.api.lifecycle.*;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent;
+import de.tum.cit.ase.ares.api.context.TestContextUtils;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 
 /**
@@ -36,9 +36,7 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
 	public PropertyExecutionResult aroundProperty(PropertyLifecycleContext context, PropertyExecutor property) {
 		var testContext = JqwikContext.of(context);
 
-		Optional<Policy> methodPolicy = findAnnotation(testContext.testMethod(), Policy.class);
-		Optional<Policy> classPolicy = findAnnotation(testContext.testClass(), Policy.class);
-		Optional<Policy> policyOpt = methodPolicy.or(() -> classPolicy);
+		Optional<Policy> policyOpt = TestContextUtils.findAnnotationIn(testContext, Policy.class);
 		boolean isAresActivated = policyOpt.map(Policy::activated).orElse(true);
 
 		// ALWAYS reset settings first to ensure clean state for every test.
@@ -50,12 +48,23 @@ public final class JqwikSecurityExtension implements AroundPropertyHook {
 		// - no @Policy on property → enforce with default policy (null path)
 		// - @Policy(activated=false) → Ares deactivated (no security checks)
 		if (isAresActivated) {
-			Path policyPath = policyOpt.filter(p -> !p.value().isBlank()).map(p -> testAndGetPolicyValue(p))
-					.orElse(null);
-			Path withinPath = policyOpt.filter(p -> !p.withinPath().isBlank()).map(p -> testAndGetPolicyWithinPath(p))
-					.orElse(Path.of(""));
-			SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policyPath).projectFolderPath(withinPath)
-					.build().createTestCases().executeTestCases();
+			try {
+				Path policyPath = policyOpt.filter(p -> !p.value().isBlank()).map(p -> testAndGetPolicyValue(p))
+						.orElse(null);
+				Path withinPath = policyOpt.filter(p -> !p.withinPath().isBlank())
+						.map(p -> testAndGetPolicyWithinPath(p)).orElse(Path.of(""));
+				SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policyPath)
+						.projectFolderPath(Path.of("").toAbsolutePath()).withinPath(withinPath).build()
+						.createTestCases().executeTestCases();
+			} catch (RuntimeException | Error failure) {
+				try {
+					resetSettingsInStandardClassLoader();
+					resetSettingsInBootstrapClassLoader();
+				} catch (RuntimeException | Error resetFailure) {
+					failure.addSuppressed(resetFailure);
+				}
+				throw failure;
+			}
 		}
 		PropertyExecutionResult result;
 		SecurityException transformationFailure = null;

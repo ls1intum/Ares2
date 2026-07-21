@@ -1,0 +1,24 @@
+thisPolicyFileCompliesToThePolicyVersion: 1
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_WALA_AND_INSTRUMENTATION
+  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.cit.ase.ares.integration.aop.allowed.SystemAccessTest"
+    - "de.tum.cit.ase.ares.integration.aop.forbidden.SystemAccessTest"
+    - "de.tum.cit.ase.ares.integration.architecture.forbidden.SystemAccessTest"
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions: []
+    regardingNetworkConnections:
+      - onTheHost: "203.0.113.1"
+        onThePort: 80
+        openConnections: true
+        sendData: true
+        receiveData: false
+    regardingCommandExecutions: []
+    regardingThreadCreations: []
+    regardingPackageImports:
+      - importTheFollowingPackage: "javax.net.ssl"
+      - importTheFollowingPackage: "de.tum.cit.ase.ares.api.aop.java.instrumentation.advice"
+    regardingTimeouts:
+      - timeout: 3000

@@ -3,6 +3,9 @@ package de.tum.cit.ase.ares.api.buildtoolconfiguration;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Enum representing the Java build tools supported by Ares.
  * <p>
@@ -31,32 +34,42 @@ public enum BuildMode {
 	 */
 	GRADLE;
 
-	public String[] threePartedFileHeader() {
-		return switch (this) {
-		case MAVEN -> new String[] { "templates", "java", "maven", "pomHeader.txt" };
-		case GRADLE -> new String[] { "templates", "java", "gradle", "buildHeader.txt" };
-		};
-	}
+	private static final Logger LOG = LoggerFactory.getLogger(BuildMode.class);
 
-	public String[] threePartedFileFooter() {
-		return switch (this) {
-		case MAVEN -> new String[] { "templates", "java", "maven", "pomFooter.txt" };
-		case GRADLE -> new String[] { "templates", "java", "gradle", "buildFooter.txt" };
-		};
-	}
-
+	/**
+	 * Returns the supported build-descriptor filenames.
+	 *
+	 * @return the descriptor filenames for this build mode
+	 */
 	public String[] fileName() {
 		return switch (this) {
 		case MAVEN -> new String[] { "pom.xml" };
-		case GRADLE -> new String[] { "build.gradle" };
+		case GRADLE -> new String[] { "build.gradle", "build.gradle.kts" };
 		};
 	}
 
 	// <editor-fold desc="Other methods">
+	/**
+	 * Returns the production bytecode directory.
+	 *
+	 * @return the build-tool-relative production directory
+	 */
 	public String getBuildDirectory() {
 		return switch (this) {
 		case MAVEN -> "target/classes";
 		case GRADLE -> "build/classes/java/main";
+		};
+	}
+
+	/**
+	 * Returns the test bytecode directory.
+	 *
+	 * @return the build-tool-relative test directory
+	 */
+	public String getTestBuildDirectory() {
+		return switch (this) {
+		case MAVEN -> "target/test-classes";
+		case GRADLE -> "build/classes/java/test";
 		};
 	}
 
@@ -87,9 +100,9 @@ public enum BuildMode {
 				// Convert package name to path: "anonymous" -> "anonymous", "de.tum.cit" ->
 				// "de/tum/cit"
 				String packagePath = packageName.replace(".", "/");
-				return Paths.get(getBuildDirectory(), packagePath).toString();
+				return reportClasspath(Paths.get(getBuildDirectory(), packagePath));
 			}
-			return getBuildDirectory();
+			return reportClasspath(Path.of(getBuildDirectory()));
 		}
 
 		String projectPathStr = projectPath.toString();
@@ -100,32 +113,30 @@ public enum BuildMode {
 			// Gradle-style path: classes/java/main/package/subpackage
 			// Extract package path and prepend actual build directory
 			String extractedPackagePath = projectPathStr.substring("classes/java/main/".length());
-			return Paths.get(getBuildDirectory(), extractedPackagePath).toString();
+			return reportClasspath(Paths.get(getBuildDirectory(), extractedPackagePath));
 		} else if (projectPathStr.startsWith("classes/")) {
 			// Maven-style path: classes/package/subpackage
 			// Extract package path and prepend actual build directory
 			String extractedPackagePath = projectPathStr.substring("classes/".length());
-			return Paths.get(getBuildDirectory(), extractedPackagePath).toString();
+			return reportClasspath(Paths.get(getBuildDirectory(), extractedPackagePath));
 		} else if (projectPathStr.startsWith("test-classes/java/test/")) {
 			// Gradle test classes
 			String extractedPackagePath = projectPathStr.substring("test-classes/java/test/".length());
-			String testBuildDir = switch (this) {
-			case MAVEN -> "target/test-classes";
-			case GRADLE -> "build/classes/java/test";
-			};
-			return Paths.get(testBuildDir, extractedPackagePath).toString();
+			return reportClasspath(Paths.get(getTestBuildDirectory(), extractedPackagePath));
 		} else if (projectPathStr.startsWith("test-classes/")) {
 			// Maven test classes
 			String extractedPackagePath = projectPathStr.substring("test-classes/".length());
-			String testBuildDir = switch (this) {
-			case MAVEN -> "target/test-classes";
-			case GRADLE -> "build/classes/java/test";
-			};
-			return Paths.get(testBuildDir, extractedPackagePath).toString();
+			return reportClasspath(Paths.get(getTestBuildDirectory(), extractedPackagePath));
 		}
 
 		// Otherwise, assume it's a package path and combine with build directory
-		return Paths.get(getBuildDirectory(), projectPathStr).toString();
+		return reportClasspath(Paths.get(getBuildDirectory(), projectPathStr));
+	}
+
+	private String reportClasspath(Path path) {
+		String resolved = path.toString();
+		LOG.info("Resolved Ares analysis/import path for {}: {}", this, resolved);
+		return resolved;
 	}
 	// </editor-fold>
 }

@@ -11,10 +11,11 @@ import org.opentest4j.AssertionFailedError;
 
 import net.jqwik.engine.JqwikTestEngine;
 
+import de.tum.cit.ase.ares.integration.testuser.JqwickClassDeadlineUser;
 import de.tum.cit.ase.ares.integration.testuser.JqwickUser;
 import de.tum.cit.ase.ares.testutilities.*;
 
-@UserBased(value = JqwickUser.class, testEngineId = JqwikTestEngine.ENGINE_ID)
+@UserBased(value = { JqwickUser.class, JqwickClassDeadlineUser.class }, testEngineId = JqwikTestEngine.ENGINE_ID)
 class JqwickTest {
 
 	@UserTestResults
@@ -36,9 +37,11 @@ class JqwickTest {
 	private final String provokeTimeoutSleepExample = "provokeTimeoutSleepExample";
 	private final String provokeTimeoutSleepProperty = "provokeTimeoutSleepProperty";
 	private final String provokeTimeoutSleepTries = "provokeTimeoutSleepTries";
+	private final String strictTimeoutAppliesPerTry = "strictTimeoutAppliesPerTry";
 	private final String testHiddenIncomplete = "testHiddenIncomplete";
 	private final String testLocaleDe = "testLocaleDe";
 	private final String testPublicIncomplete = "testPublicIncomplete";
+	private final String publicMethodInheritsClassDeadline = "publicMethodInheritsClassDeadline";
 
 	@TestTest
 	void test_exampleHiddenCustomDeadlineFuture() {
@@ -126,6 +129,11 @@ class JqwickTest {
 	}
 
 	@TestTest
+	void test_strictTimeoutAppliesPerTry() {
+		tests.assertThatEvents().haveExactly(1, finishedSuccessfully(strictTimeoutAppliesPerTry));
+	}
+
+	@TestTest
 	void test_testHiddenIncomplete() {
 		tests.assertThatEvents().doNotHave(event(test(testHiddenIncomplete)));
 	}
@@ -138,5 +146,11 @@ class JqwickTest {
 	@TestTest
 	void test_testPublicIncomplete() {
 		tests.assertThatEvents().doNotHave(event(test(testPublicIncomplete)));
+	}
+
+	@TestTest
+	void test_publicMethodInheritsClassDeadline() {
+		tests.assertThatEvents().haveExactly(1,
+				testFailedWith(publicMethodInheritsClassDeadline, AnnotationFormatError.class));
 	}
 }

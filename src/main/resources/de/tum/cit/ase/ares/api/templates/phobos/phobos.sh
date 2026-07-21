@@ -21,7 +21,7 @@ Notes:
 - Exercise configs: only files passed via --config/-c are applied in order;
   per-path FS merge, NET union, TIMEOUT last-wins.
 - Tail config: "${HERE}/TailPhobos.cfg" (flags only) is applied last.
-- If no Base*.cfg is present, Phobos runs the command raw (no sandbox).
+- If no Base*.cfg is present, Phobos fails closed with PHB-EBASE.
 USAGE
   exit 2
 }
@@ -63,10 +63,12 @@ export PHB_ENABLE_TIMEOUT="$enable_timeout"
 export PHB_ENABLE_NETWORK="$enable_network"
 export PHB_ENABLE_FILESYSTEM="$enable_filesystem"
 
-mapfile -t base_cfgs < <(ls -1 "${HERE}"/Base*.cfg 2>/dev/null | sort || true)
+base_cfgs=()
+while IFS= read -r base_cfg; do
+  [[ -n "$base_cfg" ]] && base_cfgs+=("$base_cfg")
+done < <(ls -1 "${HERE}"/Base*.cfg 2>/dev/null | sort || true)
 if [[ ${#base_cfgs[@]} -eq 0 ]]; then
-  _log "No Base*.cfg found; running command without sandbox."
-  exec "${cmd[@]}"
+  die "Base policy missing; refusing to run without a sandbox. (PHB-EBASE)" "${PHB_EBASE}"
 fi
 
 : "${TAIL_FLAGS_FILE:=${HERE}/TailPhobos.cfg}"

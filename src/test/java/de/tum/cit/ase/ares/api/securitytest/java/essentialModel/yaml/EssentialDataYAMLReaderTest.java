@@ -56,7 +56,6 @@ public class EssentialDataYAMLReaderTest {
 
 			// Check that AspectJ packages contain expected packages
 			assertTrue(result.essentialAspectJPackages().contains("org.aspectj"));
-			assertTrue(result.essentialAspectJPackages().contains("org.java.aspectj"));
 
 			// Check that instrumentation packages contain expected package
 			assertTrue(result.essentialInstrumentationPackages()

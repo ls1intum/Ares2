@@ -1,3 +1,4 @@
+thisPolicyFileCompliesToThePolicyVersion: 1
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
   theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
@@ -5,7 +6,7 @@ regardingTheSupervisedCode:
   theFollowingClassesAreTestClasses:
     - "de.tum.cit.ase.ares.integration.testuser.DynamicsUser"
     - "de.tum.cit.ase.ares.integration.DynamicsTest"
-    - "de.tum.cit.ase.ares.testutilities."
+    - "de.tum.cit.ase.ares.testutilities"
   # The former @WhitelistPath("") of DynamicsUser specified an empty path and therefore granted
   # no concrete file access; the equivalent is an active policy with no permitted resource accesses.
   theFollowingResourceAccessesArePermitted:

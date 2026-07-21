@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.architecture.java.wala;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URI;
@@ -204,6 +205,71 @@ public class CustomCallgraphBuilderTest {
 	}
 
 	@Test
+	void testExplodedSiblingDependencyUsesTheCompleteClassOutputRoot() throws Exception {
+		Method method = CustomCallgraphBuilder.class.getDeclaredMethod("classpathEntryFor", java.net.URL.class,
+				String.class);
+		method.setAccessible(true);
+		String siblingName = "anonymous.sibling.SiblingFileHelper";
+		java.net.URL siblingClass = CustomCallgraphBuilder.class
+				.getResource("/" + siblingName.replace('.', '/') + ".class");
+		@SuppressWarnings("unchecked")
+		Optional<String> root = (Optional<String>) method.invoke(null, siblingClass, siblingName);
+
+		Assertions.assertTrue(root.isPresent());
+		Assertions.assertEquals(Path.of("target", "test-classes").toRealPath(),
+				Path.of(root.orElseThrow()).toRealPath());
+	}
+
+	@Test
+	void testSiblingPackageCannotHideLibraryMediatedForbiddenCall() {
+		CustomCallgraphBuilder builder = new CustomCallgraphBuilder(FIXTURE_CLASSPATH);
+
+		Assertions.assertThrows(AssertionError.class,
+				() -> new WalaRule("Accesses file system", Set.of("java.nio.file.Files.readString"))
+						.check(builder.buildCallGraph(FIXTURE_CLASSPATH)));
+	}
+
+	@Test
+	void testSeparateMavenModuleOutputCannotHideForbiddenCall() throws IOException {
+		Path reactor = Files.createDirectory(temporaryDirectory.resolve("reactor"));
+		Files.writeString(reactor.resolve("pom.xml"), "<project/>");
+		Path helperModule = Files.createDirectories(reactor.resolve("helper"));
+		Path appModule = Files.createDirectories(reactor.resolve("app"));
+		Files.writeString(helperModule.resolve("pom.xml"), "<project/>");
+		Files.writeString(appModule.resolve("pom.xml"), "<project/>");
+		Path helperOutput = Files.createDirectories(helperModule.resolve(Path.of("target", "classes")));
+		Path appOutput = Files.createDirectories(appModule.resolve(Path.of("target", "classes")));
+		Path helperSource = Files.writeString(helperModule.resolve("Helper.java"), """
+				package external.module;
+				public final class Helper {
+				  public static String read(java.nio.file.Path path) throws java.io.IOException {
+				    return java.nio.file.Files.readString(path);
+				  }
+				}
+				""");
+		Path appSource = Files.writeString(appModule.resolve("Entry.java"), """
+				package student.entry;
+				public final class Entry {
+				  public static String read(java.nio.file.Path path) throws java.io.IOException {
+				    return external.module.Helper.read(path);
+				  }
+				}
+				""");
+		javax.tools.JavaCompiler compiler = javax.tools.ToolProvider.getSystemJavaCompiler();
+		Assertions.assertNotNull(compiler, "The module-scope conformance test requires a JDK");
+		Assertions.assertEquals(0,
+				compiler.run(null, null, null, "-d", helperOutput.toString(), helperSource.toString()));
+		Assertions.assertEquals(0, compiler.run(null, null, null, "-classpath", helperOutput.toString(), "-d",
+				appOutput.toString(), appSource.toString()));
+		String narrowAppPackage = appOutput.resolve(Path.of("student", "entry")).toString();
+
+		CustomCallgraphBuilder builder = new CustomCallgraphBuilder(narrowAppPackage);
+		Assertions.assertThrows(AssertionError.class,
+				() -> new WalaRule("Accesses file system", Set.of("java.nio.file.Files.readString"))
+						.check(builder.buildCallGraph(narrowAppPackage)));
+	}
+
+	@Test
 	void testFilterClassPathTrustsExactOriginsRatherThanFilenameFragments() throws Exception {
 		Path fakeJunit = Files.writeString(temporaryDirectory.resolve("junit-backdoor.jar"), "student bytecode");
 		Path fakeAres = Files.writeString(temporaryDirectory.resolve("ares-escape.jar"), "student bytecode");
@@ -298,12 +364,15 @@ public class CustomCallgraphBuilderTest {
 	void testDirectAccessCheckCatchesJdkInterfaceTargets() {
 		JavaClasses classes = new ClassFileImporter().importPath(Path.of(PARALLEL_STREAM_FIXTURE_CLASSPATH));
 
-		// resolveMissingDependenciesFromClassPath=false leaves java.util.List's
-		// hierarchy incomplete. The direct check must fail closed rather than consult a
-		// mutable context classloader or silently return false.
-		Assertions.assertThrows(SecurityException.class,
+		// ArchUnit can resolve List -> Collection on some JDK/toolchain combinations,
+		// producing the normal AssertionError violation. When that hierarchy is absent,
+		// the matcher must instead fail closed with SecurityException. Both outcomes
+		// deny the access; silently returning is never acceptable.
+		Throwable interfaceTargetViolation = Assertions.assertThrows(Throwable.class,
 				() -> new WalaRule("Manipulates threads", Set.of("java.util.Collection.parallelStream()"))
 						.checkDirectAccesses(classes, Set.of()));
+		Assertions.assertTrue(interfaceTargetViolation instanceof AssertionError
+				|| interfaceTargetViolation instanceof SecurityException);
 		Assertions.assertThrows(AssertionError.class,
 				() -> new WalaRule("Manipulates threads", Set.of("java.util.stream.Stream.parallel()"))
 						.checkDirectAccesses(classes, Set.of()));

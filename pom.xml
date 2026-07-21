@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>de.tum.cit.ase</groupId>
 	<artifactId>ares</artifactId>
-	<version>2.0.1-Beta8</version>
+	<version>2.1.0</version>
 	<properties>
 		<!-- 0. General Project Settings -->
 		<maven.compiler.source>17</maven.compiler.source>
@@ -12,8 +12,8 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<!-- 1. Testing: 1.1 JUnit -->
-		<junit-jupiter-version>6.1.0</junit-jupiter-version>
-		<junit-platform-version>6.1.0</junit-platform-version>
+		<junit-jupiter-version>6.1.2</junit-jupiter-version>
+		<junit-platform-version>6.1.2</junit-platform-version>
 		<!-- 1. Testing: 1.2 jqwik -->
 		<!-- Pinned to 1.9.3 (newest 1.9.x): the jqwik 1.10.x engine is not stable under
 			Ares here. Running the full suite, its lifecycle store hits a concurrent
@@ -30,7 +30,7 @@
 		<!-- 2. Architecture: 2.1 Archunit -->
 		<archunit-version>1.4.2</archunit-version>
 		<!-- 2. Architecture: 2.2 Wala -->
-		<wala-version>1.7.2</wala-version>
+		<wala-version>1.8.0</wala-version>
 		<!-- Test fixture: genuine third-party JAR in the javax.* namespace -->
 		<javax-activation-version>1.2.0</javax-activation-version>
 		<!-- 3. AOP: 3.1 AspectJ -->
@@ -62,22 +62,23 @@
 		<!-- 4. AST: 4.1 JavaParser -->
 		<java-parser-version>3.28.2</java-parser-version>
 		<!-- 5. Formats: YAML and XML (JSON handled via Jackson) -->
-		<yaml-version>2.22.0</yaml-version>
+		<yaml-version>2.22.1</yaml-version>
 		<!-- 6. Large Tooling Libraries -->
 		<commons-io-version>2.22.0</commons-io-version>
+		<jaxb-api-version>2.3.1</jaxb-api-version>
 		<!-- 7. Small Tooling Libraries -->
 		<jgrapht-core-version>1.5.3</jgrapht-core-version>
 		<!-- 8. Logging  -->
-		<logback-version>1.5.34</logback-version>
+		<logback-version>1.5.38</logback-version>
 		<!-- 8. API  -->
 		<apiguardian-api-version>1.1.2</apiguardian-api-version>
 		<!-- Others -->
-		<spotless.version>3.7.0</spotless.version>
+		<spotless.version>3.8.0</spotless.version>
 		<!-- if JaCoCo is not executed -->
 		<argLine></argLine>
-		<!-- Analysis, instrumentation and timeout-worker state is scoped for safe reuse
-			in one test JVM. CI may still override this property for diagnostics. -->
-		<surefire-reuse-forks>true</surefire-reuse-forks>
+		<!-- Isolate test classes so WALA state and test-created threads cannot accumulate
+			in one long-lived JVM. The signed outcome cache preserves cross-fork reuse. -->
+		<surefire-reuse-forks>false</surefire-reuse-forks>
 		<!-- full certificate fingerprint: 23E62BB282A473EE4DDA2F8763EFD39363D21A8D -->
 		<gpg.key.id>23E62BB282A473EE4DDA2F8763EFD39363D21A8D</gpg.key.id>
 	</properties>
@@ -268,6 +269,21 @@
 			<version>${commons-io-version}</version>
 			<scope>provided</scope>
 		</dependency>
+		<!-- javax.xml.bind (JAXB) is NOT used by Ares itself; it is only a
+			security-interception target so the AspectJ pointcut
+			(JavaAspectJFileSystemPointcutDefinitions.aj) can reference
+			javax.xml.bind.Marshaller/Unmarshaller (I-086/TD-030 - the JDK removed JAXB
+			as a standard module from Java 11 onwards, so these pointcuts otherwise
+			reference types absent from the compile/weave classpath entirely and are
+			unverifiable). Scoped 'provided' for the same reason as commons-io above:
+			keep the interception resolvable without leaking into consumers' transitive
+			footprint. -->
+		<dependency>
+			<groupId>javax.xml.bind</groupId>
+			<artifactId>jaxb-api</artifactId>
+			<version>${jaxb-api-version}</version>
+			<scope>provided</scope>
+		</dependency>
 		<!-- 7. Small Tooling Libraries -->
 		<dependency>
 			<groupId>com.opencsv</groupId>
@@ -317,6 +333,16 @@
 				</includes>
 			</resource>
 			<resource>
+				<!-- I-062: shipping .java/.aj source from src/main/java as a resource looks
+					like incidental packaging bloat at a glance, but it is a genuine, traced
+					runtime dependency, not incidental: AspectJAJCopyFiles.csv (also under
+					src/main/java, see the '**/*.csv' include below) lists these exact source
+					files as copy 'Source' entries, consumed at runtime by JavaCSVFileLoader
+					via FileTools.resolveFileOnSourceDirectory - the code-generation flow that
+					assembles a consuming project's woven security test case reads these
+					shipped .aj/.java files back out of this jar. Narrowing this resource's
+					includes without also changing that CSV-driven flow would silently break
+					AOP test-case generation for consumers; do not narrow it in isolation. -->
 				<directory>src/main/java</directory>
 				<includes>
 					<include>**/*.java</include>
@@ -460,9 +486,9 @@
 				<version>3.5.6</version>
 				<configuration>
 					<forkCount>1</forkCount>
-					<!-- Reuse one fork by default. Each WALA policy now owns its mutable scope,
-						hierarchy, analysis cache, entry points and call graph; instrumentation uses
-						one dynamic package transformer and test-scoped failure reporting. -->
+					<!-- Use a fresh fork for every test class. WALA's mutable scope and graph,
+						instrumentation state and non-daemon threads therefore cannot accumulate
+						across the complete suite. -->
 					<reuseForks>${surefire-reuse-forks}</reuseForks>
 					<!-- Kill (and report) a hung forked JVM rather than letting CI run until
 						the runner dies. 2400s sits above a legitimate full-suite run yet below
@@ -841,7 +867,7 @@
 			<plugin>
 				<groupId>com.github.spotbugs</groupId>
 				<artifactId>spotbugs-maven-plugin</artifactId>
-				<version>4.10.2.0</version>
+				<version>4.10.3.0</version>
 				<configuration>
 					<excludeFilterFile>${basedir}${file.separator}.settings${file.separator}spotbugs-exclude.xml</excludeFilterFile>
 					<failOnError>true</failOnError>
@@ -991,6 +1017,12 @@
 							<reuseForks>true</reuseForks>
 							<includes>
 								<include>**/api/**/*Test.java</include>
+								<!-- I-111/TD-060: testutilities/** hosts plain unit tests (e.g.
+									NonDaemonThreadLeakExtensionTest, PublicTestNamingConventionTest)
+									that need no woven AOP/architecture-mode setup, but sit outside
+									api/** and integration/**, so no profile ran them before this
+									include was added. -->
+								<include>**/testutilities/**/*Test.java</include>
 							</includes>
 							<excludes>
 								<exclude>**/api/architecture/**/*Test.java</exclude>
@@ -1044,6 +1076,12 @@
 		<!-- For code coverage using JaCoCo -->
 		<profile>
 			<id>coverage</id>
+			<properties>
+				<!-- Each test class receives a fresh JVM under coverage. JaCoCo appends each
+					fork's execution data, avoiding the long-lived >5 GB process and preserving
+					the complete aggregate report. -->
+				<surefire-reuse-forks>false</surefire-reuse-forks>
+			</properties>
 			<build>
 				<plugins>
 					<plugin>
@@ -1057,6 +1095,7 @@
 									<goal>prepare-agent</goal>
 								</goals>
 								<configuration>
+									<append>true</append>
 									<inclBootstrapClasses>true</inclBootstrapClasses>
 									<includes>
 										<include>de.tum.cit.ase.ares.*</include>

@@ -1,9 +1,7 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation;
 
 import java.lang.instrument.Instrumentation;
-import java.lang.instrument.UnmodifiableClassException;
 import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -84,6 +82,13 @@ public final class JavaInstrumentationAgent {
 		// the moment the JDK retransforms java.io.* during agent install.
 		java.lang.StackWalker walker = java.lang.StackWalker.getInstance();
 		walker.walk(stream -> stream.limit(1L).count());
+		// File-policy checks call Files.exists/toRealPath. Load the platform's file
+		// provider exception classes before those JDK methods are instrumented,
+		// avoiding
+		// a cold-start ClassCircularityError inside the first security check.
+		java.nio.file.Files.exists(java.nio.file.Path.of("."));
+		preloadPlatformClass("sun.nio.fs.UnixException");
+		preloadPlatformClass("sun.nio.fs.WindowsException");
 
 		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_READ_FILES,
 				JavaInstrumentationBindingDefinitions::createReadPathMethodBinding);
@@ -138,7 +143,15 @@ public final class JavaInstrumentationAgent {
 		installAgentBuilder(inst, unsafeFactory,
 				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_RECEIVE_FROM_NETWORK,
 				JavaInstrumentationBindingDefinitions::createReceiveNetworkConstructorBinding);
-		installThreadMonitorCallSiteBuilder(inst, unsafeFactory);
+		installThreadCallSiteBuilder(inst, unsafeFactory);
+	}
+
+	private static void preloadPlatformClass(String className) {
+		try {
+			Class.forName(className, false, null);
+		} catch (ClassNotFoundException ignored) {
+			// The class belongs to a different operating system's file provider.
+		}
 	}
 
 	/**
@@ -172,15 +185,16 @@ public final class JavaInstrumentationAgent {
 	}
 
 	/**
-	 * Installs call-site substitutions for Thread monitor operations in one
-	 * restricted package.
+	 * Installs call-site substitutions for Thread start and monitor operations in
+	 * one restricted package.
 	 * <p>
 	 * Object's final native monitor methods cannot be advised at their declaration,
 	 * so their application-side call sites have to be rewritten. Restricting the
 	 * transformer to the package governed by the current policy is both the precise
 	 * security boundary and avoids transforming every framework and dependency
-	 * class in the JVM. Retransformation covers restricted classes that were loaded
-	 * during test discovery before the policy became available.
+	 * class in the JVM. The package is registered before supervised classes are
+	 * first used, so their definitions pass through this transformer without a
+	 * structurally unsafe second retransformation.
 	 *
 	 * @param restrictedPackage package prefix governed by the current policy
 	 */
@@ -195,18 +209,13 @@ public final class JavaInstrumentationAgent {
 			if (!INSTRUMENTED_THREAD_MONITOR_PACKAGES.add(restrictedPackage)) {
 				return;
 			}
-			Class<?>[] loadedRestrictedClasses = Arrays.stream(currentInstrumentation.getAllLoadedClasses())
-					.filter(currentInstrumentation::isModifiableClass)
-					.filter(type -> type.getName().startsWith(restrictedPackage)).toArray(Class<?>[]::new);
-			if (loadedRestrictedClasses.length == 0) {
-				return;
-			}
-			try {
-				currentInstrumentation.retransformClasses(loadedRestrictedClasses);
-			} catch (UnmodifiableClassException e) {
-				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-						.localize("security.instrumentation.agent.installation.error", restrictedPackage), e);
-			}
+			// The already-installed transformer observes this concurrent set for every
+			// subsequently defined restricted class. Deliberately avoid manually
+			// retransformation here: all other Ares retransformation-capable REBASE
+			// transformers would be invoked again as well, and HotSpot rejects that
+			// repeated structural rebase with "class redefinition failed: invalid class".
+			// Security setup runs before the supervised operation, so its application
+			// classes are transformed when first defined.
 		}
 	}
 
@@ -363,13 +372,15 @@ public final class JavaInstrumentationAgent {
 	}
 
 	/**
-	 * Rewrites application-side invocations of Object's final monitor methods. The
-	 * wrappers preserve ordinary Object behaviour and invoke the thread policy only
-	 * when the runtime receiver is a Thread.
+	 * Rewrites application-side invocations of {@link Thread#start()} and Object's
+	 * final monitor methods. The start wrapper retains the effective task class for
+	 * later monitor checks; the monitor wrappers preserve ordinary Object behaviour
+	 * and invoke the thread policy only when the runtime receiver is a Thread.
 	 */
-	private static void installThreadMonitorCallSiteBuilder(Instrumentation inst,
+	private static void installThreadCallSiteBuilder(Instrumentation inst,
 			ClassInjector.UsingUnsafe.Factory unsafeFactory) {
 		try {
+			Method startMethod = JavaInstrumentationThreadSystemCallSite.class.getMethod("start", Thread.class);
 			Method notifyMethod = JavaInstrumentationThreadSystemCallSite.class.getMethod("notify", Object.class);
 			Method notifyAllMethod = JavaInstrumentationThreadSystemCallSite.class.getMethod("notifyAll", Object.class);
 			Method waitMethod = JavaInstrumentationThreadSystemCallSite.class.getMethod("wait", Object.class);
@@ -389,6 +400,7 @@ public final class JavaInstrumentationAgent {
 							.stream().anyMatch(prefix -> typeDescription.getName().startsWith(prefix)),
 							ElementMatchers.not(ElementMatchers.isBootstrapClassLoader()))
 					.transform((builder, typeDescription, classLoader, javaModule, protectionDomain) -> builder
+							.visit(threadStartSubstitution(startMethod))
 							.visit(monitorSubstitution("notify", 0, notifyMethod))
 							.visit(monitorSubstitution("notifyAll", 0, notifyAllMethod))
 							.visit(monitorSubstitution("wait", 0, waitMethod))
@@ -399,6 +411,12 @@ public final class JavaInstrumentationAgent {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
 					.localize("security.instrumentation.agent.installation.error", "Object monitor call sites"), e);
 		}
+	}
+
+	private static net.bytebuddy.asm.AsmVisitorWrapper.ForDeclaredMethods threadStartSubstitution(Method replacement) {
+		net.bytebuddy.matcher.ElementMatcher.Junction<MethodDescription> matcher = ElementMatchers
+				.isDeclaredBy(Thread.class).and(ElementMatchers.named("start")).and(ElementMatchers.takesArguments(0));
+		return MemberSubstitution.relaxed().method(matcher).replaceWith(replacement).on(ElementMatchers.any());
 	}
 
 	private static net.bytebuddy.asm.AsmVisitorWrapper.ForDeclaredMethods monitorSubstitution(String methodName,

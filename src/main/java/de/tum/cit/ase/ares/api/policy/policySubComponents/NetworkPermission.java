@@ -23,7 +23,8 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  * @param receiveData     whether receiving data is permitted.
  * @param onTheHost       the host where these operations are permitted; must
  *                        not be null.
- * @param onThePort       the port number where these operations are permitted.
+ * @param onThePort       the port number where these operations are permitted;
+ *                        {@code 0} permits every port.
  */
 public record NetworkPermission(@Nonnull String onTheHost, int onThePort, boolean openConnections, boolean sendData,
 		boolean receiveData) {
@@ -36,12 +37,8 @@ public record NetworkPermission(@Nonnull String onTheHost, int onThePort, boolea
 	 */
 	public NetworkPermission {
 		Objects.requireNonNull(onTheHost, "onTheHost must not be null");
-		if (onTheHost.isBlank()) {
-			throw new IllegalArgumentException(Messages.localized("policy.permission.network.host.blank"));
-		}
-		// -1 is the "any port" wildcard understood by the runtime advice (portMatches);
-		// all other negative or out-of-range values are invalid.
-		if (onThePort < -1 || onThePort > 65535) {
+		PolicyValueValidator.requireMatch("onTheHost", onTheHost, PolicyValueValidator.HOST_PATTERN);
+		if (onThePort < 0 || onThePort > 65535) {
 			throw new IllegalArgumentException(Messages.localized("policy.permission.network.port.invalid"));
 		}
 	}
