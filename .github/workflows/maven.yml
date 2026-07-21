@@ -120,12 +120,22 @@ jobs:
           cache: 'maven'
 
       - name: Unit tests
-        run: mvn test -Punit-core-tests -f pom.xml
+        run: mvn test -Punit-core-tests,coverage -f pom.xml
 
       # Architecture unit tests exercise the same execution-scoped WALA lifecycle
       # used by the integration matrices.
       - name: Architecture unit tests
-        run: mvn test -Punit-architecture-tests -f pom.xml
+        run: mvn test -Punit-architecture-tests,coverage -f pom.xml
+
+      # Both steps append into the same execution-data file. Uploaded even when a test
+      # step failed, so the aggregate still reflects everything that did run.
+      - name: Upload coverage execution data
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: jacoco-exec-unit-tests
+          path: target/jacoco.exec
+          if-no-files-found: warn
 
   tests:
     name: Integration Tests (${{ matrix.name }})
@@ -136,19 +146,25 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # `slug` names the coverage artefact: `name` contains spaces and a plus sign,
+          # which make for awkward artefact names and awkward download patterns.
           - name: ArchUnit + AspectJ
+            slug: archunit-aspectj
             method-suffixes: '*MavenArchunitAspectJ+*_archunit_aspectj'
             architecture-method-suffixes: '*MavenArchunitAspectJ_test'
             reuse-forks: 'true'
           - name: ArchUnit + instrumentation
+            slug: archunit-instrumentation
             method-suffixes: '*MavenArchunitInstrumentation+*_archunit_instrumentation'
             architecture-method-suffixes: '*MavenArchunitInstrumentation_test'
             reuse-forks: 'true'
           - name: WALA + AspectJ
+            slug: wala-aspectj
             method-suffixes: '*MavenWalaAspectJ+*_wala_aspectj'
             architecture-method-suffixes: '*MavenWalaAspectJ_test'
             reuse-forks: 'true'
           - name: WALA + instrumentation
+            slug: wala-instrumentation
             method-suffixes: '*MavenWalaInstrumentation+*_wala_instrumentation'
             architecture-method-suffixes: '*MavenWalaInstrumentation_test'
             reuse-forks: 'true'
@@ -169,11 +185,22 @@ jobs:
 
       # Method-level selection starts only the classes belonging to this mode. All
       # mode combinations reuse one fork; WALA state remains policy-scoped.
+      # The `coverage` profile also lowers `surefire-reuse-forks`, but the command-line
+      # property below outranks a profile property, so fork reuse stays as the matrix
+      # declares it and coverage does not change how these tests are isolated.
       - name: Test mode combination
         run: >-
-          mvn test -f pom.xml
+          mvn test -f pom.xml -Pcoverage
           -Dtest='de.tum.cit.ase.ares.integration.aop.allowed.*Test#${{ matrix.method-suffixes }},de.tum.cit.ase.ares.integration.aop.allowed.FileSystemAccessTest$*#${{ matrix.method-suffixes }},de.tum.cit.ase.ares.integration.aop.forbidden.*Test#${{ matrix.method-suffixes }},de.tum.cit.ase.ares.integration.architecture.forbidden.*Test#${{ matrix.architecture-method-suffixes }}'
           -Dsurefire-reuse-forks=${{ matrix.reuse-forks }}
+
+      - name: Upload coverage execution data
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: jacoco-exec-${{ matrix.slug }}
+          path: target/jacoco.exec
+          if-no-files-found: warn
 
   core-integration-tests:
     name: Core Integration Tests
@@ -196,7 +223,125 @@ jobs:
           cache: 'maven'
 
       - name: Core integration tests
-        run: mvn test -Pintegration-core-tests -f pom.xml
+        run: mvn test -Pintegration-core-tests,coverage -f pom.xml
 
       - name: jqwik integration tests
-        run: mvn test -f pom.xml -Dtest=de.tum.cit.ase.ares.integration.JqwickTest
+        run: mvn test -f pom.xml -Pcoverage -Dtest=de.tum.cit.ase.ares.integration.JqwickTest
+
+      - name: Upload coverage execution data
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: jacoco-exec-core-integration-tests
+          path: target/jacoco.exec
+          if-no-files-found: warn
+
+  # Each test job covers a disjoint slice of the suite, so no single one of them can be
+  # judged against the BUNDLE-level rule in pom.xml; only their merged execution data can.
+  #
+  # Advisory on purpose: the rule has never been measured against a complete run, so the
+  # check reports instead of failing (`-Djacoco.haltOnFailure=false`). Once the real
+  # figures are known, the minima in pom.xml are set to match and dropping that one flag
+  # makes the gate binding.
+  coverage-report:
+    name: Coverage Report
+    needs: [ unit-tests, tests, core-integration-tests ]
+    # A failed slice still produced usable execution data, and the report is more useful
+    # then, not less, so this waits for the test jobs rather than requiring them to pass.
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      # Every artefact contains a file called jacoco.exec, so they must land in
+      # subdirectories of their own rather than being flattened onto each other. Left
+      # strict: if the test jobs ran but produced no execution data at all, that is a
+      # defect in the coverage wiring and should be visible rather than swallowed.
+      - name: Download coverage execution data
+        uses: actions/download-artifact@v7
+        with:
+          pattern: jacoco-exec-*
+          path: target/jacoco-exec
+
+      # The report needs compiled classes, hence a full `verify` rather than a bare goal
+      # invocation. Tests are skipped: they already ran in the jobs this one depends on.
+      - name: Merge execution data and evaluate thresholds
+        shell: bash
+        run: |
+          mvn verify -Pcoverage-aggregate -DskipTests -Djacoco.haltOnFailure=false -f pom.xml \
+            2>&1 | tee "${RUNNER_TEMP}/coverage-aggregate.log"
+
+      - name: Write coverage summary
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          report="target/site/jacoco/jacoco.csv"
+          if [ ! -f "${report}" ]; then
+            echo "No aggregated coverage report was produced." >> "${GITHUB_STEP_SUMMARY}"
+            exit 1
+          fi
+
+          # Columns are fixed by JaCoCo's CSV format: 4/5 instruction, 6/7 branch,
+          # 8/9 line, 12/13 method, each as a missed/covered pair.
+          {
+            echo "## Aggregated code coverage"
+            echo
+            echo "| Counter | Covered | Missed | Ratio |"
+            echo "| --- | ---: | ---: | ---: |"
+            awk -F, '
+              function row(label, covered, missed,   total) {
+                total = covered + missed
+                printf "| %s | %d | %d | %s |\n", label, covered, missed, \
+                  (total > 0 ? sprintf("%.2f%%", 100 * covered / total) : "n/a")
+              }
+              NR > 1 {
+                im += $4; ic += $5
+                bm += $6; bc += $7
+                lm += $8; lc += $9
+                mm += $12; mc += $13
+              }
+              END {
+                row("Instruction", ic, im)
+                row("Branch", bc, bm)
+                row("Line", lc, lm)
+                row("Method", mc, mm)
+              }
+            ' "${report}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+          # Thresholds live in pom.xml alone; repeating them here would let the two drift.
+          # JaCoCo already names every breach it found, so the log is the source of truth.
+          log="${RUNNER_TEMP}/coverage-aggregate.log"
+          if [ -f "${log}" ] && grep -q "Rule violated" "${log}"; then
+            {
+              echo
+              echo "### Thresholds not met (advisory, does not fail the build)"
+              echo
+              echo '```'
+              grep "Rule violated" "${log}"
+              echo '```'
+            } >> "${GITHUB_STEP_SUMMARY}"
+          fi
+
+      - name: Upload coverage report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-report
+          path: |
+            target/site/jacoco/
+            target/jacoco.exec
+          if-no-files-found: warn

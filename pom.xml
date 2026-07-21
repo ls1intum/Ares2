@@ -79,6 +79,13 @@
 		<!-- Isolate test classes so WALA state and test-created threads cannot accumulate
 			in one long-lived JVM. The signed outcome cache preserves cross-fork reuse. -->
 		<surefire-reuse-forks>false</surefire-reuse-forks>
+		<jacoco-version>0.8.15</jacoco-version>
+		<!-- BUNDLE-level minima, shared by the `coverage` profile (one local full-suite
+			run) and the `coverage-aggregate` profile (the merged CI runs) so that the two
+			gates cannot drift apart. -->
+		<jacoco-line-coverage-minimum>0.55</jacoco-line-coverage-minimum>
+		<jacoco-branch-coverage-minimum>0.35</jacoco-branch-coverage-minimum>
+		<jacoco-method-coverage-minimum>0.65</jacoco-method-coverage-minimum>
 		<!-- full certificate fingerprint: 23E62BB282A473EE4DDA2F8763EFD39363D21A8D -->
 		<gpg.key.id>23E62BB282A473EE4DDA2F8763EFD39363D21A8D</gpg.key.id>
 	</properties>
@@ -1087,7 +1094,7 @@
 					<plugin>
 						<groupId>org.jacoco</groupId>
 						<artifactId>jacoco-maven-plugin</artifactId>
-						<version>0.8.15</version>
+						<version>${jacoco-version}</version>
 						<executions>
 							<execution>
 								<id>prepare-coverage-agent</id>
@@ -1097,8 +1104,21 @@
 								<configuration>
 									<append>true</append>
 									<inclBootstrapClasses>true</inclBootstrapClasses>
+									<!-- `api` is the only package under src/main/java, so this covers
+										everything the report is generated for, and nothing else. A new
+										top-level package under src/main/java has to be added here, or it
+										reports as entirely uncovered. That is the intended direction of
+										failure: an omission here is loud in the report, whereas the
+										opposite mistake is not. The wider
+										`de.tum.cit.ase.ares.*` also instrumented the integration test
+										subjects, which are the very classes Ares analyses and enforces
+										against. A second agent rewriting them changes the artefact under
+										test: three architecture tests of the ArchUnit/AspectJ combination
+										then observe a different violation than the one they expect.
+										Instrumenting test code yielded no coverage data in any case, as
+										only src/main/java is reported on. -->
 									<includes>
-										<include>de.tum.cit.ase.ares.*</include>
+										<include>de.tum.cit.ase.ares.api.*</include>
 									</includes>
 								</configuration>
 							</execution>
@@ -1123,17 +1143,105 @@
 												<limit>
 													<counter>LINE</counter>
 													<value>COVEREDRATIO</value>
-													<minimum>0.55</minimum>
+													<minimum>${jacoco-line-coverage-minimum}</minimum>
 												</limit>
 												<limit>
 													<counter>BRANCH</counter>
 													<value>COVEREDRATIO</value>
-													<minimum>0.35</minimum>
+													<minimum>${jacoco-branch-coverage-minimum}</minimum>
 												</limit>
 												<limit>
 													<counter>METHOD</counter>
 													<value>COVEREDRATIO</value>
-													<minimum>0.65</minimum>
+													<minimum>${jacoco-method-coverage-minimum}</minimum>
+												</limit>
+											</limits>
+										</rule>
+									</rules>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<!-- Merges the per-job JaCoCo execution data collected by the `coverage` profile
+			into one report. CI splits the suite across seven jobs, each covering a
+			disjoint slice, so a single job's execution data says nothing about the
+			BUNDLE-level rule above; only the merged data does. The rule itself is shared
+			with the `coverage` profile through the threshold properties, so a local
+			full-suite run and the CI aggregate are measured against the same minima. -->
+		<profile>
+			<id>coverage-aggregate</id>
+			<properties>
+				<!-- Directory the CI job downloads the per-job execution-data artefacts into.
+					Each artefact unpacks into a subdirectory of its own, hence the recursive
+					include below rather than a flat one. -->
+				<jacoco-exec-directory>${project.build.directory}/jacoco-exec</jacoco-exec-directory>
+			</properties>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.jacoco</groupId>
+						<artifactId>jacoco-maven-plugin</artifactId>
+						<version>${jacoco-version}</version>
+						<executions>
+							<!-- The three executions share the verify phase and therefore run in
+								declaration order: merge, then report, then check. -->
+							<execution>
+								<id>merge-coverage-data</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>merge</goal>
+								</goals>
+								<configuration>
+									<fileSets>
+										<fileSet>
+											<directory>${jacoco-exec-directory}</directory>
+											<includes>
+												<include>**/*.exec</include>
+											</includes>
+										</fileSet>
+									</fileSets>
+									<destFile>${project.build.directory}/jacoco.exec</destFile>
+								</configuration>
+							</execution>
+							<execution>
+								<id>aggregated-coverage-report</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>report</goal>
+								</goals>
+								<configuration>
+									<dataFile>${project.build.directory}/jacoco.exec</dataFile>
+								</configuration>
+							</execution>
+							<execution>
+								<id>aggregated-coverage-threshold</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>check</goal>
+								</goals>
+								<configuration>
+									<dataFile>${project.build.directory}/jacoco.exec</dataFile>
+									<rules>
+										<rule>
+											<element>BUNDLE</element>
+											<limits>
+												<limit>
+													<counter>LINE</counter>
+													<value>COVEREDRATIO</value>
+													<minimum>${jacoco-line-coverage-minimum}</minimum>
+												</limit>
+												<limit>
+													<counter>BRANCH</counter>
+													<value>COVEREDRATIO</value>
+													<minimum>${jacoco-branch-coverage-minimum}</minimum>
+												</limit>
+												<limit>
+													<counter>METHOD</counter>
+													<value>COVEREDRATIO</value>
+													<minimum>${jacoco-method-coverage-minimum}</minimum>
 												</limit>
 											</limits>
 										</rule>
