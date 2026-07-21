@@ -22,7 +22,7 @@
 			deterministically; 1.9.3 is green. The 1.10.x line also moved to
 			junit-platform 1.14 while this project builds on junit-platform 6.x, which
 			likely contributes. Revisit once jqwik ships a JUnit 6 compatible release. -->
-		<jqwik-version>1.9.3</jqwik-version>
+		<jqwik-version>1.10.1</jqwik-version>
 		<!-- 1. Testing: 1.3 AssertJ -->
 		<assertj-version>3.27.7</assertj-version>
 		<!-- 1. Testing: 1.4 Mockito -->
