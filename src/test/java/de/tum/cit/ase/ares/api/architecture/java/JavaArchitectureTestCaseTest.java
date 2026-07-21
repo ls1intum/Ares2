@@ -106,4 +106,17 @@ public class JavaArchitectureTestCaseTest {
 						|| thrown.getMessage().contains("Ares Sicherheitsfehler"),
 				"Exception message should contain Ares Security Error prefix");
 	}
+
+	@Test
+	void testParseErrorMessage_withBritishSerializationRule_normalisesAction() {
+		String message = "Architecture Violation [Priority: MEDIUM] - Rule 'Serialises objects' was violated (1 time):\n"
+				+ "Method <com.example.Test.serialize()> calls method <java.io.ObjectOutputStream.writeObject(java.lang.Object)>";
+		AssertionError error = new AssertionError(message);
+
+		SecurityException thrown = assertThrows(SecurityException.class,
+				() -> JavaArchitectureTestCase.parseErrorMessage(error));
+
+		assertTrue(thrown.getMessage().contains("serialise objects"),
+				() -> "Exception message should use the normalised serialisation action: " + thrown.getMessage());
+	}
 }
