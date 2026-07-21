@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.FileDescriptor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -21,6 +22,7 @@ import java.net.URLConnection;
 import java.net.UnixDomainSocketAddress;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
+import java.nio.channels.DatagramChannel;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
@@ -202,6 +204,58 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 			toDisplayString.setAccessible(true);
 			assertEquals("127.0.0.1:" + serverSocket.getLocalPort(), toDisplayString.invoke(target));
 		}
+	}
+
+	@Test
+	void toTarget_extractsRemoteHostAndPortFromConnectedDatagramSocket() throws Exception {
+		Method toTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("toTarget",
+				Object.class);
+		toTarget.setAccessible(true);
+
+		try (DatagramSocket socket = new DatagramSocket()) {
+			socket.connect(new InetSocketAddress("127.0.0.1", 12345));
+			Object target = toTarget.invoke(null, socket);
+			assertNotNull(target);
+
+			Method toDisplayString = target.getClass().getDeclaredMethod("toDisplayString");
+			toDisplayString.setAccessible(true);
+			assertEquals("127.0.0.1:12345", toDisplayString.invoke(target));
+		}
+	}
+
+	@Test
+	void toTarget_extractsRemoteHostAndPortFromConnectedDatagramChannel() throws Exception {
+		Method toTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("toTarget",
+				Object.class);
+		toTarget.setAccessible(true);
+
+		try (DatagramChannel channel = DatagramChannel.open()) {
+			channel.connect(new InetSocketAddress("127.0.0.1", 12345));
+			Object target = toTarget.invoke(null, channel);
+			assertNotNull(target);
+
+			Method toDisplayString = target.getClass().getDeclaredMethod("toDisplayString");
+			toDisplayString.setAccessible(true);
+			assertEquals("127.0.0.1:12345", toDisplayString.invoke(target));
+		}
+	}
+
+	@Test
+	void toTarget_returnsNullWhenUrlConnectionCannotExposeUrlDuringConstruction() throws Exception {
+		Method toTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("toTarget",
+				Object.class);
+		toTarget.setAccessible(true);
+		Class<?> unsafeClass = Class.forName("sun.misc.Unsafe");
+		var unsafeField = unsafeClass.getDeclaredField("theUnsafe");
+		unsafeField.setAccessible(true);
+		Object unsafe = unsafeField.get(null);
+		Method allocateInstance = unsafeClass.getMethod("allocateInstance", Class.class);
+		Object connection = allocateInstance.invoke(unsafe,
+				Class.forName("sun.net.www.protocol.https.HttpsURLConnectionImpl"));
+
+		Object target = toTarget.invoke(null, connection);
+
+		assertNull(target);
 	}
 
 	@Test

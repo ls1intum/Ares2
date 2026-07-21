@@ -47,4 +47,15 @@ public @interface StrictTimeout {
 	 * @see TimeUnit
 	 */
 	TimeUnit unit() default TimeUnit.SECONDS;
+
+	/**
+	 * The bounded period allowed for an interrupted test to terminate before Ares
+	 * treats the test worker as contaminated.
+	 */
+	long terminationGrace() default 50;
+
+	/**
+	 * The unit of the termination grace period, <b>defaults to milliseconds</b>.
+	 */
+	TimeUnit terminationGraceUnit() default TimeUnit.MILLISECONDS;
 }
