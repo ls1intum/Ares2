@@ -60,8 +60,10 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 		if (allowedPackages.isEmpty()) {
 			return "Set.of()";
 		}
-		String inner = allowedPackages.stream().map(pp -> String.format("new %s(\"%s\")",
-				PackagePermission.class.getSimpleName(), pp.importTheFollowingPackage()))
+		// Emit the exactness flag as well, or the generated test would silently fall
+		// back to subtree matching and diverge from the rule that produced it.
+		String inner = allowedPackages.stream().map(pp -> String.format("new %s(\"%s\", %s)",
+				PackagePermission.class.getSimpleName(), pp.importTheFollowingPackage(), pp.exactMatchOnly()))
 				.collect(Collectors.joining(", "));
 		return "Set.of(" + inner + ")";
 	}
@@ -172,7 +174,11 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 				.collect(java.util.stream.Collectors.joining(","));
 		java.util.concurrent.FutureTask<java.util.Optional<SecurityException>> task;
 		if (supported == JavaArchitectureTestCaseSupported.PACKAGE_IMPORT) {
-			String allowedSignature = allowedPackages.stream().map(p -> p.importTheFollowingPackage()).sorted()
+			// The exactness flag changes which imports the rule accepts, so it belongs in
+			// the key too; two configurations differing only in exactness must not share
+			// a cached outcome.
+			String allowedSignature = allowedPackages.stream()
+					.map(p -> p.importTheFollowingPackage() + "#" + p.exactMatchOnly()).sorted()
 					.collect(java.util.stream.Collectors.joining(","));
 			String pkgKey = allowedSignature + "#" + allowedClassesSignature + "@" + javaClassesToken(javaClasses);
 			task = PACKAGE_OUTCOME_CACHE.computeIfAbsent(pkgKey,

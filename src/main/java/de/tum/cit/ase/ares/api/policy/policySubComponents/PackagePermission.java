@@ -19,8 +19,11 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  * @author Markus Paulsen
  * @param importTheFollowingPackage the package that is permitted to be
  *                                  imported; must not be null.
+ * @param exactMatchOnly            whether the permission covers only this
+ *                                  exact package ({@code true}) or the package
+ *                                  and its subpackages ({@code false}).
  */
-public record PackagePermission(@Nonnull String importTheFollowingPackage) {
+public record PackagePermission(@Nonnull String importTheFollowingPackage, boolean exactMatchOnly) {
 
 	/**
 	 * Constructs a PackagePermission instance.
@@ -33,6 +36,22 @@ public record PackagePermission(@Nonnull String importTheFollowingPackage) {
 		if (importTheFollowingPackage.isBlank()) {
 			throw new IllegalArgumentException(Messages.localized("policy.permission.package.blank"));
 		}
+	}
+
+	/**
+	 * Constructs a subpackage-inclusive PackagePermission.
+	 * <p>
+	 * This is the default for permissions declared in a security policy: granting
+	 * {@code java.util} also grants {@code java.util.concurrent}. Jackson binds
+	 * policy YAML through the canonical constructor and supplies {@code false} for
+	 * an absent {@code exactMatchOnly} key, so policies written before this flag
+	 * existed keep their original meaning.
+	 *
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 */
+	public PackagePermission(@Nonnull String importTheFollowingPackage) {
+		this(importTheFollowingPackage, false);
 	}
 
 	/**
@@ -84,6 +103,12 @@ public record PackagePermission(@Nonnull String importTheFollowingPackage) {
 		private String importTheFollowingPackage;
 
 		/**
+		 * Whether the permission covers only the exact package; defaults to
+		 * subpackage-inclusive.
+		 */
+		private boolean exactMatchOnly;
+
+		/**
 		 * Sets the package name.
 		 *
 		 * @since 2.0.0
@@ -99,6 +124,20 @@ public record PackagePermission(@Nonnull String importTheFollowingPackage) {
 		}
 
 		/**
+		 * Sets whether only the exact package is covered.
+		 *
+		 * @since 2.0.0
+		 * @author Markus Paulsen
+		 * @param exactMatchOnly true to exclude subpackages.
+		 * @return the updated Builder.
+		 */
+		@Nonnull
+		public Builder exactMatchOnly(boolean exactMatchOnly) {
+			this.exactMatchOnly = exactMatchOnly;
+			return this;
+		}
+
+		/**
 		 * Builds a new PackagePermission instance.
 		 *
 		 * @since 2.0.0
@@ -108,7 +147,7 @@ public record PackagePermission(@Nonnull String importTheFollowingPackage) {
 		@Nonnull
 		public PackagePermission build() {
 			return new PackagePermission(
-					Objects.requireNonNull(importTheFollowingPackage, "packageName must not be null"));
+					Objects.requireNonNull(importTheFollowingPackage, "packageName must not be null"), exactMatchOnly);
 		}
 	}
 }
