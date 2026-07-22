@@ -18,6 +18,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLParser;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.reader.SecurityPolicyReader;
+import de.tum.cit.ase.ares.api.policy.reader.SecurityPolicySchemaValidator;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
 /**

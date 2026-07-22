@@ -6,11 +6,20 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import de.tum.cit.ase.ares.api.localization.Messages;
+import de.tum.cit.ase.ares.api.policy.PolicyValueValidator;
 
 /**
- * Class with elevated Privileges.
+ * Class with elevated privileges.
  * <p>
- * Description: Specifies the class, which is not restricted by Ares 2.
+ * Description: Names a class that Ares 2 does not restrict. A call is judged by
+ * the call stack that leads to it, so naming a class here exempts the frames it
+ * contributes from the enforcement that applies to the supervised code.
+ * <p>
+ * Unlike its siblings in this package, this permission is not read from a
+ * policy file. The security policy schema has no field for it. Ares derives the
+ * set itself from the classes that must stay reachable for the run to work at
+ * all, namely the essential framework classes and the exercise's own test
+ * classes, so an instructor can neither grant nor revoke it directly.
  * <p>
  * Design Rationale: Explicitly declaring elevated classes enables minimal and
  * restricted opening of the general protection.
@@ -18,21 +27,33 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  * @since 2.0.0
  * @author Markus Paulsen
  * @param className the name of the class that receives elevated privileges;
- *                  must not be null.
+ *                  must be neither null nor blank.
  */
 public record ClassPermission(@Nonnull String className) {
 
 	/**
 	 * Constructs a ClassPermission instance.
+	 * <p>
+	 * The name must have the shape of a dot-separated Java name. That accepts a
+	 * package prefix as readily as a class, which is deliberate: elevation is
+	 * matched by prefix, so an entry such as
+	 * {@code de.tum.cit.ase.ares.api.internal} covers everything beneath it.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
+	 * @param className the name of the class that receives elevated privileges;
+	 *                  must be neither null nor blank, and must be a dot-separated
+	 *                  Java name.
+	 * @throws NullPointerException     if the class name is null.
+	 * @throws IllegalArgumentException if the class name is blank, or is not a
+	 *                                  dot-separated Java name.
 	 */
 	public ClassPermission {
-		Objects.requireNonNull(className, "className name must not be null");
+		Objects.requireNonNull(className, "className must not be null");
 		if (className.isBlank()) {
 			throw new IllegalArgumentException(Messages.localized("policy.permission.class.blank"));
 		}
+		PolicyValueValidator.requireMatch("className", className, PolicyValueValidator.JAVA_CLASS_PATH_PATTERN);
 	}
 
 	/**
@@ -71,8 +92,9 @@ public record ClassPermission(@Nonnull String className) {
 		 *
 		 * @since 2.0.0
 		 * @author Markus Paulsen
-		 * @param className the class name.
+		 * @param className the class name; must not be null.
 		 * @return the updated Builder.
+		 * @throws NullPointerException if the class name is null.
 		 */
 		@Nonnull
 		public ClassPermission.Builder className(@Nonnull String className) {
@@ -86,6 +108,8 @@ public record ClassPermission(@Nonnull String className) {
 		 * @since 2.0.0
 		 * @author Markus Paulsen
 		 * @return a new ClassPermission instance.
+		 * @throws NullPointerException     if no class name was set.
+		 * @throws IllegalArgumentException if the class name is blank.
 		 */
 		@Nonnull
 		public ClassPermission build() {

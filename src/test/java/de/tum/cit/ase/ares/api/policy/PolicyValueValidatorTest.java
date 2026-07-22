@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.api.policy.policySubComponents;
+package de.tum.cit.ase.ares.api.policy;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -11,6 +11,12 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.SupervisedCode;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ThreadPermission;
 
 class PolicyValueValidatorTest {
 

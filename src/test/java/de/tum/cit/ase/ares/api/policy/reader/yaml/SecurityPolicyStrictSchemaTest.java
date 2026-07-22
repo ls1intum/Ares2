@@ -272,7 +272,13 @@ class SecurityPolicyStrictSchemaTest {
 	static Stream<Arguments> invalidPolicyValues() {
 		return Stream.of(
 				Arguments.of("thisPolicyFileCompliesToThePolicyVersion: 1",
+						"thisPolicyFileCompliesToThePolicyVersion: 0"),
+				Arguments.of("thisPolicyFileCompliesToThePolicyVersion: 1",
 						"thisPolicyFileCompliesToThePolicyVersion: 2"),
+				// 2^32 + 1 is integral but truncates to 1 as an int, so it must never be
+				// mistaken for the supported version.
+				Arguments.of("thisPolicyFileCompliesToThePolicyVersion: 1",
+						"thisPolicyFileCompliesToThePolicyVersion: 4294967297"),
 				Arguments.of("JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ", "JAVA_MAVEN_ARCHUNIT_ASPECTJ"),
 				Arguments.of("theSupervisedCodeUsesTheFollowingPackage: com.example",
 						"theSupervisedCodeUsesTheFollowingPackage: com.class"),
@@ -284,7 +290,13 @@ class SecurityPolicyStrictSchemaTest {
 				Arguments.of("onThisPathAndAllPathsBelow: /tmp/data", "onThisPathAndAllPathsBelow: '../tmp/data'"),
 				Arguments.of("onTheHost: localhost", "onTheHost: 256.1.1.1"),
 				Arguments.of("ofThisClass: java.lang.Thread", "ofThisClass: java.lang."),
-				Arguments.of("importTheFollowingPackage: java.util", "importTheFollowingPackage: java.*"));
+				Arguments.of("importTheFollowingPackage: java.util", "importTheFollowingPackage: java.*"),
+				// A command permission has exactly one shape. The bare scalar form was
+				// accepted once and is not part of the format any more. A non-string
+				// argument is covered by invalidSchemaShapes, and matters because Jackson
+				// would coerce 1 to "1" when binding: the schema gate is what refuses it.
+				Arguments.of("      - executeTheCommand: java\n        withTheseArguments: [--version]",
+						"      - java"));
 	}
 
 	@ParameterizedTest

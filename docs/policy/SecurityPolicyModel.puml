@@ -1,0 +1,270 @@
+@startuml SecurityPolicyModel
+
+title Ares 2 Security Policy Domain Model
+
+scale max 3800 width
+top to bottom direction
+hide circle
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam nodesep 170
+skinparam noteFontSize 11
+skinparam packageStyle rectangle
+skinparam ranksep 220
+skinparam shadowing false
+
+package "de.tum.cit.ase.ares.api.policy" as policy {
+    class SecurityPolicy <<record>> {
+        + thisPolicyFileCompliesToThePolicyVersion: int
+        + {static} createRestrictive(programmingLanguageConfiguration: ProgrammingLanguageConfiguration): SecurityPolicy
+        + {static} builder(): SecurityPolicy.Builder
+    }
+
+    note top of SecurityPolicy
+      thisPolicyFileCompliesToThePolicyVersion: int
+      - allowed: AresConstants.MINIMUM_POLICY_VERSION
+        ..AresConstants.MAXIMUM_POLICY_VERSION (inclusive)
+      - builder default: AresConstants.MAXIMUM_POLICY_VERSION
+      - the range is checked in the constructor and again in the
+        builder setter; neither delegates to a shared helper
+      regardingTheSupervisedCode: nonnull
+      - allowed: exactly one
+    end note
+
+    note bottom of SecurityPolicy
+      Every "regex:" in this diagram names a pattern held in
+      PolicyValueValidator, which is not drawn here because it
+      is a validator rather than a domain type. Each pattern is
+      applied twice: by the record on construction, and by the
+      schema validator on the parsed tree before it is bound.
+    end note
+}
+
+package "de.tum.cit.ase.ares.api.policy.policySubComponents" as components {
+    class SupervisedCode <<record>> {
+        + theSupervisedCodeUsesTheFollowingPackage: String
+        + theMainClassInsideThisPackageIs: String
+        + theFollowingClassesAreTestClasses: List<String>
+        -- Factories --
+        + {static} createRestrictive(theFollowingProgrammingLanguageConfigurationIsUsed: ProgrammingLanguageConfiguration): SupervisedCode
+        + {static} builder(): SupervisedCode.Builder
+    }
+
+    enum ProgrammingLanguageConfiguration {
+        JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+        JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION
+        JAVA_USING_MAVEN_WALA_AND_ASPECTJ
+        JAVA_USING_MAVEN_WALA_AND_INSTRUMENTATION
+        JAVA_USING_GRADLE_ARCHUNIT_AND_ASPECTJ
+        JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION
+        JAVA_USING_GRADLE_WALA_AND_ASPECTJ
+        JAVA_USING_GRADLE_WALA_AND_INSTRUMENTATION
+    }
+
+    class ResourceAccesses <<record>> {
+        -- Factories --
+        + {static} createRestrictive(): ResourceAccesses
+        + {static} builder(): ResourceAccesses.Builder
+    }
+
+    class FilePermission <<record>> {
+        + onThisPathAndAllPathsBelow: String
+        + readAllFiles: boolean
+        + overwriteAllFiles: boolean
+        + createAllFiles: boolean
+        + executeAllFiles: boolean
+        + deleteAllFiles: boolean
+        -- Factories --
+        + {static} createRestrictive(path: String): FilePermission
+        + {static} builder(): FilePermission.Builder
+    }
+
+    class NetworkPermission <<record>> {
+        + onTheHost: String
+        + onThePort: int
+        + openConnections: boolean
+        + sendData: boolean
+        + receiveData: boolean
+        -- Factories --
+        + {static} createRestrictive(onTheHost: String, onThePort: int): NetworkPermission
+        + {static} builder(): NetworkPermission.Builder
+    }
+
+    class CommandPermission <<record>> {
+        + executeTheCommand: String
+        + withTheseArguments: List<String>
+        + {static} ANY_ARGUMENTS: String = "*"
+        -- Factories --
+        + {static} allowWithoutArguments(executeTheCommand: String): CommandPermission
+        + {static} allowWithAnyArguments(executeTheCommand: String): CommandPermission
+        + {static} builder(): CommandPermission.Builder
+    }
+
+    class ThreadPermission <<record>> {
+        + createTheFollowingNumberOfThreads: int
+        + ofThisClass: String
+        -- Factories --
+        + {static} createRestrictive(threadClass: String): ThreadPermission
+        + {static} builder(): ThreadPermission.Builder
+    }
+
+    class PackagePermission <<record>> {
+        + importTheFollowingPackage: String
+        -- Factories --
+        + {static} allowPackage(importTheFollowingPackage: String): PackagePermission
+        + {static} builder(): PackagePermission.Builder
+    }
+
+    class ResourceLimitsPermission <<record>> {
+        + timeout: long
+        -- Factories --
+        + {static} createRestrictive(): ResourceLimitsPermission
+        + {static} builder(): ResourceLimitsPermission.Builder
+    }
+
+    class ClassPermission <<record>> {
+        + className: String
+        -- Factories --
+        + {static} builder(): ClassPermission.Builder
+    }
+
+    note left of SupervisedCode
+      theFollowingProgrammingLanguageConfigurationIsUsed: nonnull
+      - allowed: one of eight enum values
+      theSupervisedCodeUsesTheFollowingPackage: nullable
+      - regex: Java package name
+      theMainClassInsideThisPackageIs: nullable
+      - regex: Java type name
+      theFollowingClassesAreTestClasses: nonnull
+      - regex: Java class path per entry
+      - immutable list
+      theFollowingResourceAccessesArePermitted: nonnull
+      - allowed: exactly one
+    end note
+
+    note top of ResourceAccesses
+      regardingFileSystemInteractions: nonnull
+      - allowed: immutable exhaustive list
+      - builder default: empty, which permits nothing
+      regardingNetworkConnections: nonnull
+      - allowed: immutable exhaustive list
+      - builder default: empty, which permits nothing
+      regardingCommandExecutions: nonnull
+      - allowed: immutable exhaustive list
+      - builder default: empty, which permits nothing
+      regardingThreadCreations: nonnull
+      - allowed: immutable exhaustive list
+      - builder default: empty, which permits nothing
+      regardingPackageImports: nonnull
+      - allowed: immutable exhaustive list
+      - builder default: empty, which permits nothing
+      regardingTimeouts: nonnull
+      - allowed: immutable list
+      - limits: minimum timeout applies
+      - builder default: one restrictive limit, not empty,
+        because empty would mean "run without a time limit"
+    end note
+
+    note left of FilePermission
+      onThisPathAndAllPathsBelow: nonnull
+      - regex: valid path | recognised placeholder | "*"
+      - no upward traversal
+      - placeholders are expanded only when read from a file
+      readAllFiles: boolean
+      - allowed: true | false (default)
+      overwriteAllFiles: boolean
+      - allowed: true | false (default)
+      createAllFiles: boolean
+      - allowed: true | false (default)
+      executeAllFiles: boolean
+      - allowed: true | false (default)
+      deleteAllFiles: boolean
+      - allowed: true | false (default)
+    end note
+
+    note left of NetworkPermission
+      onTheHost: nonnull
+      - regex: DNS | IPv4 | IPv6 | "localhost" | "*"
+      onThePort: int
+      - limits: 0..65535
+      - 0 means every port
+      - no builder default: must be set, so permitting
+        every port is always deliberate
+      openConnections: boolean
+      - allowed: true | false (default)
+      sendData: boolean
+      - allowed: true | false (default)
+      receiveData: boolean
+      - allowed: true | false (default)
+    end note
+
+    note bottom of CommandPermission
+      executeTheCommand: nonnull
+      - regex: non-blank, no control characters,
+        no surrounding whitespace
+      - "*" matches every command
+      withTheseArguments: nonnull
+      - regex: no control characters per entry
+      - an empty entry is allowed, an empty command is not
+      - immutable list; "*" matches any argument at its position
+      - a sole "*" (allowWithAnyArguments) permits every argument list,
+        whereas an empty list (allowWithoutArguments) permits none
+      - one policy shape only: the mapping. The bare scalar "- git"
+        was accepted once, meaning the command with no arguments,
+        and is no longer part of the format
+    end note
+
+    note bottom of ThreadPermission
+      createTheFollowingNumberOfThreads: int
+      - limits: >= 0 (default: 0)
+      ofThisClass: nonnull
+      - regex: Java class | "Lambda-Expression" | recognised implicit operation | "*"
+    end note
+
+    note right of PackagePermission
+      importTheFollowingPackage: nonnull
+      - regex: Java package name | "*"
+    end note
+
+    note right of ResourceLimitsPermission
+      timeout: long
+      - limits: > 0 ms
+      - restrictive default: 10,000 ms
+      - minimum entry applies
+      - no builder default: must be set
+    end note
+
+    note top of ClassPermission
+      className: nonnull
+      - regex: Java class path
+      - runtime-derived class or package prefix only,
+        so no policy file can grant it
+    end note
+}
+
+SecurityPolicy "1" *-down- "1" SupervisedCode : + regardingTheSupervisedCode: SupervisedCode
+SupervisedCode "1" -right-> "1" ProgrammingLanguageConfiguration : + theFollowingProgrammingLanguageConfigurationIsUsed: ProgrammingLanguageConfiguration
+SupervisedCode "1" *-down- "1" ResourceAccesses : + theFollowingResourceAccessesArePermitted: ResourceAccesses
+
+ResourceAccesses "1" *-left- "*" FilePermission : + regardingFileSystemInteractions: List<FilePermission>
+ResourceAccesses "1" *-left- "*" NetworkPermission : + regardingNetworkConnections: List<NetworkPermission>
+ResourceAccesses "1" *-down- "*" CommandPermission : + regardingCommandExecutions: List<CommandPermission>
+ResourceAccesses "1" *-down- "*" ThreadPermission : + regardingThreadCreations: List<ThreadPermission>
+ResourceAccesses "1" *-right- "*" PackagePermission : + regardingPackageImports: List<PackagePermission>
+ResourceAccesses "1" *-right- "*" ResourceLimitsPermission : + regardingTimeouts: List<ResourceLimitsPermission>
+
+SecurityPolicy -[hidden]down- SupervisedCode
+SupervisedCode -[hidden]right- ProgrammingLanguageConfiguration
+SupervisedCode -[hidden]down- ResourceAccesses
+FilePermission -[hidden]down- NetworkPermission
+FilePermission -[hidden]right- ResourceAccesses
+NetworkPermission -[hidden]right- ResourceAccesses
+ResourceAccesses -[hidden]down- CommandPermission
+ResourceAccesses -[hidden]down- ThreadPermission
+CommandPermission -[hidden]right- ThreadPermission
+ResourceAccesses -[hidden]right- PackagePermission
+ResourceAccesses -[hidden]right- ResourceLimitsPermission
+PackagePermission -[hidden]down- ResourceLimitsPermission
+
+@enduml

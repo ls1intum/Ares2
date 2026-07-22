@@ -6,6 +6,8 @@ import java.util.Objects;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import de.tum.cit.ase.ares.api.policy.PolicyValueValidator;
+
 /**
  * Supervised code details.
  * <p>
@@ -46,9 +48,19 @@ public record SupervisedCode(
 
 	/**
 	 * Constructs a SupervisedCode instance with the provided details.
+	 * <p>
+	 * The list of test classes is copied defensively, so a later change to the list
+	 * the caller passed in cannot alter which classes this record treats as tests.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
+	 * @throws NullPointerException     if the programming language configuration,
+	 *                                  the list of test classes, one of its
+	 *                                  entries, or the permitted resource accesses
+	 *                                  is null.
+	 * @throws IllegalArgumentException if the package name, the main class name or
+	 *                                  one of the test class names does not have
+	 *                                  the shape Java requires of it.
 	 */
 	public SupervisedCode {
 		Objects.requireNonNull(theFollowingProgrammingLanguageConfigurationIsUsed,
@@ -73,11 +85,22 @@ public record SupervisedCode(
 
 	/**
 	 * Creates a restrictive supervised code configuration.
+	 * <p>
+	 * The result declares no package, no main class and no test classes, and
+	 * permits only the resource accesses of
+	 * {@link ResourceAccesses#createRestrictive()}.
 	 *
 	 * @since 2.0.0
-	 * @author Markus Paulsen * @param config the programming language configuration
-	 *         for the restrictive code.
+	 * @author Markus Paulsen
+	 * @param theFollowingProgrammingLanguageConfigurationIsUsed the programming
+	 *                                                           language
+	 *                                                           configuration for
+	 *                                                           the restrictive
+	 *                                                           code; must not be
+	 *                                                           null.
 	 * @return a new SupervisedCode instance with restrictive settings.
+	 * @throws NullPointerException if the programming language configuration is
+	 *                              null.
 	 */
 	@Nonnull
 	public static SupervisedCode createRestrictive(
@@ -95,7 +118,8 @@ public record SupervisedCode(
 	 * Returns a builder for creating a SupervisedCode instance.
 	 *
 	 * @since 2.0.0
-	 * @author Markus Paulsen * @return a new SupervisedCode.Builder instance.
+	 * @author Markus Paulsen
+	 * @return a new SupervisedCode.Builder instance.
 	 */
 	@Nonnull
 	public static Builder builder() {
@@ -116,7 +140,9 @@ public record SupervisedCode(
 	public static class Builder {
 
 		/**
-		 * Constructs a new Builder instance.
+		 * The build tool, architecture analyser and aspect weaver the supervised code
+		 * is exercised with. Has no default, so {@link #build()} rejects a builder on
+		 * which it was never set.
 		 *
 		 * @since 2.0.0
 		 */
@@ -124,7 +150,7 @@ public record SupervisedCode(
 		private ProgrammingLanguageConfiguration theFollowingProgrammingLanguageConfigurationIsUsed;
 
 		/**
-		 * Constructs a new Builder instance.
+		 * The base package of the supervised code, or null when the code declares none.
 		 *
 		 * @since 2.0.0
 		 */
@@ -132,7 +158,8 @@ public record SupervisedCode(
 		private String theSupervisedCodeUsesTheFollowingPackage;
 
 		/**
-		 * Constructs a new Builder instance.
+		 * The simple name of the main class inside that package, or null when the code
+		 * has no entry point.
 		 *
 		 * @since 2.0.0
 		 */
@@ -140,7 +167,7 @@ public record SupervisedCode(
 		private String theMainClassInsideThisPackageIs;
 
 		/**
-		 * Constructs a new Builder instance.
+		 * The fully qualified names of the test classes, empty by default.
 		 *
 		 * @since 2.0.0
 		 */
@@ -148,7 +175,8 @@ public record SupervisedCode(
 		private List<String> theFollowingClassesAreTestClasses = List.of();
 
 		/**
-		 * Constructs a new Builder instance.
+		 * The resource accesses the supervised code may perform. Has no default, so
+		 * {@link #build()} rejects a builder on which it was never set.
 		 *
 		 * @since 2.0.0
 		 */
@@ -162,7 +190,10 @@ public record SupervisedCode(
 		 * @author Markus Paulsen
 		 * @param theFollowingProgrammingLanguageConfigurationIsUsed the programming
 		 *                                                           language
-		 *                                                           configuration.
+		 *                                                           configuration; must
+		 *                                                           not be null, which
+		 *                                                           {@link #build()}
+		 *                                                           enforces.
 		 * @return the updated Builder.
 		 */
 		@Nonnull
@@ -177,7 +208,9 @@ public record SupervisedCode(
 		 *
 		 * @since 2.0.0
 		 * @author Markus Paulsen
-		 * @param theSupervisedCodeUsesTheFollowingPackage the base package name.
+		 * @param theSupervisedCodeUsesTheFollowingPackage the base package name, or
+		 *                                                 null when the code declares
+		 *                                                 none.
 		 * @return the updated Builder.
 		 */
 		@Nonnull
@@ -192,7 +225,8 @@ public record SupervisedCode(
 		 *
 		 * @since 2.0.0
 		 * @author Markus Paulsen
-		 * @param theMainClassInsideThisPackageIs the main class name.
+		 * @param theMainClassInsideThisPackageIs the simple name of the main class, or
+		 *                                        null when the code has no entry point.
 		 * @return the updated Builder.
 		 */
 		@Nonnull
@@ -206,8 +240,10 @@ public record SupervisedCode(
 		 *
 		 * @since 2.0.0
 		 * @author Markus Paulsen
-		 * @param theFollowingClassesAreTestClasses the test class names.
+		 * @param theFollowingClassesAreTestClasses the fully qualified test class
+		 *                                          names; must not be null.
 		 * @return the updated Builder.
+		 * @throws NullPointerException if the list is null.
 		 */
 		@Nonnull
 		public Builder theFollowingClassesAreTestClasses(@Nonnull List<String> theFollowingClassesAreTestClasses) {
@@ -222,8 +258,9 @@ public record SupervisedCode(
 		 * @since 2.0.0
 		 * @author Markus Paulsen
 		 * @param theFollowingResourceAccessesArePermitted the permitted resource
-		 *                                                 accesses.
+		 *                                                 accesses; must not be null.
 		 * @return the updated Builder.
+		 * @throws NullPointerException if the resource accesses are null.
 		 */
 		@Nonnull
 		public Builder theFollowingResourceAccessesArePermitted(
@@ -240,6 +277,11 @@ public record SupervisedCode(
 		 * @since 2.0.0
 		 * @author Markus Paulsen
 		 * @return a new SupervisedCode instance.
+		 * @throws NullPointerException     if the programming language configuration or
+		 *                                  the permitted resource accesses were never
+		 *                                  set.
+		 * @throws IllegalArgumentException if a name set on this builder does not have
+		 *                                  the shape Java requires of it.
 		 */
 		@Nonnull
 		public SupervisedCode build() {
