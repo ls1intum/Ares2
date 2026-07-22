@@ -5,6 +5,7 @@ import java.util.Objects;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import de.tum.cit.ase.ares.api.AresConstants;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.SupervisedCode;
 
@@ -33,9 +34,9 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.SupervisedCode;
  * @param thisPolicyFileCompliesToThePolicyVersion the policy-format version the
  *                                                 policy declares; must be
  *                                                 between
- *                                                 {@value #MINIMUM_POLICY_VERSION}
+ *                                                 {@value AresConstants#MINIMUM_POLICY_VERSION}
  *                                                 and
- *                                                 {@value #MAXIMUM_POLICY_VERSION},
+ *                                                 {@value AresConstants#MAXIMUM_POLICY_VERSION},
  *                                                 both inclusive.
  * @param regardingTheSupervisedCode               the details of the supervised
  *                                                 code; must not be null.
@@ -45,79 +46,37 @@ public record SecurityPolicy(int thisPolicyFileCompliesToThePolicyVersion,
 		@Nonnull SupervisedCode regardingTheSupervisedCode) {
 
 	/**
-	 * The earliest policy-format version supported by this Ares release.
-	 *
-	 * @since 2.1.0
-	 */
-	public static final int MINIMUM_POLICY_VERSION = 1;
-
-	/**
-	 * The latest policy-format version supported by this Ares release.
-	 * <p>
-	 * This is the version assumed for policies that are built programmatically
-	 * without declaring one, as such policies are by construction expressed in the
-	 * newest format this release understands.
-	 *
-	 * @since 2.1.0
-	 */
-	public static final int MAXIMUM_POLICY_VERSION = 1;
-
-	/*
-	 * Guards against an edit that leaves the two ends of the supported range
-	 * inconsistent. Such a range would reject every policy version, so the cause is
-	 * stated here rather than inferred from a suite that fails everywhere at once.
-	 */
-	static {
-		if (MINIMUM_POLICY_VERSION > MAXIMUM_POLICY_VERSION) {
-			throw new ExceptionInInitializerError("MINIMUM_POLICY_VERSION must not exceed MAXIMUM_POLICY_VERSION");
-		}
-	}
-
-	/**
 	 * Constructs a SecurityPolicy instance with a validated policy-format version
 	 * and validated supervised code.
+	 * <p>
+	 * The range check is written out here rather than delegated, so that reading
+	 * this constructor shows the whole invariant. The builder's version setter
+	 * carries the same check; the two must be kept in step by hand, and the
+	 * {@code PolicyValueContractTest} covers both.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 * @throws IllegalArgumentException if the declared policy-format version lies
-	 *                                  outside [{@value #MINIMUM_POLICY_VERSION},
-	 *                                  {@value #MAXIMUM_POLICY_VERSION}].
+	 *                                  outside
+	 *                                  [{@value AresConstants#MINIMUM_POLICY_VERSION},
+	 *                                  {@value AresConstants#MAXIMUM_POLICY_VERSION}].
 	 * @throws NullPointerException     if the supervised code is null.
 	 */
 	public SecurityPolicy {
-		requireSupportedPolicyVersion(thisPolicyFileCompliesToThePolicyVersion);
-		Objects.requireNonNull(regardingTheSupervisedCode, "regardingTheSupervisedCode must not be null");
-	}
-
-	/**
-	 * Checks that a policy-format version is supported by this Ares release.
-	 * <p>
-	 * Description: Single source of truth for the version invariant, shared by the
-	 * canonical constructor and the builder so that both reject the same values
-	 * with the same message.
-	 *
-	 * @since 2.1.0
-	 * @author Markus Paulsen
-	 * @param policyVersion the declared policy-format version.
-	 * @return the unchanged policy version, so that the check can be used inline.
-	 * @throws IllegalArgumentException if the version lies outside
-	 *                                  [{@value #MINIMUM_POLICY_VERSION},
-	 *                                  {@value #MAXIMUM_POLICY_VERSION}].
-	 */
-	private static int requireSupportedPolicyVersion(int policyVersion) {
-		if (policyVersion < MINIMUM_POLICY_VERSION || policyVersion > MAXIMUM_POLICY_VERSION) {
-			throw new IllegalArgumentException(
-					"thisPolicyFileCompliesToThePolicyVersion must be between " + MINIMUM_POLICY_VERSION + " and "
-							+ MAXIMUM_POLICY_VERSION + " (inclusive), but was " + policyVersion);
+		if (thisPolicyFileCompliesToThePolicyVersion < AresConstants.MINIMUM_POLICY_VERSION
+				|| thisPolicyFileCompliesToThePolicyVersion > AresConstants.MAXIMUM_POLICY_VERSION) {
+			throw new IllegalArgumentException("thisPolicyFileCompliesToThePolicyVersion must be between "
+					+ AresConstants.MINIMUM_POLICY_VERSION + " and " + AresConstants.MAXIMUM_POLICY_VERSION
+					+ " (inclusive), but was " + thisPolicyFileCompliesToThePolicyVersion);
 		}
-		return policyVersion;
+		Objects.requireNonNull(regardingTheSupervisedCode, "regardingTheSupervisedCode must not be null");
 	}
 
 	/**
 	 * Creates a restrictive security policy with all permissions denied by default.
 	 * <p>
-	 * The returned policy declares {@value #MAXIMUM_POLICY_VERSION} as its
-	 * policy-format version.
+	 * The returned policy declares {@value AresConstants#MAXIMUM_POLICY_VERSION} as
+	 * its policy-format version.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
@@ -167,11 +126,11 @@ public record SecurityPolicy(int thisPolicyFileCompliesToThePolicyVersion,
 		/**
 		 * The policy-format version declared by the policy under construction.
 		 * <p>
-		 * Defaults to {@value SecurityPolicy#MAXIMUM_POLICY_VERSION}, because a policy
+		 * Defaults to {@value AresConstants#MAXIMUM_POLICY_VERSION}, because a policy
 		 * assembled in code rather than read from a file is by construction expressed
 		 * in the newest format this release understands.
 		 */
-		private int thisPolicyFileCompliesToThePolicyVersion = MAXIMUM_POLICY_VERSION;
+		private int thisPolicyFileCompliesToThePolicyVersion = AresConstants.MAXIMUM_POLICY_VERSION;
 
 		/**
 		 * The supervised code for the SecurityPolicy.
@@ -186,9 +145,9 @@ public record SecurityPolicy(int thisPolicyFileCompliesToThePolicyVersion,
 		 * @author Markus Paulsen
 		 * @param thisPolicyFileCompliesToThePolicyVersion the declared policy-format
 		 *                                                 version; must be between
-		 *                                                 {@value SecurityPolicy#MINIMUM_POLICY_VERSION}
+		 *                                                 {@value AresConstants#MINIMUM_POLICY_VERSION}
 		 *                                                 and
-		 *                                                 {@value SecurityPolicy#MAXIMUM_POLICY_VERSION},
+		 *                                                 {@value AresConstants#MAXIMUM_POLICY_VERSION},
 		 *                                                 both inclusive.
 		 * @return the updated Builder.
 		 * @throws IllegalArgumentException if the version lies outside the supported
@@ -196,8 +155,13 @@ public record SecurityPolicy(int thisPolicyFileCompliesToThePolicyVersion,
 		 */
 		@Nonnull
 		public Builder thisPolicyFileCompliesToThePolicyVersion(int thisPolicyFileCompliesToThePolicyVersion) {
-			this.thisPolicyFileCompliesToThePolicyVersion = requireSupportedPolicyVersion(
-					thisPolicyFileCompliesToThePolicyVersion);
+			if (thisPolicyFileCompliesToThePolicyVersion < AresConstants.MINIMUM_POLICY_VERSION
+					|| thisPolicyFileCompliesToThePolicyVersion > AresConstants.MAXIMUM_POLICY_VERSION) {
+				throw new IllegalArgumentException("thisPolicyFileCompliesToThePolicyVersion must be between "
+						+ AresConstants.MINIMUM_POLICY_VERSION + " and " + AresConstants.MAXIMUM_POLICY_VERSION
+						+ " (inclusive), but was " + thisPolicyFileCompliesToThePolicyVersion);
+			}
+			this.thisPolicyFileCompliesToThePolicyVersion = thisPolicyFileCompliesToThePolicyVersion;
 			return this;
 		}
 

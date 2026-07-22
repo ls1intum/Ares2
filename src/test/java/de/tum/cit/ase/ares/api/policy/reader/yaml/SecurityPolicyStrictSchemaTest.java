@@ -290,7 +290,13 @@ class SecurityPolicyStrictSchemaTest {
 				Arguments.of("onThisPathAndAllPathsBelow: /tmp/data", "onThisPathAndAllPathsBelow: '../tmp/data'"),
 				Arguments.of("onTheHost: localhost", "onTheHost: 256.1.1.1"),
 				Arguments.of("ofThisClass: java.lang.Thread", "ofThisClass: java.lang."),
-				Arguments.of("importTheFollowingPackage: java.util", "importTheFollowingPackage: java.*"));
+				Arguments.of("importTheFollowingPackage: java.util", "importTheFollowingPackage: java.*"),
+				// A command permission has exactly one shape. The bare scalar form was
+				// accepted once and is not part of the format any more. A non-string
+				// argument is covered by invalidSchemaShapes, and matters because Jackson
+				// would coerce 1 to "1" when binding: the schema gate is what refuses it.
+				Arguments.of("      - executeTheCommand: java\n        withTheseArguments: [--version]",
+						"      - java"));
 	}
 
 	@ParameterizedTest

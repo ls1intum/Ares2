@@ -12,14 +12,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.IntNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.NullNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
-
+import de.tum.cit.ase.ares.api.AresConstants;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 
@@ -28,17 +21,21 @@ class PolicyValueContractTest {
 	void requiresASupportedPolicyVersion() {
 		SecurityPolicy policy = SecurityPolicy
 				.createRestrictive(ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ);
-		assertEquals(SecurityPolicy.MAXIMUM_POLICY_VERSION, policy.thisPolicyFileCompliesToThePolicyVersion());
-		assertThrows(IllegalArgumentException.class, () -> new SecurityPolicy(SecurityPolicy.MINIMUM_POLICY_VERSION - 1,
+		assertEquals(AresConstants.MAXIMUM_POLICY_VERSION, policy.thisPolicyFileCompliesToThePolicyVersion());
+		assertThrows(IllegalArgumentException.class, () -> new SecurityPolicy(AresConstants.MINIMUM_POLICY_VERSION - 1,
 				policy.regardingTheSupervisedCode()));
-		assertThrows(IllegalArgumentException.class, () -> new SecurityPolicy(SecurityPolicy.MAXIMUM_POLICY_VERSION + 1,
+		assertThrows(IllegalArgumentException.class, () -> new SecurityPolicy(AresConstants.MAXIMUM_POLICY_VERSION + 1,
 				policy.regardingTheSupervisedCode()));
+		// Both ends, because the builder now carries its own copy of the range check
+		// rather than delegating, so each end has to be exercised through it.
 		assertThrows(IllegalArgumentException.class, () -> SecurityPolicy.builder()
-				.thisPolicyFileCompliesToThePolicyVersion(SecurityPolicy.MAXIMUM_POLICY_VERSION + 1));
+				.thisPolicyFileCompliesToThePolicyVersion(AresConstants.MAXIMUM_POLICY_VERSION + 1));
+		assertThrows(IllegalArgumentException.class, () -> SecurityPolicy.builder()
+				.thisPolicyFileCompliesToThePolicyVersion(AresConstants.MINIMUM_POLICY_VERSION - 1));
 		SecurityPolicy explicitVersion = SecurityPolicy.builder()
-				.thisPolicyFileCompliesToThePolicyVersion(SecurityPolicy.MINIMUM_POLICY_VERSION)
+				.thisPolicyFileCompliesToThePolicyVersion(AresConstants.MINIMUM_POLICY_VERSION)
 				.regardingTheSupervisedCode(policy.regardingTheSupervisedCode()).build();
-		assertEquals(SecurityPolicy.MINIMUM_POLICY_VERSION, explicitVersion.thisPolicyFileCompliesToThePolicyVersion());
+		assertEquals(AresConstants.MINIMUM_POLICY_VERSION, explicitVersion.thisPolicyFileCompliesToThePolicyVersion());
 	}
 
 	@Test
@@ -160,8 +157,8 @@ class PolicyValueContractTest {
 		map.put(second, "second");
 		assertEquals(1, map.size());
 		assertTrue(first.toString().contains("example.PolicyTest"));
-		assertEquals(new SecurityPolicy(SecurityPolicy.MAXIMUM_POLICY_VERSION, first),
-				new SecurityPolicy(SecurityPolicy.MAXIMUM_POLICY_VERSION, second));
+		assertEquals(new SecurityPolicy(AresConstants.MAXIMUM_POLICY_VERSION, first),
+				new SecurityPolicy(AresConstants.MAXIMUM_POLICY_VERSION, second));
 		assertThrows(NullPointerException.class, () -> supervisedCode(java.util.Arrays.asList((String) null)));
 		assertThrows(IllegalArgumentException.class, () -> supervisedCode(List.of(" ")));
 	}
@@ -192,9 +189,6 @@ class PolicyValueContractTest {
 
 	@Test
 	void commandPermissionAcceptsBothPolicyFormsAndRejectsEveryOtherShape() {
-		assertEquals(List.of(), CommandPermission.fromString("java").withTheseArguments());
-		assertEquals("java", CommandPermission.fromString("java").executeTheCommand());
-
 		// The record's own guard, reached only by constructing it directly: every
 		// factory rejects a blank command before it gets this far.
 		assertThrows(NullPointerException.class, () -> new CommandPermission(null, List.of()));
@@ -210,81 +204,20 @@ class PolicyValueContractTest {
 		assertEquals("src/test/resources/trustedExecute.sh",
 				new CommandPermission("src/test/resources/trustedExecute.sh", List.of()).executeTheCommand());
 		assertEquals("*", new CommandPermission("*", List.of("*")).executeTheCommand());
+
+		// The two argument factories are opposites, and the empty one is the
+		// restrictive one, which is the way round that is easy to get wrong.
+		assertEquals(List.of(), CommandPermission.allowWithoutArguments("git").withTheseArguments());
+		assertEquals(List.of(CommandPermission.ANY_ARGUMENTS),
+				CommandPermission.allowWithAnyArguments("git").withTheseArguments());
+		assertEquals("git", CommandPermission.allowWithAnyArguments("git").executeTheCommand());
+		assertThrows(NullPointerException.class, () -> CommandPermission.allowWithAnyArguments(null));
+		assertThrows(IllegalArgumentException.class, () -> CommandPermission.allowWithAnyArguments(" "));
 		assertEquals(List.of("--version", ""),
 				new CommandPermission("git", List.of("--version", "")).withTheseArguments());
 		assertThrows(IllegalArgumentException.class, () -> new CommandPermission("ec\nho", List.of()));
 		assertThrows(IllegalArgumentException.class, () -> new CommandPermission(" echo", List.of()));
 		assertThrows(IllegalArgumentException.class, () -> new CommandPermission("git", List.of("--ver\nsion")));
-
-		// Scalar form: a bare command, which carries no argument constraint.
-		CommandPermission scalar = CommandPermission.fromJson(new TextNode("git"));
-		assertEquals("git", scalar.executeTheCommand());
-		assertEquals(List.of(), scalar.withTheseArguments());
-
-		// Mapping form: command plus its declared arguments.
-		CommandPermission mapping = CommandPermission.fromJson(commandNode("git", argumentArray("status")));
-		assertEquals("git", mapping.executeTheCommand());
-		assertEquals(List.of("status"), mapping.withTheseArguments());
-		assertEquals(List.of(), CommandPermission.fromJson(commandNode("git", argumentArray())).withTheseArguments());
-
-		// Absent value, in both the Java and the JSON sense.
-		assertThrows(IllegalArgumentException.class, () -> CommandPermission.fromJson(null));
-		assertThrows(IllegalArgumentException.class, () -> CommandPermission.fromJson(NullNode.getInstance()));
-
-		// Neither a scalar nor a mapping.
-		assertThrows(IllegalArgumentException.class, () -> CommandPermission.fromJson(new IntNode(1)));
-		assertThrows(IllegalArgumentException.class,
-				() -> CommandPermission.fromJson(new ArrayNode(JsonNodeFactory.instance)));
-
-		// Mapping with the wrong set of fields: too few, too many, and the right count
-		// under the wrong names.
-		ObjectNode tooFew = JsonNodeFactory.instance.objectNode();
-		tooFew.set("executeTheCommand", new TextNode("git"));
-		assertThrows(IllegalArgumentException.class, () -> CommandPermission.fromJson(tooFew));
-		ObjectNode tooMany = commandNode("git", argumentArray("status"));
-		tooMany.set("somethingElse", new TextNode("x"));
-		assertThrows(IllegalArgumentException.class, () -> CommandPermission.fromJson(tooMany));
-		ObjectNode wrongNames = JsonNodeFactory.instance.objectNode();
-		wrongNames.set("executeTheCommand", new TextNode("git"));
-		wrongNames.set("withTheseArgument", argumentArray("status"));
-		assertThrows(IllegalArgumentException.class, () -> CommandPermission.fromJson(wrongNames));
-		ObjectNode noCommandKey = JsonNodeFactory.instance.objectNode();
-		noCommandKey.set("executeTheCommands", new TextNode("git"));
-		noCommandKey.set("withTheseArguments", argumentArray("status"));
-		assertThrows(IllegalArgumentException.class, () -> CommandPermission.fromJson(noCommandKey));
-
-		// Mapping whose command is present but unusable.
-		assertThrows(IllegalArgumentException.class,
-				() -> CommandPermission.fromJson(commandNode(new IntNode(1), argumentArray())));
-		assertThrows(IllegalArgumentException.class,
-				() -> CommandPermission.fromJson(commandNode(new TextNode(" "), argumentArray())));
-
-		// Mapping whose arguments are not an array of strings.
-		assertThrows(IllegalArgumentException.class,
-				() -> CommandPermission.fromJson(commandNode("git", new TextNode("status"))));
-		ArrayNode nonTextualArguments = new ArrayNode(JsonNodeFactory.instance);
-		nonTextualArguments.add(1);
-		assertThrows(IllegalArgumentException.class,
-				() -> CommandPermission.fromJson(commandNode("git", nonTextualArguments)));
-	}
-
-	private static ObjectNode commandNode(String command, JsonNode arguments) {
-		return commandNode(new TextNode(command), arguments);
-	}
-
-	private static ObjectNode commandNode(JsonNode command, JsonNode arguments) {
-		ObjectNode node = JsonNodeFactory.instance.objectNode();
-		node.set("executeTheCommand", command);
-		node.set("withTheseArguments", arguments);
-		return node;
-	}
-
-	private static ArrayNode argumentArray(String... arguments) {
-		ArrayNode node = new ArrayNode(JsonNodeFactory.instance);
-		for (String argument : arguments) {
-			node.add(argument);
-		}
-		return node;
 	}
 
 	private SupervisedCode supervisedCode(List<String> testClasses) {

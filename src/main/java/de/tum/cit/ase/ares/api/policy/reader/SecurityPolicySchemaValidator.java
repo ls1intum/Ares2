@@ -11,6 +11,7 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 
+import de.tum.cit.ase.ares.api.AresConstants;
 import de.tum.cit.ase.ares.api.policy.PolicyValueValidator;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 
@@ -70,10 +71,10 @@ public final class SecurityPolicySchemaValidator {
 			fail("$.thisPolicyFileCompliesToThePolicyVersion must fit into an int");
 		}
 		int declaredPolicyVersion = policyVersion.intValue();
-		if (declaredPolicyVersion < SecurityPolicy.MINIMUM_POLICY_VERSION
-				|| declaredPolicyVersion > SecurityPolicy.MAXIMUM_POLICY_VERSION) {
-			fail("$.thisPolicyFileCompliesToThePolicyVersion must be between " + SecurityPolicy.MINIMUM_POLICY_VERSION
-					+ " and " + SecurityPolicy.MAXIMUM_POLICY_VERSION + " (inclusive), but was "
+		if (declaredPolicyVersion < AresConstants.MINIMUM_POLICY_VERSION
+				|| declaredPolicyVersion > AresConstants.MAXIMUM_POLICY_VERSION) {
+			fail("$.thisPolicyFileCompliesToThePolicyVersion must be between " + AresConstants.MINIMUM_POLICY_VERSION
+					+ " and " + AresConstants.MAXIMUM_POLICY_VERSION + " (inclusive), but was "
 					+ declaredPolicyVersion);
 		}
 		JsonNode supervisedCode = root.get("regardingTheSupervisedCode");
@@ -141,15 +142,10 @@ public final class SecurityPolicySchemaValidator {
 			fail("regardingCommandExecutions must be an array");
 		}
 		for (JsonNode command : commands) {
-			if (command.isTextual()) {
-				if (command.textValue().isBlank()) {
-					fail("A bare command permission must not be blank");
-				}
-				if (!PolicyValueValidator.matches(command.textValue(), PolicyValueValidator.COMMAND_PATTERN)) {
-					fail("A bare command permission must not contain control characters");
-				}
-				continue;
-			}
+			// A command permission has exactly one shape, the mapping. The bare scalar
+			// form was also accepted once; it meant "this command with no arguments",
+			// which read as the opposite to most authors, and it is no longer part of
+			// the format.
 			requireObject(command, "regardingCommandExecutions entry", COMMAND_FIELDS, COMMAND_FIELDS);
 			requireText(command, "executeTheCommand", "regardingCommandExecutions entry");
 			requirePattern(command, "executeTheCommand", "regardingCommandExecutions entry",
