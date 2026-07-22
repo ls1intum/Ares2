@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import de.tum.cit.ase.ares.api.localization.Messages;
+import de.tum.cit.ase.ares.api.policy.PolicyValueValidator;
 
 /**
  * Allowed command execution operations.
@@ -49,19 +50,27 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 * @param executeTheCommand  the command to allow; must be neither null nor
-	 *                           blank.
+	 *                           blank, and must not contain control characters.
 	 * @param withTheseArguments the arguments the command may be given; must not be
-	 *                           null.
+	 *                           null, and no entry may contain control characters.
 	 * @throws NullPointerException     if the command, the argument list or one of
 	 *                                  its entries is null.
-	 * @throws IllegalArgumentException if the command is blank.
+	 * @throws IllegalArgumentException if the command is blank, or if the command
+	 *                                  or one of the arguments contains a control
+	 *                                  character.
 	 */
 	public CommandPermission {
 		Objects.requireNonNull(executeTheCommand, "executeTheCommand must not be null");
 		if (executeTheCommand.isBlank()) {
 			throw new IllegalArgumentException(Messages.localized("policy.permission.command.blank"));
 		}
+		PolicyValueValidator.requireMatch("executeTheCommand", executeTheCommand, PolicyValueValidator.COMMAND_PATTERN);
 		Objects.requireNonNull(withTheseArguments, "withTheseArguments must not be null");
+		for (String argument : withTheseArguments) {
+			Objects.requireNonNull(argument, "withTheseArguments entries must not be null");
+			PolicyValueValidator.requireMatch("withTheseArguments entry", argument,
+					PolicyValueValidator.COMMAND_ARGUMENT_PATTERN);
+		}
 		// Defensive, unmodifiable copy so the record is genuinely immutable, matching
 		// ResourceAccesses and SupervisedCode: the builder and Jackson pass a mutable
 		// list whose security-relevant argument allow-list could otherwise be mutated

@@ -177,6 +177,17 @@ class PolicyValueContractTest {
 		assertThrows(NullPointerException.class, () -> ClassPermission.builder().className(null));
 		assertThrows(NullPointerException.class, () -> ClassPermission.builder().build());
 		assertThrows(IllegalArgumentException.class, () -> ClassPermission.builder().className(" ").build());
+
+		// A package prefix is a legitimate entry: elevation is matched by prefix, and
+		// the essential classes are declared that way.
+		assertEquals("de.tum.cit.ase.ares.api.internal",
+				new ClassPermission("de.tum.cit.ase.ares.api.internal").className());
+		assertEquals("com.example.Outer$Inner", new ClassPermission("com.example.Outer$Inner").className());
+		assertEquals("MainTest", new ClassPermission("MainTest").className());
+		assertThrows(IllegalArgumentException.class, () -> new ClassPermission("not a class name"));
+		assertThrows(IllegalArgumentException.class, () -> new ClassPermission("com.example."));
+		assertThrows(IllegalArgumentException.class, () -> new ClassPermission("com.class.Trusted"));
+		assertThrows(IllegalArgumentException.class, () -> new ClassPermission("com.example.Trusted\nEvil"));
 	}
 
 	@Test
@@ -191,6 +202,19 @@ class PolicyValueContractTest {
 		assertThrows(NullPointerException.class, () -> new CommandPermission("git", null));
 		assertThrows(NullPointerException.class,
 				() -> new CommandPermission("git", java.util.Arrays.asList((String) null)));
+
+		// A command is a program name or a path to one, so both shapes stand, as does
+		// the wildcard. Control characters do not: a policy value carrying a line
+		// break travels into generated sources, settings and failure reports.
+		assertEquals("echo", new CommandPermission("echo", List.of()).executeTheCommand());
+		assertEquals("src/test/resources/trustedExecute.sh",
+				new CommandPermission("src/test/resources/trustedExecute.sh", List.of()).executeTheCommand());
+		assertEquals("*", new CommandPermission("*", List.of("*")).executeTheCommand());
+		assertEquals(List.of("--version", ""),
+				new CommandPermission("git", List.of("--version", "")).withTheseArguments());
+		assertThrows(IllegalArgumentException.class, () -> new CommandPermission("ec\nho", List.of()));
+		assertThrows(IllegalArgumentException.class, () -> new CommandPermission(" echo", List.of()));
+		assertThrows(IllegalArgumentException.class, () -> new CommandPermission("git", List.of("--ver\nsion")));
 
 		// Scalar form: a bare command, which carries no argument constraint.
 		CommandPermission scalar = CommandPermission.fromJson(new TextNode("git"));

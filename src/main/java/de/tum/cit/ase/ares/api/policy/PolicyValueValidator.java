@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.api.policy.policySubComponents;
+package de.tum.cit.ase.ares.api.policy;
 
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -62,6 +62,29 @@ public final class PolicyValueValidator {
 	public static final Pattern THREAD_CLASS_PATTERN = Pattern.compile("^(?:" + JAVA_CLASS_PATH
 			+ "|\\*|Lambda-Expression|<implicit-thread-op:(?:parallelStream|parallel|Thread\\.sleep|SubmissionPublisher\\.(?:submit|offer))>)$");
 
+	/**
+	 * Matches an executable command, or the command wildcard.
+	 * <p>
+	 * A command is a program name or a path to one, so the shape cannot be pinned
+	 * down further without rejecting legitimate policies: the fixtures alone hold
+	 * {@code echo} and {@code src/test/.../trustedExecute.sh}. Two things are
+	 * excluded. Control characters, because they never occur in a real command and
+	 * a value carrying a line break travels into generated sources, settings and
+	 * failure reports where a single line is assumed. And surrounding whitespace,
+	 * because {@code "echo "} is an authoring slip that would otherwise be accepted
+	 * and then silently match nothing.
+	 */
+	public static final Pattern COMMAND_PATTERN = Pattern.compile("^(?:\\*|\\S(?:[^\\p{Cntrl}]*\\S)?)$");
+
+	/**
+	 * Matches one argument of a command permission, or the argument wildcard.
+	 * <p>
+	 * Same reasoning as {@link #COMMAND_PATTERN}, except that the empty string is
+	 * accepted: passing an empty argument is meaningful, whereas an empty command
+	 * is not.
+	 */
+	public static final Pattern COMMAND_ARGUMENT_PATTERN = Pattern.compile("^[^\\p{Cntrl}]*$");
+
 	private PolicyValueValidator() {
 		throw new SecurityException(
 				Messages.localized("security.general.utility.initialization", "PolicyValueValidator"));
@@ -101,7 +124,8 @@ public final class PolicyValueValidator {
 			"policy.value.programming.language.configuration", JAVA_PACKAGE_PATTERN, "policy.value.java.package",
 			JAVA_CLASS_NAME_PATTERN, "policy.value.java.class.name", JAVA_CLASS_PATH_PATTERN,
 			"policy.value.java.class.path", FILE_PATH_PATTERN, "policy.value.file.path", HOST_PATTERN,
-			"policy.value.host", THREAD_CLASS_PATTERN, "policy.value.thread.class");
+			"policy.value.host", THREAD_CLASS_PATTERN, "policy.value.thread.class", COMMAND_PATTERN,
+			"policy.value.command", COMMAND_ARGUMENT_PATTERN, "policy.value.command.argument");
 
 	/**
 	 * Requires a nullable value to fully match a validation pattern.

@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.api.policy.reader.yaml;
+package de.tum.cit.ase.ares.api.policy.reader;
 
 import java.util.HashSet;
 import java.util.Iterator;
@@ -11,11 +11,34 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 
+import de.tum.cit.ase.ares.api.policy.PolicyValueValidator;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
-import de.tum.cit.ase.ares.api.policy.policySubComponents.PolicyValueValidator;
 
-/** Validates the security-policy YAML tree before Jackson record binding. */
-final class SecurityPolicySchemaValidator {
+/**
+ * Validates the parsed policy tree before Jackson binds it to records.
+ * <p>
+ * Description: Checks the shape of the tree, not the syntax of the file it came
+ * from: the required and permitted fields, the type of each value, and the
+ * format of each value against the patterns in {@link PolicyValueValidator}.
+ * Failures are reported as a JSON path, so a policy author is pointed at the
+ * field rather than at the parser.
+ * <p>
+ * Design Rationale: This class is deliberately not tied to one file format. Its
+ * input is a Jackson {@link JsonNode}, which is the same tree whether the file
+ * was YAML, JSON or anything else Jackson can parse, and everything
+ * format-specific lives in the reader that produces that tree, currently the
+ * mapper configured by {@code SecurityPolicyYAMLReader}. A second format would
+ * therefore reuse this class unchanged, which is why the validation is not
+ * expressed as an interface with one implementation per format: there is
+ * nothing here that varies by format.
+ * <p>
+ * It is public only so that the format-specific readers in the sub-packages can
+ * reach it. Treat it as internal to the policy reader.
+ *
+ * @since 2.0.0
+ * @author Markus Paulsen
+ */
+public final class SecurityPolicySchemaValidator {
 
 	private static final Set<String> ROOT_FIELDS = Set.of("thisPolicyFileCompliesToThePolicyVersion",
 			"regardingTheSupervisedCode");
@@ -39,7 +62,7 @@ final class SecurityPolicySchemaValidator {
 		throw new UnsupportedOperationException("SecurityPolicySchemaValidator is a utility class");
 	}
 
-	static void validate(@Nonnull JsonNode root) throws MismatchedInputException {
+	public static void validate(@Nonnull JsonNode root) throws MismatchedInputException {
 		requireObject(root, "$", ROOT_FIELDS, ROOT_FIELDS);
 		requireIntegral(root, "thisPolicyFileCompliesToThePolicyVersion", "$");
 		JsonNode policyVersion = root.get("thisPolicyFileCompliesToThePolicyVersion");
@@ -122,11 +145,22 @@ final class SecurityPolicySchemaValidator {
 				if (command.textValue().isBlank()) {
 					fail("A bare command permission must not be blank");
 				}
+				if (!PolicyValueValidator.matches(command.textValue(), PolicyValueValidator.COMMAND_PATTERN)) {
+					fail("A bare command permission must not contain control characters");
+				}
 				continue;
 			}
 			requireObject(command, "regardingCommandExecutions entry", COMMAND_FIELDS, COMMAND_FIELDS);
 			requireText(command, "executeTheCommand", "regardingCommandExecutions entry");
+			requirePattern(command, "executeTheCommand", "regardingCommandExecutions entry",
+					PolicyValueValidator.COMMAND_PATTERN);
 			requireTextArray(command.get("withTheseArguments"), "regardingCommandExecutions entry.withTheseArguments");
+			for (JsonNode argument : command.get("withTheseArguments")) {
+				if (!PolicyValueValidator.matches(argument.textValue(),
+						PolicyValueValidator.COMMAND_ARGUMENT_PATTERN)) {
+					fail("regardingCommandExecutions entry.withTheseArguments must not contain control characters");
+				}
+			}
 		}
 	}
 

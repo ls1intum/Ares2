@@ -6,6 +6,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import de.tum.cit.ase.ares.api.localization.Messages;
+import de.tum.cit.ase.ares.api.policy.PolicyValueValidator;
 
 /**
  * Class with elevated privileges.
@@ -33,22 +34,26 @@ public record ClassPermission(@Nonnull String className) {
 	/**
 	 * Constructs a ClassPermission instance.
 	 * <p>
-	 * The name is checked for presence only, not against the shape of a Java class
-	 * name. Every caller derives it either from a name the policy reader has
-	 * already validated, or from a framework constant.
+	 * The name must have the shape of a dot-separated Java name. That accepts a
+	 * package prefix as readily as a class, which is deliberate: elevation is
+	 * matched by prefix, so an entry such as
+	 * {@code de.tum.cit.ase.ares.api.internal} covers everything beneath it.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 * @param className the name of the class that receives elevated privileges;
-	 *                  must be neither null nor blank.
+	 *                  must be neither null nor blank, and must be a dot-separated
+	 *                  Java name.
 	 * @throws NullPointerException     if the class name is null.
-	 * @throws IllegalArgumentException if the class name is blank.
+	 * @throws IllegalArgumentException if the class name is blank, or is not a
+	 *                                  dot-separated Java name.
 	 */
 	public ClassPermission {
 		Objects.requireNonNull(className, "className must not be null");
 		if (className.isBlank()) {
 			throw new IllegalArgumentException(Messages.localized("policy.permission.class.blank"));
 		}
+		PolicyValueValidator.requireMatch("className", className, PolicyValueValidator.JAVA_CLASS_PATH_PATTERN);
 	}
 
 	/**
