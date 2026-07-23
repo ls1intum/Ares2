@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.phobos;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -45,6 +46,24 @@ class PhobosShellContractTest {
 				+ TEMPLATES.resolve("phobos-filesystem.sh") + "' '" + specification + "' -- true");
 		assertEquals(15, missingRuntime.exitCode());
 		assertTrue(missingRuntime.output().contains("PHB-ERUNTIME"));
+	}
+
+	@Test
+	void copyToolAssignsTargetDirectoryWithAsciiQuotes() throws Exception {
+		Path copyTool = TEMPLATES.resolve("PhobosCopyTool.sh");
+		String contents = Files.readString(copyTool, java.nio.charset.StandardCharsets.UTF_8);
+
+		assertTrue(contents.contains("TARGET_DIR=\"/var/tmp/opt/core\""),
+				"PhobosCopyTool.sh must assign TARGET_DIR using ASCII double quotes");
+		assertFalse(contents.indexOf('“') >= 0 || contents.indexOf('”') >= 0,
+				"PhobosCopyTool.sh must not contain Unicode curly quotation marks");
+
+		ProcessResult syntax = run("bash -n '" + copyTool + "'");
+		assertEquals(0, syntax.exitCode(), syntax.output());
+
+		ProcessResult parsed = run(
+				"eval \"$(grep -m1 '^TARGET_DIR=' '" + copyTool + "')\"; printf '%s' \"${TARGET_DIR}\"");
+		assertEquals("/var/tmp/opt/core", parsed.output());
 	}
 
 	private ProcessResult run(String script) throws IOException, InterruptedException {
