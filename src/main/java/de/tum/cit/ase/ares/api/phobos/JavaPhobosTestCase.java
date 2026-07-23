@@ -240,8 +240,35 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 			return;
 		}
 		out.append('[').append(header).append("]\n");
-		limits.forEach((k, v) -> out.append(k).append('=').append(v).append('\n'));
+		limits.forEach((k, v) -> out.append(k).append('=').append(serialiseLimitValue(k, v)).append('\n'));
 		out.append('\n');
+	}
+
+	/**
+	 * Serialises a single {@code [limits]} value for the Phobos configuration.
+	 * <p>
+	 * The {@code timeout} limit is defined in <em>milliseconds</em> by
+	 * {@link ResourceLimitsPermission}, whereas the Phobos configuration field is
+	 * expressed in <em>seconds</em>. This method is the single authoritative
+	 * conversion point: milliseconds are rendered as canonical decimal seconds
+	 * {@code S.mmm} (exactly three fractional digits, formatted with
+	 * {@link java.util.Locale#ROOT} so it never depends on the platform locale, and
+	 * containing only digits and one dot). The Phobos runtime validates that exact
+	 * representation and appends an {@code s} suffix before handing it to GNU
+	 * {@code timeout}, so no second conversion happens anywhere else and no
+	 * sub-second precision is lost. All other keys are emitted verbatim.
+	 *
+	 * @param key   the limit key, e.g. {@code "timeout"}
+	 * @param value the limit value; for {@code timeout} this is milliseconds
+	 * @return the serialised value written after {@code key=}
+	 */
+	private static String serialiseLimitValue(String key, long value) {
+		if (!"timeout".equals(key)) {
+			return Long.toString(value);
+		}
+		long seconds = value / 1000L;
+		long milliseconds = value % 1000L;
+		return String.format(java.util.Locale.ROOT, "%d.%03d", seconds, milliseconds);
 	}
 
 	/**
