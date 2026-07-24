@@ -3,6 +3,7 @@ package de.tum.cit.ase.ares.api.policy.director.java;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -318,6 +319,46 @@ public class SecurityPolicyJavaDirectorTest {
 		}
 
 		@Test
+		@DisplayName("Should forward withinPath to the factory as its projectPath")
+		void createTestCasesForwardsWithinPathAsProjectPath() throws Exception {
+			// Guards the fix that made the base three-argument overload abstract: the
+			// concrete director must thread withinPath through to the factory rather than
+			// drop it, so the analysis is scoped to the requested subpath.
+			SecurityPolicy securityPolicy = SecurityPolicy.builder()
+					.regardingTheSupervisedCode(supervisedCodeWithValidConfig).build();
+			Path withinPath = Path.of("classes", "student");
+			TestCaseAbstractFactoryAndBuilder result = director.createTestCases(securityPolicy, projectPath,
+					withinPath);
+			Field projectPathField = TestCaseAbstractFactoryAndBuilder.class.getDeclaredField("projectPath");
+			projectPathField.setAccessible(true);
+			assertEquals(withinPath, projectPathField.get(result));
+		}
+
+		@Test
+		@DisplayName("Should preserve injected creator and writer subclasses instead of rebuilding them")
+		void createTestCasesPreservesInjectedCreatorAndWriterSubclasses() throws Exception {
+			// A named subclass (mocked so its createTestCases is a no-op) is not exactly
+			// JavaCreator.class/JavaWriter.class, so it exercises the subclass-preserving
+			// branch that a plain injected instance would rebuild.
+			JavaCreator customCreator = mock(CustomJavaCreator.class);
+			JavaWriter customWriter = mock(CustomJavaWriter.class);
+			SecurityPolicyJavaDirector customDirector = new SecurityPolicyJavaDirector(customCreator, customWriter,
+					mockExecuter, mockEssentialDataReader, mockProjectScanner, essentialPackagesPath,
+					essentialClassesPath);
+			SecurityPolicy securityPolicy = SecurityPolicy.builder()
+					.regardingTheSupervisedCode(supervisedCodeWithValidConfig).build();
+
+			TestCaseAbstractFactoryAndBuilder result = customDirector.createTestCases(securityPolicy, projectPath);
+
+			Field creatorField = TestCaseAbstractFactoryAndBuilder.class.getDeclaredField("creator");
+			creatorField.setAccessible(true);
+			Field writerField = TestCaseAbstractFactoryAndBuilder.class.getDeclaredField("writer");
+			writerField.setAccessible(true);
+			assertSame(customCreator, creatorField.get(result));
+			assertSame(customWriter, writerField.get(result));
+		}
+
+		@Test
 		void recognisesBothNoPolicyBuildToolsAndRejectsInvalidDiscovery() throws Exception {
 			Path maven = Files.createDirectory(tempDir.resolve("maven-project"));
 			Files.writeString(maven.resolve("pom.xml"), "<project/>");
@@ -537,5 +578,17 @@ public class SecurityPolicyJavaDirectorTest {
 					.readEssentialClassesFrom(SecurityPolicyJavaDirector.DEFAULT_ESSENTIAL_CLASSES_PATH)
 					.getEssentialClasses().isEmpty());
 		}
+	}
+
+	/**
+	 * Named JavaCreator subclass so a mock of it is not exactly JavaCreator.class.
+	 */
+	static class CustomJavaCreator extends JavaCreator {
+	}
+
+	/**
+	 * Named JavaWriter subclass so a mock of it is not exactly JavaWriter.class.
+	 */
+	static class CustomJavaWriter extends JavaWriter {
 	}
 }

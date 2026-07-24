@@ -31,6 +31,7 @@ import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.PhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.java.JavaPhobosTestCaseSupported;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.JavaNameRules;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
 import de.tum.cit.ase.ares.api.securitytest.ReservedPackageGuard;
@@ -119,7 +120,8 @@ public class JavaCreator implements Creator {
 			@Nonnull List<String> testClasses) {
 		return Stream.of(
 				// Essential packages are allowed to do anything
-				essentialPackages.stream().filter(p -> p != null && !p.isBlank()).map(PackagePermission::new),
+				essentialPackages.stream().filter(p -> p != null && !p.isBlank())
+						.map(JavaCreator::validatedAllowedPackage),
 				// The permitted packages are allowed
 				resourceAccesses.regardingPackageImports().stream(),
 				/*
@@ -128,7 +130,7 @@ public class JavaCreator implements Creator {
 				 * (e.g., com/org/de), as that unintentionally allows unrelated package
 				 * namespaces.
 				 */
-				(packageName != null && !packageName.isBlank()) ? Stream.of(new PackagePermission(packageName))
+				(packageName != null && !packageName.isBlank()) ? Stream.of(validatedAllowedPackage(packageName))
 						: Stream.<PackagePermission>empty(),
 				/*
 				 * The packages of the test classes are allowed (test infrastructure classes
@@ -137,9 +139,28 @@ public class JavaCreator implements Creator {
 				testClasses.stream().filter(java.util.Objects::nonNull).map(className -> {
 					int lastDot = className.lastIndexOf('.');
 					return lastDot > 0 ? className.substring(0, lastDot) : className;
-				}).filter(p -> !p.isBlank()).distinct().map(PackagePermission::new)
+				}).filter(p -> !p.isBlank()).distinct().map(JavaCreator::validatedAllowedPackage)
 
 		).flatMap(Function.identity()).collect(Collectors.toSet());
+	}
+
+	/**
+	 * Validates a derived package name for Java and wraps it in a
+	 * {@link PackagePermission}.
+	 * <p>
+	 * The permission record itself only checks that the name is non-null; the
+	 * language-specific syntax check lives here, at the Java-specific site that
+	 * derives the permission, so an invalid scanned or essential package aborts
+	 * test-case creation exactly as the record constructor used to.
+	 *
+	 * @param packageName the package name to validate; must be a valid Java
+	 *                    package.
+	 * @return a package permission for the validated name.
+	 */
+	@Nonnull
+	private static PackagePermission validatedAllowedPackage(@Nonnull String packageName) {
+		JavaNameRules.INSTANCE.requirePackage("allowed package", packageName);
+		return new PackagePermission(packageName);
 	}
 
 	/**
@@ -160,12 +181,29 @@ public class JavaCreator implements Creator {
 				essentialClasses.stream(),
 				// Test classes are allowed to do anything
 				testClasses.stream()).flatMap(Function.identity())
-				// Filter null/blank before constructing ClassPermission: its constructor throws
-				// on null/blank, so an unfiltered bad entry (e.g. from a scanned project or a
-				// malformed policy) would otherwise abort all test-case creation. Mirrors
+				// Filter null/blank before validating: an unfiltered bad entry (e.g. from a
+				// scanned project or a malformed policy) would otherwise abort all test-case
+				// creation. The Java class-path syntax is then checked at this Java-specific
+				// site rather than in the language-agnostic ClassPermission record. Mirrors
 				// prepareAllowedPackages.
-				.filter(java.util.Objects::nonNull).filter(className -> !className.isBlank()).map(ClassPermission::new)
-				.collect(Collectors.toSet());
+				.filter(java.util.Objects::nonNull).filter(className -> !className.isBlank())
+				.map(JavaCreator::validatedAllowedClass).collect(Collectors.toSet());
+	}
+
+	/**
+	 * Validates a class name for Java and wraps it in a {@link ClassPermission}.
+	 * <p>
+	 * The permission record itself only checks that the name is non-null and
+	 * non-blank; the language-specific class-path syntax check lives here, at the
+	 * Java-specific site that derives the permission.
+	 *
+	 * @param className the class name to validate; must be a valid Java class path.
+	 * @return a class permission for the validated name.
+	 */
+	@Nonnull
+	private static ClassPermission validatedAllowedClass(@Nonnull String className) {
+		JavaNameRules.INSTANCE.requireClassPath("className", className);
+		return new ClassPermission(className);
 	}
 
 	/**

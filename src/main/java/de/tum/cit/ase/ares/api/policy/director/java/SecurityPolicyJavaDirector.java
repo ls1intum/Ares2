@@ -137,7 +137,11 @@ public class SecurityPolicyJavaDirector extends SecurityPolicyDirector {
 				: new JavaProjectScanner(configuration);
 		JavaCreator configuredCreator = creator.getClass() == JavaCreator.class ? new JavaCreator(configuration)
 				: (JavaCreator) creator;
-		JavaWriter configuredWriter = new JavaWriter(configuration);
+		// Mirror the creator handling: rebind a plain JavaWriter to the discovered
+		// build configuration, but keep an injected JavaWriter subclass so a custom
+		// writer supplied through the builder is not silently discarded.
+		JavaWriter configuredWriter = writer.getClass() == JavaWriter.class ? new JavaWriter(configuration)
+				: (JavaWriter) writer;
 		if (securityPolicy == null) {
 			return generateFactoryAndBuilder(configuration.buildMode(), ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ,
 					null, withinPath, configuredCreator, configuredScanner, configuredWriter);

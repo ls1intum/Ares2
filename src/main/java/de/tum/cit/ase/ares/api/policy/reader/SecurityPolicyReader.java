@@ -14,15 +14,15 @@ import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.reader.yaml.SecurityPolicyYAMLReader;
 
 /**
- * Abstractr class for reading a SecurityPolicy from a file.
+ * Abstract class for reading a SecurityPolicy from a file.
  * <p>
- * Description: This interface defines the contract for classes that parse and
- * produce a SecurityPolicy from a given file system path. Implementations
+ * Description: This abstract class defines the contract for classes that parse
+ * and produce a SecurityPolicy from a given file system path. Implementations
  * should perform any necessary validation and error handling, and must return a
  * valid SecurityPolicy instance.
  * <p>
- * Design Rationale: Declaring this as a functional interface promotes concise
- * implementations using lambda expressions or method references. It cleanly
+ * Design Rationale: Declaring this as an abstract class lets each format share
+ * the common object-mapper handling while supplying its own parsing. It cleanly
  * separates the concern of reading and parsing security policies from the rest
  * of the system.
  *
@@ -81,11 +81,12 @@ public abstract class SecurityPolicyReader {
 		Path effectiveRoot = projectRootPath == null
 				? Objects.requireNonNullElse(absolutePolicy.getParent(), absolutePolicy)
 				: projectRootPath;
-		return switch (getFileExtension(securityPolicyFilePath)) {
+		String fileExtension = getFileExtension(securityPolicyFilePath);
+		return switch (fileExtension) {
 		case "yaml", "yml" -> SecurityPolicyYAMLReader.yamlBuilder().yamlMapper(new YAMLMapper())
 				.projectRootPath(effectiveRoot).build();
 		default -> throw new IllegalArgumentException(
-				Messages.localized("policy.reader.unsupported.format", getFileExtension(securityPolicyFilePath)));
+				Messages.localized("policy.reader.unsupported.format", fileExtension));
 		};
 	}
 

@@ -1,12 +1,11 @@
 package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
-import de.tum.cit.ase.ares.api.policy.PolicyValueValidator;
 
 /**
  * Supervised code details.
@@ -65,19 +64,21 @@ public record SupervisedCode(
 	public SupervisedCode {
 		Objects.requireNonNull(theFollowingProgrammingLanguageConfigurationIsUsed,
 				"ProgrammingLanguageConfiguration must not be null");
+		// SupervisedCode is the one record that carries the language, so it can and
+		// does validate its own names for that language rather than leaving it to the
+		// schema validator alone.
+		LanguageNameRules nameRules = theFollowingProgrammingLanguageConfigurationIsUsed.nameRules();
 		if (theSupervisedCodeUsesTheFollowingPackage != null) {
-			PolicyValueValidator.requireMatch("theSupervisedCodeUsesTheFollowingPackage",
-					theSupervisedCodeUsesTheFollowingPackage, PolicyValueValidator.JAVA_PACKAGE_PATTERN);
+			nameRules.requirePackage("theSupervisedCodeUsesTheFollowingPackage",
+					theSupervisedCodeUsesTheFollowingPackage);
 		}
 		if (theMainClassInsideThisPackageIs != null) {
-			PolicyValueValidator.requireMatch("theMainClassInsideThisPackageIs", theMainClassInsideThisPackageIs,
-					PolicyValueValidator.JAVA_CLASS_NAME_PATTERN);
+			nameRules.requireTypeName("theMainClassInsideThisPackageIs", theMainClassInsideThisPackageIs);
 		}
 		Objects.requireNonNull(theFollowingClassesAreTestClasses, "Test classes list must not be null");
 		for (String testClass : theFollowingClassesAreTestClasses) {
 			Objects.requireNonNull(testClass, "Test class entries must not be null");
-			PolicyValueValidator.requireMatch("theFollowingClassesAreTestClasses entry", testClass,
-					PolicyValueValidator.JAVA_CLASS_PATH_PATTERN);
+			nameRules.requireClassPath("theFollowingClassesAreTestClasses entry", testClass);
 		}
 		Objects.requireNonNull(theFollowingResourceAccessesArePermitted, "ResourceAccesses must not be null");
 		theFollowingClassesAreTestClasses = List.copyOf(theFollowingClassesAreTestClasses);
@@ -241,14 +242,17 @@ public record SupervisedCode(
 		 * @since 2.0.0
 		 * @author Markus Paulsen
 		 * @param theFollowingClassesAreTestClasses the fully qualified test class
-		 *                                          names; must not be null.
+		 *                                          names; must not be null. It is
+		 *                                          copied, so later changes to the list
+		 *                                          passed in do not affect this
+		 *                                          builder.
 		 * @return the updated Builder.
 		 * @throws NullPointerException if the list is null.
 		 */
 		@Nonnull
 		public Builder theFollowingClassesAreTestClasses(@Nonnull List<String> theFollowingClassesAreTestClasses) {
-			this.theFollowingClassesAreTestClasses = Objects.requireNonNull(theFollowingClassesAreTestClasses,
-					"theFollowingClassesAreTestClasses must not be null");
+			this.theFollowingClassesAreTestClasses = new ArrayList<>(Objects.requireNonNull(
+					theFollowingClassesAreTestClasses, "theFollowingClassesAreTestClasses must not be null"));
 			return this;
 		}
 

@@ -44,8 +44,9 @@ public record FilePermission(@Nonnull String onThisPathAndAllPathsBelow, boolean
 	 * @throws NullPointerException     if the path is null.
 	 * @throws IllegalArgumentException if the path is blank, contains a wildcard
 	 *                                  other than a sole {@code *}, uses an
-	 *                                  unrecognised {@code ${...}} placeholder, or
-	 *                                  walks upwards through {@code ..}.
+	 *                                  unrecognised {@code ${...}} placeholder,
+	 *                                  walks upwards through {@code ..}, or
+	 *                                  contains a control character.
 	 */
 	public FilePermission {
 		Objects.requireNonNull(onThisPathAndAllPathsBelow, "onThisPathAndAllPathsBelow must not be null");

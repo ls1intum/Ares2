@@ -49,10 +49,9 @@ public record SecurityPolicy(int thisPolicyFileCompliesToThePolicyVersion,
 	 * Constructs a SecurityPolicy instance with a validated policy-format version
 	 * and validated supervised code.
 	 * <p>
-	 * The range check is written out here rather than delegated, so that reading
-	 * this constructor shows the whole invariant. The builder's version setter
-	 * carries the same check; the two must be kept in step by hand, and the
-	 * {@code PolicyValueContractTest} covers both.
+	 * The range check is shared with the builder's version setter through
+	 * {@link #requireSupportedPolicyVersion(int)}, so the two entry points cannot
+	 * drift apart. {@code PolicyValueContractTest} covers both.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
@@ -63,13 +62,32 @@ public record SecurityPolicy(int thisPolicyFileCompliesToThePolicyVersion,
 	 * @throws NullPointerException     if the supervised code is null.
 	 */
 	public SecurityPolicy {
-		if (thisPolicyFileCompliesToThePolicyVersion < AresConstants.MINIMUM_POLICY_VERSION
-				|| thisPolicyFileCompliesToThePolicyVersion > AresConstants.MAXIMUM_POLICY_VERSION) {
-			throw new IllegalArgumentException("thisPolicyFileCompliesToThePolicyVersion must be between "
-					+ AresConstants.MINIMUM_POLICY_VERSION + " and " + AresConstants.MAXIMUM_POLICY_VERSION
-					+ " (inclusive), but was " + thisPolicyFileCompliesToThePolicyVersion);
-		}
+		requireSupportedPolicyVersion(thisPolicyFileCompliesToThePolicyVersion);
 		Objects.requireNonNull(regardingTheSupervisedCode, "regardingTheSupervisedCode must not be null");
+	}
+
+	/**
+	 * Validates that a declared policy-format version lies within the supported
+	 * range.
+	 * <p>
+	 * Shared by the canonical constructor and {@link Builder}, so the invariant is
+	 * expressed once rather than in two copies that must be kept in step by hand.
+	 *
+	 * @since 2.1.0
+	 * @author Markus Paulsen
+	 * @param version the declared policy-format version.
+	 * @return the same version, when it lies within the supported range.
+	 * @throws IllegalArgumentException if the version lies outside
+	 *                                  [{@value AresConstants#MINIMUM_POLICY_VERSION},
+	 *                                  {@value AresConstants#MAXIMUM_POLICY_VERSION}].
+	 */
+	private static int requireSupportedPolicyVersion(int version) {
+		if (version < AresConstants.MINIMUM_POLICY_VERSION || version > AresConstants.MAXIMUM_POLICY_VERSION) {
+			throw new IllegalArgumentException(
+					"thisPolicyFileCompliesToThePolicyVersion must be between " + AresConstants.MINIMUM_POLICY_VERSION
+							+ " and " + AresConstants.MAXIMUM_POLICY_VERSION + " (inclusive), but was " + version);
+		}
+		return version;
 	}
 
 	/**
@@ -155,13 +173,8 @@ public record SecurityPolicy(int thisPolicyFileCompliesToThePolicyVersion,
 		 */
 		@Nonnull
 		public Builder thisPolicyFileCompliesToThePolicyVersion(int thisPolicyFileCompliesToThePolicyVersion) {
-			if (thisPolicyFileCompliesToThePolicyVersion < AresConstants.MINIMUM_POLICY_VERSION
-					|| thisPolicyFileCompliesToThePolicyVersion > AresConstants.MAXIMUM_POLICY_VERSION) {
-				throw new IllegalArgumentException("thisPolicyFileCompliesToThePolicyVersion must be between "
-						+ AresConstants.MINIMUM_POLICY_VERSION + " and " + AresConstants.MAXIMUM_POLICY_VERSION
-						+ " (inclusive), but was " + thisPolicyFileCompliesToThePolicyVersion);
-			}
-			this.thisPolicyFileCompliesToThePolicyVersion = thisPolicyFileCompliesToThePolicyVersion;
+			this.thisPolicyFileCompliesToThePolicyVersion = requireSupportedPolicyVersion(
+					thisPolicyFileCompliesToThePolicyVersion);
 			return this;
 		}
 

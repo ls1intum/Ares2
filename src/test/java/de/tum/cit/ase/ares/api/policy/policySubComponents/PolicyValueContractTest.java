@@ -181,10 +181,6 @@ class PolicyValueContractTest {
 				new ClassPermission("de.tum.cit.ase.ares.api.internal").className());
 		assertEquals("com.example.Outer$Inner", new ClassPermission("com.example.Outer$Inner").className());
 		assertEquals("MainTest", new ClassPermission("MainTest").className());
-		assertThrows(IllegalArgumentException.class, () -> new ClassPermission("not a class name"));
-		assertThrows(IllegalArgumentException.class, () -> new ClassPermission("com.example."));
-		assertThrows(IllegalArgumentException.class, () -> new ClassPermission("com.class.Trusted"));
-		assertThrows(IllegalArgumentException.class, () -> new ClassPermission("com.example.Trusted\nEvil"));
 	}
 
 	@Test

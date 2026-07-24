@@ -6,7 +6,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import de.tum.cit.ase.ares.api.localization.Messages;
-import de.tum.cit.ase.ares.api.policy.PolicyValueValidator;
 
 /**
  * Allowed thread creation operations.
@@ -44,16 +43,17 @@ public record ThreadPermission(int createTheFollowingNumberOfThreads, @Nonnull S
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 * @throws NullPointerException     if the thread class is null.
-	 * @throws IllegalArgumentException if the thread count is negative, or if the
-	 *                                  thread class is neither a fully qualified
-	 *                                  class name nor one of the recognised tokens.
+	 * @throws IllegalArgumentException if the thread count is negative.
 	 */
 	public ThreadPermission {
 		Objects.requireNonNull(ofThisClass, "Thread class must not be null");
 		if (createTheFollowingNumberOfThreads < 0) {
 			throw new IllegalArgumentException(Messages.localized("policy.permission.thread.count.negative"));
 		}
-		PolicyValueValidator.requireMatch("ofThisClass", ofThisClass, PolicyValueValidator.THREAD_CLASS_PATTERN);
+		// Only the universal invariants are checked here: this record does not carry
+		// the language, so whether ofThisClass is a valid thread construct for the
+		// supervised code's language is validated by the schema validator on the
+		// policy-file path.
 	}
 
 	/**

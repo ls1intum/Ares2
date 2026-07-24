@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import com.fasterxml.jackson.core.JsonParser;
@@ -251,7 +252,10 @@ class SecurityPolicyStrictSchemaTest {
 
 	@Test
 	void expandsProjectRootAsScalarDataAfterParsing() throws IOException {
-		Path unusualRoot = tempDirectory.resolve("root: #quote '\" \\ ä\nline\u0001");
+		// The root deliberately carries YAML-special characters, quotes, a backslash
+		// and a non-ASCII letter (but no control characters) to prove ${PROJECT_ROOT}
+		// is expanded as opaque scalar data rather than re-parsed.
+		Path unusualRoot = tempDirectory.resolve("root: #quote '\" \\ ä end");
 		Files.createDirectories(unusualRoot);
 		Path file = write(validYaml().replace("/tmp/data", "${PROJECT_ROOT}/line\\nname"));
 		SecurityPolicy policy = new SecurityPolicyYAMLReader(new YAMLMapper(), unusualRoot)
@@ -263,10 +267,30 @@ class SecurityPolicyStrictSchemaTest {
 	}
 
 	@Test
+	void rejectsControlCharacterInExpandedProjectRoot() throws IOException {
+		// A ${PROJECT_ROOT} that expands to a directory whose name carries a control
+		// character must be rejected: the expanded path travels into generated sources,
+		// settings and failure reports where a single line is assumed.
+		Path controlCharacterRoot = tempDirectory.resolve("rootWith\u0001Control");
+		Path file = write(validYaml().replace("/tmp/data", "${PROJECT_ROOT}/data"));
+		assertThrows(SecurityException.class, () -> new SecurityPolicyYAMLReader(new YAMLMapper(), controlCharacterRoot)
+				.readSecurityPolicyFrom(file));
+	}
+
+	@Test
 	void rejectsUnknownPathPlaceholders() throws IOException {
 		Path file = write(validYaml().replace("/tmp/data", "${PROJECT_ROOT}/${PROJECT_ROOT}/${UNKNOWN}"));
 		assertThrows(SecurityException.class,
 				() -> new SecurityPolicyYAMLReader(new YAMLMapper(), tempDirectory).readSecurityPolicyFrom(file));
+	}
+
+	@ParameterizedTest
+	@EnumSource(ProgrammingLanguageConfiguration.class)
+	void acceptsEverySupportedConfiguration(ProgrammingLanguageConfiguration configuration) throws IOException {
+		SecurityPolicy policy = read(
+				validYaml().replace("JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ", configuration.name()));
+		assertEquals(configuration,
+				policy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed());
 	}
 
 	static Stream<Arguments> invalidPolicyValues() {

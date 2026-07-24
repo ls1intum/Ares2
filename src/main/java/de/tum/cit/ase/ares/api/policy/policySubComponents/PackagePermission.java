@@ -5,8 +5,6 @@ import java.util.Objects;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import de.tum.cit.ase.ares.api.policy.PolicyValueValidator;
-
 /**
  * Allowed package import.
  * <p>
@@ -14,9 +12,12 @@ import de.tum.cit.ase.ares.api.policy.PolicyValueValidator;
  * package and everything below it.
  * <p>
  * Design Rationale: Explicitly declaring permitted package imports prevents
- * unauthorised dependencies. The name is validated on construction, so a
- * malformed entry is rejected when the policy is read rather than silently
- * matching nothing during enforcement.
+ * unauthorised dependencies. Only the universal invariant, that the name is not
+ * null, is checked on construction. Whether it is a package name or {@code *}
+ * for the supervised code's language is validated where the language is known:
+ * the schema validator on the policy-file path, and the language-specific
+ * component that scans the project (currently {@code JavaCreator}) on the
+ * derived path.
  *
  * @since 2.0.0
  * @author Markus Paulsen
@@ -31,14 +32,10 @@ public record PackagePermission(@Nonnull String importTheFollowingPackage) {
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @throws NullPointerException     if the package name is null.
-	 * @throws IllegalArgumentException if the package name is neither a
-	 *                                  dot-separated Java package name nor
-	 *                                  {@code *}.
+	 * @throws NullPointerException if the package name is null.
 	 */
 	public PackagePermission {
 		Objects.requireNonNull(importTheFollowingPackage, "Package name must not be null");
-		PolicyValueValidator.requirePackageImport(importTheFollowingPackage);
 	}
 
 	/**
