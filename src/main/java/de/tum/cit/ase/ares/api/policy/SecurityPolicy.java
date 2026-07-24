@@ -6,6 +6,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import de.tum.cit.ase.ares.api.AresConstants;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.SupervisedCode;
 
@@ -83,9 +84,8 @@ public record SecurityPolicy(int thisPolicyFileCompliesToThePolicyVersion,
 	 */
 	private static int requireSupportedPolicyVersion(int version) {
 		if (version < AresConstants.MINIMUM_POLICY_VERSION || version > AresConstants.MAXIMUM_POLICY_VERSION) {
-			throw new IllegalArgumentException(
-					"thisPolicyFileCompliesToThePolicyVersion must be between " + AresConstants.MINIMUM_POLICY_VERSION
-							+ " and " + AresConstants.MAXIMUM_POLICY_VERSION + " (inclusive), but was " + version);
+			throw new IllegalArgumentException(Messages.localized("policy.version.range",
+					AresConstants.MINIMUM_POLICY_VERSION, AresConstants.MAXIMUM_POLICY_VERSION, version));
 		}
 		return version;
 	}

@@ -38,6 +38,16 @@ public final class AresConstants {
 	 */
 	public static final int MAXIMUM_POLICY_VERSION = 1;
 
+	static {
+		// Fail fast at class load if the range is ever edited into an inconsistent
+		// state: a minimum above the maximum would otherwise silently reject every
+		// policy version instead of surfacing a clear cause. The check folds away when
+		// the constants form a valid range, so it costs nothing at runtime.
+		if (MINIMUM_POLICY_VERSION > MAXIMUM_POLICY_VERSION) {
+			throw new ExceptionInInitializerError("MINIMUM_POLICY_VERSION must not exceed MAXIMUM_POLICY_VERSION");
+		}
+	}
+
 	private AresConstants() {
 		throw new SecurityException(Messages.localized("security.general.utility.initialization", "AresConstants"));
 	}

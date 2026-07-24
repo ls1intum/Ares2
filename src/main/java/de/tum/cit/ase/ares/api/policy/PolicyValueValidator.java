@@ -38,6 +38,20 @@ public final class PolicyValueValidator {
 	private static final String RECOGNISED_PLACEHOLDER = "\\$\\{(?:PROJECT_ROOT|java\\.home|user\\.home|java\\.io\\.tmpdir)\\}";
 
 	/**
+	 * The characters that must never appear inside a value which ends up on a
+	 * single line of a generated artefact.
+	 * <p>
+	 * {@code \p{Cc}} is used rather than {@code \p{Cntrl}} on purpose: by default
+	 * Java's {@code \p{Cntrl}} matches only the ASCII controls
+	 * {@code [\x00-\x1F\x7F]}, so a value carrying U+0085 (NEL), U+2028 (line
+	 * separator) or U+2029 (paragraph separator) would slip through and still break
+	 * a line downstream. {@code \p{Cc}} covers the full Unicode control category
+	 * (including the C1 range with NEL), and {@code \p{Zl}}/{@code \p{Zp}} add the
+	 * two Unicode line and paragraph separators.
+	 */
+	private static final String CONTROL_OR_LINE_SEPARATOR = "\\p{Cc}\\p{Zl}\\p{Zp}";
+
+	/**
 	 * Matches a supported file path, recognised placeholder expression, or
 	 * wildcard.
 	 * <p>
@@ -45,13 +59,15 @@ public final class PolicyValueValidator {
 	 * {@link #COMMAND_PATTERN}: a path carrying a line break travels into generated
 	 * sources, settings and failure reports where a single line is assumed, so a
 	 * value such as {@code "/tmp/foo\nbar"} is rejected rather than silently
-	 * corrupting those artefacts. Excluding them also makes the surrounding
-	 * newline-free {@code ..} check and anchoring unambiguous, which is why the
-	 * pattern no longer needs {@link Pattern#DOTALL}.
+	 * corrupting those artefacts. The exclusion is Unicode-aware (see
+	 * {@link #CONTROL_OR_LINE_SEPARATOR}), so U+0085, U+2028 and U+2029 are
+	 * rejected as well. Excluding them also makes the surrounding newline-free
+	 * {@code ..} check and anchoring unambiguous, which is why the pattern no
+	 * longer needs {@link Pattern#DOTALL}.
 	 */
 	public static final Pattern FILE_PATH_PATTERN = Pattern
 			.compile("^(?:\\*|(?=.+$)(?=.*\\S)(?!(?:.*[\\\\/])?\\.\\.(?:[\\\\/]|$))(?:(?:" + RECOGNISED_PLACEHOLDER
-					+ ")|(?!\\$\\{)[^*\\p{Cntrl}])+)$");
+					+ ")|(?!\\$\\{)[^*" + CONTROL_OR_LINE_SEPARATOR + "])+)$");
 
 	/** Matches a DNS name, IP address, localhost, or host wildcard. */
 	public static final Pattern HOST_PATTERN = Pattern
@@ -63,22 +79,27 @@ public final class PolicyValueValidator {
 	 * A command is a program name or a path to one, so the shape cannot be pinned
 	 * down further without rejecting legitimate policies: the fixtures alone hold
 	 * {@code echo} and {@code src/test/.../trustedExecute.sh}. Two things are
-	 * excluded. Control characters, because they never occur in a real command and
-	 * a value carrying a line break travels into generated sources, settings and
-	 * failure reports where a single line is assumed. And surrounding whitespace,
-	 * because {@code "echo "} is an authoring slip that would otherwise be accepted
-	 * and then silently match nothing.
+	 * excluded. Control characters and Unicode line separators (see
+	 * {@link #CONTROL_OR_LINE_SEPARATOR}), because they never occur in a real
+	 * command and a value carrying a line break travels into generated sources,
+	 * settings and failure reports where a single line is assumed. And surrounding
+	 * whitespace of any kind, because {@code "echo "} is an authoring slip that
+	 * would otherwise be accepted and then silently match nothing; the boundary
+	 * therefore rejects every Unicode separator ({@code \p{Z}}) and control, so a
+	 * value fenced by a NUL, a BEL or an em space is rejected rather than accepted.
 	 */
-	public static final Pattern COMMAND_PATTERN = Pattern.compile("^(?:\\*|\\S(?:[^\\p{Cntrl}]*\\S)?)$");
+	public static final Pattern COMMAND_PATTERN = Pattern
+			.compile("^(?:\\*|[^\\p{Cc}\\p{Z}](?:[^" + CONTROL_OR_LINE_SEPARATOR + "]*[^\\p{Cc}\\p{Z}])?)$");
 
 	/**
 	 * Matches one argument of a command permission, or the argument wildcard.
 	 * <p>
 	 * Same reasoning as {@link #COMMAND_PATTERN}, except that the empty string is
 	 * accepted: passing an empty argument is meaningful, whereas an empty command
-	 * is not.
+	 * is not. Surrounding whitespace is not rejected here, because an argument,
+	 * unlike a command, may legitimately be whitespace.
 	 */
-	public static final Pattern COMMAND_ARGUMENT_PATTERN = Pattern.compile("^[^\\p{Cntrl}]*$");
+	public static final Pattern COMMAND_ARGUMENT_PATTERN = Pattern.compile("^[^" + CONTROL_OR_LINE_SEPARATOR + "]*$");
 
 	private PolicyValueValidator() {
 		throw new SecurityException(

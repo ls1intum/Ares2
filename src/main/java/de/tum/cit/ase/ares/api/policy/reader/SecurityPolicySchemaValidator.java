@@ -180,7 +180,12 @@ public final class SecurityPolicySchemaValidator {
 			requireText(command, "executeTheCommand", "regardingCommandExecutions entry");
 			requirePattern(command, "executeTheCommand", "regardingCommandExecutions entry",
 					PolicyValueValidator.COMMAND_PATTERN);
-			requireTextArray(command.get("withTheseArguments"), "regardingCommandExecutions entry.withTheseArguments");
+			// An empty argument is a valid value that COMMAND_ARGUMENT_PATTERN and
+			// CommandPermission both accept, so the blank-rejecting requireTextArray must
+			// not gate it here; only the array-of-strings shape is required before the
+			// per-entry pattern check runs.
+			requireTextArrayAllowingBlankEntries(command.get("withTheseArguments"),
+					"regardingCommandExecutions entry.withTheseArguments");
 			for (JsonNode argument : command.get("withTheseArguments")) {
 				if (!PolicyValueValidator.matches(argument.textValue(),
 						PolicyValueValidator.COMMAND_ARGUMENT_PATTERN)) {
@@ -263,6 +268,18 @@ public final class SecurityPolicySchemaValidator {
 		for (JsonNode element : node) {
 			if (!element.isTextual() || element.textValue().isBlank()) {
 				fail(path + " must contain only non-blank strings");
+			}
+		}
+	}
+
+	private static void requireTextArrayAllowingBlankEntries(JsonNode node, String path)
+			throws MismatchedInputException {
+		if (node == null || !node.isArray()) {
+			fail(path + " must be an array of strings");
+		}
+		for (JsonNode element : node) {
+			if (!element.isTextual()) {
+				fail(path + " must contain only strings");
 			}
 		}
 	}

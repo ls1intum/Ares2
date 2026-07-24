@@ -35,9 +35,52 @@ class PolicyValueValidatorTest {
 
 	@Test
 	void rejectsControlCharactersInPaths() {
-		for (int codePoint : new int[] { 10, 9, 13, 12, 11 }) {
+		// 0x85 NEL, 0x2028 line separator and 0x2029 paragraph separator are Unicode
+		// controls and line separators that the default \p{Cntrl} would not catch.
+		for (int codePoint : new int[] { 0, 7, 9, 10, 11, 12, 13, 0x85, 0x2028, 0x2029 }) {
 			assertFalse(PolicyValueValidator.matches("/tmp/foo" + (char) codePoint + "bar",
 					PolicyValueValidator.FILE_PATH_PATTERN));
+		}
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "*", "echo", "/usr/bin/echo", "src/test/resources/trustedExecute.sh", "my program" })
+	void acceptsSupportedCommands(String value) {
+		assertTrue(PolicyValueValidator.matches(value, PolicyValueValidator.COMMAND_PATTERN));
+	}
+
+	// A leading or trailing em space (U+2003) is a Unicode space separator that
+	// plain \S does not treat as whitespace, so the boundary must exclude \p{Z}.
+	@ParameterizedTest
+	@ValueSource(strings = { "", " ", "echo ", " echo", "\techo", "echo\t", "\u2003echo", "echo\u2003" })
+	void rejectsCommandsWithSurroundingWhitespace(String value) {
+		assertFalse(PolicyValueValidator.matches(value, PolicyValueValidator.COMMAND_PATTERN));
+	}
+
+	@Test
+	void rejectsControlAndLineSeparatorCharactersInCommands() {
+		for (int codePoint : new int[] { 0, 7, 10, 13, 0x85, 0x2028, 0x2029 }) {
+			assertFalse(
+					PolicyValueValidator.matches("ec" + (char) codePoint + "ho", PolicyValueValidator.COMMAND_PATTERN));
+			assertFalse(PolicyValueValidator.matches((char) codePoint + "echo", PolicyValueValidator.COMMAND_PATTERN));
+			assertFalse(PolicyValueValidator.matches("echo" + (char) codePoint, PolicyValueValidator.COMMAND_PATTERN));
+		}
+	}
+
+	// An argument, unlike a command, may legitimately be or contain whitespace,
+	// including the em space \u2003; only controls and line separators are
+	// rejected.
+	@ParameterizedTest
+	@ValueSource(strings = { "*", "", " ", "\u2003", "--flag", "with space", "value=1" })
+	void acceptsSupportedCommandArguments(String value) {
+		assertTrue(PolicyValueValidator.matches(value, PolicyValueValidator.COMMAND_ARGUMENT_PATTERN));
+	}
+
+	@Test
+	void rejectsControlAndLineSeparatorCharactersInCommandArguments() {
+		for (int codePoint : new int[] { 0, 7, 10, 13, 0x85, 0x2028, 0x2029 }) {
+			assertFalse(PolicyValueValidator.matches("ar" + (char) codePoint + "g",
+					PolicyValueValidator.COMMAND_ARGUMENT_PATTERN));
 		}
 	}
 

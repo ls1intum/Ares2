@@ -102,7 +102,7 @@ note right of PolicyValueValidator
       THREAD_CLASS_PATTERN: nonnull
       - regex: Java class | "Lambda-Expression" | recognised implicit operation | "*"
       COMMAND_PATTERN: nonnull
-      - regex: non-blank and no control characters | "*"
+      - regex: non-blank, no control characters and no surrounding whitespace | "*"
       COMMAND_ARGUMENT_PATTERN: nonnull
       - regex: no control characters per entry | "*"
       EXPECTATION_KEYS: nonnull
