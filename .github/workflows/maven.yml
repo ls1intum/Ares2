@@ -274,7 +274,7 @@ jobs:
       # strict: if the test jobs ran but produced no execution data at all, that is a
       # defect in the coverage wiring and should be visible rather than swallowed.
       - name: Download coverage execution data
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: jacoco-exec-*
           path: target/jacoco-exec
