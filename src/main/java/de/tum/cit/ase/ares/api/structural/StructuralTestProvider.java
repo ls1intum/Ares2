@@ -127,7 +127,10 @@ public abstract class StructuralTestProvider {
 				expectedClassStructure.getExpectedPackageName());
 		var scanResultEnum = classNameScanner.getScanResult().getResult();
 		var classNameScanMessage = classNameScanner.getScanResult().getMessage();
-		// please note: inner classes are not supported
+		// Note: a member/nested class is expected as its dot-separated
+		// qualified-within-file name (e.g. "Outer.Inner", see ClassNameScanner's
+		// walkProjectFileStructure) — getQualifiedClassName() below translates that
+		// into the JVM binary name ("Outer$Inner") needed to load it.
 		if (!ScanResultType.CORRECT_NAME_CORRECT_PLACE.equals(scanResultEnum)) {
 			throw failure(classNameScanMessage);
 		}
@@ -296,6 +299,13 @@ public abstract class StructuralTestProvider {
 	 * This method checks if the parameters of the actual structural element (in
 	 * this case method or constructor) match the ones in the expected structural
 	 * element.
+	 * <p>
+	 * Each expected parameter type name is matched against an observed parameter
+	 * type via {@link #checkExpectedType(Class, Type, String)} — the same
+	 * canonical-or-simple-name-aware comparison already used for
+	 * return/field/annotation types — rather than a raw
+	 * {@link Class#getSimpleName()} comparison, so an oracle entry such as
+	 * {@code java.lang.String} matches just as a plain {@code String} does.
 	 *
 	 * @param observedParameters The actual parameter types as a classes array.
 	 * @param expectedParameters The expected parameter type names as a JsonNode
@@ -323,25 +333,71 @@ public abstract class StructuralTestProvider {
 			expectedParameterTypeNames[i] = expectedParameters.get(i).asText();
 		}
 
-		var observedParameterTypeNames = new String[observedParameters.length];
-		for (var i = 0; i < observedParameters.length; i++) {
-			// TODO: Canonical names should be supported as well.
-			observedParameterTypeNames[i] = observedParameters[i].getSimpleName();
-		}
-
 		if (strictOrder) {
-			return Arrays.equals(expectedParameterTypeNames, observedParameterTypeNames);
+			for (var i = 0; i < observedParameters.length; i++) {
+				if (!checkExpectedType(observedParameters[i], observedParameters[i], expectedParameterTypeNames[i])) {
+					return false;
+				}
+			}
+			return true;
 		}
 
 		/*
-		 * Create hash tables to store how often a parameter type occurs. Checking the
-		 * occurrences of a certain parameter type is enough, since the parameter order
-		 * is not relevant to us.
+		 * Parameter order is not relevant to us: find a one-to-one pairing between
+		 * expected type names and observed parameters (a bipartite matching, since
+		 * which observed parameter satisfies which expected name isn't necessarily
+		 * unique when duplicate/ambiguous types are involved — a naive greedy pairing
+		 * could otherwise pick an observed parameter for one expected name that was the
+		 * only match for a different expected name).
 		 */
-		Map<String, Integer> expectedParametersHashtable = createParametersHashMap(expectedParameterTypeNames);
-		Map<String, Integer> observedParametersHashtable = createParametersHashMap(observedParameterTypeNames);
+		return hasMatchingPairingForEachExpectedParameter(observedParameters, expectedParameterTypeNames);
+	}
 
-		return expectedParametersHashtable.equals(observedParametersHashtable);
+	/**
+	 * Determines whether every expected parameter type name can be paired with a
+	 * distinct observed parameter satisfying it (order-independent), using
+	 * {@link #checkExpectedType(Class, Type, String)} as the per-pair compatibility
+	 * check. Implemented as Kuhn's algorithm for bipartite matching (augmenting
+	 * paths) so an ambiguous type doesn't cause an otherwise valid pairing to be
+	 * missed.
+	 *
+	 * @param observedParameters         The actual parameter types as a classes
+	 *                                   array.
+	 * @param expectedParameterTypeNames The expected parameter type names, same
+	 *                                   length as {@code observedParameters}.
+	 * @return True if a complete pairing exists, false otherwise.
+	 */
+	private static boolean hasMatchingPairingForEachExpectedParameter(Class<?>[] observedParameters,
+			String[] expectedParameterTypeNames) {
+		var parameterCount = observedParameters.length;
+		var matchedExpectedIndexOfObserved = new int[parameterCount];
+		Arrays.fill(matchedExpectedIndexOfObserved, -1);
+		for (var expectedIndex = 0; expectedIndex < parameterCount; expectedIndex++) {
+			var visitedObserved = new boolean[parameterCount];
+			if (!tryPairExpectedParameter(expectedIndex, observedParameters, expectedParameterTypeNames,
+					visitedObserved, matchedExpectedIndexOfObserved)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private static boolean tryPairExpectedParameter(int expectedIndex, Class<?>[] observedParameters,
+			String[] expectedParameterTypeNames, boolean[] visitedObserved, int[] matchedExpectedIndexOfObserved) {
+		for (var observedIndex = 0; observedIndex < observedParameters.length; observedIndex++) {
+			if (visitedObserved[observedIndex] || !checkExpectedType(observedParameters[observedIndex],
+					observedParameters[observedIndex], expectedParameterTypeNames[expectedIndex])) {
+				continue;
+			}
+			visitedObserved[observedIndex] = true;
+			var previouslyMatchedExpectedIndex = matchedExpectedIndexOfObserved[observedIndex];
+			if (previouslyMatchedExpectedIndex == -1 || tryPairExpectedParameter(previouslyMatchedExpectedIndex,
+					observedParameters, expectedParameterTypeNames, visitedObserved, matchedExpectedIndexOfObserved)) {
+				matchedExpectedIndexOfObserved[observedIndex] = expectedIndex;
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -469,10 +525,16 @@ public abstract class StructuralTestProvider {
 		}
 
 		public String getQualifiedClassName() {
+			// A member/nested class is expressed in the oracle as a dot-separated
+			// qualified-within-file name (e.g. "Outer.Inner", matching what
+			// ClassNameScanner registers it under) — translate that into the JVM binary
+			// name ("Outer$Inner") Class.forName needs. Package-name dots are unaffected,
+			// since they're joined in separately below.
+			var binaryClassName = expectedClassName.replace(PACKAGE_PATH_SEPARATOR, "$"); //$NON-NLS-1$
 			if (!expectedPackageName.isEmpty()) {
-				return expectedPackageName + PACKAGE_PATH_SEPARATOR + expectedClassName;
+				return expectedPackageName + PACKAGE_PATH_SEPARATOR + binaryClassName;
 			}
-			return expectedClassName;
+			return binaryClassName;
 		}
 
 		public boolean hasProperty(String propertyName) {

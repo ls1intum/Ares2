@@ -205,7 +205,7 @@ public class DynamicClass<T> implements Checkable {
 			}
 			if (Modifier.isPublic(m.getModifiers())) {
 				String sig = DynamicMethod.signatureOf(m);
-				if (!"main(java.lang.String[])".endsWith(sig) && !publicMethods.contains(sig) //$NON-NLS-1$
+				if (!"main(java.lang.String[])".equals(sig) && !publicMethods.contains(sig) //$NON-NLS-1$
 						&& !objectMethods.contains(sig)) {
 					throw localizedFailure("dynamics.class.method_public", sig); //$NON-NLS-1$
 				}

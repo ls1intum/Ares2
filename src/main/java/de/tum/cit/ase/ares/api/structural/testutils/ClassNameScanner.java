@@ -4,6 +4,7 @@ import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 import static de.tum.cit.ase.ares.api.structural.testutils.ScanResultType.*;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.*;
@@ -12,7 +13,15 @@ import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 import org.slf4j.*;
 
+import com.github.javaparser.JavaParser;
+import com.github.javaparser.ParseProblemException;
+import com.github.javaparser.ParserConfiguration;
+import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.Node;
+import com.github.javaparser.ast.body.TypeDeclaration;
+
 import de.tum.cit.ase.ares.api.AresConfiguration;
+import de.tum.cit.ase.ares.api.util.LruCache;
 import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 import de.tum.cit.ase.ares.api.util.StringSimilarity;
 
@@ -47,6 +56,38 @@ import de.tum.cit.ase.ares.api.util.StringSimilarity;
 public class ClassNameScanner {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ClassNameScanner.class);
+
+	/*
+	 * A dedicated JavaParser instance configured for this project's Java 17
+	 * language level (records, pattern-matching instanceof, text blocks, ...),
+	 * rather than the bare StaticJavaParser entry point: StaticJavaParser's default
+	 * configuration only supports much older syntax and its shared static
+	 * configuration is mutated as a side effect elsewhere (e.g.
+	 * UnwantedNodesAssert#withLanguageLevel), which would make parsing here depend
+	 * on unrelated test execution order. Mirrors the same pattern already used by
+	 * JavaProjectScanner. Shared/static: a JavaParser's parse() calls carry no
+	 * state beyond the (fixed, never-mutated-after-construction) configuration,
+	 * matching how a single instance is commonly reused across parses elsewhere.
+	 */
+	private static final JavaParser JAVA_PARSER = new JavaParser(
+			new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17));
+
+	/*
+	 * Every ClassNameScanner instantiation re-walks and, since I-099, re-parses the
+	 * whole assignment source tree from scratch (a pre-existing "one full scan per
+	 * expected class" design this fix doesn't change) — a single structural test
+	 * run constructs dozens of scanners across
+	 * testAttributes/testClasses/testConstructors/ testMethods. Caching each file's
+	 * discovered type names, keyed by absolute path and invalidated on
+	 * last-modified-time change, means only the *first* scan in a run actually
+	 * parses; every later scan of the same (unchanged) file reuses the result.
+	 * Follows the same LruCache + Collections.synchronizedMap pattern already used
+	 * for Messages' resource-bundle cache.
+	 */
+	private static final Map<Path, CachedFileTypes> JAVA_FILE_TYPE_CACHE = LruCache.synchronizedCache(4096);
+
+	private record CachedFileTypes(long lastModifiedMillis, List<String> qualifiedTypeNames) {
+	}
 
 	/*
 	 * The class name and package name of the expected class that is currently being
@@ -202,6 +243,19 @@ public class ClassNameScanner {
 	 * This method recursively walks the actual folder file structure starting from
 	 * the assignment folder and adds each type it finds e.g. filenames ending with
 	 * <code>.java</code> and <code>.kt</code> to the passed JSON object.
+	 * <p>
+	 * For <code>.java</code> files, every top-level type declared in the file (Java
+	 * permits more than one) and every member/nested type declared inside those
+	 * types is registered, not just the single type whose name matches the
+	 * filename. A nested type is registered under its dot-separated
+	 * qualified-within-file name (e.g. <code>Outer.Inner</code>), which
+	 * {@link de.tum.cit.ase.ares.api.structural.StructuralTestProvider.ExpectedClassStructure#getQualifiedClassName()}
+	 * translates into the corresponding JVM binary name (<code>Outer$Inner</code>)
+	 * when loading the class. Local and anonymous classes are not addressable this
+	 * way and are skipped. <code>.kt</code> files have no parser available here, so
+	 * they keep the previous filename-derived single-type behaviour, as does a
+	 * <code>.java</code> file that fails to parse (e.g. a submission that does not
+	 * currently compile) — falling back rather than aborting the whole scan.
 	 *
 	 * @param assignmentFolder The root folder where the method starts walking the
 	 *                         project structure.
@@ -215,22 +269,11 @@ public class ClassNameScanner {
 		// * fileName: assignment/src/de/tum/in/ase/eist/BubbleSort.java
 		// Required Package Name: de.tum.in.ase.eist
 		var fileName = node.getName();
-		// support Java and Kotlin files
-		if (fileName.endsWith(".java") || fileName.endsWith(".kt")) { //$NON-NLS-1$ //$NON-NLS-2$
-			var fileNameComponents = fileName.split("\\."); //$NON-NLS-1$
-			var className = fileNameComponents[fileNameComponents.length - 2];
-
-			Path packagePath = assignmentFolder.relativize(node.toPath().getParent());
-			var packageName = StreamSupport.stream(packagePath.spliterator(), false).map(Object::toString)
-					.collect(Collectors.joining(".")); //$NON-NLS-1$
-
-			if (foundClasses.containsKey(className)) {
-				foundClasses.get(className).add(packageName);
-			} else {
-				foundClasses.put(className, new ArrayList<>(List.of(packageName)));
-			}
+		if (fileName.endsWith(".java")) { //$NON-NLS-1$
+			registerJavaFileTypes(assignmentFolder, node, foundClasses);
+		} else if (fileName.endsWith(".kt")) { //$NON-NLS-1$
+			registerFoundClass(foundClasses, fileNameDerivedTypeName(fileName), packageNameOf(assignmentFolder, node));
 		}
-		// TODO: we should also support inner classes here
 		if (node.isDirectory()) {
 			String[] subNodes = node.list();
 			if (subNodes != null && subNodes.length > 0) {
@@ -239,6 +282,136 @@ public class ClassNameScanner {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Registers every top-level and nested/member type a <code>.java</code> file
+	 * declares (see {@link #qualifiedTypeNamesOf(File)}).
+	 *
+	 * @param assignmentFolder The root folder the package name is computed relative
+	 *                         to.
+	 * @param node             The <code>.java</code> file being visited.
+	 * @param foundClasses     The map the discovered type names and packages get
+	 *                         appended to.
+	 */
+	private void registerJavaFileTypes(Path assignmentFolder, File node, Map<String, List<String>> foundClasses) {
+		var packageName = packageNameOf(assignmentFolder, node);
+		for (String qualifiedName : qualifiedTypeNamesOf(node)) {
+			registerFoundClass(foundClasses, qualifiedName, packageName);
+		}
+	}
+
+	/**
+	 * Returns every top-level and nested/member type name a <code>.java</code> file
+	 * declares, dot-separated (e.g. <code>Outer.Inner</code>) via
+	 * {@link #qualifiedNameWithinFile(TypeDeclaration)}, falling back to the single
+	 * filename-derived type name if the file cannot be parsed (e.g. it does not
+	 * currently compile). Cached by absolute path and last-modified time (see
+	 * {@link #JAVA_FILE_TYPE_CACHE}) since a single structural test run constructs
+	 * many {@code ClassNameScanner}s, each re-walking the same assignment tree.
+	 *
+	 * @param node The <code>.java</code> file to determine the declared type names
+	 *             of.
+	 * @return The file's declared type names.
+	 */
+	private static List<String> qualifiedTypeNamesOf(File node) {
+		var absolutePath = node.toPath().toAbsolutePath().normalize();
+		var lastModifiedMillis = node.lastModified();
+		var cached = JAVA_FILE_TYPE_CACHE.get(absolutePath);
+		if (cached != null && cached.lastModifiedMillis() == lastModifiedMillis) {
+			return cached.qualifiedTypeNames();
+		}
+		var qualifiedTypeNames = parseQualifiedTypeNames(node);
+		JAVA_FILE_TYPE_CACHE.put(absolutePath, new CachedFileTypes(lastModifiedMillis, qualifiedTypeNames));
+		return qualifiedTypeNames;
+	}
+
+	private static List<String> parseQualifiedTypeNames(File node) {
+		try {
+			var parseResult = JAVA_PARSER.parse(node.toPath());
+			var compilationUnit = parseResult.getResult()
+					.orElseThrow(() -> new ParseProblemException(parseResult.getProblems()));
+			List<String> qualifiedTypeNames = new ArrayList<>();
+			for (TypeDeclaration<?> type : compilationUnit.findAll(TypeDeclaration.class)) {
+				qualifiedNameWithinFile(type).ifPresent(qualifiedTypeNames::add);
+			}
+			return qualifiedTypeNames;
+		} catch (IOException | ParseProblemException e) {
+			LOG.debug("Could not parse '{}' for nested-type discovery; falling back to its filename-derived type name", //$NON-NLS-1$
+					node, e);
+			return List.of(fileNameDerivedTypeName(node.getName()));
+		}
+	}
+
+	/**
+	 * Computes the dot-separated name of a type declaration relative to its
+	 * enclosing file, e.g. <code>Outer.Inner</code> for a member type
+	 * <code>Inner</code> declared inside top-level type <code>Outer</code>, or just
+	 * <code>Outer</code> for a top-level type. Local and anonymous classes (whose
+	 * enclosing chain does not consist solely of type declarations up to the
+	 * compilation unit) have no such stable name and are reported as empty.
+	 *
+	 * @param type The type declaration to compute the qualified-within-file name
+	 *             for.
+	 * @return The dot-separated qualified-within-file name, or empty if
+	 *         {@code type} is a local or anonymous class.
+	 */
+	static Optional<String> qualifiedNameWithinFile(TypeDeclaration<?> type) {
+		Deque<String> parts = new ArrayDeque<>();
+		Node current = type;
+		while (current instanceof TypeDeclaration<?> currentType) {
+			parts.addFirst(currentType.getNameAsString());
+			current = currentType.getParentNode().orElse(null);
+		}
+		if (!(current instanceof CompilationUnit)) {
+			// the enclosing chain didn't resolve straight up to the compilation unit: a
+			// local class (nested inside a method body) or similar, which has no stable
+			// qualified-within-file name
+			return Optional.empty();
+		}
+		return Optional.of(String.join(".", parts)); //$NON-NLS-1$
+	}
+
+	/**
+	 * Derives a type's name from its source filename (the pre-existing behaviour,
+	 * kept as the <code>.kt</code> path and the <code>.java</code> parse-failure
+	 * fallback): the filename without its extension.
+	 *
+	 * @param fileName The source filename, e.g. <code>BubbleSort.java</code>.
+	 * @return The filename-derived type name, e.g. <code>BubbleSort</code>.
+	 */
+	private static String fileNameDerivedTypeName(String fileName) {
+		var fileNameComponents = fileName.split("\\."); //$NON-NLS-1$
+		return fileNameComponents[fileNameComponents.length - 2];
+	}
+
+	/**
+	 * Computes the dot-separated package name of a file from its path relative to
+	 * the assignment folder.
+	 *
+	 * @param assignmentFolder The root folder the package name is computed relative
+	 *                         to.
+	 * @param node             The file whose package name is being computed.
+	 * @return The dot-separated package name.
+	 */
+	private static String packageNameOf(Path assignmentFolder, File node) {
+		Path packagePath = assignmentFolder.relativize(node.toPath().getParent());
+		return StreamSupport.stream(packagePath.spliterator(), false).map(Object::toString)
+				.collect(Collectors.joining(".")); //$NON-NLS-1$
+	}
+
+	/**
+	 * Registers one discovered type name/package pairing in the found-classes map,
+	 * appending to any package names already recorded under the same type name.
+	 *
+	 * @param foundClasses The map the discovered type name and package get appended
+	 *                     to.
+	 * @param className    The (possibly dot-qualified, for nested types) type name.
+	 * @param packageName  The package the type was found in.
+	 */
+	private static void registerFoundClass(Map<String, List<String>> foundClasses, String className,
+			String packageName) {
+		foundClasses.computeIfAbsent(className, key -> new ArrayList<>()).add(packageName);
 	}
 
 	/**

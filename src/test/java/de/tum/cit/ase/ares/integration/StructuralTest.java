@@ -19,6 +19,11 @@ class StructuralTest {
 	private final String testAttributesSomeEnum = "testAttributes()/dynamic-test:#3";
 	private final String testAttributesSomeAbstractClass = "testAttributes()/dynamic-test:#4";
 	private final String testAttributesSomeFailingClass = "testAttributes()/dynamic-test:#5";
+	// I-099/TD-045: SomeClass.Nested is an existing member class of SomeClass (see
+	// SomeClass.java) newly discoverable now that ClassNameScanner parses nested
+	// types;
+	// it has attributes, so it also gains a testAttributes() entry.
+	private final String testAttributesSomeClassNested = "testAttributes()/dynamic-test:#6";
 	private final String testClassDoesNotExist = "testClasses()/dynamic-test:#1";
 	private final String testClassSomeInterface = "testClasses()/dynamic-test:#2";
 	private final String testClassMisspelledClas = "testClasses()/dynamic-test:#3";
@@ -28,15 +33,43 @@ class StructuralTest {
 	private final String testClassMisspelledclass = "testClasses()/dynamic-test:#7";
 	private final String testClassSomeFailingClass = "testClasses()/dynamic-test:#8";
 	private final String testClassDoesNotExistDefault = "testClasses()/dynamic-test:#9";
+	// I-099/TD-045: SomeClass.Nested/AdditionalTopLevelType deliberately do NOT add
+	// a
+	// "modifiers" (or other) class-level property, so ClassTestProvider's
+	// hasAdditionalProperties() filter excludes them from testClasses() entirely
+	// and
+	// that container's dynamic-test count stays at 9. JUnit Platform TestKit's
+	// EventConditions#test(String) matches a dynamic-test id via *substring*
+	// containment (uniqueIdSubstring), so "dynamic-test:#1" would otherwise also
+	// match "dynamic-test:#10"/"#11" once the container crosses into double digits
+	// —
+	// a latent fragility in every id constant below, first exposed here since no
+	// provider previously had 10+ entries. Their discovery/loading is still fully
+	// exercised (and would fail loudly if broken) via the testAttributes/
+	// testConstructors/testMethods entries below, none of which cross that
+	// boundary.
 	private final String testConstructorsSomeClass = "testConstructors()/dynamic-test:#1";
 	private final String testConstructorsSomeEnum = "testConstructors()/dynamic-test:#2";
 	private final String testConstructorsSomeAbstractClass = "testConstructors()/dynamic-test:#3";
 	private final String testConstructorsSomeFailingClass = "testConstructors()/dynamic-test:#4";
+	private final String testConstructorsSomeClassNested = "testConstructors()/dynamic-test:#5";
+	// I-099/TD-045: AdditionalTopLevelType's constructor is declared with a
+	// canonical
+	// (java.lang.String) oracle parameter type rather than the simple "String"
+	// form.
+	private final String testConstructorsAdditionalTopLevelType = "testConstructors()/dynamic-test:#6";
 	private final String testMethodsSomeInterface = "testMethods()/dynamic-test:#1";
 	private final String testMethodsSomeClass = "testMethods()/dynamic-test:#2";
 	private final String testMethodsSomeEnum = "testMethods()/dynamic-test:#3";
 	private final String testMethodsSomeAbstractClass = "testMethods()/dynamic-test:#4";
 	private final String testMethodsSomeFailingClass = "testMethods()/dynamic-test:#5";
+	private final String testMethodsSomeClassNested = "testMethods()/dynamic-test:#6";
+	// I-099/TD-045: AdditionalTopLevelType.acceptCanonicalParameter's oracle
+	// parameter type
+	// is also canonical (java.lang.String); checkParameters must accept it like it
+	// accepts
+	// the simple "String" form used everywhere else in this fixture.
+	private final String testMethodsAdditionalTopLevelType = "testMethods()/dynamic-test:#7";
 	private final String bothValid = "bothValid";
 	private final String invalidGradle = "invalidGradle";
 	private final String invalidMaven = "invalidMaven";
@@ -76,6 +109,11 @@ class StructuralTest {
 	void test_testAttributesSomeFailingClass() {
 		tests.assertThatEvents().haveExactly(COUNT, testFailedWith(testAttributesSomeFailingClass,
 				IllegalArgumentException.class, "Invalid entry for modifier: 'penguin: final'"));
+	}
+
+	@TestTest
+	void test_testAttributesSomeClassNested() {
+		tests.assertThatEvents().haveExactly(COUNT, finishedSuccessfully(testAttributesSomeClassNested));
 	}
 
 	@TestTest
@@ -160,6 +198,16 @@ class StructuralTest {
 	}
 
 	@TestTest
+	void test_testConstructorsSomeClassNested() {
+		tests.assertThatEvents().haveExactly(COUNT, finishedSuccessfully(testConstructorsSomeClassNested));
+	}
+
+	@TestTest
+	void test_testConstructorsAdditionalTopLevelType() {
+		tests.assertThatEvents().haveExactly(COUNT, finishedSuccessfully(testConstructorsAdditionalTopLevelType));
+	}
+
+	@TestTest
 	void test_testMethodsSomeInterface() {
 		tests.assertThatEvents().haveExactly(COUNT, finishedSuccessfully(testMethodsSomeInterface));
 	}
@@ -185,6 +233,16 @@ class StructuralTest {
 		tests.assertThatEvents().haveExactly(COUNT, testFailedWith(testMethodsSomeFailingClass,
 				AssertionFailedError.class,
 				"The parameters of the expected method 'someMethodWithWrongParameterOrder' of the class 'SomeFailingClass' with the parameters: [\"int\",\"double\"] are not implemented as expected."));
+	}
+
+	@TestTest
+	void test_testMethodsSomeClassNested() {
+		tests.assertThatEvents().haveExactly(COUNT, finishedSuccessfully(testMethodsSomeClassNested));
+	}
+
+	@TestTest
+	void test_testMethodsAdditionalTopLevelType() {
+		tests.assertThatEvents().haveExactly(COUNT, finishedSuccessfully(testMethodsAdditionalTopLevelType));
 	}
 
 	@TestTest
