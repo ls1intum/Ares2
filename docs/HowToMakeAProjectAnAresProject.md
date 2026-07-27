@@ -383,8 +383,9 @@ public class AresSetupVerificationTest {
     @Public
     @Test
     void aresSetupIsAvailable() {
-        // If this test compiles and runs, the Ares classes are on the test classpath
-        // and the test JVM started with the configured arguments.
+        // If this test compiles and runs, the Ares classes resolve on the test
+        // classpath and the JVM starts. It does not prove that any particular JVM
+        // argument, the -javaagent in particular, was supplied; Step 2 checks that.
         assertDoesNotThrow(() -> {});
     }
 }
@@ -392,10 +393,12 @@ public class AresSetupVerificationTest {
 
 Run `./gradlew test` (or `mvn test`). A pass confirms the dependency and the JVM arguments resolve. It confirms **nothing else**.
 
-> **Warning: a test without `@Policy` is not protected.**
-> A test class that has no `@Policy` annotation (directly, or inherited from a meta-annotation) runs with **no security enforcement at all**. Ares does not fall back to a restrictive default for such tests. Verified against Ares 2.1.0: in a test class shaped exactly like `AresSetupVerificationTest` above, student code called `Files.readString(Path.of("build.gradle"))` and read the file's full 4233 bytes without being blocked.
+> **Warning: add `@Policy` to every test class you want enforced.**
+> A supervised test (one carrying an Ares annotation such as `@Public`, `@PublicTest`, `@Hidden` or `@HiddenTest`) that has no `@Policy` does not run without a policy: Ares falls back to a **default most-restricted policy** that denies every file, network, command, thread and package access. What the fallback does not supply is a `withinPath` scope for that policy to enforce, and in the AspectJ enforcement mode only main classes are woven, not the test class (see [Section 3.2.4](#324-configure-aspectj-compile-time-weaving)). So a forbidden call made from the test class itself is not intercepted. Verified against Ares 2.1.0: in a class shaped exactly like `AresSetupVerificationTest` above, `Files.readString(Path.of("build.gradle"))` read the file's full 4233 bytes without being blocked, for exactly that reason.
 >
-> Enforcement is opt-in per test class. See [Section 4.2](#42-step-2-prove-that-enforcement-actually-happens) and [Section 6](#6-next-steps).
+> A class carrying **no** Ares test annotation at all is a separate case: it is not supervised, so no policy applies to it.
+>
+> Either way, do not rely on the fallback. Add `@Policy` with a correct `withinPath` so you get a policy you control and a scope that is actually enforced. See [Section 4.2](#42-step-2-prove-that-enforcement-actually-happens) and [Section 6](#6-next-steps).
 
 ### 4.2 Step 2: Prove that enforcement actually happens
 
@@ -417,11 +420,13 @@ public class AresProbe {
 
 ```java
 // In the test sources
+import com.example.AresProbe;
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
+// withinPath is the Gradle build layout; for Maven use "classes/com/example".
 @Policy(value = "src/test/resources/SecurityPolicy.yaml", withinPath = "classes/java/main/com/example")
 class AresEnforcementTest {
 
@@ -489,7 +494,7 @@ Delete the removed annotations and their imports, then write the equivalent `Sec
 
 ### 5.4 Add `@Policy` to every test class
 
-This step is easy to miss and fails silently. In Ares 1, a test was protected by virtue of the sandbox being installed. In Ares 2, **a test class with no `@Policy` runs unprotected** (see the warning in [Section 4.1](#41-step-1-confirm-ares-is-on-the-classpath)).
+This step is easy to miss and fails silently. In Ares 1, a test was protected by virtue of the sandbox being installed. In Ares 2, a supervised test with no `@Policy` falls back to a default most-restricted policy, but that fallback supplies no `withinPath` scope, so in practice **it may enforce nothing** (see the warning in [Section 4.1](#41-step-1-confirm-ares-is-on-the-classpath)). Add an explicit `@Policy` so you control the policy and give it a scope that is actually enforced.
 
 Annotate every test class, and remember that `@Policy` is inherited through **meta-annotations**: if your exercise defines a marker annotation that its test classes carry, putting `@Policy` on that marker covers all of them.
 
@@ -503,7 +508,7 @@ public @interface E01 {
 }
 ```
 
-After migrating, audit for stragglers, since these are the classes that will run without enforcement:
+After migrating, audit for stragglers. This is only a **direct-annotation heuristic**: it lists test files with no literal `@Policy`, so a class that inherits `@Policy` through a meta-annotation (such as the `E01` marker above) is reported even though it is covered. Treat the output as candidates and confirm each by following its annotations, rather than as proof of missing enforcement:
 
 ```bash
 grep -rL "@Policy" src/test/java --include="*Test.java"
@@ -538,10 +543,10 @@ grep -rL "@Policy" src/test/java --include="*Test.java"
 
 | Problem | Possible Cause | Solution |
 |---------|---------------|----------|
-| `ClassNotFoundException: de.tum.cit.ase.ares.api.Policy` | Ares not on the test classpath | Verify `testImplementation` dependency is present |
+| `ClassNotFoundException: de.tum.cit.ase.ares.api.Policy` | Ares not on the test classpath | Verify the Ares dependency is present: `testImplementation` (Gradle) or a test-scoped `<dependency>` (Maven) |
 | `Failed to find premain agent` or agent-related errors | Agent JAR not found or wrong classifier | Ensure the `aresAgent` dependency uses the `:agent` classifier (Gradle) or the `-agent.jar` suffix (Maven) |
 | Tests pass but student code is not restricted | `-javaagent` JVM argument missing | Check that `jvmArgs` / `<argLine>` includes the `-javaagent:...` path |
-| Tests pass but student code is not restricted | Test class has no `@Policy` | The most common cause. A test class without `@Policy` (direct or meta-annotated) runs with **no** enforcement; Ares does not apply a restrictive default. Find them with `grep -rL "@Policy" src/test/java --include="*Test.java"`. See [Section 4.1](#41-step-1-confirm-ares-is-on-the-classpath) |
+| Tests pass but student code is not restricted | Test class has no `@Policy` | A common cause. A supervised test without `@Policy` (direct or meta-annotated) does fall back to a default most-restricted policy, but the fallback supplies no `withinPath` scope, so it may enforce nothing in practice. Add an explicit `@Policy` with a correct `withinPath`; find candidates with `grep -rL "@Policy" src/test/java --include="*Test.java"`. See [Section 4.1](#41-step-1-confirm-ares-is-on-the-classpath) |
 | Enforcement silently inactive for some tests only | `withinPath` points at a directory that does not exist | A `withinPath` that does not match the compiled student package resolves to an empty directory, so nothing is analysed and no error is raised. Confirm the path exists under `build/classes/java/main` (Gradle) or `target/classes` (Maven) after a build |
 | Coverage report empty after adding Ares (Maven) | `<argLine>` overwrote the JaCoCo agent | Put `@{argLine}` first inside `<argLine>`, see [Section 3.2.3](#323-attach-agent-via-maven-surefire-plugin) |
 | `InaccessibleObjectException` at runtime | Missing `--add-opens` / `--add-exports` flags | Ensure the complete list of JVM module access flags from [Section 3.1.4](#314-attach-agent-to-test-execution) / [Section 3.2.3](#323-attach-agent-via-maven-surefire-plugin) is present |
