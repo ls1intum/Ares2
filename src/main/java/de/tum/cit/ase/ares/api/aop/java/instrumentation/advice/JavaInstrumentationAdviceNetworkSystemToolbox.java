@@ -295,6 +295,11 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 			requireTrustedRuntimeType(value);
 			try {
 				return variableToTarget(urlConnection.getURL());
+			} catch (SecurityException denied) {
+				// A SecurityException here is an Ares enforcement denial, not a resolution
+				// failure. Swallowing it would turn a denial into a null target and skip the
+				// receiver check, so it must propagate rather than fail open.
+				throw denied;
 			} catch (RuntimeException ignored) {
 				// Some JDK URLConnection implementations delegate getURL() to an object
 				// that is not assigned until construction has completed. Advice may observe
