@@ -851,27 +851,16 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		// <editor-fold desc="Check receiver instance">
 		@Nullable
 		NetworkTarget targetFromReceiver = variableToTarget(instance);
-		if (targetFromReceiver != null) {
-			if (checkIfNetworkIsForbidden(targetFromReceiver, allowedHosts, allowedPorts)) {
-				throw new SecurityException(localize("security.advice.illegal.network.execution",
-						networkSystemMethodToCheck, action, targetFromReceiver.toDisplayString(),
-						fullMethodSignature
-								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
-								+ buildDenialReason(noAllowRuleConfigured)));
-			}
-		} else if (instance != null) {
-			// Fall back to the criteria scan for receivers that cannot be resolved into a
-			// structured target, so no receiver type loses its check.
-			@Nullable
-			String networkIllegallyInteractedThroughReceiver = checkIfVariableCriteriaIsViolated(
-					new Object[] { instance }, allowedHosts, allowedPorts, IgnoreValues.NONE);
-			if (networkIllegallyInteractedThroughReceiver != null) {
-				throw new SecurityException(localize("security.advice.illegal.network.execution",
-						networkSystemMethodToCheck, action, networkIllegallyInteractedThroughReceiver,
-						fullMethodSignature
-								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
-								+ buildDenialReason(noAllowRuleConfigured)));
-			}
+		// No separate criteria scan is needed for a receiver that does not resolve into
+		// a structured target: the scan would route this same instance back through
+		// variableToTarget, which just returned null, so it could never throw. Only the
+		// resolved-target check below can flag a forbidden receiver.
+		if (targetFromReceiver != null && checkIfNetworkIsForbidden(targetFromReceiver, allowedHosts, allowedPorts)) {
+			throw new SecurityException(localize("security.advice.illegal.network.execution",
+					networkSystemMethodToCheck, action, targetFromReceiver.toDisplayString(),
+					fullMethodSignature
+							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
+							+ buildDenialReason(noAllowRuleConfigured)));
 		}
 		// </editor-fold>
 		// <editor-fold desc="Check attributes">

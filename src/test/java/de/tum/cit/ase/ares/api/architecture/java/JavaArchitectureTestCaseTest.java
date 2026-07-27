@@ -118,5 +118,7 @@ public class JavaArchitectureTestCaseTest {
 
 		assertTrue(thrown.getMessage().contains("serialise objects"),
 				() -> "Exception message should use the normalised serialisation action: " + thrown.getMessage());
+		assertFalse(thrown.getMessage().contains("Serialises objects"),
+				() -> "Exception message must not leak the original capitalised rule label: " + thrown.getMessage());
 	}
 }
