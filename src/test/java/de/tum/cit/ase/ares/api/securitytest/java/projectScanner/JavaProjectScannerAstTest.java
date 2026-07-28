@@ -55,6 +55,25 @@ class JavaProjectScannerAstTest {
 	}
 
 	@Test
+	void recognisesAresPublicAndHiddenTestAnnotations() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.writeString(production.resolve("Solution.java"), "package sol; class Solution {}\n");
+		Files.writeString(tests.resolve("AresCases.java"), """
+				package checks;
+				import de.tum.cit.ase.ares.api.jupiter.PublicTest;
+				import de.tum.cit.ase.ares.api.jupiter.HiddenTest;
+				class PublicCases { @PublicTest void visible() {} }
+				class HiddenCases { @HiddenTest void secret() {} }
+				class FullyQualifiedCases { @de.tum.cit.ase.ares.api.jupiter.PublicTest void qualified() {} }
+				""");
+		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
+		assertArrayEquals(
+				new String[] { "checks.FullyQualifiedCases", "checks.HiddenCases", "checks.PublicCases" },
+				scanner.scanForTestClasses());
+	}
+
+	@Test
 	void reportsMalformedFileWithItsPath() throws IOException {
 		Path production = Files.createDirectories(root.resolve("src/main/java"));
 		Path tests = Files.createDirectories(root.resolve("src/test/java"));

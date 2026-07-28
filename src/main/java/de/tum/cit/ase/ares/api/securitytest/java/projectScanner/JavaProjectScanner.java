@@ -33,7 +33,7 @@ import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 /** JavaParser-backed, deterministic Java project scanner. */
 public class JavaProjectScanner implements ProjectScanner {
 	private static final Set<String> TEST_ANNOTATIONS = Set.of("Test", "org.junit.Test", "ParameterizedTest",
-			"RepeatedTest", "TestFactory", "TestTemplate", "Property", "Example");
+			"RepeatedTest", "TestFactory", "TestTemplate", "Property", "Example", "PublicTest", "HiddenTest");
 	private final BuildToolConfiguration buildConfiguration;
 	private final JavaParser parser = new JavaParser(
 			new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17));
