@@ -12,47 +12,18 @@ skinparam classAttributeFontSize 9
 skinparam classFontSize 11
 skinparam classMethodFontSize 8
 skinparam linetype ortho
-skinparam nodesep 170
+skinparam nodesep 150
 skinparam noteFontSize 8
 skinparam packageStyle rectangle
-skinparam ranksep 220
+skinparam ranksep 200
 skinparam shadowing false
 
+' ===== Left column: orchestrator and readers =====
 class SecurityPolicy <<record>> {
     + thisPolicyFileCompliesToThePolicyVersion: int
     + regardingTheSupervisedCode: SupervisedCode
     + {static} createRestrictive(configuration: ProgrammingLanguageConfiguration): SecurityPolicy
     + {static} builder(): SecurityPolicy.Builder
-}
-
-class PolicyValueValidator <<utility>> {
-        - {static} JAVA_RESERVED_WORD: String
-        - {static} JAVA_IDENTIFIER: String
-        - {static} JAVA_TYPE_IDENTIFIER: String
-        - {static} JAVA_QUALIFIED_IDENTIFIER: String
-        - {static} JAVA_CLASS_PATH: String
-        - {static} IPV4_COMPONENT: String
-        - {static} IPV4_ADDRESS: String
-        - {static} IPV6_COMPONENT: String
-        - {static} IPV6_ADDRESS: String
-        - {static} DNS_LABEL: String
-        - {static} DNS_NAME: String
-        - {static} RECOGNISED_PLACEHOLDER: String
-        + {static} PROGRAMMING_LANGUAGE_CONFIGURATION_PATTERN: Pattern
-        + {static} JAVA_PACKAGE_PATTERN: Pattern
-        + {static} JAVA_CLASS_NAME_PATTERN: Pattern
-        + {static} JAVA_CLASS_PATH_PATTERN: Pattern
-        + {static} FILE_PATH_PATTERN: Pattern
-        + {static} HOST_PATTERN: Pattern
-        + {static} THREAD_CLASS_PATTERN: Pattern
-        + {static} COMMAND_PATTERN: Pattern
-        + {static} COMMAND_ARGUMENT_PATTERN: Pattern
-        - {static} EXPECTATION_KEYS: Map<Pattern, String>
-        - PolicyValueValidator()
-        + {static} matches(value: String, pattern: Pattern): boolean
-        + {static} matchesPackageImport(value: String): boolean
-        + {static} requireMatch(field: String, value: String, pattern: Pattern): void
-        + {static} requirePackageImport(value: String): void
 }
 
 note left of SecurityPolicy
@@ -62,65 +33,18 @@ note left of SecurityPolicy
       - allowed: exactly one
 end note
 
-note right of PolicyValueValidator
-      JAVA_RESERVED_WORD: nonnull
-      - regex: Java reserved words
-      JAVA_IDENTIFIER: nonnull
-      - regex: Java identifier
-      JAVA_TYPE_IDENTIFIER: nonnull
-      - regex: Java type identifier
-      JAVA_QUALIFIED_IDENTIFIER: nonnull
-      - regex: qualified Java identifier
-      JAVA_CLASS_PATH: nonnull
-      - regex: Java class path
-      IPV4_COMPONENT: nonnull
-      - regex: IPv4 component
-      IPV4_ADDRESS: nonnull
-      - regex: IPv4 address
-      IPV6_COMPONENT: nonnull
-      - regex: IPv6 component
-      IPV6_ADDRESS: nonnull
-      - regex: IPv6 address
-      DNS_LABEL: nonnull
-      - regex: DNS label
-      DNS_NAME: nonnull
-      - regex: DNS name
-      RECOGNISED_PLACEHOLDER: nonnull
-      - regex: recognised placeholder
-      PROGRAMMING_LANGUAGE_CONFIGURATION_PATTERN: nonnull
-      - regex: supported Java configuration
-      JAVA_PACKAGE_PATTERN: nonnull
-      - regex: Java package name
-      JAVA_CLASS_NAME_PATTERN: nonnull
-      - regex: Java type name
-      JAVA_CLASS_PATH_PATTERN: nonnull
-      - regex: Java class path
-      FILE_PATH_PATTERN: nonnull
-      - regex: valid path | recognised placeholder | "*"
-      HOST_PATTERN: nonnull
-      - regex: DNS | IPv4 | IPv6 | "localhost" | "*"
-      THREAD_CLASS_PATTERN: nonnull
-      - regex: Java class | "Lambda-Expression" | recognised implicit operation | "*"
-      COMMAND_PATTERN: nonnull
-      - regex: non-blank, no control characters and no surrounding whitespace | "*"
-      COMMAND_ARGUMENT_PATTERN: nonnull
-      - regex: no control characters per entry | "*"
-      EXPECTATION_KEYS: nonnull
-      - allowed: immutable pattern-to-message mapping
-end note
-
 class SecurityPolicyReaderAndDirector {
     - securityPolicyFilePath: Path
     - projectFolderPath: Path
     - withinPath: Path
     - securityTestCaseFactoryAndBuilder: TestCaseAbstractFactoryAndBuilder
+    + SecurityPolicyReaderAndDirector(securityPolicyFilePath: Path)
     + SecurityPolicyReaderAndDirector(securityPolicyFilePath: Path, projectFolderPath: Path)
     + SecurityPolicyReaderAndDirector(securityPolicyFilePath: Path, projectFolderPath: Path, withinPath: Path)
     + createTestCases(): SecurityPolicyReaderAndDirector
     + writeTestCases(testFolderPath: Path): List<Path>
     + writeTestCasesAndContinue(testFolderPath: Path): SecurityPolicyReaderAndDirector
     + executeTestCases(): SecurityPolicyReaderAndDirector
-    + factoryAndBuilder(): TestCaseAbstractFactoryAndBuilder
     + {static} builder(): SecurityPolicyReaderAndDirector.Builder
 }
 
@@ -139,6 +63,160 @@ note left of SecurityPolicyReaderAndDirector
   - allowed: created factory after createTestCases()
 end note
 
+abstract class SecurityPolicyReader {
+    # objectMapper: ObjectMapper
+    + SecurityPolicyReader(objectMapper: ObjectMapper)
+    + {abstract} readSecurityPolicyFrom(securityPolicyPath: Path): SecurityPolicy
+    + {static} selectSecurityPolicyReader(securityPolicyFilePath: Path): SecurityPolicyReader
+    + {static} selectSecurityPolicyReader(securityPolicyFilePath: Path, projectRootPath: Path): SecurityPolicyReader
+}
+
+note left of SecurityPolicyReader
+  objectMapper: nonnull
+  - allowed: configured Jackson mapper
+end note
+
+class SecurityPolicyYAMLReader {
+    - projectRootPath: Path
+    + SecurityPolicyYAMLReader(yamlMapper: YAMLMapper)
+    + SecurityPolicyYAMLReader(yamlMapper: YAMLMapper, projectRootPath: Path)
+    + readSecurityPolicyFrom(securityPolicyPath: Path): SecurityPolicy
+    + {static} yamlBuilder(): SecurityPolicyYAMLReader.Builder
+}
+
+note left of SecurityPolicyYAMLReader
+  projectRootPath: nullable
+  - allowed: normalised absolute project root
+end note
+
+' ===== Middle column: language name rules and file format =====
+interface LanguageNameRules {
+    + matchesPackage(value: String): boolean
+    + matchesTypeName(value: String): boolean
+    + matchesClassPath(value: String): boolean
+    + matchesThreadConstruct(value: String): boolean
+    + matchesPackageImport(value: String): boolean
+    + requirePackage(field: String, value: String): void
+    + requireTypeName(field: String, value: String): void
+    + requireClassPath(field: String, value: String): void
+}
+
+class JavaNameRules {
+    + {static} INSTANCE: JavaNameRules
+    - {static} JAVA_RESERVED_WORD: String
+    - {static} JAVA_IDENTIFIER: String
+    - {static} JAVA_TYPE_IDENTIFIER: String
+    - {static} JAVA_QUALIFIED_IDENTIFIER: String
+    - {static} JAVA_CLASS_PATH: String
+    - {static} PACKAGE_PATTERN: Pattern
+    - {static} TYPE_NAME_PATTERN: Pattern
+    - {static} CLASS_PATH_PATTERN: Pattern
+    - {static} THREAD_CONSTRUCT_PATTERN: Pattern
+    - JavaNameRules()
+    + matchesPackage(value: String): boolean
+    + matchesTypeName(value: String): boolean
+    + matchesClassPath(value: String): boolean
+    + matchesThreadConstruct(value: String): boolean
+    + matchesPackageImport(value: String): boolean
+    + requirePackage(field: String, value: String): void
+    + requireTypeName(field: String, value: String): void
+    + requireClassPath(field: String, value: String): void
+}
+
+note top of JavaNameRules
+      INSTANCE: nonnull
+      - allowed: shared stateless singleton
+      PACKAGE_PATTERN: nonnull
+      - regex: Java package name
+      TYPE_NAME_PATTERN: nonnull
+      - regex: Java type name
+      CLASS_PATH_PATTERN: nonnull
+      - regex: Java class path
+      THREAD_CONSTRUCT_PATTERN: nonnull
+      - regex: Java class | "Lambda-Expression" | recognised implicit operation | "*"
+end note
+
+enum SecurityPolicyFileFormat <<enum>> {
+    YAML
+    - extensions: Set<String>
+    + {static} fromPath(path: Path): SecurityPolicyFileFormat
+    - {static} fileExtensionOf(path: Path): String
+}
+
+note bottom of SecurityPolicyFileFormat
+      extensions: nonnull
+      - allowed: immutable file-extension set
+end note
+
+enum ProgrammingLanguageConfiguration <<enum>> {
+    JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+    JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION
+    JAVA_USING_MAVEN_WALA_AND_ASPECTJ
+    JAVA_USING_MAVEN_WALA_AND_INSTRUMENTATION
+    JAVA_USING_GRADLE_ARCHUNIT_AND_ASPECTJ
+    JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION
+    JAVA_USING_GRADLE_WALA_AND_ASPECTJ
+    JAVA_USING_GRADLE_WALA_AND_INSTRUMENTATION
+    + nameRules(): LanguageNameRules
+}
+
+note bottom of ProgrammingLanguageConfiguration
+      allowed: exactly one of the eight
+      - JAVA_USING_<build tool>_<architecture analyser>_AND_<enforcement mechanism>
+      - build tool: MAVEN | GRADLE
+      - architecture analyser: ARCHUNIT | WALA
+      - enforcement mechanism: ASPECTJ | INSTRUMENTATION
+end note
+
+' ===== Right column: validators and directors =====
+class PolicyValueValidator <<utility>> {
+        - {static} IPV4_COMPONENT: String
+        - {static} IPV4_ADDRESS: String
+        - {static} IPV6_COMPONENT: String
+        - {static} IPV6_ADDRESS: String
+        - {static} DNS_LABEL: String
+        - {static} DNS_NAME: String
+        - {static} RECOGNISED_PLACEHOLDER: String
+        - {static} CONTROL_OR_LINE_SEPARATOR: String
+        + {static} FILE_PATH_PATTERN: Pattern
+        + {static} HOST_PATTERN: Pattern
+        + {static} COMMAND_PATTERN: Pattern
+        + {static} COMMAND_ARGUMENT_PATTERN: Pattern
+        - {static} EXPECTATION_KEYS: Map<Pattern, String>
+        - PolicyValueValidator()
+        + {static} matches(value: String, pattern: Pattern): boolean
+        + {static} requireMatch(field: String, value: String, pattern: Pattern): void
+}
+
+note right of PolicyValueValidator
+      IPV4_COMPONENT: nonnull
+      - regex: IPv4 component
+      IPV4_ADDRESS: nonnull
+      - regex: IPv4 address
+      IPV6_COMPONENT: nonnull
+      - regex: IPv6 component
+      IPV6_ADDRESS: nonnull
+      - regex: IPv6 address
+      DNS_LABEL: nonnull
+      - regex: DNS label
+      DNS_NAME: nonnull
+      - regex: DNS name
+      RECOGNISED_PLACEHOLDER: nonnull
+      - regex: recognised placeholder
+      CONTROL_OR_LINE_SEPARATOR: nonnull
+      - regex: Unicode control | line separator | paragraph separator
+      FILE_PATH_PATTERN: nonnull
+      - regex: valid path | recognised placeholder | "*"
+      HOST_PATTERN: nonnull
+      - regex: DNS | IPv4 | IPv6 | "localhost" | "*"
+      COMMAND_PATTERN: nonnull
+      - regex: non-blank, no control or line separator and no surrounding whitespace | "*"
+      COMMAND_ARGUMENT_PATTERN: nonnull
+      - regex: no control or line separator per entry | "*"
+      EXPECTATION_KEYS: nonnull
+      - allowed: immutable pattern-to-message mapping
+end note
+
 class SecurityPolicySchemaValidator <<utility>> {
         - {static} ROOT_FIELDS: Set<String>
         - {static} SUPERVISED_CODE_FIELDS: Set<String>
@@ -151,17 +229,17 @@ class SecurityPolicySchemaValidator <<utility>> {
         - {static} TIMEOUT_FIELDS: Set<String>
         - SecurityPolicySchemaValidator()
         + {static} validate(root: JsonNode): void
+        - {static} languageRulesFor(configurationName: String): LanguageNameRules
         - {static} validateCommandArray(commands: JsonNode): void
-        - {static} validateObjectArray(node: JsonNode, path: String, allowedFields: Set<String>, requiredFields: Set<String>): void
-        - {static} requireObject(node: JsonNode, path: String, allowedFields: Set<String>, requiredFields: Set<String>): void
+        - {static} validateObjectArray(node: JsonNode, path: String, allowedFields: Set<String>, ...): void
+        - {static} requireObject(node: JsonNode, path: String, allowedFields: Set<String>, ...): void
         - {static} requireOptionalText(parent: JsonNode, field: String, path: String): void
         - {static} requireText(parent: JsonNode, field: String, path: String): void
         - {static} requireIntegral(parent: JsonNode, field: String, path: String): void
-        - {static} requireBooleans(parent: JsonNode, fields: Set<String>, excluded: Set<String>, path: String): void
+        - {static} requireBooleans(parent: JsonNode, fields: Set<String>, excluded: Set<String>, ...): void
         - {static} requireTextArray(node: JsonNode, path: String): void
-        - {static} requireTextArray(node: JsonNode, path: String, pattern: Pattern): void
+        - {static} requireTextArrayAllowingBlankEntries(node: JsonNode, path: String): void
         - {static} requirePattern(parent: JsonNode, field: String, path: String, pattern: Pattern): void
-        - {static} requireOptionalPattern(parent: JsonNode, field: String, path: String, pattern: Pattern): void
         - {static} fail(message: String): void
 }
 
@@ -186,20 +264,6 @@ note right of SecurityPolicySchemaValidator
       - allowed: immutable timeout-field set
 end note
 
-abstract class SecurityPolicyReader {
-    # objectMapper: ObjectMapper
-    + SecurityPolicyReader(objectMapper: ObjectMapper)
-    + {abstract} readSecurityPolicyFrom(securityPolicyPath: Path): SecurityPolicy
-    + {static} selectSecurityPolicyReader(securityPolicyFilePath: Path): SecurityPolicyReader
-    + {static} selectSecurityPolicyReader(securityPolicyFilePath: Path, projectRootPath: Path): SecurityPolicyReader
-    - {static} getFileExtension(path: Path): String
-}
-
-note left of SecurityPolicyReader
-  objectMapper: nonnull
-  - allowed: configured Jackson mapper
-end note
-
 abstract class SecurityPolicyDirector {
     # creator: Creator
     # writer: Writer
@@ -209,7 +273,7 @@ abstract class SecurityPolicyDirector {
     # essentialPackagesPath: Path
     # essentialClassesPath: Path
     + SecurityPolicyDirector(creator: Creator, writer: Writer, executer: Executer, essentialDataReader: EssentialDataReader, ...)
-    + {abstract} createTestCases(securityPolicy: SecurityPolicy, projectFolderPath: Path): TestCaseAbstractFactoryAndBuilder
+    + {abstract} createTestCases(securityPolicy: SecurityPolicy, projectRootPath: Path): TestCaseAbstractFactoryAndBuilder
     + {abstract} createTestCases(securityPolicy: SecurityPolicy, projectRootPath: Path, withinPath: Path): TestCaseAbstractFactoryAndBuilder
     + {static} selectSecurityPolicyDirector(securityPolicy: SecurityPolicy): SecurityPolicyDirector
     - {static} buildJavaDirector(): SecurityPolicyDirector
@@ -232,25 +296,12 @@ note right of SecurityPolicyDirector
       - allowed: essential-classes YAML path
 end note
 
-class SecurityPolicyYAMLReader {
-    - projectRootPath: Path
-    + SecurityPolicyYAMLReader(yamlMapper: YAMLMapper)
-    + SecurityPolicyYAMLReader(yamlMapper: YAMLMapper, projectRootPath: Path)
-    + readSecurityPolicyFrom(securityPolicyPath: Path): SecurityPolicy
-    + {static} yamlBuilder(): SecurityPolicyYAMLReader.Builder
-}
-
-note left of SecurityPolicyYAMLReader
-  projectRootPath: nullable
-  - allowed: normalised absolute project root
-end note
-
 class SecurityPolicyJavaDirector {
         + {static} DEFAULT_ESSENTIAL_PACKAGES_PATH: Path
         + {static} DEFAULT_ESSENTIAL_CLASSES_PATH: Path
         + SecurityPolicyJavaDirector(creator: JavaCreator, writer: JavaWriter, executer: JavaExecuter, ...)
         - generateFactoryAndBuilder(buildMode: BuildMode, architectureMode: ArchitectureMode, aopMode: AOPMode, ...): TestCaseAbstractFactoryAndBuilder
-        + createTestCases(securityPolicy: SecurityPolicy, projectFolderPath: Path): TestCaseAbstractFactoryAndBuilder
+        + createTestCases(securityPolicy: SecurityPolicy, projectRootPath: Path): TestCaseAbstractFactoryAndBuilder
         + createTestCases(securityPolicy: SecurityPolicy, projectRootPath: Path, withinPath: Path): TestCaseAbstractFactoryAndBuilder
         - buildModeOf(policy: SecurityPolicy): BuildMode
         + {static} javaBuilder(): SecurityPolicyJavaDirector.Builder
@@ -263,51 +314,45 @@ note right of SecurityPolicyJavaDirector
       - allowed: EssentialClasses.yaml source path
 end note
 
-SecurityPolicyReaderAndDirector "1" -[norank]-> "0..1" SecurityPolicyDirector : - securityPolicyDirector: SecurityPolicyDirector
-
-SecurityPolicyYAMLReader ..[norank]..> SecurityPolicySchemaValidator : validates parsed tree
-SecurityPolicySchemaValidator ..[norank]..> PolicyValueValidator : uses patterns
-SecurityPolicyReader ..[norank]..> SecurityPolicy : returns
-SecurityPolicyDirector ..[norank]..> SecurityPolicy : consumes
-SecurityPolicyReaderAndDirector ..[norank]..> SecurityPolicy : coordinates
-
-SecurityPolicy -[hidden]right- PolicyValueValidator
-SecurityPolicyReaderAndDirector -[hidden]right- SecurityPolicySchemaValidator
-SecurityPolicyReader -[hidden]right- SecurityPolicyDirector
-SecurityPolicyYAMLReader -[hidden]right- SecurityPolicyJavaDirector
-
-SecurityPolicy -[hidden]down- SecurityPolicyReaderAndDirector
-PolicyValueValidator -[hidden]down- SecurityPolicySchemaValidator
-SecurityPolicySchemaValidator -[hidden]down- SecurityPolicyDirector
-
-' Repeated hidden rails are the standard for strict centre-aligned columns.
-SecurityPolicy -[hidden]down- SecurityPolicyReaderAndDirector
-PolicyValueValidator -[hidden]down- SecurityPolicySchemaValidator
-SecurityPolicySchemaValidator -[hidden]down- SecurityPolicyDirector
-
-SecurityPolicy -[hidden]down- SecurityPolicyReaderAndDirector
-PolicyValueValidator -[hidden]down- SecurityPolicySchemaValidator
-SecurityPolicySchemaValidator -[hidden]down- SecurityPolicyDirector
-
-' The visible association occupies the centre lane of this five-edge bundle.
-SecurityPolicyReaderAndDirector -[hidden]down- SecurityPolicyReader
-SecurityPolicyReaderAndDirector -[hidden]down- SecurityPolicyReader
-SecurityPolicyReaderAndDirector "1" -down-> "0..1" SecurityPolicyReader : - securityPolicyReader: SecurityPolicyReader
-SecurityPolicyReaderAndDirector -[hidden]down- SecurityPolicyReader
-SecurityPolicyReaderAndDirector -[hidden]down- SecurityPolicyReader
-
-' The fifth lane centres the left-column inheritance.
-SecurityPolicyReader -[hidden]down- SecurityPolicyYAMLReader
-SecurityPolicyReader -[hidden]down- SecurityPolicyYAMLReader
-SecurityPolicyReader -[hidden]down- SecurityPolicyYAMLReader
-SecurityPolicyReader -[hidden]down- SecurityPolicyYAMLReader
+' ===== Inheritance and realisation =====
 SecurityPolicyReader <|-down- SecurityPolicyYAMLReader
-
-' The fifth lane centres the right-column inheritance.
-SecurityPolicyDirector -[hidden]down- SecurityPolicyJavaDirector
-SecurityPolicyDirector -[hidden]down- SecurityPolicyJavaDirector
-SecurityPolicyDirector -[hidden]down- SecurityPolicyJavaDirector
-SecurityPolicyDirector -[hidden]down- SecurityPolicyJavaDirector
 SecurityPolicyDirector <|-down- SecurityPolicyJavaDirector
+LanguageNameRules <|.down. JavaNameRules
+
+' ===== Associations =====
+SecurityPolicyReaderAndDirector "1" -[norank]down-> "0..1" SecurityPolicyReader : - securityPolicyReader: SecurityPolicyReader
+SecurityPolicyReaderAndDirector "1" -[norank]right-> "0..1" SecurityPolicyDirector : - securityPolicyDirector: SecurityPolicyDirector
+SecurityPolicyReaderAndDirector ..[norank]..> SecurityPolicy : coordinates
+SecurityPolicyReader ..[norank]..> SecurityPolicy : returns
+SecurityPolicyReader ..[norank]right..> SecurityPolicyFileFormat : resolves format
+SecurityPolicyDirector ..[norank]..> SecurityPolicy : consumes
+SecurityPolicyDirector ..[norank]left..> ProgrammingLanguageConfiguration : selects by configuration
+ProgrammingLanguageConfiguration ..[norank]up..> LanguageNameRules : nameRules()
+SecurityPolicyYAMLReader ..[norank]..> SecurityPolicySchemaValidator : validates parsed tree
+SecurityPolicySchemaValidator ..[norank]up..> PolicyValueValidator : uses patterns
+SecurityPolicySchemaValidator ..[norank]left..> LanguageNameRules : validates names
+
+' ===== Hidden ranking rails: rows =====
+SecurityPolicy -[hidden]right- LanguageNameRules
+LanguageNameRules -[hidden]right- PolicyValueValidator
+SecurityPolicyReaderAndDirector -[hidden]right- JavaNameRules
+JavaNameRules -[hidden]right- SecurityPolicySchemaValidator
+SecurityPolicyReader -[hidden]right- SecurityPolicyFileFormat
+SecurityPolicyFileFormat -[hidden]right- SecurityPolicyDirector
+SecurityPolicyYAMLReader -[hidden]right- ProgrammingLanguageConfiguration
+ProgrammingLanguageConfiguration -[hidden]right- SecurityPolicyJavaDirector
+
+' ===== Hidden ranking rails: columns =====
+SecurityPolicy -[hidden]down- SecurityPolicyReaderAndDirector
+SecurityPolicyReaderAndDirector -[hidden]down- SecurityPolicyReader
+SecurityPolicyReader -[hidden]down- SecurityPolicyYAMLReader
+
+LanguageNameRules -[hidden]down- JavaNameRules
+JavaNameRules -[hidden]down- SecurityPolicyFileFormat
+SecurityPolicyFileFormat -[hidden]down- ProgrammingLanguageConfiguration
+
+PolicyValueValidator -[hidden]down- SecurityPolicySchemaValidator
+SecurityPolicySchemaValidator -[hidden]down- SecurityPolicyDirector
+SecurityPolicyDirector -[hidden]down- SecurityPolicyJavaDirector
 
 @enduml

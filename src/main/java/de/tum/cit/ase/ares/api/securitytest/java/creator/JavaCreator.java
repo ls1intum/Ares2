@@ -65,6 +65,30 @@ public class JavaCreator implements Creator {
 				"buildConfiguration must not be null");
 	}
 
+	/**
+	 * Returns the creator to use once the build configuration has been discovered.
+	 * <p>
+	 * A framework-default {@code JavaCreator} is created without a build
+	 * configuration and is rebound here to the one discovered for the run. A
+	 * caller-supplied subclass is returned unchanged, so a custom creator injected
+	 * through the director builder is never silently replaced; such a subclass can
+	 * override this method if it does want to be rebound. This lets the director
+	 * ask each collaborator to configure itself, rather than inspecting its
+	 * concrete type.
+	 *
+	 * @since 2.1.0
+	 * @author Markus Paulsen
+	 * @param buildConfiguration the discovered build configuration; must not be
+	 *                           null.
+	 * @return the creator bound to the configuration, or this instance when it is a
+	 *         custom subclass.
+	 */
+	@Nonnull
+	public JavaCreator withBuildConfiguration(@Nonnull BuildToolConfiguration buildConfiguration) {
+		java.util.Objects.requireNonNull(buildConfiguration, "buildConfiguration must not be null");
+		return getClass() == JavaCreator.class ? new JavaCreator(buildConfiguration) : this;
+	}
+
 	// Within-run memoisation of the resolved classpath, imported JavaClasses and
 	// call
 	// graph, shared across the test cases built by a single createTestCases call.
