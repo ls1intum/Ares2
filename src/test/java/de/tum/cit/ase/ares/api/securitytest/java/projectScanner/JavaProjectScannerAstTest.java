@@ -96,7 +96,7 @@ class JavaProjectScannerAstTest {
 	}
 
 	@Test
-	void ranksMainClassesAndRejectsNonMainSignatures() throws IOException {
+	void ranksValidMainClassesByPreference() throws IOException {
 		Path production = Files.createDirectories(root.resolve("src/main/java"));
 		Path tests = Files.createDirectories(root.resolve("src/test/java"));
 		Files.writeString(production.resolve("Main.java"), """
@@ -115,9 +115,26 @@ class JavaProjectScannerAstTest {
 				package app;
 				class Zeta { public static void main(String... arguments) {} }
 				""");
-		Files.writeString(production.resolve("Helpers.java"), """
+		// Main outranks Application, which outranks the remaining classes
+		// alphabetically.
+		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
+		assertEquals("Main", scanner.scanForMainClassInPackage());
+	}
+
+	@Test
+	void rejectsNonMainSignaturesEvenWhenTheClassWouldRankFirst() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		// Every signature here is not a valid entry point (wrong name, non-public,
+		// non-static, non-void, wrong arity, non-array and non-String array/varargs
+		// parameters). The class is named "Main" so that it would win the ranking if
+		// any
+		// signature were wrongly accepted; asserting the valid "Fallback" wins
+		// therefore
+		// proves each invalid signature is rejected, not merely executed.
+		Files.writeString(production.resolve("Main.java"), """
 				package app;
-				class Helpers {
+				class Main {
 				  public static void notMain(String[] arguments) {}
 				  static void main(String[] arguments) {}
 				  public void main(String[] arguments) {}
@@ -128,8 +145,12 @@ class JavaProjectScannerAstTest {
 				  public static void main(int... numbers) {}
 				}
 				""");
+		Files.writeString(production.resolve("Fallback.java"), """
+				package app;
+				class Fallback { public static void main(String[] arguments) {} }
+				""");
 		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
-		assertEquals("Main", scanner.scanForMainClassInPackage());
+		assertEquals("Fallback", scanner.scanForMainClassInPackage());
 	}
 
 	@Test
