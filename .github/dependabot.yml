@@ -17,7 +17,7 @@ updates:
     # Revisit once jqwik ships a JUnit 6 compatible release.
     ignore:
       - dependency-name: "net.jqwik:jqwik"
-        versions: [ ">=1.10.0" ]
+        versions: [">=1.10.0"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
