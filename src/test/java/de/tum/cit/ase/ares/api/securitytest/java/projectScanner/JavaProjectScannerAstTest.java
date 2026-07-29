@@ -129,6 +129,32 @@ class JavaProjectScannerAstTest {
 		assertArrayEquals(new String[] { "DefaultPackageCases" }, scanner.scanForTestClasses());
 	}
 
+	@Test
+	void prefersMainThenApplicationAndRecognisesJUnitThreeTestCases() throws IOException {
+		Path production = Files.createDirectories(root.resolve("pref/main"));
+		Path tests = Files.createDirectories(root.resolve("pref/test"));
+		Files.writeString(production.resolve("Mains.java"), """
+				package pref;
+				class Zebra { public static void main(String[] arguments) {} }
+				class Application { public static void main(String[] arguments) {} }
+				class Main { public static void main(String[] arguments) {} }
+				""");
+		Files.writeString(tests.resolve("LegacyTests.java"), """
+				package pref;
+				import junit.framework.TestCase;
+				import org.junit.jupiter.api.Test;
+				class LegacyCase extends TestCase { public void testSomething() {} }
+				@Test class ClassLevelAnnotated {}
+				class PlainHelper extends Object { void doWork() {} }
+				""");
+		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
+		// Main is preferred over Application, which is preferred over any other name.
+		assertEquals("Main", scanner.scanForMainClassInPackage());
+		// A JUnit 3 class extending TestCase and a class with a class-level test
+		// annotation are both recognised, while a plain class that does neither is not.
+		assertArrayEquals(new String[] { "pref.ClassLevelAnnotated", "pref.LegacyCase" }, scanner.scanForTestClasses());
+	}
+
 	private BuildToolConfiguration configuration(Path production, Path tests) {
 		return new BuildToolConfiguration(BuildMode.MAVEN, root, List.of(production), List.of(tests),
 				root.resolve("target/classes"), root.resolve("target/test-classes"));

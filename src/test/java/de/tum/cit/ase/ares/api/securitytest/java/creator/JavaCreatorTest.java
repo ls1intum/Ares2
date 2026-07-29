@@ -28,6 +28,7 @@ import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.phobos.PhobosTestCase;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
 
@@ -377,5 +378,19 @@ public class JavaCreatorTest {
 		Set<PackagePermission> nullPackage = (Set<PackagePermission>) prepare.invoke(creator, List.of(), restrictive,
 				null, List.of());
 		assertTrue(nullPackage.isEmpty());
+	}
+
+	@Test
+	void prepareAllowedClassesFiltersNullAndBlankBeforeValidating() throws Exception {
+		JavaCreator creator = new JavaCreator();
+		Method prepare = JavaCreator.class.getDeclaredMethod("prepareAllowedClasses", List.class, List.class);
+		prepare.setAccessible(true);
+		// Each source list carries a valid entry plus a blank and a null one, which are
+		// filtered before the Java class-path syntax check.
+		@SuppressWarnings("unchecked")
+		Set<ClassPermission> result = (Set<ClassPermission>) prepare.invoke(creator,
+				Arrays.asList("com.example.Foo", "   ", null), Arrays.asList("com.example.BarTest", "", null));
+		assertEquals(Set.of(new ClassPermission("com.example.Foo"), new ClassPermission("com.example.BarTest")),
+				result);
 	}
 }
