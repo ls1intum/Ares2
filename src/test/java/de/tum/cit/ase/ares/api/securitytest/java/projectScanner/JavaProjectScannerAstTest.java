@@ -68,8 +68,7 @@ class JavaProjectScannerAstTest {
 				class FullyQualifiedCases { @de.tum.cit.ase.ares.api.jupiter.PublicTest void qualified() {} }
 				""");
 		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
-		assertArrayEquals(
-				new String[] { "checks.FullyQualifiedCases", "checks.HiddenCases", "checks.PublicCases" },
+		assertArrayEquals(new String[] { "checks.FullyQualifiedCases", "checks.HiddenCases", "checks.PublicCases" },
 				scanner.scanForTestClasses());
 	}
 
