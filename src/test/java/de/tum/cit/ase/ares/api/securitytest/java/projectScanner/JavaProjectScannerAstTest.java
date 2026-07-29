@@ -187,6 +187,33 @@ class JavaProjectScannerAstTest {
 				scanner.scanForTestClasses());
 	}
 
+	@Test
+	void ignoresLocalLookalikeAnnotationsButHonoursImportedAresAnnotations() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.writeString(production.resolve("Solution.java"), "package sol; class Solution {}\n");
+		// Locally declared look-alikes with no Ares import must not mark classes as
+		// tests.
+		Files.writeString(tests.resolve("Spoof.java"), """
+				package checks;
+				@interface PublicTest {}
+				@interface HiddenTest {}
+				class SpoofPublic { @PublicTest void looksLikeATest() {} }
+				class SpoofHidden { @HiddenTest void looksLikeATest() {} }
+				""");
+		// A wildcard import of the Ares package makes the bare simple name trustworthy;
+		// an
+		// unrelated wildcard import must be ignored.
+		Files.writeString(tests.resolve("WildcardCase.java"), """
+				package checks;
+				import java.util.*;
+				import de.tum.cit.ase.ares.api.jupiter.*;
+				class WildcardCase { @PublicTest void real() {} }
+				""");
+		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
+		assertArrayEquals(new String[] { "checks.WildcardCase" }, scanner.scanForTestClasses());
+	}
+
 	private BuildToolConfiguration configuration(Path production, Path tests) {
 		return new BuildToolConfiguration(BuildMode.MAVEN, root, List.of(production), List.of(tests),
 				root.resolve("target/classes"), root.resolve("target/test-classes"));

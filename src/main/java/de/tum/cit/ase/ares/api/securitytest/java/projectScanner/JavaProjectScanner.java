@@ -19,6 +19,7 @@ import com.github.javaparser.JavaParser;
 import com.github.javaparser.ParseProblemException;
 import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.body.AnnotationDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
@@ -33,7 +34,16 @@ import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 /** JavaParser-backed, deterministic Java project scanner. */
 public class JavaProjectScanner implements ProjectScanner {
 	private static final Set<String> TEST_ANNOTATIONS = Set.of("Test", "org.junit.Test", "ParameterizedTest",
-			"RepeatedTest", "TestFactory", "TestTemplate", "Property", "Example", "PublicTest", "HiddenTest");
+			"RepeatedTest", "TestFactory", "TestTemplate", "Property", "Example");
+	// Ares' own test annotations are trusted by fully-qualified name only. A bare
+	// simple
+	// name counts solely when the compilation unit genuinely imports the Ares type
+	// (direct
+	// or wildcard), so a locally declared look-alike @interface cannot mark a class
+	// as a
+	// test class in the no-policy scan.
+	private static final Map<String, String> ARES_TEST_ANNOTATIONS = Map.of("PublicTest",
+			"de.tum.cit.ase.ares.api.jupiter.PublicTest", "HiddenTest", "de.tum.cit.ase.ares.api.jupiter.HiddenTest");
 	private final BuildToolConfiguration buildConfiguration;
 	private final JavaParser parser = new JavaParser(
 			new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17));
@@ -127,13 +137,18 @@ public class JavaProjectScanner implements ProjectScanner {
 	@Nonnull
 	public String[] scanForTestClasses() {
 		List<CompilationUnit> units = javaFiles(testRoots()).stream().map(this::parse).toList();
+		Map<CompilationUnit, Set<String>> aresImportsByUnit = new HashMap<>();
+		for (CompilationUnit unit : units) {
+			aresImportsByUnit.put(unit, importedAresAnnotations(unit));
+		}
 		Set<String> recognisedAnnotations = new HashSet<>(TEST_ANNOTATIONS);
 		boolean changed;
 		do {
 			changed = false;
 			for (CompilationUnit unit : units) {
+				Set<String> aresImports = aresImportsByUnit.get(unit);
 				for (AnnotationDeclaration declaration : unit.findAll(AnnotationDeclaration.class)) {
-					if (hasRecognisedAnnotation(declaration.getAnnotations(), recognisedAnnotations)) {
+					if (hasRecognisedAnnotation(declaration.getAnnotations(), recognisedAnnotations, aresImports)) {
 						changed |= recognisedAnnotations.add(declaration.getNameAsString());
 					}
 				}
@@ -141,6 +156,7 @@ public class JavaProjectScanner implements ProjectScanner {
 		} while (changed);
 		Set<String> classes = new HashSet<>();
 		for (CompilationUnit unit : units) {
+			Set<String> aresImports = aresImportsByUnit.get(unit);
 			String packageName = packageName(unit);
 			for (TypeDeclaration<?> type : unit.findAll(TypeDeclaration.class)) {
 				if (type.isAnnotationDeclaration()) {
@@ -148,9 +164,11 @@ public class JavaProjectScanner implements ProjectScanner {
 				}
 				boolean junitThree = type.isClassOrInterfaceDeclaration() && type.asClassOrInterfaceDeclaration()
 						.getExtendedTypes().stream().anyMatch(parent -> parent.getNameAsString().equals("TestCase"));
-				boolean annotatedTest = hasRecognisedAnnotation(type.getAnnotations(), recognisedAnnotations)
-						|| type.getMethods().stream().anyMatch(
-								method -> hasRecognisedAnnotation(method.getAnnotations(), recognisedAnnotations));
+				boolean annotatedTest = hasRecognisedAnnotation(type.getAnnotations(), recognisedAnnotations,
+						aresImports)
+						|| type.getMethods().stream()
+								.anyMatch(method -> hasRecognisedAnnotation(method.getAnnotations(),
+										recognisedAnnotations, aresImports));
 				if (junitThree || annotatedTest) {
 					classes.add(qualifiedTypeName(packageName, type));
 				}
@@ -159,9 +177,38 @@ public class JavaProjectScanner implements ProjectScanner {
 		return classes.stream().sorted().toArray(String[]::new);
 	}
 
-	private boolean hasRecognisedAnnotation(List<AnnotationExpr> annotations, Set<String> recognised) {
+	private Set<String> importedAresAnnotations(CompilationUnit unit) {
+		Set<String> imported = new HashSet<>();
+		for (ImportDeclaration importDeclaration : unit.getImports()) {
+			String importedName = importDeclaration.getNameAsString();
+			for (Map.Entry<String, String> annotation : ARES_TEST_ANNOTATIONS.entrySet()) {
+				String qualifiedName = annotation.getValue();
+				String annotationPackage = qualifiedName.substring(0, qualifiedName.lastIndexOf('.'));
+				boolean directImport = !importDeclaration.isAsterisk() && importedName.equals(qualifiedName);
+				boolean wildcardImport = importDeclaration.isAsterisk() && importedName.equals(annotationPackage);
+				if (directImport || wildcardImport) {
+					imported.add(annotation.getKey());
+				}
+			}
+		}
+		return imported;
+	}
+
+	private boolean hasRecognisedAnnotation(List<AnnotationExpr> annotations, Set<String> recognised,
+			Set<String> aresImports) {
 		return annotations.stream().map(annotation -> annotation.getNameAsString())
-				.anyMatch(name -> recognised.contains(name) || recognised.contains(simpleName(name)));
+				.anyMatch(name -> recognised.contains(name) || recognised.contains(simpleName(name))
+						|| isTrustedAresAnnotation(name, aresImports));
+	}
+
+	// A bare Ares simple name is trusted only when the unit imports it; a
+	// fully-qualified
+	// use is always trusted. This rejects a student's locally declared look-alike.
+	private boolean isTrustedAresAnnotation(String name, Set<String> aresImports) {
+		if (ARES_TEST_ANNOTATIONS.containsValue(name)) {
+			return true;
+		}
+		return aresImports.contains(name);
 	}
 
 	private String simpleName(String name) {
