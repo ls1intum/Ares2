@@ -148,8 +148,15 @@ public class JavaProjectScanner implements ProjectScanner {
 			for (CompilationUnit unit : units) {
 				Set<String> aresImports = aresImportsByUnit.get(unit);
 				for (AnnotationDeclaration declaration : unit.findAll(AnnotationDeclaration.class)) {
+					String declarationName = declaration.getNameAsString();
+					// A reserved Ares simple name must never enter the simple-name set: it
+					// always has to pass the import check, so a local look-alike cannot be
+					// promoted by meta-annotating it with an already-recognised annotation.
+					if (ARES_TEST_ANNOTATIONS.containsKey(declarationName)) {
+						continue;
+					}
 					if (hasRecognisedAnnotation(declaration.getAnnotations(), recognisedAnnotations, aresImports)) {
-						changed |= recognisedAnnotations.add(declaration.getNameAsString());
+						changed |= recognisedAnnotations.add(declarationName);
 					}
 				}
 			}

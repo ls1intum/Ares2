@@ -201,6 +201,15 @@ class JavaProjectScannerAstTest {
 				class SpoofPublic { @PublicTest void looksLikeATest() {} }
 				class SpoofHidden { @HiddenTest void looksLikeATest() {} }
 				""");
+		// A look-alike meta-annotated with a recognised annotation must not slip into
+		// the
+		// shared simple-name set and thereby bypass the import check for @PublicTest.
+		Files.writeString(tests.resolve("MetaSpoof.java"), """
+				package checks;
+				import org.junit.jupiter.api.Test;
+				@Test @interface PublicTest {}
+				class MetaSpoofed { @PublicTest void looksLikeATest() {} }
+				""");
 		// A wildcard import of the Ares package makes the bare simple name trustworthy;
 		// an
 		// unrelated wildcard import must be ignored.
