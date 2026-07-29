@@ -4,6 +4,11 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      maven-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
     # jqwik is pinned to the newest 1.9.x in pom.xml and renovate.json: the 1.10.x
     # engine is not built for the JUnit 6 platform Ares declares directly and fails
     # deterministically with an ArrayIndexOutOfBoundsException in
@@ -17,3 +22,8 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      github-actions-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
