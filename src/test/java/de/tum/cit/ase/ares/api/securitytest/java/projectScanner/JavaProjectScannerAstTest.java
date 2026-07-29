@@ -200,6 +200,7 @@ class JavaProjectScannerAstTest {
 				@interface HiddenTest {}
 				class SpoofPublic { @PublicTest void looksLikeATest() {} }
 				class SpoofHidden { @HiddenTest void looksLikeATest() {} }
+				class Unrelated { @java.lang.Deprecated void notATest() {} }
 				""");
 		// A look-alike meta-annotated with a recognised annotation must not slip into
 		// the
