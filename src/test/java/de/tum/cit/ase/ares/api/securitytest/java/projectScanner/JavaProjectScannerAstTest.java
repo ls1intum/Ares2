@@ -95,6 +95,77 @@ class JavaProjectScannerAstTest {
 		assertEquals("Unreadable Java source root: " + production.toRealPath(), failure.getMessage());
 	}
 
+	@Test
+	void ranksMainClassesAndRejectsNonMainSignatures() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.writeString(production.resolve("Main.java"), """
+				package app;
+				class Main { public static void main(String[] arguments) {} }
+				""");
+		Files.writeString(production.resolve("Beta.java"), """
+				package app;
+				class Beta { public static void main(java.lang.String[] arguments) {} }
+				""");
+		Files.writeString(production.resolve("Application.java"), """
+				package app;
+				class Application { public static void main(java.lang.String... arguments) {} }
+				""");
+		Files.writeString(production.resolve("Zeta.java"), """
+				package app;
+				class Zeta { public static void main(String... arguments) {} }
+				""");
+		Files.writeString(production.resolve("Helpers.java"), """
+				package app;
+				class Helpers {
+				  public static void notMain(String[] arguments) {}
+				  static void main(String[] arguments) {}
+				  public void main(String[] arguments) {}
+				  public static int main(String[] arguments) { return 0; }
+				  public static void main() {}
+				  public static void main(String single) {}
+				  public static void main(int[] numbers) {}
+				  public static void main(int... numbers) {}
+				}
+				""");
+		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
+		assertEquals("Main", scanner.scanForMainClassInPackage());
+	}
+
+	@Test
+	void recognisesJunitThreeTypeLevelAndDefaultPackageTestClasses() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		// A default-package production class must be skipped when picking the package
+		// name.
+		Files.writeString(production.resolve("Rooted.java"), "class Rooted {}\n");
+		// A reserved-prefix production class must also be skipped when picking the
+		// package name.
+		Files.writeString(production.resolve("Reserved.java"), "package metatest; class Reserved {}\n");
+		Files.writeString(production.resolve("Solution.java"), "package sol; class Solution {}\n");
+		Files.writeString(tests.resolve("LegacyCase.java"), """
+				package checks;
+				class LegacyCase extends TestCase { public void testLegacy() {} }
+				""");
+		// A plain non-test class in the test root must not be reported as a test class.
+		Files.writeString(tests.resolve("PlainHelper.java"), """
+				package checks;
+				class PlainHelper {}
+				""");
+		Files.writeString(tests.resolve("TypeAnnotated.java"), """
+				package checks;
+				@org.junit.jupiter.api.Test class TypeAnnotated {}
+				""");
+		// A default-package test class exercises the empty-package qualified-name join.
+		Files.writeString(tests.resolve("DefaultPackageCase.java"), """
+				@org.junit.jupiter.api.Test class DefaultPackageCase {}
+				""");
+		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
+		assertEquals("sol", scanner.scanForPackageName());
+		assertArrayEquals(new String[] { "DefaultPackageCase", "checks.LegacyCase", "checks.TypeAnnotated" },
+				scanner.scanForTestClasses());
+	}
+
 	private BuildToolConfiguration configuration(Path production, Path tests) {
 		return new BuildToolConfiguration(BuildMode.MAVEN, root, List.of(production), List.of(tests),
 				root.resolve("target/classes"), root.resolve("target/test-classes"));
