@@ -33,15 +33,19 @@ import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 
 /** JavaParser-backed, deterministic Java project scanner. */
 public class JavaProjectScanner implements ProjectScanner {
-	// The test annotations Ares recognises, each mapped to the fully-qualified
-	// type(s) it
-	// may denote. A bare simple name is trusted only when the compilation unit
-	// imports the
-	// matching type (directly or by package wildcard); a fully-qualified use is
-	// always
-	// trusted. This keeps a locally declared look-alike @interface from marking a
-	// class as
+	// The test annotations Ares recognises, mapped to the fully-qualified
+	// type(s) each simple name may denote. A bare simple name is trusted
+	// only when the compilation unit imports the matching type (directly or
+	// by package wildcard); a fully-qualified use is always trusted. This
+	// keeps a locally declared look-alike @interface from marking a class as
 	// a test in the no-policy scan.
+	//
+	// Maintenance: an annotation absent from this map is silently not
+	// recognised, so its tests are no longer detected. Add new JUnit, jqwik
+	// or Ares test annotation types here when they are introduced, for
+	// example a future de.tum.cit.ase.ares.api.jqwik.PublicTest (only the
+	// Jupiter variants of PublicTest/HiddenTest exist today; jqwik supplies
+	// Public/Hidden, which accompany net.jqwik.api.Property/Example).
 	private static final Map<String, Set<String>> TEST_ANNOTATIONS = Map.ofEntries(
 			Map.entry("Test", Set.of("org.junit.jupiter.api.Test", "org.junit.Test")),
 			Map.entry("ParameterizedTest", Set.of("org.junit.jupiter.params.ParameterizedTest")),
