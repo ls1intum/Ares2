@@ -2,10 +2,14 @@ package de.tum.cit.ase.ares.api.policy;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -112,5 +116,43 @@ class PolicyValueValidatorTest {
 		assertThrows(IllegalArgumentException.class,
 				() -> new SupervisedCode(ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ,
 						"de.übung", "Main", List.of("de.übung."), resources));
+	}
+
+	@Test
+	void matchesReturnsFalseForANullValue() {
+		assertFalse(PolicyValueValidator.matches(null, PolicyValueValidator.FILE_PATH_PATTERN));
+	}
+
+	@Test
+	void requireMatchAcceptsAValueMatchingThePattern() {
+		assertDoesNotThrow(
+				() -> PolicyValueValidator.requireMatch("path", "/tmp/data", PolicyValueValidator.FILE_PATH_PATTERN));
+	}
+
+	@Test
+	void requireMatchReportsTheFieldSpecificExpectationForAKnownPattern() {
+		IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
+				() -> PolicyValueValidator.requireMatch("onTheHost", "not a host", PolicyValueValidator.HOST_PATTERN));
+		// The mapped, human-readable expectation is used, not the raw pattern source
+		// that
+		// the unmapped fallback would emit.
+		assertTrue(thrown.getMessage().contains("not a host"));
+		assertFalse(thrown.getMessage().contains(PolicyValueValidator.HOST_PATTERN.pattern()));
+	}
+
+	@Test
+	void requireMatchFallsBackToThePatternSourceForAnUnmappedPattern() {
+		Pattern unmapped = Pattern.compile("^[a-z]+$");
+		IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
+				() -> PolicyValueValidator.requireMatch("field", "BAD", unmapped));
+		assertTrue(thrown.getMessage().contains(unmapped.pattern()));
+	}
+
+	@Test
+	void cannotBeInstantiatedReflectively() throws NoSuchMethodException {
+		Constructor<PolicyValueValidator> constructor = PolicyValueValidator.class.getDeclaredConstructor();
+		constructor.setAccessible(true);
+		InvocationTargetException thrown = assertThrows(InvocationTargetException.class, constructor::newInstance);
+		assertInstanceOf(SecurityException.class, thrown.getCause());
 	}
 }

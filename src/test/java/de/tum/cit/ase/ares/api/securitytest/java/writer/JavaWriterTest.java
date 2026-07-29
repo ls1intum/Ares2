@@ -421,4 +421,15 @@ public class JavaWriterTest {
 			}
 		}
 	}
+
+	@Test
+	void constructorRejectsANullProjectRoot() {
+		assertThrows(NullPointerException.class, () -> new JavaWriter((Path) null));
+	}
+
+	@Test
+	void constructorRejectsAProjectRootThatIsNotADirectory() throws IOException {
+		Path file = Files.createFile(tempDir.resolve("not-a-directory.txt"));
+		assertThrows(IllegalArgumentException.class, () -> new JavaWriter(file));
+	}
 }
