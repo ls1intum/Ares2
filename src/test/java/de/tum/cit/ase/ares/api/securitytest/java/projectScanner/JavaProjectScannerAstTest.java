@@ -211,17 +211,52 @@ class JavaProjectScannerAstTest {
 				@Test @interface PublicTest {}
 				class MetaSpoofed { @PublicTest void looksLikeATest() {} }
 				""");
-		// A wildcard import of the Ares package makes the bare simple name trustworthy;
-		// an
-		// unrelated wildcard import must be ignored.
+		// In a package that declares no look-alike, a wildcard import of the Ares
+		// package
+		// makes the bare simple name trustworthy; an unrelated wildcard is ignored.
 		Files.writeString(tests.resolve("WildcardCase.java"), """
-				package checks;
+				package genuine;
 				import java.util.*;
 				import de.tum.cit.ase.ares.api.jupiter.*;
 				class WildcardCase { @PublicTest void real() {} }
 				""");
 		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
-		assertArrayEquals(new String[] { "checks.WildcardCase" }, scanner.scanForTestClasses());
+		assertArrayEquals(new String[] { "genuine.WildcardCase" }, scanner.scanForTestClasses());
+	}
+
+	@Test
+	void rejectsWildcardImportedNamesShadowedByALocalAnnotation() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.writeString(production.resolve("Solution.java"), "package sol; class Solution {}\n");
+		// A wildcard import does not establish identity: the annotation declared in the
+		// same package shadows it, so Java binds the bare name to the local type.
+		Files.writeString(tests.resolve("ShadowSpoof.java"), """
+				package checks;
+				import de.tum.cit.ase.ares.api.jupiter.*;
+				@interface PublicTest {}
+				class ShadowSpoofed { @PublicTest void looksLikeATest() {} }
+				""");
+		// The same trick against a JUnit name, with the look-alike in a sibling file of
+		// the same package rather than the using file itself.
+		Files.writeString(tests.resolve("ShadowedName.java"), """
+				package siblings;
+				@interface Test {}
+				""");
+		Files.writeString(tests.resolve("ShadowSibling.java"), """
+				package siblings;
+				import org.junit.jupiter.api.*;
+				class ShadowSibling { @Test void looksLikeATest() {} }
+				""");
+		// A fully-qualified use names the type outright and stays trustworthy, even in
+		// a
+		// package that declares a look-alike.
+		Files.writeString(tests.resolve("GenuineCase.java"), """
+				package checks;
+				class GenuineCase { @de.tum.cit.ase.ares.api.jupiter.PublicTest void real() {} }
+				""");
+		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
+		assertArrayEquals(new String[] { "checks.GenuineCase" }, scanner.scanForTestClasses());
 	}
 
 	private BuildToolConfiguration configuration(Path production, Path tests) {

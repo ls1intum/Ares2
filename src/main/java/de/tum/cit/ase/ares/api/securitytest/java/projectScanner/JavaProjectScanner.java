@@ -149,9 +149,22 @@ public class JavaProjectScanner implements ProjectScanner {
 	@Nonnull
 	public String[] scanForTestClasses() {
 		List<CompilationUnit> units = javaFiles(testRoots()).stream().map(this::parse).toList();
+		// Annotation types the scanned sources declare themselves, grouped by package.
+		// A
+		// type declared in the using file's own package shadows a package wildcard of
+		// the
+		// same simple name, so such a name must not be trusted on a wildcard alone.
+		Map<String, Set<String>> declaredAnnotationsByPackage = new HashMap<>();
+		for (CompilationUnit unit : units) {
+			Set<String> declared = declaredAnnotationsByPackage.computeIfAbsent(packageName(unit),
+					key -> new HashSet<>());
+			unit.findAll(AnnotationDeclaration.class)
+					.forEach(declaration -> declared.add(declaration.getNameAsString()));
+		}
 		Map<CompilationUnit, Set<String>> importsByUnit = new HashMap<>();
 		for (CompilationUnit unit : units) {
-			importsByUnit.put(unit, importedTestAnnotations(unit));
+			importsByUnit.put(unit, importedTestAnnotations(unit,
+					declaredAnnotationsByPackage.getOrDefault(packageName(unit), Set.of())));
 		}
 		// Project-defined annotations composed from a trusted one (meta-annotations).
 		// They
@@ -196,20 +209,25 @@ public class JavaProjectScanner implements ProjectScanner {
 		return classes.stream().sorted().toArray(String[]::new);
 	}
 
-	// The simple names of the reserved test annotations this unit imports, directly
-	// or by
-	// package wildcard.
-	private Set<String> importedTestAnnotations(CompilationUnit unit) {
+	// The simple names of the reserved test annotations this unit imports. A direct
+	// import establishes identity on its own: Java rejects a same-named type in the
+	// same unit and lets the import outrank one in the same package. A package
+	// wildcard establishes nothing when the unit's own package declares an
+	// annotation of that name, because Java then binds the bare name to that local
+	// type, so the wildcard is ignored in that case.
+	private Set<String> importedTestAnnotations(CompilationUnit unit, Set<String> shadowingAnnotations) {
 		Set<String> imported = new HashSet<>();
 		for (ImportDeclaration importDeclaration : unit.getImports()) {
 			String importedName = importDeclaration.getNameAsString();
 			for (Map.Entry<String, Set<String>> annotation : TEST_ANNOTATIONS.entrySet()) {
+				String simpleName = annotation.getKey();
 				for (String qualifiedName : annotation.getValue()) {
 					String annotationPackage = qualifiedName.substring(0, qualifiedName.lastIndexOf('.'));
 					boolean directImport = !importDeclaration.isAsterisk() && importedName.equals(qualifiedName);
-					boolean wildcardImport = importDeclaration.isAsterisk() && importedName.equals(annotationPackage);
+					boolean wildcardImport = importDeclaration.isAsterisk() && importedName.equals(annotationPackage)
+							&& !shadowingAnnotations.contains(simpleName);
 					if (directImport || wildcardImport) {
-						imported.add(annotation.getKey());
+						imported.add(simpleName);
 					}
 				}
 			}
