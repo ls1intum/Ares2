@@ -60,6 +60,8 @@ public class JavaProjectScanner implements ProjectScanner {
 	// and defeat the resolution check.
 	private static final Set<String> RESERVED_ANNOTATION_NAMES = TEST_ANNOTATIONS.stream()
 			.map(JavaProjectScanner::simpleNameOf).collect(Collectors.toUnmodifiableSet());
+	// The superclass JUnit 3 marks a test class with, recognised on the same terms.
+	private static final String JUNIT_THREE_TEST_CASE = "junit.framework.TestCase";
 	private final BuildToolConfiguration buildConfiguration;
 	private final JavaParser parser = new JavaParser(
 			new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17));
@@ -161,8 +163,9 @@ public class JavaProjectScanner implements ProjectScanner {
 				if (type.isAnnotationDeclaration()) {
 					continue;
 				}
-				boolean junitThree = type.isClassOrInterfaceDeclaration() && type.asClassOrInterfaceDeclaration()
-						.getExtendedTypes().stream().anyMatch(parent -> parent.getNameAsString().equals("TestCase"));
+				boolean junitThree = type.isClassOrInterfaceDeclaration()
+						&& type.asClassOrInterfaceDeclaration().getExtendedTypes().stream()
+								.anyMatch(parent -> resolver.extendsTestCase(unit, parent.getNameAsString()));
 				boolean annotatedTest = resolver.marksATest(unit, type.getAnnotations()) || type.getMethods().stream()
 						.anyMatch(method -> resolver.marksATest(unit, method.getAnnotations()));
 				if (junitThree || annotatedTest) {
@@ -255,6 +258,21 @@ public class JavaProjectScanner implements ProjectScanner {
 					}
 				}
 			} while (changed);
+		}
+
+		// JUnit 3 marks a test class by inheritance rather than by annotation, so the
+		// superclass has to meet the same trust rule as an annotation use. Written out
+		// in full the name has to denote junit.framework.TestCase; as a simple name it
+		// counts only while it resolves to no type this scan declares, which leaves the
+		// TestCase the project depends on. A source declaring its own is thus no way
+		// in.
+		private boolean extendsTestCase(CompilationUnit unit, String name) {
+			if (!simpleNameOf(name).equals("TestCase")) {
+				return false;
+			}
+			Set<String> candidates = name.contains(".") ? resolveQualified(unit, name)
+					: resolveTopLevelType(unit, name);
+			return candidates.isEmpty() || candidates.equals(Set.of(JUNIT_THREE_TEST_CASE));
 		}
 
 		private boolean marksATest(CompilationUnit unit, List<AnnotationExpr> annotations) {

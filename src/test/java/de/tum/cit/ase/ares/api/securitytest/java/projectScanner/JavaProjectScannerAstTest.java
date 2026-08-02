@@ -421,6 +421,33 @@ class JavaProjectScannerAstTest {
 		assertArrayEquals(new String[] { "client.PlainCase" }, scanner.scanForTestClasses());
 	}
 
+	@Test
+	void ignoresALocallyDeclaredJunitThreeSuperclass() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.writeString(production.resolve("Solution.java"), "package sol; class Solution {}\n");
+		// Imported and written out in full, the superclass denotes JUnit 3's own.
+		Files.writeString(tests.resolve("Imported.java"), """
+				package legacy;
+				import junit.framework.TestCase;
+				class ImportedLegacy extends TestCase { public void testReal() {} }
+				""");
+		Files.writeString(tests.resolve("Qualified.java"), """
+				package legacy;
+				class QualifiedLegacy extends junit.framework.TestCase { public void testReal() {} }
+				""");
+		// Declaring a TestCase of one's own and extending it must not confer test-class
+		// status, the same way a self-declared annotation does not.
+		Files.writeString(tests.resolve("Spoof.java"), """
+				package attack;
+				class TestCase {}
+				class SpoofedLegacy extends TestCase { public void testLooksLegacy() {} }
+				""");
+		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
+		assertArrayEquals(new String[] { "legacy.ImportedLegacy", "legacy.QualifiedLegacy" },
+				scanner.scanForTestClasses());
+	}
+
 	private BuildToolConfiguration configuration(Path production, Path tests) {
 		return new BuildToolConfiguration(BuildMode.MAVEN, root, List.of(production), List.of(tests),
 				root.resolve("target/classes"), root.resolve("target/test-classes"));
