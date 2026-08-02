@@ -71,15 +71,22 @@ class JavaProjectScannerDiagnosticsTest {
 		// here so the assertion does not depend on ambient configuration.
 		scannerLogger.setLevel(Level.DEBUG);
 
-		scanner.scanForTestClasses();
+		String[] recognised = scanner.scanForTestClasses();
 
 		List<ILoggingEvent> events = List.copyOf(appender.list);
 		assertEquals(1, events.size(), "the scan should report itself exactly once");
 		assertEquals(Level.INFO, events.get(0).getLevel());
-		assertTrue(events.get(0).getFormattedMessage().contains("2 test class(es)"),
-				"the count belongs in the message, was: " + events.get(0).getFormattedMessage());
-		assertFalse(events.get(0).getFormattedMessage().contains("checks."),
-				"the class names must not appear below TRACE");
+		String message = events.get(0).getFormattedMessage();
+		assertTrue(message.contains("2 test class(es)"), "the count belongs in the message, was: " + message);
+		// Checked against what the scan actually recognised, and against the simple
+		// names too. Asserting only on the package prefix would still pass if a
+		// future change logged bare class names, which discloses the same structure.
+		for (String testClass : recognised) {
+			assertFalse(message.contains(testClass),
+					"the qualified name " + testClass + " must not appear below TRACE");
+			String simpleName = testClass.substring(testClass.lastIndexOf('.') + 1);
+			assertFalse(message.contains(simpleName), "the simple name " + simpleName + " must not appear below TRACE");
+		}
 	}
 
 	@Test
