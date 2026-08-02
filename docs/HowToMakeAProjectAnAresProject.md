@@ -2,7 +2,7 @@
 
 > **Audience:** IT-Education experts with no security background.
 > **Scope:** The `build.gradle` and `pom.xml` files.
-> **Ares Version:** 2.1.0
+> **Ares Version:** 2.1.1
 
 > **Note:** This guide is a **setup guide**. It covers adding the Ares dependency, attaching the agent, and configuring the build tool so that Ares can run. For writing security policies that control what student code can do, see the [Security Policy Manual](policy/SecurityPolicyManual.md).
 
@@ -106,10 +106,10 @@ Add the Ares library to both the agent configuration and test implementation, as
 
 ```gradle
 dependencies {
-    aresAgent "de.tum.cit.ase:ares:2.1.0:agent"
+    aresAgent "de.tum.cit.ase:ares:2.1.1:agent"
     aresAgent "org.aspectj:aspectjrt:1.9.25.1"
-    testImplementation "de.tum.cit.ase:ares:2.1.0"
-    aspect "de.tum.cit.ase:ares:2.1.0"
+    testImplementation "de.tum.cit.ase:ares:2.1.1"
+    aspect "de.tum.cit.ase:ares:2.1.1"
     implementation "org.aspectj:aspectjrt:1.9.25.1"
 }
 ```
@@ -118,7 +118,7 @@ dependencies {
 >
 > ```toml
 > [versions]
-> ares = "2.1.0"
+> ares = "2.1.1"
 > aspectjrt = "1.9.25.1"
 > [libraries]
 > ares = { module = "de.tum.cit.ase:ares", version.ref = "ares" }
@@ -224,7 +224,7 @@ Include Ares in your test dependencies, as well as the AspectJ runtime library:
 <dependency>
     <groupId>de.tum.cit.ase</groupId>
     <artifactId>ares</artifactId>
-    <version>2.1.0</version>
+    <version>2.1.1</version>
     <scope>test</scope>
 </dependency>
 <dependency>
@@ -252,7 +252,7 @@ Configure the Surefire test plugin to load the agent during test execution:
     <artifactId>maven-surefire-plugin</artifactId>
     <configuration>
         <argLine>
-            -javaagent:${settings.localRepository}/de/tum/cit/ase/ares/2.1.0/ares-2.1.0-agent.jar
+            -javaagent:${settings.localRepository}/de/tum/cit/ase/ares/2.1.1/ares-2.1.1-agent.jar
             -Xbootclasspath/a:${settings.localRepository}/org/aspectj/aspectjrt/1.9.25.1/aspectjrt-1.9.25.1.jar
             --add-exports java.base/java.lang=ALL-UNNAMED
             --add-exports java.base/jdk.internal.misc=ALL-UNNAMED
@@ -290,7 +290,7 @@ Configure the Surefire test plugin to load the agent during test execution:
 > **Tip (avoid hardcoded version):** Define a Maven property so the version appears in one place only:
 > ```xml
 > <properties>
->     <ares.version>2.1.0</ares.version>
+>     <ares.version>2.1.1</ares.version>
 > </properties>
 > ```
 > Then use `${ares.version}` in both the dependency and the `<argLine>`:
