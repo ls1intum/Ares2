@@ -12,9 +12,11 @@
 
 The Artemis Java Test Sandbox
 
-image:https://github.com/ls1intum/Ares2/workflows/Java%20CI/badge.svg?branch=main[Java CI]
-https://maven-badges.herokuapp.com/maven-central/de.tum.cit.ase/ares[image:https://img.shields.io/maven-central/v/de.tum.cit.ase/ares[Maven Central]]
-image:https://img.shields.io/nexus/s/de.tum.cit.ase/ares?label=latest%20snapshot&server=https%3A%2F%2Foss.sonatype.org[Sonatype Nexus (Snapshots)]
+https://github.com/ls1intum/Ares2/actions/workflows/maven.yml[image:https://github.com/ls1intum/Ares2/actions/workflows/maven.yml/badge.svg?event=push[Java CI with Maven]]
+https://github.com/ls1intum/Ares2/actions/workflows/codeql.yml[image:https://github.com/ls1intum/Ares2/actions/workflows/codeql.yml/badge.svg?event=push[CodeQL]]
+https://central.sonatype.com/artifact/de.tum.cit.ase/ares[image:https://img.shields.io/maven-central/v/de.tum.cit.ase/ares[Maven Central]]
+https://github.com/ls1intum/Ares2/blob/main/LICENSE[image:https://img.shields.io/github/license/ls1intum/Ares2[License: MIT]]
+image:https://img.shields.io/badge/Java-17%2B-blue[Java 17+]
 
 // ----------------------------------------------------------
 // Display the following for standard GitHub AsciiDoc display
@@ -37,20 +39,6 @@ Its main features are:
 * utilities for improved feedback in Artemis like processing multiline error
   messages or pointing to a possible location that caused an Exception
 * utilities to test exercises using System.out and System.in comfortably
-
-*Project Status*
-
-https://sonarcloud.io/dashboard?id=ls1intum_Ares2[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares2&metric=alert_status[Quality Gate Status]]
-https://sonarcloud.io/dashboard?id=ls1intum_Ares2[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares2&metric=sqale_rating[Maintainability Rating]]
-https://sonarcloud.io/dashboard?id=ls1intum_Ares2[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares2&metric=security_rating[Security Rating]]
-https://sonarcloud.io/dashboard?id=ls1intum_Ares2[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares2&metric=reliability_rating[Reliability Rating]]
-
-https://sonarcloud.io/dashboard?id=ls1intum_Ares2[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares2&metric=ncloc[Lines of Code]]
-https://sonarcloud.io/dashboard?id=ls1intum_Ares2[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares2&metric=coverage[Coverage]]
-https://sonarcloud.io/dashboard?id=ls1intum_Ares2[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares2&metric=sqale_index[Technical Debt]]
-https://sonarcloud.io/dashboard?id=ls1intum_Ares2[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares2&metric=vulnerabilities[Vulnerabilities]]
-https://sonarcloud.io/dashboard?id=ls1intum_Ares2[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares2&metric=bugs[Bugs]]
-https://sonarcloud.io/dashboard?id=ls1intum_Ares2[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares2&metric=duplicated_lines_density[Duplicated Lines (%)]]
 
 == Installation
 
