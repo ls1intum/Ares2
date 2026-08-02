@@ -17,6 +17,9 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ParseProblemException;
 import com.github.javaparser.ParserConfiguration;
@@ -35,6 +38,7 @@ import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 
 /** JavaParser-backed, deterministic Java project scanner. */
 public class JavaProjectScanner implements ProjectScanner {
+	private static final Logger LOG = LoggerFactory.getLogger(JavaProjectScanner.class);
 	// The test annotations Ares recognises, as fully-qualified type names. An
 	// annotation use counts only when it resolves to one of these types: a
 	// fully-qualified use names the type outright, and a bare simple name is
@@ -173,7 +177,36 @@ public class JavaProjectScanner implements ProjectScanner {
 				}
 			}
 		}
-		return classes.stream().sorted().toArray(String[]::new);
+		String[] recognised = classes.stream().sorted().toArray(String[]::new);
+		reportRecognisedTestClasses(recognised);
+		return recognised;
+	}
+
+	/**
+	 * Reports what the no-policy scan recognised as test classes.
+	 * <p>
+	 * Only this path derives the exempt test classes from project code; with a
+	 * policy present they come solely from
+	 * {@code theFollowingClassesAreTestClasses} and this scanner is never
+	 * consulted. Which classes the scan recognised is therefore the one thing an
+	 * exercise author needs to see when a test is unexpectedly supervised, or
+	 * unexpectedly exempt, and there was previously no way to observe it.
+	 * </p>
+	 * <p>
+	 * The count is safe to surface anywhere. The names are not: a build log that
+	 * reaches students would disclose the hidden-test structure. Hence the count at
+	 * INFO and the names at TRACE, which the shipped {@code logback.xml} does not
+	 * enable, its root level being {@code debug}. An instructor who needs the names
+	 * raises the level for this logger alone.
+	 * </p>
+	 *
+	 * @param recognised the recognised test classes, sorted.
+	 */
+	private static void reportRecognisedTestClasses(@Nonnull String[] recognised) {
+		LOG.info("No-policy scan recognised {} test class(es).", recognised.length);
+		if (LOG.isTraceEnabled()) {
+			LOG.trace("No-policy scan recognised these test classes: {}", String.join(", ", recognised));
+		}
 	}
 
 	/**
