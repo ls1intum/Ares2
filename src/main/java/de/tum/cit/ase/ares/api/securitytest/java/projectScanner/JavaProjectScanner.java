@@ -197,6 +197,10 @@ public class JavaProjectScanner implements ProjectScanner {
 		// segment as a type whenever one is in scope and only as a package otherwise.
 		private final Map<CompilationUnit, Map<String, Set<String>>> topLevelTypesInUnit = new IdentityHashMap<>();
 		private final Map<String, Map<String, Set<String>>> topLevelTypesInPackage = new HashMap<>();
+		// Every annotation type the scan declares, whether trusted or not. A wildcard
+		// candidate naming one of these is a type that really exists and really could
+		// be what the use denotes, so it has to be weighed rather than discarded.
+		private final Set<String> declaredAnnotations = new HashSet<>();
 		// The fully-qualified types that mark a test: the reserved ones, plus the
 		// project-defined ones composed from them.
 		private final Set<String> trusted = new HashSet<>(TEST_ANNOTATIONS);
@@ -208,8 +212,9 @@ public class JavaProjectScanner implements ProjectScanner {
 				Map<String, Set<String>> inPackage = declaredInPackage.computeIfAbsent(packageName,
 						key -> new HashMap<>());
 				for (AnnotationDeclaration declaration : unit.findAll(AnnotationDeclaration.class)) {
-					index(inUnit, inPackage, declaration.getNameAsString(),
-							qualifiedTypeName(packageName, declaration));
+					String qualifiedName = qualifiedTypeName(packageName, declaration);
+					index(inUnit, inPackage, declaration.getNameAsString(), qualifiedName);
+					declaredAnnotations.add(qualifiedName);
 				}
 				Map<String, Set<String>> typesInUnit = topLevelTypesInUnit.computeIfAbsent(unit,
 						key -> new HashMap<>());
@@ -288,9 +293,12 @@ public class JavaProjectScanner implements ProjectScanner {
 			if (!inPackage.isEmpty()) {
 				return inPackage;
 			}
-			// A wildcard names a package, not a type. It can only stand for a type this
-			// scan already knows, and contributes nothing when it stands for none.
-			wildcarded.retainAll(trusted);
+			// A wildcard names a package, not a type, so it can only stand for a type this
+			// scan knows of; one naming an unknown type stands for nothing and drops out.
+			// Every known candidate stays, including the untrusted ones: where two
+			// wildcards both offer the simple name, the use is ambiguous between them and
+			// isTrusted then refuses it rather than picking the trusted one.
+			wildcarded.removeIf(candidate -> !trusted.contains(candidate) && !declaredAnnotations.contains(candidate));
 			return wildcarded;
 		}
 
@@ -310,24 +318,32 @@ public class JavaProjectScanner implements ProjectScanner {
 			return prefixes.stream().map(prefix -> prefix + "." + remainder).collect(Collectors.toSet());
 		}
 
-		// A wildcard is deliberately not consulted here: it would name a type outside
-		// the scan, which no candidate could match anyway.
+		// A wildcard counts here too. It cannot introduce a segment this scan has never
+		// seen, but it can bring a scanned type into scope under the segment's name,
+		// and
+		// that type then obscures the package the segment would otherwise have named.
 		private Set<String> resolveTopLevelType(CompilationUnit unit, String name) {
 			Set<String> inUnit = topLevelTypesInUnit.getOrDefault(unit, Map.of()).getOrDefault(name, Set.of());
 			if (!inUnit.isEmpty()) {
 				return inUnit;
 			}
 			Set<String> imported = new HashSet<>();
+			Set<String> wildcarded = new HashSet<>();
 			for (ImportDeclaration importDeclaration : unit.getImports()) {
 				String importedName = importDeclaration.getNameAsString();
-				if (!importDeclaration.isAsterisk() && simpleNameOf(importedName).equals(name)) {
+				if (importDeclaration.isAsterisk()) {
+					wildcarded.addAll(
+							topLevelTypesInPackage.getOrDefault(importedName, Map.of()).getOrDefault(name, Set.of()));
+				} else if (simpleNameOf(importedName).equals(name)) {
 					imported.add(importedName);
 				}
 			}
 			if (!imported.isEmpty()) {
 				return imported;
 			}
-			return topLevelTypesInPackage.getOrDefault(packageName(unit), Map.of()).getOrDefault(name, Set.of());
+			Set<String> inPackage = topLevelTypesInPackage.getOrDefault(packageName(unit), Map.of()).getOrDefault(name,
+					Set.of());
+			return inPackage.isEmpty() ? wildcarded : inPackage;
 		}
 	}
 

@@ -346,6 +346,81 @@ class JavaProjectScannerAstTest {
 		assertArrayEquals(new String[] { "client.NestedCase", "client.QualifiedCase" }, scanner.scanForTestClasses());
 	}
 
+	@Test
+	void refusesASimpleNameTwoWildcardsBothOffer() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.writeString(production.resolve("Solution.java"), "package sol; class Solution {}\n");
+		Files.writeString(tests.resolve("Composed.java"), """
+				package checks;
+				import org.junit.jupiter.api.Test;
+				@Test public @interface FastTest {}
+				""");
+		Files.writeString(tests.resolve("Rival.java"), """
+				package rival;
+				public @interface FastTest {}
+				""");
+		// Both wildcards offer a FastTest the scan knows of, so which one the bare name
+		// denotes cannot be told apart from the imports alone. Picking the trusted one
+		// would exempt a class that may well be carrying the other.
+		Files.writeString(tests.resolve("Ambiguous.java"), """
+				package attack;
+				import checks.*;
+				import rival.*;
+				class AmbiguousCase { @FastTest void looksLikeATest() {} }
+				""");
+		// One wildcard offering it stays unambiguous, even beside a wildcard whose
+		// package holds nothing of that name.
+		Files.writeString(tests.resolve("Single.java"), """
+				package client;
+				import java.util.*;
+				import checks.*;
+				class SingleCase { @FastTest void real() {} }
+				""");
+		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
+		assertArrayEquals(new String[] { "client.SingleCase" }, scanner.scanForTestClasses());
+	}
+
+	@Test
+	void readsAQualifiedNameThroughATypeAWildcardBringsIntoScope() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.writeString(production.resolve("Solution.java"), "package sol; class Solution {}\n");
+		// The wildcard brings a type named "de" into scope, which obscures the package
+		// of that name, so the annotation below denotes the nest declared here and not
+		// the Ares annotation its spelling copies.
+		Files.writeString(tests.resolve("Shadow.java"), """
+				package shadow;
+				public class de {
+				  public static class tum {
+				    public static class cit {
+				      public static class ase {
+				        public static class ares {
+				          public static class api {
+				            public static class jupiter {
+				              public @interface PublicTest {}
+				            }
+				          }
+				        }
+				      }
+				    }
+				  }
+				}
+				""");
+		Files.writeString(tests.resolve("Obscured.java"), """
+				package attack;
+				import shadow.*;
+				class ObscuredSpoof { @de.tum.cit.ase.ares.api.jupiter.PublicTest void looksLikeATest() {} }
+				""");
+		// Without that wildcard the same spelling denotes what it says.
+		Files.writeString(tests.resolve("Plain.java"), """
+				package client;
+				class PlainCase { @de.tum.cit.ase.ares.api.jupiter.PublicTest void real() {} }
+				""");
+		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
+		assertArrayEquals(new String[] { "client.PlainCase" }, scanner.scanForTestClasses());
+	}
+
 	private BuildToolConfiguration configuration(Path production, Path tests) {
 		return new BuildToolConfiguration(BuildMode.MAVEN, root, List.of(production), List.of(tests),
 				root.resolve("target/classes"), root.resolve("target/test-classes"));
