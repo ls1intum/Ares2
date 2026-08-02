@@ -293,7 +293,19 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		}
 		if (value instanceof URLConnection urlConnection) {
 			requireTrustedRuntimeType(value);
-			return variableToTarget(urlConnection.getURL());
+			try {
+				return variableToTarget(urlConnection.getURL());
+			} catch (SecurityException denied) {
+				// A SecurityException here is an Ares enforcement denial, not a resolution
+				// failure. Swallowing it would turn a denial into a null target and skip the
+				// receiver check, so it must propagate rather than fail open.
+				throw denied;
+			} catch (RuntimeException ignored) {
+				// Some JDK URLConnection implementations delegate getURL() to an object
+				// that is not assigned until construction has completed. Advice may observe
+				// such an instance while its constructor is still running.
+				return null;
+			}
 		}
 		if (value instanceof DatagramPacket datagramPacket) {
 			requireTrustedRuntimeType(value);
@@ -843,12 +855,14 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		// </editor-fold>
 		// <editor-fold desc="Check receiver instance">
 		@Nullable
-		String networkIllegallyInteractedThroughReceiver = instance == null ? null
-				: checkIfVariableCriteriaIsViolated(new Object[] { instance }, allowedHosts, allowedPorts,
-						IgnoreValues.NONE);
-		if (networkIllegallyInteractedThroughReceiver != null) {
+		NetworkTarget targetFromReceiver = variableToTarget(instance);
+		// No separate criteria scan is needed for a receiver that does not resolve into
+		// a structured target: the scan would route this same instance back through
+		// variableToTarget, which just returned null, so it could never throw. Only the
+		// resolved-target check below can flag a forbidden receiver.
+		if (targetFromReceiver != null && checkIfNetworkIsForbidden(targetFromReceiver, allowedHosts, allowedPorts)) {
 			throw new SecurityException(localize("security.advice.illegal.network.execution",
-					networkSystemMethodToCheck, action, networkIllegallyInteractedThroughReceiver,
+					networkSystemMethodToCheck, action, targetFromReceiver.toDisplayString(),
 					fullMethodSignature
 							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
 							+ buildDenialReason(noAllowRuleConfigured)));

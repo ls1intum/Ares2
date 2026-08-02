@@ -58,6 +58,40 @@ class TimeoutUtilsTest {
 	}
 
 	@Test
+	void interruptionAwareExecutionHasTimeForBoundedFrameworkCleanup() throws Exception {
+		AtomicBoolean workerFinished = new AtomicBoolean();
+		AtomicInteger requestedExitCode = new AtomicInteger(-1);
+		TestContext context = contextFor("strictTimeoutTarget"); //$NON-NLS-1$
+
+		assertThrows(AssertionFailedError.class, () -> TimeoutUtils.performTimeoutExecution(() -> {
+			try {
+				while (!Thread.currentThread().isInterrupted()) {
+					Thread.onSpinWait();
+				}
+			} finally {
+				long cleanupDeadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(200);
+				while (System.nanoTime() < cleanupDeadline) {
+					Thread.onSpinWait();
+				}
+				workerFinished.set(true);
+			}
+			return null;
+		}, context, Duration.ofSeconds(1), requestedExitCode::set));
+
+		assertThat(workerFinished).isTrue();
+		assertThat(requestedExitCode).hasValue(-1);
+	}
+
+	@Test
+	void resolvesInstructorConfiguredTerminationGracePeriod() throws Exception {
+		TestContext context = contextFor("strictTimeoutWithCustomTerminationGrace"); //$NON-NLS-1$
+
+		Optional<Duration> terminationGracePeriod = TimeoutUtils.findTerminationGracePeriod(context);
+
+		assertThat(terminationGracePeriod).contains(Duration.ofSeconds(10));
+	}
+
+	@Test
 	void interruptionIgnoringExecutionInvalidatesTheCurrentFork() throws Exception {
 		AtomicBoolean releaseWorker = new AtomicBoolean();
 		AtomicInteger requestedExitCode = new AtomicInteger(-1);
@@ -110,5 +144,10 @@ class TimeoutUtilsTest {
 	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS)
 	private static void strictTimeoutTarget() {
 		// Provides the annotation consumed through the mocked test context.
+	}
+
+	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS, terminationGrace = 10, terminationGraceUnit = TimeUnit.SECONDS)
+	private static void strictTimeoutWithCustomTerminationGrace() {
+		// Provides the custom termination grace consumed through the mocked context.
 	}
 }
