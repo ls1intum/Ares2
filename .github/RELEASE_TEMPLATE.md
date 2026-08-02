@@ -1,17 +1,29 @@
+<!-- markdownlint-configure-file { "MD041": false } -->
 <!--
+  MD041 (first line in a file should be a top-level heading) is disabled above, because
+  this file opens with an unheaded summary paragraph on purpose: see the note before
+  "Linked issues". A top-level heading here would be copied into every release
+  description and duplicate the release title GitHub already shows.
+
   Release notes template for Ares 2.
 
   GitHub does not prefill release notes the way it prefills a pull request, so copy the
-  body of this file into the release description and fill it in. Keep the headings and
-  their order, so that consecutive releases stay comparable.
+  body of this file into the release description and fill it in. Keep every heading below
+  and their order, so that consecutive releases stay comparable, and keep the opening
+  summary unheaded.
 
   Scope: everything merged since the previous release tag. List them with
   `git log --oneline <previous-tag>..main` and read the bodies of the pull requests it
-  names, since each one already answers sections 3 to 5 for its own change.
+  names, since each one already answers "Problem" and both "Improvement" sections for its
+  own change.
 
-  Sections 3, 4 and 5 carry the same meaning as in PULL_REQUEST_TEMPLATE.md, aggregated
-  over the whole release rather than a single change. Each section states what to write
-  when it does not apply.
+  "Problems", "Improvements from the user's perspective" and "Improvements from the
+  maintainer's perspective" carry the same meaning as sections 1, 2 and 3 of
+  PULL_REQUEST_TEMPLATE.md, aggregated over the whole release rather than a single
+  change. That template's sections 4 and 5 (the testing manual and the coverage table)
+  have no counterpart here: they describe how one change was verified, which is a
+  reviewer's concern rather than a reader's. Each section below states what to write when
+  it does not apply.
 
   Write in British English. State figures you have verified, and leave out those you
   have not: a release note is read as a record.
