@@ -1,0 +1,121 @@
+# Builds and runs the exercises in examples/ so they cannot rot silently.
+#
+# The setup manual now points readers at these two projects, so a change that
+# breaks them breaks the documented setup. They are consumed here against the
+# Ares built from this commit, which also makes them an end-to-end check of the
+# agent, the weaving and the reserved-package boundary.
+name: Examples
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'examples/**'
+      - 'src/main/**'
+      - 'pom.xml'
+      - 'docs/HowToMakeAProjectAnAresProject.md'
+      - '.github/workflows/examples.yml'
+  push:
+    branches: [ "main" ]
+  schedule:
+    - cron: "0 15 * * 0"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: examples-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  examples:
+    name: Run the ${{ matrix.tool }} exercise
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        tool: [ maven, gradle ]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The examples target Java 17, the minimum Ares supports, so that they stay
+      # valid for the oldest exercise still in use.
+      - name: Set up JDK 17
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Install Ares from this commit
+        run: mvn -B -ntp install -DskipTests
+
+      - name: Verify the Gradle wrapper JAR is the one we generated
+        if: matrix.tool == 'gradle'
+        run: |
+          echo "497c8c2a7e5031f6aa847f88104aa80a93532ec32ee17bdb8d1d2f67a194a9c7  examples/ares-exercise-gradle/gradle/wrapper/gradle-wrapper.jar" \
+            | sha256sum --check --strict
+
+      # The examples resolve from Maven Central as shipped. CI consumes the
+      # just-built artefact instead, so the exercise files stay exactly what a
+      # tutor downloads.
+      - name: Allow the local repository (CI only)
+        run: |
+          printf 'allprojects {\n    repositories {\n        mavenLocal()\n    }\n}\n' > "${RUNNER_TEMP}/local-repo.init.gradle"
+
+      - name: Run the exercise
+        working-directory: examples/ares-exercise-${{ matrix.tool }}
+        env:
+          TOOL: ${{ matrix.tool }}
+        run: |
+          if [ "${TOOL}" = "maven" ]; then
+            mvn -B -ntp test
+          else
+            ./gradlew --no-daemon --init-script "${RUNNER_TEMP}/local-repo.init.gradle" test
+          fi
+
+      - name: Confirm the reserved-package boundary rejects an impostor
+        env:
+          TOOL: ${{ matrix.tool }}
+        run: |
+          set -u
+          # Run in a copy, so the canonical example tree is never edited.
+          work="${RUNNER_TEMP}/impostor"
+          cp -R "examples/ares-exercise-${TOOL}" "${work}"
+          mkdir -p "${work}/src/main/java/de/tum/cit/ase/ares/api"
+          printf 'package de.tum.cit.ase.ares.api;\n\npublic class Impostor {\n    public static String hello() {\n        return "trusted";\n    }\n}\n' \
+            > "${work}/src/main/java/de/tum/cit/ase/ares/api/Impostor.java"
+          cd "${work}"
+          if [ "${TOOL}" = "maven" ]; then
+            mvn -B -ntp test > output.log 2>&1 && status=0 || status=$?
+          else
+            ./gradlew --no-daemon --init-script "${RUNNER_TEMP}/local-repo.init.gradle" test > output.log 2>&1 && status=0 || status=$?
+          fi
+          if [ "${status}" -eq 0 ]; then
+            echo "::error::A class in de.tum.cit.ase.ares.api survived the build. The reserved-package boundary is not active."
+            tail -50 output.log
+            exit 1
+          fi
+          # A non-zero status alone is not enough: any compile error would produce
+          # one. Require the boundary's own diagnostic.
+          if ! grep -q 'Ares reserved-package validation 2 rejected student output' output.log; then
+            echo "::error::The build failed, but not with the reserved-package diagnostic, so something else broke."
+            tail -50 output.log
+            exit 1
+          fi
+          echo "Reserved-package boundary rejected the impostor class, as required."
+
+      - name: Confirm the Gradle setup is configuration-cache compatible
+        if: matrix.tool == 'gradle'
+        working-directory: examples/ares-exercise-gradle
+        run: |
+          ./gradlew --no-daemon --init-script "${RUNNER_TEMP}/local-repo.init.gradle" test --configuration-cache
+          ./gradlew --no-daemon --init-script "${RUNNER_TEMP}/local-repo.init.gradle" test --configuration-cache --rerun-tasks \
+            | tee second-run.log
+          grep -q 'Configuration cache entry reused' second-run.log
