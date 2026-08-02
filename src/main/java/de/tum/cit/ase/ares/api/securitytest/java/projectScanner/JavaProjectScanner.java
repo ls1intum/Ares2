@@ -7,10 +7,12 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
@@ -33,29 +35,31 @@ import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 
 /** JavaParser-backed, deterministic Java project scanner. */
 public class JavaProjectScanner implements ProjectScanner {
-	// The test annotations Ares recognises, mapped to the fully-qualified
-	// type(s) each simple name may denote. A bare simple name is trusted
-	// only when the compilation unit imports the matching type (directly or
-	// by package wildcard); a fully-qualified use is always trusted. This
-	// keeps a locally declared look-alike @interface from marking a class as
-	// a test in the no-policy scan.
+	// The test annotations Ares recognises, as fully-qualified type names. An
+	// annotation use counts only when it resolves to one of these types: a
+	// fully-qualified use names the type outright, and a bare simple name is
+	// resolved through the using compilation unit's own declarations, its
+	// imports and its package, in the order Java itself applies. A locally
+	// declared look-alike therefore never marks a class as a test in the
+	// no-policy scan.
 	//
-	// Maintenance: an annotation absent from this map is silently not
+	// Maintenance: an annotation absent from this set is silently not
 	// recognised, so its tests are no longer detected. Add new JUnit, jqwik
 	// or Ares test annotation types here when they are introduced, for
 	// example a future de.tum.cit.ase.ares.api.jqwik.PublicTest (only the
 	// Jupiter variants of PublicTest/HiddenTest exist today; jqwik supplies
 	// Public/Hidden, which accompany net.jqwik.api.Property/Example).
-	private static final Map<String, Set<String>> TEST_ANNOTATIONS = Map.ofEntries(
-			Map.entry("Test", Set.of("org.junit.jupiter.api.Test", "org.junit.Test")),
-			Map.entry("ParameterizedTest", Set.of("org.junit.jupiter.params.ParameterizedTest")),
-			Map.entry("RepeatedTest", Set.of("org.junit.jupiter.api.RepeatedTest")),
-			Map.entry("TestFactory", Set.of("org.junit.jupiter.api.TestFactory")),
-			Map.entry("TestTemplate", Set.of("org.junit.jupiter.api.TestTemplate")),
-			Map.entry("Property", Set.of("net.jqwik.api.Property")),
-			Map.entry("Example", Set.of("net.jqwik.api.Example")),
-			Map.entry("PublicTest", Set.of("de.tum.cit.ase.ares.api.jupiter.PublicTest")),
-			Map.entry("HiddenTest", Set.of("de.tum.cit.ase.ares.api.jupiter.HiddenTest")));
+	private static final Set<String> TEST_ANNOTATIONS = Set.of("org.junit.jupiter.api.Test", "org.junit.Test",
+			"org.junit.jupiter.params.ParameterizedTest", "org.junit.jupiter.api.RepeatedTest",
+			"org.junit.jupiter.api.TestFactory", "org.junit.jupiter.api.TestTemplate", "net.jqwik.api.Property",
+			"net.jqwik.api.Example", "de.tum.cit.ase.ares.api.jupiter.PublicTest",
+			"de.tum.cit.ase.ares.api.jupiter.HiddenTest");
+	// The simple names of those types are reserved: a project-defined annotation
+	// may not claim one. Were it allowed to, a look-alike meta-annotated with a
+	// genuine test annotation would re-enter through the composed-annotation set
+	// and defeat the resolution check.
+	private static final Set<String> RESERVED_ANNOTATION_NAMES = TEST_ANNOTATIONS.stream()
+			.map(JavaProjectScanner::simpleNameOf).collect(Collectors.toUnmodifiableSet());
 	private final BuildToolConfiguration buildConfiguration;
 	private final JavaParser parser = new JavaParser(
 			new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17));
@@ -132,7 +136,7 @@ public class JavaProjectScanner implements ProjectScanner {
 		}
 	}
 
-	private String packageName(CompilationUnit unit) {
+	private static String packageName(CompilationUnit unit) {
 		return unit.getPackageDeclaration().map(declaration -> declaration.getNameAsString()).orElse("");
 	}
 
@@ -149,48 +153,9 @@ public class JavaProjectScanner implements ProjectScanner {
 	@Nonnull
 	public String[] scanForTestClasses() {
 		List<CompilationUnit> units = javaFiles(testRoots()).stream().map(this::parse).toList();
-		// Annotation types the scanned sources declare themselves, grouped by package.
-		// A
-		// type declared in the using file's own package shadows a package wildcard of
-		// the
-		// same simple name, so such a name must not be trusted on a wildcard alone.
-		Map<String, Set<String>> declaredAnnotationsByPackage = new HashMap<>();
-		for (CompilationUnit unit : units) {
-			Set<String> declared = declaredAnnotationsByPackage.computeIfAbsent(packageName(unit),
-					key -> new HashSet<>());
-			unit.findAll(AnnotationDeclaration.class)
-					.forEach(declaration -> declared.add(declaration.getNameAsString()));
-		}
-		Map<CompilationUnit, Set<String>> importsByUnit = new HashMap<>();
-		for (CompilationUnit unit : units) {
-			importsByUnit.put(unit, importedTestAnnotations(unit,
-					declaredAnnotationsByPackage.getOrDefault(packageName(unit), Set.of())));
-		}
-		// Project-defined annotations composed from a trusted one (meta-annotations).
-		// They
-		// are matched by simple name across the whole test tree; reserved names are
-		// excluded
-		// so a local look-alike can never join this set.
-		Set<String> customAnnotations = new HashSet<>();
-		boolean changed;
-		do {
-			changed = false;
-			for (CompilationUnit unit : units) {
-				Set<String> imports = importsByUnit.get(unit);
-				for (AnnotationDeclaration declaration : unit.findAll(AnnotationDeclaration.class)) {
-					String declarationName = declaration.getNameAsString();
-					if (TEST_ANNOTATIONS.containsKey(declarationName)) {
-						continue;
-					}
-					if (isTestAnnotated(declaration.getAnnotations(), imports, customAnnotations)) {
-						changed |= customAnnotations.add(declarationName);
-					}
-				}
-			}
-		} while (changed);
+		AnnotationResolver resolver = new AnnotationResolver(units);
 		Set<String> classes = new HashSet<>();
 		for (CompilationUnit unit : units) {
-			Set<String> imports = importsByUnit.get(unit);
 			String packageName = packageName(unit);
 			for (TypeDeclaration<?> type : unit.findAll(TypeDeclaration.class)) {
 				if (type.isAnnotationDeclaration()) {
@@ -198,9 +163,8 @@ public class JavaProjectScanner implements ProjectScanner {
 				}
 				boolean junitThree = type.isClassOrInterfaceDeclaration() && type.asClassOrInterfaceDeclaration()
 						.getExtendedTypes().stream().anyMatch(parent -> parent.getNameAsString().equals("TestCase"));
-				boolean annotatedTest = isTestAnnotated(type.getAnnotations(), imports, customAnnotations)
-						|| type.getMethods().stream().anyMatch(
-								method -> isTestAnnotated(method.getAnnotations(), imports, customAnnotations));
+				boolean annotatedTest = resolver.marksATest(unit, type.getAnnotations()) || type.getMethods().stream()
+						.anyMatch(method -> resolver.marksATest(unit, method.getAnnotations()));
 				if (junitThree || annotatedTest) {
 					classes.add(qualifiedTypeName(packageName, type));
 				}
@@ -209,56 +173,170 @@ public class JavaProjectScanner implements ProjectScanner {
 		return classes.stream().sorted().toArray(String[]::new);
 	}
 
-	// The simple names of the reserved test annotations this unit imports. A direct
-	// import establishes identity on its own: Java rejects a same-named type in the
-	// same unit and lets the import outrank one in the same package. A package
-	// wildcard establishes nothing when the unit's own package declares an
-	// annotation of that name, because Java then binds the bare name to that local
-	// type, so the wildcard is ignored in that case.
-	private Set<String> importedTestAnnotations(CompilationUnit unit, Set<String> shadowingAnnotations) {
-		Set<String> imported = new HashSet<>();
-		for (ImportDeclaration importDeclaration : unit.getImports()) {
-			String importedName = importDeclaration.getNameAsString();
-			for (Map.Entry<String, Set<String>> annotation : TEST_ANNOTATIONS.entrySet()) {
-				String simpleName = annotation.getKey();
-				for (String qualifiedName : annotation.getValue()) {
-					String annotationPackage = qualifiedName.substring(0, qualifiedName.lastIndexOf('.'));
-					boolean directImport = !importDeclaration.isAsterisk() && importedName.equals(qualifiedName);
-					boolean wildcardImport = importDeclaration.isAsterisk() && importedName.equals(annotationPackage)
-							&& !shadowingAnnotations.contains(simpleName);
-					if (directImport || wildcardImport) {
-						imported.add(simpleName);
-					}
+	/**
+	 * Decides which annotation uses in a scanned test tree mark a test, on the
+	 * identity of the annotation type rather than on its simple name.
+	 * <p>
+	 * A use is resolved to the fully-qualified type(s) it may denote, in the order
+	 * Java itself applies: a declaration in the using compilation unit shadows
+	 * every import, a single-type import outranks the using unit's package, that
+	 * package outranks a package wildcard, and a wildcard can only contribute a
+	 * type the scan already knows. The use marks a test when every candidate is a
+	 * trusted type, so an ambiguous use fails closed.
+	 * </p>
+	 */
+	private static final class AnnotationResolver {
+		// The annotation types each scanned compilation unit declares, by simple name.
+		// Keyed by identity: JavaParser nodes compare structurally, so two files with
+		// equal contents would otherwise share one entry.
+		private final Map<CompilationUnit, Map<String, Set<String>>> declaredInUnit = new IdentityHashMap<>();
+		// The same declarations, grouped by the package that contains them.
+		private final Map<String, Map<String, Set<String>>> declaredInPackage = new HashMap<>();
+		// The top-level types each unit declares, and the same grouped by package. A
+		// qualified name's leftmost segment is looked up here, because Java reads that
+		// segment as a type whenever one is in scope and only as a package otherwise.
+		private final Map<CompilationUnit, Map<String, Set<String>>> topLevelTypesInUnit = new IdentityHashMap<>();
+		private final Map<String, Map<String, Set<String>>> topLevelTypesInPackage = new HashMap<>();
+		// The fully-qualified types that mark a test: the reserved ones, plus the
+		// project-defined ones composed from them.
+		private final Set<String> trusted = new HashSet<>(TEST_ANNOTATIONS);
+
+		private AnnotationResolver(List<CompilationUnit> units) {
+			for (CompilationUnit unit : units) {
+				String packageName = packageName(unit);
+				Map<String, Set<String>> inUnit = declaredInUnit.computeIfAbsent(unit, key -> new HashMap<>());
+				Map<String, Set<String>> inPackage = declaredInPackage.computeIfAbsent(packageName,
+						key -> new HashMap<>());
+				for (AnnotationDeclaration declaration : unit.findAll(AnnotationDeclaration.class)) {
+					index(inUnit, inPackage, declaration.getNameAsString(),
+							qualifiedTypeName(packageName, declaration));
+				}
+				Map<String, Set<String>> typesInUnit = topLevelTypesInUnit.computeIfAbsent(unit,
+						key -> new HashMap<>());
+				Map<String, Set<String>> typesInPackage = topLevelTypesInPackage.computeIfAbsent(packageName,
+						key -> new HashMap<>());
+				for (TypeDeclaration<?> type : unit.getTypes()) {
+					index(typesInUnit, typesInPackage, type.getNameAsString(), qualifiedTypeName(packageName, type));
 				}
 			}
+			trustComposedAnnotations(units);
 		}
-		return imported;
-	}
 
-	private boolean isTestAnnotated(List<AnnotationExpr> annotations, Set<String> imports,
-			Set<String> customAnnotations) {
-		return annotations.stream().map(annotation -> annotation.getNameAsString())
-				.anyMatch(name -> isTrustedAnnotation(name, imports) || customAnnotations.contains(simpleName(name)));
-	}
-
-	// A fully-qualified use is trusted only when it names a known type; a bare
-	// simple name
-	// only when the unit imports the matching type. A locally declared look-alike,
-	// imported
-	// from nowhere, is therefore rejected.
-	private boolean isTrustedAnnotation(String name, Set<String> imports) {
-		if (name.contains(".")) {
-			return TEST_ANNOTATIONS.values().stream().anyMatch(qualifiedNames -> qualifiedNames.contains(name));
+		private static void index(Map<String, Set<String>> inUnit, Map<String, Set<String>> inPackage,
+				String simpleName, String qualifiedName) {
+			inUnit.computeIfAbsent(simpleName, key -> new HashSet<>()).add(qualifiedName);
+			inPackage.computeIfAbsent(simpleName, key -> new HashSet<>()).add(qualifiedName);
 		}
-		return imports.contains(name);
+
+		// A project-defined annotation meta-annotated with a trusted one marks a test
+		// too, and so does one composed from such an annotation, hence the fixed point.
+		// It is recorded by its own fully-qualified name, so an unrelated look-alike of
+		// the same simple name elsewhere in the tree does not inherit that trust.
+		// Reserved simple names never enter the set, or a local look-alike carrying a
+		// genuine @Test would trust itself.
+		private void trustComposedAnnotations(List<CompilationUnit> units) {
+			boolean changed;
+			do {
+				changed = false;
+				for (CompilationUnit unit : units) {
+					String packageName = packageName(unit);
+					for (AnnotationDeclaration declaration : unit.findAll(AnnotationDeclaration.class)) {
+						if (RESERVED_ANNOTATION_NAMES.contains(declaration.getNameAsString())) {
+							continue;
+						}
+						if (marksATest(unit, declaration.getAnnotations())) {
+							changed |= trusted.add(qualifiedTypeName(packageName, declaration));
+						}
+					}
+				}
+			} while (changed);
+		}
+
+		private boolean marksATest(CompilationUnit unit, List<AnnotationExpr> annotations) {
+			return annotations.stream().map(annotation -> annotation.getNameAsString())
+					.anyMatch(name -> isTrusted(unit, name));
+		}
+
+		private boolean isTrusted(CompilationUnit unit, String name) {
+			Set<String> candidates = resolve(unit, name);
+			return !candidates.isEmpty() && trusted.containsAll(candidates);
+		}
+
+		private Set<String> resolve(CompilationUnit unit, String name) {
+			if (name.contains(".")) {
+				return resolveQualified(unit, name);
+			}
+			Set<String> inUnit = declaredInUnit.getOrDefault(unit, Map.of()).getOrDefault(name, Set.of());
+			if (!inUnit.isEmpty()) {
+				return inUnit;
+			}
+			Set<String> imported = new HashSet<>();
+			Set<String> wildcarded = new HashSet<>();
+			for (ImportDeclaration importDeclaration : unit.getImports()) {
+				String importedName = importDeclaration.getNameAsString();
+				if (importDeclaration.isAsterisk()) {
+					wildcarded.add(importedName + "." + name);
+				} else if (simpleNameOf(importedName).equals(name)) {
+					imported.add(importedName);
+				}
+			}
+			if (!imported.isEmpty()) {
+				return imported;
+			}
+			Set<String> inPackage = declaredInPackage.getOrDefault(packageName(unit), Map.of()).getOrDefault(name,
+					Set.of());
+			if (!inPackage.isEmpty()) {
+				return inPackage;
+			}
+			// A wildcard names a package, not a type. It can only stand for a type this
+			// scan already knows, and contributes nothing when it stands for none.
+			wildcarded.retainAll(trusted);
+			return wildcarded;
+		}
+
+		// A dotted name is a fully-qualified type name only while its leftmost segment
+		// names no type in scope. Java reclassifies that segment as a type as soon as
+		// one is (JLS 6.5.4), so a unit declaring "class org" binds
+		// @org.junit.jupiter.api.Test to its own nest rather than to JUnit. Reading the
+		// prefix the same way also keeps a nested annotation reached as @Outer.Inner
+		// recognised.
+		private Set<String> resolveQualified(CompilationUnit unit, String name) {
+			int separator = name.indexOf('.');
+			Set<String> prefixes = resolveTopLevelType(unit, name.substring(0, separator));
+			if (prefixes.isEmpty()) {
+				return Set.of(name);
+			}
+			String remainder = name.substring(separator + 1);
+			return prefixes.stream().map(prefix -> prefix + "." + remainder).collect(Collectors.toSet());
+		}
+
+		// A wildcard is deliberately not consulted here: it would name a type outside
+		// the scan, which no candidate could match anyway.
+		private Set<String> resolveTopLevelType(CompilationUnit unit, String name) {
+			Set<String> inUnit = topLevelTypesInUnit.getOrDefault(unit, Map.of()).getOrDefault(name, Set.of());
+			if (!inUnit.isEmpty()) {
+				return inUnit;
+			}
+			Set<String> imported = new HashSet<>();
+			for (ImportDeclaration importDeclaration : unit.getImports()) {
+				String importedName = importDeclaration.getNameAsString();
+				if (!importDeclaration.isAsterisk() && simpleNameOf(importedName).equals(name)) {
+					imported.add(importedName);
+				}
+			}
+			if (!imported.isEmpty()) {
+				return imported;
+			}
+			return topLevelTypesInPackage.getOrDefault(packageName(unit), Map.of()).getOrDefault(name, Set.of());
+		}
 	}
 
-	private String simpleName(String name) {
+	private static String simpleNameOf(String name) {
 		int separator = name.lastIndexOf('.');
 		return separator < 0 ? name : name.substring(separator + 1);
 	}
 
-	private String qualifiedTypeName(String packageName, TypeDeclaration<?> type) {
+	private static String qualifiedTypeName(String packageName, TypeDeclaration<?> type) {
 		List<String> names = new ArrayList<>();
 		TypeDeclaration<?> current = type;
 		names.add(current.getNameAsString());

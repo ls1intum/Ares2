@@ -259,6 +259,93 @@ class JavaProjectScannerAstTest {
 		assertArrayEquals(new String[] { "checks.GenuineCase" }, scanner.scanForTestClasses());
 	}
 
+	@Test
+	void ignoresLookalikesOfAComposedAnnotationDeclaredInAnotherPackage() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.writeString(production.resolve("Solution.java"), "package sol; class Solution {}\n");
+		// A genuinely composed annotation: it carries an imported @Test, so it marks a
+		// test wherever it is genuinely referred to. It is public and lives in its own
+		// file, so that the cross-package references below are ones javac would accept.
+		Files.writeString(tests.resolve("FastTest.java"), """
+				package checks;
+				import org.junit.jupiter.api.Test;
+				@Test public @interface FastTest {}
+				""");
+		Files.writeString(tests.resolve("Composed.java"), """
+				package checks;
+				class ComposedCase { @FastTest void real() {} }
+				""");
+		// An unrelated annotation of the same simple name in another package must not
+		// inherit that trust: it is a different type, and nothing here refers to
+		// checks.FastTest.
+		Files.writeString(tests.resolve("Lookalike.java"), """
+				package attack;
+				@interface FastTest {}
+				class Spoofed { @FastTest void looksLikeATest() {} }
+				""");
+		// Referring to the composed annotation genuinely stays recognised, whether it
+		// is
+		// imported directly, by package wildcard or written out in full.
+		Files.writeString(tests.resolve("Importer.java"), """
+				package client;
+				import checks.FastTest;
+				class ImportedCase { @FastTest void real() {} }
+				""");
+		Files.writeString(tests.resolve("Wildcarder.java"), """
+				package wildcard;
+				import checks.*;
+				class WildcardedCase { @FastTest void real() {} }
+				""");
+		Files.writeString(tests.resolve("Qualifier.java"), """
+				package qualified;
+				class QualifiedCase { @checks.FastTest void real() {} }
+				""");
+		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
+		assertArrayEquals(new String[] { "checks.ComposedCase", "client.ImportedCase", "qualified.QualifiedCase",
+				"wildcard.WildcardedCase" }, scanner.scanForTestClasses());
+	}
+
+	@Test
+	void readsAQualifiedNameThroughAnyTypeThatObscuresItsLeftmostSegment() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.writeString(production.resolve("Solution.java"), "package sol; class Solution {}\n");
+		// Declaring a type named "org" obscures the package of the same name, so Java
+		// binds the annotation below to the nest declared here rather than to JUnit.
+		// Trusting it on its spelling alone would exempt the class without a single
+		// genuine test annotation anywhere in the file.
+		Files.writeString(tests.resolve("Obscured.java"), """
+				package attack;
+				class org { static class junit { static class jupiter { static class api { @interface Test {} } } } }
+				class ObscuredSpoof { @org.junit.jupiter.api.Test void looksLikeATest() {} }
+				""");
+		// The same trick against a composed annotation: an unrelated nest whose
+		// spelling
+		// happens to match a trusted fully-qualified name.
+		Files.writeString(tests.resolve("Genuine.java"), """
+				package checks;
+				import org.junit.jupiter.api.Test;
+				public class Outer { @Test public @interface FastTest {} }
+				""");
+		Files.writeString(tests.resolve("ObscuredComposed.java"), """
+				package spoof;
+				class checks { static class Outer { @interface FastTest {} } }
+				class ComposedSpoof { @checks.Outer.FastTest void looksLikeATest() {} }
+				""");
+		// Nothing obscures the leftmost segment here, so both names denote what they
+		// spell: a nested annotation reached through its enclosing type, and a plain
+		// fully-qualified JUnit annotation.
+		Files.writeString(tests.resolve("Client.java"), """
+				package client;
+				import checks.Outer;
+				class NestedCase { @Outer.FastTest void real() {} }
+				class QualifiedCase { @org.junit.jupiter.api.Test void real() {} }
+				""");
+		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
+		assertArrayEquals(new String[] { "client.NestedCase", "client.QualifiedCase" }, scanner.scanForTestClasses());
+	}
+
 	private BuildToolConfiguration configuration(Path production, Path tests) {
 		return new BuildToolConfiguration(BuildMode.MAVEN, root, List.of(production), List.of(tests),
 				root.resolve("target/classes"), root.resolve("target/test-classes"));
