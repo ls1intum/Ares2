@@ -28,6 +28,10 @@ pom.xml    text eol=lf
 *.bash     text eol=lf
 *.fish     text eol=lf
 *.sh       text eol=lf
+# The Gradle wrapper script has no extension, so the eol=crlf default above would
+# otherwise apply and leave it with CRLF line endings, which makes ./gradlew fail
+# with "bad interpreter" on Linux and macOS.
+gradlew    text eol=lf
 # These are explicitly windows files and should use crlf
 *.bat      text eol=crlf
 *.cmd      text eol=crlf
