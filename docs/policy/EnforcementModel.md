@@ -41,31 +41,57 @@ annotations, environment substitution or this value.
 
 Ares trusts runtime identities by name. The exercise build must therefore reject
 student classes beneath every prefix in
-`WalaPathClassification.RESERVED_PACKAGE_PREFIXES`. The list carries version
-`RESERVED_PACKAGE_PREFIX_VERSION = 1`; templates and CI must pin the same
-version. Build validation is a deployment prerequisite, not an optional Ares
-runtime feature.
+`WalaPathClassification.RESERVED_PACKAGE_PREFIXES`. Build validation is a
+deployment prerequisite, not an optional Ares runtime feature.
 
-Canonical Maven configuration uses a verify-phase rule (for example a
-`maven-antrun-plugin` task) that scans `${project.build.outputDirectory}` and
-fails for `java/**`, `javax/**`, `sun/**`, `jdk/**`, `com/sun/**`,
+Two versions are pinned, because the data and the contract that enforces it
+change for different reasons. `RESERVED_PACKAGE_PREFIX_VERSION = 1` is the
+prefix list. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side
+contract. Templates and CI must pin both.
+
+Canonical Maven configuration uses a `maven-antrun-plugin` task bound to
+`process-classes` that scans `${project.build.outputDirectory}` and fails for
+`java/**`, `javax/**`, `sun/**`, `jdk/**`, `com/sun/**`,
 `de/tum/cit/ase/ares/api/**`, `net/bytebuddy/**`, `org/aspectj/**`,
 `com/ibm/wala/**`, `com/tngtech/archunit/**`, `anonymous/toolclasses/**` and
-`metatest/**`. Canonical Gradle configuration registers a `verifyReservedPackages`
-task over `sourceSets.main.output.classesDirs` with the same paths and makes
-`check` depend on it. Exercise templates must keep that validation enabled.
+`metatest/**`. `process-classes` precedes `test`, so `mvn test` runs it.
+
+Canonical Gradle configuration registers a `verifyAresReservedPackagesV2` task
+over `sourceSets.main.output.classesDirs` with the same paths, and **both**
+makes `check` depend on it and gates every `Test` task with
+`tasks.withType(Test).configureEach`. Both hooks are required. Boundary
+version 1 hung the validation off `check` alone, and Gradle's Java plugin
+defines `check.dependsOn test` rather than the reverse, so `gradlew test`, which
+is what a grading run invokes, never ran it: student classes under a reserved
+package survived. An exercise still carrying a boundary version 1 snippet is
+bypassable and must be migrated. In a multi-project build, apply the snippet to
+every project that compiles student code, because `tasks.withType(Test)` covers
+only the project it is applied to.
 
 The executable, versioned snippets are shipped with Ares at
 `configuration/reservedPackages/MavenReservedPackages.xml` and
 `configuration/reservedPackages/GradleReservedPackages.gradle`; their common
-machine-readable list is `ReservedPackagePrefixes.txt`. Version 1 deliberately
-defines no Maven property, Gradle property, system property or profile which can
-skip the check. Removing the plugin/script or detaching its task is equivalent to
+machine-readable list is `ReservedPackagePrefixes.txt`. They deliberately define
+no Maven property, Gradle property, system property or profile which can skip
+the check. Removing the plugin/script or detaching its task is equivalent to
 disabling the security boundary and must be reported visibly by template CI.
 
 Any system property, Gradle flag or Maven profile that skips the exercise's
 reserved-package validation must print a prominent diagnostic. Such a run does
 not provide the class-shadowing security boundary.
+
+### What this boundary does not defend against
+
+The build descriptor and the command used to invoke it are **trusted instructor
+configuration**, on the same footing as `Policy.withinPath` above. "No bypass
+flag is supported" means the shipped snippets offer no opt-out of their own; it
+does not mean the check survives an adversary who controls the build. Whoever
+can edit `build.gradle` or `pom.xml`, or pass `-x verifyAresReservedPackagesV2`
+or `-Dmaven.antrun.skip`, can remove the boundary outright. The threat this
+boundary addresses is student *code* that declares a reserved package, not
+student control over the build. Exercise templates and their CI must therefore
+own the build descriptor and the invocation, and must fail visibly if either is
+altered.
 
 ## Legacy annotation migration
 

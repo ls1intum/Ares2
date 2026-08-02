@@ -1,5 +1,6 @@
 # Ares reserved-package build boundary
 # version=1
+# boundary-version=2
 java/**
 javax/**
 sun/**
