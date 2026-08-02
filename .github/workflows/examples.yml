@@ -65,9 +65,19 @@ jobs:
       # The examples resolve from Maven Central as shipped. CI consumes the
       # just-built artefact instead, so the exercise files stay exactly what a
       # tutor downloads.
-      - name: Allow the local repository (CI only)
+      #
+      # exclusiveContent, rather than a plain mavenLocal(): it makes the local
+      # repository the ONLY source of de.tum.cit.ase, so this job cannot quietly
+      # fall through to Central and test a published artefact instead of the one
+      # built above. A plain mavenLocal() passes today only because 2.1.1 is not
+      # on Central yet; once it is, the fallback would make this whole workflow
+      # vacuous without failing. Being first in the repository order is not
+      # enough, because Gradle continues to the next repository when a module is
+      # absent from the first.
+      - name: Pin Ares to the artefact built in this job (CI only)
         run: |
-          printf 'allprojects {\n    repositories {\n        mavenLocal()\n    }\n}\n' > "${RUNNER_TEMP}/local-repo.init.gradle"
+          printf 'allprojects {\n    repositories {\n        exclusiveContent {\n            forRepository { mavenLocal() }\n            filter { includeGroup "de.tum.cit.ase" }\n        }\n    }\n}\n' > "${RUNNER_TEMP}/local-repo.init.gradle"
+          cat "${RUNNER_TEMP}/local-repo.init.gradle"
 
       - name: Run the exercise
         working-directory: examples/ares-exercise-${{ matrix.tool }}
