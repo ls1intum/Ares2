@@ -58,19 +58,20 @@ public class ClassNameScanner {
 	private static final Logger LOG = LoggerFactory.getLogger(ClassNameScanner.class);
 
 	/*
-	 * A dedicated JavaParser instance configured for this project's Java 17
-	 * language level (records, pattern-matching instanceof, text blocks, ...),
-	 * rather than the bare StaticJavaParser entry point: StaticJavaParser's default
-	 * configuration only supports much older syntax and its shared static
+	 * A dedicated JavaParser instance per thread, configured for this project's
+	 * Java 17 language level (records, pattern-matching instanceof, text blocks,
+	 * ...), rather than the bare StaticJavaParser entry point: StaticJavaParser's
+	 * default configuration only supports much older syntax and its shared static
 	 * configuration is mutated as a side effect elsewhere (e.g.
 	 * UnwantedNodesAssert#withLanguageLevel), which would make parsing here depend
-	 * on unrelated test execution order. Mirrors the same pattern already used by
-	 * JavaProjectScanner. Shared/static: a JavaParser's parse() calls carry no
-	 * state beyond the (fixed, never-mutated-after-construction) configuration,
-	 * matching how a single instance is commonly reused across parses elsewhere.
+	 * on unrelated test execution order. Mirrors the same language-level setup
+	 * already used by JavaProjectScanner. Thread-local rather than a single shared
+	 * instance: StructuralTestProvider documents that provider subclasses for
+	 * different exercises may execute concurrently, and JavaParser does not
+	 * guarantee that a single instance can safely be reused across threads.
 	 */
-	private static final JavaParser JAVA_PARSER = new JavaParser(
-			new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17));
+	private static final ThreadLocal<JavaParser> JAVA_PARSER = ThreadLocal.withInitial(() -> new JavaParser(
+			new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)));
 
 	/*
 	 * Every ClassNameScanner instantiation re-walks and, since I-099, re-parses the
@@ -328,7 +329,7 @@ public class ClassNameScanner {
 
 	private static List<String> parseQualifiedTypeNames(File node) {
 		try {
-			var parseResult = JAVA_PARSER.parse(node.toPath());
+			var parseResult = JAVA_PARSER.get().parse(node.toPath());
 			var compilationUnit = parseResult.getResult()
 					.orElseThrow(() -> new ParseProblemException(parseResult.getProblems()));
 			List<String> qualifiedTypeNames = new ArrayList<>();
@@ -336,7 +337,7 @@ public class ClassNameScanner {
 				qualifiedNameWithinFile(type).ifPresent(qualifiedTypeNames::add);
 			}
 			return qualifiedTypeNames;
-		} catch (IOException | ParseProblemException e) {
+		} catch (IOException | ParseProblemException | StackOverflowError e) {
 			LOG.debug("Could not parse '{}' for nested-type discovery; falling back to its filename-derived type name", //$NON-NLS-1$
 					node, e);
 			return List.of(fileNameDerivedTypeName(node.getName()));
