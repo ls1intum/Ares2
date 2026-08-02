@@ -2,8 +2,8 @@
   Release notes template for Ares 2.
 
   GitHub does not prefill release notes the way it prefills a pull request, so copy the
-  body of this file into the release description and fill it in. Keep the five headings
-  and their order, so that consecutive releases stay comparable.
+  body of this file into the release description and fill it in. Keep the headings and
+  their order, so that consecutive releases stay comparable.
 
   Scope: everything merged since the previous release tag. List them with
   `git log --oneline <previous-tag>..main` and read the bodies of the pull requests it
@@ -20,10 +20,10 @@
 <!--
   At most three lines: what this release changes, and why it matters. No implementation
   detail, and no list of pull requests.
-  Say plainly whether the release is breaking. If the public API under
-  de.tum.cit.ase.ares.api, the security policy file format, the generated security test
-  code or the minimum JDK, Maven or Gradle version changed, that belongs here rather
-  than further down, together with what an instructor has to do to upgrade.
+  Say plainly whether the release is breaking, in a clause, and leave the detail and the
+  upgrade steps to "Breaking changes and migration" below. A reader who sees "breaking"
+  in the opening paragraph knows to read on; one who only finds out at the bottom has
+  usually decided already.
   This section is always required and has no heading, so that it renders as the opening
   paragraph of the release.
 -->
@@ -89,3 +89,65 @@
 
   If this side does not benefit from this release, write "No Improvement".
 -->
+
+## Breaking changes and migration
+
+<!--
+  Ares is consumed as a released Maven artefact, so state explicitly whether this release
+  changes any of:
+  - the public API under de.tum.cit.ase.ares.api
+  - the security policy file format or its schema
+  - the generated security test code that exercise repositories rely on
+  - the minimum JDK, Maven or Gradle version
+
+  For each one that changed, say what an instructor has to do to upgrade an existing
+  exercise, and show the before and the after where a code or policy snippet makes it
+  concrete. An instructor reads this section to size the work, so an unquantified
+  "policies must be updated" is worth little.
+
+  A change that fails closed belongs here even when it is technically a fix: a policy
+  that used to be accepted and is now rejected breaks a working exercise, whatever the
+  reason. Removals belong here in full, listed by name, since a missing symbol is found
+  at compile time by the person least able to explain it.
+
+  If the release is fully backwards compatible, write "None".
+-->
+
+None.
+
+## Coordinates
+
+<!--
+  The dependency snippets for this version, so nobody has to construct them. Replace the
+  version in both, and keep the agent line: the Java agent ships under the `agent`
+  classifier, and an exercise that misses it repackages the agent by hand for nothing.
+
+  Publish these notes only once the artefacts are actually live on Maven Central, which
+  is a separate step from creating the GitHub release and can lag it. Confirm with
+  https://repo1.maven.org/maven2/de/tum/cit/ase/ares/maven-metadata.xml, which must list
+  this version under <release>. Notes that name coordinates nobody can resolve yet cost
+  more goodwill than they buy.
+
+  Close with the full changelog link, comparing the previous tag to this one.
+-->
+
+Maven:
+
+```xml
+<dependency>
+    <groupId>de.tum.cit.ase</groupId>
+    <artifactId>ares</artifactId>
+    <version>REPLACE_WITH_THIS_VERSION</version>
+</dependency>
+```
+
+Gradle:
+
+```groovy
+testImplementation "de.tum.cit.ase:ares:REPLACE_WITH_THIS_VERSION"
+aresAgent "de.tum.cit.ase:ares:REPLACE_WITH_THIS_VERSION:agent"
+```
+
+The Java agent is published under the `agent` classifier, so no manual repackaging is needed.
+
+**Full changelog:** https://github.com/ls1intum/Ares2/compare/REPLACE_WITH_PREVIOUS_TAG...REPLACE_WITH_THIS_TAG
