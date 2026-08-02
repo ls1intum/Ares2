@@ -7,26 +7,25 @@ import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
-import de.tum.cit.ase.ares.api.localization.Messages;
-
 /**
- * Verifies that {@link CommandPermission} deserialises from both supported YAML
- * forms: a bare command string and the mapping form carrying arguments. The
- * mapping form previously threw a {@code MismatchedInputException}, leaving the
- * runtime argument check unreachable from a policy file.
+ * Verifies how {@link CommandPermission} binds from a policy file.
+ * <p>
+ * A command permission has exactly one shape, the mapping carrying the command
+ * and its arguments, so this record binds through its canonical constructor
+ * like every other permission. The bare scalar form {@code - git} was accepted
+ * once, through a {@code @JsonCreator} the other permissions never needed; it
+ * meant "this command with no arguments", which read as the opposite to most
+ * authors, and it is no longer part of the format.
+ * <p>
+ * These tests bind with a bare mapper, which is one layer below how a policy is
+ * actually read: {@code SecurityPolicyYAMLReader} validates the parsed tree
+ * before binding it. Anything the schema rejects is therefore covered by
+ * {@code SecurityPolicyStrictSchemaTest} rather than here, which matters for
+ * values Jackson would otherwise coerce, such as a numeric argument.
  */
 class CommandPermissionTest {
 
 	private final YAMLMapper yamlMapper = new YAMLMapper();
-
-	@Test
-	void bareStringYieldsCommandWithNoArguments() throws Exception {
-		CommandPermission permission = yamlMapper.readValue("\"git\"", CommandPermission.class);
-		assertThat(permission.executeTheCommand()).isEqualTo("git");
-		// Bare string keeps the historical semantics (no declared arguments), NOT a
-		// widening to "any arguments".
-		assertThat(permission.withTheseArguments()).isEmpty();
-	}
 
 	@Test
 	void mappingFormPreservesDeclaredArguments() throws Exception {
@@ -37,28 +36,31 @@ class CommandPermissionTest {
 	}
 
 	@Test
+	void bareStringIsNoLongerAPolicyForm() {
+		assertThatThrownBy(() -> yamlMapper.readValue("\"git\"", CommandPermission.class))
+				.hasMessageContaining("CommandPermission");
+		assertThatThrownBy(() -> yamlMapper.readValue("\"\"", CommandPermission.class))
+				.hasMessageContaining("CommandPermission");
+	}
+
+	@Test
 	void mappingFormWithoutArgumentsIsRejected() {
+		// The record refuses to be built without an argument list, so omitting the
+		// field cannot silently mean "no constraint".
 		assertThatThrownBy(() -> yamlMapper.readValue("executeTheCommand: git\n", CommandPermission.class))
-				.hasRootCauseMessage(Messages.localized("policy.permission.command.mapping.fields"));
+				.hasRootCauseInstanceOf(NullPointerException.class);
 	}
 
 	@Test
 	void mappingArgumentsMustBeAnArray() {
 		String yaml = "executeTheCommand: git\nwithTheseArguments: status\n";
-		assertThatThrownBy(() -> yamlMapper.readValue(yaml, CommandPermission.class))
-				.hasRootCauseMessage(Messages.localized("policy.permission.command.arguments.array"));
-	}
-
-	@Test
-	void mappingArgumentsMustContainOnlyStrings() {
-		String yaml = "executeTheCommand: git\nwithTheseArguments: [1]\n";
-		assertThatThrownBy(() -> yamlMapper.readValue(yaml, CommandPermission.class))
-				.hasRootCauseMessage(Messages.localized("policy.permission.command.arguments.strings"));
+		assertThatThrownBy(() -> yamlMapper.readValue(yaml, CommandPermission.class)).isInstanceOf(Exception.class);
 	}
 
 	@Test
 	void blankCommandIsRejected() {
-		assertThatThrownBy(() -> yamlMapper.readValue("\"\"", CommandPermission.class))
+		String yaml = "executeTheCommand: \" \"\nwithTheseArguments: []\n";
+		assertThatThrownBy(() -> yamlMapper.readValue(yaml, CommandPermission.class))
 				.hasRootCauseInstanceOf(IllegalArgumentException.class);
 	}
 

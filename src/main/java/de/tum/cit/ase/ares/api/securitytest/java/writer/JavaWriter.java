@@ -59,6 +59,30 @@ public class JavaWriter implements Writer {
 		this.projectRoot = buildConfiguration.projectRoot();
 	}
 
+	/**
+	 * Returns the writer to use once the build configuration has been discovered.
+	 * <p>
+	 * A framework-default {@code JavaWriter} is created without a build
+	 * configuration and is rebound here to the one discovered for the run. A
+	 * caller-supplied subclass is returned unchanged, so a custom writer injected
+	 * through the director builder is never silently replaced; such a subclass can
+	 * override this method if it does want to be rebound. This lets the director
+	 * ask each collaborator to configure itself, rather than inspecting its
+	 * concrete type.
+	 *
+	 * @since 2.1.0
+	 * @author Markus Paulsen
+	 * @param buildConfiguration the discovered build configuration; must not be
+	 *                           null.
+	 * @return the writer bound to the configuration, or this instance when it is a
+	 *         custom subclass.
+	 */
+	@Nonnull
+	public JavaWriter withBuildConfiguration(@Nonnull BuildToolConfiguration buildConfiguration) {
+		Objects.requireNonNull(buildConfiguration, "buildConfiguration must not be null");
+		return getClass() == JavaWriter.class ? new JavaWriter(buildConfiguration) : this;
+	}
+
 	// <editor-fold desc="Helper methods">
 
 	/**

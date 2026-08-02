@@ -23,14 +23,14 @@ import de.tum.cit.ase.ares.api.securitytest.java.writer.Writer;
 /**
  * Abstract class for directing the creation of security test cases.
  * <p>
- * Description: This interface defines the contract for a director that creates
- * security test cases based on a given SecurityPolicy. It abstracts the
+ * Description: This abstract class defines the contract for a director that
+ * creates security test cases based on a given SecurityPolicy. It abstracts the
  * instantiation and configuration process to a concrete implementation, working
  * in tandem with an abstract factory to ensure that test cases are built in a
  * consistent and modular manner.
  * <p>
- * Design Rationale: This interface supports loose coupling by decoupling the
- * test case creation logic from other system components. Its usage ensures
+ * Design Rationale: This abstract class supports loose coupling by decoupling
+ * the test case creation logic from other system components. Its usage ensures
  * adherence to the Single Responsibility Principle and makes the security test
  * case generation process transparent and maintainable.
  *
@@ -138,11 +138,28 @@ public abstract class SecurityPolicyDirector {
 	public abstract TestCaseAbstractFactoryAndBuilder createTestCases(@Nullable SecurityPolicy securityPolicy,
 			@Nullable Path projectFolderPath);
 
+	/**
+	 * Creates and configures security test cases, scoping the analysis to
+	 * {@code withinPath} inside the project.
+	 * <p>
+	 * Declared abstract on purpose: an earlier default forwarded to the
+	 * two-argument overload and silently dropped {@code withinPath}, so a subclass
+	 * that forgot to override it would lose the scope with no compile-time warning.
+	 * Forcing every subclass to implement it keeps that from happening again.
+	 *
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 * @param securityPolicy  the SecurityPolicy driving the test case creation; may
+	 *                        be null if no policy is provided.
+	 * @param projectRootPath the project root directory path; may be null.
+	 * @param withinPath      the path within the project to scope the analysis to;
+	 *                        must not be null.
+	 * @return a non-null instance of TestCaseAbstractFactoryAndBuilder configured
+	 *         according to the security policy.
+	 */
 	@Nonnull
-	public TestCaseAbstractFactoryAndBuilder createTestCases(@Nullable SecurityPolicy securityPolicy,
-			@Nullable Path projectRootPath, @Nonnull Path withinPath) {
-		return createTestCases(securityPolicy, projectRootPath);
-	}
+	public abstract TestCaseAbstractFactoryAndBuilder createTestCases(@Nullable SecurityPolicy securityPolicy,
+			@Nullable Path projectRootPath, @Nonnull Path withinPath);
 	// </editor-fold>
 
 	// <editor-fold desc="Static methods">

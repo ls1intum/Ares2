@@ -7,10 +7,8 @@ import java.util.Objects;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.databind.JsonNode;
-
 import de.tum.cit.ase.ares.api.localization.Messages;
+import de.tum.cit.ase.ares.api.policy.PolicyValueValidator;
 
 /**
  * Allowed command execution operations.
@@ -20,6 +18,19 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  * <p>
  * Design Rationale: Explicitly defining command execution permissions helps
  * prevent unauthorised or harmful commands.
+ * <p>
+ * A policy declares a command permission in exactly one shape, the mapping
+ * {@code {executeTheCommand: git, withTheseArguments: [status]}}, so Jackson
+ * binds this record through its canonical constructor like every other
+ * permission. The bare scalar form {@code - git} was also accepted once, which
+ * is why this record carried a {@code @JsonCreator} that the others do not; it
+ * meant "this command with no arguments", the opposite of what most readers
+ * assumed, and it is no longer part of the format.
+ * <p>
+ * This record also used to override {@code toString()} to return the command
+ * alone, a remnant of serialising it as a bare string through
+ * {@code @JsonValue}, which silently dropped the arguments from a written
+ * policy. It now serialises through its components.
  *
  * @since 2.0.0
  * @author Markus Paulsen
@@ -34,19 +45,46 @@ import de.tum.cit.ase.ares.api.localization.Messages;
 public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List<String> withTheseArguments) {
 
 	/**
+	 * The token that lifts a constraint rather than expressing one.
+	 * <p>
+	 * As the sole entry of {@code withTheseArguments} it permits every argument
+	 * list; at one position within a longer list it permits any single argument
+	 * there; and as {@code executeTheCommand} it permits every command.
+	 *
+	 * @since 2.1.0
+	 */
+	public static final String ANY_ARGUMENTS = "*";
+
+	/**
 	 * Constructs a CommandPermission instance.
+	 * <p>
+	 * The argument list is copied defensively, so a later change to the list the
+	 * caller passed in cannot widen which arguments this permission allows.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param executeTheCommand  the non-blank command to allow
-	 * @param withTheseArguments the non-null argument list
+	 * @param executeTheCommand  the command to allow; must be neither null nor
+	 *                           blank, and must not contain control characters.
+	 * @param withTheseArguments the arguments the command may be given; must not be
+	 *                           null, and no entry may contain control characters.
+	 * @throws NullPointerException     if the command, the argument list or one of
+	 *                                  its entries is null.
+	 * @throws IllegalArgumentException if the command is blank, or if the command
+	 *                                  or one of the arguments contains a control
+	 *                                  character.
 	 */
 	public CommandPermission {
 		Objects.requireNonNull(executeTheCommand, "executeTheCommand must not be null");
 		if (executeTheCommand.isBlank()) {
 			throw new IllegalArgumentException(Messages.localized("policy.permission.command.blank"));
 		}
+		PolicyValueValidator.requireMatch("executeTheCommand", executeTheCommand, PolicyValueValidator.COMMAND_PATTERN);
 		Objects.requireNonNull(withTheseArguments, "withTheseArguments must not be null");
+		for (String argument : withTheseArguments) {
+			Objects.requireNonNull(argument, "withTheseArguments entries must not be null");
+			PolicyValueValidator.requireMatch("withTheseArguments entry", argument,
+					PolicyValueValidator.COMMAND_ARGUMENT_PATTERN);
+		}
 		// Defensive, unmodifiable copy so the record is genuinely immutable, matching
 		// ResourceAccesses and SupervisedCode: the builder and Jackson pass a mutable
 		// list whose security-relevant argument allow-list could otherwise be mutated
@@ -59,8 +97,11 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param executeTheCommand the command to allow.
+	 * @param executeTheCommand the command to allow; must be neither null nor
+	 *                          blank.
 	 * @return a new CommandPermission instance with empty arguments.
+	 * @throws NullPointerException     if the command is null.
+	 * @throws IllegalArgumentException if the command is blank.
 	 */
 	@Nonnull
 	public static CommandPermission allowWithoutArguments(@Nonnull String executeTheCommand) {
@@ -70,84 +111,29 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
 	}
 
 	/**
-	 * Deserialises a CommandPermission from either YAML form, used by Jackson:
-	 * <ul>
-	 * <li>a bare string {@code "git"} &rarr; the command with no argument
-	 * constraint expressible today, i.e. an empty argument list (matches the
-	 * historical {@link #fromString} behaviour, NOT a widening to "any
-	 * arguments");</li>
-	 * <li>a mapping {@code {executeTheCommand: git, withTheseArguments: [status]}}
-	 * &rarr; the command with the declared arguments. This form previously threw a
-	 * {@code MismatchedInputException}, leaving the runtime argument check
-	 * unreachable from a policy file.</li>
-	 * </ul>
+	 * Allows the command with any arguments whatsoever.
+	 * <p>
+	 * Expressed as the single argument {@value #ANY_ARGUMENTS}, which both
+	 * enforcement modes read as "impose no constraint on the arguments". Note the
+	 * contrast with {@link #allowWithoutArguments}, whose empty list permits the
+	 * command only when it is invoked with no arguments at all: an empty list is
+	 * the most restrictive form, not the most permissive one, and the difference is
+	 * easy to get backwards when writing a policy by hand.
 	 *
-	 * @since 2.0.0
+	 * @since 2.1.0
 	 * @author Markus Paulsen
-	 * @param node the JSON/YAML node (a string scalar or an object)
-	 * @return a new CommandPermission instance
-	 */
-	@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-	@Nonnull
-	public static CommandPermission fromJson(@Nullable JsonNode node) {
-		if (node == null || node.isNull()) {
-			throw new IllegalArgumentException(Messages.localized("policy.permission.command.blank"));
-		}
-		if (node.isTextual()) {
-			return allowWithoutArguments(node.asText());
-		}
-		if (node.isObject()) {
-			if (node.size() != 2 || !node.has("executeTheCommand") || !node.has("withTheseArguments")) {
-				throw new IllegalArgumentException(Messages.localized("policy.permission.command.mapping.fields"));
-			}
-			JsonNode commandNode = node.get("executeTheCommand");
-			if (commandNode == null || !commandNode.isTextual() || commandNode.textValue().isBlank()) {
-				throw new IllegalArgumentException(Messages.localized("policy.permission.command.blank"));
-			}
-			List<String> arguments = new ArrayList<>();
-			JsonNode argumentsNode = node.get("withTheseArguments");
-			if (argumentsNode == null || !argumentsNode.isArray()) {
-				throw new IllegalArgumentException(Messages.localized("policy.permission.command.arguments.array"));
-			}
-			for (JsonNode argument : argumentsNode) {
-				if (!argument.isTextual()) {
-					throw new IllegalArgumentException(
-							Messages.localized("policy.permission.command.arguments.strings"));
-				}
-				arguments.add(argument.textValue());
-			}
-			return builder().executeTheCommand(commandNode.asText()).withTheseArguments(arguments).build();
-		}
-		throw new IllegalArgumentException(Messages.localized("policy.permission.command.blank"));
-	}
-
-	/**
-	 * Creates a CommandPermission from a string command (retained for callers and
-	 * tests that build a restrictive permission directly).
-	 *
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 * @param command the command string
-	 * @return a new CommandPermission instance with empty arguments
+	 * @param executeTheCommand the command to allow; must be neither null nor
+	 *                          blank.
+	 * @return a new CommandPermission instance that accepts every argument list.
+	 * @throws NullPointerException     if the command is null.
+	 * @throws IllegalArgumentException if the command is blank or otherwise
+	 *                                  malformed.
 	 */
 	@Nonnull
-	public static CommandPermission fromString(String command) {
-		return allowWithoutArguments(command);
-	}
-
-	/**
-	 * Returns a human-readable representation. No longer annotated with
-	 * {@code @JsonValue}: serialising to only the command silently dropped the
-	 * arguments, so the record now serialises through its components.
-	 *
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 * @return the command string
-	 */
-	@Override
-	@Nonnull
-	public String toString() {
-		return executeTheCommand;
+	public static CommandPermission allowWithAnyArguments(@Nonnull String executeTheCommand) {
+		return builder()
+				.executeTheCommand(Objects.requireNonNull(executeTheCommand, "executeTheCommand must not be null"))
+				.withTheseArguments(new ArrayList<>(List.of(ANY_ARGUMENTS))).build();
 	}
 
 	/**
@@ -176,12 +162,15 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
 	public static class Builder {
 
 		/**
-		 * The command to execute.
+		 * The command to execute. Has no default, so {@link #build()} rejects a builder
+		 * on which it was never set.
 		 */
 		@Nullable
 		private String executeTheCommand;
 		/**
-		 * The list of arguments for the command.
+		 * The arguments the command may be given. Has no default, so {@link #build()}
+		 * rejects a builder on which it was never set; pass an empty list to permit the
+		 * command without arguments.
 		 */
 		@Nullable
 		private List<String> withTheseArguments;
@@ -191,8 +180,10 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
 		 *
 		 * @since 2.0.0
 		 * @author Markus Paulsen
-		 * @param executeTheCommand the command to execute.
+		 * @param executeTheCommand the command to execute; must not be null, and is
+		 *                          checked for blankness by {@link #build()}.
 		 * @return the updated Builder.
+		 * @throws NullPointerException if the command is null.
 		 */
 		@Nonnull
 		public Builder executeTheCommand(@Nonnull String executeTheCommand) {
@@ -205,8 +196,11 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
 		 *
 		 * @since 2.0.0
 		 * @author Markus Paulsen
-		 * @param withTheseArguments the list of arguments.
+		 * @param withTheseArguments the list of arguments; must not be null. It is
+		 *                           copied, so later changes to the list passed in do
+		 *                           not affect this builder.
 		 * @return the updated Builder.
+		 * @throws NullPointerException if the list is null.
 		 */
 		@Nonnull
 		public Builder withTheseArguments(@Nonnull List<String> withTheseArguments) {
@@ -221,6 +215,9 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
 		 * @since 2.0.0
 		 * @author Markus Paulsen
 		 * @return a new CommandPermission instance.
+		 * @throws NullPointerException     if the command or the argument list was
+		 *                                  never set.
+		 * @throws IllegalArgumentException if the command is blank.
 		 */
 		@Nonnull
 		public CommandPermission build() {
