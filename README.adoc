@@ -52,7 +52,7 @@ environment of a Maven project, include
 <dependency>
     <groupId>de.tum.cit.ase</groupId>
     <artifactId>ares</artifactId>
-    <version>2.1.0</version>
+    <version>2.1.1</version>
 </dependency>
 ----
 
@@ -61,7 +61,7 @@ in the `dependencies` section.
 For Gradle projects, include
 [source,groovy]
 ----
-implementation("de.tum.cit.ase:ares:2.1.0")
+implementation("de.tum.cit.ase:ares:2.1.1")
 ----
 
 in the `dependencies` section.
@@ -95,7 +95,7 @@ looks like this:
     <dependency>
         <groupId>de.tum.cit.ase</groupId>
         <artifactId>ares</artifactId>
-        <version>2.1.0</version>
+        <version>2.1.1</version>
     </dependency>
 </dependencies>
 ----
@@ -980,7 +980,7 @@ Maven:
 ----
 <properties>
         <studentOutputDir>${project.basedir}/build/classes/java/main</studentOutputDir>
-        <ares.version>2.1.0</ares.version>
+        <ares.version>2.1.1</ares.version>
         <agent.dir>${project.build.directory}/agents</agent.dir>
     </properties>
 
@@ -1117,8 +1117,8 @@ configurations {
 }
 
 dependencies {
-    aresAgent 'de.tum.cit.ase:ares:2.1.0'
-    testImplementation("de.tum.cit.ase:ares:2.1.0")
+    aresAgent 'de.tum.cit.ase:ares:2.1.1'
+    testImplementation("de.tum.cit.ase:ares:2.1.1")
 }
 
 def forbiddenPackageFolders = [
@@ -1384,7 +1384,7 @@ repositories {
 <dependency>
     <groupId>de.tum.cit.ase</groupId>
     <artifactId>ares</artifactId>
-    <version>2.1.0</version>
+    <version>2.1.1</version>
 </dependency>
 ----
 
