@@ -226,10 +226,20 @@ class JavaAspectJAbstractAdviceDefinitionsTest {
 	 */
 	@Test
 	void describeDeniedCall_preservesTheEnforcementKeyPrefix() {
-		String staticForm = staticSignature("java.io.File", "delete", new Class<?>[0]);
+		// Deliberately a case where the declarations DO differ, otherwise nothing is
+		// appended and the assertion would hold vacuously.
+		String staticForm = staticSignature("java.nio.channels.DatagramChannel", "connect",
+				new Class<?>[] { SocketAddress.class });
 
-		String described = describe(new java.io.File("ares-diagnostic-probe"), "java.io.File", "delete");
+		String described;
+		try (DatagramChannel channel = DatagramChannel.open()) {
+			described = describe(channel, "java.nio.channels.DatagramChannel", "connect", SocketAddress.class);
+		} catch (java.io.IOException unavailableChannel) {
+			throw new AssertionError("could not open a channel for the probe", unavailableChannel);
+		}
 
+		assertTrue(described.length() > staticForm.length(),
+				"this test is vacuous unless a runtime declaration was actually appended: " + described);
 		assertTrue(described.startsWith(staticForm),
 				"the enforcement key must remain recoverable from the message: " + described);
 	}

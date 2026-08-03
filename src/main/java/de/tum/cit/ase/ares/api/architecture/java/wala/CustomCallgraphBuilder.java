@@ -121,10 +121,15 @@ public class CustomCallgraphBuilder {
 	 */
 	private final Set<Path> trustedFrameworkCodeSources;
 
+	/**
+	 * The filtered classpath this builder's scope, hierarchy and trust boundary
+	 * were derived from. A builder cannot analyse anything else.
+	 */
+	private final String constructionClassPath;
+
 	private final ClassFileImporter classFileImporter;
 	private final AnalysisScope scope;
 	private final ClassHierarchy classHierarchy;
-	private String analysedClassPath;
 	private CallGraph callGraph;
 
 	/**
@@ -136,6 +141,7 @@ public class CustomCallgraphBuilder {
 		this.classFileImporter = new ClassFileImporter();
 		this.trustedFrameworkCodeSources = effectiveTrustedFrameworkCodeSources(classPath);
 		String filteredClassPath = filterClassPath(classPath, trustedFrameworkCodeSources);
+		this.constructionClassPath = filteredClassPath;
 		String expandedClassPath = expandClassPathWithReachableDependencies(filteredClassPath,
 				trustedFrameworkCodeSources);
 		try {
@@ -463,9 +469,13 @@ public class CustomCallgraphBuilder {
 	 * present framework can never contribute a lone trusted origin.
 	 */
 	private static Set<Path> optionalFrameworkCandidateCodeSources() {
+		return optionalFrameworkCandidateCodeSources(OPTIONAL_FRAMEWORK_CLASS_NAMES);
+	}
+
+	static Set<Path> optionalFrameworkCandidateCodeSources(List<String> optionalFrameworkClassNames) {
 		ClassLoader definingLoader = CustomCallgraphBuilder.class.getClassLoader();
 		LinkedHashSet<Path> candidates = new LinkedHashSet<>();
-		for (String frameworkClassName : OPTIONAL_FRAMEWORK_CLASS_NAMES) {
+		for (String frameworkClassName : optionalFrameworkClassNames) {
 			Optional<Path> codeSource = optionalFrameworkCodeSource(frameworkClassName, definingLoader);
 			if (codeSource.isEmpty()) {
 				return Set.of();
@@ -715,10 +725,14 @@ public class CustomCallgraphBuilder {
 	public synchronized CallGraph buildCallGraph(String classPathToAnalyze) {
 		String filteredClassPathToAnalyse = filterClassPath(classPathToAnalyze, trustedFrameworkCodeSources);
 		validateClassPath(filteredClassPathToAnalyse);
+		// The class hierarchy and the effective trust boundary are both fixed at
+		// construction time from the constructor's classpath. Analysing a different
+		// target would silently reuse them, so reject it on the first call too and
+		// not only once a graph has been cached.
+		if (!constructionClassPath.equals(filteredClassPathToAnalyse)) {
+			throw new SecurityException(Messages.localized("security.architecture.build.call.graph.error"));
+		}
 		if (callGraph != null) {
-			if (!analysedClassPath.equals(filteredClassPathToAnalyse)) {
-				throw new SecurityException(Messages.localized("security.architecture.build.call.graph.error"));
-			}
 			return callGraph;
 		}
 		try {
@@ -757,7 +771,6 @@ public class CustomCallgraphBuilder {
 			// takes effect.
 			options.setSelector(new JdkOpaqueMethodTargetSelector(options.getMethodTargetSelector(), classHierarchy));
 			callGraph = builder.makeCallGraph(options, null);
-			analysedClassPath = filteredClassPathToAnalyse;
 			return callGraph;
 		} catch (Exception e) {
 			// Chain the cause so a genuine analysis failure is diagnosable and never

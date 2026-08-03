@@ -382,6 +382,18 @@ public class CustomCallgraphBuilderTest {
 
 		Assertions.assertTrue(present.isPresent());
 		Assertions.assertTrue(absent.isEmpty(), "an unresolvable optional framework class must not throw");
+
+		// The composition itself must be all-or-nothing: one absent name has to
+		// discard the present one too, otherwise a partially present framework
+		// contributes a lone origin that a forged counterpart could sit beside.
+		Set<Path> bothPresent = CustomCallgraphBuilder.optionalFrameworkCandidateCodeSources(
+				List.of("net.jqwik.api.Property", "net.jqwik.engine.JqwikTestEngine"));
+		Set<Path> oneAbsent = CustomCallgraphBuilder.optionalFrameworkCandidateCodeSources(
+				List.of("net.jqwik.api.Property", "net.jqwik.api.NoSuchPropertyClass"));
+
+		Assertions.assertFalse(bothPresent.isEmpty(), "both jqwik artefacts are present in this build");
+		Assertions.assertTrue(oneAbsent.isEmpty(),
+				"a single absent name must discard every optional origin, not just its own");
 	}
 
 	/**

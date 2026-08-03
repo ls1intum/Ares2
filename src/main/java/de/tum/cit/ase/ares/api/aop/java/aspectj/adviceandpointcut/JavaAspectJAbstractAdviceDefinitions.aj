@@ -674,22 +674,6 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 	// <editor-fold desc="Signature handling (AspectJ-only)">
 
 	/**
-	 * Formats a join-point signature in the same shape produced by the Byte Buddy /
-	 * Instrumentation advice:
-	 * {@code <declaringType>.<methodName>(<paramType1>,<paramType2>,...)}.
-	 * <p>
-	 * AspectJ's {@link org.aspectj.lang.Signature#toLongString()} prepends Java
-	 * modifiers (e.g. {@code "public transient "}) and, for constructors, omits
-	 * {@code .<init>} altogether
-	 * ({@code "java.lang.ProcessBuilder(java.lang.String[])"}). The Instrumentation
-	 * side and the JSON expectation files use {@code <init>}-style signatures, so
-	 * this helper converts AspectJ's join-point shape to that form.
-	 *
-	 * @param sig the AspectJ {@link org.aspectj.lang.Signature} from the join point
-	 * @return normalized signature string with no leading modifiers and an explicit
-	 *         {@code <init>} marker for constructors
-	 */
-	/**
 	 * Appends the resolved runtime declaration of a denied call to its static
 	 * signature, when the two differ.
 	 * <p>
@@ -775,6 +759,22 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 		}
 	}
 
+	/**
+	 * Formats a join-point signature in the same shape produced by the Byte Buddy /
+	 * Instrumentation advice:
+	 * {@code <declaringType>.<methodName>(<paramType1>,<paramType2>,...)}.
+	 * <p>
+	 * AspectJ's {@link org.aspectj.lang.Signature#toLongString()} prepends Java
+	 * modifiers (e.g. {@code "public transient "}) and, for constructors, omits
+	 * {@code .<init>} altogether
+	 * ({@code "java.lang.ProcessBuilder(java.lang.String[])"}). The Instrumentation
+	 * side and the JSON expectation files use {@code <init>}-style signatures, so
+	 * this helper converts AspectJ's join-point shape to that form.
+	 *
+	 * @param sig the AspectJ {@link org.aspectj.lang.Signature} from the join point
+	 * @return normalized signature string with no leading modifiers and an explicit
+	 *         {@code <init>} marker for constructors
+	 */
 	@Nonnull
 	protected static String formatSignature(@Nonnull Signature sig) {
 		return formatSignature(sig, sig.getDeclaringTypeName());
