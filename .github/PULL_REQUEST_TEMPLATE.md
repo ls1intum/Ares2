@@ -69,13 +69,32 @@
   Write these steps so that a reviewer who did not write the code can follow them from a
   cold start. Where possible, begin from the perspective "I have an Ares exercise".
 
+  Start from a runnable exercise, do not make the reviewer build one. `examples/`
+  contains `ares-exercise-gradle` and `ares-exercise-maven`; point at one of them and
+  describe only the delta. A reviewer who has to guess how to wire up Ares is testing
+  their own setup rather than your change.
+
+  Name the build tool explicitly, and prefer the one the affected users have. Most
+  Artemis Java exercises are Gradle; a Maven-only manual leaves a Gradle reviewer
+  translating as they go. If the change is build-tool independent, say so.
+
   Prerequisites: which Ares version or branch to build and install, which exercise or
   test repository and which security policy file to use, and any environment requirement
   (JDK, Maven or Gradle, the echo server on port 25565 for network tests, see AGENTS.md).
 
   Steps: numbered, one action per line, with the exact commands.
 
-  Expected result: what a reviewer should see when the change works.
+  Use only platform-independent paths. `/etc/hosts` does not exist on Windows, and
+  neither do `/tmp` or `~/.bashrc` in the form you expect. Create a file such as
+  `secret.txt` in the project directory instead.
+
+  Expected result: state it per step, not once for the whole scenario. "Run `mvn test`
+  again" tells a reviewer nothing about what they are looking for; "run `mvn test` again
+  and confirm that PenguinTest.name() still executes, while Spoof.grab() is neither
+  recognised nor executed as a test method" does. Say what must be observable, and where
+  it is observable: name the log line, the report file or the build output the reviewer
+  should read. If a claim cannot be observed anywhere, either add the diagnostic that
+  makes it observable, or do not ask for it.
 
   Negative case: equally important for a security tool. State what must still be
   rejected, and how a reviewer confirms that Ares has not become more permissive.
