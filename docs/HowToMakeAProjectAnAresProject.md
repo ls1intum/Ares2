@@ -562,7 +562,7 @@ Two further points apply whether or not a policy is present:
 The policy-free path also **fixes the analysis and enforcement modes**: it always uses ArchUnit for static analysis and AspectJ for the runtime layer, and it discovers the build tool from the project itself. Two consequences follow:
 
 1. The ByteBuddy agent is not the enforcing mechanism here. The AspectJ weaving configured in [Section 3.1](#31-gradle-recommended) or [Section 3.2](#32-maven-alternative) is what enforces at runtime. A project that is not woven gets the static ArchUnit checks only.
-2. A project containing both a `pom.xml` and a `build.gradle` cannot be resolved and is rejected as ambiguous. See the [troubleshooting table](#8-troubleshooting).
+2. Discovery has to succeed first, and it can fail. With no policy there is no explicitly selected build tool, so a project containing both a `pom.xml` and a `build.gradle` is rejected as ambiguous, and one containing neither is rejected as unsupported. Either failure happens **before** any enforcement is configured, so the restrictive configuration described above never takes effect in those cases; the build fails instead. See the [troubleshooting table](#8-troubleshooting).
 
 A minimal test that runs under this configuration:
 
@@ -642,7 +642,8 @@ Neither is a defect in the fallback; it is what a fallback with no instructor in
 | `InaccessibleObjectException` at runtime | Missing `--add-opens` / `--add-exports` flags | Ensure the complete list from [Section 3.1.5](#315-attach-the-agent-to-test-execution) / [Section 3.2.4](#324-attach-the-agent-via-maven-surefire-plugin) is present. A partial list fails only once a policy exercises the corresponding advice |
 | Coverage reports nothing after adding Ares | A plain `<argLine>` overwrote the property JaCoCo sets | Prefix the Surefire `<argLine>` with `@{argLine}` and declare an empty `<argLine>` property |
 | `Could not resolve all files for configuration ':aresAgent'`, or "expected exactly one file" | The configuration is transitive, so it holds more than the agent JAR | Set `transitive = false` on the dedicated configurations, as in [Section 3.1.3](#313-configure-the-ares-agent-configurations) |
-| The project has both `pom.xml` and `build.gradle` | The no-policy path cannot tell which build tool is authoritative and rejects the project as ambiguous | Remove the descriptor you do not use, or supply a policy that names the configuration explicitly |
+| `IllegalStateException: Ambiguous project: both Maven and Gradle descriptors are active` | The project has both a `pom.xml` and a `build.gradle`, and the no-policy path has no explicitly selected build tool, so it cannot tell which is authoritative. Discovery fails before any enforcement is configured | Remove the descriptor you do not use, or supply a policy that names the configuration explicitly |
+| `IllegalStateException: Unsupported project: no pom.xml, build.gradle or build.gradle.kts` | The directory the tests run from carries no supported build descriptor | Run from the project root that holds the build descriptor |
 | `logback.xml occurs multiple times on the classpath` | The agent JAR and the ordinary Ares JAR each carry one | A warning only; enforcement is unaffected |
 | The reserved-package check never runs under `gradlew test` | A boundary version 1 snippet hooked `check` alone | Migrate to boundary version 2, which also gates every `Test` task ([Section 4.1](#41-gradle)) |
 | Policy seems to have no effect | Wrong `withinPath` | Gradle: `classes/java/main/<package/path>`, Maven: `classes/<package/path>` |
