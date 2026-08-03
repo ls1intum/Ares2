@@ -8,7 +8,10 @@
 
 > **In a hurry?** Two complete, runnable exercises live in [`examples/`](../examples): [`ares-exercise-gradle`](../examples/ares-exercise-gradle) and [`ares-exercise-maven`](../examples/ares-exercise-maven). Copy one and adapt it. This manual explains what each part of them does and why.
 
+> **Coming from Ares 1?** If you are converting an existing `de.tum.in.ase:artemis-java-test-sandbox` exercise, start from [How to Convert an Ares 1 Project into an Ares 2 Project](HowToConvertAnAres1ProjectIntoAnAres2Project.md) instead. It is self-contained and covers everything this manual does, plus the annotation-to-policy translation.
+
 **Related documentation:**
+- [How to Convert an Ares 1 Project into an Ares 2 Project](HowToConvertAnAres1ProjectIntoAnAres2Project.md), the migration guide for existing Ares 1 exercises
 - [Security Policy Manual](policy/SecurityPolicyManual.md), which explains how to write a security policy YAML file
 - [Security Policy Reader and Director Manual](policy/SecurityPolicyReaderAndDirectorManual.md), which describes the internal processing pipeline
 - [Enforcement Model](policy/EnforcementModel.md), which defines what static analysis and the runtime layer are each responsible for, and specifies the reserved-package build boundary
@@ -41,11 +44,16 @@
    - [5.1 Start from a runnable example](#51-start-from-a-runnable-example)
    - [5.2 The two controls that matter](#52-the-two-controls-that-matter)
    - [5.3 What a green run does and does not prove](#53-what-a-green-run-does-and-does-not-prove)
-6. [Next steps](#6-next-steps)
-7. [Troubleshooting](#7-troubleshooting)
-8. [Glossary](#8-glossary)
-9. [Appendix A: complete `build.gradle`](#9-appendix-a-complete-buildgradle)
-10. [Appendix B: complete `pom.xml`](#10-appendix-b-complete-pomxml)
+6. [Exercises without a `@Policy` annotation](#6-exercises-without-a-policy-annotation)
+   - [6.1 When Ares is active at all](#61-when-ares-is-active-at-all)
+   - [6.2 What the policy-free configuration actually restricts](#62-what-the-policy-free-configuration-actually-restricts)
+   - [6.3 What it derives from the project, and why that matters](#63-what-it-derives-from-the-project-and-why-that-matters)
+   - [6.4 When to use it](#64-when-to-use-it)
+7. [Next steps](#7-next-steps)
+8. [Troubleshooting](#8-troubleshooting)
+9. [Glossary](#9-glossary)
+10. [Appendix A: complete `build.gradle`](#10-appendix-a-complete-buildgradle)
+11. [Appendix B: complete `pom.xml`](#11-appendix-b-complete-pomxml)
 
 ---
 
@@ -505,7 +513,7 @@ A correct run is therefore **green**, and contains an asserted rejection. It is 
 
 ### 5.3 What a green run does and does not prove
 
-A minimal test with no `@Policy` annotation confirms only that the Ares classes are on the test classpath and that the JVM started with the configured arguments. It does **not** prove that the agent instrumented anything, and it is not enforcement-free either: without `@Policy`, Ares's JUnit extension still applies its default, most restrictive policy.
+A minimal test with no `@Policy` annotation confirms only that the Ares classes are on the test classpath and that the JVM started with the configured arguments. It does **not** prove that the agent instrumented anything, and it is not necessarily enforcement-free either: see [Section 6](#6-exercises-without-a-policy-annotation) for what does and does not happen without a policy.
 
 To prove enforcement, use the paired controls from [Section 5.2](#52-the-two-controls-that-matter), then break the setup deliberately and confirm each break is detected:
 
@@ -519,9 +527,87 @@ Each break must be made in the mode that depends **only** on the removed compone
 
 ---
 
-## 6. Next steps
+## 6. Exercises without a `@Policy` annotation
 
-1. **Create a security policy and annotate tests:** follow the [Security Policy Manual](policy/SecurityPolicyManual.md), which explains how to write `SecurityPolicy.yaml` files and apply `@Policy` to your tests.
+A security policy is not always necessary. If your supervised code is meant to touch no files, open no connections, run no commands and start no threads, you can omit the policy file entirely and let Ares apply its policy-free configuration, which grants none of those things. This section explains exactly what that configuration does, because it is easy to over-estimate in both directions.
+
+### 6.1 When Ares is active at all
+
+Enforcement depends on **two** independent things: whether the Ares JUnit extension is registered, and whether a policy is present. Only the first is a precondition.
+
+| Your test declares | Ares enforcement |
+|---|---|
+| A plain JUnit `@Test`, with or without `@Policy` | **None.** No Ares security code runs at all |
+| An Ares test annotation (`@Public`, `@Hidden`, `@PublicTest`, `@HiddenTest`), no `@Policy`, or a `@Policy` whose `value` is blank | The policy-free configuration described below |
+| An Ares test annotation and a `@Policy` naming a policy file | That policy governs the five resource domains |
+| An Ares test annotation and `@Policy(activated = false)` | **None.** This is the explicit opt-out |
+
+The first row is the trap. `@Policy` is not itself a JUnit extension: it carries no `@ExtendWith`, and it registers nothing. What registers `JupiterSecurityExtension` is the `@JupiterAresTest` meta-annotation carried by `@Public`, `@Hidden`, `@PublicTest` and `@HiddenTest`. A test annotated only with `@Test` and `@Policy` therefore runs entirely unsupervised, and it does so silently, with no warning that the policy was never read.
+
+> **Rule of thumb:** the Ares test annotation is what turns Ares on. The policy only decides how strict it then is.
+
+### 6.2 What the policy-free configuration actually restricts
+
+With the extension registered and no policy present, Ares builds a restrictive configuration in which all five permission lists are empty:
+
+- **File system, network, command execution and thread creation: denied.** No allowance exists in any of those domains, so nothing is permitted.
+- **Package imports: denied *outside an implicit allowlist*.** This is the part that is commonly overstated. Ares always unions three sources into the permitted set: the essential packages it ships, the supervised package itself, and the packages of the recognised test classes. The shipped essential list includes the `java` prefix, so all of `java.*` remains importable. Package imports are restricted, not eliminated.
+- **No default execution timeout applies yet.** The policy-free configuration does construct a 10,000 ms limit, but timeouts belong to the **Phobos** test-case family, which Ares 2.1.1 generates without yet dispatching it from the in-process execution path. That part of the pipeline has not been migrated across, so the limit does not bound a test today. Add [`@StrictTimeout`](#9-glossary) wherever a test needs a deadline.
+
+Two further points apply whether or not a policy is present:
+
+- Ares installs fixed restrictions that no policy can grant, covering reflection, native access, JVM termination, class loading, JNDI and related domains. A policy governs the five resource domains, not everything.
+- The reserved-package boundary of [Section 4](#4-reject-student-classes-in-reserved-packages) is still required. It is a build-side check and does not depend on the Ares extension activating at all.
+
+The policy-free path also **fixes the analysis and enforcement modes**: it always uses ArchUnit for static analysis and AspectJ for the runtime layer, and it discovers the build tool from the project itself. Two consequences follow:
+
+1. The ByteBuddy agent is not the enforcing mechanism here. The AspectJ weaving configured in [Section 3.1](#31-gradle-recommended) or [Section 3.2](#32-maven-alternative) is what enforces at runtime. A project that is not woven gets the static ArchUnit checks only.
+2. A project containing both a `pom.xml` and a `build.gradle` cannot be resolved and is rejected as ambiguous. See the [troubleshooting table](#8-troubleshooting).
+
+A minimal test that runs under this configuration:
+
+```java
+import de.tum.cit.ase.ares.api.jupiter.PublicTest;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+public class PenguinTest {
+
+    @PublicTest
+    void name() {
+        assertEquals("Julian", new Penguin("Julian").getName());
+    }
+}
+```
+
+Note the absence of `@Test`: `@PublicTest` is itself a test annotation. If you prefer `@Public` you must add `@Test` alongside it, because `@Public` marks the test type without causing execution.
+
+### 6.3 What it derives from the project, and why that matters
+
+With a policy, the enforcement scope and the trusted test classes are **pinned by the instructor**. Without one, Ares derives both by scanning the project, and the project includes the student's submission:
+
+- **The supervised package** is chosen as the most frequent non-reserved package among the production sources. A submission whose file distribution differs from what you expect can therefore shift the scope away from the code you meant to supervise.
+- **The exempt test classes** are collected by scanning the discovered test source roots for annotated test classes. If students can add files beneath a test source root, they can obtain that exemption. A nested test class is covered only when its enclosing class is also recognised, because the scanner reports nested types in source notation (`Outer.Inner`) while the exemption check matches binary notation (`Outer$Inner`).
+
+Neither is a defect in the fallback; it is what a fallback with no instructor input can do. But both mean the policy-free path is only as trustworthy as your control over the source roots. With a policy present, `theFollowingClassesAreTestClasses` pins the exempt set and Ares never scans for it.
+
+### 6.4 When to use it
+
+**Reasonable:**
+
+- Exercises whose supervised code needs no file, network, command or thread access, and no package imports beyond the implicit allowlist.
+- Smoke-testing a fresh setup, to confirm the wiring before writing a policy.
+
+**Not reasonable:**
+
+- Graded exercises, in general. The criterion is not "graded" as such but ownership: if students can influence which package dominates the production sources, or can add files beneath a discovered test root, then the scope and the exempt set are partly theirs to choose.
+- Anything where you need to grant a specific allowance. As soon as one permission is required, write the policy; a policy with five empty lists is equally strict and additionally pins the scope, the exempt set and the mode, so it is the better default even when it grants nothing.
+
+---
+
+## 7. Next steps
+
+1. **Create a security policy and annotate tests:** follow the [Security Policy Manual](policy/SecurityPolicyManual.md), which explains how to write `SecurityPolicy.yaml` files and apply `@Policy` to your tests. If your exercise needs no resource access at all, [Section 6](#6-exercises-without-a-policy-annotation) describes the alternative.
 2. **Choose the right configuration:** select one of the eight `ProgrammingLanguageConfiguration` values matching your build tool, architecture analysis and runtime enforcement:
 
 | Value | Build Tool | Static Analysis | Runtime Enforcement |
@@ -542,7 +628,7 @@ Each break must be made in the mode that depends **only** on the removed compone
 
 ---
 
-## 7. Troubleshooting
+## 8. Troubleshooting
 
 | Problem | Possible Cause | Solution |
 |---------|---------------|----------|
@@ -563,7 +649,7 @@ Each break must be made in the mode that depends **only** on the removed compone
 
 ---
 
-## 8. Glossary
+## 9. Glossary
 
 | Term | Meaning |
 |------|----------|
@@ -578,11 +664,13 @@ Each break must be made in the mode that depends **only** on the removed compone
 | **`ProgrammingLanguageConfiguration`** | An enum encoding the combination of build tool, static analysis framework and runtime enforcement mechanism. |
 | **Classifier (`:agent`)** | A Maven/Gradle coordinate qualifier selecting a variant of an artefact. The `:agent` classifier selects the agent JAR, which carries the `Premain-Class` manifest entry and needs no repackaging. |
 | **Reserved package** | A package prefix that student code may not declare, because Ares trusts that identity by name. Enforced by the build, see [Section 4](#4-reject-student-classes-in-reserved-packages). |
+| **Phobos** | A test-case family covering the file-system, network and timeout domains. Ares 2.1.1 generates Phobos cases but does not yet dispatch them from the in-process execution path, so a policy timeout does not bound a test today. Use `@StrictTimeout` for a deadline. |
+| **`@StrictTimeout`** | The annotation that actually bounds test execution. Applied to a test class or method, and unchanged from Ares 1 apart from its package. |
 | **Positive / negative control** | The paired checks of [Section 5.2](#52-the-two-controls-that-matter): one permitted operation that must succeed, one forbidden operation that must be rejected. Neither alone demonstrates that enforcement works. |
 
 ---
 
-## 9. Appendix A: complete `build.gradle`
+## 10. Appendix A: complete `build.gradle`
 
 The working version of this file, together with the sources and policy it refers to, is [`examples/ares-exercise-gradle`](../examples/ares-exercise-gradle).
 
@@ -676,7 +764,7 @@ tasks.withType(Test).configureEach {
 apply from: 'gradle/AresReservedPackages.gradle'
 ```
 
-## 10. Appendix B: complete `pom.xml`
+## 11. Appendix B: complete `pom.xml`
 
 The working version of this file is [`examples/ares-exercise-maven`](../examples/ares-exercise-maven).
 
