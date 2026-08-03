@@ -137,22 +137,41 @@
   Coverage is produced by the "Coverage Report" job of the Maven workflow. It merges the
   JaCoCo execution data of every test job, publishes an aggregated table in the job
   summary and uploads a "coverage-report" artefact containing the HTML and CSV report.
-  Read the per-class line coverage out of that report and list every class this pull
-  request adds or changes non-trivially. Leave out rows for purely cosmetic changes.
+  List every class this pull request adds or changes non-trivially, and leave out rows
+  for purely cosmetic changes.
+
+  Report every counter JaCoCo produces per class, not lines alone. Read them from
+  `site/jacoco/jacoco.csv` inside the artefact, where each counter is a MISSED/COVERED
+  column pair: INSTRUCTION, BRANCH, LINE, COMPLEXITY and METHOD. Give each as a
+  percentage with the raw counts behind it, and write those counts as COVERED out of
+  MISSED plus COVERED rather than as the raw pair, for example `81.0% (272/336)` for a
+  class whose LINE_COVERED is 272 and whose LINE_MISSED is 64, so a reviewer can
+  recompute the row. Where a counter has no total at all, for example a class without
+  branches, write `n/a (0/0)` rather than 100%.
+
+  Lines alone hide what matters here. Ares is itself the security boundary, so an
+  untaken branch is a decision that was never enforced under test, and the advice and
+  rule classes are mostly branches. A class can read as well covered by line and still
+  have half of its denial paths never taken; branch coverage is what says so. Method
+  coverage shows how many methods nothing reached at all, and complexity summarises how
+  much of the remaining execution-path space is still untested.
 
   The last column confirms that the covered lines are backed by meaningful assertions,
   not merely executed.
 
   Note that the aggregated figures are repository-wide and that the JaCoCo thresholds
-  are currently advisory, so they do not fail the build.
+  are currently advisory, so they do not fail the build. Only `src/main/java` is
+  reported on, so test classes never appear in the report and do not belong in the
+  table, even though the agent does instrument the ones under `de.tum.cit.ase.ares.api`.
 
-  If this pull request changes no Java code (documentation, CI or build configuration
-  only), replace the table with "No Java code changed".
+  If this pull request changes no production Java code (documentation, CI, build
+  configuration or tests only), replace the table with "No production Java code
+  changed".
 -->
 
-| Class | Line coverage | Confirmation (meaningful assertions) |
-| --- | ---: | :---: |
-|  |  |  |
+| Class | Instruction coverage | Branch coverage | Line coverage | Complexity coverage | Method coverage | Confirmation (meaningful assertions) |
+| --- | ---: | ---: | ---: | ---: | ---: | :---: |
+|  |  |  |  |  |  |  |
 
 ## Breaking changes and migration
 
