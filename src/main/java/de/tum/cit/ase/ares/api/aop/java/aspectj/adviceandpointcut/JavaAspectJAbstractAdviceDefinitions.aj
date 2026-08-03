@@ -15,8 +15,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.Signature;
 import org.aspectj.lang.reflect.CodeSignature;
+import org.aspectj.lang.reflect.MethodSignature;
 //</editor-fold>
 
 public abstract aspect JavaAspectJAbstractAdviceDefinitions {
@@ -687,10 +689,101 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 	 * @return normalized signature string with no leading modifiers and an explicit
 	 *         {@code <init>} marker for constructors
 	 */
+	/**
+	 * Appends the resolved runtime declaration of a denied call to its static
+	 * signature, when the two differ.
+	 * <p>
+	 * The AspectJ backend weaves {@code call(...)} join points, so its signature
+	 * names the <em>static</em> receiver type at the call site, whereas the
+	 * Instrumentation backend advises the implementation whose bytecode runs and
+	 * reports that class through {@code @Advice.Origin("#t")}. The same blocked
+	 * operation therefore appears as {@code java.nio.channels.DatagramChannel} in
+	 * one backend and {@code sun.nio.ch.DatagramChannelImpl} in the other. This
+	 * helper reports both, so a denial message carries the call-site identity that
+	 * only AspectJ observes as well as the implementation identity that only
+	 * Instrumentation observes.
+	 * <p>
+	 * This is best-effort diagnostic normalisation for ordinary public virtual
+	 * calls on platform classes, <em>not</em> a reconstruction of dispatch.
+	 * {@code super.method()}, bridge methods, private or package-private hiding and
+	 * null receivers all fall back to the static signature.
+	 * <p>
+	 * Two restrictions are deliberate and security-relevant. First, resolution
+	 * happens only for targets defined by the bootstrap or platform loader, so this
+	 * never runs student-controlled class loading while {@code ADVICE_IN_PROGRESS}
+	 * is set. Second, the result is used solely to render the message; every
+	 * enforcement key keeps using the unchanged static
+	 * {@code fullMethodSignature}, because those keys drive the ignore maps (for
+	 * example {@code java.io.File.delete}) and a dynamically resolved subclass name
+	 * would silently change which parameters and fields get inspected.
+	 *
+	 * @param joinPoint           the join point of the denied call
+	 * @param fullMethodSignature the static signature already used for enforcement
+	 * @return the static signature, optionally followed by the resolved runtime
+	 *         declaration
+	 */
+	@Nonnull
+	protected static String describeDeniedCall(@Nonnull JoinPoint joinPoint, @Nonnull String fullMethodSignature) {
+		@Nullable
+		String runtimeDeclaration = resolveRuntimeDeclaration(joinPoint);
+		if (runtimeDeclaration == null || runtimeDeclaration.equals(fullMethodSignature)) {
+			return fullMethodSignature;
+		}
+		return fullMethodSignature + " [resolved runtime declaration: " + runtimeDeclaration + "]"; //$NON-NLS-1$ //$NON-NLS-2$
+	}
+
+	/**
+	 * Resolves the class declaring the method implementation that virtual dispatch
+	 * selects for this join point's receiver, or {@code null} when it cannot be
+	 * established cheaply and safely.
+	 */
+	@Nullable
+	private static String resolveRuntimeDeclaration(@Nonnull JoinPoint joinPoint) {
+		if (!(joinPoint.getSignature() instanceof MethodSignature methodSignature)) {
+			// Constructor and field join points already name the concrete type.
+			return null;
+		}
+		@Nullable
+		Object target = joinPoint.getTarget();
+		if (target == null) {
+			// Static call, or a receiver AspectJ cannot bind. Both legitimately keep the
+			// static declaration; a null receiver is about to raise NullPointerException.
+			return null;
+		}
+		@Nonnull
+		Class<?> runtimeType = target.getClass();
+		@Nullable
+		ClassLoader definingLoader = runtimeType.getClassLoader();
+		if (definingLoader != null && definingLoader != ClassLoader.getPlatformClassLoader()) {
+			// Never reflect over application- or student-loaded classes here: resolving
+			// their members can trigger their own class loading, which would run while
+			// the advice guard suppresses nested interception.
+			return null;
+		}
+		try {
+			@Nonnull
+			Method dispatched = runtimeType.getMethod(methodSignature.getName(), methodSignature.getParameterTypes());
+			@Nonnull
+			Class<?> declaring = dispatched.getDeclaringClass();
+			if (declaring.getName().equals(methodSignature.getDeclaringTypeName())) {
+				return null;
+			}
+			return formatSignature(methodSignature, declaring.getName());
+		} catch (NoSuchMethodException | RuntimeException | LinkageError unresolvableDeclaration) {
+			// Diagnostics must never turn a denial into a different failure.
+			return null;
+		}
+	}
+
 	@Nonnull
 	protected static String formatSignature(@Nonnull Signature sig) {
+		return formatSignature(sig, sig.getDeclaringTypeName());
+	}
+
+	@Nonnull
+	private static String formatSignature(@Nonnull Signature sig, @Nonnull String declaringTypeName) {
 		@Nonnull
-		String declaring = sig.getDeclaringTypeName();
+		String declaring = declaringTypeName;
 		@Nonnull
 		String name = sig.getName();
 		@Nonnull

@@ -661,21 +661,21 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	private boolean checkCopyOrTransferSpecialCase(@Nonnull String action, @Nonnull String declaringTypeName,
 			@Nonnull String methodName, @Nullable Object[] parameters, @Nullable Object instance,
 			@Nonnull String systemMethodToCheck, @Nullable String studentCalledMethod,
-			@Nonnull String fullMethodSignature) {
+			@Nonnull String fullMethodSignature, @Nonnull JoinPoint thisJoinPoint) {
 		if ("java.nio.file.Files".equals(declaringTypeName) && "copy".equals(methodName)) {
 			if ("read".equals(action)) {
 				// source (index 0). The other overloads' index-0 argument
 				// (InputStream) is not Path-shaped and resolves to no target, so this
 				// is a safe no-op for them.
 				checkSinglePathRole("read", "pathsAllowedToBeRead", isolateParameter(parameters, 0), false,
-						systemMethodToCheck, studentCalledMethod, fullMethodSignature);
+						systemMethodToCheck, studentCalledMethod, fullMethodSignature, thisJoinPoint);
 			} else if ("overwrite".equals(action)) {
 				// destination (index 1): create or overwrite depending on REPLACE_EXISTING.
 				boolean replaceExisting = hasReplaceExisting(parameters);
 				String resolvedAction = replaceExisting ? "overwrite" : "create";
 				String settingKey = replaceExisting ? "pathsAllowedToBeOverwritten" : "pathsAllowedToBeCreated";
 				checkSinglePathRole(resolvedAction, settingKey, isolateParameter(parameters, 1), true,
-						systemMethodToCheck, studentCalledMethod, fullMethodSignature);
+						systemMethodToCheck, studentCalledMethod, fullMethodSignature, thisJoinPoint);
 			} else {
 				throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
 			}
@@ -687,7 +687,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				// itself a channel and is not checked here — see class-level Javadoc above.
 				checkSinglePathRole("read", "pathsAllowedToBeRead",
 						instance == null ? new Object[0] : new Object[] { instance }, false, systemMethodToCheck,
-						studentCalledMethod, fullMethodSignature);
+						studentCalledMethod, fullMethodSignature, thisJoinPoint);
 			} else {
 				throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
 			}
@@ -699,7 +699,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				// itself a channel and is not checked here — see class-level Javadoc above.
 				checkSinglePathRole("overwrite", "pathsAllowedToBeOverwritten",
 						instance == null ? new Object[0] : new Object[] { instance }, false, systemMethodToCheck,
-						studentCalledMethod, fullMethodSignature);
+						studentCalledMethod, fullMethodSignature, thisJoinPoint);
 			} else {
 				throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
 			}
@@ -717,7 +717,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	 */
 	private void checkSinglePathRole(@Nonnull String actionLabel, @Nonnull String allowedPathsSettingKey,
 			@Nonnull Object[] candidates, boolean allowNonExistingPaths, @Nonnull String systemMethodToCheck,
-			@Nullable String studentCalledMethod, @Nonnull String fullMethodSignature) {
+			@Nullable String studentCalledMethod, @Nonnull String fullMethodSignature,
+			@Nonnull JoinPoint thisJoinPoint) {
 		if (candidates.length == 0) {
 			return;
 		}
@@ -734,7 +735,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			return;
 		}
 		throw new SecurityException(localize("security.advice.illegal.file.execution", systemMethodToCheck,
-				actionLabel, violation, fullMethodSignature
+				actionLabel, violation, describeDeniedCall(thisJoinPoint, fullMethodSignature)
 						+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
 						+ buildDenialReason(noAllowRuleConfigured)));
 	}
@@ -1287,7 +1288,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		@Nullable
 		String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
 		if (checkCopyOrTransferSpecialCase(action, declaringTypeName, methodName, parameters, instance,
-				systemMethodToCheck, studentCalledMethod, fullMethodSignature)) {
+				systemMethodToCheck, studentCalledMethod, fullMethodSignature, thisJoinPoint)) {
 			return;
 		}
 		List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action, declaringTypeName, parameters);
@@ -1354,7 +1355,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 					throw new SecurityException(localize(
 							"security.advice.illegal.file.execution", systemMethodToCheck, messageAction,
 							illegallyInteractedThroughParameter,
-							fullMethodSignature
+							describeDeniedCall(thisJoinPoint, fullMethodSignature)
 									+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
 									+ " | " + buildDenialReason(noAllowRuleConfigured)));
 				}
@@ -1390,7 +1391,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 					throw new SecurityException(localize(
 							"security.advice.illegal.file.execution", systemMethodToCheck, messageAction,
 							illegallyInteractedThroughReceiver,
-							fullMethodSignature
+							describeDeniedCall(thisJoinPoint, fullMethodSignature)
 									+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
 									+ " | " + buildDenialReason(noAllowRuleConfigured)));
 				}
@@ -1437,7 +1438,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 					throw new SecurityException(localize(
 							"security.advice.illegal.file.execution", systemMethodToCheck, messageAction,
 							illegallyInteractedThroughAttribute,
-							fullMethodSignature
+							describeDeniedCall(thisJoinPoint, fullMethodSignature)
 									+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
 									+ " | " + buildDenialReason(noAllowRuleConfigured)));
 				}
