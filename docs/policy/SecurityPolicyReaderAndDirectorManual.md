@@ -92,6 +92,7 @@ The architecture follows multiple well-known software design patterns. The table
 The educator provides a YAML file such as `SecurityConfiguration.yaml`. Its structure maps **1-to-1** to the Java data model. Example:
 
 ```yaml
+thisPolicyFileCompliesToThePolicyVersion: 1
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION
   theSupervisedCodeUsesTheFollowingPackage: anonymous
@@ -256,8 +257,8 @@ This chained call reads as a sequence of actions: create → write → execute, 
 The class uses a plain null-and-empty check (`if (securityPolicyFilePath != null && !securityPolicyFilePath.toString().isEmpty())`) to handle the case where no policy file path is provided. If `securityPolicyFilePath` is `null` (or empty), only the **reader** step is skipped:
 - No reader is selected and no policy file is read; the parsed policy remains `null`.
 - `SecurityPolicyDirector.selectSecurityPolicyDirector(null)` is still called and returns the default `SecurityPolicyJavaDirector`.
-- The director's `createTestCases(null, …)` builds a factory with the default modes `BuildMode.MAVEN`, `ArchitectureMode.ARCHUNIT`, and `AOPMode.ASPECTJ`.
-- The factory falls back to `ResourceAccesses.createRestrictive()`: **every** resource access (file system, network, command execution, thread creation, package imports) is denied, and a 10-second execution timeout is enforced.
+- The director's `createTestCases(null, …)` builds a factory with `ArchitectureMode.ARCHUNIT` and `AOPMode.ASPECTJ`, and with the build mode **discovered from the project** by `ProjectSourcesFinder.discover(root, null)` rather than defaulted. A project root containing both a `pom.xml` and a Gradle descriptor is rejected as ambiguous, and one containing neither is rejected as unsupported.
+- The factory falls back to `ResourceAccesses.createRestrictive()`: file system, network, command execution and thread creation are denied outright, and package imports are restricted to an implicit allowlist (the essential packages, which include the `java` prefix, plus the supervised package and the test-class packages). A 10-second limit is also constructed, but it becomes a Phobos test case, and `executeTestCases()` does not dispatch the Phobos family yet, so **no execution timeout applies today**; use `@StrictTimeout` where a deadline is required.
 - The supervised package, main class, and test classes are derived by scanning the project instead of the policy.
 
 In other words, a missing policy path does **not** disable enforcement. It results in the most restrictive default enforcement, so that a forgotten or misconfigured policy path fails closed rather than open.
@@ -305,6 +306,7 @@ The following diagram shows the end-to-end flow from a YAML policy file to enfor
 **1. Instructor writes `SecurityConfiguration.yaml`:**
 
 ```yaml
+thisPolicyFileCompliesToThePolicyVersion: 1
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION
   theSupervisedCodeUsesTheFollowingPackage: com.student
@@ -324,10 +326,13 @@ regardingTheSupervisedCode:
 
 ```java
 import de.tum.cit.ase.ares.api.Policy;
-import org.junit.jupiter.api.Test;
+import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 
 class SecurityTest {
-    @Test
+    // @PublicTest, not a plain @Test: the Ares test annotation is what registers
+    // JupiterSecurityExtension. @Policy carries no @ExtendWith and activates nothing
+    // on its own, so a plain @Test would run entirely unsupervised.
+    @PublicTest
     @Policy(value = "SecurityConfiguration.yaml",
             withinPath = "classes/java/main/com/student")
     void studentCodeMustNotAccessFileSystem() {
@@ -369,7 +374,7 @@ In practice, instructors do not call `SecurityPolicyReaderAndDirector` directly.
 | `SecurityException`, YAML parse error (caused by `StreamReadException`) | Malformed YAML syntax (wrong indentation, tabs, missing colons) | Validate the YAML file with a linter; use spaces only |
 | `SecurityException`, cannot deserialise policy (caused by `DatabindException`) | YAML field names or types do not match the `SecurityPolicy` record schema | Check field names against the [Security Policy Manual](SecurityPolicyManual.md) |
 | `SecurityException`, file not found or unreadable | The path in `@Policy(value = "...")` does not point to an existing file. `JupiterSecurityExtension` rejects a non-existent path already when reading the annotation; a read failure inside the YAML reader (caused by `IOException`) is likewise wrapped in a `SecurityException` | Verify the path is correct and relative to the project root |
-| Tests fail with denied resource accesses although no policy was set | `securityPolicyFilePath` is `null`, so the default most-restricted enforcement applies (Section 7.3): all resource accesses are denied and a 10-second timeout is enforced | Set the policy path to a policy that permits the required accesses, or use `@Policy(activated = false)` to deactivate Ares for the test |
+| Tests fail with denied resource accesses although no policy was set | `securityPolicyFilePath` is `null`, so the default most-restricted enforcement applies (Section 7.3): file, network, command and thread accesses are denied, and package imports are restricted to the implicit allowlist | Set the policy path to a policy that permits the required accesses, or use `@Policy(activated = false)` to deactivate Ares for the test |
 | Architecture tests pass but runtime enforcement is missing | Agent JAR not loaded via `-javaagent` | See [How to Make a Project an Ares Project](../HowToMakeAProjectAnAresProject.md) |
 
 ---

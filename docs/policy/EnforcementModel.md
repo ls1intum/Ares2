@@ -98,13 +98,29 @@ altered.
 The detached annotation configuration was removed because no active enforcement
 pipeline consumed it. `@Policy` and its YAML document are now the sole authority.
 
-| Removed annotation | Policy replacement |
-| --- | --- |
-| `WhitelistPath` / `BlacklistPath` | add the permitted path and booleans under `regardingFileSystemInteractions`; omit an entry to deny it |
-| package/class whitelist or blacklist | `regardingPackageImports`, supervised package and explicit test-class list; omission means denial |
-| `AddTrustedPackage` | declare only the minimum trusted test classes; infrastructure packages stay in the versioned essential configuration |
-| `AllowLocalPort` | `regardingNetworkConnections` with explicit host, port and operation booleans |
-| `AllowThreads` / `TrustedThreads` | `regardingThreadCreations` with an explicit class and count |
+The policy model is an **allowlist only**. It has no deny rule, so an annotation
+whose purpose was to carve an exception out of a broader permission has no
+counterpart, and the intent must be re-expressed by granting less.
+
+| Removed annotation | Fidelity | Policy replacement |
+| --- | --- | --- |
+| `WhitelistPath` | approximate | a permitted path and its booleans under `regardingFileSystemInteractions`. Only prefix-shaped paths map naturally; glob and regex path types do not |
+| `BlacklistPath` | **none** | there is no deny rule. Grant narrower paths instead of the parent. "Allow a directory except one file inside it" is not representable |
+| `WhitelistPackage` | approximate | `regardingPackageImports`, after recomputing the effective permission set |
+| `BlacklistPackage` | **none** | there is no negative package rule. Note that the `java` prefix is always permitted as an essential package, so a blacklist of a `java.*` package cannot be reproduced |
+| `WhitelistClass` | conditional | `theFollowingClassesAreTestClasses`, **only** for instructor-owned, student-unmodifiable test infrastructure. An entry there is exempt from both the static and the runtime checks |
+| `AddTrustedPackage` | **none** | do not place a package name in `theFollowingClassesAreTestClasses`: entries match an exact fully qualified class name, or a nested class on the `$` boundary, so a package name grants no exemption. It is not inert either, because a permitted package is derived from every entry by stripping the last dotted component, so such an entry silently widens the package allowlist. Infrastructure packages stay in the versioned essential configuration |
+| `AllowLocalPort` | approximate | `regardingNetworkConnections` with explicit host, port and operation booleans. Range-with-exclusion forms do not map. Note that port `0` is a **wildcard** matching every port, which makes an unrestricted threshold representable and makes a literal `0` dangerously broad |
+| `AllowThreads` | approximate | `regardingThreadCreations` with an explicit class and count. The original capped concurrently active threads, so the accounting differs and the limit must be re-derived |
+| `TrustedThreads`, `DisableThreadGroupCheckFor` | **none** | these controlled the trusted execution context, not permission to create a thread |
 
 Method-specific behaviour uses a method-level `@Policy`; shared behaviour uses a
-class-level `@Policy`. The method annotation takes precedence.
+class-level `@Policy`. The method annotation takes precedence. The removed whitelist
+and blacklist annotations were repeatable and additive across class and method
+level (others, such as `AllowLocalPort` and `AllowThreads`, already resolved
+nearest-first), whereas `@Policy` resolution is always nearest-wins and policies
+are never merged, so an additive configuration must be consolidated into one
+complete policy per scope.
+
+A step-by-step migration, including the complete build configuration, is in
+[HowToConvertAnAres1ProjectIntoAnAres2Project.md](../HowToConvertAnAres1ProjectIntoAnAres2Project.md).
