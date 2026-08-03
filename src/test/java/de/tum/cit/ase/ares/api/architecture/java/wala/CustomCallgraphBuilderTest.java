@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.jar.JarFile;
+import java.util.jar.Manifest;
 import java.util.regex.Pattern;
 
 import javax.activation.FileDataSource;
@@ -340,13 +341,18 @@ public class CustomCallgraphBuilderTest {
 	void testCallgraphBuilderInitialisesWithoutOptionalJqwikOnTheClasspath() throws Exception {
 		Set<Path> jqwikOrigins = optionalFrameworkCandidateCodeSources();
 		Assumptions.assumeFalse(jqwikOrigins.isEmpty(), "jqwik must be present to build a classpath without it");
+		List<Path> testClassPath = currentTestClassPath();
+		// Failing to derive the runner's classpath is a missing fixture, not a defect
+		// in the code under test, so skip rather than report a false failure.
+		Assumptions.assumeTrue(testClassPath.stream().anyMatch(jqwikOrigins::contains),
+				"the derived test classpath must still contain the jqwik origins to remove them");
 		List<URL> withoutJqwik = new ArrayList<>();
-		for (Path entry : currentTestClassPath()) {
+		for (Path entry : testClassPath) {
 			if (!jqwikOrigins.contains(entry)) {
 				withoutJqwik.add(entry.toUri().toURL());
 			}
 		}
-		Assertions.assertNotEquals(withoutJqwik.size(), currentTestClassPath().size(),
+		Assertions.assertNotEquals(withoutJqwik.size(), testClassPath.size(),
 				"the isolated classpath must actually be missing the jqwik entries");
 
 		try (URLClassLoader isolated = new URLClassLoader(withoutJqwik.toArray(URL[]::new),
@@ -372,6 +378,10 @@ public class CustomCallgraphBuilderTest {
 	 */
 	@Test
 	void testOptionalFrameworkOriginsAreDiscardedWhenAnyClassIsAbsent() throws Exception {
+		// jqwik is provided-scope, so it is genuinely absent in the very consumers this
+		// change is for. Treat that as a missing fixture, not as a defect.
+		Assumptions.assumeFalse(optionalFrameworkCandidateCodeSources().isEmpty(),
+				"jqwik must be present for the all-or-nothing distinction to be observable");
 		Method method = CustomCallgraphBuilder.class.getDeclaredMethod("optionalFrameworkCodeSource", String.class,
 				ClassLoader.class);
 		method.setAccessible(true);
@@ -465,14 +475,24 @@ public class CustomCallgraphBuilderTest {
 		// the isolated loader sees the real dependencies.
 		if (entries.size() == 1 && entries.get(0).toString().endsWith(".jar")) {
 			try (JarFile booter = new JarFile(entries.get(0).toFile())) {
-				String classPathAttribute = booter.getManifest().getMainAttributes().getValue("Class-Path");
+				// A single .jar entry does not prove this is Surefire's booter JAR, and a
+				// JAR need not carry a manifest at all, so do not dereference blindly.
+				Manifest manifest = booter.getManifest();
+				String classPathAttribute = manifest == null ? null
+						: manifest.getMainAttributes().getValue("Class-Path");
 				if (classPathAttribute != null) {
 					entries.clear();
 					for (String url : classPathAttribute.split(" ")) {
 						if (url.isBlank()) {
 							continue;
 						}
-						Path path = Path.of(URI.create(url));
+						// Manifest Class-Path entries are relative URLs by specification;
+						// only Surefire's absolute file: URLs are usable here.
+						URI entryUri = URI.create(url);
+						if (!entryUri.isAbsolute() || !"file".equals(entryUri.getScheme())) {
+							continue;
+						}
+						Path path = Path.of(entryUri);
 						if (Files.exists(path)) {
 							entries.add(path.toRealPath());
 						}
