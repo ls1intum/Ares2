@@ -2,10 +2,13 @@ package de.tum.cit.ase.ares.api.policy.reader.yaml;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -30,6 +33,7 @@ import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.NetworkPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
 import de.tum.cit.ase.ares.api.policy.reader.SecurityPolicyReader;
+import de.tum.cit.ase.ares.api.policy.reader.SecurityPolicySchemaValidator;
 
 class SecurityPolicyStrictSchemaTest {
 	@TempDir
@@ -392,5 +396,117 @@ class SecurityPolicyStrictSchemaTest {
 				    regardingTimeouts:
 				      - timeout: 30
 				""";
+	}
+
+	@Test
+	void schemaValidatorCannotBeInstantiatedReflectively() throws NoSuchMethodException {
+		Constructor<SecurityPolicySchemaValidator> constructor = SecurityPolicySchemaValidator.class
+				.getDeclaredConstructor();
+		constructor.setAccessible(true);
+		InvocationTargetException thrown = assertThrows(InvocationTargetException.class, constructor::newInstance);
+		assertInstanceOf(UnsupportedOperationException.class, thrown.getCause());
+	}
+
+	@Test
+	void rejectsARootThatIsNotAnObject() {
+		assertThrows(SecurityException.class, () -> read("a bare scalar policy\n"));
+	}
+
+	@Test
+	void rejectsAPolicyMissingARequiredRootField() {
+		String withoutVersion = validYaml().replace("thisPolicyFileCompliesToThePolicyVersion: 1\n", "");
+		assertThrows(SecurityException.class, () -> read(withoutVersion));
+	}
+
+	@Test
+	void acceptsAPolicyThatOmitsTheOptionalPackageAndMainClass() throws IOException {
+		String yaml = validYaml().replace("  theSupervisedCodeUsesTheFollowingPackage: com.example\n", "")
+				.replace("  theMainClassInsideThisPackageIs: Main\n", "");
+		SecurityPolicy policy = read(yaml);
+		assertNull(policy.regardingTheSupervisedCode().theSupervisedCodeUsesTheFollowingPackage());
+		assertNull(policy.regardingTheSupervisedCode().theMainClassInsideThisPackageIs());
+	}
+
+	@Test
+	void acceptsAPolicyWithTheOptionalPackageAndMainClassSetToNull() throws IOException {
+		String yaml = validYaml()
+				.replace("theSupervisedCodeUsesTheFollowingPackage: com.example",
+						"theSupervisedCodeUsesTheFollowingPackage: null")
+				.replace("theMainClassInsideThisPackageIs: Main", "theMainClassInsideThisPackageIs: null");
+		SecurityPolicy policy = read(yaml);
+		assertNull(policy.regardingTheSupervisedCode().theSupervisedCodeUsesTheFollowingPackage());
+		assertNull(policy.regardingTheSupervisedCode().theMainClassInsideThisPackageIs());
+	}
+
+	static Stream<Arguments> malformedPolicyCases() {
+		return Stream.of(
+				Arguments.of("thisPolicyFileCompliesToThePolicyVersion: 1",
+						"thisPolicyFileCompliesToThePolicyVersion: notAnInteger"),
+				Arguments.of("thisPolicyFileCompliesToThePolicyVersion: 1",
+						"thisPolicyFileCompliesToThePolicyVersion: 4294967297"),
+				Arguments.of("thisPolicyFileCompliesToThePolicyVersion: 1",
+						"thisPolicyFileCompliesToThePolicyVersion: 2"),
+				Arguments.of("thisPolicyFileCompliesToThePolicyVersion: 1",
+						"thisPolicyFileCompliesToThePolicyVersion: null"),
+				Arguments.of("thisPolicyFileCompliesToThePolicyVersion: 1",
+						"thisPolicyFileCompliesToThePolicyVersion: 1\nunknownRootField: 1"),
+				Arguments.of(
+						"theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ",
+						"theFollowingProgrammingLanguageConfigurationIsUsed: NOT_A_CONFIGURATION"),
+				Arguments.of(
+						"theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ",
+						"theFollowingProgrammingLanguageConfigurationIsUsed: \"\""),
+				Arguments.of("theSupervisedCodeUsesTheFollowingPackage: com.example",
+						"theSupervisedCodeUsesTheFollowingPackage: \"1invalid\""),
+				Arguments.of("theSupervisedCodeUsesTheFollowingPackage: com.example",
+						"theSupervisedCodeUsesTheFollowingPackage: \"\""),
+				Arguments.of("theMainClassInsideThisPackageIs: Main", "theMainClassInsideThisPackageIs: \"1Invalid\""),
+				Arguments.of("theFollowingClassesAreTestClasses: [com.example.MainTest]",
+						"theFollowingClassesAreTestClasses: [\"1invalid\"]"),
+				Arguments.of("theFollowingClassesAreTestClasses: [com.example.MainTest]",
+						"theFollowingClassesAreTestClasses: [\"\"]"),
+				Arguments.of("theFollowingClassesAreTestClasses: [com.example.MainTest]",
+						"theFollowingClassesAreTestClasses: notAnArray"),
+				Arguments.of("onThisPathAndAllPathsBelow: /tmp/data", "onThisPathAndAllPathsBelow: \"/tmp/*\""),
+				Arguments.of("readAllFiles: true", "readAllFiles: notABoolean"),
+				Arguments.of("readAllFiles: true", "readAllFiles: true\n        unknownFileField: 1"),
+				Arguments.of("onTheHost: localhost", "onTheHost: \"invalid host\""),
+				Arguments.of("executeTheCommand: java", "executeTheCommand: \" java\""),
+				Arguments.of("ofThisClass: java.lang.Thread", "ofThisClass: \"1Invalid\""),
+				Arguments.of("createTheFollowingNumberOfThreads: 1", "createTheFollowingNumberOfThreads: notAnInteger"),
+				Arguments.of("importTheFollowingPackage: java.util", "importTheFollowingPackage: \"1invalid\""),
+				Arguments.of("timeout: 30", "timeout: notAnInteger"),
+				// Non-textual values for text fields exercise the "is not a string" branch,
+				// distinct from the blank and pattern-mismatch branches above.
+				Arguments.of(
+						"theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ",
+						"theFollowingProgrammingLanguageConfigurationIsUsed: 5"),
+				Arguments.of("theSupervisedCodeUsesTheFollowingPackage: com.example",
+						"theSupervisedCodeUsesTheFollowingPackage: 5"),
+				Arguments.of("theMainClassInsideThisPackageIs: Main", "theMainClassInsideThisPackageIs: 5"),
+				Arguments.of("onThisPathAndAllPathsBelow: /tmp/data", "onThisPathAndAllPathsBelow: 5"),
+				Arguments.of("executeTheCommand: java", "executeTheCommand: 5"),
+				Arguments.of("ofThisClass: java.lang.Thread", "ofThisClass: 5"),
+				Arguments.of("importTheFollowingPackage: java.util", "importTheFollowingPackage: 5"),
+				// The command arguments array: non-array shape, a non-textual element, and a
+				// textual element carrying a control character (rejected per entry).
+				Arguments.of("withTheseArguments: [--version]", "withTheseArguments: notAnArray"),
+				Arguments.of("withTheseArguments: [--version]", "withTheseArguments: [5]"),
+				Arguments.of("withTheseArguments: [--version]", "withTheseArguments: [\"\\u0001\"]"),
+				// A resource category given a scalar rather than an array, and a list entry
+				// that is a scalar rather than an object.
+				Arguments.of("    regardingTimeouts:\n      - timeout: 30", "    regardingTimeouts: notAnArray"),
+				Arguments.of("      - timeout: 30", "      - aScalarInsteadOfAnObject"),
+				Arguments.of(
+						"    regardingCommandExecutions:\n      - executeTheCommand: java\n"
+								+ "        withTheseArguments: [--version]",
+						"    regardingCommandExecutions: notAnArray"));
+	}
+
+	@ParameterizedTest
+	@MethodSource("malformedPolicyCases")
+	void rejectsMalformedPolicies(String original, String replacement) {
+		String yaml = validYaml().replace(original, replacement);
+		assertThrows(SecurityException.class, () -> read(yaml));
 	}
 }

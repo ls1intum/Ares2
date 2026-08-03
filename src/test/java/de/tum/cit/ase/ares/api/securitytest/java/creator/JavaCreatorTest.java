@@ -3,9 +3,12 @@ package de.tum.cit.ase.ares.api.securitytest.java.creator;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -25,6 +28,7 @@ import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.phobos.PhobosTestCase;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
 
@@ -339,5 +343,54 @@ public class JavaCreatorTest {
 							essentialClasses, testClasses, packageName, mainClassName, architectureTestCases,
 							aopTestCases, phobosTestCases, resourceAccesses, tempDir));
 		}
+	}
+
+	@Test
+	void prepareAllowedPackagesFiltersDerivesAndValidatesEntries() throws Exception {
+		JavaCreator creator = new JavaCreator();
+		Method prepare = JavaCreator.class.getDeclaredMethod("prepareAllowedPackages", List.class,
+				ResourceAccesses.class, String.class, List.class);
+		prepare.setAccessible(true);
+		ResourceAccesses restrictive = ResourceAccesses.createRestrictive();
+
+		// A null and a blank essential entry are filtered, the valid one is kept; a
+		// present student package takes the ternary's true branch; a qualified test
+		// class derives its package, a bare one is kept, and a blank one is filtered.
+		@SuppressWarnings("unchecked")
+		Set<PackagePermission> withPackage = (Set<PackagePermission>) prepare.invoke(creator,
+				Arrays.asList("com.essential", "   ", null), restrictive, "com.student",
+				Arrays.asList("com.example.FooTest", "bareclass", "", null));
+		Set<PackagePermission> expected = Set.of(new PackagePermission("com.essential"),
+				new PackagePermission("com.student"), new PackagePermission("com.example"),
+				new PackagePermission("bareclass"));
+		assertEquals(expected, withPackage);
+
+		// A blank student package takes the ternary's is-blank branch and derives
+		// nothing;
+		// with no essential, policy or test entries the result is empty.
+		@SuppressWarnings("unchecked")
+		Set<PackagePermission> blankPackage = (Set<PackagePermission>) prepare.invoke(creator, List.of(), restrictive,
+				"", List.of());
+		assertTrue(blankPackage.isEmpty());
+
+		// A null student package takes the ternary's null branch (the @Nonnull guard).
+		@SuppressWarnings("unchecked")
+		Set<PackagePermission> nullPackage = (Set<PackagePermission>) prepare.invoke(creator, List.of(), restrictive,
+				null, List.of());
+		assertTrue(nullPackage.isEmpty());
+	}
+
+	@Test
+	void prepareAllowedClassesFiltersNullAndBlankBeforeValidating() throws Exception {
+		JavaCreator creator = new JavaCreator();
+		Method prepare = JavaCreator.class.getDeclaredMethod("prepareAllowedClasses", List.class, List.class);
+		prepare.setAccessible(true);
+		// Each source list carries a valid entry plus a blank and a null one, which are
+		// filtered before the Java class-path syntax check.
+		@SuppressWarnings("unchecked")
+		Set<ClassPermission> result = (Set<ClassPermission>) prepare.invoke(creator,
+				Arrays.asList("com.example.Foo", "   ", null), Arrays.asList("com.example.BarTest", "", null));
+		assertEquals(Set.of(new ClassPermission("com.example.Foo"), new ClassPermission("com.example.BarTest")),
+				result);
 	}
 }
