@@ -143,9 +143,11 @@
   Report every counter JaCoCo produces per class, not lines alone. Read them from
   `site/jacoco/jacoco.csv` inside the artefact, where each counter is a MISSED/COVERED
   column pair: INSTRUCTION, BRANCH, LINE, COMPLEXITY and METHOD. Give each as a
-  percentage with the raw counts behind it, for example `81.0% (272/336)`, so a reviewer
-  can recompute the row. Where a counter has no total at all, for example a class
-  without branches, write `n/a (0/0)` rather than 100%.
+  percentage with the raw counts behind it, and write those counts as COVERED out of
+  MISSED plus COVERED rather than as the raw pair, for example `81.0% (272/336)` for a
+  class whose LINE_COVERED is 272 and whose LINE_MISSED is 64, so a reviewer can
+  recompute the row. Where a counter has no total at all, for example a class without
+  branches, write `n/a (0/0)` rather than 100%.
 
   Lines alone hide what matters here. Ares is itself the security boundary, so an
   untaken branch is a decision that was never enforced under test, and the advice and
