@@ -849,7 +849,7 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 		if (criticalCommandFieldUnreadable) {
 			throw new SecurityException(localize(
 					"security.advice.illegal.command.execution", commandSystemMethodToCheck, action, "<unknown>",
-					fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+					describeDeniedCall(thisJoinPoint, fullMethodSignature) + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
 							+ " | " + buildDenialReason(noAllowRuleConfigured)));
 		}
 		// <editor-fold desc="Check parameters">
@@ -862,7 +862,7 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 			throw new SecurityException(localize(
 					"security.advice.illegal.command.execution", commandSystemMethodToCheck, action,
 					commandIllegallyExecutedThroughParameter,
-					fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+					describeDeniedCall(thisJoinPoint, fullMethodSignature) + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
 							+ " | " + buildDenialReason(noAllowRuleConfigured)));
 		}
 		@Nullable
@@ -878,7 +878,7 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 			throw new SecurityException(localize(
 					"security.advice.illegal.file.execution", commandSystemMethodToCheck, action,
 					pathIllegallyExecutedThroughParameter,
-					fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+					describeDeniedCall(thisJoinPoint, fullMethodSignature) + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
 							+ " | " + localize("security.advice.denial.reason.command.executable.path.not.allowed")));
 		}
 		// </editor-fold>
@@ -892,7 +892,7 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 			throw new SecurityException(localize(
 					"security.advice.illegal.command.execution", commandSystemMethodToCheck, action,
 					commandIllegallyExecutedThroughAttribute,
-					fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+					describeDeniedCall(thisJoinPoint, fullMethodSignature) + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
 							+ " | " + buildDenialReason(noAllowRuleConfigured)));
 		}
 		@Nullable
@@ -908,7 +908,7 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 			throw new SecurityException(localize(
 					"security.advice.illegal.file.execution", commandSystemMethodToCheck, action,
 					pathIllegallyExecutedThroughAttribute,
-					fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+					describeDeniedCall(thisJoinPoint, fullMethodSignature) + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
 							+ " | " + localize("security.advice.denial.reason.command.executable.path.not.allowed")));
 		}
 		// </editor-fold>

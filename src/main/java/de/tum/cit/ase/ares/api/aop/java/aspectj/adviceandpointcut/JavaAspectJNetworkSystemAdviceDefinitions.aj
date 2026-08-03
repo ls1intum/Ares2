@@ -698,7 +698,7 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 	 * @author Kevin Fischer
 	 */
 	private static void checkNetworkSystemInteractionForAction(@Nonnull String action,
-			@Nonnull String fullMethodSignature, @Nonnull String declaringTypeName,
+			@Nonnull JoinPoint thisJoinPoint, @Nonnull String fullMethodSignature, @Nonnull String declaringTypeName,
 			@Nonnull String methodName, @Nullable Object[] parameters, @Nullable Object[] attributes,
 			@Nullable Object instance, @Nonnull String networkSystemMethodToCheck,
 			@Nullable String studentCalledMethod) {
@@ -737,7 +737,8 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 					networkSystemMethodToCheck,
 					action,
 					targetFromParameters.toDisplayString(),
-					fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+					describeDeniedCall(thisJoinPoint, fullMethodSignature)
+							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
 							+ " | " + buildDenialReason(noAllowRuleConfigured)
 			));
 		}
@@ -767,7 +768,8 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 					networkSystemMethodToCheck,
 					action,
 					networkIllegallyInteractedThroughParameter,
-					fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+					describeDeniedCall(thisJoinPoint, fullMethodSignature)
+							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
 							+ " | " + buildDenialReason(noAllowRuleConfigured)
 			));
 		}
@@ -783,7 +785,8 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 					networkSystemMethodToCheck,
 					action,
 					networkIllegallyInteractedThroughReceiver,
-					fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+					describeDeniedCall(thisJoinPoint, fullMethodSignature)
+							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
 							+ " | " + buildDenialReason(noAllowRuleConfigured)
 			));
 		}
@@ -800,7 +803,8 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 					networkSystemMethodToCheck,
 					action,
 					networkIllegallyInteractedThroughAttribute,
-					fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+					describeDeniedCall(thisJoinPoint, fullMethodSignature)
+							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
 							+ " | " + buildDenialReason(noAllowRuleConfigured)
 			));
 		}
@@ -908,7 +912,7 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 		// <editor-fold desc="Check actions">
 		List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action, methodName, instance);
 		for (Map.Entry<String, Boolean> actionCheck : actionsToValidate) {
-			checkNetworkSystemInteractionForAction(actionCheck.getKey(),
+			checkNetworkSystemInteractionForAction(actionCheck.getKey(), thisJoinPoint,
 					fullMethodSignature, declaringTypeName, methodName, parameters, attributes, instance,
 					networkSystemMethodToCheck, studentCalledMethod);
 		}
