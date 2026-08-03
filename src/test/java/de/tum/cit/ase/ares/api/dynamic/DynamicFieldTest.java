@@ -51,8 +51,8 @@ class DynamicFieldTest {
 
 	@Test
 	void lookupStartingFromAnInterfaceDoesNotThrowOnNullSuperclass() {
-		assertThatCode(
-				() -> DynamicClass.toDynamic(FieldOwningInterface.class).field(int.class, "doesNotExist").exists())
-						.doesNotThrowAnyException();
+		var field = DynamicClass.toDynamic(FieldOwningInterface.class).field(int.class, "doesNotExist");
+		assertThatCode(field::exists).doesNotThrowAnyException();
+		assertThat(field.exists()).isFalse();
 	}
 }

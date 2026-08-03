@@ -45,4 +45,33 @@ class DynamicClassTest {
 		var dynamicClass = DynamicClass.toDynamic(OnlyLiteralMainFixture.class);
 		assertThat(dynamicClass.checkForPublicOrProtectedMethods()).isEqualTo(1);
 	}
+
+	static class InstanceMainFixture {
+		public void main(String[] args) {
+			// intentionally empty: same signature as the entry point, but an instance
+			// method, must NOT be exempt
+		}
+	}
+
+	@Test
+	void publicInstanceMainIsNotExempted() {
+		var dynamicClass = DynamicClass.toDynamic(InstanceMainFixture.class);
+		assertThatThrownBy(dynamicClass::checkForPublicOrProtectedMethods).isInstanceOf(AssertionFailedError.class)
+				.hasMessageContaining("main(java.lang.String[])");
+	}
+
+	static class NonVoidMainFixture {
+		public static int main(String[] args) {
+			// intentionally non-void: same signature as the entry point, but not
+			// void-returning, must NOT be exempt
+			return 0;
+		}
+	}
+
+	@Test
+	void publicStaticNonVoidMainIsNotExempted() {
+		var dynamicClass = DynamicClass.toDynamic(NonVoidMainFixture.class);
+		assertThatThrownBy(dynamicClass::checkForPublicOrProtectedMethods).isInstanceOf(AssertionFailedError.class)
+				.hasMessageContaining("main(java.lang.String[])");
+	}
 }
