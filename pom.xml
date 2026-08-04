@@ -28,7 +28,7 @@
 		<!-- 1. Testing: 1.4 Mockito -->
 		<mockito-version>5.23.0</mockito-version>
 		<!-- 2. Architecture: 2.1 Archunit -->
-		<archunit-version>1.4.2</archunit-version>
+		<archunit-version>1.5.0</archunit-version>
 		<!-- 2. Architecture: 2.2 Wala -->
 		<wala-version>1.8.0</wala-version>
 		<!-- Test fixture: genuine third-party JAR in the javax.* namespace -->
