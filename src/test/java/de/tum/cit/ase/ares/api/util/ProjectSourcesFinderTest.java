@@ -51,6 +51,48 @@ class ProjectSourcesFinderTest {
 		}
 	}
 
+	/**
+	 * Regression: 'srcDir' is a prefix of 'srcDirs', so an alternation that tried
+	 * the singular form first consumed it and captured the leftover "s = [", which
+	 * resolved to nothing. Every srcDirs declaration was dropped without a trace,
+	 * and a project declaring its main sources that way looked like a project with
+	 * no production sources at all.
+	 */
+	@Test
+	void discoversGradleRootsDeclaredWithSrcDirsList() throws IOException {
+		Files.createDirectories(temporaryDirectory.resolve("assignment/src"));
+		Files.createDirectories(temporaryDirectory.resolve("test"));
+		Files.writeString(temporaryDirectory.resolve("build.gradle"), """
+				def assignmentSrcDir = "assignment/src"
+				sourceSets {
+				  test { java { srcDir 'test' } }
+				  main { java { srcDirs = [assignmentSrcDir] } }
+				}
+				""");
+		var configuration = ProjectSourcesFinder.discover(temporaryDirectory);
+		assertEquals(temporaryDirectory.resolve("assignment/src").toRealPath(),
+				configuration.productionSourceRoots().get(0));
+		assertEquals(temporaryDirectory.resolve("test").toRealPath(), configuration.testSourceRoots().get(0));
+	}
+
+	@Test
+	void discoversGradleRootsFromLiteralListsAndAppendedAssignments() throws IOException {
+		Files.createDirectories(temporaryDirectory.resolve("first"));
+		Files.createDirectories(temporaryDirectory.resolve("second"));
+		Files.createDirectories(temporaryDirectory.resolve("appended"));
+		Files.writeString(temporaryDirectory.resolve("build.gradle"), """
+				sourceSets {
+				  main { java { srcDirs = ['first', 'second'] } }
+				  test { java { srcDirs += ['appended'] } }
+				}
+				""");
+		var configuration = ProjectSourcesFinder.discover(temporaryDirectory);
+		assertEquals(2, configuration.productionSourceRoots().size());
+		assertEquals(temporaryDirectory.resolve("first").toRealPath(), configuration.productionSourceRoots().get(0));
+		assertEquals(temporaryDirectory.resolve("second").toRealPath(), configuration.productionSourceRoots().get(1));
+		assertEquals(temporaryDirectory.resolve("appended").toRealPath(), configuration.testSourceRoots().get(0));
+	}
+
 	@Test
 	void rejectsAmbiguousMissingAndEscapingProjects() throws IOException {
 		Files.writeString(temporaryDirectory.resolve("pom.xml"), "<project/>");
