@@ -2,10 +2,14 @@ package de.tum.cit.ase.ares.api.securitytest.java.projectScanner;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.IOException;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.List;
 
 import javax.tools.JavaCompiler;
@@ -127,6 +131,81 @@ class JavaProjectScannerPackageFallbackTest {
 
 		assertEquals("", new JavaProjectScanner(configuration).scanForPackageName());
 		assertEquals("de.tum.cit.ase", new JavaProgrammingExerciseProjectScanner(configuration).scanForPackageName());
+	}
+
+	@Test
+	@DisplayName("Ignores compiled classes in the default package and in reserved packages")
+	void ignoresDefaultAndReservedPackagesInTheCompiledOutput() throws IOException {
+		Path outputRoot = compile("""
+				public class RootLevel {
+				}
+				""", "RootLevel.java");
+		compileInto(outputRoot, """
+				package de.tum.cit.ase.ares.api.fake;
+
+				public class Impostor {
+				}
+				""", "de/tum/cit/ase/ares/api/fake/Impostor.java");
+		compileInto(outputRoot, """
+				package de.tum.cit.aet;
+
+				public class Calculator {
+				}
+				""", "de/tum/cit/aet/Calculator.java");
+
+		String packageName = new JavaProjectScanner(configurationWithoutSourceRoots(outputRoot)).scanForPackageName();
+
+		assertEquals("de.tum.cit.aet", packageName);
+	}
+
+	@Test
+	@DisplayName("Treats an absent or unreadable output root as nothing to detect")
+	void treatsAbsentOrUnreadableOutputRootAsNothingToDetect() throws IOException {
+		Path absent = projectRoot.resolve("build/classes/java/main");
+		assertEquals("", new JavaProjectScanner(configurationWithoutSourceRoots(absent)).scanForPackageName());
+
+		Path outputRoot = compile("""
+				package de.tum.cit.aet;
+
+				public class Calculator {
+				}
+				""", "de/tum/cit/aet/Calculator.java");
+		assumeTrue(FileSystems.getDefault().supportedFileAttributeViews().contains("posix"),
+				"needs POSIX permissions to make a directory unreadable");
+		BuildToolConfiguration configuration = configurationWithoutSourceRoots(outputRoot);
+		Files.setPosixFilePermissions(outputRoot, PosixFilePermissions.fromString("---------"));
+		try {
+			assertEquals("", new JavaProjectScanner(configuration).scanForPackageName());
+		} finally {
+			Files.setPosixFilePermissions(outputRoot, PosixFilePermissions.fromString("rwxr-xr-x"));
+		}
+	}
+
+	@Test
+	@DisplayName("Reports the build mode of the configuration it was given")
+	void reportsTheConfiguredBuildMode() throws IOException {
+		Path outputRoot = Files.createDirectories(projectRoot.resolve("build/classes/java/main"));
+
+		assertEquals(BuildMode.GRADLE,
+				new JavaProjectScanner(configurationWithoutSourceRoots(outputRoot)).scanForBuildMode());
+	}
+
+	@Test
+	@DisplayName("Rejects a source root that is not a readable directory")
+	void rejectsUnreadableSourceRoot() throws IOException {
+		Path sourceRoot = Files.createDirectories(projectRoot.resolve("sources-unreadable"));
+		Path outputRoot = Files.createDirectories(projectRoot.resolve("build/classes/java/main"));
+		BuildToolConfiguration configuration = new BuildToolConfiguration(BuildMode.GRADLE, projectRoot,
+				List.of(sourceRoot), List.of(sourceRoot), outputRoot,
+				Files.createDirectories(projectRoot.resolve("build/classes/java/test")));
+		assumeTrue(FileSystems.getDefault().supportedFileAttributeViews().contains("posix"),
+				"needs POSIX permissions to make a directory unreadable");
+		Files.setPosixFilePermissions(sourceRoot, PosixFilePermissions.fromString("--x--x--x"));
+		try {
+			assertThrows(IllegalStateException.class, () -> new JavaProjectScanner(configuration).scanForPackageName());
+		} finally {
+			Files.setPosixFilePermissions(sourceRoot, PosixFilePermissions.fromString("rwxr-xr-x"));
+		}
 	}
 
 	/**

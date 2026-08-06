@@ -443,8 +443,27 @@ class JavaProjectScannerAstTest {
 				class TestCase {}
 				class SpoofedLegacy extends TestCase { public void testLooksLegacy() {} }
 				""");
+		// The same spoof with the declaration in a second file of that package: the
+		// name then resolves through the package rather than through the compilation
+		// unit, which is a separate resolution step and must reject it just as firmly.
+		Files.writeString(tests.resolve("SplitTestCase.java"), """
+				package split;
+				class TestCase {}
+				""");
+		Files.writeString(tests.resolve("SplitSpoof.java"), """
+				package split;
+				class SplitSpoofedLegacy extends TestCase { public void testLooksLegacy() {} }
+				""");
+		// A wildcard import is the remaining way a bare TestCase can name the JUnit 3
+		// class: nothing is imported by name and the package declares no type of that
+		// name, so resolution falls through to the wildcarded candidates.
+		Files.writeString(tests.resolve("WildcardLegacy.java"), """
+				package wildcard;
+				import junit.framework.*;
+				class WildcardLegacy extends TestCase { public void testWildcarded() {} }
+				""");
 		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
-		assertArrayEquals(new String[] { "legacy.ImportedLegacy", "legacy.QualifiedLegacy" },
+		assertArrayEquals(new String[] { "legacy.ImportedLegacy", "legacy.QualifiedLegacy", "wildcard.WildcardLegacy" },
 				scanner.scanForTestClasses());
 	}
 

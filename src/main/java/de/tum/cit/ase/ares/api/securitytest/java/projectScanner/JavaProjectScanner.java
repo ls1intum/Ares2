@@ -493,7 +493,7 @@ public class JavaProjectScanner implements ProjectScanner {
 	@Nonnull
 	private Map<String, Long> compiledPackageCounts() {
 		Path outputRoot = productionOutputRoot();
-		if (outputRoot == null || !Files.isDirectory(outputRoot) || !Files.isReadable(outputRoot)) {
+		if (!Files.isDirectory(outputRoot) || !Files.isReadable(outputRoot)) {
 			return Map.of();
 		}
 		Map<String, Long> counts = new HashMap<>();
