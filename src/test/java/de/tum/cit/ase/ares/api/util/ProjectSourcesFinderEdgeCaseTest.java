@@ -117,6 +117,7 @@ class ProjectSourcesFinderEdgeCaseTest {
 		Path descriptor = Files.writeString(temporaryDirectory.resolve("build.gradle"), "sourceSets { }");
 		Files.setPosixFilePermissions(descriptor, PosixFilePermissions.fromString("---------"));
 		try {
+			assumeUnreadable(descriptor);
 			assertThrows(IllegalStateException.class, () -> ProjectSourcesFinder.discover(temporaryDirectory));
 		} finally {
 			Files.setPosixFilePermissions(descriptor, PosixFilePermissions.fromString("rw-r--r--"));
@@ -134,6 +135,7 @@ class ProjectSourcesFinderEdgeCaseTest {
 				"assignmentPath=assignment\n");
 		Files.setPosixFilePermissions(properties, PosixFilePermissions.fromString("---------"));
 		try {
+			assumeUnreadable(properties);
 			assertThrows(IllegalStateException.class, () -> ProjectSourcesFinder.discover(temporaryDirectory));
 		} finally {
 			Files.setPosixFilePermissions(properties, PosixFilePermissions.fromString("rw-r--r--"));
@@ -372,6 +374,7 @@ class ProjectSourcesFinderEdgeCaseTest {
 		assumePosix();
 		Files.setPosixFilePermissions(descriptor, PosixFilePermissions.fromString("---------"));
 		try {
+			assumeUnreadable(descriptor);
 			assertEquals(Optional.empty(), ProjectSourcesFinder.findProjectSourcesPath(),
 					"an unreadable descriptor is reported, not thrown");
 		} finally {
@@ -423,5 +426,14 @@ class ProjectSourcesFinderEdgeCaseTest {
 	private static void assumePosix() {
 		assumeTrue(FileSystems.getDefault().supportedFileAttributeViews().contains("posix"),
 				"needs POSIX permissions to make a file unreadable");
+	}
+
+	/**
+	 * Permission bits do not bind a superuser, so clearing them is not by itself a
+	 * denial. Without this check such a run would report a failure of the code
+	 * under test where the fixture is what could not be established.
+	 */
+	private static void assumeUnreadable(Path path) {
+		assumeTrue(!Files.isReadable(path), () -> "cannot make " + path + " unreadable in this environment");
 	}
 }

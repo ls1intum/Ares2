@@ -175,6 +175,7 @@ class JavaProjectScannerPackageFallbackTest {
 		BuildToolConfiguration configuration = configurationWithoutSourceRoots(outputRoot);
 		Files.setPosixFilePermissions(outputRoot, PosixFilePermissions.fromString("---------"));
 		try {
+			assumeUnreadable(outputRoot);
 			assertEquals("", new JavaProjectScanner(configuration).scanForPackageName());
 		} finally {
 			Files.setPosixFilePermissions(outputRoot, PosixFilePermissions.fromString("rwxr-xr-x"));
@@ -202,10 +203,20 @@ class JavaProjectScannerPackageFallbackTest {
 				"needs POSIX permissions to make a directory unreadable");
 		Files.setPosixFilePermissions(sourceRoot, PosixFilePermissions.fromString("--x--x--x"));
 		try {
+			assumeUnreadable(sourceRoot);
 			assertThrows(IllegalStateException.class, () -> new JavaProjectScanner(configuration).scanForPackageName());
 		} finally {
 			Files.setPosixFilePermissions(sourceRoot, PosixFilePermissions.fromString("rwxr-xr-x"));
 		}
+	}
+
+	/**
+	 * Permission bits do not bind a superuser, so clearing them is not by itself a
+	 * denial. Without this check such a run would report a failure of the code
+	 * under test where the fixture is what could not be established.
+	 */
+	private static void assumeUnreadable(Path path) {
+		assumeTrue(!Files.isReadable(path), () -> "cannot make " + path + " unreadable in this environment");
 	}
 
 	/**
