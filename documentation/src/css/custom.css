@@ -1,0 +1,59 @@
+/**
+ * Any CSS included here will be global. The classic template bundles Infima by default.
+ * Colours follow the TUM corporate design:
+ * https://portal.mytum.de/corporatedesign/index_html/vorlagen/index_farben
+ */
+
+:root {
+    --ifm-color-primary: var(--tum-color-blue);
+    --ifm-color-primary-dark: var(--tum-color-blue-dark);
+    --ifm-color-primary-darker: var(--tum-color-blue-darker);
+    --ifm-color-primary-darkest: var(--tum-color-blue-darker);
+    --ifm-color-primary-light: var(--tum-accent-blue);
+    --ifm-color-primary-lighter: var(--tum-accent-light-blue);
+    --ifm-color-primary-lightest: var(--tum-accent-beige);
+    --ifm-code-font-size: 95%;
+    --docusaurus-highlighted-code-line-bg: var(--tum-gray-20);
+
+    /* TUM primary colours */
+    --tum-color-blue: #0065bd;
+    --tum-color-black: #000000;
+    --tum-color-white: #ffffff;
+
+    /* TUM secondary colours */
+    --tum-color-blue-dark: #005293;
+    --tum-color-blue-darker: #003359;
+    --tum-gray-80: #333333;
+    --tum-gray-50: #808080;
+    --tum-gray-20: #cccccc;
+
+    /* TUM accent colours */
+    --tum-accent-beige: #dad7cb;
+    --tum-accent-orange: #e37222;
+    --tum-accent-green: #a2ad00;
+    --tum-accent-light-blue: #98c6ea;
+    --tum-accent-blue: #64a0c8;
+}
+
+[data-theme='dark'] {
+    --ifm-color-primary: #3e8acc;
+    --ifm-color-primary-dark: #3579b5;
+    --ifm-color-primary-darker: #2d6a9e;
+    --ifm-color-primary-darkest: #1f4a6e;
+    --ifm-color-primary-light: #5a9ed6;
+    --ifm-color-primary-lighter: #76b2e0;
+    --ifm-color-primary-lightest: #98c6ea;
+    --docusaurus-highlighted-code-line-bg: var(--tum-gray-80);
+}
+
+.navbar__logo {
+    margin-right: 1.5em;
+}
+
+/* The class diagrams are rendered as SVG on a transparent background, which leaves black
+   strokes invisible in dark mode. Give every diagram a light plate to sit on. */
+[data-theme='dark'] .markdown img[src$='.svg'] {
+    background-color: var(--tum-color-white);
+    border-radius: 4px;
+    padding: 0.5rem;
+}
