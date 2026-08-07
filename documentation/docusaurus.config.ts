@@ -204,6 +204,22 @@ const config: Config = {
             theme: prismThemes.github,
             darkTheme: prismThemes.dracula,
             additionalLanguages: ['java', 'groovy', 'gradle', 'yaml', 'bash', 'json'],
+            // The policy pages all show the same example policy file and highlight the one
+            // section each page documents, so that reading the section in order walks the
+            // example from top to bottom. 'policy-focus' renders that section in red; the
+            // default 'highlight' class stays available for ordinary emphasis elsewhere.
+            magicComments: [
+                {
+                    className: 'theme-code-block-highlighted-line',
+                    line: 'highlight-next-line',
+                    block: { start: 'highlight-start', end: 'highlight-end' },
+                },
+                {
+                    className: 'code-block-policy-focus',
+                    line: 'policy-focus-next-line',
+                    block: { start: 'policy-focus-start', end: 'policy-focus-end' },
+                },
+            ],
         },
     },
 } as Config;

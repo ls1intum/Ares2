@@ -57,3 +57,20 @@
     border-radius: 4px;
     padding: 0.5rem;
 }
+
+/* Highlights the section of the example policy file that the current page documents.
+   Used by the pages under docs/contributor/policy/ through the 'policy-focus' magic
+   comment declared in docusaurus.config.ts. Red rather than the default highlight colour,
+   so it cannot be confused with ordinary code emphasis. */
+.code-block-policy-focus {
+    display: block;
+    margin: 0 calc(-1 * var(--ifm-pre-padding));
+    padding: 0 var(--ifm-pre-padding);
+    border-left: 3px solid #c62828;
+    background-color: rgba(198, 40, 40, 0.12);
+}
+
+[data-theme='dark'] .code-block-policy-focus {
+    border-left-color: #ef5350;
+    background-color: rgba(239, 83, 80, 0.16);
+}
