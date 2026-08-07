@@ -4,6 +4,13 @@ sidebar_position: 3
 description: "How the AOP layer intercepts and evaluates thread creation and manipulation."
 ---
 
+:::tip[ELI5]
+A program can ask to do several things at once, and left alone it can ask for thousands.
+
+This page follows one such request: the student's code tries to start a new worker, Ares
+intercepts it, checks what kind of worker it is and how many already exist, and decides.
+:::
+
 ## 1. High-Level Overview
 
 This document describes how Ares 2 prevents unauthorised thread creation in student code.

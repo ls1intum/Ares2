@@ -4,6 +4,13 @@ sidebar_position: 10
 description: "The full end-to-end setup reference, covering both Gradle and Maven."
 ---
 
+:::tip[ELI5]
+This is the long version, with every step written out for both build tools.
+
+If you would rather follow a shorter path for the tool you actually use, start from the Maven
+or the Gradle page instead and come back here when you need the detail.
+:::
+
 > **Audience:** IT-Education experts with no security background.
 > **Scope:** The `build.gradle` and `pom.xml` files.
 > **Ares Version:** 2.1.1

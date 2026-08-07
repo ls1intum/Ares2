@@ -4,6 +4,14 @@ sidebar_position: 1
 description: "How to get involved with Ares 2: the workflow, the build, and what a good pull request looks like."
 ---
 
+:::tip[ELI5]
+Ares decides whether a student's program is allowed to do something.
+
+That means a mistake here is not a cosmetic bug. Let too much through and cheating goes
+unnoticed; block too much and an honest submission fails. So the rules for changing Ares are
+stricter than for an ordinary library, and this page is the short version of them.
+:::
+
 Ares 2 is developed in the open at [ls1intum/Ares2](https://github.com/ls1intum/Ares2).
 
 The full contribution guide lives in the repository at

@@ -4,6 +4,13 @@ sidebar_position: 1
 description: "The abstract factory and builder that turn a security policy into generated security tests."
 ---
 
+:::tip[ELI5]
+A policy file is a wish list. Something has to turn it into real, runnable tests.
+
+This is that something: it reads the finished policy and builds the exact set of checks that
+will enforce it.
+:::
+
 > **Audience:** IT-Education experts with no security background.
 > **Scope:** All classes inside `de.tum.cit.ase.ares.api.securitytest` — the abstract factory/builder, the Java-specific factory, and the `creator`, `essentialModel`, `executer`, `writer`, `projectScanner`, and `specific` sub-packages.
 > **Ares Version:** 2.1.1

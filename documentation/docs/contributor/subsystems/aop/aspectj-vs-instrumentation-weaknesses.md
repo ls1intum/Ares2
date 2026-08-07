@@ -4,6 +4,15 @@ sidebar_position: 4
 description: "Conceptual weaknesses of the AspectJ engine compared to the instrumentation engine."
 ---
 
+:::tip[ELI5]
+Ares has two ways of catching forbidden actions, and they are not equally good.
+
+One edits the places where a call is written. The other edits the thing being called. The
+second catches more, because there is only one thing being called but there can be a hundred
+places that call it, and you can only edit the ones you can see. This page is the honest list
+of what the first one misses.
+:::
+
 Ares enforces a security policy on untrusted student code through two
 interchangeable engines:
 

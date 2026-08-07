@@ -4,6 +4,14 @@ sidebar_position: 2
 description: "The resources Ares 2 guards, and the two compile modes through which it enforces a policy."
 ---
 
+:::tip[ELI5]
+This is the list of things a student's program is stopped from doing: touching files, going
+online, running other programs, and spawning endless workers.
+
+It also explains the two moments at which Ares can step in, before the code is compiled and
+while it is running, and why it uses both rather than picking one.
+:::
+
 Beyond its standard features, Ares 2 supports advanced blocking mechanisms using **AspectJ**,
 **AOP (aspect-oriented programming)**, **instrumentation** and **architecture tests**. These
 give fine-grained control over student submissions, allowing specific actions such as file

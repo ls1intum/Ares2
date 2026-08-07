@@ -4,6 +4,14 @@ sidebar_position: 11
 description: "Consuming Ares 2 from GitHub Packages instead of Maven Central."
 ---
 
+:::tip[ELI5]
+There are two shops you can get Ares from. This page is about the one that asks for ID at the
+door.
+
+Most people should use the other one, which does not. This page exists for the cases where you
+cannot.
+:::
+
 :::tip[Maven Central is recommended]
 Maven Central requires no authentication and is the simpler choice for most users. See
 [Installation](installation.md). Use GitHub Packages only if you specifically need it.

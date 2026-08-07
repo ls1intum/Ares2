@@ -4,6 +4,14 @@ sidebar_position: 1
 description: "How the architecture layer detects file system access statically, with ArchUnit and WALA."
 ---
 
+:::tip[ELI5]
+Same question as the AOP page, asked without running anything.
+
+This layer reads the compiled program like a map and looks for a path leading from the
+student's code to the file-opening machinery. It can tell you that a route exists. It cannot
+tell you which file, because that is only decided once the program is running.
+:::
+
 <a id="file-system-security-mechanism"></a>
 
 <a id="table-of-contents"></a>

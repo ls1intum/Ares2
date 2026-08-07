@@ -4,6 +4,14 @@ sidebar_position: 1
 description: "How the AOP layer intercepts and evaluates file system operations."
 ---
 
+:::tip[ELI5]
+This page follows one file operation the whole way through.
+
+The student's program asks to open a file, Ares gets there first, looks at which file it is
+and what is about to be done to it, checks that against the list of permitted paths, and then
+either lets it happen or throws it out. Every step of that is written down here.
+:::
+
 <a id="file-system-security-mechanism"></a>
 
 <a id="table-of-contents"></a>

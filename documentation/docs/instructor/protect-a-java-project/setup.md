@@ -4,6 +4,14 @@ sidebar_position: 4
 description: "The problem Ares 2 solves, using a worked example with a public and a hidden test."
 ---
 
+:::tip[ELI5]
+Some tests should show students their result straight away. Others must stay sealed until the
+deadline has passed.
+
+Simply hiding the sealed ones is not enough, because a test that runs can leave traces behind.
+This page shows the problem with a small worked example before fixing it.
+:::
+
 This page introduces the problem Ares 2 solves, using a small worked example. The
 [next page](test-annotations.md) then covers the annotations in detail.
 

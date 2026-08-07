@@ -4,6 +4,14 @@ sidebar_position: 8
 description: "Enforcing the policy at runtime by instrumenting the compiled bytecode."
 ---
 
+:::tip[ELI5]
+This is the guard who stands in the room and watches.
+
+Nothing is prepared in advance. When the tests run, Ares attaches itself to the program and
+checks each action as it is attempted, which means it can see exactly which file or which
+address was asked for.
+:::
+
 This page shows how postcompile mode is integrated, using a concrete example.
 
 Consider the following student implementation. The method attempts to write to a file

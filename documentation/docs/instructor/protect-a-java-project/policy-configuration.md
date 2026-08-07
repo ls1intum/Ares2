@@ -4,6 +4,13 @@ sidebar_position: 6
 description: "The security-policy.yaml file and the eight supported programming language configurations."
 ---
 
+:::tip[ELI5]
+The policy file is where you write down what the student's program is allowed to do.
+
+It is a plain list of permissions. Anything you do not write down is refused, so an empty file
+is the strictest file.
+:::
+
 Ares 2 security enforcement is driven by a central configuration file. It defines how the
 supervised program is built, analysed and instrumented, as well as which resources and
 operations are permitted at runtime.

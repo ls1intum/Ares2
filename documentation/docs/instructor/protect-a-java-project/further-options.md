@@ -4,6 +4,13 @@ sidebar_position: 9
 description: "Path access, testing before release, deadline extensions, threads, console interaction, networking and locale."
 ---
 
+:::tip[ELI5]
+The basics get an exercise working. This page is everything else you will eventually want.
+
+How to test the exercise before students see it, how to give someone extra time, how to test a
+program that talks to the console, and a few smaller knobs.
+:::
+
 The basics are covered by [Setup](setup.md) and [Test Annotations](test-annotations.md),
 but there is more you need to know about testing with Ares 2. The earlier example used a single
 class and very little testing. Without the knowledge below, you may not get Ares 2 to work and

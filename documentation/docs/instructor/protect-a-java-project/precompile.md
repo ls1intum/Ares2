@@ -4,6 +4,13 @@ sidebar_position: 7
 description: "Generating enforcement artefacts before the student code is compiled."
 ---
 
+:::tip[ELI5]
+This is the guard who reads the plans before anyone moves in.
+
+Ares takes your policy and writes out the enforcement files ahead of time, so they can be
+reviewed and committed like any other code, and are already in place when a student submits.
+:::
+
 This page shows how precompile mode is integrated, using a concrete example.
 
 Consider the following student implementation. The method attempts to write to a file

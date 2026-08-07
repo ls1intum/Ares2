@@ -4,6 +4,13 @@ sidebar_position: 2
 description: "Protecting a Gradle-based Java project with Ares 2, from dependency to enforced policy."
 ---
 
+:::tip[ELI5]
+If your exercise is built with Gradle, this is your route from start to finish.
+
+Add Ares, mark your tests, write down what the student's code may do, and wire the check into
+the build so nobody can quietly remove it.
+:::
+
 :::note[This page is a stub]
 The end-to-end Gradle walkthrough has not been written as a single page yet. Every step already
 exists in the reference pages linked below, and the

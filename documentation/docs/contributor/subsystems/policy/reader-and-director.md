@@ -4,6 +4,14 @@ sidebar_position: 2
 description: "How a security policy file is read and turned into the test cases that enforce it."
 ---
 
+:::tip[ELI5]
+Somebody has to read the policy file and turn it into actual checks.
+
+That is these two parts. One reads the file and understands it. The other decides which tests
+need to be built from what it read. This page explains how they work and why they are
+separate.
+:::
+
 > **Audience:** IT-Education experts with no security background.
 > **Scope:** All classes inside `SecurityPolicyReaderAndDirector.java`, the `reader` and `director` packages.
 > **Ares Version:** 2.1.1

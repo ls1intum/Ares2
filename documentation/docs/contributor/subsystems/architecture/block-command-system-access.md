@@ -4,6 +4,14 @@ sidebar_position: 2
 description: "How the architecture layer detects command execution statically, with ArchUnit and WALA."
 ---
 
+:::tip[ELI5]
+This is the same question as the AOP page, asked before the program ever runs.
+
+Instead of waiting for the student's code to try to run a command, this layer reads the
+compiled code and asks whether there is any route at all from the student's work to the part
+of Java that runs commands.
+:::
+
 ## 1. High-Level Overview
 
 This document describes how Ares 2 prevents unauthorised command execution in student code using **static code analysis** techniques via Architecture Testing frameworks.

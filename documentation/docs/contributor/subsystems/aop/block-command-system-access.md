@@ -4,6 +4,14 @@ sidebar_position: 2
 description: "How the AOP layer intercepts and evaluates command execution."
 ---
 
+:::tip[ELI5]
+Running another program is the biggest hole of all, because it can be used to run anything.
+
+This page follows one attempt from beginning to end: the student's code asks to run a
+command, Ares steps in front of it, works out what was actually asked for, compares it with
+what the policy permits, and either steps aside or refuses.
+:::
+
 ## 1. High-Level Overview
 
 This document describes how Ares 2 prevents unauthorised command execution in student code.

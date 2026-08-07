@@ -4,6 +4,13 @@ sidebar_position: 3
 description: "How the architecture layer detects thread manipulation statically, with ArchUnit and WALA."
 ---
 
+:::tip[ELI5]
+Same question as the AOP page, answered by reading rather than by watching.
+
+This layer looks through the compiled program for any route from the student's code to the
+part of Java that starts new workers, and reports the route it found.
+:::
+
 ## 1. High-Level Overview
 
 This document describes how Ares 2 prevents unauthorised thread creation in student code using **static code analysis** techniques via Architecture Testing frameworks.

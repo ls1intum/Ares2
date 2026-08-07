@@ -4,6 +4,12 @@ sidebar_position: 5
 description: "Full reference for the Ares 2 security policy file: structure, every supported option and how each is enforced."
 ---
 
+:::tip[ELI5]
+This is the full reference for the policy file, the one you keep open while writing one.
+
+Every option, what it means, and what actually happens when you set it.
+:::
+
 > **Audience:** IT-Education experts with no security background.
 > **Scope:** All classes inside `SecurityPolicy.java`, and the `policySubComponents` package.
 > **Ares Version:** 2.1.1

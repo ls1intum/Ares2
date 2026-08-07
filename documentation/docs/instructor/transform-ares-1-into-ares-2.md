@@ -4,6 +4,14 @@ sidebar_position: 3
 description: "Migrating an existing Ares 1 exercise to Ares 2, including the annotation-to-policy mapping table."
 ---
 
+:::tip[ELI5]
+If you have an exercise built on the old Ares, this page moves it to the new one.
+
+The biggest change is that permissions used to be scattered across labels in the test code and
+now live together in one policy file. Most of this page is the table telling you which old
+label becomes which new setting.
+:::
+
 > **Audience:** IT-Education experts maintaining an existing Ares 1 exercise.
 > **Scope:** The whole exercise: build files, test sources, security configuration.
 > **From:** Ares 1 (`de.tum.in.ase:artemis-java-test-sandbox:1.15.0`)

@@ -90,6 +90,10 @@ class PolicyDocumentationStructureTest {
 		assertEquals(REQUIRED_HEADINGS, headings,
 				page + " must carry exactly the shared headings, in order, and no others.");
 
+		assertTrue(DocumentationPages.sidebarPosition(content) > 0,
+				page + " must declare a positive sidebar_position.");
+		assertTrue(DocumentationPages.topLevelHeadings(content).isEmpty(),
+				page + " must not carry an h1; the title comes from the front matter.");
 		assertTrue(content.contains(TABLE_HEADER), page + " must use the shared field table header.");
 		assertTrue(YAML_BLOCK.matcher(content).find(),
 				page + " must show the example policy file in a yaml block titled security-policy.yaml.");

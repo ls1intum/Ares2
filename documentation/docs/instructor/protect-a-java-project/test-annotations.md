@@ -4,6 +4,13 @@ sidebar_position: 5
 description: "The @Public, @Hidden, @PublicTest, @HiddenTest and @Deadline annotations."
 ---
 
+:::tip[ELI5]
+These are the labels you stick on a test to say which kind it is.
+
+Public means students see the result immediately. Hidden means it waits, and a hidden test has
+to be told **when** to wake up, otherwise Ares refuses to guess.
+:::
+
 ## Combined annotations
 
 Besides using `@Public` and `@Hidden` together with JUnit's `@Test`, Ares 2 also provides two

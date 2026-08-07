@@ -4,6 +4,15 @@ sidebar_position: 1
 description: "What Ares 2 is, what it is for, and how this documentation is organised."
 ---
 
+:::tip[ELI5]
+When students submit programming homework, something has to run their code to see whether it
+works.
+
+Running a stranger's code on your machine is exactly as risky as it sounds. Ares is the fence
+you put around it: the code still runs and still gets marked, but it cannot reach anything it
+was not given permission to reach.
+:::
+
 Ares 2 is a framework for the easy and secure remote execution of student submissions on an
 interactive learning platform. It is the second Java-based implementation of the Secure COder
 Remote Execution (SCORE) framework, and the first to support Java 25 and later.

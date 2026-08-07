@@ -68,6 +68,13 @@ class SubsystemsDocumentationStructureTest {
 	}
 
 	@Test
+	void theSubsystemSectionHoldsAPageForEveryPackageAndItsManuals() {
+		assertEquals(16, subsystemPages().size(),
+				"The subsystem section is expected to hold exactly the eight package pages and the "
+						+ "reference manuals beneath them.");
+	}
+
+	@Test
 	void everySubsystemIsRepresented() {
 		String tree = subsystemPages().stream().map(Path::toString).reduce("", (left, right) -> left + " " + right)
 				+ categoryFiles().stream().map(Path::toString).reduce("", (left, right) -> left + " " + right);
@@ -86,6 +93,19 @@ class SubsystemsDocumentationStructureTest {
 				.forEach(field -> assertTrue(content.contains(field), page + " front matter must declare " + field));
 		assertTrue(DocumentationPages.sidebarPosition(content) > 0,
 				page + " must declare a positive sidebar_position.");
+
+		assertTrue(content.contains(":::tip[ELI5]"),
+				page + " must open with an ELI5 box written as ':::tip[ELI5]'. Every page in the "
+						+ "documentation opens with one, including the long reference manuals.");
+		assertFalse(DocumentationPages.LEGACY_ADMONITION.matcher(content).find(),
+				page + " uses an admonition form that renders as plain text.");
+
+		// The manuals differ too much for one heading layout to be honest, but every
+		// page has
+		// to be divided into sections rather than being one undifferentiated wall of
+		// prose.
+		assertFalse(DocumentationPages.sectionHeadings(content).isEmpty(),
+				page + " must be divided into at least one '## ' section.");
 	}
 
 	@ParameterizedTest(name = "{0} takes its title from the front matter")

@@ -80,6 +80,8 @@ class TechnologiesDocumentationStructureTest {
 				page + " must declare a positive sidebar_position.");
 
 		assertTrue(content.contains(":::tip[ELI5]"), page + " must open with an ELI5 box written as ':::tip[ELI5]'.");
+		assertFalse(DocumentationPages.LEGACY_ADMONITION.matcher(content).find(),
+				page + " uses an admonition form that renders as plain text.");
 
 		List<String> headings = DocumentationPages.sectionHeadings(content);
 		assertFalse(headings.isEmpty(), page + " must have at least one section.");

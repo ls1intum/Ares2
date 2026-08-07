@@ -4,6 +4,14 @@ sidebar_position: 1
 description: "Conceptual overview of every package under de.tum.cit.ase.ares.api."
 ---
 
+:::tip[ELI5]
+This is the map of the building.
+
+Ares is made of a dozen or so parts, and each one has a job. This page names every part and
+says in a sentence or two what it is for, so you can find the right room before opening any
+doors.
+:::
+
 This document provides a high-level conceptual overview of each package in `src/main/java/de/tum/cit/ase/ares/api/`.
 
 ---
