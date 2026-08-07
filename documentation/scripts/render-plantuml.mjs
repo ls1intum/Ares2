@@ -97,15 +97,21 @@ async function ensureJar() {
     await writeFile(JAR_PATH, bytes);
 }
 
-// PlantUML renders an *error image* and still exits 0 when something goes wrong at layout
-// time, so a plain exit-code check silently accepts a broken diagram. These markers appear in
-// the SVG body of such an image.
+// PlantUML renders an *error image* and still exits 0 when something goes wrong, including on
+// a plain syntax error and despite -failfast2, so an exit-code check alone silently accepts a
+// broken diagram. These markers are the literal text PlantUML 1.2026.6 puts into the SVG body
+// of such an image; each was confirmed by provoking the corresponding failure rather than
+// guessed. Compared case-insensitively.
 const ERROR_MARKERS = [
+    'syntax error',
+    'an error has occurred',
+    'some diagram description contains errors',
+    // Graphviz is not used (see -Playout=smetana below), so any of these means the layout
+    // engine selection regressed and the diagram is an error image.
+    'cannot find graphviz',
+    'dot executable does not exist',
     'dot not found',
-    'Graphviz',
-    'An error has occured',
-    'Syntax Error',
-    'data-diagram-type="ERROR"',
+    'data-diagram-type="error"',
 ];
 
 /**
@@ -125,7 +131,7 @@ async function render(sources) {
         if (!existsSync(rendered)) {
             throw new Error(`PlantUML produced no output for ${path.relative(ROOT, source)}`);
         }
-        const svg = await readFile(rendered, 'utf8');
+        const svg = (await readFile(rendered, 'utf8')).toLowerCase();
         const marker = ERROR_MARKERS.find((candidate) => svg.includes(candidate));
         if (marker !== undefined) {
             throw new Error(
@@ -138,7 +144,7 @@ async function render(sources) {
 async function main() {
     const sources = await collect(DOCS_DIR, '.puml');
     if (sources.length === 0) {
-        console.log('No .puml sources found under docs/, nothing to render.');
+        console.log(`No .puml sources found under ${DOCS_DIR}, nothing to render.`);
         return;
     }
     await ensureJar();
@@ -149,14 +155,27 @@ async function main() {
         return;
     }
 
+    // Stage every source into a scratch tree that mirrors docs/ exactly, then render the whole
+    // set in one JVM. Mirroring rather than flattening matters twice over: two diagrams in
+    // different directories may share a basename and would otherwise overwrite each other,
+    // and a diagram using a relative `!include` of a sibling only resolves when that sibling
+    // sits at the same relative position.
     const scratch = await mkdtemp(path.join(tmpdir(), 'ares-plantuml-'));
     try {
-        const stale = [];
+        const staged = [];
         for (const source of sources) {
-            const copy = path.join(scratch, path.basename(source));
+            const relative = path.relative(DOCS_DIR, source);
+            const copy = path.join(scratch, relative);
+            await mkdir(path.dirname(copy), { recursive: true });
             await writeFile(copy, await readFile(source));
-            await render([copy]);
-            const expected = path.join(scratch, `${path.basename(source, '.puml')}.svg`);
+            staged.push({ source, copy });
+        }
+
+        await render(staged.map((entry) => entry.copy));
+
+        const stale = [];
+        for (const { source, copy } of staged) {
+            const expected = copy.replace(/\.puml$/, '.svg');
             const committed = source.replace(/\.puml$/, '.svg');
             if (!existsSync(committed)) {
                 stale.push(`${path.relative(ROOT, committed)} (missing)`);
@@ -180,4 +199,11 @@ async function main() {
     }
 }
 
-await main();
+try {
+    await main();
+} catch (error) {
+    // A stack trace through spawn() says nothing useful about a broken diagram; PlantUML has
+    // already printed the offending file and line above.
+    console.error(`\nrender-plantuml failed: ${error.message}`);
+    process.exitCode = 1;
+}
