@@ -367,7 +367,7 @@ for `gradlew test`.
 :::
 
 The canonical Maven and Gradle contract is documented in the
-[enforcement model](/maintainer/subsystems/policy/enforcement-model). The executable snippets ship inside
+[enforcement model](/contributor/subsystems/policy/enforcement-model). The executable snippets ship inside
 the Ares JAR and live in the repository at
 [`src/main/resources/de/tum/cit/ase/ares/api/configuration/reservedPackages/`](https://github.com/ls1intum/Ares2/tree/main/src/main/resources/de/tum/cit/ase/ares/api/configuration/reservedPackages),
 and complete working exercises are in

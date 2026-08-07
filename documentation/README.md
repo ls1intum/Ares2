@@ -8,7 +8,7 @@ It is split into two guides:
 - **Instructor Documentation** (`docs/instructor/`) — for instructors and exercise authors:
   what Ares 2 protects against, how to protect a Maven or Gradle project, and how to migrate an
   Ares 1 exercise.
-- **Maintainer Documentation** (`docs/maintainer/`) — for people working on Ares 2 itself: the
+- **Contributor Documentation** (`docs/contributor/`) — for people working on Ares 2 itself: the
   technologies it is built on, the policy model, and the subsystems.
 
 ## Installation

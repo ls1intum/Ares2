@@ -71,15 +71,15 @@ const config: Config = {
                 language: ['en'],
                 indexDocs: true,
                 indexBlog: false,
-                docsRouteBasePath: ['instructor', 'maintainer'],
+                docsRouteBasePath: ['instructor', 'contributor'],
                 searchContextByPaths: [
                     {
                         label: 'Instructor Documentation',
                         path: 'instructor',
                     },
                     {
-                        label: 'Maintainer Documentation',
-                        path: 'maintainer',
+                        label: 'Contributor Documentation',
+                        path: 'contributor',
                     },
                 ],
                 useAllContextsWithNoSearchContext: true,
@@ -103,10 +103,10 @@ const config: Config = {
         [
             '@docusaurus/plugin-content-docs',
             {
-                id: 'maintainer',
-                path: 'docs/maintainer',
-                routeBasePath: 'maintainer',
-                sidebarPath: './sidebar-maintainer.ts',
+                id: 'contributor',
+                path: 'docs/contributor',
+                routeBasePath: 'contributor',
+                sidebarPath: './sidebar-contributor.ts',
                 editUrl: EDIT_URL,
                 exclude: ['**/README.md'],
             },
@@ -136,9 +136,9 @@ const config: Config = {
                 {
                     type: 'docSidebar',
                     sidebarId: 'sidebar',
-                    docsPluginId: 'maintainer',
+                    docsPluginId: 'contributor',
                     position: 'left',
-                    label: 'Maintainer',
+                    label: 'Contributor',
                 },
                 {
                     href: ARES_REPOSITORY_URL,
@@ -158,8 +158,8 @@ const config: Config = {
                             to: '/instructor/ares-2/what-is-ares-2',
                         },
                         {
-                            label: 'Maintainer Documentation',
-                            to: '/maintainer/how-can-you-contribute',
+                            label: 'Contributor Documentation',
+                            to: '/contributor/how-can-you-contribute',
                         },
                     ],
                 },

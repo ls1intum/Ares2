@@ -13,7 +13,7 @@ will get rather annoyed, so please read on.
 
 File access is default-deny, and is granted only through `regardingFileSystemInteractions` in
 the YAML policy referenced by `@Policy`. Generated files are confined to the explicit canonical
-project root. See the [Security Policy Manual](/maintainer/subsystems/policy/security-policy-manual).
+project root. See the [Security Policy Manual](/contributor/subsystems/policy/security-policy-manual).
 
 ## Testing the Exercise before Release
 

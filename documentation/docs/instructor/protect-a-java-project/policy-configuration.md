@@ -15,7 +15,7 @@ You can create the file manually, or with [Ares2UI](https://github.com/ls1intum/
 
 :::tip Full reference
 This page introduces the format. For every supported option and how each is enforced, see the
-[Security Policy Manual](/maintainer/subsystems/policy/security-policy-manual).
+[Security Policy Manual](/contributor/subsystems/policy/security-policy-manual).
 :::
 
 ## Example configuration

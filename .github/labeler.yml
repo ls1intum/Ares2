@@ -4,8 +4,8 @@ aop:
           - src/main/java/de/tum/cit/ase/ares/api/aop/**/*
           - src/test/java/de/tum/cit/ase/ares/api/aop/**/*
           - src/test/java/de/tum/cit/ase/ares/integration/aop/**/*
-          - documentation/docs/maintainer/subsystems/aop/**/*
-          - documentation/docs/maintainer/technologies/aop-tests/**/*
+          - documentation/docs/contributor/subsystems/aop/**/*
+          - documentation/docs/contributor/technologies/aop-tests/**/*
 
 architecture:
   - changed-files:
@@ -13,8 +13,8 @@ architecture:
           - src/main/java/de/tum/cit/ase/ares/api/architecture/**/*
           - src/test/java/de/tum/cit/ase/ares/api/architecture/**/*
           - src/test/java/de/tum/cit/ase/ares/integration/architecture/**/*
-          - documentation/docs/maintainer/subsystems/architecture/**/*
-          - documentation/docs/maintainer/technologies/architecture-tests/**/*
+          - documentation/docs/contributor/subsystems/architecture/**/*
+          - documentation/docs/contributor/technologies/architecture-tests/**/*
 
 ast:
   - changed-files:
@@ -29,8 +29,8 @@ policy:
           - src/main/java/de/tum/cit/ase/ares/api/policy/**/*
           - src/test/java/de/tum/cit/ase/ares/api/policy/**/*
           - src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/**/*
-          - documentation/docs/maintainer/subsystems/policy/**/*
-          - documentation/docs/maintainer/policy/**/*
+          - documentation/docs/contributor/subsystems/policy/**/*
+          - documentation/docs/contributor/policy/**/*
 
 docs:
   - changed-files:
@@ -49,7 +49,7 @@ securitytest:
       - any-glob-to-any-file:
           - src/main/java/de/tum/cit/ase/ares/api/securitytest/**/*
           - src/test/java/de/tum/cit/ase/ares/api/securitytest/**/*
-          - documentation/docs/maintainer/subsystems/securitytest/**/*
+          - documentation/docs/contributor/subsystems/securitytest/**/*
 
 other:
   - changed-files:

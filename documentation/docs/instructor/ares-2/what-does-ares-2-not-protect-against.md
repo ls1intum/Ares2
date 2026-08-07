@@ -21,4 +21,4 @@ protecting.
 :::
 
 For the runtime inventory, the build prerequisite and the migration table, see the
-[enforcement model](/maintainer/subsystems/policy/enforcement-model) in the developer guide.
+[enforcement model](/contributor/subsystems/policy/enforcement-model) in the developer guide.

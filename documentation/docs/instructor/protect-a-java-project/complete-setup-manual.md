@@ -8,7 +8,7 @@ description: "The full end-to-end setup reference, covering both Gradle and Mave
 > **Scope:** The `build.gradle` and `pom.xml` files.
 > **Ares Version:** 2.1.1
 
-> **Note:** This guide is a **setup guide**. It covers adding the Ares dependency, attaching the agent, configuring the build tool so that Ares can run, and rejecting student classes that would impersonate trusted code. For writing security policies that control what student code can do, see the [Security Policy Manual](/maintainer/subsystems/policy/security-policy-manual).
+> **Note:** This guide is a **setup guide**. It covers adding the Ares dependency, attaching the agent, configuring the build tool so that Ares can run, and rejecting student classes that would impersonate trusted code. For writing security policies that control what student code can do, see the [Security Policy Manual](/contributor/subsystems/policy/security-policy-manual).
 
 > **In a hurry?** Two complete, runnable exercises live in [`examples/`](https://github.com/ls1intum/Ares2/tree/main/examples): [`ares-exercise-gradle`](https://github.com/ls1intum/Ares2/tree/main/examples/ares-exercise-gradle) and [`ares-exercise-maven`](https://github.com/ls1intum/Ares2/tree/main/examples/ares-exercise-maven). Copy one and adapt it. This manual explains what each part of them does and why.
 
@@ -16,9 +16,9 @@ description: "The full end-to-end setup reference, covering both Gradle and Mave
 
 **Related documentation:**
 - [How to Convert an Ares 1 Project into an Ares 2 Project](../transform-ares-1-into-ares-2.md), the migration guide for existing Ares 1 exercises
-- [Security Policy Manual](/maintainer/subsystems/policy/security-policy-manual), which explains how to write a security policy YAML file
-- [Security Policy Reader and Director Manual](/maintainer/subsystems/policy/reader-and-director), which describes the internal processing pipeline
-- [Enforcement Model](/maintainer/subsystems/policy/enforcement-model), which defines what static analysis and the runtime layer are each responsible for, and specifies the reserved-package build boundary
+- [Security Policy Manual](/contributor/subsystems/policy/security-policy-manual), which explains how to write a security policy YAML file
+- [Security Policy Reader and Director Manual](/contributor/subsystems/policy/reader-and-director), which describes the internal processing pipeline
+- [Enforcement Model](/contributor/subsystems/policy/enforcement-model), which defines what static analysis and the runtime layer are each responsible for, and specifies the reserved-package build boundary
 
 ---
 
@@ -413,7 +413,7 @@ Your build must run the AspectJ compiler to weave the Ares security aspects into
 
 **This section is required.** Ares trusts a number of runtime identities **by name**, including its own `de.tum.cit.ase.ares.api` package and the platform namespaces. If a student can put a class into one of those packages, that class inherits the trust and every other check can be walked around. The build must therefore refuse to compile student output into a reserved package.
 
-The [Enforcement Model](/maintainer/subsystems/policy/enforcement-model) specifies this boundary and calls it a deployment prerequisite, not an optional Ares runtime feature. Ares ships the executable snippets, so copy them rather than writing your own:
+The [Enforcement Model](/contributor/subsystems/policy/enforcement-model) specifies this boundary and calls it a deployment prerequisite, not an optional Ares runtime feature. Ares ships the executable snippets, so copy them rather than writing your own:
 
 They ship inside the Ares JAR under `de/tum/cit/ase/ares/api/configuration/reservedPackages/`,
 and live in the repository at
@@ -476,7 +476,7 @@ A setup check is only worth running if it can fail for the right reason. The exa
 Two details make this a genuine test rather than a reassuring one:
 
 1. **The forbidden read must happen in supervised code, not in the test.** A test class named in `theFollowingClassesAreTestClasses` is exempt from enforcement, so a read performed by the test itself is *supposed* to succeed. Put the read in the student-facing class and let the test assert the exception.
-2. **The policy must permit one file in the domain, not zero.** This is the part that is easy to get wrong. Ares adds a static deny-all rule only while a domain has **no** allowance ([Enforcement Model](/maintainer/subsystems/policy/enforcement-model)). Under a fully restrictive file policy, ArchUnit or WALA rejects the operation before any runtime mechanism is consulted, so the negative control passes even with `-javaagent` removed and the weaving switched off, and it proves nothing. Granting exactly one permitted file makes the runtime layer authoritative for that domain, and only then does the negative control actually exercise the agent or the woven aspects.
+2. **The policy must permit one file in the domain, not zero.** This is the part that is easy to get wrong. Ares adds a static deny-all rule only while a domain has **no** allowance ([Enforcement Model](/contributor/subsystems/policy/enforcement-model)). Under a fully restrictive file policy, ArchUnit or WALA rejects the operation before any runtime mechanism is consulted, so the negative control passes even with `-javaagent` removed and the weaving switched off, and it proves nothing. Granting exactly one permitted file makes the runtime layer authoritative for that domain, and only then does the negative control actually exercise the agent or the woven aspects.
 
 A correct run is therefore **green**, and contains an asserted rejection. It is not a failed build.
 
@@ -576,7 +576,7 @@ Neither is a defect in the fallback; it is what a fallback with no instructor in
 
 ## 7. Next steps
 
-1. **Create a security policy and annotate tests:** follow the [Security Policy Manual](/maintainer/subsystems/policy/security-policy-manual), which explains how to write `SecurityPolicy.yaml` files and apply `@Policy` to your tests. If your exercise needs no resource access at all, [Section 6](#6-exercises-without-a-policy-annotation) describes the alternative.
+1. **Create a security policy and annotate tests:** follow the [Security Policy Manual](/contributor/subsystems/policy/security-policy-manual), which explains how to write `SecurityPolicy.yaml` files and apply `@Policy` to your tests. If your exercise needs no resource access at all, [Section 6](#6-exercises-without-a-policy-annotation) describes the alternative.
 2. **Choose the right configuration:** select one of the eight `ProgrammingLanguageConfiguration` values matching your build tool, architecture analysis and runtime enforcement:
 
 | Value | Build Tool | Static Analysis | Runtime Enforcement |

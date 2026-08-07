@@ -79,7 +79,7 @@ Both rely on the same configuration file, which is introduced in
 
 :::info How it works internally
 The developer guide describes the enforcement machinery itself: the
-[enforcement model](/maintainer/subsystems/policy/enforcement-model), the
-[AOP layer](/maintainer/subsystems/aop/block-file-system-access) and the
-[architecture analysis layer](/maintainer/subsystems/architecture/block-file-system-access).
+[enforcement model](/contributor/subsystems/policy/enforcement-model), the
+[AOP layer](/contributor/subsystems/aop/block-file-system-access) and the
+[architecture analysis layer](/contributor/subsystems/architecture/block-file-system-access).
 :::

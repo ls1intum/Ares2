@@ -15,8 +15,8 @@ description: "Migrating an existing Ares 1 exercise to Ares 2, including the ann
 
 **Related documentation:**
 - [Ares-Protected Student Exercise Manual](protect-a-java-project/complete-setup-manual.md), the canonical setup guide
-- [Security Policy Manual](/maintainer/subsystems/policy/security-policy-manual), the reference for the policy file
-- [Enforcement Model](/maintainer/subsystems/policy/enforcement-model), which defines what static analysis and the runtime layer are each responsible for
+- [Security Policy Manual](/contributor/subsystems/policy/security-policy-manual), the reference for the policy file
+- [Enforcement Model](/contributor/subsystems/policy/enforcement-model), which defines what static analysis and the runtime layer are each responsible for
 
 ---
 

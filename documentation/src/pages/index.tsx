@@ -22,10 +22,10 @@ const destinations: Destination[] = [
         to: '/instructor/ares-2/what-is-ares-2',
     },
     {
-        title: 'Maintainer Documentation',
+        title: 'Contributor Documentation',
         description:
             'The technologies Ares 2 is built on, the policy model and the subsystems. For people working on Ares 2 itself.',
-        to: '/maintainer/how-can-you-contribute',
+        to: '/contributor/how-can-you-contribute',
     },
 ];
 
@@ -51,8 +51,8 @@ function Hero(): ReactNode {
                     <Link className="button button--secondary button--lg" to="/instructor/protect-a-java-project/installation">
                         Get started
                     </Link>
-                    <Link className="button button--outline button--secondary button--lg" to="/maintainer/how-can-you-contribute">
-                        Maintainer documentation
+                    <Link className="button button--outline button--secondary button--lg" to="/contributor/how-can-you-contribute">
+                        Contributor documentation
                     </Link>
                 </div>
             </div>

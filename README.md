@@ -42,7 +42,7 @@ implementation("de.tum.cit.ase:ares:2.1.2")
 - [Instructor Documentation](https://ls1intum.github.io/Ares2/instructor/ares-2/what-is-ares-2) —
   install Ares 2, wire it into a Maven or Gradle build, write a security policy, and understand
   what it does and does not protect against
-- [Maintainer Documentation](https://ls1intum.github.io/Ares2/maintainer/how-can-you-contribute) —
+- [Contributor Documentation](https://ls1intum.github.io/Ares2/contributor/how-can-you-contribute) —
   the technologies Ares 2 is built on, the policy model and the subsystems
 
 The documentation source lives in [`documentation/`](documentation/).
