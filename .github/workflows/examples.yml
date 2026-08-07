@@ -13,7 +13,7 @@ on:
       - 'examples/**'
       - 'src/main/**'
       - 'pom.xml'
-      - 'docs/HowToMakeAProjectAnAresProject.md'
+      - 'documentation/docs/user/make-a-project-an-ares-project.md'
       - '.github/workflows/examples.yml'
   push:
     branches: [ "main" ]
