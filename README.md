@@ -69,3 +69,7 @@ If you use Ares 2 in your work, please cite it using the metadata in
 ## Licence
 
 Ares 2 is licensed under the MIT Licence. See [LICENSE](LICENSE) for details.
+
+Ares 2 is the successor to Ares 1, created by Christian Femers and likewise MIT
+licensed. Parts of that original work live on in Ares 2, so both copyright notices are
+retained; see [NOTICE](NOTICE) for the attribution.
