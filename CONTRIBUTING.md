@@ -6,7 +6,7 @@ typical library: a false negative lets forbidden student code through, and a fal
 fails a correct submission. The guidelines below exist to keep both from happening.
 
 Start with the [documentation](https://ls1intum.github.io/Ares2/), in particular the
-[developer guide](https://ls1intum.github.io/Ares2/developer/overview).
+[maintainer documentation](https://ls1intum.github.io/Ares2/maintainer/how-can-you-contribute).
 
 ## Identity and transparency
 

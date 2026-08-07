@@ -1,0 +1,8 @@
+{
+    "label": "Subsystems",
+    "position": 4,
+    "link": {
+        "type": "generated-index",
+        "description": "The packages Ares 2 is built from, and the reference manuals for each."
+    }
+}

@@ -71,15 +71,15 @@ const config: Config = {
                 language: ['en'],
                 indexDocs: true,
                 indexBlog: false,
-                docsRouteBasePath: ['user', 'developer'],
+                docsRouteBasePath: ['instructor', 'maintainer'],
                 searchContextByPaths: [
                     {
-                        label: 'User Guide',
-                        path: 'user',
+                        label: 'Instructor Documentation',
+                        path: 'instructor',
                     },
                     {
-                        label: 'Developer Guide',
-                        path: 'developer',
+                        label: 'Maintainer Documentation',
+                        path: 'maintainer',
                     },
                 ],
                 useAllContextsWithNoSearchContext: true,
@@ -93,9 +93,9 @@ const config: Config = {
         [
             '@docusaurus/plugin-content-docs',
             {
-                path: 'docs/user',
-                routeBasePath: 'user',
-                sidebarPath: './sidebar-user.ts',
+                path: 'docs/instructor',
+                routeBasePath: 'instructor',
+                sidebarPath: './sidebar-instructor.ts',
                 editUrl: EDIT_URL,
                 exclude: ['**/README.md'],
             },
@@ -103,10 +103,10 @@ const config: Config = {
         [
             '@docusaurus/plugin-content-docs',
             {
-                id: 'developer',
-                path: 'docs/developer',
-                routeBasePath: 'developer',
-                sidebarPath: './sidebar-developer.ts',
+                id: 'maintainer',
+                path: 'docs/maintainer',
+                routeBasePath: 'maintainer',
+                sidebarPath: './sidebar-maintainer.ts',
                 editUrl: EDIT_URL,
                 exclude: ['**/README.md'],
             },
@@ -131,14 +131,14 @@ const config: Config = {
                     sidebarId: 'sidebar',
                     docsPluginId: 'default',
                     position: 'left',
-                    label: 'User Guide',
+                    label: 'Instructor',
                 },
                 {
                     type: 'docSidebar',
                     sidebarId: 'sidebar',
-                    docsPluginId: 'developer',
+                    docsPluginId: 'maintainer',
                     position: 'left',
-                    label: 'Developer Guide',
+                    label: 'Maintainer',
                 },
                 {
                     href: ARES_REPOSITORY_URL,
@@ -154,12 +154,12 @@ const config: Config = {
                     title: 'Documentation',
                     items: [
                         {
-                            label: 'User Guide',
-                            to: '/user/intro',
+                            label: 'Instructor Documentation',
+                            to: '/instructor/ares-2/what-is-ares-2',
                         },
                         {
-                            label: 'Developer Guide',
-                            to: '/developer/overview',
+                            label: 'Maintainer Documentation',
+                            to: '/maintainer/how-can-you-contribute',
                         },
                     ],
                 },

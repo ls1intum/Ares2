@@ -16,16 +16,16 @@ interface Destination {
 
 const destinations: Destination[] = [
     {
-        title: 'User Guide',
+        title: 'Instructor Documentation',
         description:
-            'Add Ares 2 to an exercise, write a security policy and understand what it enforces. For instructors and exercise authors.',
-        to: '/user/intro',
+            'Add Ares 2 to an exercise, write a security policy and understand what it does and does not protect against.',
+        to: '/instructor/ares-2/what-is-ares-2',
     },
     {
-        title: 'Developer Guide',
+        title: 'Maintainer Documentation',
         description:
-            'How the enforcement layers, the policy pipeline and the generated security tests fit together. For people working on Ares 2 itself.',
-        to: '/developer/overview',
+            'The technologies Ares 2 is built on, the policy model and the subsystems. For people working on Ares 2 itself.',
+        to: '/maintainer/how-can-you-contribute',
     },
 ];
 
@@ -48,11 +48,11 @@ function Hero(): ReactNode {
                 </Heading>
                 <p className={styles.heroSubtitle}>{siteConfig.tagline}</p>
                 <div className={styles.buttons}>
-                    <Link className="button button--secondary button--lg" to="/user/installation">
+                    <Link className="button button--secondary button--lg" to="/instructor/protect-a-java-project/installation">
                         Get started
                     </Link>
-                    <Link className="button button--outline button--secondary button--lg" to="/developer/overview">
-                        Developer guide
+                    <Link className="button button--outline button--secondary button--lg" to="/maintainer/how-can-you-contribute">
+                        Maintainer documentation
                     </Link>
                 </div>
             </div>

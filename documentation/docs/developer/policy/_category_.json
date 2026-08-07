@@ -1,8 +1,0 @@
-{
-    "label": "Policy",
-    "position": 2,
-    "link": {
-        "type": "generated-index",
-        "description": "How a security policy is read, validated and turned into the tests that enforce it."
-    }
-}

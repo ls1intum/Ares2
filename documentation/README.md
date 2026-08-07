@@ -5,10 +5,11 @@ This site is built with [Docusaurus](https://docusaurus.io/) and published to
 
 It is split into two guides:
 
-- **User Guide** (`docs/user/`) — for instructors and exercise authors: installing Ares 2,
-  wiring it into a build, writing a security policy, and understanding what is enforced.
-- **Developer Guide** (`docs/developer/`) — for people working on Ares 2 itself: the
-  enforcement layers, the policy pipeline and the generated security tests.
+- **Instructor Documentation** (`docs/instructor/`) — for instructors and exercise authors:
+  what Ares 2 protects against, how to protect a Maven or Gradle project, and how to migrate an
+  Ares 1 exercise.
+- **Maintainer Documentation** (`docs/maintainer/`) — for people working on Ares 2 itself: the
+  technologies it is built on, the policy model, and the subsystems.
 
 ## Installation
 
