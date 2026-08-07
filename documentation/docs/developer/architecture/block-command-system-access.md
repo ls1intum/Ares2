@@ -1,31 +1,10 @@
-# Command System Security Mechanism (Architecture Analysis)
-
-## Table of Contents
-
-1. [High-Level Overview](#1-high-level-overview)
-   - [1.1 Architecture Analysis Approach](#11-architecture-analysis-approach)
-   - [1.2 Configuration Settings](#12-configuration-settings)
-   - [1.3 Summary: When Is Command Execution Blocked?](#13-summary-when-is-command-execution-blocked)
-   - [1.4 What Code Is Trusted vs. Restricted?](#14-what-code-is-trusted-vs-restricted)
-2. [Ares Monitors Command Methods](#2-ares-monitors-command-methods)
-   - [2.1 COMMAND SYSTEM - EXECUTE Operations](#21-command-system---execute-operations)
-3. [Student Code Triggers Security Check](#3-student-code-triggers-security-check)
-4. [Ares Collects Information About the Command Execution](#4-ares-collects-information-about-the-command-execution)
-   - [4.1 Loading Java Classes (ArchUnit)](#41-loading-java-classes-archunit)
-   - [4.2 Building the Call Graph (WALA)](#42-building-the-call-graph-wala)
-5. [Ares Validates the Command Execution](#5-ares-validates-the-command-execution)
-   - [5.1 ArchUnit Mode: Static Analysis](#51-archunit-mode-static-analysis)
-   - [5.2 WALA Mode: Call Graph Analysis](#52-wala-mode-call-graph-analysis)
-   - [5.3 Transitive Access Detection (ArchUnit)](#53-transitive-access-detection-archunit)
-   - [5.4 Sink Evaluation and Reverse Reachability (WALA)](#54-sink-evaluation-and-reverse-reachability-wala)
-   - [5.5 False Positive Filtering (WALA)](#55-false-positive-filtering-wala)
-   - [5.6 Legacy Utilities: ReachabilityChecker and CustomDFSPathFinder](#56-legacy-utilities-reachabilitychecker-and-customdfspathfinder)
-6. [Writing Architecture Test Cases](#6-writing-architecture-test-cases)
-7. [Conclusion](#7-conclusion)
-
+---
+title: "Blocking Command Execution (Architecture)"
+sidebar_position: 2
+description: "How the architecture layer detects command execution statically, with ArchUnit and WALA."
 ---
 
-# 1. High-Level Overview
+## 1. High-Level Overview
 
 This document describes how Ares 2 prevents unauthorised command execution in student code using **static code analysis** techniques via Architecture Testing frameworks.
 
@@ -41,7 +20,7 @@ exact allowance and rejecting non-matching commands and arguments; see
 
 ---
 
-## 1.1 Architecture Analysis Approach
+### 1.1 Architecture Analysis Approach
 
 **What is Architecture Testing?**
 
@@ -53,13 +32,13 @@ Architecture testing validates that code follows specific structural rules by an
 
 **Two Analysis Frameworks:**
 
-### **ArchUnit (Static Analysis)**
+#### **ArchUnit (Static Analysis)**
 - **Type**: Pure static analysis using Archunit framework
 - **Strength**: Fast, no call graph needed
 - **Method**: Analyses class dependencies and method calls in compiled bytecode
 - **Use Case**: Detecting direct and transitive method access patterns to command execution APIs
 
-### **WALA (Call Graph Analysis)**
+#### **WALA (Call Graph Analysis)**
 - **Type**: Static analysis with call-graph modelling using IBM WALA framework
 - **Strength**: Precise call path detection, understands complex call chains
 - **Method**: Builds a complete call graph representing all possible method invocations
@@ -77,7 +56,7 @@ Architecture testing validates that code follows specific structural rules by an
 
 ---
 
-## 1.2 Configuration Settings
+### 1.2 Configuration Settings
 
 Security policies are configured through settings that instructors can adjust:
 
@@ -99,7 +78,7 @@ Security policies are configured through settings that instructors can adjust:
 
 ---
 
-## 1.3 Summary: When Is Command Execution Blocked?
+### 1.3 Summary: When Is Command Execution Blocked?
 
 Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 
@@ -121,7 +100,7 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 
 ---
 
-## 1.4 What Code Is Trusted vs. Restricted?
+### 1.4 What Code Is Trusted vs. Restricted?
 
 **Trusted Code (No Restrictions):**
 - Classes on the `allowedClasses` allow-list
@@ -139,7 +118,7 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 
 ---
 
-# 2. Ares Monitors Command Methods
+## 2. Ares Monitors Command Methods
 
 Both ArchUnit and WALA modes monitor the same set of command execution methods, loaded from template files:
 
@@ -157,7 +136,7 @@ Instead of intercepting method calls at runtime (AOP approach), architecture tes
 
 ---
 
-## 2.1 COMMAND SYSTEM - EXECUTE Operations
+### 2.1 COMMAND SYSTEM - EXECUTE Operations
 
 **Monitored Methods (loaded from `command-execution-methods.txt`, 12 entries in each file):**
 
@@ -210,7 +189,7 @@ These are the **primary APIs** in Java for spawning system processes and loading
 
 ---
 
-# 3. Student Code Triggers Security Check
+## 3. Student Code Triggers Security Check
 
 When student code (any code within the supervised package) attempts to use one of these command execution methods, the architecture analysis will detect it during the test phase.
 
@@ -250,13 +229,13 @@ public class StudentSolution {
 
 ---
 
-# 4. Ares Collects Information About the Command Execution
+## 4. Ares Collects Information About the Command Execution
 
 During architecture analysis, Ares collects information about the code structure to detect command execution patterns.
 
 ---
 
-## 4.1 Loading Java Classes (ArchUnit)
+### 4.1 Loading Java Classes (ArchUnit)
 
 **Framework:** TNGs ArchUnit (https://www.archunit.org/)
 
@@ -327,7 +306,7 @@ class Helper {
 
 ---
 
-## 4.2 Building the Call Graph (WALA)
+### 4.2 Building the Call Graph (WALA)
 
 **Framework:** IBM WALA (T.J. Watson Libraries for Analysis)
 
@@ -382,11 +361,11 @@ WALA mode classifies each call-graph frame as either student-authored or infrast
 
 ---
 
-# 5. Ares Validates the Command Execution
+## 5. Ares Validates the Command Execution
 
 ---
 
-## 5.1 ArchUnit Mode: Static Analysis
+### 5.1 ArchUnit Mode: Static Analysis
 
 **How it works:**
 ```java
@@ -465,7 +444,7 @@ throw new SecurityException(
 
 ---
 
-## 5.2 WALA Mode: Call Graph Analysis
+### 5.2 WALA Mode: Call Graph Analysis
 
 **How it works:**
 
@@ -531,7 +510,7 @@ The placeholders are: rule name, caller signature (nearest student frame), forbi
 
 ---
 
-## 5.3 Transitive Access Detection (ArchUnit)
+### 5.3 Transitive Access Detection (ArchUnit)
 
 **How TransitivelyAccessesMethodsCondition Works:**
 
@@ -580,7 +559,7 @@ Result: Path found = [StudentCode.exploit → Helper.runCommand → Runtime.exec
 
 ---
 
-## 5.4 Sink Evaluation and Reverse Reachability (WALA)
+### 5.4 Sink Evaluation and Reverse Reachability (WALA)
 
 **Step 4: Evaluate Each Forbidden Sink**
 
@@ -614,7 +593,7 @@ Path: [StudentCode.exploit, ProcessBuilder.<init>, ProcessBuilder.start]
 
 ---
 
-## 5.5 False Positive Filtering (WALA)
+### 5.5 False Positive Filtering (WALA)
 
 **Challenge:** Student code may use a permitted JDK API (e.g. `BufferedReader`, `AsynchronousSocketChannel`) whose internal implementation transitively reaches a forbidden method. The student did not intentionally call the forbidden API; it was an internal JDK side-effect.
 
@@ -665,7 +644,7 @@ Result: VIOLATION (direct command execution by student, never suppressed)
 
 ---
 
-## 5.6 Legacy Utilities: ReachabilityChecker and CustomDFSPathFinder
+### 5.6 Legacy Utilities: ReachabilityChecker and CustomDFSPathFinder
 
 The DFS-based path finding in the `wala` package is **legacy and no longer on the production validation path**; validation now runs through `WalaRule.check` as described above. `ReachabilityChecker.findReachableMethods(...)` (which delegates to `CustomDFSPathFinder`) is not called during validation any more. Note that `ReachabilityChecker.getEntryPointsFromStudentSubmission(...)` is still used in production, but only by `CustomCallgraphBuilder` to collect the call-graph entry points.
 
@@ -693,7 +672,7 @@ Its global visited-marking (one reported path per sink) is exactly the masking w
 
 ---
 
-# 6. Writing Architecture Test Cases
+## 6. Writing Architecture Test Cases
 
 Architecture test cases can be **generated as Java code** for integration into test suites.
 
@@ -748,9 +727,9 @@ public void commandSystemShouldNotBeAccessed() {
 
 ---
 
-# 7. Conclusion
+## 7. Conclusion
 
-## Summary for Programming Instructors (TL;DR)
+### Summary for Programming Instructors (TL;DR)
 
 **What does Architecture Testing do?**
 - ✅ Analyses **compiled bytecode** to detect forbidden command execution operations
@@ -773,7 +752,7 @@ public void commandSystemShouldNotBeAccessed() {
 
 ---
 
-## Comparison: Architecture vs. AOP
+### Comparison: Architecture vs. AOP
 
 | Aspect | Architecture (ArchUnit/WALA) | AOP (Byte Buddy/AspectJ) |
 |--------|------------------------------|--------------------------|
@@ -789,9 +768,9 @@ public void commandSystemShouldNotBeAccessed() {
 
 ---
 
-## Technical Details
+### Technical Details
 
-### **ArchUnit Mode (Static Analysis)**
+#### **ArchUnit Mode (Static Analysis)**
 
 **Implementation:**
 - Uses ArchUnit's `ArchRule` and custom `TransitivelyAccessesMethodsCondition`
@@ -812,7 +791,7 @@ Method <de.student.StudentCode.exploit()> transitively accesses method <java.lan
 
 ---
 
-### **WALA Mode (Call Graph Analysis)**
+#### **WALA Mode (Call Graph Analysis)**
 
 **Implementation:**
 - Builds complete call graph using IBM WALA framework
@@ -833,7 +812,7 @@ Method <de.student.StudentCode.exploit()> transitively accesses method <java.lan
 
 ---
 
-### **Forbidden Method Templates**
+#### **Forbidden Method Templates**
 
 Both modes load forbidden methods from text files. The files contain one method per line without return types; blank lines and `#` comment lines are ignored.
 
@@ -875,7 +854,7 @@ java.lang.ProcessBuilder.startPipeline
 
 ---
 
-### **Integration Example**
+#### **Integration Example**
 
 **Maven Project Setup:**
 ```xml

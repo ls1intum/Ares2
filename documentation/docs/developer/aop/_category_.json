@@ -1,0 +1,8 @@
+{
+    "label": "AOP Enforcement",
+    "position": 4,
+    "link": {
+        "type": "generated-index",
+        "description": "Runtime enforcement: how AspectJ and instrumentation intercept file, command and thread operations."
+    }
+}

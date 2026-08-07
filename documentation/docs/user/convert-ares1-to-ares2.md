@@ -1,46 +1,22 @@
-# Converting an Ares 1 Exercise into an Ares 2 Exercise
+---
+title: "Converting an Ares 1 Exercise"
+sidebar_position: 8
+description: "Migrating an existing Ares 1 exercise to Ares 2, including the annotation-to-policy mapping table."
+---
 
 > **Audience:** IT-Education experts maintaining an existing Ares 1 exercise.
 > **Scope:** The whole exercise: build files, test sources, security configuration.
 > **From:** Ares 1 (`de.tum.in.ase:artemis-java-test-sandbox:1.15.0`)
 > **To:** Ares 2 (`de.tum.cit.ase:ares:2.1.1`)
 
-> **Note:** This guide is **self-contained**. Everything needed to complete a migration is here, including the full build configuration, so you do not need a second document open. Where it duplicates the [Ares-Protected Student Exercise Manual](HowToMakeAProjectAnAresProject.md), that manual is the canonical source: if the two ever disagree, follow it and report the discrepancy.
+> **Note:** This guide is **self-contained**. Everything needed to complete a migration is here, including the full build configuration, so you do not need a second document open. Where it duplicates the [Ares-Protected Student Exercise Manual](make-a-project-an-ares-project.md), that manual is the canonical source: if the two ever disagree, follow it and report the discrepancy.
 
 > **Version snapshot:** the configuration below is correct for Ares 2.1.1. Later releases may change it; check the setup manual before copying this into a new exercise.
 
 **Related documentation:**
-- [Ares-Protected Student Exercise Manual](HowToMakeAProjectAnAresProject.md), the canonical setup guide
-- [Security Policy Manual](policy/SecurityPolicyManual.md), the reference for the policy file
-- [Enforcement Model](policy/EnforcementModel.md), which defines what static analysis and the runtime layer are each responsible for
-
----
-
-## Table of Contents
-
-1. [Why migrate](#1-why-migrate)
-2. [What changes, at a glance](#2-what-changes-at-a-glance)
-3. [Prerequisites](#3-prerequisites)
-4. [Step 1: replace the dependency and wire up the build](#4-step-1-replace-the-dependency-and-wire-up-the-build)
-   - [4.1 Gradle](#41-gradle)
-   - [4.2 Maven](#42-maven)
-5. [Step 2: rewrite the imports](#5-step-2-rewrite-the-imports)
-6. [Step 3: translate the security annotations into a policy file](#6-step-3-translate-the-security-annotations-into-a-policy-file)
-   - [6.1 The policy file structure](#61-the-policy-file-structure)
-   - [6.2 The mapping table](#62-the-mapping-table)
-   - [6.3 Consolidating additive annotations](#63-consolidating-additive-annotations)
-   - [6.4 Naming your test classes correctly](#64-naming-your-test-classes-correctly)
-7. [Step 4: apply `@Policy` to the tests](#7-step-4-apply-policy-to-the-tests)
-8. [Step 5: replace the class-shadowing guard](#8-step-5-replace-the-class-shadowing-guard)
-   - [8.1 Gradle](#81-gradle)
-   - [8.2 Maven](#82-maven)
-9. [Step 6: the alternative, no policy file at all](#9-step-6-the-alternative-no-policy-file-at-all)
-10. [Verify the migration](#10-verify-the-migration)
-11. [Behaviour differences you will notice](#11-behaviour-differences-you-will-notice)
-12. [Troubleshooting](#12-troubleshooting)
-13. [Glossary](#13-glossary)
-14. [Appendix A: complete `build.gradle`](#14-appendix-a-complete-buildgradle)
-15. [Appendix B: complete `pom.xml`](#15-appendix-b-complete-pomxml)
+- [Ares-Protected Student Exercise Manual](make-a-project-an-ares-project.md), the canonical setup guide
+- [Security Policy Manual](security/policy-manual.md), the reference for the policy file
+- [Enforcement Model](/developer/policy/enforcement-model), which defines what static analysis and the runtime layer are each responsible for
 
 ---
 
@@ -805,7 +781,7 @@ A correct run is therefore **green** and contains an asserted rejection. Then br
 - Remove `-javaagent` from an `_INSTRUMENTATION` exercise. Same expectation. Removing it from an `_ASPECTJ` exercise correctly changes nothing, because the aspects were woven at compile time.
 - Add a class declaring `package de.tum.cit.ase.ares.api;` to the student sources. The build must fail with the reserved-package diagnostic.
 
-Two complete, runnable exercises are available in [`examples/`](../examples), one per build tool. If an example passes and your migrated project does not, the difference between the two is your defect.
+Two complete, runnable exercises are available in [`examples/`](https://github.com/ls1intum/Ares2/tree/main/examples), one per build tool. If an example passes and your migrated project does not, the difference between the two is your defect.
 
 ---
 
@@ -873,7 +849,7 @@ assertTrue(violation.getMessage().contains("secret.txt"),
 
 ## 14. Appendix A: complete `build.gradle`
 
-A working version of this file, with the sources and policy it refers to, is [`examples/ares-exercise-gradle`](../examples/ares-exercise-gradle).
+A working version of this file, with the sources and policy it refers to, is [`examples/ares-exercise-gradle`](https://github.com/ls1intum/Ares2/tree/main/examples/ares-exercise-gradle).
 
 ```gradle
 import org.gradle.api.tasks.InputFiles
@@ -967,7 +943,7 @@ apply from: 'gradle/AresReservedPackages.gradle'
 
 ## 15. Appendix B: complete `pom.xml`
 
-A working version of this file is [`examples/ares-exercise-maven`](../examples/ares-exercise-maven).
+A working version of this file is [`examples/ares-exercise-maven`](https://github.com/ls1intum/Ares2/tree/main/examples/ares-exercise-maven).
 
 ```xml
 <project xmlns="http://maven.apache.org/POM/4.0.0">

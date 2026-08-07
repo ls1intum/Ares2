@@ -1,0 +1,8 @@
+{
+    "label": "Security Tests",
+    "position": 3,
+    "link": {
+        "type": "generated-index",
+        "description": "Generation of the security test cases that a policy produces."
+    }
+}

@@ -1,52 +1,17 @@
-# Test Case Factory and Builder — Manual
+---
+title: "Test Case Factory and Builder"
+sidebar_position: 1
+description: "The abstract factory and builder that turn a security policy into generated security tests."
+---
 
 > **Audience:** IT-Education experts with no security background.
 > **Scope:** All classes inside `de.tum.cit.ase.ares.api.securitytest` — the abstract factory/builder, the Java-specific factory, and the `creator`, `essentialModel`, `executer`, `writer`, `projectScanner`, and `specific` sub-packages.
 > **Ares Version:** 2.1.1
 
 **Related documentation:**
-- [Security Policy Manual](../policy/SecurityPolicyManual.md) — how to write a security policy YAML file
-- [Security Policy Reader and Director Manual](../policy/SecurityPolicyReaderAndDirectorManual.md) — how the policy is read, directed, and handed to this factory
-- [How to Make a Project an Ares Project](../HowToMakeAProjectAnAresProject.md) — project setup (build.gradle / pom.xml)
-
----
-
-## Table of Contents
-
-1. [Prerequisites](#1-prerequisites)
-2. [Purpose — What Problem Does This Solve?](#2-purpose--what-problem-does-this-solve)
-3. [Architecture Overview](#3-architecture-overview)
-4. [The Abstract Factory and Builder — `TestCaseAbstractFactoryAndBuilder`](#4-the-abstract-factory-and-builder--testcaseabstractfactoryandbuilder)
-   - [4.1 Attributes](#41-attributes)
-   - [4.2 Constructor — The Template Method](#42-constructor--the-template-method)
-   - [4.3 Policy vs. Scanner Fallback](#43-policy-vs-scanner-fallback)
-   - [4.4 Abstract Methods](#44-abstract-methods)
-5. [The Java Factory — `JavaTestCaseFactoryAndBuilder`](#5-the-java-factory--javatestcasefactoryandbuilder)
-   - [5.1 Write and Execute](#51-write-and-execute)
-   - [5.2 The Builder API](#52-the-builder-api)
-6. [Creating Test Cases — The `creator` Package](#6-creating-test-cases--the-creator-package)
-   - [6.1 `Creator` Interface](#61-creator-interface)
-   - [6.2 `JavaCreator` — The Core Test-Case Generator](#62-javacreator--the-core-test-case-generator)
-7. [Essential Data — The `essentialModel` Package](#7-essential-data--the-essentialmodel-package)
-   - [7.1 `EssentialClasses` and `EssentialPackages` Records](#71-essentialclasses-and-essentialpackages-records)
-   - [7.2 `EssentialDataReader` Interface](#72-essentialdatareader-interface)
-   - [7.3 `EssentialDataYAMLReader`](#73-essentialdatayamlreader)
-8. [Writing Test Cases — The `writer` Package](#8-writing-test-cases--the-writer-package)
-   - [8.1 `Writer` Interface](#81-writer-interface)
-   - [8.2 `JavaWriter` — File Generation](#82-javawriter--file-generation)
-9. [Executing Test Cases — The `executer` Package](#9-executing-test-cases--the-executer-package)
-   - [9.1 `Executer` Interface](#91-executer-interface)
-   - [9.2 `JavaExecuter` — Runtime Configuration and Execution](#92-javaexecuter--runtime-configuration-and-execution)
-10. [Scanning the Student Project — The `projectScanner` Package](#10-scanning-the-student-project--the-projectscanner-package)
-    - [10.1 `ProjectScanner` Interface](#101-projectscanner-interface)
-    - [10.2 `JavaProjectScanner`](#102-javaprojectscanner)
-    - [10.3 `JavaProgrammingExerciseProjectScanner`](#103-javaprogrammingexerciseprojectscanner)
-11. [ArchUnit Integration — The `specific` Package](#11-archunit-integration--the-specific-package)
-12. [The `StudentCompiledClassesPath` Annotation](#12-the-studentcompiledclassespath-annotation)
-13. [Processing Pipeline (Overview)](#13-processing-pipeline-overview)
-14. [End-to-End Example](#14-end-to-end-example)
-15. [Troubleshooting](#15-troubleshooting)
-16. [Glossary](#16-glossary)
+- [Security Policy Manual](/user/security/policy-manual) — how to write a security policy YAML file
+- [Security Policy Reader and Director Manual](../policy/reader-and-director.md) — how the policy is read, directed, and handed to this factory
+- [How to Make a Project an Ares Project](/user/make-a-project-an-ares-project) — project setup (build.gradle / pom.xml)
 
 ---
 
@@ -61,7 +26,7 @@
 
 ## 2 Purpose — What Problem Does This Solve?
 
-The [Security Policy Reader and Director](../policy/SecurityPolicyReaderAndDirectorManual.md) reads a YAML policy file and selects the correct toolchain. But the actual **generation, serialisation, and execution** of the security test cases happens in this package.
+The [Security Policy Reader and Director](../policy/reader-and-director.md) reads a YAML policy file and selects the correct toolchain. But the actual **generation, serialisation, and execution** of the security test cases happens in this package.
 
 Given a parsed `SecurityPolicy`, this package must:
 
@@ -286,7 +251,7 @@ JavaTestCaseFactoryAndBuilder.builder()
 
 The first five parameters (`creator`, `writer`, `executer`, `essentialDataReader`, `projectScanner`) plus the two essential-data paths (`essentialPackagesPath`, `essentialClassesPath`) are **mandatory** — `build()` throws `NullPointerException` if any is missing. The remaining five parameters (`buildMode`, `architectureMode`, `aopMode`, `securityPolicy`, `projectPath`) are **optional** — they fall back to scanner defaults or safe defaults.
 
-> **Note:** In practice, instructors do not call this builder directly. The `SecurityPolicyJavaDirector` (see [Reader and Director Manual](../policy/SecurityPolicyReaderAndDirectorManual.md)) constructs the factory automatically based on the policy file.
+> **Note:** In practice, instructors do not call this builder directly. The `SecurityPolicyJavaDirector` (see [Reader and Director Manual](../policy/reader-and-director.md)) constructs the factory automatically based on the policy file.
 
 ---
 
@@ -682,7 +647,7 @@ class SecurityTest {
 | `NullPointerException` in `JavaTestCaseFactoryAndBuilder.build()` | A mandatory builder parameter (creator, writer, executer, essentialDataReader, projectScanner, or an essential-data path) was not set | Ensure all 7 mandatory parameters are set before calling `build()` |
 | `NullPointerException` with message "essentialClassesPath must not be null" | The path to `EssentialClasses.yaml` was not provided | Verify that the director or builder sets `essentialClassesPath` and `essentialPackagesPath` |
 | `SecurityException` from `EssentialDataYAMLReader` — "read failed" or "data bind failed" | The `EssentialClasses.yaml` or `EssentialPackages.yaml` file is malformed or missing | Check that the YAML files exist at the expected classpath location and have the correct schema (7 list fields each) |
-| Architecture tests pass but runtime enforcement is missing | The Java agent JAR is not loaded via `-javaagent` | See [How to Make a Project an Ares Project](../HowToMakeAProjectAnAresProject.md) for agent setup |
+| Architecture tests pass but runtime enforcement is missing | The Java agent JAR is not loaded via `-javaagent` | See [How to Make a Project an Ares Project](/user/make-a-project-an-ares-project) for agent setup |
 | Scanner detects the wrong package name | The most-frequent-package heuristic picks a utility package instead of the student's main package | Specify `theSupervisedCodeUsesTheFollowingPackage` explicitly in the security policy YAML |
 | Scanner finds no test classes | Java source files do not contain `@Test` or `@Property` annotations (or `extends TestCase`), or files are not under the test source directory | Specify `theFollowingClassesAreTestClasses` explicitly in the security policy YAML (note: with a policy present, test classes come **only** from the policy — the scanner is not consulted) |
 | `SecurityException` from `PathLocationProvider` — "can only be used on classes annotated with…" | The test class using `PathLocationProvider` is missing the `@StudentCompiledClassesPath` annotation | Add `@StudentCompiledClassesPath("build/classes/java/main")` to the test class |

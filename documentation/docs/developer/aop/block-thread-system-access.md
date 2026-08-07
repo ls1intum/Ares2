@@ -1,44 +1,16 @@
-# Thread System Security Mechanism
-
-## Table of Contents
-
-1. [High-Level Overview](#1-high-level-overview)
-   - [1.1 Complete Validation Flow Diagram](#11-complete-validation-flow-diagram)
-   - [1.2 Configuration Settings](#12-configuration-settings)
-   - [1.3 Summary: When Is Thread Creation Blocked?](#13-summary-when-is-thread-creation-blocked)
-   - [1.4 What Code Is Trusted vs. Restricted?](#14-what-code-is-trusted-vs-restricted)
-2. [Ares Monitors Thread System Methods](#2-ares-monitors-thread-system-methods)
-   - [2.1 THREAD SYSTEM - CREATE Operations (With Parameters)](#21-thread-system---create-operations-with-parameters)
-   - [2.2 THREAD SYSTEM - CREATE Operations (Without Parameters)](#22-thread-system---create-operations-without-parameters)
-3. [Student Code Triggers Security Check](#3-student-code-triggers-security-check)
-4. [Ares Collects Information About the Thread Creation](#4-ares-collects-information-about-the-thread-creation)
-   - [4.1 Which Method Was Called?](#41-which-method-was-called)
-   - [4.2 What's the Current State of the Object?](#42-whats-the-current-state-of-the-object)
-   - [4.3 What Parameters Were Passed?](#43-what-parameters-were-passed)
-   - [4.4 Information Passed to Security Validator](#44-information-passed-to-security-validator)
-5. [Ares Validates the Thread Creation](#5-ares-validates-the-thread-creation)
-   - [5.1 Check 1: Is Security Enabled?](#51-check-1-is-security-enabled)
-   - [5.2 Check 2: Does the Call Come from Student Code?](#52-check-2-does-the-call-come-from-student-code)
-     - [5.2.1 Load Configuration](#521-load-configuration)
-     - [5.2.2 Analyse the Call Chain](#522-analyse-the-call-chain)
-     - [5.2.3 Find Which Test Called the Student Code](#523-find-which-test-called-the-student-code)
-   - [5.3 Check 3: Extract and Validate Thread Classes from Parameters](#53-check-3-extract-and-validate-thread-classes-from-parameters)
-     - [5.3.1 Load List of Allowed Thread Classes](#531-load-list-of-allowed-thread-classes)
-     - [5.3.2 Convert Variable to Thread Class Name](#532-convert-variable-to-thread-class-name)
-     - [5.3.3 Check if Thread Class is Forbidden](#533-check-if-thread-class-is-forbidden)
-   - [5.4 Check 4: Extract and Validate Thread Classes from Object State](#54-check-4-extract-and-validate-thread-classes-from-object-state)
-   - [5.5 Check 5: Block Access with Detailed Error Message](#55-check-5-block-access-with-detailed-error-message)
-6. [Conclusion](#6-conclusion)
-
+---
+title: "Blocking Thread Creation (AOP)"
+sidebar_position: 3
+description: "How the AOP layer intercepts and evaluates thread creation and manipulation."
 ---
 
-# 1. High-Level Overview
+## 1. High-Level Overview
 
 This document describes how Ares 2 prevents unauthorised thread creation in student code.
 
 ---
 
-## 1.1 Complete Validation Flow Diagram
+### 1.1 Complete Validation Flow Diagram
 
 **Legend throughout the document:**
 - **🟢 Green** = Access allowed (no security violation)
@@ -54,7 +26,7 @@ The validation flow is similar to the file system security mechanism but adapted
 
 ---
 
-## 1.2 Configuration Settings
+### 1.2 Configuration Settings
 
 Security policies are configured through settings that instructors can adjust:
 
@@ -72,7 +44,7 @@ Security policies are configured through settings that instructors can adjust:
 
 ---
 
-## 1.3 Summary: When Is Thread Creation Blocked?
+### 1.3 Summary: When Is Thread Creation Blocked?
 
 Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 
@@ -90,7 +62,7 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 
 ---
 
-## 1.4 What Code Is Trusted vs. Restricted?
+### 1.4 What Code Is Trusted vs. Restricted?
 
 **Trusted Code (No Restrictions):**
 - Code outside the `restrictedPackage`
@@ -107,7 +79,7 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 
 ---
 
-# 2. Ares Monitors Thread System Methods
+## 2. Ares Monitors Thread System Methods
 
 **What is AOP?** AOP (Aspect-Oriented Programming) is a technique that automatically runs security checks before certain methods execute, without modifying the student code. Think of it like a security guard checking IDs before people enter a building - the building code doesn't change, but everyone gets checked automatically when interacting with the building.
 
@@ -137,7 +109,7 @@ Both implementations set up "checkpoints" that activate **before** the thread op
 
 ---
 
-## 2.1 THREAD SYSTEM - CREATE Operations (With Parameters)
+### 2.1 THREAD SYSTEM - CREATE Operations (With Parameters)
 
 **Security Component:** Thread creation monitor (methods that receive task/runnable as parameter)
 
@@ -171,7 +143,7 @@ These extra signatures exist only in the AspectJ pointcuts (`JavaAspectJThreadSy
 
 ---
 
-## 2.2 THREAD SYSTEM - CREATE Operations (Without Parameters)
+### 2.2 THREAD SYSTEM - CREATE Operations (Without Parameters)
 
 **Security Component:** Thread creation monitor (methods that start threads without task parameter)
 
@@ -189,7 +161,7 @@ These extra signatures exist only in the AspectJ pointcuts (`JavaAspectJThreadSy
 
 ---
 
-# 3. Student Code Triggers Security Check
+## 3. Student Code Triggers Security Check
 
 When student code (any code within the configured restricted package) calls one of these monitored methods, Ares automatically performs a security check **before** the thread operation executes.
 
@@ -218,7 +190,7 @@ Ares then checks whether the student is allowed to create a thread with a `Lambd
 
 ---
 
-# 4. Ares Collects Information About the Thread Creation
+## 4. Ares Collects Information About the Thread Creation
 
 The security monitor collects information about what's happening: Which method is being called, what task/runnable is being submitted, and where in the student code this is happening.
 
@@ -251,7 +223,7 @@ Thread tasks can appear in **different places** depending on how the method is u
 
 ---
 
-## 4.1 Which Method Was Called?
+### 4.1 Which Method Was Called?
 
 **1. What Information Do We Collect:**
 
@@ -309,7 +281,7 @@ public void checkThreadSystemInteraction(
 
 ---
 
-## 4.2 What's the Current State of the Object?
+### 4.2 What's the Current State of the Object?
 
 **1. What Information Do We Collect:**
 
@@ -392,7 +364,7 @@ When the receiver is a `Thread`, a dedicated branch in `variableToClassname(...)
 
 ---
 
-## 4.3 What Parameters Were Passed?
+### 4.3 What Parameters Were Passed?
 
 **1. What Information Do We Collect:**
 
@@ -430,7 +402,7 @@ public void checkThreadSystemInteraction(
 
 ---
 
-## 4.4 Information Passed to Security Validator
+### 4.4 Information Passed to Security Validator
 
 After collecting this information, Ares passes it to the security validation component.
 
@@ -485,7 +457,7 @@ The action type is **hardcoded** based on which methods are intercepted:
 
 ---
 
-# 5. Ares Validates the Thread Creation
+## 5. Ares Validates the Thread Creation
 
 The security validator performs a **series of checks** to decide whether the thread operation should be allowed or blocked.
 
@@ -508,7 +480,7 @@ The subsections below describe the main checks in detail: 5.1 covers step 2, 5.2
 
 ---
 
-## 5.1 Check 1: Is Security Enabled?
+### 5.1 Check 1: Is Security Enabled?
 
 **1. Purpose**
 
@@ -550,11 +522,11 @@ if (aopMode == null || !aopMode.equals("ASPECTJ")) {
 
 ---
 
-## 5.2 Check 2: Does the Call Come from Student Code?
+### 5.2 Check 2: Does the Call Come from Student Code?
 
 This check determines whether the thread operation was triggered by restricted student code or by trusted framework code. It consists of three sub-steps:
 
-### 5.2.1 Load Configuration
+#### 5.2.1 Load Configuration
 
 **1. Purpose**
 
@@ -576,7 +548,7 @@ String[] allowedClasses = getValueFromSettings("allowedListedClasses");
 
 Configuration loaded → 🌕 **Continue to 5.2.2**
 
-### 5.2.2 Analyse the Call Chain
+#### 5.2.2 Analyse the Call Chain
 
 **1. Purpose**
 
@@ -667,7 +639,7 @@ if (violatingMethod == null) {
 - Found student code calling the thread operation → Returns method name like `"de.student.StudentCode.exploit"` → 🌕 **Continue to 5.2.3**
 - No student code found in call chain → Returns `null` → 🟢 **Allow operation** (called from test framework or trusted code - analysis terminated)
 
-### 5.2.3 Find Which Test Called the Student Code
+#### 5.2.3 Find Which Test Called the Student Code
 
 **1. Purpose**
 
@@ -700,11 +672,11 @@ Test method identified → Stored for error message → 🌕 **Continue to Check
 
 ---
 
-## 5.3 Check 3: Extract and Validate Thread Classes from Parameters
+### 5.3 Check 3: Extract and Validate Thread Classes from Parameters
 
 This check finds all thread task classes in method parameters and validates them against the allowed thread classes list. It consists of three sub-steps:
 
-### 5.3.1 Load List of Allowed Thread Classes
+#### 5.3.1 Load List of Allowed Thread Classes
 
 **1. Purpose**
 
@@ -731,7 +703,7 @@ if (threadClassAllowedToBeCreated.length != threadNumberAllowedToBeCreated.lengt
 
 Allowed thread classes list loaded → 🌕 **Continue to 5.3.2**
 
-### 5.3.2 Convert Variable to Thread Class Name
+#### 5.3.2 Convert Variable to Thread Class Name
 
 **1. Purpose**
 
@@ -848,7 +820,7 @@ If both reflection and Unsafe fail, a SecurityException escapes to `variableToCl
 
 Class name extracted (e.g., `"Lambda-Expression"` or `"com.example.MyRunnable"`) → 🌕 **Continue to 5.3.3**
 
-### 5.3.3 Check if Thread Class is Forbidden
+#### 5.3.3 Check if Thread Class is Forbidden
 
 **1. Purpose**
 
@@ -970,7 +942,7 @@ private static boolean handleFoundClassIsForbidden(int[] allowedThreadNumbers, i
 
 ---
 
-## 5.4 Check 4: Extract and Validate Thread Classes from Object State
+### 5.4 Check 4: Extract and Validate Thread Classes from Object State
 
 **1. Purpose**
 
@@ -1016,7 +988,7 @@ For `Thread.start()`, the receiver `Thread` branch in `variableToClassname(...)`
 
 ---
 
-## 5.5 Check 5: Block Access with Detailed Error Message
+### 5.5 Check 5: Block Access with Detailed Error Message
 
 🔴 **Security Exception Thrown - Analysis Terminated**
 
@@ -1071,9 +1043,9 @@ Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.Student
 
 ---
 
-# 6. Conclusion
+## 6. Conclusion
 
-## Summary for Programming Instructors (TL;DR)
+### Summary for Programming Instructors (TL;DR)
 
 **What does Ares do?**
 - ✅ Monitors **thread creation methods** automatically (Thread, ExecutorService, CompletableFuture, ForkJoinPool, etc.): 37 class-method pairs in instrumentation mode, 52 woven signatures in AspectJ mode
@@ -1105,7 +1077,7 @@ Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.Student
 
 ---
 
-## Technical Details
+### Technical Details
 
 The thread system security mechanism provides **comprehensive protection** through:
 

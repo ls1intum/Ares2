@@ -1,59 +1,24 @@
-# Ares-Protected Student Exercise Manual
+---
+title: "Making a Project an Ares Project"
+sidebar_position: 7
+description: "Step-by-step guide to adding Ares 2 to an exercise repository, for Gradle and Maven."
+---
 
 > **Audience:** IT-Education experts with no security background.
 > **Scope:** The `build.gradle` and `pom.xml` files.
 > **Ares Version:** 2.1.1
 
-> **Note:** This guide is a **setup guide**. It covers adding the Ares dependency, attaching the agent, configuring the build tool so that Ares can run, and rejecting student classes that would impersonate trusted code. For writing security policies that control what student code can do, see the [Security Policy Manual](policy/SecurityPolicyManual.md).
+> **Note:** This guide is a **setup guide**. It covers adding the Ares dependency, attaching the agent, configuring the build tool so that Ares can run, and rejecting student classes that would impersonate trusted code. For writing security policies that control what student code can do, see the [Security Policy Manual](security/policy-manual.md).
 
-> **In a hurry?** Two complete, runnable exercises live in [`examples/`](../examples): [`ares-exercise-gradle`](../examples/ares-exercise-gradle) and [`ares-exercise-maven`](../examples/ares-exercise-maven). Copy one and adapt it. This manual explains what each part of them does and why.
+> **In a hurry?** Two complete, runnable exercises live in [`examples/`](https://github.com/ls1intum/Ares2/tree/main/examples): [`ares-exercise-gradle`](https://github.com/ls1intum/Ares2/tree/main/examples/ares-exercise-gradle) and [`ares-exercise-maven`](https://github.com/ls1intum/Ares2/tree/main/examples/ares-exercise-maven). Copy one and adapt it. This manual explains what each part of them does and why.
 
-> **Coming from Ares 1?** If you are converting an existing `de.tum.in.ase:artemis-java-test-sandbox` exercise, start from [How to Convert an Ares 1 Project into an Ares 2 Project](HowToConvertAnAres1ProjectIntoAnAres2Project.md) instead. It is self-contained and covers everything this manual does, plus the annotation-to-policy translation.
+> **Coming from Ares 1?** If you are converting an existing `de.tum.in.ase:artemis-java-test-sandbox` exercise, start from [How to Convert an Ares 1 Project into an Ares 2 Project](convert-ares1-to-ares2.md) instead. It is self-contained and covers everything this manual does, plus the annotation-to-policy translation.
 
 **Related documentation:**
-- [How to Convert an Ares 1 Project into an Ares 2 Project](HowToConvertAnAres1ProjectIntoAnAres2Project.md), the migration guide for existing Ares 1 exercises
-- [Security Policy Manual](policy/SecurityPolicyManual.md), which explains how to write a security policy YAML file
-- [Security Policy Reader and Director Manual](policy/SecurityPolicyReaderAndDirectorManual.md), which describes the internal processing pipeline
-- [Enforcement Model](policy/EnforcementModel.md), which defines what static analysis and the runtime layer are each responsible for, and specifies the reserved-package build boundary
-
----
-
-## Table of Contents
-
-1. [Prerequisites](#1-prerequisites)
-2. [Purpose: what problem does this solve?](#2-purpose-what-problem-does-this-solve)
-3. [Add Ares dependencies and agent setup](#3-add-ares-dependencies-and-agent-setup)
-   - [3.1 Gradle (recommended)](#31-gradle-recommended)
-     - [3.1.1 Configure repository lookup](#311-configure-repository-lookup)
-     - [3.1.2 Declare the versions once](#312-declare-the-versions-once)
-     - [3.1.3 Configure the Ares agent configurations](#313-configure-the-ares-agent-configurations)
-     - [3.1.4 Add Ares dependencies](#314-add-ares-dependencies)
-     - [3.1.5 Attach the agent to test execution](#315-attach-the-agent-to-test-execution)
-     - [3.1.6 How compile-time weaving works](#316-how-compile-time-weaving-works)
-   - [3.2 Maven (alternative)](#32-maven-alternative)
-     - [3.2.1 Declare the versions once](#321-declare-the-versions-once)
-     - [3.2.2 Add Ares dependencies](#322-add-ares-dependencies)
-     - [3.2.3 Copy the agent and the AspectJ runtime to a known path](#323-copy-the-agent-and-the-aspectj-runtime-to-a-known-path)
-     - [3.2.4 Attach the agent via maven-surefire-plugin](#324-attach-the-agent-via-maven-surefire-plugin)
-     - [3.2.5 Configure AspectJ compile-time weaving](#325-configure-aspectj-compile-time-weaving)
-4. [Reject student classes in reserved packages](#4-reject-student-classes-in-reserved-packages)
-   - [4.1 Gradle](#41-gradle)
-   - [4.2 Maven](#42-maven)
-   - [4.3 What this boundary does not defend against](#43-what-this-boundary-does-not-defend-against)
-5. [Verify your setup](#5-verify-your-setup)
-   - [5.1 Start from a runnable example](#51-start-from-a-runnable-example)
-   - [5.2 The two controls that matter](#52-the-two-controls-that-matter)
-   - [5.3 What a green run does and does not prove](#53-what-a-green-run-does-and-does-not-prove)
-6. [Exercises without a `@Policy` annotation](#6-exercises-without-a-policy-annotation)
-   - [6.1 When Ares is active at all](#61-when-ares-is-active-at-all)
-   - [6.2 What the policy-free configuration actually restricts](#62-what-the-policy-free-configuration-actually-restricts)
-   - [6.3 What it derives from the project, and why that matters](#63-what-it-derives-from-the-project-and-why-that-matters)
-   - [6.4 When to use it](#64-when-to-use-it)
-7. [Next steps](#7-next-steps)
-8. [Troubleshooting](#8-troubleshooting)
-9. [Glossary](#9-glossary)
-10. [Appendix A: complete `build.gradle`](#10-appendix-a-complete-buildgradle)
-11. [Appendix B: complete `pom.xml`](#11-appendix-b-complete-pomxml)
+- [How to Convert an Ares 1 Project into an Ares 2 Project](convert-ares1-to-ares2.md), the migration guide for existing Ares 1 exercises
+- [Security Policy Manual](security/policy-manual.md), which explains how to write a security policy YAML file
+- [Security Policy Reader and Director Manual](/developer/policy/reader-and-director), which describes the internal processing pipeline
+- [Enforcement Model](/developer/policy/enforcement-model), which defines what static analysis and the runtime layer are each responsible for, and specifies the reserved-package build boundary
 
 ---
 
@@ -448,7 +413,7 @@ Your build must run the AspectJ compiler to weave the Ares security aspects into
 
 **This section is required.** Ares trusts a number of runtime identities **by name**, including its own `de.tum.cit.ase.ares.api` package and the platform namespaces. If a student can put a class into one of those packages, that class inherits the trust and every other check can be walked around. The build must therefore refuse to compile student output into a reserved package.
 
-The [Enforcement Model](policy/EnforcementModel.md) specifies this boundary and calls it a deployment prerequisite, not an optional Ares runtime feature. Ares ships the executable snippets, so copy them rather than writing your own:
+The [Enforcement Model](/developer/policy/enforcement-model) specifies this boundary and calls it a deployment prerequisite, not an optional Ares runtime feature. Ares ships the executable snippets, so copy them rather than writing your own:
 
 - `configuration/reservedPackages/GradleReservedPackages.gradle`
 - `configuration/reservedPackages/MavenReservedPackages.xml`
@@ -507,7 +472,7 @@ A setup check is only worth running if it can fail for the right reason. The exa
 Two details make this a genuine test rather than a reassuring one:
 
 1. **The forbidden read must happen in supervised code, not in the test.** A test class named in `theFollowingClassesAreTestClasses` is exempt from enforcement, so a read performed by the test itself is *supposed* to succeed. Put the read in the student-facing class and let the test assert the exception.
-2. **The policy must permit one file in the domain, not zero.** This is the part that is easy to get wrong. Ares adds a static deny-all rule only while a domain has **no** allowance ([Enforcement Model](policy/EnforcementModel.md)). Under a fully restrictive file policy, ArchUnit or WALA rejects the operation before any runtime mechanism is consulted, so the negative control passes even with `-javaagent` removed and the weaving switched off, and it proves nothing. Granting exactly one permitted file makes the runtime layer authoritative for that domain, and only then does the negative control actually exercise the agent or the woven aspects.
+2. **The policy must permit one file in the domain, not zero.** This is the part that is easy to get wrong. Ares adds a static deny-all rule only while a domain has **no** allowance ([Enforcement Model](/developer/policy/enforcement-model)). Under a fully restrictive file policy, ArchUnit or WALA rejects the operation before any runtime mechanism is consulted, so the negative control passes even with `-javaagent` removed and the weaving switched off, and it proves nothing. Granting exactly one permitted file makes the runtime layer authoritative for that domain, and only then does the negative control actually exercise the agent or the woven aspects.
 
 A correct run is therefore **green**, and contains an asserted rejection. It is not a failed build.
 
@@ -607,7 +572,7 @@ Neither is a defect in the fallback; it is what a fallback with no instructor in
 
 ## 7. Next steps
 
-1. **Create a security policy and annotate tests:** follow the [Security Policy Manual](policy/SecurityPolicyManual.md), which explains how to write `SecurityPolicy.yaml` files and apply `@Policy` to your tests. If your exercise needs no resource access at all, [Section 6](#6-exercises-without-a-policy-annotation) describes the alternative.
+1. **Create a security policy and annotate tests:** follow the [Security Policy Manual](security/policy-manual.md), which explains how to write `SecurityPolicy.yaml` files and apply `@Policy` to your tests. If your exercise needs no resource access at all, [Section 6](#6-exercises-without-a-policy-annotation) describes the alternative.
 2. **Choose the right configuration:** select one of the eight `ProgrammingLanguageConfiguration` values matching your build tool, architecture analysis and runtime enforcement:
 
 | Value | Build Tool | Static Analysis | Runtime Enforcement |
@@ -673,7 +638,7 @@ Neither is a defect in the fallback; it is what a fallback with no instructor in
 
 ## 10. Appendix A: complete `build.gradle`
 
-The working version of this file, together with the sources and policy it refers to, is [`examples/ares-exercise-gradle`](../examples/ares-exercise-gradle).
+The working version of this file, together with the sources and policy it refers to, is [`examples/ares-exercise-gradle`](https://github.com/ls1intum/Ares2/tree/main/examples/ares-exercise-gradle).
 
 ```gradle
 import org.gradle.api.tasks.InputFiles
@@ -767,7 +732,7 @@ apply from: 'gradle/AresReservedPackages.gradle'
 
 ## 11. Appendix B: complete `pom.xml`
 
-The working version of this file is [`examples/ares-exercise-maven`](../examples/ares-exercise-maven).
+The working version of this file is [`examples/ares-exercise-maven`](https://github.com/ls1intum/Ares2/tree/main/examples/ares-exercise-maven).
 
 ```xml
 <project xmlns="http://maven.apache.org/POM/4.0.0">

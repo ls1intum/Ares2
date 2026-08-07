@@ -1,54 +1,13 @@
-<a id="file-system-security-mechanism"></a>
-# File System Security Mechanism
-
-<a id="table-of-contents"></a>
-## Table of Contents
-
-1. [Ares 2 AOP File System Access Control: High-Level Overview](#1-ares-2-aop-file-system-access-control-high-level-overview)
-   - [1.1 How Does The UML Activity Diagram look like?](#11-how-does-the-uml-activity-diagram-look-like)
-   - [1.2 What Is AOP?](#12-what-is-aop)
-   - [1.3 Which AOP Modes / Implementations Are There?](#13-which-aop-modes-implementations-are-there)
-   - [1.4 What Are The Internal Configuration Settings?](#14-what-are-the-internal-configuration-settings)
-   - [1.5 When Is File Access Generally Blocked?](#15-when-is-file-access-generally-blocked)
-2. [Ares 2 AOP File System Access Control: Monitored File System Methods](#2-ares-2-aop-file-system-access-control-monitored-file-system-methods)
-   - [2.1 Which Operations Does Ares 2 AOP File System Access Control Monitor?](#21-which-operations-does-ares-2-aop-file-system-access-control-monitor)
-   - [2.2 What Are The Monitored READ Operations?](#22-what-are-the-monitored-read-operations)
-   - [2.3 What Are The Monitored WRITE Operations?](#23-what-are-the-monitored-overwrite-operations)
-   - [2.4 What Are The Monitored CREATE Operations?](#24-what-are-the-monitored-create-operations)
-   - [2.5 What Are The Monitored DELETE Operations?](#25-what-are-the-monitored-delete-operations)
-   - [2.6 What Are The Monitored EXECUTE Operations?](#26-what-are-the-monitored-execute-operations)
-3. [Ares 2 AOP File System Access Control: Student Code Triggers the Access Control Check](#3-ares-2-aop-file-system-access-control-student-code-triggers-the-access-control-check)
-4. [Ares 2 AOP File System Access Control: Collected Information About the File Access](#4-ares-2-aop-file-system-access-control-collected-information-about-the-file-access)
-   - [4.1 What Is The Signature Of The Monitored File System Method?](#41-what-is-the-signature-of-the-monitored-file-system-method)
-   - [4.2 What Are The Attribute Values Of The Object Of The Monitored File System Method?](#42-what-are-the-attribute-values-of-the-object-of-the-monitored-file-system-method)
-   - [4.3 What Are The Parameter Values Of The Monitored File System Method?](#43-what-are-the-parameter-values-of-the-monitored-file-system-method)
-   - [4.4 Which Information Is Passed To The Respective Security Validator?](#44-which-information-is-passed-to-the-respective-security-validator)
-5. [Ares 2 AOP File System Access Control: Blocking Or Allowing The File Access](#5-ares-2-aop-file-system-access-control-blocking-or-allowing-the-file-access)
-   - [5.1 Check 1: Is A Respective AOP Mode Enabled Or Is AOP Fully Disabled?](#51-check-1-is-a-respective-aop-mode-enabled-or-is-aop-fully-disabled)
-   - [5.2 Check 2: Is the Caller Of The Monitored File System Method The Monitored Student Code?](#52-check-2-is-the-caller-of-the-monitored-file-system-method-the-monitored-student-code)
-     - [5.2.1 Load Configuration](#521-load-configuration)
-     - [5.2.2 Analyse the Call Chain](#522-analyse-the-call-chain)
-     - [5.2.3 Find Which Test Called the Student Code](#523-find-which-test-called-the-student-code)
-   - [5.3 Check 3: Which Operations Does The Monitored File System Method Wants To Conduct?](#53-check-3-which-operations-does-the-monitored-file-system-method-wants-to-conduct)
-   - [5.4 Check 4: Which Paths Does The Monitored File System Method Wants To Access?](#54-check-4-which-paths-does-the-monitored-file-system-method-wants-to-access)
-     - [5.4.1 Load List of Allowed Paths](#541-load-list-of-allowed-paths)
-     - [5.4.2 Apply Special Rules for Specific Methods](#542-apply-special-rules-for-specific-methods)
-     - [5.4.3 Check Method Parameters for File Paths](#543-check-method-parameters-for-file-paths)
-     - [5.4.4 Check Object State for File Paths](#544-check-object-state-for-file-paths)
-     - [5.4.5 Allow Ares Internal Files](#545-allow-ares-internal-files)
-   - [5.5 Check 5: Block Access with Detailed Error Message](#55-check-5-block-access-with-detailed-error-message)
-6. [Ares 2 AOP File System Access Control: Operation Type Classification](#6-ares-2-aop-file-system-access-control-operation-type-classification)
-   - [6.1 Category A: OpenOptions Prioritisation](#61-category-a-openoptions-prioritisation)
-   - [6.2 Category B: RandomAccessFile Mode Detection](#62-category-b-randomaccessfile-mode-detection)
-   - [6.3 Category C: Preparatory Operations](#63-category-c-preparatory-operations)
-   - [6.4 Category D: Wrong Subsystem](#64-category-d-wrong-subsystem)
-7. [Ares 2 AOP File System Access Control: Conclusion](#7-ares-2-aop-file-system-access-control-conclusion)
-   - [7.1 Technical Details](#71-technical-details)
-
+---
+title: "Blocking File System Access (AOP)"
+sidebar_position: 1
+description: "How the AOP layer intercepts and evaluates file system operations."
 ---
 
-<a id="1-ares-2-aop-file-system-access-control-high-level-overview"></a>
-# 1. Ares 2 AOP File System Access Control: High-Level Overview
+<a id="file-system-security-mechanism"></a>
+
+<a id="table-of-contents"></a>
+## 1. Ares 2 AOP File System Access Control: High-Level Overview
 
 This document explains how Ares 2 decides whether student code may access the file system through a set of monitored file system methods. It checks:
 - The caller of the monitored file system method
@@ -57,7 +16,7 @@ This document explains how Ares 2 decides whether student code may access the fi
 
 ---
 
-## Summary for Programming Instructors (TL;DR)
+### Summary for Programming Instructors (TL;DR)
 
 **What does Ares do?**
 - ✅ Monitors a **broad set of file system APIs** automatically (Read, Write, Create, Delete, Execute)
@@ -80,7 +39,7 @@ This document explains how Ares 2 decides whether student code may access the fi
 
 ---
 
-## Comparison: AOP vs. Architecture
+### Comparison: AOP vs. Architecture
 
 | Aspect | AOP (Byte Buddy/AspectJ) | Architecture (ArchUnit/WALA) |
 |--------|--------------------------|------------------------------|
@@ -97,19 +56,19 @@ This document explains how Ares 2 decides whether student code may access the fi
 ---
 
 <a id="11-how-does-the-uml-activity-diagram-look-like"></a>
-## 1.1 How Does The UML Activity Diagram look like?
+### 1.1 How Does The UML Activity Diagram look like?
 
 Below is a general overview of the process for deciding whether to allow or block file access as a UML activity diagram. Throughout this document, you will find the following symbols:
 - **🔴 Red** = File access blocked (security policy violation detected)
 - **🌕 Yellow** = Intermediate condition met → continue to the next verification step
 - **🟢 Green** = File access permitted (no security policy violation detected)
 
-![File System Security Validation Flow](BlockFileSystemAccessAOP.drawio.png)
+![File System Security Validation Flow](./BlockFileSystemAccessAOP.drawio.png)
 
 ---
 
 <a id="12-what-is-aop"></a>
-## 1.2 What Is AOP?
+### 1.2 What Is AOP?
 
 AOP (Aspect-Oriented Programming) is a technique that automatically runs security checks before certain methods execute, without modifying the student code. Think of it like a security guard checking IDs before people enter a building - the building code doesn't change, but everyone gets checked automatically when interacting with the building.
 
@@ -133,7 +92,7 @@ public void readFile(String path) {
 ---
 
 <a id="13-which-aop-modes-implementations-are-there"></a>
-## 1.3 Which AOP Modes / Implementations Are There?
+### 1.3 Which AOP Modes / Implementations Are There?
 
 Ares automatically monitors file system operations by intercepting specific Java methods using one of two AOP implementations:
 
@@ -145,7 +104,7 @@ Both implementations set up "checkpoints" that activate **before** the file oper
 ---
 
 <a id="14-what-are-the-internal-configuration-settings"></a>
-## 1.4 What Are The Internal Configuration Settings?
+### 1.4 What Are The Internal Configuration Settings?
 
 Instructors define file system access policies in a policy file, and Ares 2 translates them into the following runtime settings (allowlists are folder prefixes; only paths below them are permitted):
 
@@ -163,7 +122,7 @@ Instructors define file system access policies in a policy file, and Ares 2 tran
 ---
 
 <a id="15-when-is-file-access-generally-blocked"></a>
-## 1.5 When Is File Access Generally Blocked?
+### 1.5 When Is File Access Generally Blocked?
 
 **Access is BLOCKED 🔴 if ALL of the following conditions apply:**
 
@@ -190,10 +149,10 @@ In summary, Ares trusts code when:
 ---
 
 <a id="2-ares-2-aop-file-system-access-control-monitored-file-system-methods"></a>
-# 2. Ares 2 AOP File System Access Control: Monitored File System Methods
+## 2. Ares 2 AOP File System Access Control: Monitored File System Methods
 
 <a id="21-which-operations-does-ares-2-aop-file-system-access-control-monitor"></a>
-## 2.1 Which Operations Does Ares 2 AOP File System Access Control Monitor?
+### 2.1 Which Operations Does Ares 2 AOP File System Access Control Monitor?
 
 Ares classifies file system interactions into five action types. These labels drive which allowlist is checked.
 
@@ -208,7 +167,7 @@ Some APIs can appear under multiple actions because they imply more than one per
 ---
 
 <a id="22-what-are-the-monitored-read-operations"></a>
-## 2.2 What Are The Monitored READ Operations?
+### 2.2 What Are The Monitored READ Operations?
 
 **Security Component:** Read operation monitor
 
@@ -328,7 +287,7 @@ Read APIs listed below access file contents or metadata without modifying them.
 ---
 
 <a id="23-what-are-the-monitored-overwrite-operations"></a>
-## 2.3 What Are The Monitored WRITE Operations?
+### 2.3 What Are The Monitored WRITE Operations?
 
 **Security Component:** Write operation monitor
 
@@ -447,7 +406,7 @@ Write APIs listed below modify existing content or attributes.
 ---
 
 <a id="24-what-are-the-monitored-create-operations"></a>
-## 2.4 What Are The Monitored CREATE Operations?
+### 2.4 What Are The Monitored CREATE Operations?
 
 **Security Component:** Create operation monitor
 
@@ -494,7 +453,7 @@ Link creation APIs and conditional creates (e.g., `FileChannel.open` with create
 ---
 
 <a id="25-what-are-the-monitored-delete-operations"></a>
-## 2.5 What Are The Monitored DELETE Operations?
+### 2.5 What Are The Monitored DELETE Operations?
 
 **Security Component:** Delete operation monitor
 
@@ -537,7 +496,7 @@ Delete APIs listed below can remove files and empty directories.
 ---
 
 <a id="26-what-are-the-monitored-execute-operations"></a>
-## 2.6 What Are The Monitored EXECUTE Operations?
+### 2.6 What Are The Monitored EXECUTE Operations?
 
 **What does "Execute" mean?** File system actions that trigger execution-like behaviour such as loading native libraries or opening files with their default programmes (e.g., `Runtime.load(...)`, `System.loadLibrary(...)`, or `Desktop.open(...)`). Process spawning (`Runtime.exec(...)`, `ProcessBuilder.start(...)`) is handled by the Command System.
 
@@ -573,7 +532,7 @@ Execute APIs listed below trigger execution-like behaviour on files.
 ---
 
 <a id="3-ares-2-aop-file-system-access-control-student-code-triggers-the-access-control-check"></a>
-# 3. Ares 2 AOP File System Access Control: Student Code Triggers the Access Control Check
+## 3. Ares 2 AOP File System Access Control: Student Code Triggers the Access Control Check
 
 When student code (any code within the configured restricted package) calls one of these monitored methods, Ares automatically performs a security check **before** the file operation executes.
 
@@ -602,7 +561,7 @@ Ares then checks whether the student is allowed to access `Path.of("/etc/passwd"
 ---
 
 <a id="4-ares-2-aop-file-system-access-control-collected-information-about-the-file-access"></a>
-# 4. Ares 2 AOP File System Access Control: Collected Information About the File Access
+## 4. Ares 2 AOP File System Access Control: Collected Information About the File Access
 
 The security monitor collects information about what's happening: Which method is being called, what file path is being accessed, and where in the student code this is happening.
 
@@ -636,7 +595,7 @@ File paths can appear in **different places** depending on how the method is use
 ---
 
 <a id="41-what-is-the-signature-of-the-monitored-file-system-method"></a>
-## 4.1 What Is The Signature Of The Monitored File System Method?
+### 4.1 What Is The Signature Of The Monitored File System Method?
 
 **1. What Information Do We Collect:**
 
@@ -695,7 +654,7 @@ public void checkFileSystemInteraction(
 ---
 
 <a id="42-what-are-the-attribute-values-of-the-object-of-the-monitored-file-system-method"></a>
-## 4.2 What Are The Attribute Values Of The Object Of The Monitored File System Method?
+### 4.2 What Are The Attribute Values Of The Object Of The Monitored File System Method?
 
 **1. What Information Do We Collect:**
 
@@ -762,7 +721,7 @@ for (int i = 0; i < fields.length; i++) {
 ---
 
 <a id="43-what-are-the-parameter-values-of-the-monitored-file-system-method"></a>
-## 4.3 What Are The Parameter Values Of The Monitored File System Method?
+### 4.3 What Are The Parameter Values Of The Monitored File System Method?
 
 **1. What Information Do We Collect:**
 
@@ -801,7 +760,7 @@ public void checkFileSystemInteraction(
 ---
 
 <a id="44-which-information-is-passed-to-the-respective-security-validator"></a>
-## 4.4 Which Information Is Passed To The Respective Security Validator?
+### 4.4 Which Information Is Passed To The Respective Security Validator?
 
 After collecting this information, Ares passes it to the security validation component.
 
@@ -872,7 +831,7 @@ The action type is **hardcoded** based on which methods are intercepted:
 ---
 
 <a id="5-ares-2-aop-file-system-access-control-blocking-or-allowing-the-file-access"></a>
-# 5. Ares 2 AOP File System Access Control: Blocking Or Allowing The File Access
+## 5. Ares 2 AOP File System Access Control: Blocking Or Allowing The File Access
 
 The security validator performs a **series of checks** to decide whether the file operation should be allowed or blocked.
 
@@ -887,7 +846,7 @@ The security validator performs a **series of checks** to decide whether the fil
 ---
 
 <a id="51-check-1-is-a-respective-aop-mode-enabled-or-is-aop-fully-disabled"></a>
-## 5.1 Check 1: Is A Respective AOP Mode Enabled Or Is AOP Fully Disabled?
+### 5.1 Check 1: Is A Respective AOP Mode Enabled Or Is AOP Fully Disabled?
 
 **1. Purpose**
 
@@ -937,12 +896,12 @@ The instrumentation backend additionally returns early when `restrictedPackage` 
 ---
 
 <a id="52-check-2-is-the-caller-of-the-monitored-file-system-method-the-monitored-student-code"></a>
-## 5.2 Check 2: Is the Caller Of The Monitored File System Method The Monitored Student Code?
+### 5.2 Check 2: Is the Caller Of The Monitored File System Method The Monitored Student Code?
 
 This check determines whether the file operation was triggered by restricted student code or by trusted framework code. It consists of three sub-steps:
 
 <a id="521-load-configuration"></a>
-### 5.2.1 Load Configuration
+#### 5.2.1 Load Configuration
 
 **1. Purpose**
 
@@ -965,7 +924,7 @@ String[] allowedClasses = getValueFromSettings("allowedListedClasses");
 Configuration loaded → 🌕 **Continue to 5.2.2**
 
 <a id="522-analyse-the-call-chain"></a>
-### 5.2.2 Analyse the Call Chain
+#### 5.2.2 Analyse the Call Chain
 
 **1. Purpose**
 
@@ -1060,7 +1019,7 @@ if (violatingMethod == null) {
 - No student code found in call chain → Returns `null` → 🟢 **Allow operation** (called from test framework or trusted code - analysis terminated)
 
 <a id="523-find-which-test-called-the-student-code"></a>
-### 5.2.3 Find Which Test Called the Student Code
+#### 5.2.3 Find Which Test Called the Student Code
 
 **1. Purpose**
 
@@ -1094,7 +1053,7 @@ Test method identified → Stored for error message → 🌕 **Continue to Check
 ---
 
 <a id="53-check-3-which-operations-does-the-monitored-file-system-method-wants-to-conduct"></a>
-## 5.3 Check 3: Which Operations Does The Monitored File System Method Wants To Conduct?
+### 5.3 Check 3: Which Operations Does The Monitored File System Method Wants To Conduct?
 
 **1. Purpose**
 
@@ -1172,7 +1131,7 @@ List of actions to validate (e.g., `[("overwrite", true)]` for `CREATE`+`WRITE`,
 ---
 
 <a id="54-check-4-which-paths-does-the-monitored-file-system-method-wants-to-access"></a>
-## 5.4 Check 4: Which Paths Does The Monitored File System Method Wants To Access?
+### 5.4 Check 4: Which Paths Does The Monitored File System Method Wants To Access?
 
 This check finds all file paths involved in the operation and validates them against the allowed paths list. It consists of five sub-steps:
 
@@ -1184,7 +1143,7 @@ This check finds all file paths involved in the operation and validates them aga
 5. **5.4.5** Exception for Ares-internal files (so Ares itself can function)
 
 <a id="541-load-list-of-allowed-paths"></a>
-### 5.4.1 Load List of Allowed Paths
+#### 5.4.1 Load List of Allowed Paths
 
 **1. Purpose**
 
@@ -1214,7 +1173,7 @@ String[] allowedPaths = getValueFromSettings(
 Allowed paths list loaded → 🌕 **Continue to 5.4.2**
 
 <a id="542-apply-special-rules-for-specific-methods"></a>
-### 5.4.2 Apply Special Rules for Specific Methods
+#### 5.4.2 Apply Special Rules for Specific Methods
 
 **1. Purpose**
 
@@ -1269,7 +1228,7 @@ Object[] filteredParameters = filterVariables(parameters, parameterIgnoreRule);
 Filtered variables ready for path validation → 🌕 **Continue to 5.4.3**
 
 <a id="543-check-method-parameters-for-file-paths"></a>
-### 5.4.3 Check Method Parameters for File Paths
+#### 5.4.3 Check Method Parameters for File Paths
 
 **1. Purpose**
 
@@ -1341,7 +1300,7 @@ for (Object variable : filteredVariables) {
 - Forbidden path found → Record violation → 🌕 **Continue to 5.4.5** (check if Ares internal)
 
 <a id="544-check-object-state-for-file-paths"></a>
-### 5.4.4 Check Object State for File Paths
+#### 5.4.4 Check Object State for File Paths
 
 **1. Purpose**
 
@@ -1364,7 +1323,7 @@ Extract and validate all file paths from the object's internal state. This step 
 - Forbidden path found → Record violation → 🌕 **Continue to 5.4.5** (check if Ares internal)
 
 <a id="545-allow-ares-internal-files"></a>
-### 5.4.5 Allow Ares Internal Files
+#### 5.4.5 Allow Ares Internal Files
 
 **1. Purpose**
 
@@ -1418,7 +1377,7 @@ This exemption is applied at **all three** check sites: parameter-based, receive
 ---
 
 <a id="55-check-5-block-access-with-detailed-error-message"></a>
-## 5.5 Check 5: Block Access with Detailed Error Message
+### 5.5 Check 5: Block Access with Detailed Error Message
 
 🔴 **Security Exception Thrown - Analysis Terminated**
 
@@ -1463,12 +1422,12 @@ Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.Student
 ---
 
 <a id="6-ares-2-aop-file-system-access-control-operation-type-classification"></a>
-# 6. Ares 2 AOP File System Access Control: Operation Type Classification
+## 6. Ares 2 AOP File System Access Control: Operation Type Classification
 
 This section explains why the **detected operation type** may differ from the **intuitively expected operation** based on the API being tested. Understanding these categories is essential for correctly configuring security expectations in test scenarios.
 
 <a id="61-category-a-openoptions-prioritisation"></a>
-## 6.1 Category A: OpenOptions Prioritisation
+### 6.1 Category A: OpenOptions Prioritisation
 
 **Problem:** When multiple `StandardOpenOption` values are passed to NIO methods, certain options take precedence over others in the `deriveActionChecks()` method.
 
@@ -1520,7 +1479,7 @@ The Byte Buddy backend (`JavaInstrumentationAdviceFileSystemToolbox.java`) imple
 | FileSystemWriteAccess#14 | overwrite | read | `MappedByteBuffer` requires `FileChannel.open(READ)` first |
 
 <a id="62-category-b-randomaccessfile-mode-detection"></a>
-## 6.2 Category B: RandomAccessFile Mode Detection
+### 6.2 Category B: RandomAccessFile Mode Detection
 
 **Problem:** `RandomAccessFile` uses mode strings (`"r"`, `"rw"`, `"rws"`, `"rwd"`) instead of `StandardOpenOption`, requiring special handling.
 
@@ -1559,7 +1518,7 @@ private static String getRandomAccessFileModeAction(Object[] parameters, String 
 | FileSystemDeleteAccess#11 | delete | overwrite | `RandomAccessFile` with "rw" blocks before delete can occur |
 
 <a id="63-category-c-preparatory-operations"></a>
-## 6.3 Category C: Preparatory Operations
+### 6.3 Category C: Preparatory Operations
 
 **Problem:** Some test methods require preparatory file system operations before the main intended operation. Ares blocks the **first** forbidden operation encountered.
 
@@ -1589,7 +1548,7 @@ When a test method calls multiple file system APIs in sequence, Ares intercepts 
 | FileSystemExecuteAccess#5 | execute | create | `File.createTempFile` | createTempOutputFile() for inheritIO |
 
 <a id="64-category-d-wrong-subsystem"></a>
-## 6.4 Category D: Wrong Subsystem
+### 6.4 Category D: Wrong Subsystem
 
 **Problem:** Some file system operations trigger security checks in **other subsystems** (e.g., Thread system) before the file system check can occur.
 
@@ -1610,10 +1569,10 @@ When a test method calls multiple file system APIs in sequence, Ares intercepts 
 ---
 
 <a id="7-ares-2-aop-file-system-access-control-conclusion"></a>
-# 7. Ares 2 AOP File System Access Control: Conclusion
+## 7. Ares 2 AOP File System Access Control: Conclusion
 
 <a id="71-technical-details"></a>
-## 7.1 Technical Details
+### 7.1 Technical Details
 
 The file system security mechanism provides **comprehensive protection** through:
 

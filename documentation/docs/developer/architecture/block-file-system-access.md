@@ -1,40 +1,13 @@
-<a id="file-system-security-mechanism"></a>
-# Ares 2 Architecture File System Access Control: File System Security Mechanism (Architecture Analysis)
-
-<a id="table-of-contents"></a>
-## Table of Contents
-
-1. [Ares 2 Architecture File System Access Control: High-Level Overview](#1-ares-2-architecture-file-system-access-control-high-level-overview)
-   - [1.1 What Does the UML Activity Diagram Look Like?](#11-what-does-the-uml-activity-diagram-look-like)
-   - [1.2 What Is Architecture Testing?](#12-what-is-architecture-testing)
-   - [1.3 Which Architecture Modes / Implementations Are There?](#13-which-architecture-modes--implementations-are-there)
-   - [1.4 What Are The Internal Configuration Settings?](#14-what-are-the-internal-configuration-settings)
-   - [1.5 When Is File Access Generally Blocked?](#15-when-is-file-access-generally-blocked)
-2. [Ares 2 Architecture File System Access Control: Ares Monitors FileSystem Methods](#2-ares-2-architecture-file-system-access-control-ares-monitors-file system-methods)
-   - [2.1 Which Operations Does Ares 2 Architecture File System Access Control Monitor?](#21-which-operations-does-ares-2-architecture-file-system-access-control-monitor)
-   - [2.2 What Are The Monitored READ Operations?](#22-what-are-the-monitored-read-operations)
-   - [2.3 What Are The Monitored WRITE/OVERWRITE Operations?](#23-what-are-the-monitored-writeoverwrite-operations)
-   - [2.4 What Are The Monitored CREATE Operations?](#24-what-are-the-monitored-create-operations)
-   - [2.5 What Are The Monitored DELETE Operations?](#25-what-are-the-monitored-delete-operations)
-   - [2.6 What Are The Monitored EXECUTE Operations?](#26-what-are-the-monitored-execute-operations)
-3. [Ares 2 Architecture File System Access Control: Student Code Triggers Security Check](#3-ares-2-architecture-file-system-access-control-student-code-triggers-security-check)
-4. [Ares 2 Architecture File System Access Control: Ares Collects Information About the File Access](#4-ares-2-architecture-file-system-access-control-ares-collects-information-about-the-file-access)
-   - [4.1 Loading Java Classes (ArchUnit)](#41-loading-java-classes-archunit)
-   - [4.2 Building the Call Graph (WALA)](#42-building-the-call-graph-wala)
-5. [Ares 2 Architecture File System Access Control: Ares Validates the File Access](#5-ares-2-architecture-file-system-access-control-ares-validates-the-file-access)
-   - [5.1 ArchUnit Mode: Static Analysis](#51-archunit-mode-static-analysis)
-   - [5.2 WALA Mode: Call Graph Analysis](#52-wala-mode-call-graph-analysis)
-   - [5.3 Transitive Access Detection](#53-transitive-access-detection)
-   - [5.4 Reachability Analysis (WALA)](#54-reachability-analysis-wala)
-   - [5.5 False Positive Filtering (WALA)](#55-false-positive-filtering-wala)
-6. [Ares 2 Architecture File System Access Control: Operation Type Classification](#6-ares-2-architecture-file-system-access-control-operation-type-classification)
-7. [Ares 2 Architecture File System Access Control: Conclusion](#7-ares-2-architecture-file-system-access-control-conclusion)
-   - [7.1 Technical Details](#71-technical-details)
-
+---
+title: "Blocking File System Access (Architecture)"
+sidebar_position: 1
+description: "How the architecture layer detects file system access statically, with ArchUnit and WALA."
 ---
 
-<a id="1-ares-2-architecture-file-system-access-control-high-level-overview"></a>
-# 1. Ares 2 Architecture File System Access Control: High-Level Overview
+<a id="file-system-security-mechanism"></a>
+
+<a id="table-of-contents"></a>
+## 1. Ares 2 Architecture File System Access Control: High-Level Overview
 
 This document explains how Ares 2 decides whether student code may access the file system through static code analysis. It checks:
 - The code structure for file system method calls
@@ -48,7 +21,7 @@ representative non-matching paths; see `docs/policy/EnforcementModel.md`.
 
 ---
 
-## Summary for Programming Instructors (TL;DR)
+### Summary for Programming Instructors (TL;DR)
 
 **What does Architecture Testing do?**
 - ✅ Analyses **compiled bytecode** to detect forbidden file system operations
@@ -71,7 +44,7 @@ representative non-matching paths; see `docs/policy/EnforcementModel.md`.
 
 ---
 
-## Comparison: Architecture vs. AOP
+### Comparison: Architecture vs. AOP
 
 | Aspect | Architecture (ArchUnit/WALA) | AOP (Byte Buddy/AspectJ) |
 |--------|------------------------------|---------------------------|
@@ -88,7 +61,7 @@ representative non-matching paths; see `docs/policy/EnforcementModel.md`.
 ---
 
 <a id="11-what-does-the-uml-activity-diagram-look-like"></a>
-## 1.1 What Does the UML Activity Diagram Look Like?
+### 1.1 What Does the UML Activity Diagram Look Like?
 
 Below is a general overview of the process for deciding whether to allow or block file access as a UML activity diagram. Throughout this document, you will find the following symbols:
 - **🔴 Red** = File access blocked (security policy violation detected)
@@ -100,7 +73,7 @@ Diagram note: the rendered PNG is not committed in this repository snapshot. The
 ---
 
 <a id="12-what-is-architecture-testing"></a>
-## 1.2 What Is Architecture Testing?
+### 1.2 What Is Architecture Testing?
 
 Architecture Testing is a technique that validates code follows specific structural rules by analysing compiled bytecode **before** execution. Think of it like a building inspector reviewing building plans before construction to ensure doors don't open into forbidden areas - the code doesn't run, but the structure gets checked automatically.
 
@@ -127,7 +100,7 @@ public void readFile(String path) {
 ---
 
 <a id="13-which-architecture-modes--implementations-are-there"></a>
-## 1.3 Which Architecture Modes / Implementations Are There?
+### 1.3 Which Architecture Modes / Implementations Are There?
 
 Ares automatically detects file system operations by analysing compiled bytecode using one of two Architecture implementations:
 
@@ -146,7 +119,7 @@ Both implementations analyse the **code structure** to find forbidden method cal
 ---
 
 <a id="14-what-are-the-internal-configuration-settings"></a>
-## 1.4 What Are The Internal Configuration Settings?
+### 1.4 What Are The Internal Configuration Settings?
 
 Instructors define architecture policies, and Ares 2 translates them into the following analysis settings:
 
@@ -168,7 +141,7 @@ Instructors define architecture policies, and Ares 2 translates them into the fo
 ---
 
 <a id="15-when-is-file-access-generally-blocked"></a>
-## 1.5 When Is File Access Generally Blocked?
+### 1.5 When Is File Access Generally Blocked?
 
 **Access is BLOCKED 🔴 if ALL of the following conditions apply:**
 
@@ -201,10 +174,10 @@ In summary, Ares trusts code when:
 ---
 
 <a id="2-ares-2-architecture-file-system-access-control-ares-monitors-file system-methods"></a>
-# 2. Ares 2 Architecture File System Access Control: Ares Monitors FileSystem Methods
+## 2. Ares 2 Architecture File System Access Control: Ares Monitors FileSystem Methods
 
 <a id="21-which-operations-does-ares-2-architecture-file-system-access-control-monitor"></a>
-## 2.1 Which Operations Does Ares 2 Architecture File System Access Control Monitor?
+### 2.1 Which Operations Does Ares 2 Architecture File System Access Control Monitor?
 
 For documentation purposes, this chapter groups the monitored file system interactions into five action types. These labels are a documentation-level organisation only: at analysis time each mode reads ONE flat methods file and feeds it into ONE rule ("Accesses file system", the `NO_CLASS_MUST_ACCESS_FILE_SYSTEM` rule / the corresponding `WalaRule`), without any READ/WRITE/CREATE/DELETE/EXECUTE distinction.
 
@@ -227,7 +200,7 @@ ArchUnit and WALA modes monitor largely overlapping, but not identical, sets of 
 ---
 
 <a id="22-what-are-the-monitored-read-operations"></a>
-## 2.2 What Are The Monitored READ Operations?
+### 2.2 What Are The Monitored READ Operations?
 
 **Security Component:** Read operation monitor
 
@@ -350,7 +323,7 @@ Read APIs listed below access file contents or metadata without modifying them.
 ---
 
 <a id="23-what-are-the-monitored-writeoverwrite-operations"></a>
-## 2.3 What Are The Monitored WRITE/OVERWRITE Operations?
+### 2.3 What Are The Monitored WRITE/OVERWRITE Operations?
 
 **Security Component:** Write operation monitor
 
@@ -467,7 +440,7 @@ Write APIs listed below modify existing content or attributes.
 ---
 
 <a id="24-what-are-the-monitored-create-operations"></a>
-## 2.4 What Are The Monitored CREATE Operations?
+### 2.4 What Are The Monitored CREATE Operations?
 
 **Security Component:** Create operation monitor
 
@@ -512,7 +485,7 @@ Link creation APIs and conditional creates are listed under Creates files.
 ---
 
 <a id="25-what-are-the-monitored-delete-operations"></a>
-## 2.5 What Are The Monitored DELETE Operations?
+### 2.5 What Are The Monitored DELETE Operations?
 
 **Security Component:** Delete operation monitor
 
@@ -554,7 +527,7 @@ Delete APIs listed below can remove files and empty directories.
 ---
 
 <a id="26-what-are-the-monitored-execute-operations"></a>
-## 2.6 What Are The Monitored EXECUTE Operations?
+### 2.6 What Are The Monitored EXECUTE Operations?
 
 **What does "Execute" mean?** File-system entries that trigger execution-like behaviour such as loading a native library or asking the desktop environment to open/browse/print a file or URI. Command-spawning APIs such as `Runtime.exec(...)`, `ProcessBuilder.start()`, and `ProcessBuilder.startPipeline()` are part of the Command System architecture rule, not this file-system rule.
 
@@ -591,7 +564,7 @@ Execute APIs listed below trigger execution-like behaviour on files.
 ---
 
 <a id="3-ares-2-architecture-file-system-access-control-student-code-triggers-security-check"></a>
-# 3. Ares 2 Architecture File System Access Control: Student Code Triggers Security Check
+## 3. Ares 2 Architecture File System Access Control: Student Code Triggers Security Check
 
 When student code (any code within the configured restricted package) attempts to use one of these file system methods, the architecture analysis will detect it during the test phase.
 
@@ -633,14 +606,14 @@ public class StudentSolution {
 ---
 
 <a id="4-ares-2-architecture-file-system-access-control-ares-collects-information-about-the-file-access"></a>
-# 4. Ares 2 Architecture File System Access Control: Ares Collects Information About the File Access
+## 4. Ares 2 Architecture File System Access Control: Ares Collects Information About the File Access
 
 During architecture analysis, Ares collects information about the code structure to detect file system access patterns.
 
 ---
 
 <a id="41-loading-java-classes-archunit"></a>
-## 4.1 Loading Java Classes (ArchUnit)
+### 4.1 Loading Java Classes (ArchUnit)
 
 **Framework:** TNGs ArchUnit (https://www.archunit.org/)
 
@@ -684,7 +657,7 @@ A separate variant exists for the generated-template path (`JavaArchunitTestCase
 ---
 
 <a id="42-building-the-call-graph-wala"></a>
-## 4.2 Building the Call Graph (WALA)
+### 4.2 Building the Call Graph (WALA)
 
 **Framework:** IBM WALA (T.J. Watson Libraries for Analysis)
 
@@ -807,12 +780,12 @@ CallGraph:
 ---
 
 <a id="5-ares-2-architecture-file-system-access-control-ares-validates-the-file-access"></a>
-# 5. Ares 2 Architecture File System Access Control: Ares Validates the File Access
+## 5. Ares 2 Architecture File System Access Control: Ares Validates the File Access
 
 ---
 
 <a id="51-archunit-mode-static-analysis"></a>
-## 5.1 ArchUnit Mode: Static Analysis
+### 5.1 ArchUnit Mode: Static Analysis
 
 **How it works:**
 ```java
@@ -919,7 +892,7 @@ Method <de.student.StudentCode.exploit()> transitively accesses <java.io.FileInp
 ---
 
 <a id="52-wala-mode-call-graph-analysis"></a>
-## 5.2 WALA Mode: Call Graph Analysis
+### 5.2 WALA Mode: Call Graph Analysis
 
 **How it works:**
 
@@ -975,7 +948,7 @@ class StudentCode {
 ---
 
 <a id="53-transitive-access-detection"></a>
-## 5.3 Transitive Access Detection
+### 5.3 Transitive Access Detection
 
 **How TransitivelyAccessesMethodsCondition Works:**
 
@@ -1020,7 +993,7 @@ Result: Path found = [StudentCode.main → Helper.processData → Files.readStri
 ---
 
 <a id="54-reachability-analysis-wala"></a>
-## 5.4 Reachability Analysis (WALA)
+### 5.4 Reachability Analysis (WALA)
 
 **Step 4: Find Paths to Forbidden Methods**
 
@@ -1075,7 +1048,7 @@ Path: [StudentCode.processData, Helper.loadConfig, FileInputStream.<init>]
 ---
 
 <a id="55-false-positive-filtering-wala"></a>
-## 5.5 False Positive Filtering (WALA)
+### 5.5 False Positive Filtering (WALA)
 
 **Challenge:** Permitted JDK and framework APIs can internally reach forbidden methods (for example, wrapping a stream in a `BufferedReader` routes through JDK internals). Reporting such paths would blame students for JDK implementation details.
 
@@ -1135,7 +1108,7 @@ Result: VIOLATION (direct call, never suppressed)
 Because `nearestStudentFrame` scans from the sink backwards, the reported caller is always the student method closest to the forbidden call, even when the actual invocation happens several JDK frames deeper. Paths routed through project test helpers (`anonymous.toolclasses.`, `metatest.`) are NOT treated as false positives: those helpers exist to exercise forbidden APIs, so suppressing them would silently disable detection.
 
 <a id="6-ares-2-architecture-file-system-access-control-operation-type-classification"></a>
-# 6. Ares 2 Architecture File System Access Control: Operation Type Classification
+## 6. Ares 2 Architecture File System Access Control: Operation Type Classification
 
 This section explains how the documentation groups file-system methods differently from AOP-based runtime analysis. Understanding this distinction is essential for correctly interpreting analysis results.
 
@@ -1163,10 +1136,10 @@ Unlike AOP, which can analyse runtime parameters (like `StandardOpenOption` valu
 ---
 
 <a id="7-ares-2-architecture-file-system-access-control-conclusion"></a>
-# 7. Ares 2 Architecture File System Access Control: Conclusion
+## 7. Ares 2 Architecture File System Access Control: Conclusion
 
 <a id="71-technical-details"></a>
-## 7.1 Technical Details
+### 7.1 Technical Details
 
 The file system security mechanism provides **comprehensive protection** through:
 

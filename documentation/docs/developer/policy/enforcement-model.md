@@ -1,4 +1,8 @@
-# Ares 2 enforcement model
+---
+title: "Enforcement Model"
+sidebar_position: 1
+description: "How static and runtime responsibilities are divided, project discovery, and the reserved package build boundary."
+---
 
 ## Static and runtime responsibility
 
@@ -123,4 +127,11 @@ are never merged, so an additive configuration must be consolidated into one
 complete policy per scope.
 
 A step-by-step migration, including the complete build configuration, is in
-[HowToConvertAnAres1ProjectIntoAnAres2Project.md](../HowToConvertAnAres1ProjectIntoAnAres2Project.md).
+[HowToConvertAnAres1ProjectIntoAnAres2Project.md](/user/convert-ares1-to-ares2).
+
+## See also
+
+- [Security Policy Manual](/user/security/policy-manual) — the policy file from the
+  instructor's point of view
+- [Policy Reader and Director](./reader-and-director.md) — how the policy is parsed and
+  dispatched

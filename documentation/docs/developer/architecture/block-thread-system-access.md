@@ -1,36 +1,10 @@
-# Thread System Security Mechanism (Architecture Analysis)
-
-## Table of Contents
-
-1. [High-Level Overview](#1-high-level-overview)
-   - [1.1 Architecture Analysis Approach](#11-architecture-analysis-approach)
-   - [1.2 Configuration Settings](#12-configuration-settings)
-   - [1.3 Summary: When Is Thread Manipulation Blocked?](#13-summary-when-is-thread-manipulation-blocked)
-   - [1.4 What Code Is Trusted vs. Restricted?](#14-what-code-is-trusted-vs-restricted)
-2. [Ares Monitors Thread Methods](#2-ares-monitors-thread-methods)
-   - [2.1 ArchUnit Mode (Static Dependency Analysis)](#21-archunit-mode-static-dependency-analysis)
-   - [2.2 WALA Mode (Call Graph Analysis)](#22-wala-mode-call-graph-analysis)
-3. [Monitored Thread System Methods](#3-monitored-thread-system-methods)
-   - [3.1 THREAD SYSTEM - CREATE Operations (With Parameters)](#31-thread-system---create-operations-with-parameters)
-   - [3.2 THREAD SYSTEM - CREATE Operations (Without Parameters)](#32-thread-system---create-operations-without-parameters)
-4. [ArchUnit Analysis Flow](#4-archunit-analysis-flow)
-   - [4.1 Loading Java Classes](#41-loading-java-classes)
-   - [4.2 Defining Architecture Rules](#42-defining-architecture-rules)
-   - [4.3 Executing Rules](#43-executing-rules)
-   - [4.4 Transitive Access Detection](#44-transitive-access-detection)
-5. [WALA Analysis Flow](#5-wala-analysis-flow)
-   - [5.1 Building the Call Graph](#51-building-the-call-graph)
-   - [5.2 Finding Entry Points](#52-finding-entry-points)
-   - [5.3 Rule Checking with WalaRule](#53-rule-checking-with-walarule)
-   - [5.4 Path Classification and False Positive Filtering](#54-path-classification-and-false-positive-filtering)
-6. [Test Case Generation](#6-test-case-generation)
-   - [6.1 Writing Architecture Test Cases](#61-writing-architecture-test-cases)
-   - [6.2 Executing Architecture Test Cases](#62-executing-architecture-test-cases)
-7. [Conclusion](#7-conclusion)
-
+---
+title: "Blocking Thread Creation (Architecture)"
+sidebar_position: 3
+description: "How the architecture layer detects thread manipulation statically, with ArchUnit and WALA."
 ---
 
-# 1. High-Level Overview
+## 1. High-Level Overview
 
 This document describes how Ares 2 prevents unauthorised thread creation in student code using **static code analysis** techniques via Architecture Testing frameworks.
 
@@ -45,7 +19,7 @@ class and quota and rejecting other creation; see `docs/policy/EnforcementModel.
 
 ---
 
-## 1.1 Architecture Analysis Approach
+### 1.1 Architecture Analysis Approach
 
 **What is Architecture Testing?**
 
@@ -57,13 +31,13 @@ Architecture testing validates that code follows specific structural rules by an
 
 **Two Analysis Frameworks:**
 
-### **ArchUnit (Static Analysis)**
+#### **ArchUnit (Static Analysis)**
 - **Type**: Pure static analysis using ArchUnit framework
 - **Strength**: Fast, no call graph needed
 - **Method**: Analyses class dependencies and method calls in compiled bytecode
 - **Use Case**: Detecting direct and transitive method access patterns to thread creation APIs
 
-### **WALA (Call Graph Analysis)**
+#### **WALA (Call Graph Analysis)**
 - **Type**: Static analysis with call graph modelling using IBM WALA framework
 - **Strength**: Precise call path detection, understands complex call chains
 - **Method**: Builds a call graph representing all possible method invocations
@@ -82,7 +56,7 @@ Architecture testing validates that code follows specific structural rules by an
 
 ---
 
-## 1.2 Configuration Settings
+### 1.2 Configuration Settings
 
 Security policies are configured through settings that instructors can adjust:
 
@@ -102,7 +76,7 @@ Security policies are configured through settings that instructors can adjust:
 
 ---
 
-## 1.3 Summary: When Is Thread Manipulation Blocked?
+### 1.3 Summary: When Is Thread Manipulation Blocked?
 
 Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 
@@ -125,7 +99,7 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 
 ---
 
-## 1.4 What Code Is Trusted vs. Restricted?
+### 1.4 What Code Is Trusted vs. Restricted?
 
 **Trusted Code (No Restrictions):**
 - Ares internal code (`de.tum.cit.ase.ares.api.*` is excluded from the ArchUnit import and classified as infrastructure by WALA)
@@ -143,7 +117,7 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 
 ---
 
-# 2. Ares Monitors Thread Methods
+## 2. Ares Monitors Thread Methods
 
 Each analysis mode loads its forbidden thread methods from its own template file. The two lists overlap in their core (Thread.start, executors, parallel streams) but differ substantially in size and content: the ArchUnit list contains **378 entries**, the WALA list contains **90 entries** (see [Section 3](#3-monitored-thread-system-methods)).
 
@@ -161,7 +135,7 @@ Instead of intercepting method calls at runtime (AOP approach), architecture tes
 
 ---
 
-## 2.1 ArchUnit Mode (Static Dependency Analysis)
+### 2.1 ArchUnit Mode (Static Dependency Analysis)
 
 **Framework:** TNGs ArchUnit (https://www.archunit.org/)
 
@@ -222,7 +196,7 @@ class Helper {
 
 ---
 
-## 2.2 WALA Mode (Call Graph Analysis)
+### 2.2 WALA Mode (Call Graph Analysis)
 
 **Framework:** IBM WALA (T.J. Watson Libraries for Analysis)
 
@@ -314,7 +288,7 @@ With classification:
 
 ---
 
-# 3. Monitored Thread System Methods
+## 3. Monitored Thread System Methods
 
 Each mode loads its forbidden methods from its own template file:
 
@@ -326,7 +300,7 @@ The lists are **not identical**: the WALA list is a focused set of thread creati
 
 ---
 
-## 3.1 THREAD SYSTEM - CREATE Operations (With Parameters)
+### 3.1 THREAD SYSTEM - CREATE Operations (With Parameters)
 
 **Security Component:** Thread creation monitor (methods that receive a task/runnable as parameter)
 
@@ -410,7 +384,7 @@ The lists are **not identical**: the WALA list is a focused set of thread creati
 
 ---
 
-## 3.2 THREAD SYSTEM - CREATE Operations (Without Parameters)
+### 3.2 THREAD SYSTEM - CREATE Operations (Without Parameters)
 
 **Security Component:** Thread creation monitor (methods that start threads without task parameter)
 
@@ -482,9 +456,9 @@ These are the **comprehensive set of APIs** in Java for creating and managing th
 
 ---
 
-# 4. ArchUnit Analysis Flow
+## 4. ArchUnit Analysis Flow
 
-## 4.1 Loading Java Classes
+### 4.1 Loading Java Classes
 
 **Step 1: Import Compiled Classes**
 
@@ -507,7 +481,7 @@ Note: the **generated-template** variant (see [6.1](#61-writing-architecture-tes
 
 ---
 
-## 4.2 Defining Architecture Rules
+### 4.2 Defining Architecture Rules
 
 **Step 2: Create Architecture Rule**
 
@@ -546,7 +520,7 @@ The pre-built constant `JavaArchunitTestCaseCollection.NO_CLASS_MUST_CREATE_THRE
 
 ---
 
-## 4.3 Executing Rules
+### 4.3 Executing Rules
 
 **Step 3: Run Architecture Test**
 
@@ -582,7 +556,7 @@ The outcome (pass or the parsed `SecurityException`) is cached in-memory per (ru
 
 ---
 
-## 4.4 Transitive Access Detection
+### 4.4 Transitive Access Detection
 
 **How TransitivelyAccessesMethodsCondition Works:**
 
@@ -621,9 +595,9 @@ Result: Path found = [StudentCode.processData → Helper.processInParallel → E
 
 ---
 
-# 5. WALA Analysis Flow
+## 5. WALA Analysis Flow
 
-## 5.1 Building the Call Graph
+### 5.1 Building the Call Graph
 
 All steps below are implemented in `CustomCallgraphBuilder`.
 
@@ -688,7 +662,7 @@ CallGraph:
 
 ---
 
-## 5.2 Finding Entry Points
+### 5.2 Finding Entry Points
 
 **Entry Point Selection:**
 
@@ -718,7 +692,7 @@ DefaultEntrypoint(
 
 ---
 
-## 5.3 Rule Checking with WalaRule
+### 5.3 Rule Checking with WalaRule
 
 **Step 4: Check the Rule Against the Call Graph**
 
@@ -756,7 +730,7 @@ Result: AssertionError → parsed into a SecurityException
 
 ---
 
-## 5.4 Path Classification and False Positive Filtering
+### 5.4 Path Classification and False Positive Filtering
 
 **Challenge:** JDK classes extensively use threads internally for legitimate operations:
 - File I/O: directory traversal, asynchronous channels
@@ -852,9 +826,9 @@ With it:
 
 ---
 
-# 6. Test Case Generation
+## 6. Test Case Generation
 
-## 6.1 Writing Architecture Test Cases
+### 6.1 Writing Architecture Test Cases
 
 Architecture test cases can be **generated as Java code** for integration into test suites.
 
@@ -915,7 +889,7 @@ public void threadSystemShouldNotBeAccessed() {
 
 ---
 
-## 6.2 Executing Architecture Test Cases
+### 6.2 Executing Architecture Test Cases
 
 **Direct Execution (Without Code Generation):**
 
@@ -980,9 +954,9 @@ try {
 
 ---
 
-# 7. Conclusion
+## 7. Conclusion
 
-## Summary for Programming Instructors (TL;DR)
+### Summary for Programming Instructors (TL;DR)
 
 **What does Architecture Testing do?**
 - ✅ Analyses **compiled bytecode** to detect forbidden thread creation operations
@@ -1008,7 +982,7 @@ try {
 
 ---
 
-## Comparison: Architecture vs. AOP
+### Comparison: Architecture vs. AOP
 
 | Aspect | Architecture (ArchUnit/WALA) | AOP (Byte Buddy/AspectJ) |
 |--------|------------------------------|--------------------------|
@@ -1025,9 +999,9 @@ try {
 
 ---
 
-## Technical Details
+### Technical Details
 
-### **ArchUnit Mode (Static Analysis)**
+#### **ArchUnit Mode (Static Analysis)**
 
 **Implementation:**
 - Uses ArchUnit's `ArchRule` and custom `TransitivelyAccessesMethodsCondition`
@@ -1049,7 +1023,7 @@ Method <de.student.StudentCode.processAsync()> calls method <java.util.concurren
 
 ---
 
-### **WALA Mode (Call Graph Analysis with Path Classification)**
+#### **WALA Mode (Call Graph Analysis with Path Classification)**
 
 **Implementation:**
 - Builds a call graph using IBM WALA (0-1-CFA, JDK methods kept opaque)
@@ -1072,7 +1046,7 @@ Method <de.student.StudentCode.processAsync()> calls method <java.util.concurren
 
 ---
 
-### **Forbidden Method Templates**
+#### **Forbidden Method Templates**
 
 Both modes load forbidden methods from text files. Every non-empty, non-comment line is one signature; return types are omitted, and `#` comment lines are ignored.
 
@@ -1103,7 +1077,7 @@ java.util.Collection.parallelStream()
 
 ---
 
-### **Integration Example**
+#### **Integration Example**
 
 **Maven Project Setup:**
 ```xml

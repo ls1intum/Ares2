@@ -1,4 +1,8 @@
-# Conceptual weaknesses of the AspectJ engine compared to Instrumentation
+---
+title: "AspectJ versus Instrumentation"
+sidebar_position: 4
+description: "Conceptual weaknesses of the AspectJ engine compared to the instrumentation engine."
+---
 
 Ares enforces a security policy on untrusted student code through two
 interchangeable engines:

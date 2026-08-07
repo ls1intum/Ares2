@@ -1,36 +1,16 @@
-# Security Policy Reader and Director, Manual
+---
+title: "Policy Reader and Director"
+sidebar_position: 2
+description: "How a security policy file is read and turned into the test cases that enforce it."
+---
 
 > **Audience:** IT-Education experts with no security background.
 > **Scope:** All classes inside `SecurityPolicyReaderAndDirector.java`, the `reader` and `director` packages.
 > **Ares Version:** 2.1.1
 
 **Related documentation:**
-- [Security Policy Manual](SecurityPolicyManual.md), how to write a security policy YAML file
-- [How to Make a Project an Ares Project](../HowToMakeAProjectAnAresProject.md), project setup (build.gradle / pom.xml)
-
----
-
-## Table of Contents
-
-1. [Prerequisites](#1-prerequisites)
-2. [Purpose — What Problem Does This Solve?](#2-purpose--what-problem-does-this-solve)
-3. [Architecture Overview](#3-architecture-overview)
-4. [The User Input, Security Policy YAML File](#4-the-user-input-security-policy-yaml-file)
-5. [Reading the Policy — The `reader` Package](#5-reading-the-policy--the-reader-package)
-   - [5.1. SecurityPolicyReader (Abstract Class)](#51-securitypolicyreader-abstract-class)
-   - [5.2. SecurityPolicyYAMLReader (Concrete Class)](#52-securitypolicyyamlreader-concrete-class)
-6. [Directing Test-Case Creation — The `director` Package](#6-directing-test-case-creation--the-director-package)
-   - [6.1. SecurityPolicyDirector (Abstract Class)](#61-securitypolicydirector-abstract-class)
-   - [6.2. SecurityPolicyJavaDirector (Concrete Class)](#62-securitypolicyjavadirector-concrete-class)
-7. [Orchestration — SecurityPolicyReaderAndDirector](#7-orchestration--securitypolicyreaderanddirector)
-   - [7.1. Construction](#71-construction)
-   - [7.2. Three-Step Workflow](#72-three-step-workflow)
-   - [7.3. Null-Safety Strategy](#73-null-safety-strategy)
-8. [Processing Pipeline (Overview)](#8-processing-pipeline-overview)
-9. [End-to-End Example](#9-end-to-end-example)
-10. [Integration with JUnit Extensions](#10-integration-with-junit-extensions)
-11. [Troubleshooting](#11-troubleshooting)
-12. [Glossary](#12-glossary)
+- [Security Policy Manual](/user/security/policy-manual), how to write a security policy YAML file
+- [How to Make a Project an Ares Project](/user/make-a-project-an-ares-project), project setup (build.gradle / pom.xml)
 
 ---
 
@@ -82,8 +62,8 @@ The architecture follows multiple well-known software design patterns. The table
 </details>
 
 > See the accompanying draw.io diagrams for visual class and sequence diagrams:
-> - [SecurityPolicyReaderAndDirectorClassDiagram.drawio](SecurityPolicyReaderAndDirectorClassDiagram.drawio)
-> - [SecurityPolicyReaderAndDirectorSequenceDiagram.drawio](SecurityPolicyReaderAndDirectorSequenceDiagram.drawio)
+> - [SecurityPolicyReaderAndDirectorClassDiagram.drawio](./SecurityPolicyReaderAndDirectorClassDiagram.drawio)
+> - [SecurityPolicyReaderAndDirectorSequenceDiagram.drawio](./SecurityPolicyReaderAndDirectorSequenceDiagram.drawio)
 
 ---
 
@@ -356,7 +336,7 @@ class SecurityTest {
 
 ## 10. Integration with JUnit Extensions
 
-In practice, instructors do not call `SecurityPolicyReaderAndDirector` directly. Instead, they annotate test methods with `@Policy` (see [Security Policy Manual](SecurityPolicyManual.md)), and Ares’s JUnit extension handles the rest:
+In practice, instructors do not call `SecurityPolicyReaderAndDirector` directly. Instead, they annotate test methods with `@Policy` (see [Security Policy Manual](/user/security/policy-manual)), and Ares’s JUnit extension handles the rest:
 
 1. **Before each test method**, `JupiterSecurityExtension` (or `JqwikSecurityExtension`) checks for a `@Policy` annotation on the test method or test class.
 2. It **resets** all previous security settings so that tests are isolated from each other.
@@ -373,13 +353,13 @@ In practice, instructors do not call `SecurityPolicyReaderAndDirector` directly.
 |---------|---------------|----------|
 | `IllegalArgumentException` on test startup mentioning unsupported file format | Policy file does not have `.yaml` or `.yml` extension | Rename the file to use `.yaml` or `.yml` |
 | `SecurityException`, YAML parse error (caused by `StreamReadException`) | Malformed YAML syntax (wrong indentation, tabs, missing colons) | Validate the YAML file with a linter; use spaces only |
-| `SecurityException`, cannot deserialise policy (caused by `DatabindException`) | YAML field names or types do not match the `SecurityPolicy` record schema | Check field names against the [Security Policy Manual](SecurityPolicyManual.md) |
+| `SecurityException`, cannot deserialise policy (caused by `DatabindException`) | YAML field names or types do not match the `SecurityPolicy` record schema | Check field names against the [Security Policy Manual](/user/security/policy-manual) |
 | `SecurityException`, file not found or unreadable | The path in `@Policy(value = "...")` does not point to an existing file. `JupiterSecurityExtension` rejects a non-existent path already when reading the annotation; a read failure inside the YAML reader (caused by `IOException`) is likewise wrapped in a `SecurityException` | Verify the path is correct and relative to the project root |
 | Tests fail with denied resource accesses although no policy was set | `securityPolicyFilePath` is `null`, so the default most-restricted enforcement applies (Section 7.3): file, network, command and thread accesses are denied, and package imports are restricted to the implicit allowlist | Set the policy path to a policy that permits the required accesses, or use `@Policy(activated = false)` to deactivate Ares for the test |
 | `IllegalStateException`, `Ambiguous project: both Maven and Gradle descriptors are active` | No policy was set, so no build mode is explicitly selected, and the project root carries both a `pom.xml` and a Gradle descriptor. Discovery fails before the restrictive fallback of Section 7.3 is reached | Remove the descriptor you do not use, or supply a policy whose configuration names the build tool |
 | `IllegalStateException`, `Unsupported project: no pom.xml, build.gradle or build.gradle.kts` | The project root carries no supported build descriptor, so discovery cannot determine a build mode | Run against the project root that holds the build descriptor, or pass the correct `projectFolderPath` |
 | `IllegalStateException`, `Maven was selected but pom.xml is absent` (or the Gradle equivalent) | A policy names a `JAVA_USING_MAVEN_…` configuration while the project root has no `pom.xml`, or the reverse | Align `theFollowingProgrammingLanguageConfigurationIsUsed` with the build tool the project actually uses |
-| Architecture tests pass but runtime enforcement is missing | Agent JAR not loaded via `-javaagent` | See [How to Make a Project an Ares Project](../HowToMakeAProjectAnAresProject.md) |
+| Architecture tests pass but runtime enforcement is missing | Agent JAR not loaded via `-javaagent` | See [How to Make a Project an Ares Project](/user/make-a-project-an-ares-project) |
 
 ---
 
@@ -396,4 +376,8 @@ In practice, instructors do not call `SecurityPolicyReaderAndDirector` directly.
 | **Facade** | A design pattern that provides a simplified interface to a complex subsystem. |
 | **Strategy Pattern** | A design pattern that defines a family of interchangeable algorithms (here: different readers and directors). |
 
+## See also
 
+This page describes the internals. For the policy file as an instructor writes it, including
+every supported option, see the [Security Policy Manual](/user/security/policy-manual) in the
+user guide.

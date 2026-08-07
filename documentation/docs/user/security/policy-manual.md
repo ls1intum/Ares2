@@ -1,52 +1,16 @@
-# Security Policy Manual for Ares 2
+---
+title: "Security Policy Manual"
+sidebar_position: 5
+description: "Full reference for the Ares 2 security policy file: structure, every supported option and how each is enforced."
+---
 
 > **Audience:** IT-Education experts with no security background.
 > **Scope:** All classes inside `SecurityPolicy.java`, and the `policySubComponents` package.
 > **Ares Version:** 2.1.1
 
 **Related documentation:**
-- [How to Make a Project an Ares Project](../HowToMakeAProjectAnAresProject.md), project setup (build.gradle / pom.xml)
-- [Security Policy Reader and Director Manual](SecurityPolicyReaderAndDirectorManual.md), internal processing pipeline
-
----
-
-## Table of Contents
-
-1. [Prerequisites](#1-prerequisites)
-2. [Purpose: What Problem Does This Solve?](#2-purpose-what-problem-does-this-solve)
-3. [Introduction](#3-introduction)
-   1. [What is a Security Policy?](#31-what-is-a-security-policy)
-4. [Architecture Overview](#4-architecture-overview)
-5. [Quick Start](#5-quick-start)
-   1. [Step 1: Create a Policy File](#51-step-1-create-a-policy-file)
-   2. [Step 2: Apply the Policy to Your Test](#52-step-2-apply-the-policy-to-your-test)
-   3. [Step 3: Run the Tests](#53-step-3-run-the-tests)
-6. [Understanding Security Policies](#6-understanding-security-policies)
-   1. [The Default-Deny Approach](#61-the-default-deny-approach)
-   2. [What Can Be Controlled?](#62-what-can-be-controlled)
-   3. [What Cannot Be Controlled?](#63-what-cannot-be-controlled)
-7. [The Security Policy File](#7-the-security-policy-file)
-   1. [File Format](#71-file-format)
-   2. [Complete Structure](#72-complete-structure)
-   3. [Configuration Options](#73-configuration-options)
-   4. [Supervised Code Package](#74-supervised-code-package)
-   5. [Main Class](#75-main-class)
-   6. [Test Classes](#76-test-classes)
-8. [Permission Types Explained](#8-permission-types-explained)
-   1. [File System Permissions](#81-file-system-permissions)
-   2. [Network Permissions](#82-network-permissions)
-   3. [Command Permissions](#83-command-permissions)
-   4. [Thread Permissions](#84-thread-permissions)
-   5. [Package Permissions](#85-package-permissions)
-   6. [Timeout Permissions](#86-timeout-permissions)
-   7. [Internal Record: `ClassPermission`](#87-internal-record-classpermission)
-9. [Best Practices](#9-best-practices)
-   1. [Security Guidelines](#91-security-guidelines)
-   2. [Documentation Guidelines](#92-documentation-guidelines)
-   3. [Testing Your Policies](#93-testing-your-policies)
-10. [Programmatic API (Java Builder)](#10-programmatic-api-java-builder)
-11. [Troubleshooting](#11-troubleshooting)
-12. [Glossary](#12-glossary)
+- [How to Make a Project an Ares Project](../make-a-project-an-ares-project.md), project setup (build.gradle / pom.xml)
+- [Security Policy Reader and Director Manual](/developer/policy/reader-and-director), internal processing pipeline
 
 ---
 
@@ -73,7 +37,7 @@ This manual covers how to write these policies.
 > belongs to AspectJ or instrumentation. A narrow allowance therefore removes the
 > domain-wide static deny rule, while every non-matching runtime operation remains
 > forbidden. The reviewed interception inventory is maintained in
-> [EnforcementModel.md](EnforcementModel.md).
+> [EnforcementModel.md](/developer/policy/enforcement-model).
 
 ---
 
@@ -110,7 +74,7 @@ The architecture follows multiple well-known software design patterns. The table
 
 </details>
 
-> For detailed information on the internal processing pipeline (readers, directors, test case generation), see the [Security Policy Reader and Director Manual](SecurityPolicyReaderAndDirectorManual.md).
+> For detailed information on the internal processing pipeline (readers, directors, test case generation), see the [Security Policy Reader and Director Manual](/developer/policy/reader-and-director).
 
 ---
 
@@ -758,7 +722,7 @@ Ares Security Error (Reason: Student-Code; Stage: Execution): com.student.Main.r
 | Using **tabs** instead of spaces in YAML | YAML parse error | Use spaces only (2-space indentation recommended) |
 | Wrong `withinPath` for Gradle vs. Maven | Ares analyses or instruments the wrong bytecode path, which can produce missing-class/import errors, fail-closed WALA entry-point errors, or missing runtime coverage for the intended classes | Gradle: `classes/java/main/...`, Maven: `classes/...` |
 | Empty lists `[]` vs. missing field | Varying behaviour | Always include all six `regarding*` lists explicitly, even if empty |
-| Agent not loaded (`-javaagent` missing) | Static analysis works but runtime enforcement does not | See [How to Make a Project an Ares Project](../HowToMakeAProjectAnAresProject.md) |
+| Agent not loaded (`-javaagent` missing) | Static analysis works but runtime enforcement does not | See [How to Make a Project an Ares Project](../make-a-project-an-ares-project.md) |
 | Expecting method-level and class-level `@Policy` to combine | Only the method-level policy applies | A class-level `@Policy` applies to all test methods in the class; a method-level `@Policy` takes precedence over (does not merge with) the class-level one |
 
 ### Runtime Violations
@@ -793,7 +757,7 @@ java.lang.SecurityException: Ares Security Error (Reason: Student-Code; Stage: E
 | YAML parse error on startup | Using **tabs** instead of spaces | Use spaces only (2-space indentation recommended) |
 | Ares analyses or instruments the wrong bytecode path | Wrong `withinPath` for Gradle vs. Maven | Gradle: `classes/java/main/...`, Maven: `classes/...` |
 | Varying behaviour with empty vs. missing fields | Some `regarding*` lists omitted instead of set to `[]` | Always include all six `regarding*` lists explicitly, even if empty |
-| Static analysis works but runtime enforcement does not | Agent not loaded (`-javaagent` missing) | See [How to Make a Project an Ares Project](../HowToMakeAProjectAnAresProject.md) |
+| Static analysis works but runtime enforcement does not | Agent not loaded (`-javaagent` missing) | See [How to Make a Project an Ares Project](../make-a-project-an-ares-project.md) |
 | A different policy applies than expected | Both a method-level and a class-level `@Policy` are present; the method-level one takes precedence (no merging) | Check both annotation levels; class-level `@Policy` applies to all test methods unless a method-level `@Policy` overrides it |
 | `IllegalArgumentException` when loading the policy | A required field is `null`, blank, or out of range | Check validation rules above |
 | `SecurityException` at runtime in student code | Student code accesses a resource not listed in the policy | Either the policy is working as intended, or add the missing permission |
@@ -818,3 +782,15 @@ java.lang.SecurityException: Ares Security Error (Reason: Student-Code; Stage: E
 | **AspectJ** | A compile-time AOP framework that weaves interception code directly into bytecode. |
 | **Instrumentation (ByteBuddy)** | A runtime AOP approach using the `java.lang.instrument` API and ByteBuddy to modify class bytecode at load time. |
 | **Prefix Match** | The matching strategy used by `PackagePermission`. A permitted package `"java.util"` matches any package whose name starts with that string (e.g., `java.util.concurrent`, `java.util.stream`). |
+
+## See also
+
+This page describes the policy file as an instructor writes it. For how Ares 2 reads that
+file and turns it into the tests that enforce it, see the developer guide:
+
+- [Policy Reader and Director](/developer/policy/reader-and-director) — parsing the policy
+  and directing test-case creation
+- [Enforcement Model](/developer/policy/enforcement-model) — the split between static and
+  runtime responsibility, and what the boundary does not defend against
+- [Test Case Factory and Builder](/developer/securitytest/test-case-factory-and-builder) —
+  how a policy becomes generated security tests

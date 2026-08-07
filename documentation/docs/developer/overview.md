@@ -1,4 +1,8 @@
-# Ares2: Package Overview
+---
+title: "Package Overview"
+sidebar_position: 1
+description: "Conceptual overview of every package under de.tum.cit.ase.ares.api."
+---
 
 This document provides a high-level conceptual overview of each package in `src/main/java/de/tum/cit/ase/ares/api/`.
 
