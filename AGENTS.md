@@ -1,6 +1,14 @@
 # AGENTS.md
 
-Repository conventions for automated agents and contributors working on Ares.
+Repository conventions for automated agents and contributors working on Ares 2.
+
+Project structure, build and test commands, coding style and the pull request process are
+maintained in **[CLAUDE.md](./CLAUDE.md)**, the single source of truth for automated coding
+assistants in this repository. Read it first.
+
+The rule below is reproduced here in full because it is the one convention that is regularly
+violated by well-meaning changes, and because getting it wrong produces test failures that
+cannot be diagnosed.
 
 ## Testing network access (incoming and outgoing)
 
